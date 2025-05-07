@@ -1,6 +1,6 @@
-
 import { afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
 // Automatically reset the DOM after each test
 afterEach(() => {
@@ -8,16 +8,17 @@ afterEach(() => {
 });
 
 // Mock the matchMedia function which is not available in JSDOM
-window.matchMedia = window.matchMedia || function() {
-  return {
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
     matches: false,
-    addListener: () => {},
-    removeListener: () => {},
+    media: query,
+    onchange: null,
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => true,
-  };
-};
+  }),
+});
 
 // Mock IntersectionObserver which is not available in JSDOM
 class MockIntersectionObserver {

@@ -1,0 +1,16 @@
+{
+  "buckets": [
+    {
+      "name": "logos",
+      "public": true
+    },
+    {
+      "name": "exports",
+      "public": false
+    },
+    {
+      "name": "audit-pdfs",
+      "public": false
+    }
+  ]
+}

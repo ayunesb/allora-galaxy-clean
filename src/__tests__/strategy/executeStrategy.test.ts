@@ -1,7 +1,7 @@
-
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { executeStrategy } from '@/lib/edge-functions/executeStrategy';
 import { mockSupabase } from '@/lib/__mocks__/supabaseClient';
+import { runStrategy } from '@/lib/strategy/execute';
 
 // Mock the supabase import
 vi.mock('@/integrations/supabase/client', () => ({
@@ -18,6 +18,12 @@ vi.stubGlobal('Deno', {
     }
   }
 });
+
+vi.mock('https', () => ({
+  // Mock implementation for https module
+  request: vi.fn(),
+  get: vi.fn(),
+}));
 
 describe('Execute Strategy Edge Function', () => {
   beforeEach(() => {
@@ -132,3 +138,10 @@ describe('Execute Strategy Edge Function', () => {
     expect(result.error).toContain('strategyId is required');
   });
 });
+
+describe('Execute Strategy', () => {
+  it('should execute a strategy', async () => {
+    const result = await runStrategy('mock-strategy')
+    expect(result.success).toBe(true)
+  })
+})
