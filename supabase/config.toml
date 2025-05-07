@@ -1,1 +1,14 @@
+
 project_id = "ijrnwpgsqsxzqdemtknz"
+
+[functions.updateKPIs]
+verify_jwt = true
+schedule = "@daily"
+
+[functions.syncMQLs]
+verify_jwt = true
+schedule = "@weekly"
+
+[functions.sendMilestoneAlerts]
+verify_jwt = true
+schedule = "0 9 * * 1" # Every Monday at 9am

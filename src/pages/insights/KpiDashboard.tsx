@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -51,6 +51,11 @@ import {
   BarChart as RechartsBarChart,
   Bar,
 } from 'recharts';
+import KPICard from '@/components/KPICard';
+import { useQuery } from '@tanstack/react-query';
+import { fetchKpiTrends, fetchLatestKpis } from '@/lib/kpi/fetchKpiTrends';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 // Mock data for KPI charts
 const revenueData = [
@@ -95,6 +100,38 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#10b981'];
 
 const KpiDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
+  const { toast } = useToast();
+  
+  // Trigger a KPI update
+  const refreshKpis = async () => {
+    try {
+      toast({
+        title: "Refreshing KPIs...",
+        description: "This may take a few moments.",
+      });
+      
+      const { data, error } = await supabase.functions.invoke('updateKPIs');
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      toast({
+        title: "KPIs Updated!",
+        description: "The dashboard has been refreshed with the latest data.",
+      });
+      
+      // Refresh data by refetching queries
+      refetchKpis();
+      
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <div className="container mx-auto py-10 px-4 md:px-6">
@@ -129,7 +166,7 @@ const KpiDashboard: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={refreshKpis}>
             <RefreshCcw className="h-4 w-4 mr-2" />
             Refresh KPIs
           </Button>
