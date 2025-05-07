@@ -9,7 +9,7 @@ import GraphLegend from '@/components/galaxy/GraphLegend';
 import ForceGraph from '@/components/galaxy/ForceGraph';
 import EmptyState from '@/components/galaxy/EmptyState';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
-import { GraphNode, GraphData } from '@/types/galaxy';
+import { GraphNode, GraphData, GraphLink } from '@/types/galaxy';
 
 const GalaxyExplorer: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -25,7 +25,7 @@ const GalaxyExplorer: React.FC = () => {
   useEffect(() => {
     if (graphDataQuery) {
       let filteredNodes: GraphNode[] = [...graphDataQuery.nodes];
-      let filteredLinks = [...graphDataQuery.links];
+      let filteredLinks: GraphLink[] = [...graphDataQuery.links];
       
       // Apply view mode filter
       if (viewMode !== 'all') {
