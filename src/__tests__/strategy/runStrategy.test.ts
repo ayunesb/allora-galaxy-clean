@@ -66,6 +66,18 @@ describe('runStrategy Utility', () => {
     );
   });
   
+  it('should handle null or undefined inputs properly', async () => {
+    // Test undefined input
+    const result1 = await runStrategy(undefined as any);
+    expect(result1.success).toBe(false);
+    expect(result1.error).toBe('Strategy ID is required');
+    
+    // Test null input
+    const result2 = await runStrategy(null as any);
+    expect(result2.success).toBe(false);
+    expect(result2.error).toBe('Strategy ID is required');
+  });
+  
   it('should validate required fields', async () => {
     // Arrange
     const missingStrategyId = {
@@ -137,10 +149,55 @@ describe('runStrategy Utility', () => {
       throw new Error('Logging failed');
     });
     
-    // Act
+    // Act - should not throw despite log failure
     const result = await runStrategy(mockInput);
     
     // Assert
     expect(result.success).toBe(true); // Should still succeed despite logging failure
+  });
+  
+  it('should retry when temporary errors occur', async () => {
+    // Arrange
+    const mockInput: ExecuteStrategyInput = {
+      strategyId: 'strategy-123',
+      tenantId: 'tenant-123',
+      userId: 'user-123'
+    };
+    
+    const supabaseMock = await import('@/integrations/supabase/client');
+    
+    // Mock temporary error then success
+    vi.mocked(supabaseMock.supabase.functions.invoke)
+      .mockImplementationOnce(() => Promise.resolve({
+        data: null,
+        error: { message: 'Temporary error' }
+      }))
+      .mockImplementationOnce(() => Promise.resolve({
+        data: { 
+          success: true,
+          execution_id: 'exec-123-retry',
+          execution_time: 2.5
+        },
+        error: null
+      }));
+    
+    // Mock timer
+    vi.useFakeTimers();
+    
+    // Act - this will run the first attempt, hit an error, then retry automatically
+    const resultPromise = runStrategy(mockInput);
+    
+    // Fast forward past the retry delay
+    vi.advanceTimersByTime(2000);
+    
+    const result = await resultPromise;
+    
+    // Restore real timers
+    vi.useRealTimers();
+    
+    // Assert
+    expect(result.success).toBe(true);
+    expect(supabaseMock.supabase.functions.invoke).toHaveBeenCalledTimes(2);
+    expect(result.execution_id).toBe('exec-123-retry');
   });
 });

@@ -1,27 +1,144 @@
 
-import { describe, it, expect, vi } from 'vitest';
-import { recordExecution } from '@/lib/executions/recordExecution';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { recordExecution, updateExecution, getExecution, getRecentExecutions } from '@/lib/executions/recordExecution';
 import { LogStatus, ExecutionRecordInput } from '@/types/fixed';
+import { supabase } from '@/integrations/supabase/client';
 
+// Mock the Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: { id: 'test-id' }, error: null }),
-  },
+    from: vi.fn(() => ({
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ 
+            data: { id: 'test-execution-id' }, 
+            error: null 
+          }))
+        }))
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn(() => Promise.resolve({ 
+              data: { id: 'test-execution-id', status: 'updated' }, 
+              error: null 
+            }))
+          }))
+        }))
+      })),
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({
+            data: { id: 'test-execution-id', status: 'success' },
+            error: null
+          }))
+        })),
+        order: vi.fn(() => ({
+          limit: vi.fn(() => Promise.resolve({
+            data: [{ id: 'test-execution-1' }, { id: 'test-execution-2' }],
+            error: null
+          }))
+        }))
+      })),
+      eq: vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: vi.fn(() => Promise.resolve({
+            data: [{ id: 'test-execution-1' }, { id: 'test-execution-2' }],
+            error: null
+          }))
+        }))
+      }))
+    })),
+  }
 }));
 
-describe('recordExecution', () => {
-  it('should record an execution', async () => {
+describe('Execution Record Functions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should record a new execution', async () => {
     const input: ExecutionRecordInput = {
       tenantId: 'test-tenant',
       status: 'success' as LogStatus,
       type: 'strategy',
     };
 
-    await recordExecution(input);
+    const result = await recordExecution(input);
     
-    // Assertions would normally go here to verify the function was called with correct arguments
+    expect(result).toBeDefined();
+    expect(result.id).toBe('test-execution-id');
+    expect(supabase.from).toHaveBeenCalledWith('executions');
+  });
+  
+  it('should update an existing execution', async () => {
+    const result = await updateExecution('test-execution-id', {
+      status: 'success' as LogStatus,
+      executionTime: 1.5,
+      xpEarned: 10
+    });
+    
+    expect(result).toBeDefined();
+    expect(result.id).toBe('test-execution-id');
+    expect(result.status).toBe('updated');
+    expect(supabase.from).toHaveBeenCalledWith('executions');
+  });
+  
+  it('should get an execution by ID', async () => {
+    const result = await getExecution('test-execution-id');
+    
+    expect(result).toBeDefined();
+    expect(result?.id).toBe('test-execution-id');
+    expect(result?.status).toBe('success');
+    expect(supabase.from).toHaveBeenCalledWith('executions');
+  });
+  
+  it('should get recent executions for a tenant', async () => {
+    const results = await getRecentExecutions('test-tenant');
+    
+    expect(results).toBeDefined();
+    expect(results.length).toBe(2);
+    expect(results[0].id).toBe('test-execution-1');
+    expect(supabase.from).toHaveBeenCalledWith('executions');
+  });
+  
+  it('should handle retry logic if insert fails', async () => {
+    // Setup mock to fail once then succeed
+    vi.mocked(supabase.from).mockImplementationOnce(() => ({
+      insert: vi.fn(() => {
+        throw new Error('Temporary error');
+      }),
+    } as any)).mockImplementationOnce(() => ({
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ 
+            data: { id: 'retry-success-id' }, 
+            error: null 
+          }))
+        }))
+      })),
+    } as any));
+    
+    // Mock setTimeout to speed up tests
+    const originalSetTimeout = global.setTimeout;
+    global.setTimeout = vi.fn((callback) => {
+      callback();
+      return 1 as any;
+    });
+    
+    const input: ExecutionRecordInput = {
+      tenantId: 'test-tenant',
+      status: 'success' as LogStatus,
+      type: 'strategy',
+    };
+    
+    const result = await recordExecution(input);
+    
+    expect(result).toBeDefined();
+    expect(result.id).toBe('retry-success-id');
+    expect(supabase.from).toHaveBeenCalledTimes(2); // Once for fail, once for success
+    
+    // Restore original setTimeout
+    global.setTimeout = originalSetTimeout;
   });
 });
