@@ -5,7 +5,7 @@
  * @param defaultValue Optional default value if the environment variable is not found
  * @returns The environment variable value or the default value
  */
-export function getEnv(key: string, defaultValue: string = ''): string {
+export function getEnv(key: string, defaultValue: string = ""): string {
   try {
     // Check if we're in Deno environment
     if (typeof globalThis !== 'undefined' && 'Deno' in globalThis && typeof (globalThis as any).Deno?.env?.get === 'function') {
