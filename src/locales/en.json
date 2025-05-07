@@ -57,5 +57,21 @@
     "darkMode": "Dark Mode",
     "saveChanges": "Save Changes",
     "changesSaved": "Settings saved successfully"
+  },
+  "cookies": {
+    "title": "Cookie Preferences",
+    "description": "We use cookies to optimize your experience. Please choose which cookies you'll allow us to use. You can learn more about how we use them in our Privacy Policy.",
+    "googleAnalytics": "Google Analytics (GA4)",
+    "googleAnalyticsDesc": "Helps us understand how you use our app and improve it.",
+    "metaPixel": "Meta Pixel",
+    "metaPixelDesc": "Tracks conversions and optimizes our ad performance.",
+    "sessionAnalytics": "Session Analytics",
+    "sessionAnalyticsDesc": "Records your app usage patterns to enhance user experience.",
+    "acceptAll": "Accept All",
+    "rejectAll": "Reject All",
+    "saveCustom": "Save Preferences",
+    "preferencesUpdated": "Cookie preferences updated",
+    "preferencesUpdatedDesc": "Your cookie preferences have been saved successfully.",
+    "errorSaving": "Error saving preferences"
   }
 }

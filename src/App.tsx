@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MobileNav from "./components/layout/MobileNav";
+import CookieConsent from "./components/CookieConsent";
 
 // Auth
 import AuthPage from "./pages/auth/AuthPage";
@@ -54,6 +55,7 @@ const App = () => (
             <ErrorBoundary>
               <Toaster />
               <Sonner />
+              <CookieConsent />
               <BrowserRouter>
                 <div className="flex min-h-screen">
                   <Routes>

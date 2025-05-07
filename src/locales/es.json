@@ -57,5 +57,21 @@
     "darkMode": "Modo Oscuro",
     "saveChanges": "Guardar Cambios",
     "changesSaved": "Configuración guardada exitosamente"
+  },
+  "cookies": {
+    "title": "Preferencias de Cookies",
+    "description": "Utilizamos cookies para optimizar tu experiencia. Por favor, elige qué cookies nos permites usar. Puedes obtener más información sobre cómo las usamos en nuestra Política de Privacidad.",
+    "googleAnalytics": "Google Analytics (GA4)",
+    "googleAnalyticsDesc": "Nos ayuda a entender cómo usas nuestra aplicación y mejorarla.",
+    "metaPixel": "Meta Pixel",
+    "metaPixelDesc": "Rastrea conversiones y optimiza el rendimiento de nuestros anuncios.",
+    "sessionAnalytics": "Análisis de Sesión",
+    "sessionAnalyticsDesc": "Registra tus patrones de uso de la aplicación para mejorar la experiencia del usuario.",
+    "acceptAll": "Aceptar Todo",
+    "rejectAll": "Rechazar Todo",
+    "saveCustom": "Guardar Preferencias",
+    "preferencesUpdated": "Preferencias de cookies actualizadas",
+    "preferencesUpdatedDesc": "Tus preferencias de cookies se han guardado correctamente.",
+    "errorSaving": "Error al guardar preferencias"
   }
 }

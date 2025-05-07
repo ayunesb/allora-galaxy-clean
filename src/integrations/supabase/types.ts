@@ -9,7 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      cookie_preferences: {
+        Row: {
+          accepted_at: string | null
+          ga4_enabled: boolean | null
+          id: string
+          meta_pixel_enabled: boolean | null
+          session_analytics_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          ga4_enabled?: boolean | null
+          id?: string
+          meta_pixel_enabled?: boolean | null
+          session_analytics_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          ga4_enabled?: boolean | null
+          id?: string
+          meta_pixel_enabled?: boolean | null
+          session_analytics_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
