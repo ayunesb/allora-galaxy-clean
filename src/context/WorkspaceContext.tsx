@@ -112,6 +112,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (tenantError) throw tenantError;
+      
+      if (!tenant) throw new Error('Failed to create tenant');
 
       // Create owner role for the current user
       const { error: roleError } = await supabase
