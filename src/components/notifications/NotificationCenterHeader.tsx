@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 interface NotificationCenterHeaderProps {
   markAllAsRead: () => Promise<void>;
   onClose: () => void;
-  unreadCount?: number; // Added unreadCount as optional prop
+  unreadCount?: number;
 }
 
 const NotificationCenterHeader: React.FC<NotificationCenterHeaderProps> = ({ 

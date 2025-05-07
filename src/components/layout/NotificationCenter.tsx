@@ -18,7 +18,8 @@ const NotificationCenter: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   const handleMarkAsRead = async (id: string) => {
-    await markAsRead(id);
+    const result = await markAsRead(id);
+    return result;
   };
 
   const handleMarkAllAsRead = async () => {

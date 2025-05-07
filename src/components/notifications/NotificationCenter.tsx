@@ -24,13 +24,14 @@ const NotificationCenter: React.FC = () => {
     if (result.success) {
       await refreshNotifications();
     }
+    return result;
   };
 
   const handleClose = () => {
     setOpen(false);
   };
 
-  // Wrap markAllAsRead to return void to match the expected type
+  // Wrap markAllAsRead to return void
   const handleMarkAllAsRead = async (): Promise<void> => {
     await markAllAsRead();
   };
@@ -58,7 +59,7 @@ const NotificationCenter: React.FC = () => {
         <div className="flex flex-col h-[500px]">
           <NotificationCenterHeader 
             unreadCount={unreadCount} 
-            onMarkAllAsRead={handleMarkAllAsRead}
+            markAllAsRead={handleMarkAllAsRead}
             onClose={handleClose}
           />
           

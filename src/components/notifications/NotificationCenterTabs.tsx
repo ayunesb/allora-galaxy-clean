@@ -31,6 +31,16 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
     ? notifications.filter(notification => !notification.read_at)
     : notifications;
 
+  // Convert Notification[] to NotificationContent[]
+  const transformedNotifications = filteredNotifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.message,
+    timestamp: notification.created_at,
+    read: !!notification.read_at,
+    type: notification.type
+  }));
+
   if (loading) {
     return <NotificationCenterLoading />;
   }
@@ -61,10 +71,10 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
       <ScrollArea className="flex-1 px-2">
         <TabsContent value="all" className="m-0 py-2">
           {notifications.length === 0 ? (
-            <NotificationCenterEmptyState />
+            <NotificationCenterEmptyState filter="all" />
           ) : (
             <NotificationList
-              notifications={filteredNotifications}
+              notifications={transformedNotifications}
               markAsRead={markAsRead}
               onNotificationClick={onClose}
             />
@@ -73,10 +83,10 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
         
         <TabsContent value="unread" className="m-0 py-2">
           {unreadCount === 0 ? (
-            <NotificationCenterEmptyState message="You have no unread notifications." />
+            <NotificationCenterEmptyState filter="unread" message="You have no unread notifications." />
           ) : (
             <NotificationList
-              notifications={filteredNotifications}
+              notifications={transformedNotifications}
               markAsRead={markAsRead}
               onNotificationClick={onClose}
             />
