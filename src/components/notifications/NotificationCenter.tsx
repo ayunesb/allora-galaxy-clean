@@ -30,6 +30,11 @@ const NotificationCenter: React.FC = () => {
     setOpen(false);
   };
 
+  // Wrap markAllAsRead to return void to match the expected type
+  const handleMarkAllAsRead = async (): Promise<void> => {
+    await markAllAsRead();
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -53,7 +58,7 @@ const NotificationCenter: React.FC = () => {
         <div className="flex flex-col h-[500px]">
           <NotificationCenterHeader 
             unreadCount={unreadCount} 
-            onMarkAllAsRead={markAllAsRead}
+            onMarkAllAsRead={handleMarkAllAsRead}
             onClose={handleClose}
           />
           
@@ -63,7 +68,7 @@ const NotificationCenter: React.FC = () => {
             markAsRead={handleMarkAsRead}
             onClose={handleClose}
             unreadCount={unreadCount}
-            markAllAsRead={markAllAsRead}
+            markAllAsRead={handleMarkAllAsRead}
           />
         </div>
       </PopoverContent>

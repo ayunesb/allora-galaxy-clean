@@ -6,15 +6,17 @@ import { Button } from '@/components/ui/button';
 interface NotificationCenterHeaderProps {
   markAllAsRead: () => Promise<void>;
   onClose: () => void;
+  unreadCount?: number; // Added unreadCount as optional prop
 }
 
 const NotificationCenterHeader: React.FC<NotificationCenterHeaderProps> = ({ 
   markAllAsRead, 
-  onClose 
+  onClose,
+  unreadCount 
 }) => {
   return (
     <div className="flex items-center justify-between px-4 py-2">
-      <h2 className="text-sm font-medium">Notifications</h2>
+      <h2 className="text-sm font-medium">Notifications {unreadCount ? `(${unreadCount})` : ''}</h2>
       <div className="flex space-x-1">
         <Button 
           variant="ghost" 

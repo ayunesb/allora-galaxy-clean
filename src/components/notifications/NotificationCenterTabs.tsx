@@ -1,21 +1,16 @@
 
-import React from 'react';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Notification } from '@/types/notifications';
-import NotificationCenterTabList from './NotificationCenterTabList';
-import NotificationCenterContent from './NotificationCenterContent';
-import { NotificationContent } from '@/types/notifications';
+import NotificationCenterLoading from './NotificationCenterLoading';
+import NotificationCenterEmptyState from './NotificationCenterEmptyState';
+import NotificationList from './NotificationList';
 
 interface NotificationCenterTabsProps {
   loading: boolean;
   notifications: Notification[];
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   markAllAsRead: () => Promise<void>;
   onClose: () => void;
   unreadCount: number;
@@ -27,35 +22,67 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   markAsRead,
   markAllAsRead,
   onClose,
-  unreadCount
+  unreadCount,
 }) => {
-  // Map notifications to the format expected by NotificationCenterContent
-  const mappedNotifications: NotificationContent[] = notifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.message || '',
-    timestamp: notification.created_at,
-    read: notification.read_at !== null,
-    type: notification.type as 'info' | 'success' | 'warning' | 'error' | 'system'
-  }));
+  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+
+  // Filter notifications based on the active tab
+  const filteredNotifications = activeTab === 'unread'
+    ? notifications.filter(notification => !notification.read_at)
+    : notifications;
+
+  if (loading) {
+    return <NotificationCenterLoading />;
+  }
 
   return (
-    <Tabs defaultValue="all" className="w-full">
-      <NotificationCenterTabList unreadCount={unreadCount} />
+    <Tabs 
+      defaultValue="all" 
+      className="flex-1 overflow-hidden"
+      onValueChange={(value) => setActiveTab(value as 'all' | 'unread')}
+    >
+      <div className="border-b px-2">
+        <TabsList className="h-9 w-full justify-start rounded-none bg-transparent p-0">
+          <TabsTrigger 
+            value="all" 
+            className="h-9 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            All
+          </TabsTrigger>
+          <TabsTrigger 
+            value="unread" 
+            className="h-9 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+          >
+            Unread {unreadCount > 0 && `(${unreadCount})`}
+          </TabsTrigger>
+        </TabsList>
+      </div>
       
-      {['all', 'unread', 'system'].map((filter) => (
-        <TabsContent key={filter} value={filter} className="py-0">
-          <ScrollArea className="h-[300px]">
-            <NotificationCenterContent
-              loading={loading}
-              notifications={mappedNotifications}
-              filter={filter}
+      <ScrollArea className="flex-1 px-2">
+        <TabsContent value="all" className="m-0 py-2">
+          {notifications.length === 0 ? (
+            <NotificationCenterEmptyState />
+          ) : (
+            <NotificationList
+              notifications={filteredNotifications}
               markAsRead={markAsRead}
-              markAllAsRead={markAllAsRead}
+              onNotificationClick={onClose}
             />
-          </ScrollArea>
+          )}
         </TabsContent>
-      ))}
+        
+        <TabsContent value="unread" className="m-0 py-2">
+          {unreadCount === 0 ? (
+            <NotificationCenterEmptyState message="You have no unread notifications." />
+          ) : (
+            <NotificationList
+              notifications={filteredNotifications}
+              markAsRead={markAsRead}
+              onNotificationClick={onClose}
+            />
+          )}
+        </TabsContent>
+      </ScrollArea>
     </Tabs>
   );
 };
