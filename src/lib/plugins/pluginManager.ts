@@ -1,7 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { recordExecution } from "@/lib/executions/recordExecution";
-import { logSystemEvent, notifyError, notifySuccess } from "@/lib/system/logSystemEvent";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import { notifyError, notifySuccess } from "@/components/ui/BetterToast";
 import { RunPluginChainResult, PluginResult } from "./types";
 import { validateStrategy, fetchPluginsForStrategy, executePlugin } from "./pluginUtils";
 

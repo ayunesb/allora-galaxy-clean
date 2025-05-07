@@ -186,7 +186,7 @@ async function autoVoteOnSuccessfulAgents(
           } else {
             console.log(`Auto-upvote created for agent version ${agent_version_id}`);
             
-            // Update the agent version upvote count
+            // Update the agent version upvote count using the original Supabase client methods
             await supabase
               .from('agent_versions')
               .update({
