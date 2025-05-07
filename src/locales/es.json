@@ -1,0 +1,61 @@
+
+{
+  "common": {
+    "appName": "Allora OS",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "submit": "Enviar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "confirm": "Confirmar"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "resetPassword": "Restablecer Contraseña",
+    "sendResetLink": "Enviar Enlace de Restablecimiento",
+    "createAccount": "Crear Cuenta",
+    "loggingIn": "Iniciando sesión...",
+    "creatingAccount": "Creando cuenta...",
+    "loginSuccess": "Inicio de sesión exitoso",
+    "loginError": "Error al iniciar sesión",
+    "registerSuccess": "Registro exitoso",
+    "registerError": "Error en el registro",
+    "passwordResetSent": "Correo de restablecimiento enviado",
+    "passwordResetError": "Error al restablecer contraseña"
+  },
+  "nav": {
+    "dashboard": "Tablero",
+    "launch": "Lanzar",
+    "plugins": "Complementos",
+    "explore": "Explorar",
+    "agents": "Agentes",
+    "insights": "Análisis",
+    "admin": "Administración",
+    "settings": "Configuración",
+    "logout": "Cerrar Sesión"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido a Allora OS",
+    "quickLinks": "Enlaces Rápidos",
+    "recentStrategies": "Estrategias Recientes",
+    "topPlugins": "Mejores Complementos",
+    "kpiSummary": "Resumen de KPI"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "theme": "Tema",
+    "lightMode": "Modo Claro",
+    "darkMode": "Modo Oscuro",
+    "saveChanges": "Guardar Cambios",
+    "changesSaved": "Configuración guardada exitosamente"
+  }
+}

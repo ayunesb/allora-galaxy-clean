@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
+import i18n from '@/lib/i18n';
 
 type AuthContextType = {
   session: Session | null;
@@ -27,6 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // If user logs in, fetch their language preference
+      if (session?.user) {
+        setTimeout(() => {
+          fetchUserLanguagePreference(session.user.id);
+        }, 0);
+      }
+      
       setLoading(false);
     });
 
@@ -34,6 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // If user is already logged in, fetch their language preference
+      if (session?.user) {
+        fetchUserLanguagePreference(session.user.id);
+      }
+      
       setLoading(false);
     });
 
@@ -41,6 +56,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  const fetchUserLanguagePreference = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('preferred_language')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (data?.preferred_language) {
+        i18n.changeLanguage(data.preferred_language);
+        localStorage.setItem('preferred_language', data.preferred_language);
+      }
+    } catch (error) {
+      console.error("Error fetching user language preference:", error);
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
     try {

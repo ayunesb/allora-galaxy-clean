@@ -1,0 +1,61 @@
+
+{
+  "common": {
+    "appName": "Allora OS",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset Password",
+    "sendResetLink": "Send Reset Link",
+    "createAccount": "Create Account",
+    "loggingIn": "Logging in...",
+    "creatingAccount": "Creating Account...",
+    "loginSuccess": "Login successful",
+    "loginError": "Login failed",
+    "registerSuccess": "Registration successful",
+    "registerError": "Registration failed",
+    "passwordResetSent": "Password reset email sent",
+    "passwordResetError": "Failed to reset password"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "launch": "Launch",
+    "plugins": "Plugins",
+    "explore": "Explore",
+    "agents": "Agents",
+    "insights": "Insights",
+    "admin": "Admin",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "welcome": "Welcome to Allora OS",
+    "quickLinks": "Quick Links",
+    "recentStrategies": "Recent Strategies",
+    "topPlugins": "Top Plugins",
+    "kpiSummary": "KPI Summary"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "saveChanges": "Save Changes",
+    "changesSaved": "Settings saved successfully"
+  }
+}

@@ -27,6 +27,7 @@ import PluginEvolutionPage from "./pages/plugins/PluginEvolutionPage";
 import GalaxyExplorer from "./pages/galaxy/GalaxyExplorer";
 import AgentPerformance from "./pages/agents/AgentPerformance";
 import KpiDashboard from "./pages/insights/KpiDashboard";
+import SettingsPage from "./pages/settings/SettingsPage";
 
 // Admin pages
 import AiDecisions from "./pages/admin/AiDecisions";
@@ -38,127 +39,139 @@ import UserManagement from "./pages/admin/UserManagement";
 import { AuthProvider } from "./context/AuthContext";
 import { WorkspaceProvider } from "./context/WorkspaceContext";
 
+// i18n
+import { I18nextProvider } from 'react-i18next';
+import i18n from './lib/i18n';
+
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <HelmetProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <ErrorBoundary>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <div className="flex min-h-screen">
-                <Routes>
-                  {/* Auth routes */}
-                  <Route path="/auth" element={<AuthPage />} />
-                  
-                  {/* Unauthorized page */}
-                  <Route path="/unauthorized" element={<Unauthorized />} />
-                  
-                  {/* Onboarding */}
-                  <Route 
-                    path="/onboarding" 
-                    element={
-                      <WorkspaceProvider>
-                        <OnboardingWizard />
-                      </WorkspaceProvider>
-                    } 
-                  />
-                  
-                  {/* Protected routes */}
-                  <Route element={
-                    <WorkspaceProvider>
-                      <ProtectedRoute />
-                    </WorkspaceProvider>
-                  }>
-                    <Route path="/" element={
-                      <>
-                        <MobileNav />
-                        <Dashboard />
-                      </>
-                    } />
-                    <Route path="/launch" element={
-                      <>
-                        <MobileNav />
-                        <StrategyEngine />
-                      </>
-                    } />
-                    <Route path="/launch/builder" element={
-                      <>
-                        <MobileNav />
-                        <StrategyBuilder />
-                      </>
-                    } />
-                    <Route path="/plugins" element={
-                      <>
-                        <MobileNav />
-                        <PluginsPage />
-                      </>
-                    } />
-                    <Route path="/plugins/:id/evolution" element={
-                      <>
-                        <MobileNav />
-                        <PluginEvolutionPage />
-                      </>
-                    } />
-                    <Route path="/explore" element={
-                      <>
-                        <MobileNav />
-                        <GalaxyExplorer />
-                      </>
-                    } />
-                    <Route path="/agents/performance" element={
-                      <>
-                        <MobileNav />
-                        <AgentPerformance />
-                      </>
-                    } />
-                    <Route path="/insights/kpis" element={
-                      <>
-                        <MobileNav />
-                        <KpiDashboard />
-                      </>
-                    } />
+  <I18nextProvider i18n={i18n}>
+    <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <ErrorBoundary>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <div className="flex min-h-screen">
+                  <Routes>
+                    {/* Auth routes */}
+                    <Route path="/auth" element={<AuthPage />} />
                     
-                    {/* Admin routes */}
-                    <Route path="/admin/ai-decisions" element={
-                      <>
-                        <MobileNav />
-                        <AiDecisions />
-                      </>
-                    } />
-                    <Route path="/admin/plugin-logs" element={
-                      <>
-                        <MobileNav />
-                        <PluginLogs />
-                      </>
-                    } />
-                    <Route path="/admin/system-logs" element={
-                      <>
-                        <MobileNav />
-                        <SystemLogs />
-                      </>
-                    } />
-                    <Route path="/admin/users" element={
-                      <>
-                        <MobileNav />
-                        <UserManagement />
-                      </>
-                    } />
-                  </Route>
-                  
-                  {/* Catch-all route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
-            </BrowserRouter>
-          </ErrorBoundary>
-        </TooltipProvider>
-      </AuthProvider>
-    </HelmetProvider>
-  </QueryClientProvider>
+                    {/* Unauthorized page */}
+                    <Route path="/unauthorized" element={<Unauthorized />} />
+                    
+                    {/* Onboarding */}
+                    <Route 
+                      path="/onboarding" 
+                      element={
+                        <WorkspaceProvider>
+                          <OnboardingWizard />
+                        </WorkspaceProvider>
+                      } 
+                    />
+                    
+                    {/* Protected routes */}
+                    <Route element={
+                      <WorkspaceProvider>
+                        <ProtectedRoute />
+                      </WorkspaceProvider>
+                    }>
+                      <Route path="/" element={
+                        <>
+                          <MobileNav />
+                          <Dashboard />
+                        </>
+                      } />
+                      <Route path="/launch" element={
+                        <>
+                          <MobileNav />
+                          <StrategyEngine />
+                        </>
+                      } />
+                      <Route path="/launch/builder" element={
+                        <>
+                          <MobileNav />
+                          <StrategyBuilder />
+                        </>
+                      } />
+                      <Route path="/plugins" element={
+                        <>
+                          <MobileNav />
+                          <PluginsPage />
+                        </>
+                      } />
+                      <Route path="/plugins/:id/evolution" element={
+                        <>
+                          <MobileNav />
+                          <PluginEvolutionPage />
+                        </>
+                      } />
+                      <Route path="/explore" element={
+                        <>
+                          <MobileNav />
+                          <GalaxyExplorer />
+                        </>
+                      } />
+                      <Route path="/agents/performance" element={
+                        <>
+                          <MobileNav />
+                          <AgentPerformance />
+                        </>
+                      } />
+                      <Route path="/insights/kpis" element={
+                        <>
+                          <MobileNav />
+                          <KpiDashboard />
+                        </>
+                      } />
+                      <Route path="/settings" element={
+                        <>
+                          <MobileNav />
+                          <SettingsPage />
+                        </>
+                      } />
+                      
+                      {/* Admin routes */}
+                      <Route path="/admin/ai-decisions" element={
+                        <>
+                          <MobileNav />
+                          <AiDecisions />
+                        </>
+                      } />
+                      <Route path="/admin/plugin-logs" element={
+                        <>
+                          <MobileNav />
+                          <PluginLogs />
+                        </>
+                      } />
+                      <Route path="/admin/system-logs" element={
+                        <>
+                          <MobileNav />
+                          <SystemLogs />
+                        </>
+                      } />
+                      <Route path="/admin/users" element={
+                        <>
+                          <MobileNav />
+                          <UserManagement />
+                        </>
+                      } />
+                    </Route>
+                    
+                    {/* Catch-all route */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </div>
+              </BrowserRouter>
+            </ErrorBoundary>
+          </TooltipProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </QueryClientProvider>
+  </I18nextProvider>
 );
 
 export default App;
