@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, differenceInDays } from 'date-fns';
@@ -96,16 +95,19 @@ const DeletionRequestsPage: React.FC = () => {
           // Fetch user info for each user ID
           const userInfoMap: Record<string, UserInfo> = {};
           for (const userId of userIds) {
-            const { data: userData, error: userError } = await supabase
-              .from('auth.users')
-              .select('email')
-              .eq('id', userId)
-              .single();
-              
-            if (!userError && userData) {
-              userInfoMap[userId] = {
-                email: userData.email,
-              };
+            // Fix for the indexed access operator with unknown type
+            if (typeof userId === 'string') {
+              const { data: userData, error: userError } = await supabase
+                .from('auth.users')
+                .select('email')
+                .eq('id', userId)
+                .single();
+                
+              if (!userError && userData) {
+                userInfoMap[userId] = {
+                  email: userData.email,
+                };
+              }
             }
           }
           

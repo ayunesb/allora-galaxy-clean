@@ -5,7 +5,10 @@ import { SidebarNav } from './SidebarNav';
 import MobileNav from './MobileNav';
 import Footer from './Footer';
 import CookieConsent from '../CookieConsent';
-import { useWorkspace, NavigationItem } from '@/context/WorkspaceContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
+
+// Import the NavigationItem type directly from the context
+import type { NavigationItem } from '@/context/WorkspaceContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -22,7 +25,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <CookieConsent />
         
         <div className="flex flex-1 w-full">
-          <SidebarNav items={navigationItems} />
+          <SidebarNav items={navigationItems as NavigationItem[]} />
           
           <main className="flex-1 p-4 md:p-6">
             {children}

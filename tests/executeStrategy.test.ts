@@ -1,4 +1,4 @@
-import { runStrategy } from "@/lib/strategy/runStrategy";
+import { runStrategy } from "@/lib/strategy/execute";
 
 test("runStrategy works as expected", async () => {
   // ...existing test setup...

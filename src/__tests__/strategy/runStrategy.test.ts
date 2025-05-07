@@ -174,7 +174,7 @@ describe('Run Strategy', () => {
     };
     
     // Mock recordExecution to throw an error
-    const recordExecutionMock = recordExecution as jest.MockedFunction<typeof recordExecution>;
+    const recordExecutionMock = recordExecution as vi.MockedFunction<typeof recordExecution>;
     recordExecutionMock.mockRejectedValueOnce(new Error('Unexpected error'));
     
     // Act
