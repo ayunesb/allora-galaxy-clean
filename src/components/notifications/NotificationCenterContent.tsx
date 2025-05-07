@@ -6,15 +6,6 @@ import NotificationItem from './NotificationItem';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import { cn } from '@/lib/utils';
 
-export interface NotificationContent {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  type: 'info' | 'success' | 'warning' | 'error' | 'system';
-}
-
 interface NotificationCenterContentProps {
   loading: boolean;
   notifications: NotificationContent[];
@@ -56,7 +47,7 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
     return (
       <NotificationCenterEmptyState
         filter={filter}
-        className={className} 
+        className={className}
       />
     );
   }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
@@ -8,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import PageHelmet from '@/components/PageHelmet';
 import NotificationsPageHeader from '@/components/notifications/NotificationsPageHeader';
 import NotificationList from '@/components/notifications/NotificationList';
-import { NotificationContent } from '@/components/notifications/NotificationCenterContent';
+import { NotificationContent } from '@/types/notifications';
 
 const NotificationsPage: React.FC = () => {
   const { currentTenant } = useWorkspace();

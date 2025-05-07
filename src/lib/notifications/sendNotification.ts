@@ -1,6 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { Notification } from '@/context/NotificationsContext';
+import { supabase } from '@/lib/supabase';
+import { Notification } from '@/types/notifications';
 import { v4 as uuidv4 } from 'uuid';
 
 interface SendNotificationParams {
@@ -8,7 +8,7 @@ interface SendNotificationParams {
   user_id: string;
   title: string;
   message: string;
-  type?: 'info' | 'success' | 'warning' | 'error';
+  type?: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
 }
@@ -32,10 +32,9 @@ export async function sendNotification({
       tenant_id,
       user_id,
       title,
-      message,
+      description: message, // Map message to description for DB schema
       type,
-      created_at: new Date().toISOString(),
-      read_at: null,
+      is_read: false,
       action_url,
       action_label
     };
@@ -51,7 +50,19 @@ export async function sendNotification({
       return undefined;
     }
 
-    return data as Notification;
+    // Transform to match our Notification interface
+    return {
+      id: data.id,
+      title: data.title,
+      message: data.description || '',
+      type: data.type as 'info' | 'success' | 'warning' | 'error' | 'system',
+      created_at: data.created_at,
+      read_at: data.is_read ? data.updated_at : null,
+      tenant_id: data.tenant_id,
+      user_id: data.user_id,
+      action_url: data.action_url,
+      action_label: data.action_label
+    };
   } catch (error) {
     console.error('Error in sendNotification:', error);
     return undefined;

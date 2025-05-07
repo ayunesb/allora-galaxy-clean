@@ -10,21 +10,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Notification } from '@/types/notifications';
 import NotificationCenterTabList from './NotificationCenterTabList';
 import NotificationCenterContent from './NotificationCenterContent';
-
-// Convert Notification to NotificationContent format expected by NotificationCenterContent
-interface NotificationContentMap {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  type: 'info' | 'success' | 'warning' | 'error' | 'system';
-}
+import { NotificationContent } from '@/types/notifications';
 
 interface NotificationCenterTabsProps {
   loading: boolean;
   notifications: Notification[];
   markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
   onClose: () => void;
   unreadCount: number;
 }
@@ -33,11 +25,12 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   loading,
   notifications,
   markAsRead,
+  markAllAsRead,
   onClose,
   unreadCount
 }) => {
   // Map notifications to the format expected by NotificationCenterContent
-  const mappedNotifications: NotificationContentMap[] = notifications.map(notification => ({
+  const mappedNotifications: NotificationContent[] = notifications.map(notification => ({
     id: notification.id,
     title: notification.title,
     message: notification.message || '',
@@ -58,7 +51,7 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
               notifications={mappedNotifications}
               filter={filter}
               markAsRead={markAsRead}
-              markAllAsRead={() => {}}
+              markAllAsRead={markAllAsRead}
             />
           </ScrollArea>
         </TabsContent>

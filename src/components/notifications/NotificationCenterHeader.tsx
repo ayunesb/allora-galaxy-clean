@@ -1,30 +1,38 @@
 
 import React from 'react';
-import { Bell, X, MailOpen } from 'lucide-react';
+import { X, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 
 interface NotificationCenterHeaderProps {
-  markAllAsRead: () => void;
+  markAllAsRead: () => Promise<void>;
   onClose: () => void;
 }
 
 const NotificationCenterHeader: React.FC<NotificationCenterHeaderProps> = ({ 
-  markAllAsRead,
-  onClose
+  markAllAsRead, 
+  onClose 
 }) => {
   return (
-    <div className="flex items-center justify-between p-4">
-      <DropdownMenuLabel className="flex items-center gap-2">
-        <Bell className="h-4 w-4" />
-        <span>Notifications</span>
-      </DropdownMenuLabel>
-      <div className="flex gap-2">
-        <Button variant="ghost" size="icon" onClick={markAllAsRead} title="Mark all as read">
-          <MailOpen className="h-4 w-4" />
+    <div className="flex items-center justify-between px-4 py-2">
+      <h2 className="text-sm font-medium">Notifications</h2>
+      <div className="flex space-x-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-xs h-8"
+          onClick={markAllAsRead}
+        >
+          <BellOff className="h-3.5 w-3.5 mr-1.5" />
+          Mark all read
         </Button>
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8" 
+          onClick={onClose}
+        >
           <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
         </Button>
       </div>
     </div>

@@ -22,14 +22,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { NotificationContent } from './NotificationCenterContent';
+import { NotificationContent } from '@/types/notifications';
 
 export type NotificationItemType = NotificationContent;
 
 interface NotificationItemProps {
   notification: NotificationItemType;
   onMarkAsRead: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ 
@@ -38,7 +38,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onDelete
 }) => {
   const handleMarkAsRead = () => onMarkAsRead(notification.id);
-  const handleDelete = () => onDelete(notification.id);
+  const handleDelete = () => onDelete && onDelete(notification.id);
   
   const getIcon = () => {
     switch (notification.type) {
@@ -109,22 +109,24 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               </TooltipContent>
             </Tooltip>
           )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Delete</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Delete notification</p>
-            </TooltipContent>
-          </Tooltip>
+          {onDelete && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7" 
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Delete</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete notification</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-0">
