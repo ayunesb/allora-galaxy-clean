@@ -60,11 +60,12 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      // Call Supabase auth admin API to invite user
+      // Call Supabase edge function to invite user
       const { data, error } = await supabase.functions.invoke('send-invite-email', {
         body: {
           email: values.email,
           tenant_id: tenantId,
+          tenant_name: "Your Organization", // This could be fetched from context
           role: values.role,
         }
       });

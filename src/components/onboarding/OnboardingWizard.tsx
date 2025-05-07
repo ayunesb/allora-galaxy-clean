@@ -52,11 +52,11 @@ const OnboardingWizard: React.FC = () => {
 
   return (
     <ErrorBoundary tenant_id="system" supportEmail="support@alloraos.com">
-      <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <div className="flex items-center justify-center min-h-screen bg-background py-8 px-4">
         <Card className="w-full max-w-2xl">
-          <CardHeader>
-            <CardTitle>{currentStepData.title}</CardTitle>
-            <CardDescription>{currentStepData.description}</CardDescription>
+          <CardHeader className="text-center sm:text-left">
+            <CardTitle className="text-xl md:text-2xl">{currentStepData.title}</CardTitle>
+            <CardDescription className="text-sm md:text-base">{currentStepData.description}</CardDescription>
           </CardHeader>
           <CardContent>
             <OnboardingProgress 

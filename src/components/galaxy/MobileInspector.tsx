@@ -17,7 +17,7 @@ const MobileInspector: React.FC<MobileInspectorProps> = ({
 }) => {
   return (
     <Sheet open={showSidebar} onOpenChange={setShowSidebar}>
-      <SheetContent side="bottom" className="h-[80vh] rounded-t-lg">
+      <SheetContent side="bottom" className="h-[80vh] rounded-t-lg overflow-y-auto">
         {selectedNode && (
           <div className="pt-4">
             <h2 className="text-xl font-bold mb-4">{selectedNode.name || selectedNode.title || 'Details'}</h2>

@@ -37,7 +37,7 @@ const OnboardingPage: React.FC = () => {
         title="Onboarding"
         description="Set up your Allora OS workspace and get started"
       />
-      <div className="min-h-screen">
+      <div className="min-h-screen px-4 sm:px-0">
         <OnboardingWizard />
       </div>
     </>
