@@ -15,3 +15,6 @@ verify_jwt = true
 
 [functions.createDbFunctions]
 verify_jwt = true
+
+[functions.cleanupLogs]
+verify_jwt = true

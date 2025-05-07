@@ -75,17 +75,18 @@ export function logEnvStatus(env: Record<string, string>): void {
 
 /**
  * Format standard API error response
- * @param status HTTP status code
  * @param message Error message
+ * @param status HTTP status code
  * @param details Additional error details
  * @returns Response object with error details
  */
 export function formatErrorResponse(
-  status: number,
   message: string,
+  status: number = 500,
   details?: any
 ): Response {
   const body = {
+    success: false,
     error: message,
     details: details || null,
     timestamp: new Date().toISOString()
@@ -95,4 +96,52 @@ export function formatErrorResponse(
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
+}
+
+/**
+ * Format standard API success response
+ * @param data Response data
+ * @param status HTTP status code
+ * @returns Response object with success details
+ */
+export function formatSuccessResponse(
+  data: any,
+  status: number = 200
+): Response {
+  const body = {
+    success: true,
+    data,
+    timestamp: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+/**
+ * Handle edge function request with consistent error handling
+ * @param req Request object
+ * @param handler Request handler function
+ * @returns Response object
+ */
+export async function handleEdgeRequest(
+  req: Request,
+  handler: (req: Request) => Promise<Response>
+): Promise<Response> {
+  try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+    
+    return await handler(req);
+  } catch (error: any) {
+    console.error('Edge function error:', error);
+    return formatErrorResponse(
+      error.message || 'An unexpected error occurred',
+      500
+    );
+  }
 }
