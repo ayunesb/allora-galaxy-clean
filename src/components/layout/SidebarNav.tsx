@@ -1,7 +1,5 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,6 +31,7 @@ import {
   Shield
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { cn } from '@/lib/utils';
 
 export const SidebarNav: React.FC = () => {
   const navigate = useNavigate();
