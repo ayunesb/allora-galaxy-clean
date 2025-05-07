@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import InviteUserDialog from '@/components/admin/InviteUserDialog';
+import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
 import { Loader2, UserPlus } from 'lucide-react';
 
 // Define TypeScript interfaces for our data
