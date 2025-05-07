@@ -1,6 +1,6 @@
 
 import { ExecuteStrategyInput, ValidationResult } from './types';
-import { getEnvVar } from '../edge/envManager';
+import { getEnv } from '../utils/env';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -32,8 +32,8 @@ export function validateInput(input: any): ValidationResult {
  * @returns Supabase client instance or null if environment variables are missing
  */
 export function createSupabaseAdmin() {
-  const supabaseUrl = getEnvVar("SUPABASE_URL");
-  const supabaseServiceKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseUrl = getEnv("SUPABASE_URL");
+  const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
   
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
@@ -151,7 +151,7 @@ export async function logPluginExecution(
         output,
         error,
         execution_time: executionTime,
-        xp_earned
+        xp_earned: xpEarned
       })
       .select('id')
       .single();

@@ -1,12 +1,10 @@
-
 import React from 'react';
 import { AlertTriangle, RefreshCw, Mail, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { syncLocalEventsToSupabase } from '@/lib/system/logSystemEvent';
+import { logSystemEvent, syncLocalEventsToSupabase } from '@/lib/system/logSystemEvent';
 import { useToast } from '@/hooks/use-toast';
 
 interface ErrorFallbackProps {
