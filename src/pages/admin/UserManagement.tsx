@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -32,8 +33,10 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
-import { Loader2, UserPlus, Search, ChevronDown, ChevronUp, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Loader2, UserPlus, Search, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTenantId } from '@/hooks/useTenantId';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 // Define TypeScript interfaces for our data
 interface User {
@@ -54,10 +57,11 @@ const UserManagement: React.FC = () => {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const { toast } = useToast();
+  const tenantId = useTenantId();
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [tenantId]);
 
   const fetchUsers = async () => {
     try {
@@ -68,10 +72,11 @@ const UserManagement: React.FC = () => {
       
       if (authUsersError) throw authUsersError;
       
-      // Get all user roles from tenant_user_roles
+      // Get all user roles from tenant_user_roles for current tenant
       const { data: userRolesData, error: userRolesError } = await supabase
         .from('tenant_user_roles')
-        .select('user_id, role');
+        .select('user_id, role')
+        .eq('tenant_id', tenantId);
         
       if (userRolesError) throw userRolesError;
       
@@ -112,6 +117,7 @@ const UserManagement: React.FC = () => {
       const { data: existingRole, error: findError } = await supabase
         .from('tenant_user_roles')
         .select('id')
+        .eq('tenant_id', tenantId)
         .eq('user_id', userId)
         .single();
         
@@ -126,15 +132,24 @@ const UserManagement: React.FC = () => {
         result = await supabase
           .from('tenant_user_roles')
           .update({ role: newRole })
+          .eq('tenant_id', tenantId)
           .eq('user_id', userId);
       } else {
         // Insert new role
         result = await supabase
           .from('tenant_user_roles')
-          .insert({ user_id: userId, role: newRole });
+          .insert({ tenant_id: tenantId, user_id: userId, role: newRole });
       }
       
       if (result.error) throw result.error;
+      
+      // Log user role change
+      await logSystemEvent(
+        tenantId,
+        'admin',
+        'user_role_updated',
+        { user_id: userId, new_role: newRole }
+      );
       
       // Update the local users state
       setUsers(users.map(user => 
@@ -161,6 +176,15 @@ const UserManagement: React.FC = () => {
   const handleInviteComplete = () => {
     setInviteDialogOpen(false);
     fetchUsers();
+    
+    // Log user invitation
+    logSystemEvent(
+      tenantId,
+      'admin',
+      'user_invited',
+      { invited_by: 'current_user' } // In a real app, we'd include the actual user ID
+    );
+    
     toast({
       title: 'Invitation sent',
       description: 'The user has been invited to the workspace.',
@@ -359,6 +383,14 @@ const UserManagement: React.FC = () => {
               value={table.getColumn('role')?.getFilterValue() as string || ""}
               onValueChange={(value) => {
                 table.getColumn('role')?.setFilterValue(value === 'all' ? undefined : [value]);
+                
+                // Log filter change
+                logSystemEvent(
+                  tenantId,
+                  'admin',
+                  'user_list_filtered',
+                  { filter_role: value }
+                );
               }}
             >
               <SelectTrigger className="w-[150px]">
@@ -453,6 +485,7 @@ const UserManagement: React.FC = () => {
       <InviteUserDialog 
         open={inviteDialogOpen} 
         onOpenChange={setInviteDialogOpen}
+        onComplete={handleInviteComplete}
       />
     </div>
   );

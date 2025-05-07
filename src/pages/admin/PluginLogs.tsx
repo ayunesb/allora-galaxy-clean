@@ -11,6 +11,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Loader2, ChevronDown, Filter, RefreshCw } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useTenantId } from '@/hooks/useTenantId';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 interface PluginLogType {
   id: string;
@@ -32,6 +34,7 @@ interface PluginLogType {
 const PluginLogs: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
+  const tenantId = useTenantId();
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ['plugin_logs', statusFilter],
@@ -44,6 +47,7 @@ const PluginLogs: React.FC = () => {
           strategy:strategies(title),
           agent_version:agent_versions(version, plugin_id)
         `)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
         
       if (statusFilter !== 'all') {
@@ -83,6 +87,16 @@ const PluginLogs: React.FC = () => {
       ...prev,
       [logId]: !prev[logId]
     }));
+
+    // Log view details event
+    if (!expandedLogs[logId]) {
+      logSystemEvent(
+        tenantId,
+        'logs',
+        'plugin_log_details_viewed',
+        { log_id: logId }
+      );
+    }
   };
 
   // Status badge renderer
@@ -114,6 +128,18 @@ const PluginLogs: React.FC = () => {
     }
   };
 
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    
+    // Log filter change
+    logSystemEvent(
+      tenantId,
+      'logs',
+      'plugin_logs_filtered',
+      { filter: value }
+    );
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold">Plugin Logs</h1>
@@ -122,7 +148,7 @@ const PluginLogs: React.FC = () => {
       <div className="flex justify-between items-center my-6">
         <div className="flex items-center gap-3">
           <span className="text-sm">Filter by status:</span>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>

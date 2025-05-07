@@ -32,12 +32,15 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/EmptyState';
 import PageHelmet from '@/components/PageHelmet';
+import { useTenantId } from '@/hooks/useTenantId';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 const PluginEvolution = () => {
   const { id: pluginId } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('xp-history');
   const { toast } = useToast();
   const navigate = useNavigate();
+  const tenantId = useTenantId();
 
   // Fetch plugin details
   const { data: plugin, isLoading: loadingPlugin } = useQuery({
@@ -65,8 +68,9 @@ const PluginEvolution = () => {
       
       const { data, error } = await supabase
         .from('plugin_logs')
-        .select('*')
+        .select('*, strategy:strategies(title)')
         .eq('plugin_id', pluginId)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -136,6 +140,18 @@ const PluginEvolution = () => {
     }
   };
 
+  // Handle tab change and log the event
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    logSystemEvent(
+      tenantId,
+      'plugin',
+      'evolution_tab_changed',
+      { plugin_id: pluginId, tab: value }
+    );
+  };
+
   if (loadingPlugin || loadingLogs || loadingAgents) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -191,7 +207,7 @@ const PluginEvolution = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="mb-4">
               <TabsTrigger value="xp-history" className="flex items-center gap-2">
                 <BarChart2 className="h-4 w-4" />

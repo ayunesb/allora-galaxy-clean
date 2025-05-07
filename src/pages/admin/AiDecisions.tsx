@@ -17,6 +17,8 @@ import { Progress } from '@/components/ui/progress';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { useTenantId } from '@/hooks/useTenantId';
 
 interface AgentVersion {
   id: string;
@@ -43,6 +45,7 @@ const AiDecisions: React.FC = () => {
   const [currentVersion, setCurrentVersion] = useState<AgentVersion | null>(null);
   const [previousVersion, setPreviousVersion] = useState<AgentVersion | null>(null);
   const { toast } = useToast();
+  const tenantId = useTenantId();
 
   // Fetch plugins
   const { data: plugins, isLoading: loadingPlugins } = useQuery({
@@ -119,6 +122,14 @@ const AiDecisions: React.FC = () => {
         title: `Agent ${newStatus}`,
         description: `The agent version has been ${newStatus === 'active' ? 'activated' : 'deprecated'}.`,
       });
+      
+      // Log the status change
+      await logSystemEvent(
+        tenantId,
+        'agent',
+        `agent_version_${newStatus === 'active' ? 'activated' : 'deprecated'}`,
+        { agent_version_id: id }
+      );
       
       // Refresh agent versions
       refetchVersions();
