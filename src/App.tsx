@@ -35,6 +35,12 @@ import AiDecisions from "./pages/admin/AiDecisions";
 import PluginLogs from "./pages/admin/PluginLogs";
 import SystemLogs from "./pages/admin/SystemLogs";
 import UserManagement from "./pages/admin/UserManagement";
+import DeletionRequestsPage from "./pages/admin/DeletionRequestsPage";
+
+// Legal pages
+import TermsPage from "./pages/legal/TermsPage";
+import PrivacyPage from "./pages/legal/PrivacyPage";
+import DeletionRequestPage from "./pages/legal/DeletionRequestPage";
 
 // Auth and workspace providers
 import { AuthProvider } from "./context/AuthContext";
@@ -64,6 +70,10 @@ const App = () => (
                     
                     {/* Unauthorized page */}
                     <Route path="/unauthorized" element={<Unauthorized />} />
+                    
+                    {/* Legal pages */}
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
                     
                     {/* Onboarding */}
                     <Route 
@@ -135,6 +145,12 @@ const App = () => (
                           <SettingsPage />
                         </>
                       } />
+                      <Route path="/deletion-request" element={
+                        <>
+                          <MobileNav />
+                          <DeletionRequestPage />
+                        </>
+                      } />
                       
                       {/* Admin routes */}
                       <Route path="/admin/ai-decisions" element={
@@ -159,6 +175,12 @@ const App = () => (
                         <>
                           <MobileNav />
                           <UserManagement />
+                        </>
+                      } />
+                      <Route path="/admin/deletion-requests" element={
+                        <>
+                          <MobileNav />
+                          <DeletionRequestsPage />
                         </>
                       } />
                     </Route>

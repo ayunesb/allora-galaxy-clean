@@ -40,7 +40,10 @@
     "insights": "Análisis",
     "admin": "Administración",
     "settings": "Configuración",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "privacyPolicy": "Política de Privacidad",
+    "termsOfService": "Términos de Servicio",
+    "deletionRequest": "Solicitar Eliminación de Datos"
   },
   "dashboard": {
     "welcome": "Bienvenido a Allora OS",
@@ -56,22 +59,59 @@
     "lightMode": "Modo Claro",
     "darkMode": "Modo Oscuro",
     "saveChanges": "Guardar Cambios",
-    "changesSaved": "Configuración guardada exitosamente"
+    "changesSaved": "Configuración guardada exitosamente",
+    "requestDataDeletion": "Solicitar Eliminación de Datos",
+    "requestDataExport": "Solicitar Exportación de Datos",
+    "dataManagement": "Gestión de Datos",
+    "account": "Cuenta"
   },
   "cookies": {
     "title": "Preferencias de Cookies",
     "description": "Utilizamos cookies para optimizar tu experiencia. Por favor, elige qué cookies nos permites usar. Puedes obtener más información sobre cómo las usamos en nuestra Política de Privacidad.",
-    "googleAnalytics": "Google Analytics (GA4)",
-    "googleAnalyticsDesc": "Nos ayuda a entender cómo usas nuestra aplicación y mejorarla.",
-    "metaPixel": "Meta Pixel",
-    "metaPixelDesc": "Rastrea conversiones y optimiza el rendimiento de nuestros anuncios.",
-    "sessionAnalytics": "Análisis de Sesión",
-    "sessionAnalyticsDesc": "Registra tus patrones de uso de la aplicación para mejorar la experiencia del usuario.",
+    "functional": "Cookies Funcionales",
+    "functionalDesc": "Esenciales para que el sitio web funcione correctamente. No se pueden desactivar.",
+    "marketing": "Cookies de Marketing",
+    "marketingDesc": "Nos ayuda a entender cómo interactúas con nuestro sitio para mejorar tu experiencia.",
+    "analytics": "Cookies Analíticas",
+    "analyticsDesc": "Nos permite analizar el tráfico del sitio web y optimizar el rendimiento.",
     "acceptAll": "Aceptar Todo",
     "rejectAll": "Rechazar Todo",
     "saveCustom": "Guardar Preferencias",
     "preferencesUpdated": "Preferencias de cookies actualizadas",
     "preferencesUpdatedDesc": "Tus preferencias de cookies se han guardado correctamente.",
-    "errorSaving": "Error al guardar preferencias"
+    "errorSaving": "Error al guardar preferencias",
+    "managePreferences": "Administrar Preferencias de Cookies"
+  },
+  "legal": {
+    "privacyPolicy": "Política de Privacidad",
+    "termsOfService": "Términos de Servicio",
+    "dataDeletion": {
+      "title": "Solicitud de Eliminación de Datos",
+      "description": "Completa este formulario para solicitar la eliminación de tus datos personales según las regulaciones GDPR o CCPA.",
+      "reason": "Motivo de eliminación (opcional)",
+      "submit": "Enviar Solicitud",
+      "success": "Tu solicitud de eliminación ha sido enviada",
+      "error": "Error al enviar tu solicitud",
+      "placeholderReason": "Por favor, describe por qué estás solicitando la eliminación de datos...",
+      "confirmation": "¿Estás seguro de que quieres solicitar la eliminación de datos? Esta acción no se puede deshacer."
+    },
+    "dataExport": {
+      "title": "Solicitar Exportación de Datos",
+      "description": "Solicita una copia de tus datos personales almacenados en nuestros sistemas.",
+      "submit": "Enviar Solicitud",
+      "success": "Tu solicitud de exportación ha sido enviada",
+      "error": "Error al enviar tu solicitud"
+    },
+    "admin": {
+      "title": "Solicitudes de Eliminación de Datos",
+      "status": "Estado",
+      "user": "Usuario",
+      "reason": "Motivo",
+      "requested": "Solicitado",
+      "processed": "Procesado",
+      "updateStatus": "Actualizar Estado",
+      "changeStatus": "Cambiar Estado",
+      "warning": "Solicitud abierta por más de 14 días"
+    }
   }
 }

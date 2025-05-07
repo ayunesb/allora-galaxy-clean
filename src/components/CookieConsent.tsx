@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -17,27 +18,28 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 interface CookiePreferences {
-  ga4_enabled: boolean;
-  meta_pixel_enabled: boolean;
-  session_analytics_enabled: boolean;
+  functional: boolean;
+  marketing: boolean;
+  analytics: boolean;
 }
 
 const CookieConsent: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { currentTenant } = useWorkspace();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] = useState<CookiePreferences>({
-    ga4_enabled: false,
-    meta_pixel_enabled: false,
-    session_analytics_enabled: false
+    functional: true,
+    marketing: false,
+    analytics: false
   });
 
   // Check if user has already set cookie preferences
   useEffect(() => {
     const checkPreferences = async () => {
-      if (!user) {
+      if (!user || !currentTenant) {
         setLoading(false);
         return;
       }
@@ -47,6 +49,7 @@ const CookieConsent: React.FC = () => {
           .from('cookie_preferences')
           .select('*')
           .eq('user_id', user.id)
+          .eq('tenant_id', currentTenant.id)
           .maybeSingle();
 
         if (error) throw error;
@@ -54,9 +57,9 @@ const CookieConsent: React.FC = () => {
         if (data) {
           // User has existing preferences
           setPreferences({
-            ga4_enabled: data.ga4_enabled,
-            meta_pixel_enabled: data.meta_pixel_enabled,
-            session_analytics_enabled: data.session_analytics_enabled
+            functional: data.functional,
+            marketing: data.marketing,
+            analytics: data.analytics
           });
           setLoading(false);
         } else {
@@ -71,39 +74,52 @@ const CookieConsent: React.FC = () => {
     };
 
     checkPreferences();
-  }, [user]);
+  }, [user, currentTenant]);
+
+  // Listen for external triggers to open the dialog
+  useEffect(() => {
+    const handleOpenPreferences = () => {
+      setOpen(true);
+    };
+    
+    window.addEventListener('open-cookie-preferences', handleOpenPreferences);
+    
+    return () => {
+      window.removeEventListener('open-cookie-preferences', handleOpenPreferences);
+    };
+  }, []);
 
   const handleAcceptAll = async () => {
-    if (!user) return;
+    if (!user || !currentTenant) return;
     
     const allEnabled = {
-      ga4_enabled: true,
-      meta_pixel_enabled: true,
-      session_analytics_enabled: true
+      functional: true,
+      marketing: true,
+      analytics: true
     };
     
     await savePreferences(allEnabled);
   };
 
   const handleRejectAll = async () => {
-    if (!user) return;
+    if (!user || !currentTenant) return;
     
-    const allDisabled = {
-      ga4_enabled: false,
-      meta_pixel_enabled: false,
-      session_analytics_enabled: false
+    const allMinimal = {
+      functional: true, // Functional cookies are always enabled
+      marketing: false,
+      analytics: false
     };
     
-    await savePreferences(allDisabled);
+    await savePreferences(allMinimal);
   };
 
   const handleSaveCustom = async () => {
-    if (!user) return;
+    if (!user || !currentTenant) return;
     await savePreferences(preferences);
   };
 
   const savePreferences = async (prefs: CookiePreferences) => {
-    if (!user) return;
+    if (!user || !currentTenant) return;
     
     setLoading(true);
     try {
@@ -111,6 +127,7 @@ const CookieConsent: React.FC = () => {
         .from('cookie_preferences')
         .upsert({
           user_id: user.id,
+          tenant_id: currentTenant.id,
           ...prefs,
           updated_at: new Date().toISOString()
         });
@@ -135,11 +152,7 @@ const CookieConsent: React.FC = () => {
   };
 
   const handleOpenChange = (open: boolean) => {
-    // Only allow closing if preferences are already saved
-    if (user && !open) {
-      // Don't let users close the dialog without making a choice
-      return;
-    }
+    // Allow closing if preferences are already saved
     setOpen(open);
   };
 
@@ -159,43 +172,41 @@ const CookieConsent: React.FC = () => {
         <div className="space-y-4 py-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>{t('cookies.googleAnalytics')}</Label>
+              <Label>{t('cookies.functional')}</Label>
               <p className="text-sm text-muted-foreground">
-                {t('cookies.googleAnalyticsDesc')}
+                {t('cookies.functionalDesc')}
               </p>
             </div>
             <Switch
-              checked={preferences.ga4_enabled}
+              checked={preferences.functional}
+              disabled={true} // Functional cookies are always enabled
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>{t('cookies.marketing')}</Label>
+              <p className="text-sm text-muted-foreground">
+                {t('cookies.marketingDesc')}
+              </p>
+            </div>
+            <Switch
+              checked={preferences.marketing}
               onCheckedChange={(checked) =>
-                setPreferences({ ...preferences, ga4_enabled: checked })
+                setPreferences({ ...preferences, marketing: checked })
               }
             />
           </div>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>{t('cookies.metaPixel')}</Label>
+              <Label>{t('cookies.analytics')}</Label>
               <p className="text-sm text-muted-foreground">
-                {t('cookies.metaPixelDesc')}
+                {t('cookies.analyticsDesc')}
               </p>
             </div>
             <Switch
-              checked={preferences.meta_pixel_enabled}
+              checked={preferences.analytics}
               onCheckedChange={(checked) =>
-                setPreferences({ ...preferences, meta_pixel_enabled: checked })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>{t('cookies.sessionAnalytics')}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t('cookies.sessionAnalyticsDesc')}
-              </p>
-            </div>
-            <Switch
-              checked={preferences.session_analytics_enabled}
-              onCheckedChange={(checked) =>
-                setPreferences({ ...preferences, session_analytics_enabled: checked })
+                setPreferences({ ...preferences, analytics: checked })
               }
             />
           </div>

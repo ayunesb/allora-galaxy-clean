@@ -40,7 +40,10 @@
     "insights": "Insights",
     "admin": "Admin",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "deletionRequest": "Request Data Deletion"
   },
   "dashboard": {
     "welcome": "Welcome to Allora OS",
@@ -56,22 +59,59 @@
     "lightMode": "Light Mode",
     "darkMode": "Dark Mode",
     "saveChanges": "Save Changes",
-    "changesSaved": "Settings saved successfully"
+    "changesSaved": "Settings saved successfully",
+    "requestDataDeletion": "Request Data Deletion",
+    "requestDataExport": "Request Data Export",
+    "dataManagement": "Data Management",
+    "account": "Account"
   },
   "cookies": {
     "title": "Cookie Preferences",
     "description": "We use cookies to optimize your experience. Please choose which cookies you'll allow us to use. You can learn more about how we use them in our Privacy Policy.",
-    "googleAnalytics": "Google Analytics (GA4)",
-    "googleAnalyticsDesc": "Helps us understand how you use our app and improve it.",
-    "metaPixel": "Meta Pixel",
-    "metaPixelDesc": "Tracks conversions and optimizes our ad performance.",
-    "sessionAnalytics": "Session Analytics",
-    "sessionAnalyticsDesc": "Records your app usage patterns to enhance user experience.",
+    "functional": "Functional Cookies",
+    "functionalDesc": "Essential for the website to work properly. These cannot be disabled.",
+    "marketing": "Marketing Cookies",
+    "marketingDesc": "Helps us understand how you interact with our website to improve your experience.",
+    "analytics": "Analytics Cookies",
+    "analyticsDesc": "Enables us to analyze website traffic and optimize performance.",
     "acceptAll": "Accept All",
     "rejectAll": "Reject All",
     "saveCustom": "Save Preferences",
     "preferencesUpdated": "Cookie preferences updated",
     "preferencesUpdatedDesc": "Your cookie preferences have been saved successfully.",
-    "errorSaving": "Error saving preferences"
+    "errorSaving": "Error saving preferences",
+    "managePreferences": "Manage Cookie Preferences"
+  },
+  "legal": {
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "dataDeletion": {
+      "title": "Request Data Deletion",
+      "description": "Fill out this form to request deletion of your personal data per GDPR or CCPA regulations.",
+      "reason": "Reason for deletion (optional)",
+      "submit": "Submit Request",
+      "success": "Your deletion request has been submitted",
+      "error": "Error submitting your request",
+      "placeholderReason": "Please describe why you're requesting data deletion...",
+      "confirmation": "Are you sure you want to request data deletion? This action cannot be undone."
+    },
+    "dataExport": {
+      "title": "Request Data Export",
+      "description": "Request a copy of your personal data stored in our systems.",
+      "submit": "Submit Request",
+      "success": "Your export request has been submitted",
+      "error": "Error submitting your request"
+    },
+    "admin": {
+      "title": "Data Deletion Requests",
+      "status": "Status",
+      "user": "User",
+      "reason": "Reason",
+      "requested": "Requested",
+      "processed": "Processed",
+      "updateStatus": "Update Status",
+      "changeStatus": "Change Status",
+      "warning": "Request open for over 14 days"
+    }
   }
 }
