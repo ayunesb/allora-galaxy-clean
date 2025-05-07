@@ -21,6 +21,7 @@ import OnboardingWizard from "./components/onboarding/OnboardingWizard";
 // Main pages
 import Dashboard from "./pages/dashboard/Dashboard";
 import StrategyEngine from "./pages/strategy/StrategyEngine";
+import StrategyBuilder from "./pages/launch/StrategyBuilder";
 import PluginsPage from "./pages/plugins/PluginsPage";
 import PluginEvolutionPage from "./pages/plugins/PluginEvolutionPage";
 import GalaxyExplorer from "./pages/galaxy/GalaxyExplorer";
@@ -82,6 +83,12 @@ const App = () => (
                       <>
                         <MobileNav />
                         <StrategyEngine />
+                      </>
+                    } />
+                    <Route path="/launch/builder" element={
+                      <>
+                        <MobileNav />
+                        <StrategyBuilder />
                       </>
                     } />
                     <Route path="/plugins" element={

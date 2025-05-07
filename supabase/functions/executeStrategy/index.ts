@@ -14,7 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const { strategyId } = await req.json();
+    const { strategy_id, tenant_id, user_id } = await req.json();
+    
+    if (!strategy_id) {
+      return new Response(
+        JSON.stringify({ error: "Strategy ID is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
     
     // Create Supabase client with service role for admin access
     const supabaseAdmin = createClient(
@@ -29,7 +36,7 @@ serve(async (req) => {
     const { data: strategy, error: strategyError } = await supabaseAdmin
       .from("strategies")
       .select("*, plugins(id, name)")
-      .eq("id", strategyId)
+      .eq("id", strategy_id)
       .single();
 
     if (strategyError || !strategy) {
@@ -39,111 +46,195 @@ serve(async (req) => {
       );
     }
     
-    // Get associated plugins for this strategy
-    const { data: relatedPlugins, error: pluginsError } = await supabaseAdmin
-      .from("plugins")
-      .select("*, agent_versions(id, version, prompt)");
+    // Get associated plugins for this strategy via plugin_logs
+    const { data: pluginLogs, error: pluginLogsError } = await supabaseAdmin
+      .from("plugin_logs")
+      .select("*, plugins(*), agent_versions(*)")
+      .eq("strategy_id", strategy_id);
     
-    if (pluginsError) {
+    if (pluginLogsError) {
       return new Response(
-        JSON.stringify({ error: "Failed to load plugins", details: pluginsError }),
+        JSON.stringify({ error: "Failed to load plugin logs", details: pluginLogsError }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
     
-    // For each plugin, execute it against the strategy
-    for (const plugin of relatedPlugins || []) {
-      // Get the active agent version
-      const activeAgent = plugin.agent_versions?.find(v => v.status === 'active');
+    // Create execution record
+    const { data: execution, error: executionError } = await supabaseAdmin
+      .from("executions")
+      .insert({
+        tenant_id: tenant_id || strategy.tenant_id,
+        strategy_id,
+        executed_by: user_id,
+        type: 'strategy',
+        status: 'pending',
+        input: { strategy_id, tenant_id }
+      })
+      .select()
+      .single();
       
-      if (!activeAgent) continue;
-      
+    if (executionError) {
+      console.error("Error creating execution record:", executionError);
+    }
+    
+    // For each plugin log, update status and execute
+    let successCount = 0;
+    let totalPlugins = pluginLogs?.length || 0;
+    
+    for (const log of pluginLogs || []) {
       try {
+        // Mark log as processing
+        await supabaseAdmin
+          .from("plugin_logs")
+          .update({
+            status: "pending",
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", log.id);
+          
+        // Get agent version
+        const agentVersion = log.agent_versions;
+        
+        if (!agentVersion) {
+          throw new Error("Agent version not found");
+        }
+        
         // In a real implementation, this would call an AI service
-        // Here we're just mocking a successful execution
+        // Here we're simulating a plugin execution
+        const startTime = performance.now();
+        const randomSuccess = Math.random() > 0.2; // 80% success rate
+        const executionTime = Math.random() * 2.5 + 0.5; // 0.5 to 3 seconds
+        const xpEarned = Math.floor(Math.random() * 15) + 5; // 5 to 20 XP
+        
+        // Wait to simulate processing time
+        await new Promise(resolve => setTimeout(resolve, executionTime * 1000));
+        
+        if (!randomSuccess) {
+          throw new Error(`Plugin execution failed for ${log.plugins?.name || 'unknown plugin'}`);
+        }
+        
         const pluginResult = {
           output: {
-            result: `Generated content for ${strategy.title} using ${plugin.name}`,
+            result: `Generated content for ${strategy.title} using ${log.plugins?.name || 'plugin'}`,
             metadata: {
               strategyId: strategy.id,
-              pluginId: plugin.id,
+              pluginId: log.plugin_id,
+              agentVersionId: log.agent_version_id
             }
           }
         };
         
-        // Log the plugin execution
-        const { data: logEntry, error: logError } = await supabaseAdmin
-          .from("plugin_logs")
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: strategy.id,
-            tenant_id: strategy.tenant_id,
-            agent_version_id: activeAgent.id,
-            status: "success",
-            input: { strategy: strategy.title },
-            output: pluginResult.output,
-            execution_time: Math.random() * 2.5, // Mock execution time
-            xp_earned: Math.floor(Math.random() * 20) + 10, // Mock XP earned
-          })
-          .select()
-          .single();
-          
-        if (logError) {
-          console.error("Error logging plugin execution:", logError);
-        }
-        
-        // Update plugin XP
-        if (logEntry) {
-          await supabaseAdmin
-            .from("plugins")
-            .update({ 
-              xp: plugin.xp + logEntry.xp_earned,
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", plugin.id);
-            
-          await supabaseAdmin
-            .from("agent_versions")
-            .update({ 
-              xp: activeAgent.xp + logEntry.xp_earned,
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", activeAgent.id);
-        }
-      } catch (error) {
-        console.error(`Error executing plugin ${plugin.name}:`, error);
-        
-        // Log the failure
+        // Update the plugin log
         await supabaseAdmin
           .from("plugin_logs")
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: strategy.id,
-            tenant_id: strategy.tenant_id,
-            agent_version_id: activeAgent.id,
+          .update({
+            status: "success",
+            output: pluginResult.output,
+            execution_time: executionTime,
+            xp_earned: xpEarned,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", log.id);
+          
+        // Update plugin XP
+        if (log.plugin_id) {
+          const { data: plugin } = await supabaseAdmin
+            .from("plugins")
+            .select("xp")
+            .eq("id", log.plugin_id)
+            .single();
+            
+          if (plugin) {
+            await supabaseAdmin
+              .from("plugins")
+              .update({ 
+                xp: plugin.xp + xpEarned,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", log.plugin_id);
+          }
+        }
+        
+        // Update agent version XP
+        if (log.agent_version_id) {
+          const { data: agent } = await supabaseAdmin
+            .from("agent_versions")
+            .select("xp")
+            .eq("id", log.agent_version_id)
+            .single();
+            
+          if (agent) {
+            await supabaseAdmin
+              .from("agent_versions")
+              .update({ 
+                xp: agent.xp + xpEarned,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", log.agent_version_id);
+          }
+        }
+        
+        successCount++;
+      } catch (error) {
+        console.error(`Error executing plugin ${log.plugins?.name || 'unknown'}:`, error);
+        
+        // Update the plugin log with error
+        await supabaseAdmin
+          .from("plugin_logs")
+          .update({
             status: "failure",
-            input: { strategy: strategy.title },
             error: String(error),
-            execution_time: 0,
-            xp_earned: 0,
-          });
+            execution_time: Math.random() * 1.5, // Mock failed execution time
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", log.id);
       }
     }
     
-    // Update strategy status to completed
+    // Calculate completion percentage
+    const completionPercentage = totalPlugins > 0 
+      ? Math.round((successCount / totalPlugins) * 100)
+      : 100;
+    
+    // Update strategy status and completion
     await supabaseAdmin
       .from("strategies")
       .update({ 
         status: "completed",
+        completion_percentage: completionPercentage,
         updated_at: new Date().toISOString() 
       })
-      .eq("id", strategyId);
+      .eq("id", strategy_id);
+    
+    // Update execution status
+    if (execution) {
+      await supabaseAdmin
+        .from("executions")
+        .update({
+          status: "success",
+          output: { 
+            success: true,
+            completion_percentage: completionPercentage,
+            plugins_executed: totalPlugins,
+            plugins_succeeded: successCount
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", execution.id);
+    }
     
     return new Response(
-      JSON.stringify({ success: true, message: "Strategy executed successfully" }),
+      JSON.stringify({ 
+        success: true, 
+        message: "Strategy executed successfully",
+        completion_percentage: completionPercentage,
+        plugins_executed: totalPlugins,
+        plugins_succeeded: successCount
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("Error executing strategy:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error", details: String(error) }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
