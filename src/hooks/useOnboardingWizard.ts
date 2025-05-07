@@ -1,15 +1,11 @@
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import { useToast } from '@/hooks/use-toast';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { OnboardingFormData } from '@/types/onboarding';
-import { submitOnboardingData } from '@/services/onboardingService';
 import { useOnboardingSteps } from '@/hooks/useOnboardingSteps';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { createNotification } from '@/services/notificationService';
+import { useOnboardingForm } from '@/hooks/useOnboardingForm';
+import { useOnboardingSubmission } from '@/hooks/useOnboardingSubmission';
+import { useOnboardingRedirect } from '@/hooks/useOnboardingRedirect';
+import { useStrategyGeneration } from '@/hooks/useStrategyGeneration';
+import { OnboardingFormData } from '@/types/onboarding';
 
 export type { OnboardingFormData } from '@/types/onboarding';
 
@@ -17,27 +13,11 @@ export type { OnboardingFormData } from '@/types/onboarding';
  * Custom hook for handling the onboarding wizard flow
  */
 export const useOnboardingWizard = () => {
-  const { user } = useAuth();
   const { tenants, currentTenant, setCurrentTenant } = useWorkspace();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
-
-  // Form data state
-  const [formData, setFormData] = useState<OnboardingFormData>({
-    companyName: '',
-    industry: '',
-    teamSize: '',
-    revenueRange: '',
-    website: '',
-    description: '',
-    personaName: '',
-    tone: '',
-    goals: '',
-  });
-
+  const { formData, updateFormData } = useOnboardingForm();
+  const { handleSubmit, isSubmitting, error, resetError, user } = useOnboardingSubmission();
+  const { generateAIStrategy, isGeneratingStrategy } = useStrategyGeneration();
+  
   // Use our dedicated steps hook
   const { 
     currentStep, 
@@ -47,177 +27,25 @@ export const useOnboardingWizard = () => {
     isStepValid,
     validateCurrentStep 
   } = useOnboardingSteps(formData);
-
-  // Update form data
-  const updateFormData = (key: keyof OnboardingFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-  };
-
-  // Check if we should redirect to dashboard if user already completed onboarding
-  useEffect(() => {
-    if (tenants && tenants.length > 0) {
-      navigate('/dashboard');
-    }
-  }, [tenants, navigate]);
-
-  // Create welcome notification when tenant is created
-  const createWelcomeNotification = async (tenantId: string, userId: string) => {
-    try {
-      await createNotification({
-        tenant_id: tenantId,
-        user_id: userId,
-        title: 'Welcome to Allora OS!',
-        message: 'Your workspace has been set up successfully. Explore the dashboard to get started.',
-        type: 'success',
-        action_url: '/dashboard',
-        action_label: 'Go to Dashboard'
-      });
-    } catch (error) {
-      console.error("Error creating welcome notification:", error);
-    }
-  };
-
-  // Generate AI strategy based on company and persona data
-  const generateAIStrategy = async (tenantId: string, userId: string) => {
-    setIsGeneratingStrategy(true);
-    try {
-      // Move to last step to show strategy generation
+  
+  // Handle redirect if already onboarded
+  useOnboardingRedirect(tenants);
+  
+  // Submit handler that coordinates both submission and strategy generation
+  const submitOnboarding = async () => {
+    // First submit the onboarding data
+    const tenantId = await handleSubmit(formData, setCurrentTenant, async (newTenantId) => {
+      // Move to the strategy generation step
       handleStepClick(3);
       
-      // Prepare data for the AI
-      const companyProfile = {
-        name: formData.companyName,
-        industry: formData.industry,
-        size: formData.teamSize,
-        revenue_range: formData.revenueRange,
-        website: formData.website,
-        description: formData.description
-      };
-      
-      const personaProfile = {
-        name: formData.personaName,
-        tone: formData.tone,
-        goals: formData.goals.split(',').map(goal => goal.trim())
-      };
-      
-      // Call the edge function to generate a strategy
-      const { data, error } = await supabase.functions.invoke('generateStrategy', {
-        body: {
-          tenant_id: tenantId,
-          company_profile: companyProfile,
-          persona_profile: personaProfile,
-          user_id: userId
-        }
-      });
-      
-      if (error) {
-        throw new Error(error.message || 'Failed to generate strategy');
+      // Generate AI strategy on success
+      if (user && newTenantId) {
+        await generateAIStrategy(newTenantId, user.id, formData);
       }
-      
-      toast({
-        title: 'Strategy generated!',
-        description: 'Your AI-powered strategy is ready to review.',
-      });
-
-      // Create notification about the new strategy
-      await createNotification({
-        tenant_id: tenantId,
-        user_id: userId,
-        title: 'New AI Strategy Ready',
-        message: 'Your first AI-generated strategy has been created and is ready for review.',
-        type: 'info',
-        action_url: '/strategies',
-        action_label: 'View Strategy'
-      });
-      
-      // Log successful generation
-      await logSystemEvent(
-        tenantId,
-        'strategy',
-        'strategy_generated_onboarding',
-        { strategy_id: data?.strategy?.id }
-      );
-      
-      return data?.strategy;
-    } catch (error: any) {
-      console.error('Strategy generation error:', error);
-      toast({
-        title: 'Strategy generation failed',
-        description: error.message || 'Please try again later',
-        variant: 'destructive',
-      });
-      
-      return null;
-    } finally {
-      setIsGeneratingStrategy(false);
-    }
+    });
+    
+    return tenantId;
   };
-
-  // Handle onboarding submission
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      if (!user) {
-        throw new Error("User is not authenticated");
-      }
-
-      const result = await submitOnboardingData(formData, user.id);
-
-      if (!result.success) {
-        throw new Error(result.error || "Failed to complete onboarding");
-      }
-
-      toast({
-        title: 'Onboarding complete!',
-        description: 'Your workspace has been set up successfully.',
-      });
-
-      // Set the current tenant
-      if (result.tenantId) {
-        setCurrentTenant({
-          id: result.tenantId,
-          name: formData.companyName,
-        });
-        
-        // Create welcome notification
-        await createWelcomeNotification(result.tenantId, user.id);
-        
-        // Log successful completion
-        await logSystemEvent(
-          result.tenantId,
-          'onboarding',
-          'onboarding_completed',
-          { tenant_id: result.tenantId }
-        );
-        
-        // Move to the strategy generation step
-        handleStepClick(3);
-        
-        // Generate AI strategy
-        await generateAIStrategy(result.tenantId, user.id);
-        
-        // Redirect to dashboard after a delay to allow seeing the result
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 3000);
-      }
-    } catch (error: any) {
-      console.error('Onboarding error:', error);
-      setError(error.message || 'An unexpected error occurred during onboarding');
-      
-      toast({
-        title: 'Onboarding failed',
-        description: error.message || 'Please try again',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const resetError = () => setError(null);
 
   return {
     currentStep,
@@ -230,7 +58,7 @@ export const useOnboardingWizard = () => {
     handleNextStep,
     handlePrevStep,
     handleStepClick,
-    handleSubmit,
+    handleSubmit: submitOnboarding,
     isStepValid,
     resetError,
     validateCurrentStep,
