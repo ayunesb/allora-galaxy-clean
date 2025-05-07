@@ -9,7 +9,10 @@ import {
   LayoutGrid,
   BarChart,
   Calendar,
-  Shield
+  Shield,
+  AlertCircle,
+  Database,
+  Settings,
 } from 'lucide-react';
 import {
   SidebarGroup,
@@ -20,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { hasRequiredRole } from '@/lib/requireRole';
 
 // Define navigation groups as separate constants for better organization
 const mainNavItems = [
@@ -60,29 +64,29 @@ const insightsNavItems = [
 
 const adminNavItems = [
   {
-    title: 'AI Decisions',
-    icon: Shield,
-    path: '/admin/ai-decisions',
-  },
-  {
-    title: 'Plugin Logs',
-    icon: Calendar,
-    path: '/admin/plugin-logs',
-  },
-  {
-    title: 'System Logs',
-    icon: Calendar,
-    path: '/admin/system-logs',
-  },
-  {
     title: 'User Management',
     icon: Users,
     path: '/admin/users',
   },
   {
-    title: 'Deletion Requests',
-    icon: Calendar,
-    path: '/admin/deletion-requests',
+    title: 'System Logs',
+    icon: AlertCircle,
+    path: '/admin/system-logs',
+  },
+  {
+    title: 'Plugin Logs',
+    icon: Database,
+    path: '/admin/plugin-logs',
+  },
+  {
+    title: 'AI Decisions',
+    icon: Shield,
+    path: '/admin/ai-decisions',
+  },
+  {
+    title: 'Settings',
+    icon: Settings,
+    path: '/admin/settings',
   },
 ];
 
@@ -92,6 +96,8 @@ interface NavItemsProps {
 }
 
 export const NavItems: React.FC<NavItemsProps> = ({ isActive, handleNavigation }) => {
+  const isAdmin = hasRequiredRole(['admin', 'owner']);
+  
   return (
     <>
       <SidebarGroup>
@@ -135,27 +141,31 @@ export const NavItems: React.FC<NavItemsProps> = ({ isActive, handleNavigation }
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <SidebarSeparator />
+      {isAdmin && (
+        <>
+          <SidebarSeparator />
 
-      <SidebarGroup>
-        <SidebarGroupLabel>Admin</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {adminNavItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton 
-                  isActive={isActive(item.path)}
-                  tooltip={item.title}
-                  onClick={() => handleNavigation(item.path)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminNavItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton 
+                      isActive={isActive(item.path)}
+                      tooltip={item.title}
+                      onClick={() => handleNavigation(item.path)}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </>
+      )}
     </>
   );
 };

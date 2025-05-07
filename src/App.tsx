@@ -26,6 +26,7 @@ const AgentPerformance = React.lazy(() => import('./pages/agents/AgentPerformanc
 const UserManagement = React.lazy(() => import('./pages/admin/UserManagement'));
 const SystemLogs = React.lazy(() => import('./pages/admin/SystemLogs'));
 const AiDecisions = React.lazy(() => import('./pages/admin/AiDecisions'));
+const PluginLogs = React.lazy(() => import('./pages/admin/PluginLogs'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,7 +101,8 @@ function App() {
                         }
                       />
                     </Route>
-                    <Route path="/admin/*" element={<AdminRoute />}>
+                    <Route path="/admin" element={<AdminRoute />}>
+                      <Route index element={<Navigate to="/admin/users" replace />} />
                       <Route
                         path="users"
                         element={
@@ -122,6 +124,14 @@ function App() {
                         element={
                           <React.Suspense fallback={<LoadingScreen />}>
                             <AiDecisions />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="plugin-logs"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <PluginLogs />
                           </React.Suspense>
                         }
                       />

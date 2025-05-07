@@ -6,7 +6,7 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import MainLayout from '@/layouts/MainLayout';
 import AdminLayout from '@/layouts/AdminLayout';
 import LoadingScreen from '@/components/LoadingScreen';
-import useRoleCheck from '@/lib/auth/useRoleCheck';
+import { hasRequiredRole } from '@/lib/requireRole';
 
 interface ProtectedRouteProps {
   requiredRole?: 'owner' | 'admin' | 'member' | 'viewer' | Array<'owner' | 'admin' | 'member' | 'viewer'>;
@@ -35,26 +35,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 export const MainRoute: React.FC = () => {
-  // We don't need to pass children to MainLayout here
-  // as the Outlet is already included in MainLayout
   return <MainLayout />;
 };
 
 export const AdminRoute: React.FC = () => {
-  const { hasAccess, checking } = useRoleCheck({
-    requiredRole: ['owner', 'admin'],
-    redirectTo: '/dashboard'
-  });
+  const { loading } = useWorkspace();
   
-  if (checking) {
+  if (loading) {
     return <LoadingScreen />;
   }
+  
+  // Check if the user has admin privileges
+  const hasAccess = hasRequiredRole(['owner', 'admin']);
   
   if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
   }
   
-  // We don't need to pass children to AdminLayout here
-  // as the Outlet is already included in AdminLayout
   return <AdminLayout />;
 };
