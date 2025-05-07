@@ -4,9 +4,17 @@
  */
 function getEnv(name: string, fallback: string = ""): string {
   try {
-    return typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env
-      ? Deno.env.get(name) ?? fallback
-      : process.env[name] || fallback;
+    // Use a more TypeScript-friendly approach to check for Deno environment
+    const isDeno = typeof globalThis !== "undefined" && 
+                  "Deno" in globalThis && 
+                  typeof globalThis.Deno !== "undefined" && 
+                  "env" in globalThis.Deno;
+                  
+    if (isDeno) {
+      return (globalThis.Deno as any).env.get(name) ?? fallback;
+    }
+    
+    return process.env[name] || fallback;
   } catch (err) {
     console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;
