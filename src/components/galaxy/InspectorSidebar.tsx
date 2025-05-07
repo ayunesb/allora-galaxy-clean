@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -212,8 +213,5 @@ const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     </Sheet>
   );
 };
-
-// Export the InspectorContent component to be used elsewhere
-InspectorSidebar.Content = InspectorContent;
 
 export default InspectorSidebar;

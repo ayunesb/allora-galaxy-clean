@@ -1,6 +1,6 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { autoEvolveAgents, checkAgentForPromotion, checkAndEvolveAgent, AutoEvolveOptions } from '@/lib/agents/autoEvolve';
+import { autoEvolveAgents, evolveAgentByVotes, checkAndEvolveAgent, AutoEvolveOptions } from '@/lib/agents/autoEvolve';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 // Mock the dependencies
