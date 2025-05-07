@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import SidebarNav from './SidebarNav';
+import { SidebarNav } from './SidebarNav';
 import MobileNav from './MobileNav';
 import Footer from './Footer';
 import CookieConsent from '../CookieConsent';

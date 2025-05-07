@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -19,6 +18,7 @@ type WorkspaceContextType = {
   loading: boolean;
   error: string | null;
   userRole: UserRole | null;
+  currentRole: UserRole | null;
   createTenant: (name: string) => Promise<{ data: Tenant | null; error: any }>;
 };
 
@@ -191,6 +191,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         loading,
         error,
         userRole,
+        currentRole: userRole,
         createTenant,
       }}
     >

@@ -128,48 +128,40 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user || !currentTenant) return;
     
-    const channel = supabase
-      .channel('notifications-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
+    // Use the supabase client's realtime subscription
+    const subscription = supabase
+      .from('notifications')
+      .on('INSERT', (payload) => {
+        const newNotification = payload.new as Notification;
           
-          // Only handle notifications for current tenant
-          if (newNotification.tenant_id === currentTenant.id) {
-            setNotifications(prev => [newNotification, ...prev]);
+        // Only handle notifications for current tenant
+        if (newNotification.tenant_id === currentTenant.id) {
+          setNotifications(prev => [newNotification, ...prev]);
             
-            // Show a toast for the new notification
-            switch (newNotification.type) {
-              case 'success':
-                notifySuccess(newNotification.title, newNotification.message);
-                break;
-              case 'warning':
-                notifyWarning(newNotification.title, newNotification.message);
-                break;
-              case 'error':
-                notifyWarning(newNotification.title, newNotification.message);
-                break;
-              default:
-                notifyInfo(newNotification.title, newNotification.message);
-                break;
-            }
+          // Show a toast for the new notification
+          switch (newNotification.type) {
+            case 'success':
+              notifySuccess(newNotification.title, newNotification.message);
+              break;
+            case 'warning':
+              notifyWarning(newNotification.title, newNotification.message);
+              break;
+            case 'error':
+              notifyWarning(newNotification.title, newNotification.message);
+              break;
+            default:
+              notifyInfo(newNotification.title, newNotification.message);
+              break;
           }
         }
-      )
+      })
       .subscribe();
     
     // Initial fetch
     fetchNotifications();
     
     return () => {
-      supabase.removeChannel(channel);
+      supabase.from('notifications').unsubscribe();
     };
   }, [user, currentTenant]);
   
