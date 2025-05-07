@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import PageHelmet from '@/components/PageHelmet';
 import KPICard from '@/components/KPICard';
+import { runStrategy } from '@/lib/strategy/runStrategy';
 
 interface Strategy {
   id: string;
@@ -22,13 +23,13 @@ interface Strategy {
 const StrategyEngine: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { tenant } = useWorkspace();
+  const workspace = useWorkspace();
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [executing, setExecuting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tenant?.id) return;
+    if (!workspace.currentTenant?.id) return;
     
     const fetchStrategies = async () => {
       setLoading(true);
@@ -36,7 +37,7 @@ const StrategyEngine: React.FC = () => {
         const { data, error } = await supabase
           .from('strategies')
           .select('*')
-          .eq('tenant_id', tenant.id)
+          .eq('tenant_id', workspace.currentTenant.id)
           .order('created_at', { ascending: false });
           
         if (error) throw error;
@@ -55,28 +56,26 @@ const StrategyEngine: React.FC = () => {
     };
     
     fetchStrategies();
-  }, [tenant, toast]);
+  }, [workspace.currentTenant, toast]);
   
   const executeStrategy = async (strategyId: string) => {
-    if (!tenant?.id) return;
+    if (!workspace.currentTenant?.id) return;
     
     setExecuting(strategyId);
     
     try {
-      const { data, error } = await supabase.functions.invoke('executeStrategy', {
-        body: {
-          strategy_id: strategyId,
-          tenant_id: tenant.id,
-          user_id: supabase.auth.getUser()?.data?.user?.id
-        }
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      
+      const result = await runStrategy({
+        strategyId,
+        tenantId: workspace.currentTenant.id,
+        userId
       });
       
-      if (error) throw error;
-      
-      if (data.success) {
+      if (result.success) {
         toast({
           title: "Strategy executed successfully",
-          description: `Execution ID: ${data.execution_id}`,
+          description: `Execution ID: ${result.execution_id || 'Unknown'}`,
           variant: "default",
         });
         
@@ -93,7 +92,7 @@ const StrategyEngine: React.FC = () => {
           );
         }
       } else {
-        throw new Error(data.error || 'Failed to execute strategy');
+        throw new Error(result.error || 'Failed to execute strategy');
       }
     } catch (error: any) {
       console.error('Error executing strategy:', error);
@@ -140,20 +139,20 @@ const StrategyEngine: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <KPICard 
           title="Active Strategies" 
-          value={strategies.filter(s => s.status === 'approved').length}
+          value={strategies.filter(s => s.status === 'approved').length.toString()}
           icon={<Check className="h-4 w-4" />}
         />
         <KPICard 
           title="Pending Approval" 
-          value={strategies.filter(s => s.status === 'pending').length}
+          value={strategies.filter(s => s.status === 'pending').length.toString()}
           icon={<AlertCircle className="h-4 w-4" />}
         />
         <KPICard 
           title="Completion Rate" 
           value={strategies.length ? 
-            Math.round(
+            `${Math.round(
               strategies.reduce((sum, s) => sum + (s.completion_percentage || 0), 0) / strategies.length
-            ) + '%' : '0%'
+            )}%` : '0%'
           }
           icon={<Play className="h-4 w-4" />}
         />

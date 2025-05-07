@@ -85,6 +85,7 @@ export const useRoleCheck = (options: RoleCheckOptions) => {
   return { hasAccess, checking };
 };
 
+// Fix re-exports with proper "export type" syntax
 export { withRoleCheck } from './withRoleCheck';
-export { UserRole, RoleCheckOptions } from './roleTypes';
+export type { UserRole, RoleCheckOptions } from './roleTypes';
 export default useRoleCheck;

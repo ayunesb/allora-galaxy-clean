@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -307,9 +306,9 @@ const AiDecisions: React.FC = () => {
                             <div className="flex-1">
                               <h4 className="text-sm font-medium mb-2">Vote on this agent version</h4>
                               <AgentVotePanel 
-                                agent_version_id={version.id}
-                                initialUpvotes={version.upvotes}
-                                initialDownvotes={version.downvotes}
+                                agentVersionId={version.id} 
+                                initialUpvotes={version.upvotes || 0}
+                                initialDownvotes={version.downvotes || 0}
                                 userId={tenantId} // Replace with actual user ID
                               />
                             </div>

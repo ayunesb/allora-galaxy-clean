@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
@@ -77,13 +76,17 @@ const truncate = (str: string, length = 30) => {
   return str && str.length > length ? str.substring(0, length) + '...' : str;
 };
 
-const StatusBadge = ({ status }: { status: PluginLog['status'] }) => {
-  const variant = 
-    status === 'success' ? 'success' :
-    status === 'failure' ? 'destructive' : 
-    'outline';
-  
-  return <Badge variant={variant}>{status}</Badge>;
+const getStatusBadge = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'success':
+      return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Success</Badge>;
+    case 'failure':
+      return <Badge variant="destructive">Failed</Badge>;
+    case 'pending':
+      return <Badge variant="outline">Pending</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
 };
 
 const PluginLogs: React.FC = () => {
@@ -121,7 +124,7 @@ const PluginLogs: React.FC = () => {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      cell: ({ row }) => getStatusBadge(row.original.status),
     },
     {
       accessorKey: 'execution_time',
