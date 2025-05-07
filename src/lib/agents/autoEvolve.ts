@@ -1,335 +1,334 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import { supabase } from '@/integrations/supabase/client';
+import { logSystemEvent } from '../system/logSystemEvent';
 
-/**
- * XP threshold for agent promotion
- */
-const XP_PROMOTION_THRESHOLD = 1000;
-
-/**
- * Options for auto evolving agents
- */
-export interface AutoEvolveOptions {
-  agent_version_id: string;
-  tenant_id: string;
-  min_xp_threshold?: number;
-  min_upvotes?: number;
-  notify_users?: boolean;
-}
-
-/**
- * Promotes agent versions that have reached the XP threshold
- * @returns Object containing the count of promoted agents and any errors
- */
+// Function to find the best performing agent version for each plugin
 export async function autoEvolveAgents() {
   try {
-    // Get agent versions that have reached the XP threshold but are still in training
-    const { data: agentsToPromote, error } = await supabase
-      .from('agent_versions')
-      .select('id, plugin_id, version, xp, tenant_id')
-      .eq('status', 'training')
-      .gte('xp', XP_PROMOTION_THRESHOLD);
-      
-    if (error) {
-      throw error;
+    // Fetch all active plugins
+    const { data: plugins, error: pluginsError } = await supabase
+      .from('plugins')
+      .select('id, name, category')
+      .eq('status', 'active');
+
+    if (pluginsError) {
+      throw new Error(`Failed to fetch active plugins: ${pluginsError.message}`);
     }
-    
-    // Count successful promotions
-    let promotedCount = 0;
-    const errors: string[] = [];
-    
-    // Process each agent that needs promotion
-    for (const agent of agentsToPromote || []) {
+
+    if (!plugins || plugins.length === 0) {
+      console.log('No active plugins found for auto-evolution');
+      return {
+        evolved: 0,
+        message: 'No active plugins found for auto-evolution'
+      };
+    }
+
+    let evolvedCount = 0;
+    const evolutionResults = [];
+
+    // Process each plugin
+    for (const plugin of plugins) {
       try {
-        // Update the agent status to active
-        const { error: updateError } = await supabase
+        // Get all agent versions for this plugin sorted by XP descending
+        const { data: versions, error: versionsError } = await supabase
           .from('agent_versions')
-          .update({
-            status: 'active',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', agent.id);
-          
-        if (updateError) {
-          throw updateError;
+          .select('id, version, xp, status')
+          .eq('plugin_id', plugin.id)
+          .order('xp', { ascending: false });
+
+        if (versionsError) {
+          throw new Error(`Failed to fetch agent versions for plugin ${plugin.id}: ${versionsError.message}`);
         }
-        
-        // Log the promotion event
-        await logSystemEvent({
-          tenant_id: agent.tenant_id || "system",
-          module: 'agents',
-          event: 'agent_promoted',
-          severity: 'info',
-          message: `Agent version ${agent.id} was promoted to active status`,
-          context: {
-            agent_version_id: agent.id,
-            plugin_id: agent.plugin_id,
-            version: agent.version,
-            xp: agent.xp,
-            threshold: XP_PROMOTION_THRESHOLD
+
+        if (!versions || versions.length === 0) {
+          console.log(`No agent versions found for plugin ${plugin.name}`);
+          continue;
+        }
+
+        // Get current active version
+        const currentActiveVersion = versions.find(v => v.status === 'active');
+        const bestVersion = versions[0]; // The version with the highest XP
+
+        // If the best version isn't the active one and has at least 10% more XP
+        if (
+          currentActiveVersion &&
+          bestVersion.id !== currentActiveVersion.id &&
+          bestVersion.xp > currentActiveVersion.xp * 1.1 && // At least 10% better
+          bestVersion.xp >= 100 // Minimum threshold for evolution
+        ) {
+          // Promote this version to active and demote the current active one
+          const { error: updateError } = await supabase
+            .from('agent_versions')
+            .update({ status: 'deprecated' })
+            .eq('id', currentActiveVersion.id);
+
+          if (updateError) {
+            throw new Error(`Failed to deprecate the current active version: ${updateError.message}`);
           }
-        });
+
+          const { error: promoteError } = await supabase
+            .from('agent_versions')
+            .update({ status: 'active' })
+            .eq('id', bestVersion.id);
+
+          if (promoteError) {
+            throw new Error(`Failed to promote new best version: ${promoteError.message}`);
+          }
+
+          // Log the evolution event
+          await logSystemEvent(
+            'system',
+            'plugin',
+            'agent_evolved',
+            {
+              plugin_id: plugin.id,
+              plugin_name: plugin.name,
+              old_version_id: currentActiveVersion.id,
+              old_version: currentActiveVersion.version,
+              new_version_id: bestVersion.id,
+              new_version: bestVersion.version,
+              xp_improvement: bestVersion.xp - currentActiveVersion.xp,
+              xp_improvement_percent: ((bestVersion.xp - currentActiveVersion.xp) / currentActiveVersion.xp * 100).toFixed(2) + '%'
+            }
+          );
+
+          evolvedCount++;
+          evolutionResults.push({
+            plugin_name: plugin.name,
+            old_version: currentActiveVersion.version,
+            new_version: bestVersion.version,
+            xp_improvement: bestVersion.xp - currentActiveVersion.xp
+          });
+
+          console.log(`Evolved agent for plugin ${plugin.name} from version ${currentActiveVersion.version} to ${bestVersion.version}`);
+        } else {
+          // No evolution needed for this plugin
+          await logSystemEvent(
+            'system',
+            'plugin',
+            'agent_evolution_skipped',
+            {
+              plugin_id: plugin.id,
+              plugin_name: plugin.name,
+              reason: !currentActiveVersion
+                ? 'No active version to compare against'
+                : bestVersion.id === currentActiveVersion.id
+                  ? 'Best version is already active'
+                  : bestVersion.xp <= currentActiveVersion.xp * 1.1
+                    ? 'Not enough XP improvement (needs >10%)'
+                    : bestVersion.xp < 100
+                      ? 'Best version XP below threshold (100)'
+                      : 'Unknown reason'
+            }
+          );
+        }
+      } catch (pluginError) {
+        console.error(`Error processing plugin ${plugin.name}:`, pluginError);
         
-        promotedCount++;
-      } catch (agentError: any) {
-        errors.push(`Failed to promote agent ${agent.id}: ${agentError.message}`);
-        console.error(`Error promoting agent ${agent.id}:`, agentError);
+        // Log the error but continue processing other plugins
+        await logSystemEvent(
+          'system',
+          'plugin',
+          'agent_evolution_error',
+          {
+            plugin_id: plugin.id,
+            plugin_name: plugin.name,
+            error: pluginError.message
+          }
+        );
       }
     }
-    
+
+    // Log overall results
+    await logSystemEvent(
+      'system',
+      'plugin',
+      'agent_evolution_complete',
+      {
+        total_plugins: plugins.length,
+        evolved_count: evolvedCount,
+        evolution_results: evolutionResults
+      }
+    );
+
     return {
-      success: true,
-      promoted_count: promotedCount,
-      total_eligible: agentsToPromote?.length || 0,
-      errors: errors.length > 0 ? errors : undefined
+      evolved: evolvedCount,
+      total: plugins.length,
+      message: `Auto-evolved ${evolvedCount} out of ${plugins.length} plugins`,
+      results: evolutionResults
     };
-  } catch (error: any) {
-    console.error("Error in autoEvolveAgents:", error);
+
+  } catch (error) {
+    console.error('Error in autoEvolveAgents:', error);
     
-    // Log the error to system logs
-    await logSystemEvent({
-      tenant_id: "system",
-      module: 'agents',
-      event: 'auto_evolve_error',
-      severity: 'error',
-      message: `Auto-evolve error: ${error.message}`,
-      context: {
+    // Log the overall error
+    await logSystemEvent(
+      'system',
+      'plugin',
+      'agent_evolution_failure',
+      {
         error: error.message
       }
-    });
+    );
     
-    return {
-      success: false,
-      error: error.message,
-      promoted_count: 0
-    };
+    throw error;
   }
 }
 
-/**
- * Checks a single agent for promotion eligibility
- * This can be called after XP updates or votes
- */
-export async function checkAgentForPromotion(agentVersionId: string) {
+// Create a vote-based agent evolution system
+export async function evolveAgentByVotes(agentVersionId: string) {
   try {
-    // Get the agent version
-    const { data: agent, error } = await supabase
+    // Get the agent version and its plugin
+    const { data: agentVersion, error: agentError } = await supabase
       .from('agent_versions')
-      .select('id, plugin_id, version, xp, status, tenant_id')
+      .select('id, version, plugin_id, upvotes, downvotes, status')
       .eq('id', agentVersionId)
       .single();
-      
-    if (error || !agent) {
-      throw error || new Error('Agent version not found');
-    }
-    
-    // If already active or XP below threshold, nothing to do
-    if (agent.status !== 'training' || agent.xp < XP_PROMOTION_THRESHOLD) {
-      return {
-        success: true,
-        promoted: false,
-        message: agent.status === 'active' 
-          ? 'Agent already active' 
-          : `Agent XP (${agent.xp}) below threshold (${XP_PROMOTION_THRESHOLD})`
-      };
-    }
-    
-    // Update the agent status to active
-    const { error: updateError } = await supabase
-      .from('agent_versions')
-      .update({
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', agent.id);
-      
-    if (updateError) {
-      throw updateError;
-    }
-    
-    // Log the promotion event
-    await logSystemEvent({
-      tenant_id: agent.tenant_id || "system",
-      module: 'agents',
-      event: 'agent_promoted',
-      severity: 'info',
-      message: `Agent version ${agent.id} was promoted to active status`,
-      context: {
-        agent_version_id: agent.id,
-        plugin_id: agent.plugin_id,
-        version: agent.version,
-        xp: agent.xp,
-        threshold: XP_PROMOTION_THRESHOLD
-      }
-    });
-    
-    return {
-      success: true,
-      promoted: true,
-      message: `Agent ${agent.id} promoted to active status`
-    };
-  } catch (error: any) {
-    console.error("Error in checkAgentForPromotion:", error);
-    return {
-      success: false,
-      promoted: false,
-      error: error.message
-    };
-  }
-}
 
-/**
- * Checks if an agent should be evolved to the next version
- * @param options Options for checking and evolving the agent
- */
-export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
-  const {
-    agent_version_id,
-    tenant_id,
-    min_xp_threshold = 500,
-    min_upvotes = 10,
-    notify_users = false
-  } = options;
-  
-  try {
-    // Get the agent version with its plugin
-    const { data: agent, error } = await supabase
-      .from('agent_versions')
-      .select(`
-        id, 
-        tenant_id, 
-        plugin_id, 
-        status, 
-        version, 
-        xp, 
-        upvotes, 
-        plugins:plugin_id (id, name)
-      `)
-      .eq('id', agent_version_id)
-      .maybeSingle();
-      
-    if (error || !agent) {
-      await logSystemEvent({
-        tenant_id: tenant_id || "system",
-        module: 'agents',
-        event: 'agent_version_not_found',
-        severity: 'warning',
-        message: `Agent version ${agent_version_id} not found`,
-        context: {
-          agent_version_id,
-          error: error?.message || 'Agent version not found'
+    if (agentError) {
+      throw new Error(`Failed to fetch agent version: ${agentError.message}`);
+    }
+
+    if (!agentVersion) {
+      throw new Error('Agent version not found');
+    }
+
+    // Calculate vote ratio (upvotes / total votes)
+    const totalVotes = agentVersion.upvotes + agentVersion.downvotes;
+    
+    if (totalVotes < 5) {
+      // Not enough votes to make a decision
+      await logSystemEvent(
+        'system',
+        'plugin',
+        'agent_evolution_vote_skipped',
+        {
+          agent_version_id: agentVersion.id,
+          version: agentVersion.version,
+          reason: 'Not enough votes',
+          upvotes: agentVersion.upvotes,
+          downvotes: agentVersion.downvotes,
+          total_votes: totalVotes
         }
-      });
+      );
       
       return {
-        success: false,
-        error: error?.message || 'Agent version not found'
-      };
-    }
-    
-    // Check if the agent belongs to the specified tenant
-    if (agent.tenant_id && agent.tenant_id !== tenant_id) {
-      await logSystemEvent({
-        tenant_id: tenant_id || "system",
-        module: 'agents',
-        event: 'agent_version_access_denied',
-        severity: 'warning',
-        message: `Access to agent version ${agent_version_id} denied for tenant ${tenant_id}`,
-        context: {
-          agent_version_id,
-          tenant_id,
-          actual_tenant_id: agent.tenant_id
-        }
-      });
-      
-      return {
-        success: false,
-        error: 'Agent version does not belong to the specified tenant'
-      };
-    }
-    
-    // Check if the agent has reached the XP threshold
-    if (agent.xp < min_xp_threshold) {
-      return {
-        success: true,
         evolved: false,
-        message: `Agent hasn't reached XP threshold (${agent.xp}/${min_xp_threshold})`
+        message: `Not enough votes to evolve agent (${totalVotes} votes, minimum 5 required)`
       };
     }
-    
-    // Check if the agent has enough upvotes
-    if (agent.upvotes < min_upvotes) {
-      return {
-        success: true,
-        evolved: false,
-        message: `Agent hasn't reached upvote threshold (${agent.upvotes}/${min_upvotes})`
-      };
-    }
-    
-    // Check if there's a next version available
-    const { data: nextVersions } = await supabase
-      .from('agent_versions')
-      .select('id, version, status')
-      .eq('plugin_id', agent.plugin_id)
-      .gt('version', agent.version)
-      .order('version', { ascending: true })
-      .limit(1);
-      
-    // If there's a next version, activate it
-    if (nextVersions && nextVersions.length > 0) {
-      const nextVersion = nextVersions[0];
-      
-      // Update the next version to active
-      const { error: updateError } = await supabase
+
+    const voteRatio = agentVersion.upvotes / totalVotes;
+
+    // If vote ratio is good enough and the version isn't already active
+    if (voteRatio >= 0.7 && agentVersion.status !== 'active') {
+      // Find the current active version
+      const { data: currentActiveVersion, error: activeError } = await supabase
         .from('agent_versions')
-        .update({
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', nextVersion.id);
-        
-      if (updateError) {
-        throw updateError;
+        .select('id, version, upvotes, downvotes')
+        .eq('plugin_id', agentVersion.plugin_id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (activeError) {
+        throw new Error(`Failed to fetch current active version: ${activeError.message}`);
       }
-      
-      // Log the evolution event
-      await logSystemEvent({
-        tenant_id: tenant_id || "system",
-        module: 'agents',
-        event: 'agent_evolved',
-        severity: 'info',
-        message: `Agent evolved from v${agent.version} to v${nextVersion.version}`,
-        context: {
-          agent_version_id,
-          new_version_id: nextVersion.id,
-          plugin_id: agent.plugin_id,
-          old_version: agent.version,
-          new_version: nextVersion.version
+
+      // Promote this version to active
+      const { error: promoteError } = await supabase
+        .from('agent_versions')
+        .update({ status: 'active' })
+        .eq('id', agentVersion.id);
+
+      if (promoteError) {
+        throw new Error(`Failed to promote version: ${promoteError.message}`);
+      }
+
+      // If there was a previous active version, deprecate it
+      if (currentActiveVersion) {
+        const { error: deprecateError } = await supabase
+          .from('agent_versions')
+          .update({ status: 'deprecated' })
+          .eq('id', currentActiveVersion.id);
+
+        if (deprecateError) {
+          throw new Error(`Failed to deprecate previous version: ${deprecateError.message}`);
         }
-      });
+      }
+
+      // Log the evolution event
+      await logSystemEvent(
+        'system',
+        'plugin',
+        'agent_evolved_by_votes',
+        {
+          agent_version_id: agentVersion.id,
+          version: agentVersion.version,
+          plugin_id: agentVersion.plugin_id,
+          vote_ratio: voteRatio.toFixed(2),
+          upvotes: agentVersion.upvotes,
+          downvotes: agentVersion.downvotes,
+          previous_version_id: currentActiveVersion?.id,
+          previous_version: currentActiveVersion?.version
+        }
+      );
+
+      return {
+        evolved: true,
+        message: `Agent evolved to version ${agentVersion.version} with vote ratio ${(voteRatio * 100).toFixed(2)}%`,
+        previousVersion: currentActiveVersion?.version
+      };
+    } else if (agentVersion.status === 'active') {
+      await logSystemEvent(
+        'system',
+        'plugin',
+        'agent_evolution_vote_skipped',
+        {
+          agent_version_id: agentVersion.id,
+          version: agentVersion.version,
+          reason: 'Version is already active',
+          vote_ratio: voteRatio.toFixed(2)
+        }
+      );
       
       return {
-        success: true,
-        evolved: true,
-        message: `Agent evolved from ${agent.version} to ${nextVersion.version}`,
-        new_version_id: nextVersion.id
+        evolved: false,
+        message: 'Version is already active'
       };
     } else {
-      // No next version available, but agent is ready for evolution
+      await logSystemEvent(
+        'system',
+        'plugin',
+        'agent_evolution_vote_skipped',
+        {
+          agent_version_id: agentVersion.id,
+          version: agentVersion.version,
+          reason: 'Vote ratio too low',
+          vote_ratio: voteRatio.toFixed(2),
+          upvotes: agentVersion.upvotes,
+          downvotes: agentVersion.downvotes
+        }
+      );
+      
       return {
-        success: true,
         evolved: false,
-        requires_approval: true,
-        message: `Agent is ready for evolution but no next version is available`
+        message: `Vote ratio too low: ${(voteRatio * 100).toFixed(2)}% (minimum 70% required)`
       };
     }
-  } catch (error: any) {
-    console.error("Error in checkAndEvolveAgent:", error);
-    return {
-      success: false,
-      evolved: false,
-      error: error.message
-    };
+  } catch (error) {
+    console.error('Error in evolveAgentByVotes:', error);
+    
+    // Log the error
+    await logSystemEvent(
+      'system',
+      'plugin',
+      'agent_evolution_vote_failure',
+      {
+        agent_version_id: agentVersionId,
+        error: error.message
+      }
+    );
+    
+    throw error;
   }
 }

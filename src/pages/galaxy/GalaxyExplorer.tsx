@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import InspectorSidebar from '@/components/galaxy/InspectorSidebar';
+import InspectorSidebar, { InspectorContent } from '@/components/galaxy/InspectorSidebar';
 import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
 import ZoomControls from '@/components/galaxy/ZoomControls';
 import GraphLegend from '@/components/galaxy/GraphLegend';
@@ -140,7 +139,7 @@ const GalaxyExplorer: React.FC = () => {
               {selectedNode && (
                 <div className="pt-4">
                   <h2 className="text-xl font-bold mb-4">{selectedNode.name || selectedNode.title || 'Details'}</h2>
-                  <InspectorSidebar.Content node={selectedNode} />
+                  <InspectorContent node={selectedNode} />
                 </div>
               )}
             </SheetContent>
