@@ -170,7 +170,7 @@ export async function runPluginChain(
         execution_time: executionTime,
         error: pluginError,
         output: pluginOutput,
-        xp_earned
+        xp_earned: xpEarned
       });
       
       // Update the plugin's total XP
@@ -183,10 +183,14 @@ export async function runPluginChain(
     }
     
     // Record the overall execution
+    const executionStatus: 'success' | 'failure' | 'pending' = 
+      totalFailed === 0 ? 'success' : 
+      (totalSuccessful > 0 ? 'pending' : 'failure'); // Changed 'partial' to 'pending' to match expected types
+    
     await recordExecution({
       tenant_id,
       type: 'strategy',
-      status: totalFailed === 0 ? 'success' : (totalSuccessful > 0 ? 'partial' : 'failure'),
+      status: executionStatus,
       strategy_id: strategyId,
       executed_by: user_id,
       execution_time: performance.now() - startTime,
