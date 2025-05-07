@@ -1,0 +1,161 @@
+
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Home,
+  ArrowRight,
+  Plug,
+  Users,
+  LayoutGrid,
+  BarChart,
+  Calendar,
+  Shield
+} from 'lucide-react';
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarSeparator,
+} from '@/components/ui/sidebar';
+
+// Define navigation groups as separate constants for better organization
+const mainNavItems = [
+  {
+    title: 'Dashboard',
+    icon: Home,
+    path: '/',
+  },
+  {
+    title: 'Strategy Engine',
+    icon: ArrowRight,
+    path: '/launch',
+  },
+  {
+    title: 'Plugins',
+    icon: Plug,
+    path: '/plugins',
+  },
+  {
+    title: 'Galaxy Explorer',
+    icon: LayoutGrid,
+    path: '/explore',
+  },
+];
+
+const insightsNavItems = [
+  {
+    title: 'Agent Performance',
+    icon: Users,
+    path: '/agents/performance',
+  },
+  {
+    title: 'KPI Dashboard',
+    icon: BarChart,
+    path: '/insights/kpis',
+  },
+];
+
+const adminNavItems = [
+  {
+    title: 'AI Decisions',
+    icon: Shield,
+    path: '/admin/ai-decisions',
+  },
+  {
+    title: 'Plugin Logs',
+    icon: Calendar,
+    path: '/admin/plugin-logs',
+  },
+  {
+    title: 'System Logs',
+    icon: Calendar,
+    path: '/admin/system-logs',
+  },
+  {
+    title: 'User Management',
+    icon: Users,
+    path: '/admin/users',
+  },
+  {
+    title: 'Deletion Requests',
+    icon: Calendar,
+    path: '/admin/deletion-requests',
+  },
+];
+
+interface NavItemsProps {
+  isActive: (path: string) => boolean;
+  handleNavigation: (path: string) => void;
+}
+
+export const NavItems: React.FC<NavItemsProps> = ({ isActive, handleNavigation }) => {
+  return (
+    <>
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {mainNavItems.map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <SidebarMenuButton 
+                  isActive={isActive(item.path)}
+                  tooltip={item.title}
+                  onClick={() => handleNavigation(item.path)}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarSeparator />
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Insights</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {insightsNavItems.map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <SidebarMenuButton 
+                  isActive={isActive(item.path)}
+                  tooltip={item.title}
+                  onClick={() => handleNavigation(item.path)}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      <SidebarSeparator />
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Admin</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {adminNavItems.map((item) => (
+              <SidebarMenuItem key={item.path}>
+                <SidebarMenuButton 
+                  isActive={isActive(item.path)}
+                  tooltip={item.title}
+                  onClick={() => handleNavigation(item.path)}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </>
+  );
+};
