@@ -114,7 +114,7 @@ export const useRoleCheck = (options: UseRoleCheckOptions) => {
     };
 
     checkAccess();
-  }, [user, currentRole, requiredRole, authLoading, workspaceLoading, redirectTo, silent, navigate]);
+  }, [user, currentRole, requiredRole, authLoading, workspaceLoading, redirectTo, silent, navigate, toast]);
 
   return { hasAccess, checking };
 };
@@ -132,9 +132,11 @@ export const withRoleCheck = <P extends object>(
     const { hasAccess, checking } = useRoleCheck(options);
     
     if (checking) {
-      return <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>;
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      );
     }
     
     if (!hasAccess) {

@@ -1,8 +1,4 @@
 
-# This file is used to configure your Supabase Functions.
-# When fetching credentials and environment variables, please refer to this guide:
-# https://supabase.com/docs/guides/functions/secrets
-
 project_id = "ijrnwpgsqsxzqdemtknz"
 
 [functions.updateKPIs]
@@ -12,6 +8,9 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.autoEvolveAgents]
+verify_jwt = true
+
+[functions.executeStrategy]
 verify_jwt = true
 
 [functions.createDbFunctions]

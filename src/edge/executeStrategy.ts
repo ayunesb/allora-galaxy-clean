@@ -1,27 +1,13 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { 
-  ExecuteStrategyInput, 
-  ExecuteStrategyResult,
-  camelToSnake
-} from '@/types/fixed';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 import { runStrategy } from '@/lib/strategy/runStrategy';
-
-// Helper function to safely get environment variables
-function getEnvVar(name: string, fallback: string = ""): string {
-  try {
-    // Check if we're in Deno environment
-    if (typeof globalThis.Deno !== 'undefined') {
-      return globalThis.Deno.env.get(name) || fallback;
-    }
-    // Fallback to process.env for Node environment
-    return process.env[name] || fallback;
-  } catch (error) {
-    // If all else fails, return the fallback
-    console.warn(`Error accessing env var ${name}:`, error);
-    return fallback;
-  }
-}
+import { 
+  getEnvVar, 
+  formatErrorResponse,
+  formatSuccessResponse,
+  handleEdgeRequest 
+} from '@/lib/edge/envManager';
 
 export default async function executeStrategy(input: { 
   userId?: string; 
@@ -32,6 +18,23 @@ export default async function executeStrategy(input: {
   const startTime = Date.now();
   
   try {
+    // Input validation
+    if (!input.strategyId) {
+      return {
+        success: false,
+        error: 'Strategy ID is required',
+        executionTime: (Date.now() - startTime) / 1000
+      };
+    }
+
+    if (!input.tenantId) {
+      return {
+        success: false,
+        error: 'Tenant ID is required',
+        executionTime: (Date.now() - startTime) / 1000
+      };
+    }
+    
     // Convert input to ExecuteStrategyInput
     const validatedInput: ExecuteStrategyInput = {
       strategyId: input.strategyId,
