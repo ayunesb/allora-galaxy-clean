@@ -27,7 +27,7 @@ export async function autoEvolveAgents() {
     // Get agent versions that have reached the XP threshold but are still in training
     const { data: agentsToPromote, error } = await supabase
       .from('agent_versions')
-      .select('id, plugin_id, version, xp')
+      .select('id, plugin_id, version, xp, tenant_id')
       .eq('status', 'training')
       .gte('xp', XP_PROMOTION_THRESHOLD);
       
@@ -57,6 +57,7 @@ export async function autoEvolveAgents() {
         
         // Log the promotion event
         await logSystemEvent({
+          tenant_id: agent.tenant_id,
           module: 'agents',
           event: 'agent_promoted',
           context: {
@@ -86,6 +87,7 @@ export async function autoEvolveAgents() {
     
     // Log the error to system logs
     await logSystemEvent({
+      tenant_id: "system",
       module: 'agents',
       event: 'auto_evolve_error',
       context: {
@@ -110,7 +112,7 @@ export async function checkAgentForPromotion(agentVersionId: string) {
     // Get the agent version
     const { data: agent, error } = await supabase
       .from('agent_versions')
-      .select('id, plugin_id, version, xp, status')
+      .select('id, plugin_id, version, xp, status, tenant_id')
       .eq('id', agentVersionId)
       .single();
       
@@ -144,6 +146,7 @@ export async function checkAgentForPromotion(agentVersionId: string) {
     
     // Log the promotion event
     await logSystemEvent({
+      tenant_id: agent.tenant_id,
       module: 'agents',
       event: 'agent_promoted',
       context: {
@@ -202,6 +205,7 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
       
     if (error || !agent) {
       await logSystemEvent({
+        tenant_id,
         module: 'agents',
         event: 'agent_version_not_found',
         context: {
@@ -219,6 +223,7 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
     // Check if the agent belongs to the specified tenant
     if (agent.tenant_id && agent.tenant_id !== tenant_id) {
       await logSystemEvent({
+        tenant_id,
         module: 'agents',
         event: 'agent_version_access_denied',
         context: {
@@ -280,6 +285,7 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
       
       // Log the evolution event
       await logSystemEvent({
+        tenant_id,
         module: 'agents',
         event: 'agent_evolved',
         context: {

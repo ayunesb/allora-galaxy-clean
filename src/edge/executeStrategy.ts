@@ -3,6 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/lib/strategy/types';
 import { runStrategy } from '@/lib/strategy/runStrategy';
 
+// Helper function to safely get environment variables
+function getEnvVar(name: string, fallback: string = ""): string {
+  try {
+    // Check if we're in Deno environment
+    if (typeof globalThis.Deno !== 'undefined') {
+      return globalThis.Deno.env.get(name) || fallback;
+    }
+    // Fallback to process.env for Node environment
+    return process.env[name] || fallback;
+  } catch (error) {
+    // If all else fails, return the fallback
+    console.warn(`Error accessing env var ${name}:`, error);
+    return fallback;
+  }
+}
+
 export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   const startTime = Date.now();
   
@@ -29,17 +45,8 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
     input.options = input.options || {};
     
     // Create Supabase client with safe fallbacks for different environments
-    let supabaseUrl, supabaseKey;
-    
-    try {
-      // Deno environment (Edge Functions)
-      supabaseUrl = Deno.env.get('SUPABASE_URL');
-      supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
-    } catch (error) {
-      // Node/browser environment
-      supabaseUrl = process.env.SUPABASE_URL || 'https://ijrnwpgsqsxzqdemtknz.supabase.co';
-      supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo';
-    }
+    const supabaseUrl = getEnvVar("SUPABASE_URL", "https://ijrnwpgsqsxzqdemtknz.supabase.co");
+    const supabaseKey = getEnvVar("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo");
     
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase URL or key is missing');

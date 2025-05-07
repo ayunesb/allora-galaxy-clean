@@ -30,3 +30,6 @@ enabled = true
 
 [functions.autoEvolveAgents]
 verify_jwt = true
+
+[functions.executeStrategy]
+verify_jwt = true
