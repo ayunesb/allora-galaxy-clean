@@ -1,147 +1,147 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import {
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  MailOpen,
-  Trash2
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
 
-export interface NotificationItemType {
-  id: string;
-  title: string;
-  description?: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  isRead: boolean;
-  createdAt: string;
-  link?: string;
-  module?: string;
-}
+import React from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { 
+  Bell, 
+  CheckCircle, 
+  Info, 
+  AlertCircle, 
+  AlertTriangle,
+  Trash2,
+  Check,
+  ExternalLink
+} from 'lucide-react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { NotificationContent } from './NotificationCenterContent';
+
+export type NotificationItemType = NotificationContent;
 
 interface NotificationItemProps {
   notification: NotificationItemType;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
-  onClose?: () => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({
+const NotificationItem: React.FC<NotificationItemProps> = ({ 
   notification,
   onMarkAsRead,
-  onDelete,
-  onClose
+  onDelete
 }) => {
-  const getTypeIcon = (type: string) => {
-    switch (type) {
+  const handleMarkAsRead = () => onMarkAsRead(notification.id);
+  const handleDelete = () => onDelete(notification.id);
+  
+  const getIcon = () => {
+    switch (notification.type) {
       case 'success':
-        return <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />;
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'warning':
-        return <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />;
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />;
-      case 'info':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'system':
+        return <Bell className="h-5 w-5 text-purple-500" />;
       default:
-        return <Info className="h-5 w-5 text-blue-500 shrink-0" />;
+        return <Info className="h-5 w-5 text-blue-500" />;
     }
   };
-
-  const getModuleBadge = (module?: string) => {
-    if (!module) return null;
-    
-    const colors: Record<string, string> = {
-      'strategy': 'bg-blue-100 text-blue-800',
-      'agent': 'bg-purple-100 text-purple-800',
-      'plugin': 'bg-amber-100 text-amber-800',
-      'billing': 'bg-green-100 text-green-800',
-      'system': 'bg-gray-100 text-gray-800',
-    };
-    
-    return (
-      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors[module] || 'bg-gray-100 text-gray-800'}`}>
-        {module}
-      </span>
-    );
-  };
-
-  const formatDate = (dateString: string) => {
+  
+  const formattedDate = () => {
     try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (e) {
-      return 'recently';
+      const date = new Date(notification.timestamp);
+      const timeAgo = formatDistanceToNow(date, { addSuffix: true });
+      
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-xs text-muted-foreground cursor-help">
+              {timeAgo}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{format(date, 'PPpp')}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    } catch (error) {
+      return <span className="text-xs text-muted-foreground">Unknown date</span>;
     }
   };
-
-  const handleClick = () => {
-    if (onClose) {
-      onClose();
-    }
-  };
-
-  const renderNotificationContent = () => (
-    <div className={`relative flex gap-4 rounded-lg border p-4 ${notification.isRead ? '' : 'bg-accent'}`}>
-      {!notification.isRead && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
-      )}
-      <div className="flex-shrink-0">
-        {getTypeIcon(notification.type)}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-medium">
-            {notification.title}
-          </h3>
-          <div className="flex items-center gap-2">
-            {notification.module && getModuleBadge(notification.module)}
-            <div className="flex space-x-1">
-              {!notification.isRead && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onMarkAsRead(notification.id);
-                  }}
-                  className="h-7 w-7"
-                >
-                  <MailOpen className="h-3.5 w-3.5" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onDelete(notification.id);
-                }}
-                className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
+  
+  return (
+    <Card className={`border-l-4 ${
+      notification.type === 'success' ? 'border-l-green-500' :
+      notification.type === 'warning' ? 'border-l-amber-500' :
+      notification.type === 'error' ? 'border-l-red-500' :
+      notification.type === 'system' ? 'border-l-purple-500' :
+      'border-l-blue-500'
+    } ${notification.read ? 'bg-muted/30' : 'bg-background'}`}>
+      <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between space-y-0">
+        <div className="flex items-center space-x-2">
+          {getIcon()}
+          <CardTitle className="text-sm font-medium">{notification.title}</CardTitle>
         </div>
-        {notification.description && (
-          <p className="text-sm text-muted-foreground mt-1">{notification.description}</p>
+        <div className="flex space-x-1">
+          {!notification.read && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7" 
+                  onClick={handleMarkAsRead}
+                >
+                  <Check className="h-4 w-4" />
+                  <span className="sr-only">Mark as read</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Mark as read</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Delete notification</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <CardDescription className={`${notification.read ? 'text-muted-foreground' : ''}`}>
+          {notification.message}
+        </CardDescription>
+      </CardContent>
+      <CardFooter className="p-4 pt-0 flex justify-between items-center">
+        {formattedDate()}
+        
+        {!notification.read && (
+          <Badge variant="outline" className="text-xs bg-blue-500/10">
+            New
+          </Badge>
         )}
-        <p className="text-xs text-muted-foreground mt-2">{formatDate(notification.createdAt)}</p>
-      </div>
-    </div>
-  );
-
-  return notification.link ? (
-    <Link to={notification.link} className="block hover:no-underline" onClick={handleClick}>
-      {renderNotificationContent()}
-    </Link>
-  ) : (
-    <div className="cursor-default">
-      {renderNotificationContent()}
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 

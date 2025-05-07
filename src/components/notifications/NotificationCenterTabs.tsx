@@ -15,7 +15,7 @@ import NotificationCenterContent from './NotificationCenterContent';
 interface NotificationContentMap {
   id: string;
   title: string;
-  description: string;
+  message: string;
   timestamp: string;
   read: boolean;
   type: 'info' | 'success' | 'warning' | 'error' | 'system';
@@ -40,9 +40,9 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   const mappedNotifications: NotificationContentMap[] = notifications.map(notification => ({
     id: notification.id,
     title: notification.title,
-    description: notification.description || '',
-    timestamp: notification.createdAt,
-    read: notification.isRead,
+    message: notification.message || '',
+    timestamp: notification.created_at,
+    read: notification.read_at !== null,
     type: notification.type as 'info' | 'success' | 'warning' | 'error' | 'system'
   }));
 
@@ -59,7 +59,6 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
               filter={filter}
               markAsRead={markAsRead}
               markAllAsRead={() => {}}
-              onClose={onClose}
             />
           </ScrollArea>
         </TabsContent>

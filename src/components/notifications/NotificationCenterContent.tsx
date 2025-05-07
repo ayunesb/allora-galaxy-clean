@@ -5,22 +5,21 @@ import NotificationList from './NotificationList';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { useNotificationActions } from '@/hooks/useNotificationActions';
-import { Notification } from '@/types/notifications';
 
 // Define the allowed notification types for proper type checking
 type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
 // This interface is used internally in this component
-interface NotificationContent {
+export interface NotificationContent {
   id: string;
   title: string;
-  description: string;
+  message: string;
   timestamp: string;
   read: boolean;
   type: NotificationType;
 }
 
-interface NotificationCenterContentProps {
+export interface NotificationCenterContentProps {
   notifications: NotificationContent[];
   loading: boolean;
   markAllAsRead: () => void;
@@ -40,18 +39,6 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
     return <NotificationCenterLoading />;
   }
 
-  // Map internal notifications to the expected Notification format
-  const mapToNotificationItem = (notification: NotificationContent): Notification => {
-    return {
-      id: notification.id,
-      title: notification.title,
-      description: notification.description,
-      createdAt: notification.timestamp,
-      isRead: notification.read,
-      type: notification.type as any
-    };
-  };
-
   // Filter notifications based on the current tab
   const filteredNotifications = notifications.filter(notification => {
     if (filter === 'all') return true;
@@ -65,29 +52,38 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
     return <NotificationCenterEmptyState filter={filter} />;
   }
 
-  // Map notifications to the expected type for NotificationList
-  const notificationItems = filteredNotifications.map(mapToNotificationItem);
-
   return (
     <Tabs defaultValue="all" className="w-full">
       <TabsContent value="all" className="m-0">
         <NotificationList 
-          notifications={filter === 'all' ? notificationItems : []} 
-          onMarkAsRead={markAsRead} 
+          notifications={filter === 'all' ? filteredNotifications : []} 
+          onMarkAsRead={markAsRead}
+          loading={false}
+          selectedTab="all"
+          filter={null}
+          onDelete={() => {}}
         />
       </TabsContent>
       
       <TabsContent value="unread" className="m-0">
         <NotificationList 
-          notifications={filter === 'unread' ? notificationItems : []} 
-          onMarkAsRead={markAsRead} 
+          notifications={filter === 'unread' ? filteredNotifications : []} 
+          onMarkAsRead={markAsRead}
+          loading={false}
+          selectedTab="unread"
+          filter={null}
+          onDelete={() => {}}
         />
       </TabsContent>
       
       <TabsContent value="system" className="m-0">
         <NotificationList 
-          notifications={filter === 'system' ? notificationItems : []} 
-          onMarkAsRead={markAsRead} 
+          notifications={filter === 'system' ? filteredNotifications : []} 
+          onMarkAsRead={markAsRead}
+          loading={false}
+          selectedTab="system"
+          filter={null}
+          onDelete={() => {}}
         />
       </TabsContent>
     </Tabs>

@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import NotificationItem, { NotificationItemType } from './NotificationItem';
+import NotificationItem from './NotificationItem';
 import NotificationEmptyState from './NotificationEmptyState';
+import { NotificationContent } from './NotificationCenterContent';
 
 interface NotificationListProps {
-  notifications: NotificationItemType[];
+  notifications: NotificationContent[];
   loading: boolean;
   selectedTab: string;
   filter: string | null;
