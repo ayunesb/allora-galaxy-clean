@@ -1,20 +1,15 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { diffLines } from "https://esm.sh/diff@5.2.0";
 
 // Import environment utilities
-import { getEnv } from "../../src/lib/utils/env.ts";
-import { 
-  validateEnv, 
-  logEnvStatus, 
-  formatErrorResponse, 
-  corsHeaders 
-} from "../../src/lib/edge/envManager.ts";
+import { getEnv } from "../../lib/env.ts";
+import { corsHeaders, formatErrorResponse } from "../../lib/corsHeaders.ts";
+import { validateEnv, type EnvVar } from "../../lib/validateEnv.ts";
 
 // Define required environment variables
-const requiredEnv = [
+const requiredEnv: EnvVar[] = [
   { name: 'SUPABASE_URL', required: true, description: 'Supabase project URL' },
   { name: 'SUPABASE_SERVICE_ROLE_KEY', required: true, description: 'Service role key for admin access' },
   { name: 'OPENAI_API_KEY', required: true, description: 'OpenAI API key for analyzing prompt differences' }
@@ -22,7 +17,6 @@ const requiredEnv = [
 
 // Validate environment variables
 const env = validateEnv(requiredEnv);
-logEnvStatus(env);
 
 // Create Supabase client with admin privileges
 const supabaseAdmin = env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY

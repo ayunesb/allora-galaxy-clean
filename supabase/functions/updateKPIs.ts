@@ -1,4 +1,3 @@
-
 // Deno edge function to update KPIs from various sources
 // Entry point for the updateKPIs edge function
 
@@ -20,8 +19,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Define required environment variables
+const requiredEnv: EnvVar[] = [
+  { name: 'SUPABASE_URL', required: true, description: 'Supabase project URL' },
+  { name: 'SUPABASE_SERVICE_ROLE_KEY', required: true, description: 'Service role key for admin access' },
+  { name: 'STRIPE_API_KEY', required: false, description: 'Stripe API key for subscription data' },
+  { name: 'GA4_API_KEY', required: false, description: 'Google Analytics 4 API key' },
+  { name: 'GA4_PROPERTY_ID', required: false, description: 'Google Analytics 4 property ID' },
+  { name: 'HUBSPOT_API_KEY', required: false, description: 'HubSpot API key for marketing data' }
+];
+
+// Validate environment variables at startup
+const env = validateEnv(requiredEnv);
+
 // Main handler function to update KPIs
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -32,30 +44,15 @@ Deno.serve(async (req) => {
     const { tenant_id, sources = ["stripe", "ga4", "hubspot"] } = await req.json();
     
     if (!tenant_id) {
-      return new Response(JSON.stringify({ 
-        error: "tenant_id is required" 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-    
-    // Get Supabase URL and service key
-    const SUPABASE_URL = getEnv("SUPABASE_URL");
-    const SUPABASE_SERVICE_KEY = getEnv("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return new Response(JSON.stringify({ 
-        error: "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured" 
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return formatErrorResponse(400, "tenant_id is required");
     }
     
     // Create Supabase client
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.31.0");
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+      return formatErrorResponse(500, "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
+    }
+    
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     
     // Results object to track KPI updates
     const results = {
@@ -65,97 +62,93 @@ Deno.serve(async (req) => {
     };
     
     // Update Stripe KPIs if requested
-    if (sources.includes("stripe")) {
-      const STRIPE_API_KEY = getEnv("STRIPE_API_KEY");
-      
-      if (STRIPE_API_KEY) {
-        try {
-          // Fetch subscription data from Stripe
-          const response = await fetch("https://api.stripe.com/v1/subscriptions?limit=100&status=active", {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${STRIPE_API_KEY}`,
-              "Content-Type": "application/x-www-form-urlencoded"
-            }
-          });
-          
-          if (!response.ok) {
-            const errorDetail = await response.text();
-            throw new Error(`Stripe API error: ${errorDetail}`);
+    if (sources.includes("stripe") && env.STRIPE_API_KEY) {
+      try {
+        // Fetch subscription data from Stripe
+        const response = await fetch("https://api.stripe.com/v1/subscriptions?limit=100&status=active", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${env.STRIPE_API_KEY}`,
+            "Content-Type": "application/x-www-form-urlencoded"
           }
-          
-          const stripeData = await response.json();
-          
-          // Calculate MRR from active subscriptions
-          let mrr = 0;
-          for (const subscription of stripeData.data || []) {
-            if (subscription.status === 'active') {
-              // Convert subscription amount from cents to dollars and divide by period (month)
-              const amount = subscription.plan?.amount || 0;
-              const interval = subscription.plan?.interval || 'month';
-              const intervalCount = subscription.plan?.interval_count || 1;
-              
-              if (interval === 'month') {
-                mrr += (amount / 100) / intervalCount;
-              } else if (interval === 'year') {
-                mrr += (amount / 100) / (12 * intervalCount);
-              }
-            }
-          }
-          
-          // Get previous MRR value
-          const { data: previousKpi } = await supabase
-            .from('kpis')
-            .select('value')
-            .eq('tenant_id', tenant_id)
-            .eq('name', 'mrr')
-            .eq('source', 'stripe')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-          
-          const previousMrr = previousKpi?.value || 0;
-          
-          // Insert new MRR as KPI
-          const { data: newKpi, error: kpiError } = await supabase
-            .from('kpis')
-            .insert({
-              tenant_id: tenant_id,
-              name: 'mrr',
-              value: mrr,
-              previous_value: previousMrr,
-              source: 'stripe',
-              category: 'financial',
-              date: new Date().toISOString().split('T')[0]
-            })
-            .select()
-            .single();
-          
-          if (kpiError) {
-            throw new Error(`Failed to save MRR KPI: ${kpiError.message}`);
-          }
-          
-          results.stripe = { 
-            success: true, 
-            message: "Successfully updated Stripe KPIs", 
-            kpis: [{ name: 'mrr', value: mrr, previous: previousMrr }] 
-          };
-          
-        } catch (error) {
-          results.stripe = { 
-            success: false, 
-            message: `Failed to update Stripe KPIs: ${error.message}`, 
-            kpis: [] 
-          };
-          console.error("Error updating Stripe KPIs:", error);
+        });
+        
+        if (!response.ok) {
+          const errorDetail = await response.text();
+          throw new Error(`Stripe API error: ${errorDetail}`);
         }
-      } else {
+        
+        const stripeData = await response.json();
+        
+        // Calculate MRR from active subscriptions
+        let mrr = 0;
+        for (const subscription of stripeData.data || []) {
+          if (subscription.status === 'active') {
+            // Convert subscription amount from cents to dollars and divide by period (month)
+            const amount = subscription.plan?.amount || 0;
+            const interval = subscription.plan?.interval || 'month';
+            const intervalCount = subscription.plan?.interval_count || 1;
+            
+            if (interval === 'month') {
+              mrr += (amount / 100) / intervalCount;
+            } else if (interval === 'year') {
+              mrr += (amount / 100) / (12 * intervalCount);
+            }
+          }
+        }
+        
+        // Get previous MRR value
+        const { data: previousKpi } = await supabase
+          .from('kpis')
+          .select('value')
+          .eq('tenant_id', tenant_id)
+          .eq('name', 'mrr')
+          .eq('source', 'stripe')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        const previousMrr = previousKpi?.value || 0;
+        
+        // Insert new MRR as KPI
+        const { data: newKpi, error: kpiError } = await supabase
+          .from('kpis')
+          .insert({
+            tenant_id: tenant_id,
+            name: 'mrr',
+            value: mrr,
+            previous_value: previousMrr,
+            source: 'stripe',
+            category: 'financial',
+            date: new Date().toISOString().split('T')[0]
+          })
+          .select()
+          .single();
+        
+        if (kpiError) {
+          throw new Error(`Failed to save MRR KPI: ${kpiError.message}`);
+        }
+        
+        results.stripe = { 
+          success: true, 
+          message: "Successfully updated Stripe KPIs", 
+          kpis: [{ name: 'mrr', value: mrr, previous: previousMrr }] 
+        };
+        
+      } catch (error) {
         results.stripe = { 
           success: false, 
-          message: "STRIPE_API_KEY is not configured", 
+          message: `Failed to update Stripe KPIs: ${error.message}`, 
           kpis: [] 
         };
+        console.error("Error updating Stripe KPIs:", error);
       }
+    } else if (sources.includes("stripe")) {
+      results.stripe = { 
+        success: false, 
+        message: "STRIPE_API_KEY is not configured", 
+        kpis: [] 
+      };
     }
     
     // Update GA4 KPIs if requested
@@ -238,12 +231,6 @@ Deno.serve(async (req) => {
     
   } catch (error) {
     console.error("Error updating KPIs:", error);
-    return new Response(JSON.stringify({ 
-      error: "Failed to update KPIs", 
-      details: error.message 
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+    return formatErrorResponse(500, "Failed to update KPIs", String(error));
   }
 });

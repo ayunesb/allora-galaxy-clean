@@ -21,3 +21,13 @@ verify_jwt = true
 
 [edge_functions.analyzePromptDiff]
 verify_jwt = true
+
+[edge_functions.executeStrategy]
+verify_jwt = true
+
+[edge_functions.updateKPIs]
+verify_jwt = true
+
+[edge_functions.syncMQLs]
+verify_jwt = true
+
