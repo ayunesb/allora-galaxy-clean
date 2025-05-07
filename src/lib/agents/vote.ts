@@ -1,65 +1,58 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
-export interface AgentVoteInput {
-  agent_version_id: string;
-  vote_type: 'up' | 'down';
-  user_id: string;
-  comment?: string;
-}
-
-export type VoteResult = {
+interface VoteResult {
   success: boolean;
-  error?: string;
   upvotes: number;
   downvotes: number;
-};
+  message?: string;
+  error?: string;
+}
 
-/**
- * Vote on an agent version and return the updated vote counts
- */
-export async function voteOnAgentVersion(input: AgentVoteInput): Promise<VoteResult | null> {
+export async function voteOnAgentVersion(
+  agent_version_id: string, 
+  vote_type: 'up' | 'down', 
+  user_id: string,
+  comment?: string
+): Promise<VoteResult> {
   try {
     // Insert the vote
     const { error } = await supabase
       .from('agent_votes')
-      .insert([input]);
-
+      .insert({
+        agent_version_id,
+        user_id,
+        vote_type,
+        comment: comment || null
+      });
+      
     if (error) {
-      console.error("Error inserting vote:", error);
-      return { success: false, error: error.message, upvotes: 0, downvotes: 0 };
+      throw error;
     }
-
-    // Update the agent version's vote count
-    let updateData = {};
-    if (input.vote_type === 'up') {
-      updateData = { upvotes: supabase.rpc('increment', { value: 1 }) };
-    } else {
-      updateData = { downvotes: supabase.rpc('increment', { value: 1 }) };
-    }
-
-    const { data, error: updateError } = await supabase
+    
+    // Get updated vote counts
+    const { data: agentVersion, error: countError } = await supabase
       .from('agent_versions')
-      .update(updateData)
-      .eq('id', input.agent_version_id)
       .select('upvotes, downvotes')
+      .eq('id', agent_version_id)
       .single();
-
-    if (updateError) {
-      console.error("Error updating vote count:", updateError);
-      return { success: false, error: updateError.message, upvotes: 0, downvotes: 0 };
+      
+    if (countError) {
+      throw countError;
     }
-
+    
     return {
       success: true,
-      upvotes: data.upvotes,
-      downvotes: data.downvotes
+      upvotes: agentVersion.upvotes || 0,
+      downvotes: agentVersion.downvotes || 0,
     };
-  } catch (error) {
-    console.error("Unexpected error in voteOnAgentVersion:", error);
-    return { success: false, error: error.message, upvotes: 0, downvotes: 0 };
+  } catch (error: any) {
+    console.error("Error voting on agent version:", error);
+    return {
+      success: false,
+      upvotes: 0,
+      downvotes: 0,
+      error: error.message
+    };
   }
-}
-
-export function vote(agentId: string, targetId: string, vote_type: string) {
-    // ...existing code...
 }

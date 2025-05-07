@@ -15,7 +15,10 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'react-force-graph-2d',
-        'react-helmet-async'
+        'react-helmet-async',
+        'https://deno.land/std@0.168.0/http/server.ts',
+        'https://esm.sh/@supabase/supabase-js@2',
+        'https://esm.sh/stripe@12.0.0?target=deno'
       ]
     }
   },

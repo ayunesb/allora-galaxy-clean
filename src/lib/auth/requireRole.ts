@@ -19,14 +19,14 @@ const roleHierarchy: Record<UserRole, number> = {
  */
 export function requireRole(requiredRole: UserRole): boolean {
   const { session } = useAuth();
-  const { currentUserRole } = useWorkspace();
+  const { userRole } = useWorkspace();
   
   // If no session or no role, the user doesn't have sufficient permissions
-  if (!session || !currentUserRole) {
+  if (!session || !userRole) {
     return false;
   }
   
-  const userRoleLevel = roleHierarchy[currentUserRole];
+  const userRoleLevel = roleHierarchy[userRole];
   const requiredRoleLevel = roleHierarchy[requiredRole];
   
   // User role meets or exceeds the required role

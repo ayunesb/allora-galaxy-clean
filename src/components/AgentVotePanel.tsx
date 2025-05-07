@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,9 +32,14 @@ const AgentVotePanel = ({
     
     setIsSubmitting(true);
     try {
-      const result = await voteOnAgentVersion(agent_version_id, vote, userId, comment);
+      const result = await voteOnAgentVersion(
+        agent_version_id,
+        vote,
+        userId,
+        comment
+      );
       
-      if (result) {
+      if (result.success) {
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
         setHasVoted(true);
@@ -43,12 +47,14 @@ const AgentVotePanel = ({
           title: "Vote recorded",
           description: "Thank you for your feedback!"
         });
+      } else {
+        throw new Error(result.error || "Failed to submit vote");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting vote:", error);
       toast({
         title: "Error submitting vote",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
         variant: "destructive"
       });
     } finally {

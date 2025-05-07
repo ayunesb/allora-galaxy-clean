@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,7 @@ const UserManagement: React.FC = () => {
   } = useQuery({
     queryKey: ['tenant-users', currentTenant?.id],
     queryFn: async () => {
-      if (!currentTenant) return [];
+      if (!currentTenant) return [] as UserWithRole[];
 
       // Get all users with roles in the current tenant
       const { data, error } = await supabase
@@ -67,15 +68,15 @@ const UserManagement: React.FC = () => {
       if (error) throw error;
 
       // Make sure data is an array and map properly
-      if (!data || !Array.isArray(data)) return [];
+      if (!data || !Array.isArray(data)) return [] as UserWithRole[];
       
       return data.map(item => ({
-        id: item.user?.id,
-        email: item.user?.email,
-        created_at: item.user?.created_at,
+        id: item.user?.id || '',
+        email: item.user?.email || '',
+        created_at: item.user?.created_at || '',
         role: item.role as UserRole,
         role_id: item.id
-      })).filter(user => user.id !== undefined) as UserWithRole[];
+      })).filter(user => user.id !== '') as UserWithRole[];
     },
     enabled: !!currentTenant
   });

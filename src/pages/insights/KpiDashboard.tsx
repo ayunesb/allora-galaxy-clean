@@ -1,478 +1,317 @@
-import React, { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  BarChart,
-  Calendar,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Users,
-  LineChart,
-  BarChart3,
-  RefreshCcw,
-  Download,
-  ExternalLink,
-} from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  BarChart as RechartsBarChart,
-  Bar,
-} from 'recharts';
-import KPICard from '@/components/KPICard';
+import React from 'react';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
-import { fetchKpiTrends, fetchLatestKpis } from '@/lib/kpi/fetchKpiTrends';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { KPI } from '@/types/index';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowDown, ArrowUp, BarChart3, DollarSign, RefreshCw, Users } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Mock data for KPI charts
-const revenueData = [
-  { month: 'Jan', mrr: 12000, revenue: 15000 },
-  { month: 'Feb', mrr: 13500, revenue: 16800 },
-  { month: 'Mar', mrr: 14200, revenue: 17500 },
-  { month: 'Apr', mrr: 15600, revenue: 19200 },
-  { month: 'May', mrr: 17000, revenue: 21000 },
-  { month: 'Jun', mrr: 19500, revenue: 24000 },
-  { month: 'Jul', mrr: 21000, revenue: 26000 },
-];
+const KpiDashboard = () => {
+  const { currentTenant } = useWorkspace();
 
-const trafficData = [
-  { month: 'Jan', organic: 5200, referral: 2100, direct: 3200 },
-  { month: 'Feb', organic: 5800, referral: 2300, direct: 3500 },
-  { month: 'Mar', organic: 6500, referral: 2600, direct: 3800 },
-  { month: 'Apr', organic: 7200, referral: 2900, direct: 4000 },
-  { month: 'May', organic: 8000, referral: 3100, direct: 4300 },
-  { month: 'Jun', organic: 8800, referral: 3400, direct: 4600 },
-  { month: 'Jul', organic: 9500, referral: 3700, direct: 5000 },
-];
+  const { data: kpiData, isLoading, refetch } = useQuery({
+    queryKey: ['kpi-data', currentTenant?.id],
+    queryFn: async () => {
+      if (!currentTenant) return [];
 
-const leadData = [
-  { month: 'Jan', mql: 180, sql: 70, converted: 28 },
-  { month: 'Feb', mql: 210, sql: 85, converted: 34 },
-  { month: 'Mar', mql: 240, sql: 95, converted: 38 },
-  { month: 'Apr', mql: 280, sql: 110, converted: 44 },
-  { month: 'May', mql: 320, sql: 128, converted: 51 },
-  { month: 'Jun', mql: 350, sql: 140, converted: 56 },
-  { month: 'Jul', mql: 390, sql: 155, converted: 62 },
-];
-
-const channelData = [
-  { name: 'Organic Search', value: 40 },
-  { name: 'Social Media', value: 25 },
-  { name: 'Email', value: 15 },
-  { name: 'Direct', value: 12 },
-  { name: 'Referral', value: 8 },
-];
-
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#10b981'];
-
-const KpiDashboard: React.FC = () => {
-  const [timeRange, setTimeRange] = useState('7d');
-  const { toast } = useToast();
-  
-  // Add refetch function for KPI data
-  const { refetch: refetchKpis } = useQuery({
-    queryKey: ['kpi-data'],
-    queryFn: () => fetchLatestKpis(),
-    enabled: false
+      const { data, error } = await supabase
+        .from('kpis')
+        .select('*')
+        .eq('tenant_id', currentTenant.id)
+        .order('date', { ascending: false });
+        
+      if (error) throw error;
+      return data as KPI[];
+    },
+    enabled: !!currentTenant
   });
-  
-  // Trigger a KPI update
-  const refreshKpis = async () => {
-    try {
-      toast({
-        title: "Refreshing KPIs...",
-        description: "This may take a few moments.",
-      });
-      
-      const { data, error } = await supabase.functions.invoke('updateKPIs');
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      toast({
-        title: "KPIs Updated!",
-        description: "The dashboard has been refreshed with the latest data.",
-      });
-      
-      // Refresh data by refetching queries
-      refetchKpis();
-      
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    }
+
+  // Group KPIs by category
+  const financialKpis = kpiData?.filter(kpi => kpi.category === 'financial') || [];
+  const marketingKpis = kpiData?.filter(kpi => kpi.category === 'marketing') || [];
+  const salesKpis = kpiData?.filter(kpi => kpi.category === 'sales') || [];
+
+  // Format data for charts
+  const formatChartData = (kpis: KPI[], kpiName: string) => {
+    const filteredKpis = kpis
+      .filter(kpi => kpi.name === kpiName)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return filteredKpis.map(kpi => ({
+      date: new Date(kpi.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: kpi.value
+    }));
   };
-  
+
+  const mrrData = formatChartData(financialKpis, 'Monthly Recurring Revenue');
+  const mqlData = formatChartData(marketingKpis, 'Marketing Qualified Leads');
+
+  // Calculate percentage change
+  const getPercentageChange = (current: number, previous: number | null | undefined) => {
+    if (previous === null || previous === undefined || previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Get the most recent KPI value
+  const getLatestKpi = (kpis: KPI[], kpiName: string) => {
+    return kpis.find(kpi => kpi.name === kpiName);
+  };
+
+  const latestMrr = getLatestKpi(financialKpis, 'Monthly Recurring Revenue');
+  const latestMql = getLatestKpi(marketingKpis, 'Marketing Qualified Leads');
+
+  const mrrChange = latestMrr ? getPercentageChange(latestMrr.value, latestMrr.previous_value) : 0;
+  const mqlChange = latestMql ? getPercentageChange(latestMql.value, latestMql.previous_value) : 0;
+
   return (
-    <div className="container mx-auto py-10 px-4 md:px-6">
-      <div className="flex items-center gap-2 mb-8">
-        <div className="h-10 w-10 rounded-full effect-glow bg-gradient-to-r from-galaxy-blue to-galaxy-indigo flex items-center justify-center">
-          <BarChart className="h-5 w-5 text-white" />
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">KPI Dashboard</h1>
-          <p className="text-muted-foreground">Track key business metrics at a glance</p>
+          <p className="text-muted-foreground mt-1">
+            Track key performance indicators for your business
+          </p>
         </div>
+        <Button onClick={() => refetch()} variant="outline" size="sm">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh Data
+        </Button>
       </div>
-      
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Today
-          </Button>
-          
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Time period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={refreshKpis}>
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Refresh KPIs
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
-      </div>
-      
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* MRR Card */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Monthly Recurring Revenue</p>
-                <h3 className="text-2xl font-bold">$21,000</h3>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-blue-500" />
-              </div>
+          <CardHeader className="pb-2">
+            <CardDescription>Monthly Recurring Revenue</CardDescription>
+            <div className="flex justify-between items-start">
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <CardTitle className="text-2xl">
+                  ${latestMrr?.value?.toLocaleString() || 0}
+                </CardTitle>
+              )}
+              {!isLoading && (
+                <div className={`flex items-center ${mrrChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {mrrChange >= 0 ? <ArrowUp className="h-4 w-4 mr-1" /> : <ArrowDown className="h-4 w-4 mr-1" />}
+                  <span>{Math.abs(mrrChange).toFixed(1)}%</span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center mt-4 text-sm text-green-500">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span>+7.7% from last month</span>
-            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-[120px] w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={120}>
+                <LineChart data={mrrData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} width={40} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
-        
+
+        {/* MQL Card */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Website Traffic</p>
-                <h3 className="text-2xl font-bold">18,200</h3>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <LineChart className="h-5 w-5 text-purple-500" />
-              </div>
+          <CardHeader className="pb-2">
+            <CardDescription>Marketing Qualified Leads</CardDescription>
+            <div className="flex justify-between items-start">
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <CardTitle className="text-2xl">
+                  {latestMql?.value?.toLocaleString() || 0}
+                </CardTitle>
+              )}
+              {!isLoading && (
+                <div className={`flex items-center ${mqlChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {mqlChange >= 0 ? <ArrowUp className="h-4 w-4 mr-1" /> : <ArrowDown className="h-4 w-4 mr-1" />}
+                  <span>{Math.abs(mqlChange).toFixed(1)}%</span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center mt-4 text-sm text-green-500">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span>+8.0% from last month</span>
-            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-[120px] w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={120}>
+                <LineChart data={mqlData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} width={40} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="value" stroke="#82ca9d" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
-        
+
+        {/* Placeholder for another KPI */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Marketing Qualified Leads</p>
-                <h3 className="text-2xl font-bold">390</h3>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-pink-500/20 flex items-center justify-center">
-                <Users className="h-5 w-5 text-pink-500" />
-              </div>
-            </div>
-            <div className="flex items-center mt-4 text-sm text-green-500">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span>+11.4% from last month</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Conversion Rate</p>
-                <h3 className="text-2xl font-bold">3.8%</h3>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-teal-500/20 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-teal-500" />
+          <CardHeader className="pb-2">
+            <CardDescription>Customer Acquisition Cost</CardDescription>
+            <div className="flex justify-between items-start">
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <CardTitle className="text-2xl">$125</CardTitle>
+              )}
+              <div className="text-green-500 flex items-center">
+                <ArrowDown className="h-4 w-4 mr-1" />
+                <span>3.2%</span>
               </div>
             </div>
-            <div className="flex items-center mt-4 text-sm text-red-500">
-              <TrendingDown className="h-4 w-4 mr-1" />
-              <span>-0.3% from last month</span>
-            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-[120px] w-full" />
+            ) : (
+              <div className="h-[120px] flex items-center justify-center text-muted-foreground">
+                <p>No historical data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-      
-      {/* Main dashboard content */}
-      <Tabs defaultValue="financial" className="space-y-6">
-        <TabsList className="mb-4">
+
+      <Tabs defaultValue="all" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="all">All KPIs</TabsTrigger>
           <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="traffic">Traffic</TabsTrigger>
-          <TabsTrigger value="marketing">Marketing Funnel</TabsTrigger>
+          <TabsTrigger value="marketing">Marketing</TabsTrigger>
+          <TabsTrigger value="sales">Sales</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="financial">
+        <TabsContent value="all" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
+              <CardTitle>All Key Performance Indicators</CardTitle>
               <CardDescription>
-                Monthly recurring revenue and total revenue
+                Overview of all tracked metrics across departments
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
-                    <defs>
-                      <linearGradient id="colorMrr" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip formatter={(value) => `$${value}`} />
-                    <Legend />
-                    <Area type="monotone" dataKey="mrr" name="MRR" stroke="#3b82f6" fillOpacity={1} fill="url(#colorMrr)" />
-                    <Area type="monotone" dataKey="revenue" name="Total Revenue" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorRevenue)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : kpiData && kpiData.length > 0 ? (
+                <div className="space-y-4">
+                  {kpiData.slice(0, 10).map((kpi) => (
+                    <div key={kpi.id} className="flex items-center justify-between border-b pb-2">
+                      <div>
+                        <p className="font-medium">{kpi.name}</p>
+                        <p className="text-sm text-muted-foreground">{kpi.date}</p>
+                      </div>
+                      <div className="flex items-center">
+                        <p className="font-medium mr-4">
+                          {kpi.name.includes('Revenue') ? '$' : ''}{kpi.value.toLocaleString()}
+                        </p>
+                        {kpi.previous_value && (
+                          <div className={`flex items-center ${kpi.value >= kpi.previous_value ? 'text-green-500' : 'text-red-500'}`}>
+                            {kpi.value >= kpi.previous_value ? (
+                              <ArrowUp className="h-4 w-4 mr-1" />
+                            ) : (
+                              <ArrowDown className="h-4 w-4 mr-1" />
+                            )}
+                            <span>
+                              {Math.abs(getPercentageChange(kpi.value, kpi.previous_value)).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-2 text-lg font-medium">No KPI data available</h3>
+                  <p className="text-muted-foreground">
+                    KPI data will appear here once it's collected.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="traffic">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Website Traffic</CardTitle>
-                <CardDescription>
-                  Traffic by source over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trafficData}>
-                      <defs>
-                        <linearGradient id="colorOrganic" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorReferral" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorDirect" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <Tooltip />
-                      <Legend />
-                      <Area type="monotone" dataKey="organic" name="Organic Search" stroke="#10b981" fillOpacity={1} fill="url(#colorOrganic)" />
-                      <Area type="monotone" dataKey="referral" name="Referral" stroke="#6366f1" fillOpacity={1} fill="url(#colorReferral)" />
-                      <Area type="monotone" dataKey="direct" name="Direct" stroke="#f59e0b" fillOpacity={1} fill="url(#colorDirect)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Traffic Sources</CardTitle>
-                <CardDescription>
-                  Distribution by channel
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={channelData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {channelData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `${value}%`} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="marketing">
+        <TabsContent value="financial" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Marketing Funnel</CardTitle>
+              <CardTitle>Financial Metrics</CardTitle>
               <CardDescription>
-                MQLs, SQLs, and conversions over time
+                Revenue, costs, and other financial indicators
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={leadData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="mql" name="MQLs" fill="#8b5cf6" />
-                    <Bar dataKey="sql" name="SQLs" fill="#3b82f6" />
-                    <Bar dataKey="converted" name="Conversions" fill="#10b981" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  <DollarSign className="h-12 w-12 mb-2" />
+                  <p className="ml-2">Financial metrics visualization</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="marketing" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Marketing Metrics</CardTitle>
+              <CardDescription>
+                Leads, conversions, and campaign performance
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  <Users className="h-12 w-12 mb-2" />
+                  <p className="ml-2">Marketing metrics visualization</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="sales" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales Metrics</CardTitle>
+              <CardDescription>
+                Deals, pipeline, and revenue forecasts
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mb-2" />
+                  <p className="ml-2">Sales metrics visualization</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-      
-      {/* Integration status cards */}
-      <div className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">Connected Data Sources</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle>Stripe</CardTitle>
-                <CardDescription>Financial data</CardDescription>
-              </div>
-              <Badge className="bg-green-500">Connected</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Last sync: Today at 08:15 AM
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View in Stripe
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle>Google Analytics 4</CardTitle>
-                <CardDescription>Traffic metrics</CardDescription>
-              </div>
-              <Badge className="bg-green-500">Connected</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Last sync: Today at 06:30 AM
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View in GA4
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle>HubSpot</CardTitle>
-                <CardDescription>Marketing CRM</CardDescription>
-              </div>
-              <Badge className="bg-green-500">Connected</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Last sync: Today at 07:45 AM
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View in HubSpot
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
     </div>
   );
 };
