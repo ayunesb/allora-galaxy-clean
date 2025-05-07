@@ -65,12 +65,7 @@ describe('Agent Evolution', () => {
 
   describe('checkAndEvolveAgent', () => {
     it('should check and evolve an agent', async () => {
-      const result = await checkAndEvolveAgent({
-        agent_version_id: 'test-agent-version-id',
-        tenant_id: 'test-tenant-id',
-        min_xp_threshold: 500,
-        min_upvotes: 5
-      });
+      const result = await checkAndEvolveAgent('test-agent-version-id');
       
       expect(result.success).toBe(true);
     });

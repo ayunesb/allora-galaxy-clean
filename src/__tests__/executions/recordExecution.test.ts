@@ -17,7 +17,7 @@ describe('recordExecution', () => {
     const input: ExecutionRecordInput = {
       tenantId: 'test-tenant',
       status: 'success' as LogStatus,
-      type: 'test-type',
+      type: 'strategy',
     };
 
     await recordExecution(input);

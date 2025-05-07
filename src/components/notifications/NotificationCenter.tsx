@@ -53,10 +53,10 @@ const NotificationCenter: React.FC = () => {
       // Set up real-time subscription for new notifications
       const setupSubscription = async () => {
         try {
-          if (supabase.realtime) {
-            const channel = supabase.realtime.channel('notifications_changes');
-            
-            channel.on('postgres_changes', 
+          const channel = supabase.channel('notifications_changes');
+          
+          channel
+            .on('postgres_changes', 
               {
                 event: 'INSERT',
                 schema: 'public',
@@ -69,11 +69,10 @@ const NotificationCenter: React.FC = () => {
                   fetchNotifications();
                 }
               }
-            ).subscribe();
-            
-            return channel;
-          }
-          return null;
+            )
+            .subscribe();
+          
+          return channel;
         } catch (error) {
           console.error('Error setting up realtime subscription:', error);
           return null;
@@ -83,8 +82,8 @@ const NotificationCenter: React.FC = () => {
       const channel = setupSubscription();
       
       return () => {
-        if (channel && supabase.realtime) {
-          supabase.realtime.removeChannel(channel);
+        if (channel) {
+          supabase.removeChannel(channel);
         }
       };
     }
