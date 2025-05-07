@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTenantId } from '@/hooks/useTenantId';
@@ -25,7 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AdminGuard } from '@/components/guards/AdminGuard';
-import { PromptDiffViewer } from '@/components/PromptDiffViewer';
+import PromptDiffViewer from '@/components/PromptDiffViewer';
 
 interface AiDecision {
   id: string;

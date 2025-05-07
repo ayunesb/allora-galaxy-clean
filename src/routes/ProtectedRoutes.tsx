@@ -30,6 +30,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} replace />;
   }
   
+  // If there's a required role, check if user has that role
+  if (requiredRole) {
+    const hasAccess = hasRequiredRole(requiredRole);
+    
+    if (!hasAccess) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+  
   // If there's no required role, just render the children
   return <Outlet />;
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTenantId } from '@/hooks/useTenantId';
@@ -70,6 +69,14 @@ interface TenantUser {
   created_at: string;
 }
 
+interface UserProfile {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  created_at?: string;
+}
+
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<TenantUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +125,7 @@ const UserManagement: React.FC = () => {
       // Get email addresses for each user (this would typically be done via an admin endpoint)
       // For demo purposes, we're simulating this data
       const completeUsers: TenantUser[] = tenantUsers.map(tu => {
-        const profile = profilesData?.find(p => p.id === tu.user_id) || {};
+        const profile = (profilesData?.find(p => p.id === tu.user_id) || {}) as UserProfile;
         // In a real app, you would get this information from an auth admin API
         const email = `user-${tu.user_id.substring(0, 6)}@example.com`;
         

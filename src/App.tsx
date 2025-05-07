@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -27,6 +26,7 @@ const UserManagement = React.lazy(() => import('./pages/admin/UserManagement'));
 const SystemLogs = React.lazy(() => import('./pages/admin/SystemLogs'));
 const AiDecisions = React.lazy(() => import('./pages/admin/AiDecisions'));
 const PluginLogs = React.lazy(() => import('./pages/admin/PluginLogs'));
+const StrategyEngine = React.lazy(() => import('./pages/strategy/StrategyEngine'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
