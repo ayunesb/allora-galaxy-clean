@@ -1,8 +1,12 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getEnvVar, corsHeaders, validateEnv, logEnvStatus, formatErrorResponse } from "../../../src/lib/edge/envManager.ts";
+import { getEnv } from "../../src/lib/utils/env.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 // Define environment variables needed for this function
 const requiredEnv = [
@@ -24,15 +28,53 @@ const requiredEnv = [
 ];
 
 // Validate all required environment variables at startup
+function validateEnv(envVars) {
+  const result = {};
+  const missing = [];
+
+  for (const envVar of envVars) {
+    const value = getEnv(envVar.name);
+    result[envVar.name] = value;
+
+    if (envVar.required && !value) {
+      missing.push(`${envVar.name} (${envVar.description})`);
+    }
+  }
+
+  if (missing.length > 0) {
+    console.warn(`⚠️ Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  return result;
+}
+
+// Log environment status on startup (redacted)
+function logEnvStatus(env) {
+  console.log(`Environment status: ${Object.keys(env).filter(k => env[k]).length}/${Object.keys(env).length} variables available`);
+  for (const key of Object.keys(env)) {
+    console.log(`${key}: ${env[key] ? '✅ Set' : '❌ Missing'}`);
+  }
+}
+
+// Format error response
+function formatErrorResponse(status, message, details = null) {
+  const body = {
+    error: message,
+    details: details || null,
+    timestamp: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// Validate all required environment variables at startup
 const env = validateEnv(requiredEnv);
 
 // Log environment status on startup (redacted)
 logEnvStatus(env);
-
-// Create Supabase client outside the handler
-const supabaseAdmin = env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
-  : null;
 
 type KpiCategory = 'financial' | 'marketing' | 'sales' | 'product';
 type KpiSource = 'stripe' | 'ga4' | 'hubspot';
@@ -46,6 +88,11 @@ interface KpiData {
   date: string;
   tenant_id: string;
 }
+
+// Create Supabase client outside the handler
+const supabaseAdmin = env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 serve(async (req) => {
   // Handle CORS preflight requests
