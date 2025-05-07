@@ -4,13 +4,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Import environment utilities
-import { getEnv } from "../../src/lib/utils/env.ts";
-import { 
-  validateEnv, 
-  logEnvStatus, 
-  formatErrorResponse, 
-  corsHeaders 
-} from "../../src/lib/edge/envManager.ts";
+import { getEnv } from "../../lib/env.ts";
+import { validateEnv, logEnvStatus } from "../../lib/validateEnv.ts";
+import { corsHeaders, formatErrorResponse } from "../../lib/corsHeaders.ts";
 
 // Define required environment variables
 const requiredEnv = [
