@@ -1,73 +1,92 @@
-# Welcome to your Lovable project
 
-## Project info
+# Allora OS - AI-Native Business Management Platform
 
-**URL**: https://lovable.dev/projects/9c3148d9-ab17-4b9a-908f-dd75ce70b6c1
+Allora OS is a comprehensive AI-native business management platform built with React, TypeScript, TailwindCSS, and Supabase. It provides tools for strategy generation, plugin management, and business intelligence through an intuitive user interface.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Authentication**: Email/password login, signup, and password reset powered by Supabase Auth
+- **Multi-tenant support**: Organizations can create and manage separate workspaces
+- **Strategy engine**: AI-powered business strategy generation
+- **Plugin system**: Extensible framework for AI agents with version history and performance tracking
+- **Galaxy explorer**: Visual network graph of connections between plugins, strategies, and agents
+- **Agent performance system**: Track XP, success rates, and user feedback
+- **Admin panel**: Manage user access, review logs, and govern AI decisions
+- **KPI dashboard**: Track key business metrics from integrated systems
 
-**Use Lovable**
+## Getting Started
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9c3148d9-ab17-4b9a-908f-dd75ce70b6c1) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 16+
+- A Supabase account
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone the repository
+2. Install dependencies
+   ```
+   npm install
+   ```
+3. Create a `.env` file in the root directory with the following variables:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+4. Set up the Supabase database by running the SQL in `src/lib/supabase-schema.sql`
+5. Start the development server
+   ```
+   npm run dev
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Supabase Setup
 
-Follow these steps:
+1. Create a new Supabase project
+2. Enable the Auth service and configure email authentication
+3. Run the SQL commands in `src/lib/supabase-schema.sql` to create the required database tables
+4. Set up the Edge Functions for strategy execution and KPI updates
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Row-Level Security (RLS)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+The schema includes RLS policies to ensure data security:
+- Users can only access data from tenants they are members of
+- Role-based permissions control who can create, update, or delete resources
+- Admin users have elevated permissions across the platform
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Application Structure
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+- `src/components`: Reusable UI components
+- `src/context`: React context providers for auth and workspace state
+- `src/hooks`: Custom React hooks
+- `src/lib`: Utility functions and Supabase client
+- `src/pages`: Main application pages
+- `src/types`: TypeScript type definitions
 
-**Edit a file directly in GitHub**
+## Key Pages
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- `/auth`: Login, signup, and password reset
+- `/onboarding`: New workspace setup wizard
+- `/`: Dashboard home
+- `/launch`: Strategy creation and management
+- `/plugins`: Plugin management
+- `/plugins/:id/evolution`: Plugin version history and performance
+- `/explore`: Galaxy explorer visualization
+- `/agents/performance`: Agent performance metrics
+- `/insights/kpis`: Business KPI dashboard
+- `/admin/*`: Admin panel pages
 
-**Use GitHub Codespaces**
+## Technologies Used
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **React**: UI framework
+- **TypeScript**: Type-safe JavaScript
+- **TailwindCSS**: Utility-first CSS framework
+- **shadcn/ui**: UI component library based on Radix UI
+- **Supabase**: Backend-as-a-service (auth, database)
+- **React Router**: Client-side routing
+- **React Query**: Data fetching and state management
+- **D3.js**: Data visualization (galaxy explorer)
+- **Recharts**: Chart components
 
-## What technologies are used for this project?
+## License
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9c3148d9-ab17-4b9a-908f-dd75ce70b6c1) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is licensed under the MIT License
