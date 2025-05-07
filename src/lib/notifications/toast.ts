@@ -12,15 +12,23 @@ export const useNotify = () => {
   const { toast } = useToast();
   
   const notify = ({ title, message, type = 'default', duration = 3000 }: NotifyParams) => {
-    const variant = type === 'default' ? 'default' : 
-                   type === 'success' ? 'success' : 
-                   type === 'error' ? 'destructive' : 
-                   'default';
+    // Convert our types to what the toast component accepts
+    const variant: 'default' | 'destructive' = 
+      type === 'error' ? 'destructive' : 'default';
+    
+    // For non-error variants, we'll use className to style instead
+    let className: string | undefined;
+    if (type === 'success') {
+      className = 'border-green-600 bg-green-50 dark:bg-green-950/30';
+    } else if (type === 'warning') {
+      className = 'border-yellow-600 bg-yellow-50 dark:bg-yellow-950/30';
+    }
     
     toast({
       title,
       description: message,
       variant,
+      className,
       duration,
     });
   };

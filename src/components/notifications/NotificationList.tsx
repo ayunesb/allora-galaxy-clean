@@ -3,7 +3,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import NotificationItem from './NotificationItem';
 import NotificationEmptyState from './NotificationEmptyState';
-import { NotificationContent } from './NotificationCenterContent';
+import { NotificationContent } from '@/types/notifications';
 
 interface NotificationListProps {
   notifications: NotificationContent[];
