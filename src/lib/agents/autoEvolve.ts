@@ -1,302 +1,311 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { getEmbeddingForText } from '@/lib/utils/embeddings';
 
-// Type definition for agent evolution result
-export interface AgentEvolutionResult {
-  evolved: boolean;
-  reason: string;
-  agentId?: string;
-  newAgentId?: string;
-  version?: string;
-  newVersion?: string;
-}
-
-// Type definition for multiple agent evolution results
-export interface AgentEvolutionBatchResult {
-  evolvedCount: number;
-  results: AgentEvolutionResult[];
-  errors?: string[];
+/**
+ * Get all agents that need evolution based on vote ratios
+ */
+export async function getAgentsForEvolution(threshold = 0.3) {
+  try {
+    // Get agents with more downvotes than upvotes by the threshold
+    const { data: agentsToEvolve, error } = await supabase
+      .from('agent_versions')
+      .select('id, plugin_id, prompt, version, upvotes, downvotes')
+      .lt('upvotes', supabase.rpc('multiply_value', { value: 'downvotes', multiplier: threshold }))
+      .gt('downvotes', 3) // Minimum number of downvotes to consider
+      .is('status', 'active')
+      .order('downvotes', { ascending: false });
+      
+    if (error) throw error;
+    return agentsToEvolve || [];
+  } catch (error) {
+    console.error('Error getting agents for evolution:', error);
+    return [];
+  }
 }
 
 /**
- * Checks an agent for potential promotion based on votes and performance
- * @param agentVersionId The ID of the agent version to check
- * @returns Object with promotion status and reason
+ * Count agent usage in recent executions
  */
-export const checkAgentForPromotion = async (agentVersionId: string) => {
+export async function getAgentUsageStats(days = 30) {
   try {
-    // Fetch agent version with its votes and execution metrics
+    const { data: usageStats, error } = await supabase
+      .from('plugin_logs')
+      .select('agent_version_id, status, count(*)')
+      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+      .is('status', 'success')
+      .groupBy('agent_version_id, status');
+      
+    if (error) throw error;
+    return usageStats || [];
+  } catch (error) {
+    console.error('Error getting agent usage stats:', error);
+    return [];
+  }
+}
+
+/**
+ * Calculate performance score for an agent based on votes and success rate
+ */
+export function calculateAgentPerformance(
+  agentId: string,
+  upvotes: number, 
+  downvotes: number,
+  usageStats: Array<{ agent_version_id: string, status: string, count: number }>
+) {
+  // Filter usage stats for this agent
+  const agentStats = usageStats.filter(stat => stat.agent_version_id === agentId);
+  
+  // Get success and failure counts
+  const successCount = agentStats.find(stat => stat.status === 'success')?.count || 0;
+  const failureCount = agentStats.find(stat => stat.status === 'failure')?.count || 0;
+  
+  const totalCalls = successCount + failureCount;
+  const successRate = totalCalls > 0 ? successCount / totalCalls : 0;
+  
+  // Calculate vote score
+  const totalVotes = upvotes + downvotes;
+  const voteScore = totalVotes > 0 ? upvotes / totalVotes : 0;
+  
+  // Combine metrics (weighted)
+  return (voteScore * 0.7) + (successRate * 0.3);
+}
+
+/**
+ * Get the plugin for a specific agent
+ */
+export async function getPluginForAgent(agentVersionId: string) {
+  try {
     const { data: agent, error } = await supabase
       .from('agent_versions')
-      .select('*')
+      .select('plugin_id')
       .eq('id', agentVersionId)
       .single();
       
     if (error) throw error;
-    if (!agent) throw new Error('Agent not found');
-    
-    // Get execution stats from plugin logs
-    const { data: executionStats, error: execError } = await supabase
-      .from('plugin_logs')
-      .select('status, count')
-      .eq('agent_version_id', agentVersionId)
-      .group('status')
-      .count();
-    
-    if (execError) {
-      console.warn(`Could not fetch execution stats: ${execError.message}`);
-    }
-    
-    // Calculate success rate
-    const successCount = executionStats?.find(stat => stat.status === 'success')?.count || 0;
-    const failureCount = executionStats?.find(stat => stat.status === 'failure')?.count || 0;
-    const totalExecutions = successCount + failureCount;
-    const successRate = totalExecutions > 0 ? successCount / totalExecutions : 0;
-    
-    // Decision criteria
-    const hasEnoughVotes = (agent.upvotes + agent.downvotes) >= 10;
-    const hasPositiveVoteRatio = agent.upvotes > agent.downvotes;
-    const hasEnoughXP = agent.xp > 100;
-    const hasGoodSuccessRate = successRate >= 0.7;
-    const hasEnoughExecutions = totalExecutions > 5;
-    
-    const shouldPromote = 
-      hasEnoughVotes && 
-      hasPositiveVoteRatio && 
-      hasEnoughXP && 
-      (hasGoodSuccessRate || !hasEnoughExecutions);
-    
-    let reason = shouldPromote 
-      ? 'Agent meets promotion criteria' 
-      : 'Agent does not meet promotion criteria';
-      
-    // Add specific reasons for not promoting
-    if (!shouldPromote) {
-      if (!hasEnoughVotes) reason += ': insufficient votes';
-      else if (!hasPositiveVoteRatio) reason += ': negative vote ratio';
-      else if (!hasEnoughXP) reason += ': insufficient XP';
-      else if (!hasGoodSuccessRate && hasEnoughExecutions) reason += ': poor success rate';
-    }
-    
-    return {
-      shouldPromote,
-      reason,
-      metrics: {
-        votes: { up: agent.upvotes, down: agent.downvotes, total: agent.upvotes + agent.downvotes },
-        executions: { success: successCount, failure: failureCount, total: totalExecutions, rate: successRate },
-        xp: agent.xp
-      }
-    };
-  } catch (err) {
-    console.error('Error checking agent for promotion:', err);
-    return {
-      shouldPromote: false,
-      reason: `Error during promotion check: ${err instanceof Error ? err.message : 'Unknown error'}`
-    };
+    return agent?.plugin_id;
+  } catch (error) {
+    console.error('Error getting plugin for agent:', error);
+    return null;
   }
-};
+}
 
 /**
- * Checks and evolves a single agent based on its performance
- * @param agentVersionId The ID of the agent version to check
- * @param tenantId The tenant ID for logging
- * @returns Object with evolution results
+ * Check if agent evolution is needed for a specific agent
  */
-export const checkAndEvolveAgent = async (
-  agentVersionId: string, 
+export async function checkAgentEvolutionNeeded(
+  agentId: string, 
+  upvotes: number, 
+  downvotes: number,
+  threshold = 0.3
+) {
+  // If no votes yet, no need to evolve
+  if (upvotes + downvotes < 3) {
+    return false;
+  }
+  
+  const ratio = upvotes / (upvotes + downvotes);
+  return ratio < threshold;
+}
+
+/**
+ * Create a new evolved agent version
+ */
+export async function createEvolvedAgent(
+  pluginId: string, 
+  originalPrompt: string, 
+  originalVersion: string,
+  comments: string[],
   tenantId: string
-): Promise<AgentEvolutionResult> => {
+) {
   try {
-    const { shouldPromote, reason, metrics } = await checkAgentForPromotion(agentVersionId);
+    // Generate new version number
+    const versionNum = parseInt(originalVersion.replace('v', ''), 10);
+    const newVersion = `v${versionNum + 1}`;
     
-    if (!shouldPromote) {
-      return { 
-        evolved: false, 
-        reason, 
-        agentId: agentVersionId 
-      };
-    }
-    
-    // Get current agent version details
-    const { data: currentAgent, error: agentError } = await supabase
-      .from('agent_versions')
-      .select('*')
-      .eq('id', agentVersionId)
-      .single();
-      
-    if (agentError || !currentAgent) {
-      throw new Error(`Failed to fetch agent version: ${agentError?.message || 'Not found'}`);
-    }
-    
-    // Prepare new version string
-    const currentVersion = currentAgent.version || '1.0.0';
-    const versionParts = currentVersion.split('.');
-    const newVersion = `${versionParts[0]}.${versionParts[1]}.${parseInt(versionParts[2] || '0') + 1}`;
-    
-    // Get feedback from votes
-    const { data: votes, error: votesError } = await supabase
-      .from('agent_votes')
-      .select('comment, vote_type')
-      .eq('agent_version_id', agentVersionId)
-      .not('comment', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(20);
-      
-    if (votesError) {
-      console.warn(`Could not fetch agent votes: ${votesError.message}`);
-    }
-    
-    // Generate improved prompt based on feedback
-    const positiveComments = votes?.filter(v => v.vote_type === 'up').map(v => v.comment).join('\n') || '';
-    const negativeComments = votes?.filter(v => v.vote_type === 'down').map(v => v.comment).join('\n') || '';
-    
-    const improvedPrompt = `${currentAgent.prompt}\n\n/* Auto-evolved from version ${currentVersion} to ${newVersion} */\n\n` +
-      (positiveComments ? `Positive feedback:\n${positiveComments}\n\n` : '') +
-      (negativeComments ? `Areas for improvement:\n${negativeComments}\n\n` : '') +
-      `This is an automatically evolved version of the agent based on user feedback and performance metrics.`;
+    // Generate evolved prompt based on comments
+    const evolvedPrompt = await evolvePromptWithFeedback(originalPrompt, comments);
     
     // Insert new agent version
-    const { data: newAgent, error: insertError } = await supabase
+    const { data, error } = await supabase
       .from('agent_versions')
       .insert({
-        plugin_id: currentAgent.plugin_id,
+        plugin_id: pluginId,
+        prompt: evolvedPrompt,
         version: newVersion,
-        prompt: improvedPrompt,
         status: 'active',
-        created_by: null, // Auto-evolved
-        xp: 0,
+        created_at: new Date().toISOString(),
         upvotes: 0,
-        downvotes: 0
+        downvotes: 0,
+        xp: 0,
       })
       .select()
       .single();
       
-    if (insertError || !newAgent) {
-      throw new Error(`Failed to create new agent version: ${insertError?.message || 'Unknown error'}`);
-    }
-    
-    // Update status of the old version
-    const { error: updateError } = await supabase
-      .from('agent_versions')
-      .update({ status: 'deprecated' })
-      .eq('id', agentVersionId);
-      
-    if (updateError) {
-      console.warn(`Failed to update old agent version status: ${updateError.message}`);
-    }
+    if (error) throw error;
     
     // Log the evolution event
     await logSystemEvent(
-      tenantId,
+      tenantId, 
       'agent',
-      'agent_auto_evolved',
-      {
-        old_agent_id: agentVersionId,
-        new_agent_id: newAgent.id,
-        plugin_id: currentAgent.plugin_id,
-        old_version: currentVersion,
-        new_version: newVersion,
-        metrics
+      'agent_evolved',
+      { 
+        plugin_id: pluginId, 
+        agent_id: data.id,
+        version: newVersion
       }
-    ).catch(err => {
-      console.warn('Failed to log agent evolution:', err);
-    });
+    );
     
-    return {
-      evolved: true,
-      reason: `Agent successfully evolved to version ${newVersion}`,
-      agentId: agentVersionId,
-      newAgentId: newAgent.id,
-      version: currentVersion,
-      newVersion
-    };
-  } catch (err) {
-    console.error('Error evolving agent:', err);
-    return {
-      evolved: false,
-      reason: `Error during evolution process: ${err instanceof Error ? err.message : 'Unknown error'}`,
-      agentId: agentVersionId
-    };
+    return data;
+  } catch (error) {
+    console.error('Error creating evolved agent:', error);
+    throw error;
   }
-};
+}
 
 /**
- * Checks and evolves multiple agents
- * @param tenantId Optional tenant ID to filter agents
- * @returns Array of evolution results
+ * Get comment feedback for an agent
  */
-export const checkAndEvolveAgents = async (tenantId?: string): Promise<AgentEvolutionBatchResult> => {
+export async function getAgentFeedbackComments(agentId: string) {
   try {
-    let query = supabase
-      .from('agent_versions')
-      .select('id, plugin_id, version, tenant_id')
-      .eq('status', 'active');
+    const { data, error } = await supabase
+      .from('agent_votes')
+      .select('comment, vote_type')
+      .eq('agent_version_id', agentId)
+      .not('comment', 'is', null);
       
-    if (tenantId) {
-      // Filter by tenant_id if provided using a subquery to find plugins for this tenant
-      query = query.in('plugin_id', 
-        supabase.from('plugins')
-          .select('id')
-          .eq('tenant_id', tenantId)
-      );
-    }
-    
-    const { data: agents, error } = await query;
-    
     if (error) throw error;
-    if (!agents || agents.length === 0) {
-      return { 
-        evolvedCount: 0, 
-        results: [] 
-      };
+    
+    // Filter out null/empty comments
+    return (data || [])
+      .filter(item => item.comment && item.comment.trim() !== '')
+      .map(item => `${item.vote_type === 'down' ? 'Issue' : 'Good'}: ${item.comment}`);
+  } catch (error) {
+    console.error('Error getting agent feedback comments:', error);
+    return [];
+  }
+}
+
+/**
+ * Evolve a prompt using feedback
+ */
+async function evolvePromptWithFeedback(originalPrompt: string, feedback: string[]): Promise<string> {
+  // In a real implementation, this would call an LLM to generate an improved prompt
+  // For now, just append the feedback to the original prompt
+  
+  if (feedback.length === 0) {
+    return originalPrompt;
+  }
+  
+  const feedbackStr = feedback.join('\n');
+  
+  // Simplified evolution - in a real system, we would use an LLM for this
+  return `${originalPrompt}\n\nFeedback incorporated from previous version:\n${feedbackStr}`;
+}
+
+/**
+ * Deactivate the old agent version
+ */
+export async function deactivateOldAgentVersion(agentId: string) {
+  try {
+    const { error } = await supabase
+      .from('agent_versions')
+      .update({ status: 'inactive' })
+      .eq('id', agentId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deactivating old agent version:', error);
+    return false;
+  }
+}
+
+/**
+ * Auto-evolve all agents that need evolution
+ */
+export async function autoEvolveAgents(tenantId: string) {
+  try {
+    // Get agents that need evolution
+    const agentsToEvolve = await getAgentsForEvolution();
+    
+    if (agentsToEvolve.length === 0) {
+      console.log('No agents need evolution');
+      return { evolved: 0, success: true };
     }
     
-    const results: AgentEvolutionResult[] = [];
-    let evolvedCount = 0;
-    const errors: string[] = [];
+    // Get usage stats for performance calculation
+    const usageStats = await getAgentUsageStats();
     
-    for (const agent of agents) {
-      try {
-        // Use the tenant_id from the agent's plugin if available
-        const agentTenantId = tenantId || 'system';
+    // Process each agent
+    let evolvedCount = 0;
+    
+    for (const agent of agentsToEvolve) {
+      // Double-check if evolution is needed
+      const needsEvolution = await checkAgentEvolutionNeeded(
+        agent.id, 
+        agent.upvotes || 0, 
+        agent.downvotes || 0
+      );
+      
+      if (needsEvolution) {
+        // Get feedback comments
+        const comments = await getAgentFeedbackComments(agent.id);
         
-        const result = await checkAndEvolveAgent(agent.id, agentTenantId);
-        if (result.evolved) {
-          evolvedCount++;
-        }
-        results.push(result);
-      } catch (agentError: any) {
-        const errorMessage = `Error processing agent ${agent.id}: ${agentError.message}`;
-        errors.push(errorMessage);
-        console.error(errorMessage);
+        // Create evolved version
+        await createEvolvedAgent(
+          agent.plugin_id,
+          agent.prompt,
+          agent.version,
+          comments,
+          tenantId
+        );
         
-        results.push({
-          evolved: false,
-          reason: errorMessage,
-          agentId: agent.id,
-          version: agent.version
-        });
+        // Deactivate old version
+        await deactivateOldAgentVersion(agent.id);
+        
+        evolvedCount++;
       }
     }
     
-    return {
-      evolvedCount,
-      results,
-      errors: errors.length > 0 ? errors : undefined
-    };
-  } catch (err) {
-    console.error('Error checking and evolving agents:', err);
-    return { 
-      evolvedCount: 0, 
-      results: [],
-      errors: [`Global error: ${err instanceof Error ? err.message : 'Unknown error'}`]
-    };
+    await logSystemEvent(
+      tenantId,
+      'system',
+      'auto_evolve_completed',
+      { evolved_count: evolvedCount, total_checked: agentsToEvolve.length }
+    );
+    
+    return { evolved: evolvedCount, success: true };
+  } catch (error) {
+    console.error('Error during auto-evolution:', error);
+    
+    // Log the error
+    await logSystemEvent(
+      tenantId,
+      'system',
+      'auto_evolve_error',
+      { error: error.message || 'Unknown error' }
+    );
+    
+    return { evolved: 0, success: false, error: error.message };
   }
-};
+}
 
-export default {
-  checkAgentForPromotion,
-  checkAndEvolveAgent,
-  checkAndEvolveAgents
-};
+/**
+ * Get all plugins that need optimization
+ */
+export async function getPluginsForOptimization() {
+  try {
+    const { data, error } = await supabase
+      .from('plugins')
+      .select('id')
+      .eq('status', 'active');
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting plugins for optimization:', error);
+    return [];
+  }
+}

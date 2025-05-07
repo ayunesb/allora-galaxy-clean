@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecutionRecordInput } from '@/types/fixed';
+import { ExecutionRecordInput, LogStatus } from '@/types/fixed';
 import { camelToSnake } from '@/types/fixed';
 
 /**
@@ -8,7 +8,7 @@ import { camelToSnake } from '@/types/fixed';
  * @param input - Execution record input
  * @returns The created execution record
  */
-export async function recordExecution(input: ExecutionRecordInput) {
+export async function recordExecution(input: ExecutionRecordInput & { id?: string }) {
   // Configuration
   const MAX_RETRY_ATTEMPTS = 3;
   const BASE_RETRY_DELAY = 500; // ms
@@ -23,10 +23,11 @@ export async function recordExecution(input: ExecutionRecordInput) {
       
       if (input.id) {
         // Update existing record
+        const { id, ...updateData } = input; // Extract id from input data
         ({ data, error } = await supabase
           .from('executions')
-          .update(camelToSnake(input))
-          .eq('id', input.id)
+          .update(camelToSnake(updateData))
+          .eq('id', id)
           .select()
           .single());
       } else {
@@ -69,7 +70,7 @@ export async function recordExecution(input: ExecutionRecordInput) {
 export async function updateExecution(executionId: string, updateData: Partial<ExecutionRecordInput>) {
   return recordExecution({
     id: executionId,
-    ...updateData
+    ...updateData as ExecutionRecordInput
   });
 }
 

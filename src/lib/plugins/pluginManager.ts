@@ -1,287 +1,348 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { recordExecution } from "@/lib/executions/recordExecution";
-import { logSystemEvent } from "@/lib/system/logSystemEvent";
-import { notifyError, notifySuccess } from "@/components/ui/BetterToast";
-import { PluginResult, RunPluginChainResult, LogStatus } from "@/types/fixed";
-import { validateStrategy, fetchPluginsForStrategy, executePlugin, PluginFunction } from "./pluginUtils";
+import { supabase } from '@/integrations/supabase/client';
+import { recordExecution } from '@/lib/executions/recordExecution';
+import { LogStatus } from '@/types/fixed';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+
+// Types for plugin management
+export interface PluginInput {
+  tenantId: string;
+  userId?: string;
+  strategyId?: string;
+  agentVersionId?: string;
+  parameters: Record<string, any>;
+}
+
+export interface PluginResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  executionTime?: number;
+  xpEarned?: number;
+}
+
+export interface ExecutionStatus {
+  pluginId: string;
+  status: 'pending' | 'running' | 'success' | 'failure';
+  result?: PluginResult;
+}
+
+export interface RunPluginChainResult {
+  success: boolean;
+  results: Record<string, PluginResult>;
+  failedAt?: string;
+  error?: string;
+  executionId?: string;
+  executionTime?: number;
+}
 
 /**
- * Runs all plugins associated with a strategy in order based on priority
- * @param strategyId The ID of the strategy to run plugins for
- * @param tenantId The tenant ID for proper isolation
- * @param userId The user ID executing this chain (for logging)
- * @returns A result object with success/failure status and details per plugin
+ * Execute a single plugin
+ * @param pluginId - Plugin ID
+ * @param input - Plugin input parameters
+ * @returns Plugin execution result
  */
-export async function runPluginChain(
-  strategyId: string,
-  tenantId: string,
-  userId?: string
-): Promise<RunPluginChainResult> {
-  const startTime = performance.now();
-  const results: PluginResult[] = [];
-  let totalSuccessful = 0;
-  let totalFailed = 0;
+export async function executePlugin(
+  pluginId: string,
+  input: PluginInput
+): Promise<PluginResult> {
+  const startTime = Date.now();
   
   try {
-    // Validate the strategy exists and belongs to the tenant
-    const { valid, strategy, error } = await validateStrategy(strategyId, tenantId);
-    if (!valid) {
-      throw new Error(error || 'Strategy validation failed');
+    // Input validation
+    if (!pluginId) {
+      throw new Error('Plugin ID is required');
     }
     
-    // Log the start of the plugin chain execution
-    await logSystemEvent(
-      tenantId,
-      'plugins', 
-      'plugin_chain_started',
-      { strategyId }
-    ).catch(err => {
-      console.warn('Failed to log plugin chain start:', err);
-      // Continue even if logging fails
-    });
-    
-    // Get all plugins associated with this strategy
-    const { plugins, error: pluginsError } = await fetchPluginsForStrategy(strategyId);
-    
-    if (pluginsError) {
-      throw new Error(pluginsError);
+    if (!input.tenantId) {
+      throw new Error('Tenant ID is required');
     }
     
-    if (!plugins || plugins.length === 0) {
-      // No plugins found for this strategy
-      notifySuccess("Strategy Execution", "Strategy has no plugins to execute");
-      return {
-        success: true,
-        results: [],
-      };
+    // Get plugin details
+    const { data: plugin, error: pluginError } = await supabase
+      .from('plugins')
+      .select('*')
+      .eq('id', pluginId)
+      .single();
+      
+    if (pluginError || !plugin) {
+      throw new Error(`Plugin not found: ${pluginError?.message || ''}`);
     }
     
-    // Sort plugins by order if available in metadata
-    const sortedPlugins = [...plugins].sort((a, b) => {
-      const orderA = a.metadata?.order || 0;
-      const orderB = b.metadata?.order || 0;
-      return orderA - orderB;
-    });
+    // Check if plugin is active
+    if (plugin.status !== 'active') {
+      throw new Error(`Plugin is not active: ${plugin.status}`);
+    }
     
-    // Create execution record to track overall progress
-    let executionId: string | null = null;
-    try {
-      const executionRecord = await recordExecution({
-        tenantId,
-        type: 'strategy',
-        status: 'pending',
-        strategyId,
-        executedBy: userId,
-        executionTime: 0,
-        xpEarned: 0
+    // Execute plugin via edge function
+    const { data, error: functionError } = await supabase.functions.invoke(
+      'executePlugin',
+      {
+        body: {
+          plugin_id: pluginId,
+          tenant_id: input.tenantId,
+          user_id: input.userId,
+          strategy_id: input.strategyId,
+          agent_version_id: input.agentVersionId,
+          parameters: input.parameters
+        }
+      }
+    );
+    
+    if (functionError) {
+      throw new Error(`Plugin execution failed: ${functionError.message}`);
+    }
+    
+    const executionTime = (Date.now() - startTime) / 1000;
+    
+    // Return result
+    return {
+      success: true,
+      data: data.result,
+      executionTime,
+      xpEarned: data.xp_earned || 0
+    };
+  } catch (error: any) {
+    const executionTime = (Date.now() - startTime) / 1000;
+    
+    // Log the error
+    console.error(`Plugin execution error (${pluginId}):`, error);
+    
+    // Return error result
+    return {
+      success: false,
+      error: error.message || 'Unknown plugin execution error',
+      executionTime,
+      xpEarned: 0
+    };
+  }
+}
+
+/**
+ * Record plugin execution in the database
+ * @param pluginId - Plugin ID
+ * @param input - Plugin input
+ * @param result - Plugin execution result
+ */
+export async function recordPluginExecution(
+  pluginId: string,
+  input: PluginInput,
+  result: PluginResult
+) {
+  try {
+    const status: LogStatus = result.success ? 'success' : 'failure';
+    
+    const executionData = {
+      tenantId: input.tenantId,
+      pluginId,
+      strategyId: input.strategyId,
+      agentVersionId: input.agentVersionId,
+      executedBy: input.userId,
+      status,
+      type: 'plugin',
+      input: input.parameters,
+      output: result.data,
+      executionTime: result.executionTime || 0,
+      xpEarned: result.xpEarned || 0,
+      error: result.error
+    };
+    
+    // Record in executions table
+    const executionRecord = await recordExecution(executionData);
+    
+    // Also record in plugin_logs for detailed plugin analytics
+    await supabase
+      .from('plugin_logs')
+      .insert({
+        tenant_id: input.tenantId,
+        plugin_id: pluginId,
+        strategy_id: input.strategyId,
+        agent_version_id: input.agentVersionId,
+        status,
+        input: input.parameters,
+        output: result.data,
+        execution_time: result.executionTime || 0,
+        xp_earned: result.xpEarned || 0,
+        error: result.error
       });
-      executionId = executionRecord?.id;
-    } catch (execError) {
-      console.warn("Failed to create execution record, continuing:", execError);
+      
+    return executionRecord;
+  } catch (error) {
+    console.error('Error recording plugin execution:', error);
+    throw error;
+  }
+}
+
+/**
+ * Run a chain of plugins in sequence
+ * @param pluginIds - Array of plugin IDs to execute in sequence
+ * @param baseInput - Base input for all plugins
+ * @param dependencies - Plugin dependencies configuration
+ * @returns Chain execution result
+ */
+export async function runPluginChain(
+  pluginIds: string[],
+  baseInput: PluginInput,
+  dependencies: Record<string, string[]> = {}
+): Promise<RunPluginChainResult> {
+  const startTime = Date.now();
+  const results: Record<string, PluginResult> = {};
+  let success = true;
+  let failedAt: string | undefined;
+  
+  try {
+    // Input validation
+    if (!pluginIds.length) {
+      throw new Error('At least one plugin ID is required');
     }
     
-    // Execute each plugin in order with dependency tracking
-    const completedPluginIds = new Set<string>();
-    for (const plugin of sortedPlugins) {
-      try {
-        if (plugin.status !== 'active') {
-          // Skip inactive plugins but log them
-          results.push({
-            pluginId: plugin.id,
-            status: 'skipped' as LogStatus,
-            executionTime: 0,
-            xpEarned: 0,
-            message: `Plugin skipped - status is ${plugin.status}`
-          });
-          continue;
-        }
+    if (!baseInput.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    // Record the chain execution start
+    const chainExecutionId = await recordChainStart(baseInput, pluginIds);
+    
+    // Execute plugins in sequence
+    for (const pluginId of pluginIds) {
+      // Check if plugin has dependencies
+      const deps = dependencies[pluginId] || [];
+      
+      // Verify all dependencies have been executed successfully
+      const missingDeps = deps.filter(dep => !results[dep] || !results[dep].success);
+      
+      if (missingDeps.length > 0) {
+        // Mark as failure due to missing dependencies
+        success = false;
+        failedAt = pluginId;
         
-        // Check if dependencies are satisfied (if any)
-        const dependencies = plugin.metadata?.dependencies || [];
-        const unsatisfiedDependencies = dependencies.filter(
-          (depId: string) => !completedPluginIds.has(depId)
-        );
-        
-        if (unsatisfiedDependencies.length > 0) {
-          results.push({
-            pluginId: plugin.id,
-            status: 'failure',
-            executionTime: 0,
-            error: `Unsatisfied dependencies: ${unsatisfiedDependencies.join(', ')}`,
-            xpEarned: 0
-          });
-          totalFailed++;
-          continue;
-        }
-        
-        // Create a plugin function (in a real implementation this would be from the plugin system)
-        const mockPluginFn: PluginFunction = async (input) => {
-          // Mock implementation - in real code this would execute the actual plugin logic
-          await new Promise(resolve => setTimeout(resolve, 500)); // Simulate work
-          return { success: true, result: `Executed ${plugin.name}` };
+        results[pluginId] = {
+          success: false,
+          error: `Missing required dependencies: ${missingDeps.join(', ')}`,
+          executionTime: 0,
+          xpEarned: 0
         };
         
-        // Execute the plugin with automatic retries
-        const maxRetries = plugin.metadata?.maxRetries || 0;
-        let attempt = 0;
-        let pluginResult: PluginResult | null = null;
-        let lastError: Error | null = null;
-        
-        while (attempt <= maxRetries) {
-          try {
-            pluginResult = await executePlugin(plugin.id, mockPluginFn, { 
-              strategyId,
-              previousResults: [...results],
-              attempt
-            });
-            break; // Success, exit retry loop
-          } catch (pluginError: any) {
-            lastError = pluginError;
-            attempt++;
-            
-            if (attempt <= maxRetries) {
-              // Wait before retry with exponential backoff
-              await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
-              continue;
-            }
-            
-            // Max retries reached
-            pluginResult = {
-              pluginId: plugin.id,
-              status: 'failure',
-              error: `Failed after ${attempt} attempts: ${pluginError.message}`,
-              executionTime: 0,
-              xpEarned: 0
-            };
-          }
+        continue;
+      }
+      
+      // Prepare input for this plugin, including outputs from dependencies
+      const pluginInput: PluginInput = {
+        ...baseInput,
+        parameters: {
+          ...baseInput.parameters,
+          // Add dependency outputs
+          dependencies: deps.reduce((acc, dep) => {
+            acc[dep] = results[dep]?.data;
+            return acc;
+          }, {} as Record<string, any>)
         }
+      };
+      
+      // Execute the plugin
+      try {
+        const result = await executePlugin(pluginId, pluginInput);
+        results[pluginId] = result;
         
-        if (!pluginResult) {
-          // This should never happen, but just in case
-          pluginResult = {
-            pluginId: plugin.id,
-            status: 'failure',
-            error: lastError?.message || 'Unknown error during execution',
-            executionTime: 0,
-            xpEarned: 0
-          };
+        // Record execution
+        await recordPluginExecution(pluginId, pluginInput, result);
+        
+        // If plugin failed, mark chain as failed
+        if (!result.success) {
+          success = false;
+          failedAt = pluginId;
+          
+          // We continue executing plugins that don't depend on the failed one
         }
-        
-        results.push(pluginResult);
-        
-        if (pluginResult.status === 'success') {
-          totalSuccessful++;
-          completedPluginIds.add(plugin.id);
-        } else if (pluginResult.status === 'failure') {
-          totalFailed++;
-        }
-        
-        // Log individual plugin execution
-        await logSystemEvent(
-          tenantId,
-          'plugins',
-          `plugin_execution_${pluginResult.status}`,
-          { 
-            strategyId,
-            pluginId: plugin.id,
-            executionTime: pluginResult.executionTime,
-            xpEarned: pluginResult.xpEarned
-          }
-        ).catch(err => {
-          console.warn('Failed to log plugin execution:', err);
-        });
-        
-      } catch (pluginError: any) {
-        // Handle individual plugin errors without breaking the chain
-        console.error(`Error executing plugin ${plugin.name}:`, pluginError);
-        
-        results.push({
-          pluginId: plugin.id,
-          status: 'failure',
+      } catch (error: any) {
+        // Handle plugin execution error
+        results[pluginId] = {
+          success: false,
+          error: error.message || 'Unknown execution error',
           executionTime: 0,
-          error: pluginError.message || 'Unknown error during plugin execution',
           xpEarned: 0
-        });
+        };
         
-        totalFailed++;
+        success = false;
+        failedAt = pluginId;
       }
     }
     
-    // Determine overall status
-    const executionStatus: LogStatus = 
-      totalFailed === 0 ? 'success' : 
-      (totalSuccessful > 0 ? 'partial' : 'failure');
+    const executionTime = (Date.now() - startTime) / 1000;
     
-    const totalExecutionTime = performance.now() - startTime;
-    const totalXp = results.reduce((sum, r) => sum + (r.xpEarned || 0), 0);
-    
-    // Update the execution record if we created one
-    if (executionId) {
-      await recordExecution({
-        id: executionId,
-        tenantId,
-        type: 'strategy',
-        status: executionStatus,
-        strategyId,
-        executedBy: userId,
-        executionTime: totalExecutionTime,
-        xpEarned: totalXp,
-        output: { results }
-      }).catch(err => {
-        console.error("Failed to update execution record:", err);
-      });
-    }
-    
-    // Notify user of results
-    if (executionStatus === 'success') {
-      notifySuccess(
-        "Strategy Executed Successfully", 
-        `All ${totalSuccessful} plugins completed successfully`
-      );
-    } else if (executionStatus === 'partial') {
-      notifySuccess(
-        "Strategy Partially Executed", 
-        `${totalSuccessful} plugins completed, ${totalFailed} failed`
-      );
-    } else {
-      notifyError(
-        "Strategy Execution Failed",
-        `All ${totalFailed} plugins failed to execute`
-      );
-    }
-    
-    return {
-      success: totalFailed === 0,
-      results,
-      executionTime: totalExecutionTime / 1000, // Convert to seconds
-      xpEarned: totalXp
-    };
-    
-  } catch (error: any) {
-    console.error("Error running plugin chain:", error);
-    
-    // Log the error
-    await logSystemEvent(
-      tenantId,
-      'plugins',
-      'plugin_chain_error',
-      { strategyId, error: error.message }
-    ).catch(err => {
-      console.warn('Failed to log plugin chain error:', err);
-    });
-    
-    // Notify the user
-    notifyError(
-      "Strategy Execution Failed", 
-      error.message || "An unexpected error occurred"
+    // Update the chain execution record with final status
+    await updateChainExecution(
+      chainExecutionId, 
+      success ? 'success' : 'failure',
+      executionTime
     );
     
+    // Return the overall result
+    return {
+      success,
+      results,
+      failedAt,
+      executionId: chainExecutionId,
+      executionTime
+    };
+  } catch (error: any) {
+    const executionTime = (Date.now() - startTime) / 1000;
+    
+    // Log the error
+    console.error('Plugin chain execution error:', error);
+    
+    // Return error result
     return {
       success: false,
       results,
-      error: error.message,
-      executionTime: (performance.now() - startTime) / 1000
+      error: error.message || 'Unknown chain execution error',
+      executionTime
     };
+  }
+}
+
+/**
+ * Record the start of a plugin chain execution
+ */
+async function recordChainStart(
+  baseInput: PluginInput, 
+  pluginIds: string[]
+): Promise<string> {
+  try {
+    const record = await recordExecution({
+      tenantId: baseInput.tenantId,
+      type: 'plugin_chain',
+      status: 'pending',
+      executedBy: baseInput.userId,
+      strategyId: baseInput.strategyId,
+      input: { plugin_ids: pluginIds, base_parameters: baseInput.parameters }
+    });
+    
+    return record.id;
+  } catch (error) {
+    console.error('Error recording chain start:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update the chain execution record with final status
+ */
+async function updateChainExecution(
+  executionId: string,
+  status: 'success' | 'failure',
+  executionTime: number
+): Promise<void> {
+  try {
+    await supabase
+      .from('executions')
+      .update({
+        status,
+        execution_time: executionTime,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', executionId);
+  } catch (error) {
+    console.error('Error updating chain execution:', error);
   }
 }

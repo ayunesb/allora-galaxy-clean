@@ -119,12 +119,14 @@ describe('Execution Record Functions', () => {
       })),
     } as any));
     
-    // Mock setTimeout to speed up tests
+    // Mock setTimeout properly to avoid TS2741 error
     const originalSetTimeout = global.setTimeout;
-    global.setTimeout = vi.fn((callback) => {
+    const mockedSetTimeout = vi.fn((callback: Function) => {
       callback();
-      return 1 as any;
+      return 1 as unknown as NodeJS.Timeout;
     });
+    
+    global.setTimeout = mockedSetTimeout;
     
     const input: ExecutionRecordInput = {
       tenantId: 'test-tenant',
