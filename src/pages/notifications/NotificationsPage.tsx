@@ -1,18 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, realtime } from '@/lib/supabase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { NotificationItemType } from '@/components/notifications/NotificationItem';
-import PageHelmet from '@/components/PageHelmet';
+import { PageHelmet } from '@/components/PageHelmet';
 import NotificationsPageHeader from '@/components/notifications/NotificationsPageHeader';
 import NotificationList from '@/components/notifications/NotificationList';
+import { NotificationContent } from '@/components/notifications/NotificationCenterContent';
 
 const NotificationsPage: React.FC = () => {
   const { currentTenant } = useWorkspace();
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<NotificationItemType[]>([]);
+  const [notifications, setNotifications] = useState<NotificationContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
   const [filter, setFilter] = useState<string | null>(null);
@@ -71,15 +72,13 @@ const NotificationsPage: React.FC = () => {
       if (error) throw error;
       
       // Transform to frontend notification format
-      const transformedNotifications: NotificationItemType[] = data.map(item => ({
+      const transformedNotifications: NotificationContent[] = data.map(item => ({
         id: item.id,
         title: item.title,
-        description: item.description,
-        type: item.type || 'info',
-        isRead: item.is_read,
-        createdAt: item.created_at,
-        link: item.link,
-        module: item.module
+        message: item.description || '', // Map description to message
+        timestamp: item.created_at,
+        read: item.is_read,
+        type: (item.type || 'info') as 'info' | 'success' | 'warning' | 'error' | 'system'
       }));
       
       setNotifications(transformedNotifications);
@@ -103,7 +102,7 @@ const NotificationsPage: React.FC = () => {
       // Update local state
       setNotifications(prev => 
         prev.map(notif => 
-          notif.id === id ? { ...notif, isRead: true } : notif
+          notif.id === id ? { ...notif, read: true } : notif
         )
       );
       
@@ -133,7 +132,7 @@ const NotificationsPage: React.FC = () => {
       
       // Update local state
       setNotifications(prev => 
-        prev.map(notif => ({ ...notif, isRead: true }))
+        prev.map(notif => ({ ...notif, read: true }))
       );
       
     } catch (error: any) {
