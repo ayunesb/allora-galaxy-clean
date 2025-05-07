@@ -27,18 +27,31 @@ export function getEnv(
 ): string {
   let value: string | undefined;
   
-  // Try Deno environment first (Edge Functions)
+  // Try runtime-specific environment access
+  // This approach avoids direct references to Deno which causes build errors
   try {
-    if (typeof Deno !== 'undefined' && Deno.env && Deno.env.get) {
-      value = Deno.env.get(name);
-    }
+    // @ts-ignore - Runtime environments handled differently
+    const runtimeEnv = 
+      // For Deno runtime (Supabase Edge Functions)
+      (typeof globalThis !== 'undefined' && 
+       // @ts-ignore - Deno runtime check without direct reference
+       globalThis.Deno?.env?.get) ? 
+        // @ts-ignore - Deno runtime environment
+        globalThis.Deno.env.get(name) :
+      // For Node.js/browser runtime
+      (typeof process !== 'undefined' && process.env) ?
+        process.env[name] :
+      undefined;
+      
+    if (runtimeEnv) value = runtimeEnv;
   } catch (error) {
-    // Suppress errors in non-Deno environments
+    // Suppress errors in environments where these objects might not exist
+    console.debug(`Environment access error for ${name}:`, error);
   }
   
-  // Fallback to Node.js environment
-  if (!value && typeof process !== 'undefined' && process.env) {
-    value = process.env[name];
+  // Fallback to import.meta.env for Vite
+  if (!value && typeof import.meta !== 'undefined' && import.meta.env) {
+    value = import.meta.env[`VITE_${name}`] || import.meta.env[name];
   }
   
   // If value is still not found
@@ -69,7 +82,7 @@ export function validateEnv(configs: EnvVarConfig[]): Record<string, string> {
         config.fallback || '',
         config.description
       );
-    } catch (error) {
+    } catch (error: any) {
       // Rethrow with more context if validation fails
       throw new Error(`Environment validation failed: ${error.message}`);
     }
