@@ -11,9 +11,6 @@ import EmptyState from '@/components/galaxy/EmptyState';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
 import { GraphNode, GraphData } from '@/types/galaxy';
 
-// Add "react-force-graph": "^1.43.0" to package.json
-// Import statement is in ForceGraph.tsx file using React.lazy
-
 const GalaxyExplorer: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -37,8 +34,12 @@ const GalaxyExplorer: React.FC = () => {
         // Only include links where both source and target nodes are in the filtered set
         const nodeIds = new Set(filteredNodes.map(n => n.id));
         filteredLinks = graphDataQuery.links.filter(link => {
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+          const sourceId = typeof link.source === 'object' ? 
+            (link.source ? link.source.id : '') : 
+            link.source || '';
+          const targetId = typeof link.target === 'object' ? 
+            (link.target ? link.target.id : '') : 
+            link.target || '';
           return nodeIds.has(sourceId) && nodeIds.has(targetId);
         });
       }

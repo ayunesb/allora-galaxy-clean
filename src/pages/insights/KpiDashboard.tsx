@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -101,6 +100,13 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#10b981'];
 const KpiDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const { toast } = useToast();
+  
+  // Add refetch function for KPI data
+  const { refetch: refetchKpis } = useQuery({
+    queryKey: ['kpi-data'],
+    queryFn: () => fetchLatestKpis(),
+    enabled: false
+  });
   
   // Trigger a KPI update
   const refreshKpis = async () => {

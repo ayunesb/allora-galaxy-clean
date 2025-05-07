@@ -1,64 +1,57 @@
-
-import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useRequireRole } from '@/lib/auth/requireRole';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { requireRole } from '@/lib/auth/requireRole';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface AdminGuardProps {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
   redirectTo?: string;
 }
 
-export const AdminGuard = ({
-  children,
-  fallback,
-  redirectTo = '/unauthorized',
-}: AdminGuardProps) => {
+export const AdminGuard: React.FC<AdminGuardProps> = ({ 
+  children, 
+  fallback, 
+  redirectTo = '/unauthorized' 
+}) => {
   const navigate = useNavigate();
-  const { hasRequiredRole, loading } = useRequireRole('admin');
-
-  useEffect(() => {
-    // Only redirect if we're done loading and user doesn't have required role
-    if (!loading && !hasRequiredRole && redirectTo) {
-      navigate(redirectTo);
+  const hasPermission = requireRole('admin');
+  
+  if (!hasPermission) {
+    // If a fallback is provided, render it instead of redirecting
+    if (fallback) {
+      return <>{fallback}</>;
     }
-  }, [hasRequiredRole, loading, navigate, redirectTo]);
-
-  // Show a skeleton loader while checking permissions
-  if (loading) {
-    return (
-      <div className="space-y-3 p-8">
-        <Skeleton className="h-8 w-1/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-      </div>
-    );
+    
+    // Otherwise, redirect to the specified route
+    return <Navigate to={redirectTo} replace />;
   }
-
-  // If permission check fails and we have a fallback, show it instead of redirecting
-  if (!hasRequiredRole && fallback) {
-    return <>{fallback}</>;
-  }
-
-  // Show warning if permission check fails but we don't want to redirect
-  if (!hasRequiredRole && !redirectTo) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Unauthorized Access</AlertTitle>
-        <AlertDescription>
-          You don't have permission to view this content. Please contact your administrator for access.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // If user has required role, render the children
+  
   return <>{children}</>;
 };
 
-export default AdminGuard;
+// Fallback component when access is denied
+export const AccessDeniedFallback: React.FC = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Alert className="max-w-md">
+        <AlertTitle className="text-lg">Access Denied</AlertTitle>
+        <AlertDescription>
+          <p className="mb-4">
+            You don't have permission to view this page. This area requires administrator privileges.
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+          >
+            Return to Dashboard
+          </Button>
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+};

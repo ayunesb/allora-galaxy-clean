@@ -3,8 +3,12 @@ import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { GraphData, GraphNode } from '@/types/galaxy';
 
-// Lazy loading the ForceGraph2D component
-const ForceGraph2D = React.lazy(() => import('react-force-graph-2d'));
+// Using dynamic import instead of direct import to avoid build errors
+const ForceGraph2D = React.lazy(() => 
+  import('react-force-graph').then(module => ({ 
+    default: module.ForceGraph2D 
+  }))
+);
 
 interface ForceGraphProps {
   graphData: GraphData;

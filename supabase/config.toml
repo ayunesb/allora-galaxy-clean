@@ -1,14 +1,36 @@
 
 project_id = "ijrnwpgsqsxzqdemtknz"
 
-[functions.updateKPIs]
+[auth]
+enabled = true
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+
+[functions]
+enabled = true
+
+[functions.executeStrategy]
 verify_jwt = true
-schedule = "@daily"
+
+[functions.send-invite-email]
+verify_jwt = true
 
 [functions.syncMQLs]
 verify_jwt = true
-schedule = "@weekly"
+schedule = "0 0 * * *"  # Run daily at midnight
 
-[functions.sendMilestoneAlerts]
+[functions.updateKPIs]
 verify_jwt = true
-schedule = "0 9 * * 1" # Every Monday at 9am
+schedule = "0 */6 * * *"  # Run every 6 hours

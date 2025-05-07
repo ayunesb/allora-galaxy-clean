@@ -1,132 +1,88 @@
 
-# Launch Instructions
+# Launch Guide for Allora OS
 
-This document outlines the steps needed to deploy the application to production using Vercel and Supabase.
+This document outlines the steps needed to deploy and configure Allora OS properly in production.
 
-## Supabase Setup
+## Environment Setup
 
-1. **Create a Supabase Project**
-   If you haven't already, create a Supabase project at [https://supabase.com](https://supabase.com).
+### Supabase Configuration
 
-2. **Deploy Supabase Edge Functions**
-   To deploy the edge functions to your Supabase project:
+1. Create a new Supabase project
+2. Run the initial migration scripts from `migrations/initial_schema.sql`
+3. Set up the required storage buckets:
+   - `logos` (public) - For user and company logos
+   - `exports` (private) - For exporting strategy data
+   - `audit-pdfs` (private) - For compliance documentation
 
-   ```bash
-   supabase functions deploy send-invite-email
-   # Deploy other edge functions as needed
-   ```
+### Required Environment Variables
 
-3. **Set Up Required Database Tables**
-   Ensure all tables are created in your Supabase database:
-   - `tenants`
-   - `tenant_user_roles` 
-   - `user_invites`
-   - `profiles` (if used)
-   - Other application tables
+#### Vercel Project Settings
 
-4. **Configure CRON Jobs in Supabase Dashboard**
-   For scheduled tasks like KPI updates:
+Add the following environment variables to your Vercel project:
 
-   1. Navigate to the SQL Editor in your Supabase Dashboard
-   2. Create a new SQL query to set up CRON jobs:
-   
-   ```sql
-   -- Enable the pg_cron extension in your database
-   create extension pg_cron;
+```
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
-   -- Set up a CRON job to update KPIs daily at midnight
-   select
-   cron.schedule(
-     'update-kpis-daily',
-     '0 0 * * *', -- Run at midnight every day
-     $$
-     select
-       net.http_post(
-         url:='https://{YOUR_PROJECT_REF}.supabase.co/functions/v1/updateKPIs',
-         headers:='{"Content-Type": "application/json", "Authorization": "Bearer {YOUR_ANON_KEY}"}'::jsonb,
-         body:='{}'::jsonb
-       ) as request_id;
-     $$
-   );
+#### Supabase Edge Function Secrets
 
-   -- Set up a CRON job to sync MQLs weekly on Monday
-   select
-   cron.schedule(
-     'sync-mqls-weekly',
-     '0 0 * * 1', -- Run at midnight every Monday
-     $$
-     select
-       net.http_post(
-         url:='https://{YOUR_PROJECT_REF}.supabase.co/functions/v1/syncMQLs',
-         headers:='{"Content-Type": "application/json", "Authorization": "Bearer {YOUR_ANON_KEY}"}'::jsonb,
-         body:='{}'::jsonb
-       ) as request_id;
-     $$
-   );
-   ```
+Configure these secrets for your Supabase Edge Functions:
 
-## Vercel Setup
+```
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
+SMTP_HOST=your-smtp-host
+SMTP_PORT=your-smtp-port
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+```
 
-1. **Create a Vercel Project**
-   Import your GitHub repository to Vercel at [https://vercel.com/new](https://vercel.com/new).
+## Deployment Steps
 
-2. **Configure Environment Variables**
-   Add the following environment variables in the Vercel project settings:
+### Supabase Functions
 
-   - `SUPABASE_URL` - Your Supabase project URL
-   - `SUPABASE_ANON_KEY` - Your Supabase anonymous key
-   - `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key (for edge functions)
-   - `STRIPE_SECRET` - Your Stripe secret key (if using Stripe)
+Deploy all Supabase Edge Functions:
 
-3. **Deploy the Project**
-   Click on "Deploy" in the Vercel dashboard. Vercel will build and deploy the application.
+```bash
+supabase functions deploy executeStrategy
+supabase functions deploy send-invite-email
+supabase functions deploy syncMQLs
+supabase functions deploy updateKPIs
+```
 
-## Stripe Integration (Optional)
+### CRON Setup
 
-If you're using Stripe for payments:
+The following functions need to be scheduled:
 
-1. **Set up Stripe Webhook Secret**
-   - Go to [Stripe Dashboard](https://dashboard.stripe.com/webhooks)
-   - Create a webhook endpoint for your Vercel app URL (e.g., `https://your-app.vercel.app/api/stripe-webhook`)
-   - Copy the webhook signing secret
-   - Add it as an environment variable in Vercel named `STRIPE_WEBHOOK_SECRET`
+1. `updateKPIs` - Every 6 hours
+2. `syncMQLs` - Daily at midnight
 
-2. **Configure Live Mode**
-   - Ensure you switch to Stripe live mode in production
-   - Update the Stripe keys in your environment variables
+Configure these in the Supabase dashboard under Edge Functions > Schedule.
 
-## Email Service Configuration
+### Stripe Integration
 
-For sending emails (like invitations):
+1. Create a Stripe webhook endpoint to receive events at `/api/stripe-webhook`
+2. Configure the webhook to listen for:
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `checkout.session.completed`
 
-1. **Postmark Setup (Recommended)**
-   - Create an account at [Postmark](https://postmarkapp.com/)
-   - Add a sender signature or domain
-   - Get your server API token
-   - Add it as an environment variable in Supabase named `POSTMARK_API_TOKEN`
+## Post-Deployment Verification
 
-2. **SMTP Fallback (Alternative)**
-   - If not using Postmark, configure SMTP settings
-   - Add SMTP credentials as environment variables in Supabase:
-     - `SMTP_HOST`
-     - `SMTP_PORT`
-     - `SMTP_USER`
-     - `SMTP_PASSWORD`
-     - `SMTP_FROM_EMAIL`
+After deploying, verify:
 
-## Final Verification Checklist
+1. Authentication flows (login, signup, password reset)
+2. Data persistence through Supabase
+3. Edge function execution
+4. CRON job execution
+5. External integrations (Stripe, email)
+6. Security measures (RLS policies)
 
-Before launching to production:
+## Troubleshooting
 
-- [ ] All Edge Functions are deployed to Supabase
-- [ ] All necessary environment variables are set in Vercel and Supabase
-- [ ] CRON jobs are set up in Supabase
-- [ ] Database tables and RLS policies are correctly configured
-- [ ] Authentication flow is working as expected
-- [ ] Edge functions are handling errors gracefully
-- [ ] Application builds successfully with `vite build`
-- [ ] TypeScript checks pass with `tsc --noEmit`
-
-## Support and Maintenance
-
-If you encounter any issues during or after deployment, please contact our support team at support@example.com.
+- Check Supabase Edge Function logs if integrations fail
+- Verify environment variables are correctly set
+- Ensure database migrations are applied correctly

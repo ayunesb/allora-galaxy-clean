@@ -1,5 +1,5 @@
-/// <reference types="jest" />
-import { describe, it, expect, vi } from 'vitest'
+
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock before top-level imports
 vi.mock('@/integrations/supabase/client', () => ({
@@ -8,9 +8,9 @@ vi.mock('@/integrations/supabase/client', () => ({
       insert: vi.fn().mockResolvedValue({ data: { id: 'mock-id' }, error: null }),
     }),
   },
-}))
+}));
 
-import { voteOnAgentVersion } from '@/lib/agents/vote'
+import { voteOnAgentVersion } from '@/lib/agents/vote';
 
 describe('Agent Voting', () => {
   it('should vote successfully', async () => {
@@ -18,7 +18,8 @@ describe('Agent Voting', () => {
       agent_version_id: 'test-agent',
       user_id: 'test-user',
       vote_type: 'up',
-    })
-    expect(result.success).toBe(true)
-  })
-})
+    });
+    
+    expect(result.success).toBe(true);
+  });
+});

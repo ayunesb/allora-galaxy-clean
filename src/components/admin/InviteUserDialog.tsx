@@ -1,12 +1,12 @@
 
-import React from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { UserRole } from '@/lib/auth/requireRole';
 
 import {
   Dialog,
@@ -31,9 +31,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { UserRole } from '@/lib/auth/requireRole';
+import { Input } from '@/components/ui/input';
+import { Loader2 } from 'lucide-react';
+
+const inviteFormSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address' }),
+  role: z.enum(['admin', 'member', 'viewer'], {
+    required_error: 'Please select a role'
+  }),
+});
+
+type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
 interface InviteUserDialogProps {
   open: boolean;
@@ -41,67 +50,70 @@ interface InviteUserDialogProps {
   onSuccess?: () => void;
 }
 
-const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  role: z.enum(['admin', 'member', 'viewer'], {
-    required_error: 'Please select a role',
-  }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   open,
   onOpenChange,
-  onSuccess,
+  onSuccess
 }) => {
   const { currentTenant } = useWorkspace();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<InviteFormValues>({
+    resolver: zodResolver(inviteFormSchema),
     defaultValues: {
       email: '',
       role: 'member',
     },
   });
 
-  const inviteUserMutation = useMutation({
-    mutationFn: async ({ email, role }: FormValues) => {
-      if (!currentTenant) throw new Error('No tenant selected');
+  const onSubmit = async (data: InviteFormValues) => {
+    if (!currentTenant) {
+      toast({
+        title: 'Error',
+        description: 'No workspace selected',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-      const { error, data } = await supabase.functions.invoke('send-invite-email', {
+    setIsSubmitting(true);
+
+    try {
+      // Call the send-invite-email edge function
+      const { error } = await supabase.functions.invoke('send-invite-email', {
         body: {
-          email,
-          role,
-          tenant_id: currentTenant.id,
-          tenant_name: currentTenant.name,
+          email: data.email,
+          tenantId: currentTenant.id,
+          role: data.role,
         },
       });
 
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
+
       toast({
         title: 'Invitation sent',
-        description: 'The user has been invited to join your workspace',
+        description: `An invitation has been sent to ${data.email}`,
       });
+
+      // Reset form and close dialog
       form.reset();
-      if (onSuccess) onSuccess();
-    },
-    onError: (error: any) => {
+      onOpenChange(false);
+      
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (err: any) {
       toast({
         title: 'Failed to send invitation',
-        description: error.message || 'An error occurred while sending the invitation',
+        description: err.message || 'An error occurred',
         variant: 'destructive',
       });
-    },
-  });
-
-  function onSubmit(values: FormValues) {
-    inviteUserMutation.mutate(values);
-  }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -109,12 +121,12 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Invite User</DialogTitle>
           <DialogDescription>
-            Send an invitation to join your workspace. They'll receive an email with instructions.
+            Send an invitation to join your workspace.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="email"
@@ -122,12 +134,7 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="user@example.com"
-                      type="email"
-                      autoComplete="email"
-                      {...field}
-                    />
+                    <Input placeholder="user@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -140,8 +147,8 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
+                  <Select 
+                    onValueChange={field.onChange} 
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -150,9 +157,9 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="admin">Administrator</SelectItem>
                       <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="viewer">Viewer (Read-only)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -161,19 +168,17 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
             />
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
+              <Button 
+                type="button" 
+                variant="outline" 
                 onClick={() => onOpenChange(false)}
-                disabled={inviteUserMutation.isPending}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={inviteUserMutation.isPending}
-              >
-                {inviteUserMutation.isPending ? 'Sending...' : 'Send Invitation'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? 'Sending...' : 'Send Invitation'}
               </Button>
             </DialogFooter>
           </form>

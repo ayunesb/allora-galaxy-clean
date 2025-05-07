@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,13 +66,16 @@ const UserManagement: React.FC = () => {
 
       if (error) throw error;
 
+      // Make sure data is an array and map properly
+      if (!data || !Array.isArray(data)) return [];
+      
       return data.map(item => ({
-        id: item.user.id,
-        email: item.user.email,
-        created_at: item.user.created_at,
+        id: item.user?.id,
+        email: item.user?.email,
+        created_at: item.user?.created_at,
         role: item.role as UserRole,
         role_id: item.id
-      })) as UserWithRole[];
+      })).filter(user => user.id !== undefined) as UserWithRole[];
     },
     enabled: !!currentTenant
   });
