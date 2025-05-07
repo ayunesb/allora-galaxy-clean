@@ -1,28 +1,20 @@
 
 /**
- * Gets an environment variable in a cross-platform way (works in both Deno and Node)
- * @param name The name of the environment variable
- * @returns The value of the environment variable, or an empty string if not found
+ * Universal environment variable getter that works in both Deno and Node environments
+ * @param key The environment variable key to retrieve
+ * @param defaultValue Optional default value if the environment variable is not found
+ * @returns The environment variable value or the default value
  */
-export function getEnv(name: string): string {
-  // Try to get from Deno first (Edge Functions environment)
+export function getEnv(key: string, defaultValue: string = ""): string {
   try {
-    if (typeof Deno !== 'undefined') {
-      return Deno.env.get(name) || '';
+    // Check if we're in Deno environment
+    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis && typeof (globalThis as any).Deno?.env?.get === 'function') {
+      return (globalThis as any).Deno.env.get(key) || defaultValue;
     }
-  } catch (_) {
-    // Deno not available or permission error
+    // We're in Node environment
+    return process.env[key] || defaultValue;
+  } catch (error) {
+    console.warn(`Error accessing environment variable ${key}:`, error);
+    return defaultValue;
   }
-  
-  // Fall back to Node process.env (local development)
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env[name] || '';
-    }
-  } catch (_) {
-    // process not available
-  }
-  
-  // No environment variable systems available
-  return '';
 }
