@@ -9,6 +9,7 @@ import { submitOnboardingData } from '@/services/onboardingService';
 import { useOnboardingSteps } from '@/hooks/useOnboardingSteps';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { createNotification } from '@/services/notificationService';
 
 export type { OnboardingFormData } from '@/types/onboarding';
 
@@ -59,6 +60,23 @@ export const useOnboardingWizard = () => {
     }
   }, [tenants, navigate]);
 
+  // Create welcome notification when tenant is created
+  const createWelcomeNotification = async (tenantId: string, userId: string) => {
+    try {
+      await createNotification({
+        tenant_id: tenantId,
+        user_id: userId,
+        title: 'Welcome to Allora OS!',
+        message: 'Your workspace has been set up successfully. Explore the dashboard to get started.',
+        type: 'success',
+        action_url: '/dashboard',
+        action_label: 'Go to Dashboard'
+      });
+    } catch (error) {
+      console.error("Error creating welcome notification:", error);
+    }
+  };
+
   // Generate AI strategy based on company and persona data
   const generateAIStrategy = async (tenantId: string, userId: string) => {
     setIsGeneratingStrategy(true);
@@ -99,6 +117,17 @@ export const useOnboardingWizard = () => {
       toast({
         title: 'Strategy generated!',
         description: 'Your AI-powered strategy is ready to review.',
+      });
+
+      // Create notification about the new strategy
+      await createNotification({
+        tenant_id: tenantId,
+        user_id: userId,
+        title: 'New AI Strategy Ready',
+        message: 'Your first AI-generated strategy has been created and is ready for review.',
+        type: 'info',
+        action_url: '/strategies',
+        action_label: 'View Strategy'
       });
       
       // Log successful generation
@@ -151,6 +180,9 @@ export const useOnboardingWizard = () => {
           id: result.tenantId,
           name: formData.companyName,
         });
+        
+        // Create welcome notification
+        await createWelcomeNotification(result.tenantId, user.id);
         
         // Log successful completion
         await logSystemEvent(

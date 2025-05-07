@@ -1,92 +1,76 @@
 
 import React from 'react';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import NotificationList from './NotificationList';
+import { Loader2 } from 'lucide-react';
+import { NotificationContent } from '@/types/notifications';
+import NotificationItem from './NotificationItem';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
-import NotificationCenterLoading from './NotificationCenterLoading';
-import { useNotificationActions } from '@/hooks/useNotificationActions';
+import { cn } from '@/lib/utils';
 
-// Define the allowed notification types for proper type checking
-type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
-
-// This interface is used internally in this component
 export interface NotificationContent {
   id: string;
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
-  type: NotificationType;
+  type: 'info' | 'success' | 'warning' | 'error' | 'system';
 }
 
-export interface NotificationCenterContentProps {
-  notifications: NotificationContent[];
+interface NotificationCenterContentProps {
   loading: boolean;
-  markAllAsRead: () => void;
-  markAsRead: (id: string) => void;
+  notifications: NotificationContent[];
   filter: string;
+  className?: string;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
-  notifications,
   loading,
-  markAllAsRead,
+  notifications,
+  filter,
+  className,
   markAsRead,
-  filter
+  markAllAsRead,
 }) => {
-  // Early return for loading state
+  // Filter notifications based on selected tab
+  const filteredNotifications = React.useMemo(() => {
+    if (filter === 'all') {
+      return notifications;
+    } else if (filter === 'unread') {
+      return notifications.filter((notification) => !notification.read);
+    } else if (filter === 'system') {
+      return notifications.filter((notification) => notification.type === 'system');
+    }
+    return notifications;
+  }, [notifications, filter]);
+
   if (loading) {
-    return <NotificationCenterLoading />;
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  // Filter notifications based on the current tab
-  const filteredNotifications = notifications.filter(notification => {
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !notification.read;
-    if (filter === 'system') return notification.type === 'system';
-    return true;
-  });
-
-  // Show empty state when no notifications match the filter
   if (filteredNotifications.length === 0) {
-    return <NotificationCenterEmptyState filter={filter} />;
+    return (
+      <NotificationCenterEmptyState
+        filter={filter}
+        className={className} 
+      />
+    );
   }
 
   return (
-    <Tabs defaultValue="all" className="w-full">
-      <TabsContent value="all" className="m-0">
-        <NotificationList 
-          notifications={filter === 'all' ? filteredNotifications : []} 
+    <div className={cn("space-y-2 p-2", className)}>
+      {filteredNotifications.map((notification) => (
+        <NotificationItem
+          key={notification.id}
+          notification={notification}
           onMarkAsRead={markAsRead}
-          loading={false}
-          selectedTab="all"
-          filter={null}
-          onDelete={() => {}}
         />
-      </TabsContent>
-      
-      <TabsContent value="unread" className="m-0">
-        <NotificationList 
-          notifications={filter === 'unread' ? filteredNotifications : []} 
-          onMarkAsRead={markAsRead}
-          loading={false}
-          selectedTab="unread"
-          filter={null}
-          onDelete={() => {}}
-        />
-      </TabsContent>
-      
-      <TabsContent value="system" className="m-0">
-        <NotificationList 
-          notifications={filter === 'system' ? filteredNotifications : []} 
-          onMarkAsRead={markAsRead}
-          loading={false}
-          selectedTab="system"
-          filter={null}
-          onDelete={() => {}}
-        />
-      </TabsContent>
-    </Tabs>
+      ))}
+    </div>
   );
 };
 
