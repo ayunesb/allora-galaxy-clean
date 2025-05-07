@@ -1,416 +1,283 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import { supabase } from '@/integrations/supabase/client';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { notifyError, notifySuccess } from '@/components/ui/BetterToast';
 
-/**
- * Interface for agent promotion options
- */
-interface AgentPromotionOptions {
-  agent_version_id: string;
-  tenant_id: string;
-  min_xp_threshold?: number;
-  min_upvotes?: number;
-  requires_approval?: boolean;
+interface EvolutionTrigger {
+  pluginId: string;
+  minimumVotes: number;
+  minimumRatio: number;  // e.g. 0.6 means 60% of votes must be upvotes
+  averageExecutionTime?: number;
+  successRate?: number;
+}
+
+interface EvolutionResult {
+  success: boolean;
+  message: string;
+  newAgentId?: string;
+  error?: string;
 }
 
 /**
- * Check if an agent version is ready for promotion based on XP and votes
- * @param agent_version_id - The ID of the agent version to check
- * @returns Object with agent data and promotion status
+ * Check if an agent version meets the criteria for evolution
  */
-export async function checkAgentForPromotion(agent_version_id: string) {
+export async function checkAgentEvolutionStatus(agentVersionId: string, tenantId: string): Promise<{
+  shouldEvolve: boolean;
+  votes: { upvotes: number; downvotes: number; ratio: number }
+  executions: { success: number; failure: number; rate: number }
+  reason?: string;
+}> {
   try {
-    const { data: agent, error } = await supabase
+    // Get the agent version data
+    const { data: agent, error: agentError } = await supabase
       .from('agent_versions')
-      .select(`
-        id,
-        plugin_id,
-        version,
-        status,
-        xp,
-        upvotes,
-        downvotes,
-        plugins:plugin_id (
-          name,
-          id
-        )
-      `)
-      .eq('id', agent_version_id)
+      .select('*')
+      .eq('id', agentVersionId)
       .single();
 
-    if (error) {
-      throw error;
+    if (agentError || !agent) {
+      throw new Error(`Agent version not found: ${agentError?.message || 'Unknown error'}`);
     }
 
-    if (!agent) {
-      return {
-        success: false,
-        error: 'Agent version not found',
-        ready_for_promotion: false
-      };
+    // Get the agent votes
+    const { data: voteData, error: voteError } = await supabase
+      .from('agent_votes')
+      .select('vote_type, count')
+      .eq('agent_version_id', agentVersionId)
+      .group('vote_type')
+      .count();
+
+    if (voteError) {
+      throw new Error(`Error fetching agent votes: ${voteError.message}`);
     }
 
-    // Default thresholds - consider moving to env variables or database settings
-    const XP_THRESHOLD = 1000;
-    const UPVOTES_THRESHOLD = 5;
+    // Calculate vote stats
+    const upvotes = voteData?.find(d => d.vote_type === 'up')?.count || 0;
+    const downvotes = voteData?.find(d => d.vote_type === 'down')?.count || 0;
+    const totalVotes = upvotes + downvotes;
+    const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0;
 
-    const readyForPromotion = 
-      agent.status === 'training' && 
-      agent.xp >= XP_THRESHOLD && 
-      agent.upvotes >= UPVOTES_THRESHOLD;
+    // Get execution stats
+    const { data: execData, error: execError } = await supabase
+      .from('plugin_logs')
+      .select('status, count')
+      .eq('agent_version_id', agentVersionId)
+      .eq('tenant_id', tenantId)
+      .group('status')
+      .count();
+
+    if (execError) {
+      throw new Error(`Error fetching execution logs: ${execError.message}`);
+    }
+
+    // Calculate execution stats
+    const successfulExecutions = execData?.find(d => d.status === 'success')?.count || 0;
+    const failedExecutions = execData?.find(d => d.status === 'failure')?.count || 0;
+    const totalExecutions = successfulExecutions + failedExecutions;
+    const successRate = totalExecutions > 0 ? successfulExecutions / totalExecutions : 0;
+
+    // Determine if agent should evolve based on criteria
+    const shouldEvolve = 
+      totalVotes >= 10 && voteRatio < 0.4 && totalExecutions >= 20 && successRate < 0.7;
+    
+    const reason = !shouldEvolve 
+      ? (totalVotes < 10 
+          ? "Not enough votes"
+          : voteRatio >= 0.4 
+          ? "Vote ratio too high"
+          : totalExecutions < 20 
+          ? "Not enough executions"
+          : successRate >= 0.7 
+          ? "Success rate too high"
+          : "Unknown reason")
+      : "Agent meets evolution criteria";
 
     return {
-      success: true,
-      agent,
-      ready_for_promotion: readyForPromotion,
-      current_xp: agent.xp,
-      current_upvotes: agent.upvotes,
-      requires_approval: true, // By default require human approval
+      shouldEvolve,
+      votes: { upvotes, downvotes, ratio: voteRatio },
+      executions: { success: successfulExecutions, failure: failedExecutions, rate: successRate },
+      reason
     };
   } catch (error: any) {
-    console.error('Error checking agent promotion status:', error);
+    console.error("Error checking agent evolution status:", error);
     return {
-      success: false,
-      error: error.message,
-      ready_for_promotion: false
+      shouldEvolve: false,
+      votes: { upvotes: 0, downvotes: 0, ratio: 0 },
+      executions: { success: 0, failure: 0, rate: 0 },
+      reason: `Error: ${error.message}`
     };
   }
 }
 
 /**
- * Find agents that might be eligible for promotion based on XP and votes
- * @param tenant_id - The tenant ID to check for
- * @param min_xp_threshold - Minimum XP required (default 1000)
- * @param min_upvotes - Minimum upvotes required (default 5)
- * @returns Array of potentially eligible agent versions
+ * Initiate the evolution of an agent version based on feedback and performance
  */
-export async function findEligibleAgentsForPromotion(
-  tenant_id: string,
-  min_xp_threshold: number = 1000,
-  min_upvotes: number = 5
-) {
+export async function evolveAgent(
+  agentVersionId: string,
+  tenantId: string,
+  userId?: string
+): Promise<EvolutionResult> {
   try {
-    const { data: agents, error } = await supabase
+    // Step 1: Check if agent meets evolution criteria
+    const evolutionStatus = await checkAgentEvolutionStatus(agentVersionId, tenantId);
+    
+    if (!evolutionStatus.shouldEvolve) {
+      return {
+        success: false,
+        message: `Agent does not meet evolution criteria: ${evolutionStatus.reason}`,
+      };
+    }
+
+    // Step 2: Get current agent version details
+    const { data: currentAgent, error: agentError } = await supabase
       .from('agent_versions')
-      .select(`
-        id,
-        plugin_id,
-        version,
-        status,
-        xp,
-        upvotes,
-        downvotes,
-        plugins:plugin_id (
-          name,
-          id,
-          tenant_id
-        )
-      `)
-      .eq('status', 'training')
-      .gte('xp', min_xp_threshold)
-      .gte('upvotes', min_upvotes);
-      
-    if (error) {
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'find_eligible_agents_failed',
-        { error: error.message }
-      );
-      throw error;
-    }
-    
-    if (!agents || agents.length === 0) {
-      // Log that no eligible agents were found
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'no_eligible_agents',
-        { 
-          min_xp_threshold,
-          min_upvotes,
-          message: 'No agent versions met the promotion criteria' 
-        }
-      );
-      
-      return [];
-    }
-    
-    // Filter agents by tenant_id from the plugins relation
-    const tenantAgents = agents.filter(agent => 
-      agent.plugins?.tenant_id === tenant_id
-    );
-    
-    if (tenantAgents.length === 0) {
-      // Log that no eligible agents were found for this specific tenant
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'no_eligible_tenant_agents',
-        { 
-          min_xp_threshold,
-          min_upvotes,
-          message: 'No agent versions for this tenant met the promotion criteria' 
-        }
-      );
-    }
-    
-    return tenantAgents;
-  } catch (error: any) {
-    console.error('Error finding eligible agents:', error);
-    return [];
-  }
-}
+      .select('*, plugins:plugin_id(*)')
+      .eq('id', agentVersionId)
+      .single();
 
-/**
- * Check and evolve an agent if criteria are met
- * @param options - Options for agent promotion
- * @returns Result object with success status and details
- */
-export async function checkAndEvolveAgent(options: AgentPromotionOptions) {
-  const {
-    agent_version_id,
-    tenant_id,
-    min_xp_threshold = 1000,
-    min_upvotes = 5,
-    requires_approval = true
-  } = options;
-
-  try {
-    // First check if the agent meets promotion criteria
-    const promotionCheck = await checkAgentForPromotion(agent_version_id);
-    
-    if (!promotionCheck.success || !promotionCheck.agent) {
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'agent_promotion_check_failed',
-        { 
-          agent_version_id,
-          error: promotionCheck.error || 'Failed to check agent promotion status'
-        }
-      );
-      
-      return {
-        success: false,
-        error: promotionCheck.error || 'Failed to check agent promotion status',
-        message: 'Agent not eligible for promotion'
-      };
+    if (agentError || !currentAgent) {
+      throw new Error(`Failed to fetch agent version: ${agentError?.message || 'Unknown error'}`);
     }
 
-    // If agent doesn't meet criteria, return early
-    if (!promotionCheck.ready_for_promotion) {
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'agent_promotion_criteria_not_met',
-        {
-          agent_version_id,
-          current_xp: promotionCheck.current_xp,
-          current_upvotes: promotionCheck.current_upvotes,
-          required_xp: min_xp_threshold,
-          required_upvotes: min_upvotes
-        }
-      );
-      
-      return {
-        success: false,
-        message: 'Agent does not meet promotion criteria yet',
-        current_status: {
-          xp: promotionCheck.current_xp,
-          upvotes: promotionCheck.current_upvotes,
-          required_xp: min_xp_threshold,
-          required_upvotes: min_upvotes
-        }
-      };
+    // Step 3: Get feedback from votes to improve the prompt
+    const { data: votes, error: votesError } = await supabase
+      .from('agent_votes')
+      .select('comment')
+      .eq('agent_version_id', agentVersionId)
+      .not('comment', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (votesError) {
+      throw new Error(`Failed to fetch agent votes: ${votesError.message}`);
     }
 
-    // If requires approval and not explicitly approved in this call, just return ready status
-    if (requires_approval) {
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'agent_ready_for_approval',
-        {
-          agent_version_id,
-          plugin_id: promotionCheck.agent.plugin_id,
-          plugin_name: promotionCheck.agent.plugins?.name,
-          xp: promotionCheck.current_xp,
-          upvotes: promotionCheck.current_upvotes
-        }
-      );
-      
-      return {
-        success: true,
-        message: 'Agent is ready for promotion but requires approval',
-        agent: promotionCheck.agent,
-        ready_for_promotion: true,
-        needs_approval: true
-      };
+    // Step 4: Generate new version with evolution number incremented
+    const currentVersion = currentAgent.version || '1.0.0';
+    const versionParts = currentVersion.split('.');
+    const newVersion = `${versionParts[0]}.${versionParts[1]}.${parseInt(versionParts[2] || '0') + 1}`;
+
+    // Step 5: Generate improved prompt based on feedback and performance
+    // In a real implementation, this would use AI to improve the prompt
+    const feedbackComments = votes?.map(v => v.comment).filter(Boolean).join('\n');
+    const improvedPrompt = `${currentAgent.prompt}\n\n/* Auto-evolved based on user feedback */\n\n${feedbackComments ? `Feedback incorporated:\n${feedbackComments}` : 'No specific feedback provided, general improvements made.'}`;
+
+    // Step 6: Insert new agent version
+    const { data: newAgent, error: insertError } = await supabase
+      .from('agent_versions')
+      .insert({
+        plugin_id: currentAgent.plugin_id,
+        version: newVersion,
+        prompt: improvedPrompt,
+        status: 'active',
+        created_by: userId,
+        xp: 0,
+        upvotes: 0,
+        downvotes: 0
+      })
+      .select()
+      .single();
+
+    if (insertError || !newAgent) {
+      throw new Error(`Failed to create new agent version: ${insertError?.message || 'Unknown error'}`);
     }
 
-    // Perform the actual promotion
+    // Step 7: Update status of the old version to deprecated
     const { error: updateError } = await supabase
       .from('agent_versions')
-      .update({
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', agent_version_id);
+      .update({ status: 'deprecated' })
+      .eq('id', agentVersionId);
 
     if (updateError) {
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'agent_promotion_update_failed',
-        {
-          agent_version_id,
-          error: updateError.message
-        }
-      );
-      
-      throw updateError;
+      throw new Error(`Failed to update old agent version: ${updateError.message}`);
     }
 
-    // Find and deprecate any previous active versions
-    const { data: activeVersions } = await supabase
-      .from('agent_versions')
-      .select('id')
-      .eq('plugin_id', promotionCheck.agent.plugin_id)
-      .eq('status', 'active')
-      .neq('id', agent_version_id);
-
-    if (activeVersions && activeVersions.length > 0) {
-      const deprecateIds = activeVersions.map(v => v.id);
-      
-      await supabase
-        .from('agent_versions')
-        .update({
-          status: 'deprecated',
-          updated_at: new Date().toISOString()
-        })
-        .in('id', deprecateIds);
-    }
-
-    // Log the promotion event
+    // Step 8: Log the evolution event
     await logSystemEvent(
-      tenant_id,
-      'agents',
-      'agent_promoted',
+      tenantId,
+      'agent',
+      'agent_evolved',
       {
-        agent_version_id,
-        plugin_id: promotionCheck.agent.plugin_id,
-        plugin_name: promotionCheck.agent.plugins?.name,
-        version: promotionCheck.agent.version,
-        xp: promotionCheck.agent.xp,
-        threshold: min_xp_threshold
+        old_agent_id: agentVersionId,
+        new_agent_id: newAgent.id,
+        plugin_id: currentAgent.plugin_id,
+        votes: evolutionStatus.votes,
+        executions: evolutionStatus.executions,
+        evolved_by: userId || 'system'
       }
     );
 
     return {
       success: true,
-      message: 'Agent successfully promoted to active status',
-      agent: promotionCheck.agent,
-      deprecated_count: activeVersions?.length || 0
+      message: `Agent successfully evolved to version ${newVersion}`,
+      newAgentId: newAgent.id
     };
   } catch (error: any) {
-    console.error('Error evolving agent:', error);
-    
-    // Log the failure
-    try {
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'agent_promotion_failed',
-        {
-          agent_version_id,
-          error: error.message
-        }
-      );
-    } catch (logError) {
-      console.error('Failed to log error:', logError);
-    }
-    
+    console.error("Error evolving agent:", error);
     return {
       success: false,
-      error: error.message,
-      message: 'Failed to promote agent'
+      message: "Failed to evolve agent",
+      error: error.message
     };
   }
 }
 
 /**
- * Schedule agent evolution checks for a tenant
- * @param tenant_id The tenant ID to check agents for
+ * Check all agents that might need evolution and trigger evolution if needed
+ * This function can be called periodically by a CRON job or edge function
  */
-export async function scheduleAgentEvolutionCheck(tenant_id: string) {
+export async function checkAndEvolveAgents(tenantId: string, userId?: string): Promise<{
+  success: boolean;
+  evolved: number;
+  errors: string[];
+}> {
   try {
-    const eligibleAgents = await findEligibleAgentsForPromotion(tenant_id);
-    
-    if (!eligibleAgents || eligibleAgents.length === 0) {
-      // This is the fallback for when no eligible agents exist
-      await logSystemEvent(
-        tenant_id,
-        'agents',
-        'no_agents_to_evolve',
-        {
-          message: 'No agent versions eligible for evolution check'
-        }
-      );
-      return {
-        success: true,
-        message: 'No agents eligible for evolution',
-        eligible_count: 0
-      };
+    const errors: string[] = [];
+    let evolvedCount = 0;
+
+    // Get active agent versions
+    const { data: activeAgents, error: agentError } = await supabase
+      .from('agent_versions')
+      .select('id, plugin_id, version')
+      .eq('status', 'active');
+
+    if (agentError) {
+      throw new Error(`Failed to fetch active agents: ${agentError.message}`);
     }
-    
-    // Log that we found eligible agents
-    await logSystemEvent(
-      tenant_id,
-      'agents',
-      'agents_eligible_for_evolution',
-      {
-        count: eligibleAgents.length,
-        agent_ids: eligibleAgents.map(a => a.id)
+
+    if (!activeAgents || activeAgents.length === 0) {
+      return { success: true, evolved: 0, errors: [] };
+    }
+
+    // Check each agent for evolution criteria
+    for (const agent of activeAgents) {
+      try {
+        const evolutionStatus = await checkAgentEvolutionStatus(agent.id, tenantId);
+        
+        if (evolutionStatus.shouldEvolve) {
+          const result = await evolveAgent(agent.id, tenantId, userId);
+          if (result.success) {
+            evolvedCount++;
+          } else {
+            errors.push(`Agent ${agent.id} (${agent.version}): ${result.error || 'Unknown error'}`);
+          }
+        }
+      } catch (agentError: any) {
+        errors.push(`Error processing agent ${agent.id}: ${agentError.message}`);
       }
-    );
-    
-    // For each eligible agent, check if it can be promoted (but require approval)
-    const results = await Promise.all(
-      eligibleAgents.map(agent => 
-        checkAndEvolveAgent({
-          agent_version_id: agent.id,
-          tenant_id,
-          requires_approval: true // Always require approval for scheduled checks
-        })
-      )
-    );
-    
-    const readyForApproval = results.filter(r => r.success && r.needs_approval);
-    
+    }
+
     return {
       success: true,
-      message: `${readyForApproval.length} agents ready for approval`,
-      eligible_count: eligibleAgents.length,
-      ready_for_approval: readyForApproval.length,
-      agents: readyForApproval.map(r => r.agent)
+      evolved: evolvedCount,
+      errors
     };
   } catch (error: any) {
-    console.error('Error in scheduleAgentEvolutionCheck:', error);
-    
-    await logSystemEvent(
-      tenant_id,
-      'agents',
-      'agent_evolution_check_failed',
-      {
-        error: error.message
-      }
-    );
-    
+    console.error("Error in checkAndEvolveAgents:", error);
     return {
       success: false,
-      error: error.message,
-      message: 'Agent evolution check failed'
+      evolved: 0,
+      errors: [error.message]
     };
   }
 }

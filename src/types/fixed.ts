@@ -36,6 +36,57 @@ export interface RunPluginChainResult {
 
 export type LogStatus = 'success' | 'failure' | 'pending';
 
+// Additional types needed based on build errors
+export interface Tenant {
+  id: string;
+  name: string;
+  slug?: string;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+  metadata?: Record<string, any>;
+}
+
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+export interface CompanyProfile {
+  id: string;
+  tenant_id: string;
+  name: string;
+  industry?: string;
+  size?: 'solo' | 'small' | 'medium' | 'large' | 'enterprise';
+  website?: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AgentVote {
+  id?: string;
+  agent_version_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  comment?: string;
+  created_at?: string;
+}
+
+export type VoteType = 'up' | 'down';
+
+export interface ExecutionRecordInput {
+  tenantId: string;
+  type: 'plugin' | 'agent' | 'strategy';
+  status: LogStatus;
+  strategyId?: string;
+  pluginId?: string;
+  agentVersionId?: string;
+  executedBy?: string;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  error?: string;
+  executionTime?: number;
+  xpEarned?: number;
+}
+
 // Helper functions for snake_case <-> camelCase conversion
 export function camelToSnake(obj: any): any {
   if (obj === null || obj === undefined) return obj;

@@ -3,8 +3,8 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import MainLayout, { MainLayoutProps } from '@/layouts/MainLayout';
-import AdminLayout, { AdminLayoutProps } from '@/layouts/AdminLayout';
+import MainLayout from '@/layouts/MainLayout';
+import AdminLayout from '@/layouts/AdminLayout';
 import LoadingScreen from '@/components/LoadingScreen';
 import useRoleCheck from '@/lib/auth/useRoleCheck';
 
@@ -18,10 +18,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = '/auth',
 }) => {
   const { user, loading: authLoading } = useAuth();
-  const { initialized: workspaceInitialized } = useWorkspace();
+  const { loading: workspaceLoading } = useWorkspace();
   
   // Show loading screen while authentication is in progress
-  if (authLoading || !workspaceInitialized) {
+  if (authLoading || workspaceLoading) {
     return <LoadingScreen />;
   }
   
@@ -35,7 +35,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 export const MainRoute: React.FC = () => {
-  const layoutProps: MainLayoutProps = {
+  const layoutProps = {
     children: <Outlet />
   };
   
@@ -58,7 +58,7 @@ export const AdminRoute: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
   
-  const layoutProps: AdminLayoutProps = {
+  const layoutProps = {
     children: <Outlet />
   };
   
@@ -66,5 +66,3 @@ export const AdminRoute: React.FC = () => {
     <AdminLayout {...layoutProps} />
   );
 };
-
-// Add other specialized routes as needed

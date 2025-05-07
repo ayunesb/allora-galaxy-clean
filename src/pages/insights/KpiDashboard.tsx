@@ -23,7 +23,7 @@ interface KPI {
   source: KPISource;
   format: string;
   trend?: number;
-  trendDirection?: 'positive' | 'negative' | 'neutral';
+  trendDirection?: 'up' | 'down' | 'neutral';
 }
 
 interface KpiTrendData {
@@ -47,7 +47,12 @@ const KpiDashboard: React.FC = () => {
         const latestKpis = await fetchLatestKpis(currentTenant.id, activeTab);
         
         const formattedKpis: KPI[] = latestKpis.map((kpi: any) => {
-          const trendDirection = getTrendDirection(kpi);
+          const originalDirection = getTrendDirection(kpi);
+          // Convert from 'positive'/'negative'/'neutral' to 'up'/'down'/'neutral'
+          const trendDirection: 'up' | 'down' | 'neutral' = 
+            originalDirection === 'positive' ? 'up' : 
+            originalDirection === 'negative' ? 'down' : 'neutral';
+            
           return {
             id: kpi.id,
             title: kpi.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),

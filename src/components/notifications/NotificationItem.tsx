@@ -1,135 +1,155 @@
 
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { X, CheckCircle, AlertTriangle, Info, Bell } from "lucide-react";
-import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
+import {
+  AlertCircle,
+  Bell,
+  CheckCircle2,
+  Info,
+  MoreHorizontal,
+  Trash2,
+  MailOpen
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Notification, useNotifications } from '@/context/NotificationsContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Notification } from './NotificationCenter';
 
 interface NotificationItemProps {
   notification: Notification;
-  onOpenChange?: (open: boolean) => void;
+  onMarkAsRead: (id: string) => void;
+  onClose?: () => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ 
-  notification, 
-  onOpenChange 
+const NotificationItem: React.FC<NotificationItemProps> = ({
+  notification,
+  onMarkAsRead,
+  onClose
 }) => {
-  const { markAsRead, deleteNotification } = useNotifications();
-  
-  const handleRead = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    await markAsRead(notification.id);
-  };
-  
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    await deleteNotification(notification.id);
-  };
-  
-  const handleClick = async () => {
-    if (!notification.read_at) {
-      await markAsRead(notification.id);
-    }
-    
-    if (notification.action_url) {
-      if (onOpenChange) {
-        onOpenChange(false);
-      }
-      window.location.href = notification.action_url;
-    }
-  };
-  
-  const typeIcon = () => {
-    switch (notification.type) {
+  const {
+    id,
+    title,
+    description,
+    type,
+    isRead,
+    createdAt,
+    link
+  } = notification;
+
+  const getTypeIcon = () => {
+    switch (type) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        return <AlertCircle className="h-5 w-5 text-amber-500" />;
       case 'error':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
       case 'info':
       default:
-        return <Info className="h-4 w-4 text-blue-500" />;
+        return <Info className="h-5 w-5 text-blue-500" />;
     }
   };
-  
-  const timeAgo = notification.created_at
-    ? formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })
-    : '';
-  
-  return (
-    <div 
-      className={cn(
-        "p-3 mb-1 rounded-md cursor-pointer transition-colors flex gap-3",
-        notification.read_at 
-          ? "hover:bg-muted/50" 
-          : "bg-muted/40 hover:bg-muted",
-        notification.action_url && "hover:bg-muted"
-      )}
-      onClick={handleClick}
-    >
-      <div className="flex-shrink-0 mt-1">
-        {typeIcon()}
+
+  const getModuleColor = () => {
+    switch (notification.module) {
+      case 'strategy':
+        return 'bg-blue-100 text-blue-800';
+      case 'agent':
+        return 'bg-purple-100 text-purple-800';
+      case 'plugin':
+        return 'bg-amber-100 text-amber-800';
+      case 'billing':
+        return 'bg-green-100 text-green-800';
+      case 'system':
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formattedDate = () => {
+    try {
+      return formatDistanceToNow(new Date(createdAt), { addSuffix: true });
+    } catch (e) {
+      return 'recently';
+    }
+  };
+
+  const handleClick = () => {
+    if (!isRead) {
+      onMarkAsRead(id);
+    }
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const renderNotificationContent = () => (
+    <div className={cn(
+      "flex gap-3 p-4 hover:bg-accent cursor-pointer transition-colors",
+      !isRead && "bg-accent/50"
+    )}>
+      <div className="shrink-0">
+        {getTypeIcon()}
       </div>
-      <div className="flex-grow min-w-0">
-        <div className="flex justify-between items-start">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
           <h4 className={cn(
-            "text-sm font-medium truncate",
-            !notification.read_at && "font-medium"
+            "text-sm font-medium",
+            !isRead && "font-semibold"
           )}>
-            {notification.title}
+            {title}
           </h4>
-          <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-            {timeAgo}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
-        
-        {notification.action_label && notification.action_url && (
-          <div className="mt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs h-7 px-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!notification.read_at) {
-                  markAsRead(notification.id);
-                }
-                if (onOpenChange) {
-                  onOpenChange(false);
-                }
-                window.location.href = notification.action_url!;
-              }}
-            >
-              {notification.action_label}
-            </Button>
+          <div className="flex items-center gap-2">
+            {notification.module && (
+              <span className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                getModuleColor()
+              )}>
+                {notification.module}
+              </span>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!isRead && (
+                  <DropdownMenuItem onClick={() => onMarkAsRead(id)}>
+                    <MailOpen className="mr-2 h-4 w-4" />
+                    <span>Mark as read</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        </div>
+        {description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{description}</p>
         )}
+        <p className="text-xs text-muted-foreground mt-1">{formattedDate()}</p>
       </div>
-      <div className="flex flex-col gap-1">
-        {!notification.read_at && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5 w-5 p-0"
-            onClick={handleRead}
-            title="Mark as read"
-          >
-            <Bell className="h-3 w-3" />
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-5 w-5 p-0"
-          onClick={handleDelete}
-          title="Remove notification"
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
+    </div>
+  );
+
+  return link ? (
+    <Link to={link} onClick={handleClick}>
+      {renderNotificationContent()}
+    </Link>
+  ) : (
+    <div onClick={handleClick}>
+      {renderNotificationContent()}
     </div>
   );
 };

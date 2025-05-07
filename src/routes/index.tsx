@@ -1,62 +1,178 @@
 
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import AuthRoutes from './AuthRoutes';
-import OnboardingRoutes from './OnboardingRoutes';
-import ProtectedRoutes from './ProtectedRoutes';
-import PublicRoutes from './PublicRoutes';
+import { RouteObject } from 'react-router-dom';
+import { ProtectedRoute, MainRoute, AdminRoute } from './ProtectedRoutes';
+import Dashboard from '@/pages/dashboard/Dashboard';
+import KpiDashboard from '@/pages/insights/KpiDashboard';
+import BillingPage from '@/pages/billing/BillingPage';
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+import LoadingScreen from '@/components/LoadingScreen';
+import ProfileSettings from '@/pages/settings/ProfileSettings';
 
-const AppRoutes: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
-  const { currentTenant, loading: workspaceLoading } = useWorkspace();
-  const location = useLocation();
+const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
+const RegisterPage = React.lazy(() => import('@/pages/auth/RegisterPage'));
+const ForgotPasswordPage = React.lazy(() => import('@/pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = React.lazy(() => import('@/pages/auth/ResetPasswordPage'));
+const AuthLayout = React.lazy(() => import('@/layouts/AuthLayout'));
+const OnboardingLayout = React.lazy(() => import('@/layouts/OnboardingLayout'));
 
-  if (authLoading || (user && workspaceLoading)) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+const LaunchPage = React.lazy(() => import('@/pages/launch/LaunchPage'));
+const PluginsPage = React.lazy(() => import('@/pages/plugins/PluginsPage'));
+const PluginDetailPage = React.lazy(() => import('@/pages/plugins/PluginDetailPage'));
+const PluginEvolutionPage = React.lazy(() => import('@/pages/plugins/PluginEvolutionPage'));
+const GalaxyPage = React.lazy(() => import('@/pages/galaxy/GalaxyPage'));
+const AgentsPerformancePage = React.lazy(() => import('@/pages/agents/PerformancePage'));
+const UserManagement = React.lazy(() => import('@/pages/admin/UserManagement'));
+const SystemLogs = React.lazy(() => import('@/pages/admin/SystemLogs'));
+const AiDecisions = React.lazy(() => import('@/pages/admin/AiDecisions'));
+const NotificationsPage = React.lazy(() => import('@/pages/notifications/NotificationsPage'));
 
-  // If the user is authenticated but on the auth or root route, redirect to dashboard
-  if (user && (location.pathname === '/auth' || location.pathname === '/')) {
-    // If they have a workspace, go to dashboard, otherwise to onboarding
-    if (currentTenant) {
-      return <Navigate to="/dashboard" replace />;
-    } else {
-      return <Navigate to="/onboarding" replace />;
-    }
-  }
+const routes: RouteObject[] = [
+  // Public routes
+  {
+    path: '/auth',
+    element: <AuthLayout />,
+    children: [
+      {
+        path: '',
+        element: <LoginPage />,
+      },
+      {
+        path: 'register',
+        element: <RegisterPage />,
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPasswordPage />,
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPasswordPage />,
+      },
+    ],
+  },
+  
+  // Onboarding
+  {
+    path: '/onboarding',
+    element: <OnboardingLayout />,
+    children: [
+      {
+        path: '',
+        element: <OnboardingWizard />,
+      }
+    ]
+  },
+  
+  // Protected routes
+  {
+    path: '/',
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <MainRoute />,
+        children: [
+          // Main routes that require main layout
+          {
+            path: '',
+            element: <Dashboard />,
+          },
+          {
+            path: 'dashboard',
+            element: <Dashboard />,
+          },
+          {
+            path: 'launch',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <LaunchPage />
+              </React.Suspense>,
+          },
+          {
+            path: 'plugins',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <PluginsPage />
+              </React.Suspense>,
+          },
+          {
+            path: 'plugins/:id',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <PluginDetailPage />
+              </React.Suspense>,
+          },
+          {
+            path: 'plugins/:id/evolution',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <PluginEvolutionPage />
+              </React.Suspense>,
+          },
+          {
+            path: 'galaxy',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <GalaxyPage />
+              </React.Suspense>,
+          },
+          {
+            path: 'agents/performance',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <AgentsPerformancePage />
+              </React.Suspense>,
+          },
+          {
+            path: 'insights/kpis',
+            element: <KpiDashboard />,
+          },
+          {
+            path: 'billing',
+            element: <BillingPage />,
+          },
+          {
+            path: 'notifications',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <NotificationsPage />
+              </React.Suspense>,
+          },
+          {
+            path: 'settings',
+            element: <ProfileSettings />,
+          },
+        ]
+      },
+      {
+        path: 'admin',
+        element: <AdminRoute />,
+        children: [
+          {
+            path: 'users',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <UserManagement />
+              </React.Suspense>,
+          },
+          {
+            path: 'system-logs',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <SystemLogs />
+              </React.Suspense>,
+          },
+          {
+            path: 'ai-decisions',
+            element: 
+              <React.Suspense fallback={<LoadingScreen />}>
+                <AiDecisions />
+              </React.Suspense>,
+          },
+        ],
+      },
+    ],
+  },
+];
 
-  // If the user is not authenticated and not on a public route, redirect to auth
-  if (!user && !location.pathname.startsWith('/auth') && 
-      !location.pathname.startsWith('/terms') && 
-      !location.pathname.startsWith('/privacy') &&
-      !location.pathname.startsWith('/unauthorized')) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return (
-    <Routes>
-      {/* Auth routes */}
-      <Route path="/auth/*" element={<AuthRoutes />} />
-      
-      {/* Onboarding routes */}
-      <Route path="/onboarding/*" element={<OnboardingRoutes />} />
-      
-      {/* Protected routes */}
-      <Route path="/*" element={<ProtectedRoutes />} />
-      
-      {/* Public routes */}
-      <Route path="/*" element={<PublicRoutes />} />
-    </Routes>
-  );
-};
-
-export default AppRoutes;
+export default routes;
