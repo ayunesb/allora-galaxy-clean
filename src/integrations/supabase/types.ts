@@ -298,6 +298,62 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          company: string | null
+          created_at: string | null
+          email: string
+          id: string
+          last_activity: string | null
+          metadata: Json | null
+          name: string | null
+          score: number | null
+          source: string
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          last_activity?: string | null
+          metadata?: Json | null
+          name?: string | null
+          score?: number | null
+          source: string
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_activity?: string | null
+          metadata?: Json | null
+          name?: string | null
+          score?: number | null
+          source?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       persona_profiles: {
         Row: {
           created_at: string | null
@@ -421,6 +477,7 @@ export type Database = {
           name: string
           roi: number | null
           status: string
+          tenant_id: string | null
           updated_at: string | null
           xp: number | null
         }
@@ -434,6 +491,7 @@ export type Database = {
           name: string
           roi?: number | null
           status: string
+          tenant_id?: string | null
           updated_at?: string | null
           xp?: number | null
         }
@@ -447,8 +505,53 @@ export type Database = {
           name?: string
           roi?: number | null
           status?: string
+          tenant_id?: string | null
           updated_at?: string | null
           xp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugins_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          onboarding_completed: boolean | null
+          preferences: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          onboarding_completed?: boolean | null
+          preferences?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          onboarding_completed?: boolean | null
+          preferences?: Json | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -501,6 +604,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "strategies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at: string | null
+          canceled_at: string | null
+          created_at: string | null
+          current_period_end: string
+          current_period_start: string
+          id: string
+          metadata: Json | null
+          plan_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cancel_at?: string | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          metadata?: Json | null
+          plan_id: string
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          cancel_at?: string | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          metadata?: Json | null
+          plan_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

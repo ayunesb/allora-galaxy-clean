@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { notifyError } from '@/components/ui/BetterToast';
+import { toast } from "@/components/ui/use-toast";
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'pending';
 
@@ -133,18 +133,26 @@ export function withRequiredRole<T extends any[], R>(
       const hasRole = await requireRoleAsync(tenant_id, role);
       
       if (!hasRole) {
-        notifyError('Access Denied', 'You do not have permission to perform this action.');
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to perform this action."
+        });
         return;
       }
       
       return fn(...args);
     } catch (error) {
       console.error('Error in withRequiredRole:', error);
-      notifyError('Error', 'An unexpected error occurred while checking your permissions.');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred while checking your permissions."
+      });
       return;
     }
   };
 }
 
-// Import inside the file to prevent circular dependencies
+// Import at the end to prevent circular dependencies
 import { useWorkspace } from '@/context/WorkspaceContext';

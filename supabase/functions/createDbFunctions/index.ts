@@ -6,18 +6,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Import environment utilities
 import { getEnv } from "../../lib/env.ts";
 import { validateEnv, type EnvVar } from "../../lib/validateEnv.ts";
-import { corsHeaders } from "../../lib/corsHeaders.ts";
 
 const MODULE_NAME = "createDbFunctions";
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Define required environment variables
-const requiredEnv: EnvVar[] = [
+const requiredEnvs: EnvVar[] = [
   { name: 'SUPABASE_URL', required: true, description: 'Supabase project URL' },
   { name: 'SUPABASE_SERVICE_ROLE_KEY', required: true, description: 'Service role key for admin access' }
 ];
 
 // Validate environment variables
-const env = validateEnv(requiredEnv);
+const env = validateEnv(requiredEnvs);
 
 // Define the database functions
 const FUNCTIONS = `
@@ -42,6 +47,23 @@ BEGIN
   RETURN LEAST(100, current_percentage + amount);
 END;
 $$;
+
+-- Function to check if a user profile exists and create one if not
+CREATE OR REPLACE FUNCTION public.ensure_user_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id)
+  VALUES (auth.uid())
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to run the ensure_user_profile function on user login
+DROP TRIGGER IF EXISTS on_user_login ON auth.users;
+CREATE TRIGGER on_user_login
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.ensure_user_profile();
 `;
 
 serve(async (req) => {

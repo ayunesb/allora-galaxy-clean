@@ -1,50 +1,38 @@
 
 /**
- * Interface for environment variable validation
+ * Type definition for environment variable requirements
  */
-export interface EnvVar {
+export type EnvVar = {
   name: string;
   required: boolean;
   description: string;
-  default?: string;
-}
-
-import { getEnv } from "./env.ts";
+};
 
 /**
- * Validate environment variables
- * @param envVars Array of environment variables to validate
- * @returns Object containing validated environment variables
+ * Validate a list of environment variables and return their values
+ * 
+ * @param requiredEnvs - List of required environment variables
+ * @returns Object containing environment variable values
  */
-export function validateEnv(envVars: EnvVar[]): Record<string, string> {
+export function validateEnv(requiredEnvs: EnvVar[]): Record<string, string> {
   const result: Record<string, string> = {};
   const missing: string[] = [];
-
-  for (const envVar of envVars) {
-    const value = getEnv(envVar.name, envVar.default || '');
-    result[envVar.name] = value;
-
-    if (envVar.required && !value) {
-      missing.push(`${envVar.name} (${envVar.description})`);
+  
+  for (const env of requiredEnvs) {
+    const value = getEnv(env.name);
+    result[env.name] = value;
+    
+    if (env.required && !value) {
+      missing.push(env.name);
     }
   }
-
+  
   if (missing.length > 0) {
-    console.warn(`⚠️ Missing required environment variables: ${missing.join(', ')}`);
+    console.warn(`Missing required environment variables: ${missing.join(', ')}`);
   }
-
+  
   return result;
 }
 
-/**
- * Log environment status without exposing values
- * @param env Object containing environment variables
- */
-export function logEnvStatus(env: Record<string, string>): void {
-  console.log('Environment status:');
-  
-  for (const [key, value] of Object.entries(env)) {
-    const status = value ? '✅' : '❌';
-    console.log(`- ${key}: ${status}`);
-  }
-}
+// Import from env.ts to avoid circular dependency
+import { getEnv } from './env';
