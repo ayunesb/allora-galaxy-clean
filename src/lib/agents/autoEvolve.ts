@@ -1,4 +1,18 @@
+
 import { supabase } from '@/lib/supabase';
+
+// Type definition for agent evolution result
+export interface AgentEvolutionResult {
+  evolved: boolean;
+  reason: string;
+  agentId?: string;
+}
+
+// Type definition for multiple agent evolution results
+export interface AgentEvolutionBatchResult {
+  evolvedCount: number;
+  results: AgentEvolutionResult[];
+}
 
 /**
  * Checks an agent for potential promotion based on votes and performance
@@ -39,12 +53,12 @@ export const checkAgentForPromotion = async (agentVersionId: string) => {
  * @param agentVersionId The ID of the agent version to check
  * @returns Object with evolution results
  */
-export const checkAndEvolveAgent = async (agentVersionId: string) => {
+export const checkAndEvolveAgent = async (agentVersionId: string): Promise<AgentEvolutionResult> => {
   try {
     const { shouldPromote, reason } = await checkAgentForPromotion(agentVersionId);
     
     if (!shouldPromote) {
-      return { evolved: false, reason };
+      return { evolved: false, reason, agentId: agentVersionId };
     }
     
     // Here would be the logic to evolve the agent
@@ -52,13 +66,15 @@ export const checkAndEvolveAgent = async (agentVersionId: string) => {
     
     return { 
       evolved: true,
-      reason: 'Agent successfully evolved'
+      reason: 'Agent successfully evolved',
+      agentId: agentVersionId
     };
   } catch (err) {
     console.error('Error evolving agent:', err);
     return {
       evolved: false,
-      reason: 'Error during evolution process'
+      reason: 'Error during evolution process',
+      agentId: agentVersionId
     };
   }
 };
@@ -68,38 +84,48 @@ export const checkAndEvolveAgent = async (agentVersionId: string) => {
  * @param tenantId Optional tenant ID to filter agents
  * @returns Array of evolution results
  */
-export const checkAndEvolveAgents = async (tenantId?: string) => {
+export const checkAndEvolveAgents = async (tenantId?: string): Promise<AgentEvolutionBatchResult> => {
   try {
     let query = supabase
       .from('agent_versions')
       .select('*');
       
     if (tenantId) {
-      // If we had a tenant_id column, we would filter by it
-      // This is a placeholder
+      // Filter by tenant_id if provided
+      query = query.eq('tenant_id', tenantId);
     }
     
     const { data: agents, error } = await query;
     
     if (error) throw error;
     if (!agents || agents.length === 0) {
-      return [];
+      return { 
+        evolvedCount: 0, 
+        results: [] 
+      };
     }
     
-    const results = [];
+    const results: AgentEvolutionResult[] = [];
+    let evolvedCount = 0;
     
     for (const agent of agents) {
       const result = await checkAndEvolveAgent(agent.id);
-      results.push({
-        agentId: agent.id,
-        ...result
-      });
+      if (result.evolved) {
+        evolvedCount++;
+      }
+      results.push(result);
     }
     
-    return results;
+    return {
+      evolvedCount,
+      results
+    };
   } catch (err) {
     console.error('Error checking and evolving agents:', err);
-    return [];
+    return { 
+      evolvedCount: 0, 
+      results: [] 
+    };
   }
 };
 

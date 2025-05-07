@@ -1,5 +1,5 @@
 
-import { expect, test, describe, vi } from 'vitest';
+import { expect, test, describe, vi, beforeEach } from 'vitest';
 import * as autoEvolve from '@/lib/agents/autoEvolve';
 
 // Mock the autoEvolve module
@@ -33,10 +33,10 @@ describe('Auto Evolve Agents Edge Function', () => {
     };
     
     // Mock the checkAndEvolveAgents function to return our mock response
-    (autoEvolve.checkAndEvolveAgents as jest.Mock).mockResolvedValue(mockResponse);
+    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
     
     // Mock the global fetch to simulate the edge function response
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockResponse),
     });
@@ -65,10 +65,10 @@ describe('Auto Evolve Agents Edge Function', () => {
     };
     
     // Mock the checkAndEvolveAgents function to return empty response
-    (autoEvolve.checkAndEvolveAgents as jest.Mock).mockResolvedValue(mockEmptyResponse);
+    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockResolvedValue(mockEmptyResponse);
     
     // Mock the global fetch
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockEmptyResponse),
     });
@@ -91,10 +91,10 @@ describe('Auto Evolve Agents Edge Function', () => {
   test('should handle errors during evolution', async () => {
     // Setup mock for error case
     const mockError = new Error('Evolution process failed');
-    (autoEvolve.checkAndEvolveAgents as jest.Mock).mockRejectedValue(mockError);
+    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockRejectedValue(mockError);
     
     // Mock the global fetch to return error
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 500,
       json: () => Promise.resolve({ error: 'Internal server error' }),
@@ -116,7 +116,7 @@ describe('Auto Evolve Agents Edge Function', () => {
 
   test('should validate input parameters', async () => {
     // Mock implementation for invalid tenant ID
-    (autoEvolve.checkAndEvolveAgents as jest.Mock).mockImplementation((tenantId) => {
+    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockImplementation((tenantId) => {
       if (!tenantId || typeof tenantId !== 'string') {
         throw new Error('Invalid tenant ID');
       }
@@ -124,7 +124,7 @@ describe('Auto Evolve Agents Edge Function', () => {
     });
     
     // Mock fetch with validation error
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 400,
       json: () => Promise.resolve({ error: 'Invalid tenant ID format' }),

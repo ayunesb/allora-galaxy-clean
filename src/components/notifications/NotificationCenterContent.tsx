@@ -1,69 +1,79 @@
 
 import React from 'react';
-import { Notification } from '@/types/notifications';
-import NotificationItem from './NotificationItem';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import NotificationList from './NotificationList';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
+
+// Define the allowed notification types for proper type checking
+type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
+
+interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  read: boolean;
+  type: NotificationType;
+}
 
 interface NotificationCenterContentProps {
-  loading: boolean;
   notifications: Notification[];
+  loading: boolean;
+  markAllAsRead: () => void;
+  markAsRead: (id: string) => void;
   filter: string;
-  markAsRead: (id: string) => Promise<void>;
-  onClose?: () => void;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
-  loading,
   notifications,
-  filter,
+  loading,
+  markAllAsRead,
   markAsRead,
-  onClose
+  filter
 }) => {
-  const filterNotifications = (filter: string) => {
-    switch (filter) {
-      case 'all':
-        return notifications;
-      case 'unread':
-        return notifications.filter(notif => !notif.read_at);
-      case 'system':
-        return notifications.filter(notif => notif.type.toLowerCase() === 'system');
-      default:
-        return notifications;
-    }
-  };
-
+  // Early return for loading state
   if (loading) {
     return <NotificationCenterLoading />;
   }
 
-  const filteredNotifications = filterNotifications(filter);
+  // Filter notifications based on the current tab
+  const filteredNotifications = notifications.filter(notification => {
+    if (filter === 'all') return true;
+    if (filter === 'unread') return !notification.read;
+    if (filter === 'system') return notification.type === 'system';
+    return true;
+  });
 
+  // Show empty state when no notifications match the filter
   if (filteredNotifications.length === 0) {
     return <NotificationCenterEmptyState filter={filter} />;
   }
 
   return (
-    <div>
-      {filteredNotifications.map((notification) => (
-        <NotificationItem
-          key={notification.id}
-          notification={{
-            id: notification.id,
-            title: notification.title,
-            description: notification.message,
-            type: notification.type,
-            isRead: !!notification.read_at,
-            createdAt: notification.created_at,
-            link: notification.action_url,
-            module: notification.type === 'system' ? 'system' : undefined
-          }}
-          onMarkAsRead={markAsRead}
-          onDelete={() => {}} // We'll handle this in the parent component
-          onClose={onClose}
+    <Tabs defaultValue="all" className="w-full">
+      <TabsContent value="all" className="m-0">
+        <NotificationList 
+          notifications={filter === 'all' ? filteredNotifications : []} 
+          markAsRead={markAsRead} 
         />
-      ))}
-    </div>
+      </TabsContent>
+      
+      <TabsContent value="unread" className="m-0">
+        <NotificationList 
+          notifications={filter === 'unread' ? filteredNotifications : []} 
+          markAsRead={markAsRead} 
+        />
+      </TabsContent>
+      
+      <TabsContent value="system" className="m-0">
+        <NotificationList 
+          notifications={filter === 'system' ? filteredNotifications : []} 
+          markAsRead={markAsRead} 
+        />
+      </TabsContent>
+    </Tabs>
   );
 };
 

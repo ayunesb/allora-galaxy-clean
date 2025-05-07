@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -10,8 +9,9 @@ import { useAuth } from './AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { notifyError } from '@/components/ui/BetterToast';
-import { Tenant, UserRole, CompanyProfile } from '@/types/fixed';
+import { Tenant, UserRole } from '@/types/fixed';
 import { snakeToCamel } from '@/types/fixed';
+import { NavigationItem } from '@/types/navigation';
 import {
   Home,
   Settings,
@@ -30,22 +30,15 @@ import {
   Bell,
 } from 'lucide-react';
 
-export interface NavigationItem {
-  title: string;
-  href: string;
-  icon: LucideIcon;
-  role?: string;
-}
-
 export interface WorkspaceContextType {
   currentTenant: Tenant | null;
   setCurrentTenant: (tenant: Tenant | null) => void;
   tenants: Tenant[];
   loading: boolean;
   currentRole: UserRole | null;
-  userRole: UserRole | null; // Added missing property
+  userRole: UserRole | null;
   navigationItems: NavigationItem[];
-  createTenant?: (data: any) => Promise<any>; // Added missing property
+  createTenant?: (data: any) => Promise<any>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
