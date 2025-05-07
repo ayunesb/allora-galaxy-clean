@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { OnboardingFormData } from '@/types/onboarding';
+import { OnboardingFormData, StepValidationResult } from '@/types/onboarding';
 
 /**
  * Custom hook for managing onboarding steps and validation
@@ -10,39 +10,114 @@ export const useOnboardingSteps = (formData: OnboardingFormData) => {
   
   /**
    * Validates the current step based on required fields
+   * @returns boolean indicating if the step is valid
    */
-  const isStepValid = () => {
+  const isStepValid = (): boolean => {
+    const validationResult = validateCurrentStep();
+    return validationResult.isValid;
+  };
+
+  /**
+   * Validates the current step and returns detailed validation results
+   */
+  const validateCurrentStep = (): StepValidationResult => {
+    const errors: Record<string, string> = {};
+    
     switch (currentStep) {
       case 0:
-        return !!(formData.companyName && formData.industry && formData.teamSize && formData.revenueRange);
+        // Company info validation
+        if (!formData.companyName?.trim()) {
+          errors.companyName = 'Company name is required';
+        }
+        if (!formData.industry?.trim()) {
+          errors.industry = 'Industry is required';
+        }
+        if (!formData.teamSize?.trim()) {
+          errors.teamSize = 'Team size is required';
+        }
+        if (!formData.revenueRange?.trim()) {
+          errors.revenueRange = 'Revenue range is required';
+        }
+        break;
+        
       case 1:
-        return true; // Additional info is optional
+        // Additional info is optional, no validation required
+        break;
+        
       case 2:
-        return !!(formData.personaName && formData.tone && formData.goals);
+        // Persona validation
+        if (!formData.personaName?.trim()) {
+          errors.personaName = 'Persona name is required';
+        }
+        if (!formData.tone?.trim()) {
+          errors.tone = 'Tone is required';
+        }
+        if (!formData.goals?.trim()) {
+          errors.goals = 'Goals are required';
+        }
+        break;
+        
       default:
-        return false;
+        // Shouldn't happen, but add a safety check
+        errors._general = 'Invalid step';
+        break;
     }
+    
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
   };
 
   /**
    * Move to the next step
    */
   const handleNextStep = () => {
-    setCurrentStep(prev => prev + 1);
+    if (isStepValid()) {
+      setCurrentStep(prev => prev + 1);
+    }
   };
 
   /**
    * Move to the previous step
    */
   const handlePrevStep = () => {
-    setCurrentStep(prev => prev - 1);
+    setCurrentStep(prev => Math.max(0, prev - 1));
   };
 
   /**
-   * Move to a specific step
+   * Move to a specific step (only if previous steps are valid)
    */
   const handleStepClick = (step: number) => {
-    setCurrentStep(step);
+    // Allow backward navigation without validation
+    if (step < currentStep) {
+      setCurrentStep(step);
+      return;
+    }
+    
+    // For forward navigation, validate all steps in between
+    let isValid = true;
+    let stepToValidate = currentStep;
+    
+    while (stepToValidate < step && isValid) {
+      // Store current step
+      const tempStep = currentStep;
+      
+      // Temporarily set step to validate the required step
+      setCurrentStep(stepToValidate);
+      isValid = isStepValid();
+      
+      // Restore actual current step
+      setCurrentStep(tempStep);
+      
+      if (isValid) {
+        stepToValidate++;
+      }
+    }
+    
+    if (isValid) {
+      setCurrentStep(step);
+    }
   };
 
   return {
@@ -51,5 +126,6 @@ export const useOnboardingSteps = (formData: OnboardingFormData) => {
     handlePrevStep,
     handleStepClick,
     isStepValid,
+    validateCurrentStep,
   };
 };

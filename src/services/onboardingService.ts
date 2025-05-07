@@ -2,7 +2,71 @@
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingFormData, OnboardingSubmissionResult } from '@/types/onboarding';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { validateOnboardingData, generateSlug } from '@/lib/onboarding/validateOnboardingData';
+import { generateSlug, ensureUniqueSlug } from '@/lib/utils/slugUtils';
+
+/**
+ * Validates onboarding form data
+ * @param formData The form data to validate
+ * @returns Validation result with error messages
+ */
+export const validateOnboardingData = (formData: OnboardingFormData) => {
+  const errors: Record<string, string> = {};
+  
+  // Company validation
+  if (!formData.companyName?.trim()) {
+    errors.companyName = 'Company name is required';
+  }
+  
+  if (!formData.industry?.trim()) {
+    errors.industry = 'Industry is required';
+  }
+  
+  if (!formData.teamSize?.trim()) {
+    errors.teamSize = 'Team size is required';
+  }
+  
+  if (!formData.revenueRange?.trim()) {
+    errors.revenueRange = 'Revenue range is required';
+  }
+  
+  // Persona validation
+  if (!formData.personaName?.trim()) {
+    errors.personaName = 'Persona name is required';
+  }
+  
+  if (!formData.tone?.trim()) {
+    errors.tone = 'Tone is required';
+  }
+  
+  if (!formData.goals?.trim()) {
+    errors.goals = 'Goals are required';
+  }
+  
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+/**
+ * Generates a unique slug for a tenant
+ * @param companyName Base name for the slug
+ * @returns Promise resolving to a unique slug
+ */
+export const generateUniqueSlug = async (companyName: string): Promise<string> => {
+  // Generate base slug from company name
+  const baseSlug = generateSlug(companyName);
+  
+  // Get existing slugs from DB
+  const { data: existingTenants } = await supabase
+    .from('tenants')
+    .select('slug');
+  
+  const existingSlugs = existingTenants?.map(tenant => tenant.slug) || [];
+  
+  // Ensure slug uniqueness
+  return ensureUniqueSlug(baseSlug, existingSlugs);
+};
 
 /**
  * Creates tenant, user role, company profile and persona profile
@@ -21,8 +85,8 @@ export const submitOnboardingData = async (
       throw new Error(`Validation failed: ${errorMessages}`);
     }
 
-    // Generate slug from company name
-    const slug = generateSlug(formData.companyName);
+    // Generate unique slug from company name
+    const slug = await generateUniqueSlug(formData.companyName);
     
     // Create new tenant
     const { data: newTenant, error: tenantError } = await supabase

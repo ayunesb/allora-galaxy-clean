@@ -10,6 +10,9 @@ import { useOnboardingSteps } from '@/hooks/useOnboardingSteps';
 
 export type { OnboardingFormData } from '@/types/onboarding';
 
+/**
+ * Custom hook for handling the onboarding wizard flow
+ */
 export const useOnboardingWizard = () => {
   const { user } = useAuth();
   const { tenants, setCurrentTenant } = useWorkspace();
@@ -36,7 +39,8 @@ export const useOnboardingWizard = () => {
     handleNextStep, 
     handlePrevStep, 
     handleStepClick, 
-    isStepValid 
+    isStepValid,
+    validateCurrentStep 
   } = useOnboardingSteps(formData);
 
   // Update form data
@@ -106,5 +110,6 @@ export const useOnboardingWizard = () => {
     handleSubmit,
     isStepValid,
     resetError,
+    validateCurrentStep,
   };
 };
