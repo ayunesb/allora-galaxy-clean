@@ -1,149 +1,401 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-// Helper function to safely get environment variables
-function getEnvVar(name: string, fallback: string = ""): string {
+// Helper function to safely get environment variables with fallbacks
+function getEnv(name: string, fallback: string = ""): string {
   try {
-    // Check if we're in Deno environment
-    if (typeof globalThis.Deno !== 'undefined') {
-      return globalThis.Deno.env.get(name) || fallback;
-    }
-    // Fallback to process.env for Node environment
-    return process.env[name] || fallback;
-  } catch (error) {
-    // If all else fails, return the fallback
-    console.warn(`Error accessing env var ${name}:`, error);
+    return typeof Deno !== "undefined" && Deno.env 
+      ? Deno.env.get(name) ?? fallback
+      : fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
 }
 
-// Define the Supabase client
-const supabaseUrl = getEnvVar("SUPABASE_URL", "https://ijrnwpgsqsxzqdemtknz.supabase.co");
-const supabaseAnonKey = getEnvVar("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo");
-const supabaseServiceKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY", "");
-
-// CORS headers
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Define XP thresholds for promotion
-const XP_PROMOTION_THRESHOLD = 1000;
-const MODULE_NAME = "autoEvolveAgents";
+// Input schema for autoEvolveAgents
+const autoEvolveSchema = z.object({
+  tenant_id: z.string().uuid().optional(),
+  check_all_tenants: z.boolean().optional().default(false),
+  min_xp_threshold: z.number().optional().default(1000),
+  min_upvotes: z.number().optional().default(5),
+  requires_approval: z.boolean().optional().default(true),
+  run_mode: z.enum(['manual', 'cron']).optional().default('manual')
+});
 
-// Input validation schema
-const inputSchema = {
-  validate(input: any): { valid: boolean; error?: string } {
-    // Check if tenant_id exists when provided in the request
-    if (input && input.tenant_id !== undefined) {
-      if (typeof input.tenant_id !== 'string' || input.tenant_id.length < 5) {
-        return { valid: false, error: "Invalid tenant_id format" };
-      }
-    }
-    
-    // Check if custom_threshold is a number when provided
-    if (input && input.custom_threshold !== undefined) {
-      if (typeof input.custom_threshold !== 'number' || input.custom_threshold < 0) {
-        return { valid: false, error: "custom_threshold must be a positive number" };
-      }
-    }
-    
-    return { valid: true };
-  }
-};
+interface AgentVersion {
+  id: string;
+  plugin_id: string;
+  version: string;
+  status: string;
+  xp: number;
+  upvotes: number;
+  downvotes: number;
+  plugins?: {
+    name: string;
+    id: string;
+    tenant_id: string;
+  };
+}
 
 serve(async (req) => {
-  const startTime = performance.now();
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: 'Method not allowed',
-      execution_time: (performance.now() - startTime) / 1000 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 405,
-    });
+  const startTime = performance.now();
+  const supabaseUrl = getEnv("SUPABASE_URL");
+  const supabaseServiceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Missing Supabase credentials",
+        details: "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured"
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
   }
 
-  // Parse the request body
-  let body;
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
   try {
-    body = await req.json();
-    console.log(`${MODULE_NAME}: Request received with payload:`, body);
+    // Parse request body
+    let payload;
+    try {
+      const body = await req.json();
+      const result = autoEvolveSchema.safeParse(body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+        console.error(`Invalid request payload: ${errorMessage}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Invalid request payload: ${errorMessage}`
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      
+      payload = result.data;
+    } catch (parseError) {
+      // Default values if no body provided
+      payload = {
+        check_all_tenants: false,
+        min_xp_threshold: 1000,
+        min_upvotes: 5,
+        requires_approval: true,
+        run_mode: 'cron'
+      };
+      console.log("No request body provided, using defaults");
+    }
     
-    // Validate input
-    const validation = inputSchema.validate(body);
-    if (!validation.valid) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: validation.error,
-        execution_time: (performance.now() - startTime) / 1000 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
+    const {
+      tenant_id,
+      check_all_tenants,
+      min_xp_threshold,
+      min_upvotes,
+      requires_approval,
+      run_mode
+    } = payload;
+
+    // Process either a specific tenant or all tenants
+    if (tenant_id) {
+      // Verify the tenant exists
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .eq('id', tenant_id)
+        .maybeSingle();
+        
+      if (tenantError) {
+        throw new Error(`Failed to verify tenant: ${tenantError.message}`);
+      }
+      
+      if (!tenant) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Tenant with ID ${tenant_id} not found`
+          }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      
+      // Process this specific tenant
+      const result = await processAgentsForTenant(
+        supabase,
+        tenant_id,
+        min_xp_threshold,
+        min_upvotes,
+        requires_approval,
+        run_mode
+      );
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          tenant_id: tenant_id,
+          tenant_name: tenant.name,
+          ...result,
+          execution_time: (performance.now() - startTime) / 1000
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    } else if (check_all_tenants) {
+      // Get all tenants
+      const { data: tenants, error: tenantsError } = await supabase
+        .from('tenants')
+        .select('id, name');
+        
+      if (tenantsError) {
+        throw new Error(`Failed to fetch tenants: ${tenantsError.message}`);
+      }
+      
+      if (!tenants || tenants.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "No tenants found to process",
+            execution_time: (performance.now() - startTime) / 1000
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      
+      // Process each tenant
+      const results = {};
+      let totalEligible = 0;
+      let totalReady = 0;
+      
+      for (const tenant of tenants) {
+        try {
+          const tenantResult = await processAgentsForTenant(
+            supabase,
+            tenant.id,
+            min_xp_threshold,
+            min_upvotes,
+            requires_approval,
+            run_mode
+          );
+          
+          results[tenant.id] = {
+            tenant_name: tenant.name,
+            ...tenantResult
+          };
+          
+          totalEligible += tenantResult.eligible_count || 0;
+          totalReady += tenantResult.ready_for_approval || 0;
+        } catch (tenantError) {
+          console.error(`Error processing tenant ${tenant.name}:`, tenantError);
+          results[tenant.id] = {
+            tenant_name: tenant.name,
+            success: false,
+            error: String(tenantError)
+          };
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `Processed agents for ${tenants.length} tenants`,
+          summary: {
+            tenant_count: tenants.length,
+            total_eligible_agents: totalEligible,
+            total_ready_for_approval: totalReady
+          },
+          results,
+          execution_time: (performance.now() - startTime) / 1000
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Either tenant_id or check_all_tenants must be provided"
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
     }
   } catch (error) {
-    console.log(`${MODULE_NAME}: Invalid request body`, error);
-    body = {};
+    console.error("Error processing auto evolve agents request:", error);
+    
+    // Try to log the error
+    try {
+      if (supabaseUrl && supabaseServiceRoleKey) {
+        const logSupabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+        await logSupabase
+          .from('system_logs')
+          .insert({
+            tenant_id: 'system',
+            module: 'agents',
+            event: 'auto_evolve_error',
+            context: { error: String(error) }
+          });
+      }
+    } catch (logError) {
+      console.error("Failed to log error:", logError);
+    }
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Failed to process auto evolve agents request",
+        details: String(error),
+        execution_time: (performance.now() - startTime) / 1000
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+  }
+});
+
+/**
+ * Process agent evolution for a specific tenant
+ */
+async function processAgentsForTenant(
+  supabase,
+  tenant_id: string,
+  min_xp_threshold: number,
+  min_upvotes: number,
+  requires_approval: boolean,
+  run_mode: string
+) {
+  // Log the agent evolution check in system logs
+  await supabase
+    .from('system_logs')
+    .insert({
+      tenant_id,
+      module: 'agents',
+      event: 'auto_evolve_check_started',
+      context: { 
+        min_xp_threshold,
+        min_upvotes,
+        requires_approval,
+        run_mode
+      }
+    });
+  
+  // Find eligible agents
+  const { data: eligibleAgents } = await supabase
+    .from('agent_versions')
+    .select(`
+      id,
+      plugin_id,
+      version,
+      status,
+      xp,
+      upvotes,
+      downvotes,
+      plugins:plugin_id (
+        name,
+        id,
+        tenant_id
+      )
+    `)
+    .eq('status', 'training')
+    .gte('xp', min_xp_threshold)
+    .gte('upvotes', min_upvotes);
+  
+  const tenantAgents = (eligibleAgents || []).filter(
+    agent => agent.plugins?.tenant_id === tenant_id
+  );
+  
+  if (!tenantAgents || tenantAgents.length === 0) {
+    // Log that no eligible agents were found for this tenant
+    await supabase
+      .from('system_logs')
+      .insert({
+        tenant_id,
+        module: 'agents',
+        event: 'no_eligible_agents',
+        context: { 
+          min_xp_threshold,
+          min_upvotes,
+          message: 'No eligible agents found for evolution' 
+        }
+      });
+      
+    return {
+      success: true,
+      message: 'No agents eligible for evolution',
+      eligible_count: 0,
+      ready_for_approval: 0
+    };
   }
   
-  // Extract options from request
-  const tenantFilter = body.tenant_id || null;
-  const customThreshold = body.custom_threshold || XP_PROMOTION_THRESHOLD;
-
-  try {
-    // Create Supabase client with service role key for admin operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
-    if (!supabaseServiceKey) {
-      console.warn(`${MODULE_NAME}: No service role key provided. Using anon key with limited permissions.`);
-    }
-
-    // Log execution start
-    console.log(`${MODULE_NAME}: Starting agent evolution check with threshold ${customThreshold}`);
-    if (tenantFilter) {
-      console.log(`${MODULE_NAME}: Filtering for tenant ${tenantFilter}`);
-    }
-
-    // Build query for agent versions that have reached the XP threshold but are still in training
-    let query = supabase
-      .from('agent_versions')
-      .select('id, plugin_id, version, xp, tenant_id, plugins(name)')
-      .eq('status', 'training')
-      .gte('xp', customThreshold);
-      
-    // Add tenant filter if specified
-    if (tenantFilter) {
-      query = query.eq('tenant_id', tenantFilter);
-    }
-    
-    // Execute the query
-    const { data: agentsToPromote, error } = await query;
-      
-    if (error) {
-      throw error;
-    }
-    
-    // Count successful promotions
-    let promotedCount = 0;
-    const errors: string[] = [];
-    const results: any[] = [];
-    
-    // Process each agent that needs promotion
-    for (const agent of agentsToPromote || []) {
-      try {
-        console.log(`${MODULE_NAME}: Processing agent ${agent.id} for plugin ${agent.plugin_id} (v${agent.version}) with XP ${agent.xp}`);
+  // Log the eligible agents found
+  await supabase
+    .from('system_logs')
+    .insert({
+      tenant_id,
+      module: 'agents',
+      event: 'eligible_agents_found',
+      context: {
+        count: tenantAgents.length,
+        agent_ids: tenantAgents.map(a => a.id)
+      }
+    });
+  
+  // For each eligible agent, check if it should be evolved
+  const readyForPromotion = [];
+  
+  for (const agent of tenantAgents) {
+    try {
+      if (requires_approval) {
+        // If approval is required, just mark it as ready
+        readyForPromotion.push(agent);
         
-        // Update the agent status to active
+        // Log that it's ready for approval
+        await supabase
+          .from('system_logs')
+          .insert({
+            tenant_id,
+            module: 'agents',
+            event: 'agent_ready_for_approval',
+            context: {
+              agent_version_id: agent.id,
+              plugin_id: agent.plugin_id,
+              plugin_name: agent.plugins?.name,
+              xp: agent.xp,
+              upvotes: agent.upvotes
+            }
+          });
+      } else {
+        // If no approval required, evolve immediately
         const { error: updateError } = await supabase
           .from('agent_versions')
           .update({
@@ -153,169 +405,96 @@ serve(async (req) => {
           .eq('id', agent.id);
           
         if (updateError) {
-          throw updateError;
+          throw new Error(`Failed to promote agent: ${updateError.message}`);
         }
-
-        // Check if there's a previous active version that needs to be deprecated
-        const { data: activeVersions, error: activeError } = await supabase
+        
+        // Find and deprecate any previous active versions
+        const { data: activeVersions } = await supabase
           .from('agent_versions')
-          .select('id, version')
+          .select('id')
           .eq('plugin_id', agent.plugin_id)
           .eq('status', 'active')
           .neq('id', agent.id);
-
-        if (activeError) {
-          console.warn(`${MODULE_NAME}: Error checking for active versions:`, activeError);
-        } else if (activeVersions && activeVersions.length > 0) {
-          // Deprecate all previous active versions
-          const deprecationIds = activeVersions.map(v => v.id);
-          console.log(`${MODULE_NAME}: Deprecating previous versions:`, deprecationIds);
           
-          const { error: deprecateError } = await supabase
+        if (activeVersions && activeVersions.length > 0) {
+          const deprecateIds = activeVersions.map(v => v.id);
+          
+          await supabase
             .from('agent_versions')
             .update({
               status: 'deprecated',
               updated_at: new Date().toISOString()
             })
-            .in('id', deprecationIds);
-            
-          if (deprecateError) {
-            console.warn(`${MODULE_NAME}: Error deprecating previous versions:`, deprecateError);
-          }
+            .in('id', deprecateIds);
         }
         
-        // Log the promotion event
+        // Log the promotion
         await supabase
           .from('system_logs')
           .insert({
-            tenant_id: agent.tenant_id,
+            tenant_id,
             module: 'agents',
-            event: 'agent_promoted',
+            event: 'agent_auto_promoted',
             context: {
               agent_version_id: agent.id,
               plugin_id: agent.plugin_id,
               plugin_name: agent.plugins?.name,
               version: agent.version,
               xp: agent.xp,
-              threshold: customThreshold,
-              previous_active_versions: activeVersions || []
+              upvotes: agent.upvotes,
+              deprecated_count: activeVersions?.length || 0
             }
           });
-        
-        results.push({
-          id: agent.id,
-          plugin_id: agent.plugin_id,
-          plugin_name: agent.plugins?.name,
-          version: agent.version,
-          xp: agent.xp,
-          promoted: true
-        });
-        
-        promotedCount++;
-        console.log(`${MODULE_NAME}: Successfully promoted agent ${agent.id} to active`);
-      } catch (agentError: any) {
-        errors.push(`Failed to promote agent ${agent.id}: ${agentError.message}`);
-        console.error(`${MODULE_NAME}: Error promoting agent ${agent.id}:`, agentError);
-        
-        results.push({
-          id: agent.id,
-          plugin_id: agent.plugin_id,
-          plugin_name: agent.plugins?.name,
-          version: agent.version,
-          xp: agent.xp,
-          promoted: false,
-          error: agentError.message
-        });
-        
-        // Log the error
-        try {
-          await supabase
-            .from('system_logs')
-            .insert({
-              tenant_id: agent.tenant_id || 'system',
-              module: 'agents',
-              event: 'agent_promotion_failed',
-              context: {
-                agent_version_id: agent.id,
-                plugin_id: agent.plugin_id,
-                version: agent.version,
-                error: agentError.message
-              }
-            });
-        } catch (logError) {
-          console.error(`${MODULE_NAME}: Failed to log error:`, logError);
-        }
       }
-    }
-    
-    // Log final execution summary
-    const executionTime = (performance.now() - startTime) / 1000;
-    console.log(`${MODULE_NAME}: Completed in ${executionTime.toFixed(2)}s. Promoted ${promotedCount} agents out of ${agentsToPromote?.length || 0} eligible`);
-    
-    // Log execution summary to system_logs
-    try {
+    } catch (agentError) {
+      console.error(`Error processing agent ${agent.id}:`, agentError);
+      
+      // Log the error
       await supabase
         .from('system_logs')
         .insert({
-          tenant_id: tenantFilter || 'system',
+          tenant_id,
           module: 'agents',
-          event: 'auto_evolve_executed',
+          event: 'agent_evolution_error',
           context: {
-            eligible_count: agentsToPromote?.length || 0,
-            promoted_count: promotedCount,
-            threshold: customThreshold,
-            execution_time: executionTime,
-            has_errors: errors.length > 0
+            agent_version_id: agent.id,
+            plugin_id: agent.plugin_id,
+            plugin_name: agent.plugins?.name,
+            error: String(agentError)
           }
         });
-    } catch (logError) {
-      console.error(`${MODULE_NAME}: Failed to log execution summary:`, logError);
     }
-    
-    // Return success response
-    return new Response(JSON.stringify({
-      success: true,
-      promoted_count: promotedCount,
-      total_eligible: agentsToPromote?.length || 0,
-      execution_time: executionTime,
-      results: results,
-      errors: errors.length > 0 ? errors : undefined
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-  } catch (error: any) {
-    // Log error
-    console.error(`${MODULE_NAME}: Error in autoEvolveAgents:`, error);
-    const executionTime = (performance.now() - startTime) / 1000;
-    
-    // Try to log the error
-    try {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
-      await supabase
-        .from('system_logs')
-        .insert({
-          tenant_id: tenantFilter || 'system',
-          module: 'agents',
-          event: 'auto_evolve_error',
-          context: {
-            error: error.message,
-            execution_time: executionTime
-          }
-        });
-    } catch (logError) {
-      console.error(`${MODULE_NAME}: Failed to log error:`, logError);
-    }
-    
-    // Return error response
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      execution_time: executionTime,
-      promoted_count: 0
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
   }
-});
+  
+  // Log completion
+  await supabase
+    .from('system_logs')
+    .insert({
+      tenant_id,
+      module: 'agents',
+      event: 'auto_evolve_check_completed',
+      context: {
+        eligible_count: tenantAgents.length,
+        ready_for_approval: requires_approval ? readyForPromotion.length : 0,
+        auto_promoted: !requires_approval ? readyForPromotion.length : 0
+      }
+    });
+  
+  return {
+    success: true,
+    message: requires_approval 
+      ? `${readyForPromotion.length} agents ready for approval`
+      : `${readyForPromotion.length} agents automatically promoted`,
+    eligible_count: tenantAgents.length,
+    ready_for_approval: requires_approval ? readyForPromotion.length : 0,
+    auto_promoted: !requires_approval ? readyForPromotion.length : 0,
+    agents: readyForPromotion.map(agent => ({
+      id: agent.id,
+      plugin_id: agent.plugin_id,
+      plugin_name: agent.plugins?.name,
+      version: agent.version,
+      xp: agent.xp,
+      upvotes: agent.upvotes
+    }))
+  };
+}

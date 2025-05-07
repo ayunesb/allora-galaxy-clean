@@ -1,33 +1,18 @@
 
+# This file is used to configure your Supabase Functions.
+# When fetching credentials and environment variables, please refer to this guide:
+# https://supabase.com/docs/guides/functions/secrets
+
 project_id = "ijrnwpgsqsxzqdemtknz"
 
-[api]
-enabled = true
-
-[db]
-enabled = true
-
-[realtime]
-enabled = true
-
-[storage]
-enabled = true
-
-[edge_functions]
-enabled = true
-
-[edge_functions.generateStrategy]
+[functions.updateKPIs]
 verify_jwt = true
 
-[edge_functions.analyzePromptDiff]
+[functions.syncMQLs]
 verify_jwt = true
 
-[edge_functions.executeStrategy]
+[functions.autoEvolveAgents]
 verify_jwt = true
 
-[edge_functions.updateKPIs]
+[functions.createDbFunctions]
 verify_jwt = true
-
-[edge_functions.syncMQLs]
-verify_jwt = true
-
