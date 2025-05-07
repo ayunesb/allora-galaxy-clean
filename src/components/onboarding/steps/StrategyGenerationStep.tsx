@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';

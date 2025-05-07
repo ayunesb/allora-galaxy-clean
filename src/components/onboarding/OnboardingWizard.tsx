@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { useOnboardingWizard, OnboardingFormData } from '@/hooks/useOnboardingWizard';
+import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 
 // UI Components
 import OnboardingProgress from './OnboardingProgress';

@@ -7,7 +7,11 @@ const getEnvVar = (key: string): string => {
   // Handle both browser and Deno/Edge environments
   const value = import.meta.env?.[key] || 
                 process.env?.[key] || 
-                Deno?.env?.get?.(key) || 
+                // Use typeof check instead of direct Deno reference
+                (typeof globalThis !== 'undefined' && 
+                 'Deno' in globalThis && 
+                 typeof (globalThis as any).Deno?.env?.get === 'function' ? 
+                 (globalThis as any).Deno.env.get(key) : '') || 
                 '';
                 
   if (!value) {
