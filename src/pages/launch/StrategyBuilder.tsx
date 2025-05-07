@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Strategy, Plugin, PluginLog } from '@/types';
 import PageHelmet from '@/components/PageHelmet';
@@ -18,7 +18,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Loader, Plus, Play, Check, AlertTriangle, ChevronRight, XCircle, CheckCircle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Loader, Plus, Play, Check, AlertTriangle, ChevronRight, XCircle, CheckCircle, ThumbsUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { mockStrategies } from '@/lib/__mocks__/mockStrategies';
 
@@ -46,6 +47,7 @@ interface ExtendedPluginLog extends PluginLog {
 const StrategyBuilder: React.FC = () => {
   const tenantId = useTenantId();
   const { userRole } = useWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -58,8 +60,13 @@ const StrategyBuilder: React.FC = () => {
   const [activeStrategyId, setActiveStrategyId] = useState<string | null>(null);
   const [isExecutionSheetOpen, setIsExecutionSheetOpen] = useState(false);
 
+  // New state for approval dialog
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [strategyToApprove, setStrategyToApprove] = useState<Strategy | null>(null);
+
   // Check if user has admin or owner role
   const hasPermission = userRole === 'owner' || userRole === 'admin';
+  const canApprove = hasPermission;
 
   // Fetch strategies
   const { data: strategies, isLoading: strategiesLoading, error: strategiesError } = useQuery({
@@ -311,6 +318,75 @@ const StrategyBuilder: React.FC = () => {
     },
   });
 
+  // Add a new query for approved strategies
+  const { data: approvedStrategies } = useQuery({
+    queryKey: ['strategies', tenantId, 'approved'],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await supabase
+        .from('strategies')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('status', 'approved')
+        .order('updated_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching approved strategies:', error);
+        return [];
+      }
+      
+      return data as Strategy[];
+    },
+    enabled: !!tenantId,
+  });
+
+  // New mutation for approving a strategy
+  const approveStrategy = useMutation({
+    mutationFn: async (strategy: Strategy) => {
+      if (!tenantId || !user) {
+        throw new Error('Missing tenant ID or user information');
+      }
+      
+      const { data, error } = await supabase
+        .from('strategies')
+        .update({ 
+          status: 'approved',
+          approved_by: user.id,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', strategy.id)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['strategies', tenantId] });
+      queryClient.invalidateQueries({ queryKey: ['strategies', tenantId, 'approved'] });
+      toast({
+        title: 'Strategy approved',
+        description: 'The strategy has been approved successfully',
+      });
+      setIsApprovalDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to approve strategy',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Handler for opening approval dialog
+  const handleOpenApprovalDialog = (strategy: Strategy) => {
+    setStrategyToApprove(strategy);
+    setIsApprovalDialogOpen(true);
+  };
+
   // Render status badge
   const renderStatusBadge = (status: string) => {
     switch (status) {
@@ -402,6 +478,7 @@ const StrategyBuilder: React.FC = () => {
         <TabsList className="mb-6">
           <TabsTrigger value="editor">Strategy Editor</TabsTrigger>
           <TabsTrigger value="strategies">My Strategies</TabsTrigger>
+          <TabsTrigger value="approved">Approved Strategies</TabsTrigger>
         </TabsList>
         
         <TabsContent value="editor">
@@ -605,22 +682,37 @@ const StrategyBuilder: React.FC = () => {
                     >
                       View Logs
                     </Button>
-                    <Button 
-                      variant={activeStrategyId === strategy.id ? "default" : "outline"} 
-                      size="sm"
-                      onClick={() => {
-                        setActiveStrategyId(strategy.id);
-                        // Pre-fill form fields for editing
-                        setTitle(strategy.title);
-                        setDescription(strategy.description);
-                        
-                        // Switch to editor tab
-                        const editorTab = document.querySelector('[data-value="editor"]') as HTMLElement;
-                        if (editorTab) editorTab.click();
-                      }}
-                    >
-                      {activeStrategyId === strategy.id ? "Selected" : "Select"}
-                    </Button>
+                    
+                    <div className="flex space-x-2">
+                      {strategy.status === 'pending' && canApprove && (
+                        <Button 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => handleOpenApprovalDialog(strategy)}
+                          className="bg-green-100 hover:bg-green-200 text-green-800"
+                        >
+                          <ThumbsUp className="mr-1 h-4 w-4" />
+                          Approve
+                        </Button>
+                      )}
+                      
+                      <Button 
+                        variant={activeStrategyId === strategy.id ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => {
+                          setActiveStrategyId(strategy.id);
+                          // Pre-fill form fields for editing
+                          setTitle(strategy.title);
+                          setDescription(strategy.description);
+                          
+                          // Switch to editor tab
+                          const editorTab = document.querySelector('[data-value="editor"]') as HTMLElement;
+                          if (editorTab) editorTab.click();
+                        }}
+                      >
+                        {activeStrategyId === strategy.id ? "Selected" : "Select"}
+                      </Button>
+                    </div>
                   </CardFooter>
                 </Card>
               ))
@@ -637,6 +729,94 @@ const StrategyBuilder: React.FC = () => {
                 >
                   <Plus className="mr-2 h-4 w-4" /> Create New Strategy
                 </Button>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="approved">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {strategiesLoading ? (
+              Array(3).fill(0).map((_, index) => (
+                <Card key={index} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : approvedStrategies && approvedStrategies.length > 0 ? (
+              approvedStrategies.map(strategy => (
+                <Card key={strategy.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="mr-2">{strategy.title}</CardTitle>
+                      {renderStatusBadge(strategy.status)}
+                    </div>
+                    <CardDescription className="flex items-center justify-between">
+                      <span>{strategy.created_at && format(new Date(strategy.created_at), 'PPP')}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm line-clamp-3">{strategy.description}</p>
+                    
+                    {strategy.completion_percentage > 0 && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>Completion</span>
+                          <span>{strategy.completion_percentage}%</span>
+                        </div>
+                        <Progress value={strategy.completion_percentage} className="h-1" />
+                      </div>
+                    )}
+                    
+                    {strategy.approved_by && (
+                      <div className="mt-4 text-xs text-muted-foreground">
+                        <span>Approved by: {strategy.approved_by.substring(0, 8)}...</span>
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setActiveStrategyId(strategy.id);
+                        setIsExecutionSheetOpen(true);
+                      }}
+                    >
+                      View Logs
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setActiveStrategyId(strategy.id);
+                        executeStrategy.mutate(strategy.id);
+                      }}
+                      disabled={executeStrategy.isPending}
+                    >
+                      {executeStrategy.isPending ? (
+                        <Loader className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Play className="mr-1 h-4 w-4" />
+                      )}
+                      Execute
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              <div className="lg:col-span-3 text-center p-8">
+                <h3 className="text-xl font-semibold mb-2">No approved strategies yet</h3>
+                <p className="text-muted-foreground mb-4">Strategies need to be approved before execution.</p>
               </div>
             )}
           </div>
@@ -808,6 +988,32 @@ const StrategyBuilder: React.FC = () => {
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Strategy Approval Dialog */}
+      <AlertDialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve Strategy</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to approve "{strategyToApprove?.title}"?
+              This will mark it as ready for execution.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => strategyToApprove && approveStrategy.mutate(strategyToApprove)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {approveStrategy.isPending ? (
+                <><Loader className="mr-2 h-4 w-4 animate-spin" /> Approving...</>
+              ) : (
+                <>Approve Strategy</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

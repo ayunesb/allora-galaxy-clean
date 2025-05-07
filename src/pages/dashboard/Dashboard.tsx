@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, BarChart, Calendar, Plug, Settings, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PageHelmet from '@/components/PageHelmet';
+import StrategyApprovalCard from '@/components/dashboard/StrategyApprovalCard';
 
 const Dashboard: React.FC = () => {
   const { currentTenant } = useWorkspace();
@@ -78,6 +79,49 @@ const Dashboard: React.FC = () => {
               <p className="text-xs text-muted-foreground mt-1">+210 this week</p>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* New Strategy Approval Card */}
+          <StrategyApprovalCard />
+
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Access key features of Allora OS</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button variant="outline" className="flex justify-between items-center w-full" asChild>
+                  <Link to="/launch">
+                    <span>Launch Strategy</span>
+                    <ArrowRight className="h-4 w-4 text-primary" />
+                  </Link>
+                </Button>
+
+                <Button variant="outline" className="flex justify-between items-center w-full" asChild>
+                  <Link to="/plugins">
+                    <span>Manage Plugins</span>
+                    <Plug className="h-4 w-4 text-primary" />
+                  </Link>
+                </Button>
+
+                <Button variant="outline" className="flex justify-between items-center w-full" asChild>
+                  <Link to="/explore">
+                    <span>Galaxy Explorer</span>
+                    <LayoutGrid className="h-4 w-4 text-primary" />
+                  </Link>
+                </Button>
+
+                <Button variant="outline" className="flex justify-between items-center w-full" asChild>
+                  <Link to="/insights/kpis">
+                    <span>KPI Dashboard</span>
+                    <BarChart className="h-4 w-4 text-primary" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

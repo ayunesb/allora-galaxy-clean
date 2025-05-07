@@ -55,6 +55,27 @@ const GalaxyExplorer: React.FC = () => {
         });
       }
       
+      // Add color coding for approved strategies
+      filteredNodes = filteredNodes.map(node => {
+        // If this is a strategy node, color it based on approval status
+        if (node.type === 'strategy') {
+          if (node.status === 'approved') {
+            return { 
+              ...node, 
+              color: '#10b981', // green for approved 
+              borderColor: '#047857'
+            };
+          } else if (node.status === 'pending') {
+            return { 
+              ...node, 
+              color: '#f59e0b', // amber for pending
+              borderColor: '#d97706' 
+            };
+          }
+        }
+        return node;
+      });
+      
       setGraphData({ nodes: filteredNodes, links: filteredLinks });
     }
   }, [graphDataQuery, viewMode]);
