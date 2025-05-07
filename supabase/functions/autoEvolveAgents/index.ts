@@ -2,10 +2,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.36.0";
 
+// Helper function to safely get environment variables
+function getEnvVar(name: string, fallback: string = ""): string {
+  try {
+    // Check if we're in Deno environment
+    if (typeof globalThis.Deno !== 'undefined') {
+      return globalThis.Deno.env.get(name) || fallback;
+    }
+    // Fallback to process.env for Node environment
+    return process.env[name] || fallback;
+  } catch (error) {
+    // If all else fails, return the fallback
+    console.warn(`Error accessing env var ${name}:`, error);
+    return fallback;
+  }
+}
+
 // Define the Supabase client
-const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://ijrnwpgsqsxzqdemtknz.supabase.co";
-const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo";
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const supabaseUrl = getEnvVar("SUPABASE_URL", "https://ijrnwpgsqsxzqdemtknz.supabase.co");
+const supabaseAnonKey = getEnvVar("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo");
+const supabaseServiceKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY", "");
 
 // CORS headers
 const corsHeaders = {
@@ -31,7 +47,7 @@ serve(async (req) => {
 
   try {
     // Create Supabase client with service role key for admin operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
     if (!supabaseServiceKey) {
       console.warn("No service role key provided. Using anon key with limited permissions.");
     }
