@@ -49,7 +49,7 @@ describe('Agent Evolution', () => {
       const result = await checkAgentForPromotion('test-agent-version-id');
       
       expect(result).toEqual({
-        evolved: true,
+        shouldPromote: true,
         agent: expect.objectContaining({
           id: 'test-agent-version-id',
           xp: 1000,
@@ -67,7 +67,7 @@ describe('Agent Evolution', () => {
         tenant_id: 'test-tenant-id'
       });
       
-      expect(result.evolved).toBe(true);
+      expect(result.shouldPromote).toBe(true);
     });
   });
 });

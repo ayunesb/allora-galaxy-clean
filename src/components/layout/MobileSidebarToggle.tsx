@@ -3,11 +3,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 
-interface MobileSidebarToggleProps {
+export interface MobileSidebarToggleProps {
   onClick: () => void;
 }
 
-export const MobileSidebarToggle: React.FC<MobileSidebarToggleProps> = ({ onClick }) => {
+const MobileSidebarToggle: React.FC<MobileSidebarToggleProps> = ({ onClick }) => {
   return (
     <Button 
       variant="ghost" 

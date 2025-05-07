@@ -108,7 +108,7 @@ describe('Agent Evolution', () => {
       const result = await checkAgentForPromotion('test-agent-id');
       
       expect(result).toEqual({
-        evolved: true,
+        shouldPromote: true,
         agent: expect.objectContaining({
           id: 'test-agent-id',
           xp: 1200,
@@ -142,7 +142,7 @@ describe('Agent Evolution', () => {
       
       const result = await checkAgentForPromotion('test-agent-id');
       
-      expect(result.evolved).toBe(false);
+      expect(result.shouldPromote).toBe(false);
       expect(result.reason).toContain('XP is too low');
     });
     
@@ -170,7 +170,7 @@ describe('Agent Evolution', () => {
       
       const result = await checkAgentForPromotion('test-agent-id');
       
-      expect(result.evolved).toBe(false);
+      expect(result.shouldPromote).toBe(false);
       expect(result.reason).toContain('upvotes');
     });
     
@@ -189,7 +189,7 @@ describe('Agent Evolution', () => {
       
       const result = await checkAgentForPromotion('nonexistent-id');
       
-      expect(result.evolved).toBe(false);
+      expect(result.shouldPromote).toBe(false);
       expect(result.reason).toBeDefined();
     });
   });
@@ -250,7 +250,7 @@ describe('Agent Evolution', () => {
         requires_approval: false // No approval required
       });
       
-      expect(result.evolved).toBe(true);
+      expect(result.shouldPromote).toBe(true);
       expect(result.reason).toContain('successfully promoted');
     });
     
@@ -263,7 +263,7 @@ describe('Agent Evolution', () => {
         requires_approval: true // Approval required
       });
       
-      expect(result.evolved).toBe(false);
+      expect(result.shouldPromote).toBe(false);
       expect(result.reason).toContain('requires approval');
     });
     
@@ -296,7 +296,7 @@ describe('Agent Evolution', () => {
         min_upvotes: 5
       });
       
-      expect(result.evolved).toBe(false);
+      expect(result.shouldPromote).toBe(false);
       expect(result.reason).toContain('does not meet promotion criteria');
     });
     
@@ -318,7 +318,7 @@ describe('Agent Evolution', () => {
         tenant_id: 'test-tenant-id'
       });
       
-      expect(result.evolved).toBe(false);
+      expect(result.shouldPromote).toBe(false);
       expect(result.reason).toBeDefined();
     });
   });

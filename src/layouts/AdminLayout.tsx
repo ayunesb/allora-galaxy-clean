@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Outlet } from 'react-router-dom';
-import SidebarNav from '@/components/layout/SidebarNav';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { Settings, Users, BoxIcon, FileText, Database } from 'lucide-react';
 

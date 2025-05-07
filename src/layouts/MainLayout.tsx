@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import SidebarNav from '@/components/layout/SidebarNav';
+import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Outlet } from 'react-router-dom';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import MobileSidebarToggle from '@/components/layout/MobileSidebarToggle';
@@ -16,7 +16,7 @@ const MainLayout = () => {
           <h1 className="text-lg font-semibold">Allora OS</h1>
         </div>
         <div className="md:hidden">
-          <MobileSidebarToggle />
+          <MobileSidebarToggle onClick={() => {}} />
         </div>
         <div className="flex-1">
           {/* Header content */}

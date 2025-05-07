@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { notifyInfo, notifySuccess, notifyWarning } from '@/components/ui/BetterToast';
@@ -128,7 +128,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user || !currentTenant) return;
     
     // Use the supabase client's realtime subscription
-    const channel = supabase
+    const channel = supabase.realtime
       .channel('notifications')
       .on('postgres_changes', {
         event: 'INSERT',
@@ -166,8 +166,8 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     
     return () => {
       // Safely handle removeChannel method
-      if (typeof supabase.removeChannel === 'function') {
-        supabase.removeChannel(channel);
+      if ('removeChannel' in supabase.realtime) {
+        supabase.realtime.removeChannel(channel);
       }
     };
   }, [user, currentTenant]);

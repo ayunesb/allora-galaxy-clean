@@ -34,7 +34,7 @@ const NotificationsPage: React.FC = () => {
       // Set up real-time subscription for new notifications
       const setupSubscription = async () => {
         try {
-          const channel = supabase
+          const channel = supabase.realtime
             .channel('notifications_changes')
             .on('postgres_changes', 
               {
@@ -61,8 +61,8 @@ const NotificationsPage: React.FC = () => {
       return () => {
         if (channel) {
           // Safely handle removeChannel method
-          if (typeof supabase.removeChannel === 'function') {
-            supabase.removeChannel(channel);
+          if ('removeChannel' in supabase.realtime) {
+            supabase.realtime.removeChannel(channel);
           }
         }
       };
