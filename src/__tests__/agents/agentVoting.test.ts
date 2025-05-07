@@ -1,5 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
+import { AgentVote, VoteType } from '@/types/fixed';
 
 // Mock before top-level imports
 vi.mock('@/integrations/supabase/client', () => ({
@@ -22,7 +23,7 @@ describe('Agent Voting', () => {
   it('should vote successfully', async () => {
     const result = await voteOnAgentVersion(
       'test-agent',
-      'up',
+      'up' as VoteType,
       'test-user'
     );
     

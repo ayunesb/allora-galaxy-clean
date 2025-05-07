@@ -10,16 +10,7 @@ import { KPICardSkeleton } from "@/components/skeletons/KPICardSkeleton";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { supabase } from "@/integrations/supabase/client";
 import { useTenantId } from "@/hooks/useTenantId";
-
-interface KPI {
-  id: string;
-  name: string;
-  value: number;
-  previous_value: number | null;
-  category: "financial" | "marketing" | "sales" | "product";
-  source: "stripe" | "ga4" | "hubspot" | "manual";
-  date: string;
-}
+import { KpiMetric, KpiCategory, KpiSource, snakeToCamel } from "@/types/fixed";
 
 interface KPITrendData {
   date: string;
@@ -37,7 +28,7 @@ const KpiDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [kpis, setKpis] = useState<KPI[]>([]);
+  const [kpis, setKpis] = useState<KpiMetric[]>([]);
   const [selectedMetric, setSelectedMetric] = useState<string>("");
   const [trendData, setTrendData] = useState<KPITrend | null>(null);
   const [dateRange, setDateRange] = useState<string>("30");
@@ -60,11 +51,7 @@ const KpiDashboard: React.FC = () => {
           
         if (error) throw error;
         
-        const typedKpis = data.map(kpi => ({
-          ...kpi,
-          category: kpi.category as "financial" | "marketing" | "sales" | "product",
-          source: kpi.source as "stripe" | "ga4" | "hubspot" | "manual"
-        }));
+        const typedKpis = data.map(kpi => snakeToCamel<KpiMetric>(kpi));
         
         setKpis(typedKpis);
         
@@ -139,7 +126,7 @@ const KpiDashboard: React.FC = () => {
 
   // Filter KPIs by category
   const filteredKpis = kpis.filter(kpi => 
-    activeTab === "all" || kpi.category === activeTab
+    activeTab === "all" || kpi.category === activeTab as KpiCategory
   );
   
   // Get unique KPI names for the select dropdown
@@ -210,9 +197,9 @@ const KpiDashboard: React.FC = () => {
                   key={kpi.id}
                   name={kpi.name}
                   value={kpi.value}
-                  previousValue={kpi.previous_value || 0}
-                  category={kpi.category}
-                  source={kpi.source}
+                  previousValue={kpi.previousValue || 0}
+                  category={kpi.category as KpiCategory}
+                  source={kpi.source as KpiSource}
                 />
               ))}
             </div>

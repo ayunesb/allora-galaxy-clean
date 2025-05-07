@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
-import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/lib/strategy/types";
+import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/types/fixed";
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client', () => ({
@@ -28,19 +28,19 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/lib/strategy/runStrategy', () => ({
   runStrategy: vi.fn().mockImplementation((input) => {
-    if (input.strategy_id === 'fail-strategy') {
+    if (input.strategyId === 'fail-strategy') {
       return Promise.resolve({
         success: false,
         error: 'Strategy execution failed',
-        execution_time: 0.5
+        executionTime: 0.5
       });
     }
     return Promise.resolve({
       success: true,
       message: 'Strategy executed successfully',
       data: { result: 'success' },
-      execution_time: 1.5,
-      execution_id: 'exec-123'
+      executionTime: 1.5,
+      executionId: 'exec-123'
     });
   })
 }));
@@ -62,9 +62,9 @@ describe('executeStrategy Edge Function', () => {
   it('should successfully execute a strategy', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategy_id: 'strategy-123',
-      tenant_id: 'tenant-123',
-      user_id: 'user-123'
+      strategyId: 'strategy-123',
+      tenantId: 'tenant-123',
+      userId: 'user-123'
     };
     
     // Act
@@ -72,15 +72,15 @@ describe('executeStrategy Edge Function', () => {
     
     // Assert
     expect(result.success).toBe(true);
-    expect(result.execution_id).toBeDefined();
-    expect(result.execution_time).toBeGreaterThan(0);
+    expect(result.executionId).toBeDefined();
+    expect(result.executionTime).toBeGreaterThan(0);
   });
   
-  it('should handle missing strategy_id', async () => {
+  it('should handle missing strategyId', async () => {
     // Arrange
     const input = {
-      tenant_id: 'tenant-123',
-      user_id: 'user-123'
+      tenantId: 'tenant-123',
+      userId: 'user-123'
     } as ExecuteStrategyInput;
     
     // Act
@@ -88,14 +88,15 @@ describe('executeStrategy Edge Function', () => {
     
     // Assert
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Strategy ID is required');
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain('Invalid input');
   });
   
-  it('should handle missing tenant_id', async () => {
+  it('should handle missing tenantId', async () => {
     // Arrange
     const input = {
-      strategy_id: 'strategy-123',
-      user_id: 'user-123'
+      strategyId: 'strategy-123',
+      userId: 'user-123'
     } as ExecuteStrategyInput;
     
     // Act
@@ -103,15 +104,16 @@ describe('executeStrategy Edge Function', () => {
     
     // Assert
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Tenant ID is required');
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain('Invalid input');
   });
   
   it('should handle strategy execution failure', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategy_id: 'fail-strategy', // This will trigger the mock to return failure
-      tenant_id: 'tenant-123',
-      user_id: 'user-123'
+      strategyId: 'fail-strategy', // This will trigger the mock to return failure
+      tenantId: 'tenant-123',
+      userId: 'user-123'
     };
     
     const runStrategyMock = require('@/lib/strategy/runStrategy').runStrategy;
@@ -128,9 +130,9 @@ describe('executeStrategy Edge Function', () => {
   it('should handle unexpected errors', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategy_id: 'strategy-123',
-      tenant_id: 'tenant-123',
-      user_id: 'user-123'
+      strategyId: 'strategy-123',
+      tenantId: 'tenant-123',
+      userId: 'user-123'
     };
     
     // Force the runStrategy function to throw
@@ -145,12 +147,6 @@ describe('executeStrategy Edge Function', () => {
     // Assert
     expect(result.success).toBe(false);
     expect(result.error).toBe('Unexpected error');
-    expect(result.execution_time).toBeDefined();
-  });
-  
-  it('should auto-vote on successful agents', async () => {
-    // This would require mocking the autoVoteOnSuccessfulAgents function
-    // and is beyond the scope of this basic test suite
-    // In a real test, we would verify that votes are created for successful agent executions
+    expect(result.executionTime).toBeDefined();
   });
 });

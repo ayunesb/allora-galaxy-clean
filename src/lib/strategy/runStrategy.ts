@@ -1,6 +1,7 @@
 
-import { ExecuteStrategyInput, ExecuteStrategyResult } from './types';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 import { supabase } from '@/integrations/supabase/client';
+import { camelToSnake } from '@/types/fixed';
 
 /**
  * Execute a strategy
@@ -9,17 +10,20 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   try {
-    if (!input.strategy_id) {
+    if (!input.strategyId) {
       return { success: false, error: 'Strategy ID is required' };
     }
 
-    if (!input.tenant_id) {
+    if (!input.tenantId) {
       return { success: false, error: 'Tenant ID is required' };
     }
 
+    // Convert input to snake_case for the edge function
+    const snakeCaseInput = camelToSnake(input);
+
     // Call the executeStrategy edge function
     const { data, error } = await supabase.functions.invoke('executeStrategy', {
-      body: input
+      body: snakeCaseInput
     });
 
     if (error) {

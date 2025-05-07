@@ -1,5 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { AgentVote, VoteType } from "@/types/fixed";
+import { camelToSnake, snakeToCamel } from "@/types/fixed";
 
 interface VoteResult {
   success: boolean;
@@ -10,21 +12,21 @@ interface VoteResult {
 }
 
 export async function voteOnAgentVersion(
-  agent_version_id: string, 
-  vote_type: 'up' | 'down', 
-  user_id: string,
+  agentVersionId: string, 
+  voteType: VoteType, 
+  userId: string,
   comment?: string
 ): Promise<VoteResult> {
   try {
-    // Insert the vote
+    // Insert the vote - convert camelCase to snake_case for Supabase
     const { error } = await supabase
       .from('agent_votes')
-      .insert({
-        agent_version_id,
-        user_id,
-        vote_type,
+      .insert(camelToSnake({
+        agentVersionId,
+        userId,
+        voteType,
         comment: comment || null
-      });
+      }));
       
     if (error) {
       throw error;
@@ -34,7 +36,7 @@ export async function voteOnAgentVersion(
     const { data: agentVersion, error: countError } = await supabase
       .from('agent_versions')
       .select('upvotes, downvotes')
-      .eq('id', agent_version_id)
+      .eq('id', agentVersionId)
       .single();
       
     if (countError) {

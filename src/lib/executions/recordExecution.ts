@@ -1,24 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent } from "@/lib/system/logSystemEvent";
-
-/**
- * Interface for execution record input
- */
-export interface ExecutionRecordInput {
-  tenant_id: string;
-  strategy_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  executed_by?: string;
-  type: string;
-  status?: string;
-  input?: any;
-  output?: any;
-  error?: any;
-  execution_time?: number;
-  xp_earned?: number;
-}
+import { ExecutionRecordInput, ExecutionStatus, SystemLogModule } from "@/types/fixed";
+import { camelToSnake } from "@/types/fixed";
 
 /**
  * Records an execution in the database with fallback mechanisms
@@ -30,8 +14,8 @@ export interface ExecutionRecordInput {
 export async function recordExecution(input: ExecutionRecordInput): Promise<string | null> {
   try {
     // Validate required fields with detailed error messages
-    if (!input.tenant_id) {
-      console.error("recordExecution: Missing required tenant_id");
+    if (!input.tenantId) {
+      console.error("recordExecution: Missing required tenantId");
       return null;
     }
 
@@ -45,22 +29,12 @@ export async function recordExecution(input: ExecutionRecordInput): Promise<stri
 
     // Insert execution record with comprehensive error handling
     try {
+      // Convert camelCase to snake_case for Supabase
+      const snakeCaseInput = camelToSnake(input);
+
       const { data, error } = await supabase
         .from("executions")
-        .insert({
-          tenant_id: input.tenant_id,
-          strategy_id: input.strategy_id,
-          plugin_id: input.plugin_id,
-          agent_version_id: input.agent_version_id,
-          executed_by: input.executed_by,
-          type: input.type,
-          status: status,
-          input: input.input || {},
-          output: input.output,
-          error: input.error,
-          execution_time: input.execution_time,
-          xp_earned: input.xp_earned
-        })
+        .insert(snakeCaseInput)
         .select("id")
         .single();
 
@@ -71,16 +45,16 @@ export async function recordExecution(input: ExecutionRecordInput): Promise<stri
         try {
           // Log to system logs as fallback with detailed context
           await logSystemEvent(
-            input.tenant_id,
-            "executions",
+            input.tenantId,
+            "executions" as SystemLogModule,
             "execution_record_failed",
             {
               type: input.type,
-              status: status,
-              strategy_id: input.strategy_id,
-              plugin_id: input.plugin_id,
-              error_code: error.code,
-              error_message: error.message,
+              status,
+              strategyId: input.strategyId,
+              pluginId: input.pluginId,
+              errorCode: error.code,
+              errorMessage: error.message,
               timestamp: new Date().toISOString()
             }
           );
@@ -102,12 +76,12 @@ export async function recordExecution(input: ExecutionRecordInput): Promise<stri
       try {
         // Attempt fallback logging
         await logSystemEvent(
-          input.tenant_id,
-          "executions",
+          input.tenantId,
+          "executions" as SystemLogModule,
           "execution_record_db_error",
           {
             type: input.type,
-            status: status,
+            status,
             error: dbError.message || "Unknown database error",
             stack: dbError.stack,
             timestamp: new Date().toISOString()
@@ -126,8 +100,8 @@ export async function recordExecution(input: ExecutionRecordInput): Promise<stri
     try {
       // Attempt to log to system logs with error details
       await logSystemEvent(
-        input.tenant_id,
-        "executions",
+        input.tenantId,
+        "executions" as SystemLogModule,
         "execution_record_exception",
         {
           type: input.type,
@@ -149,18 +123,18 @@ export async function recordExecution(input: ExecutionRecordInput): Promise<stri
  * Updates an existing execution record with comprehensive error handling
  * and detailed logging
  * 
- * @param execution_id The ID of the execution to update
+ * @param executionId The ID of the execution to update
  * @param updates The fields to update
  * @returns Boolean indicating success
  */
 export async function updateExecution(
-  execution_id: string,
-  updates: Partial<ExecutionRecordInput> & { status?: string }
+  executionId: string,
+  updates: Partial<ExecutionRecordInput> & { status?: ExecutionStatus }
 ): Promise<boolean> {
   try {
     // Input validation with detailed error reporting
-    if (!execution_id) {
-      console.error("updateExecution: Missing execution_id");
+    if (!executionId) {
+      console.error("updateExecution: Missing executionId");
       return false;
     }
 
@@ -173,29 +147,29 @@ export async function updateExecution(
     if (updates.status !== undefined) updateObject.status = updates.status;
     if (updates.output !== undefined) updateObject.output = updates.output;
     if (updates.error !== undefined) updateObject.error = updates.error;
-    if (updates.execution_time !== undefined) updateObject.execution_time = updates.execution_time;
-    if (updates.xp_earned !== undefined) updateObject.xp_earned = updates.xp_earned;
+    if (updates.executionTime !== undefined) updateObject.execution_time = updates.executionTime;
+    if (updates.xpEarned !== undefined) updateObject.xp_earned = updates.xpEarned;
 
     // Update execution with error handling
     const { error } = await supabase
       .from("executions")
       .update(updateObject)
-      .eq("id", execution_id);
+      .eq("id", executionId);
 
     if (error) {
       console.error("Error updating execution record:", error);
       
       try {
         // Log update failure if tenant ID is available
-        if (updates.tenant_id) {
+        if (updates.tenantId) {
           await logSystemEvent(
-            updates.tenant_id,
-            "executions",
+            updates.tenantId,
+            "executions" as SystemLogModule,
             "execution_update_failed",
             {
-              execution_id,
-              error_code: error.code,
-              error_message: error.message,
+              executionId,
+              errorCode: error.code,
+              errorMessage: error.message,
               timestamp: new Date().toISOString()
             }
           );
@@ -208,7 +182,7 @@ export async function updateExecution(
     }
 
     // Log successful update
-    console.log(`Execution ${execution_id} updated successfully`);
+    console.log(`Execution ${executionId} updated successfully`);
     
     return true;
   } catch (error: any) {
@@ -217,13 +191,13 @@ export async function updateExecution(
     
     try {
       // Log update exception if tenant ID is available
-      if (updates.tenant_id) {
+      if (updates.tenantId) {
         await logSystemEvent(
-          updates.tenant_id,
-          "executions",
+          updates.tenantId,
+          "executions" as SystemLogModule,
           "execution_update_exception",
           {
-            execution_id,
+            executionId,
             error: error.message || "Unknown error",
             stack: error.stack,
             timestamp: new Date().toISOString()
@@ -241,14 +215,14 @@ export async function updateExecution(
 /**
  * Retrieves execution details with comprehensive error handling
  * 
- * @param execution_id The ID of the execution to retrieve
+ * @param executionId The ID of the execution to retrieve
  * @returns The execution record or null if not found
  */
-export async function getExecution(execution_id: string): Promise<any | null> {
+export async function getExecution(executionId: string): Promise<any | null> {
   try {
     // Input validation
-    if (!execution_id) {
-      console.error("getExecution: Missing execution_id");
+    if (!executionId) {
+      console.error("getExecution: Missing executionId");
       return null;
     }
 
@@ -256,7 +230,7 @@ export async function getExecution(execution_id: string): Promise<any | null> {
     const { data, error } = await supabase
       .from("executions")
       .select("*")
-      .eq("id", execution_id)
+      .eq("id", executionId)
       .maybeSingle();
 
     if (error) {

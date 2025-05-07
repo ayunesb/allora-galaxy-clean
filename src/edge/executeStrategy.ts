@@ -1,6 +1,10 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/lib/strategy/types';
+import { 
+  ExecuteStrategyInput, 
+  ExecuteStrategyResult,
+  executeStrategySchema 
+} from '@/types/fixed';
 import { runStrategy } from '@/lib/strategy/runStrategy';
 
 // Helper function to safely get environment variables
@@ -23,32 +27,23 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
   const startTime = Date.now();
   
   try {
-    // Validate required inputs
-    if (!input.strategy_id) {
+    // Validate input against schema
+    const validationResult = executeStrategySchema.safeParse(input);
+    if (!validationResult.success) {
       return {
         success: false,
-        error: 'Strategy ID is required',
-        execution_time: (Date.now() - startTime) / 1000
-      };
-    }
-    
-    if (!input.tenant_id) {
-      return {
-        success: false,
-        error: 'Tenant ID is required',
-        execution_time: (Date.now() - startTime) / 1000
+        error: `Invalid input: ${validationResult.error.message}`,
+        executionTime: (Date.now() - startTime) / 1000
       };
     }
 
-    // Optional inputs and their defaults
-    input.user_id = input.user_id || null; 
-    input.options = input.options || {};
+    const validatedInput = validationResult.data;
     
     // Execute the strategy using the runStrategy function
-    const result = await runStrategy(input);
+    const result = await runStrategy(validatedInput);
     
     // Add execution time to the result
-    result.execution_time = (Date.now() - startTime) / 1000;
+    result.executionTime = (Date.now() - startTime) / 1000;
     
     return result;
   } catch (error: any) {
@@ -58,7 +53,7 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
     return {
       success: false,
       error: error.message || 'Unexpected error',
-      execution_time: (Date.now() - startTime) / 1000
+      executionTime: (Date.now() - startTime) / 1000
     };
   }
 }

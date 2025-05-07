@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -10,6 +9,8 @@ import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { notifyError } from '@/components/ui/BetterToast';
+import { Tenant, UserRole, CompanyProfile } from '@/types/fixed';
+import { snakeToCamel } from '@/types/fixed';
 import {
   Home,
   Settings,
@@ -36,12 +37,12 @@ export interface NavigationItem {
 }
 
 export interface WorkspaceContextType {
-  currentTenant: any | null;
-  setCurrentTenant: (tenant: any | null) => void;
-  tenants: any[];
+  currentTenant: Tenant | null;
+  setCurrentTenant: (tenant: Tenant | null) => void;
+  tenants: Tenant[];
   loading: boolean;
-  currentRole: string | null;
-  userRole: string | null; // Added missing property
+  currentRole: UserRole | null;
+  userRole: UserRole | null; // Added missing property
   navigationItems: NavigationItem[];
   createTenant?: (data: any) => Promise<any>; // Added missing property
 }
@@ -57,10 +58,10 @@ interface WorkspaceProviderProps {
 export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
   children,
 }) => {
-  const [currentTenant, setCurrentTenant] = useState<any | null>(null);
-  const [tenants, setTenants] = useState<any[]>([]);
+  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -98,7 +99,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         .insert({
           tenant_id: newTenant.id,
           user_id: user.id,
-          role: 'owner'
+          role: 'owner' as UserRole
         });
 
       if (roleError) {
@@ -160,11 +161,14 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         return;
       }
 
-      const availableTenants = userTenants.map((ut) => ({
-        id: ut.tenant_id,
-        ...ut.tenants,
-        role: ut.role,
-      }));
+      const availableTenants = userTenants.map((ut) => {
+        // Convert from snake_case to camelCase
+        const tenantData = snakeToCamel<Tenant>(ut.tenants as any);
+        return {
+          ...tenantData,
+          role: ut.role as UserRole,
+        };
+      });
 
       setTenants(availableTenants);
 
@@ -175,7 +179,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         );
         if (stillValidTenant) {
           setCurrentTenant(stillValidTenant);
-          setCurrentRole(stillValidTenant.role);
+          setCurrentRole(stillValidTenant.role as UserRole);
         } else {
           // Tenant is no longer valid for the user, clear it
           setCurrentTenant(null);
@@ -184,7 +188,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
       } else if (availableTenants.length > 0) {
         // Auto-select the first tenant if none is selected
         setCurrentTenant(availableTenants[0]);
-        setCurrentRole(availableTenants[0].role);
+        setCurrentRole(availableTenants[0].role as UserRole);
       } else {
         setCurrentTenant(null);
         setCurrentRole(null);
@@ -263,9 +267,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
     tenants,
     loading,
     currentRole,
-    userRole, // Add userRole property
+    userRole, 
     navigationItems,
-    createTenant, // Add createTenant function
+    createTenant,
   };
 
   return (

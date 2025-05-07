@@ -2,16 +2,17 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent } from "@/lib/system/logSystemEvent";
 import { Json } from "@/integrations/supabase/types";
-import { PluginResult } from "./types";
+import { PluginResult, ExecutionStatus, Plugin } from "@/types/fixed";
+import { camelToSnake } from "@/types/fixed";
 
 /**
  * Records a plugin execution in the database
  */
 export async function recordPluginExecution(
-  plugin_id: string,
-  strategy_id: string, 
-  tenant_id: string,
-  pluginStatus: 'success' | 'failure',
+  pluginId: string,
+  strategyId: string, 
+  tenantId: string,
+  pluginStatus: ExecutionStatus,
   executionTime: number,
   pluginOutput?: Record<string, any>,
   pluginError?: string,
@@ -20,11 +21,11 @@ export async function recordPluginExecution(
   await supabase
     .from("plugin_logs")
     .insert({
-      plugin_id,
-      strategy_id,
-      tenant_id,
+      plugin_id: pluginId,
+      strategy_id: strategyId,
+      tenant_id: tenantId,
       status: pluginStatus,
-      input: { strategy_id } as Json,
+      input: { strategy_id: strategyId } as Json,
       output: pluginOutput as Json,
       error: pluginError,
       execution_time: executionTime,
@@ -36,14 +37,14 @@ export async function recordPluginExecution(
  * Updates a plugin's XP after successful execution
  */
 export async function updatePluginXP(
-  plugin_id: string,
+  pluginId: string,
   currentXP: number,
   earnedXP: number
 ): Promise<void> {
   await supabase
     .from("plugins")
     .update({ xp: currentXP + earnedXP })
-    .eq("id", plugin_id);
+    .eq("id", pluginId);
 }
 
 /**
@@ -51,7 +52,7 @@ export async function updatePluginXP(
  */
 export async function validateStrategy(
   strategyId: string, 
-  tenant_id: string
+  tenantId: string
 ): Promise<{ valid: boolean; strategy?: any; error?: string }> {
   const { data: strategy, error: strategyError } = await supabase
     .from("strategies")
@@ -66,7 +67,7 @@ export async function validateStrategy(
     };
   }
   
-  if (strategy.tenant_id !== tenant_id) {
+  if (strategy.tenant_id !== tenantId) {
     return { 
       valid: false, 
       error: "Strategy does not belong to the specified tenant" 
@@ -79,7 +80,7 @@ export async function validateStrategy(
 /**
  * Fetches all plugins for a strategy
  */
-export async function fetchPluginsForStrategy(strategyId: string): Promise<{ plugins?: any[]; error?: string }> {
+export async function fetchPluginsForStrategy(strategyId: string): Promise<{ plugins?: Plugin[]; error?: string }> {
   const { data: plugins, error: pluginsError } = await supabase
     .from("plugins")
     .select(`
@@ -107,10 +108,10 @@ export async function fetchPluginsForStrategy(strategyId: string): Promise<{ plu
 export async function executePlugin(
   plugin: any,
   strategyId: string,
-  tenant_id: string
+  tenantId: string
 ): Promise<PluginResult> {
   const pluginStartTime = performance.now();
-  let pluginStatus: 'success' | 'failure' = 'success';
+  let pluginStatus: ExecutionStatus = 'success';
   let pluginError: string | undefined;
   let pluginOutput: Record<string, any> | undefined;
   let xpEarned = 0;
@@ -137,7 +138,7 @@ export async function executePlugin(
   await recordPluginExecution(
     plugin.id,
     strategyId,
-    tenant_id,
+    tenantId,
     pluginStatus,
     executionTime,
     pluginOutput,
@@ -151,12 +152,12 @@ export async function executePlugin(
   }
   
   return {
-    plugin_id: plugin.id,
+    pluginId: plugin.id,
     name: plugin.name,
     status: pluginStatus,
-    execution_time: executionTime,
+    executionTime: executionTime,
     error: pluginError,
     output: pluginOutput,
-    xp_earned: xpEarned
+    xpEarned: xpEarned
   };
 }
