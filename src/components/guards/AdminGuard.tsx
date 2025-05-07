@@ -17,7 +17,7 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({
   fallback,
   redirect = true,
 }) => {
-  const { userRole, loading } = useWorkspace();
+  const { currentRole, loading } = useWorkspace();
   
   // Show loading state
   if (loading) {
@@ -29,7 +29,7 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({
   }
   
   // Check if user has admin privileges
-  const isAdmin = userRole === 'owner' || userRole === 'admin';
+  const isAdmin = currentRole === 'owner' || currentRole === 'admin';
   
   if (!isAdmin) {
     // Redirect to unauthorized page

@@ -8,6 +8,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface MilestoneAlert {
+  tenant_id: string;
+  user_id?: string;
+  title: string;
+  message: string;
+  achievement_type: 'kpi' | 'strategy' | 'plugin' | 'agent' | 'user';
+  achievement_id?: string;
+  importance: 'low' | 'medium' | 'high';
+  icon?: string;
+  action_url?: string;
+}
+
 /**
  * Helper function to safely get environment variables with fallbacks
  */
@@ -20,23 +32,6 @@ function getEnv(name: string, fallback: string = ""): string {
   }
 }
 
-interface MilestoneAlert {
-  tenant_id: string;
-  tenant_name: string;
-  kpi_name: string;
-  previous_value: number;
-  new_value: number;
-  percent_change: number;
-  date: string;
-  type: 'improvement' | 'warning';
-  threshold_crossed?: number;
-}
-
-function calculateChangePercent(oldValue: number, newValue: number): number {
-  if (oldValue === 0) return newValue > 0 ? 100 : 0;
-  return ((newValue - oldValue) / Math.abs(oldValue)) * 100;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -44,234 +39,318 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request payload for options
-    let options = {
-      threshold: 15, // Default threshold percentage for significant changes
-      notifyUsers: true,
-      sendEmails: false,
-      specificTenantId: undefined as string | undefined,
-      kpiCategories: ['financial', 'marketing', 'sales', 'product'] as string[]
-    };
-    
+    // Parse request body
+    let body: MilestoneAlert | { type?: string; tenant_id?: string };
     try {
-      const body = await req.json();
-      options = { ...options, ...body };
-    } catch {
-      // No body or invalid JSON, use defaults
+      body = await req.json();
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid JSON in request body",
+          details: String(parseError)
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
 
-    // Create Supabase client with service role
     const supabaseUrl = getEnv("SUPABASE_URL");
-    const supabaseServiceRole = getEnv("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!supabaseUrl || !supabaseServiceRole) {
+    const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
-        JSON.stringify({ error: "Supabase environment not configured correctly" }),
+        JSON.stringify({ error: "Supabase environment not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRole);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get all tenants (or the specific one requested)
-    const tenantsQuery = supabaseAdmin.from("tenants").select("id, name");
-    if (options.specificTenantId) {
-      tenantsQuery.eq("id", options.specificTenantId);
-    }
-    
-    const { data: tenants, error: tenantsError } = await tenantsQuery;
+    // Handle direct milestone alert creation
+    if (body.tenant_id && body.title && body.message && body.achievement_type) {
+      const milestoneAlert = body as MilestoneAlert;
       
-    if (tenantsError) {
-      throw new Error(`Error fetching tenants: ${tenantsError.message}`);
-    }
-    
-    if (!tenants || tenants.length === 0) {
+      // Validate the tenant exists
+      const { data: tenantData, error: tenantError } = await supabase
+        .from("tenants")
+        .select("id")
+        .eq("id", milestoneAlert.tenant_id)
+        .single();
+        
+      if (tenantError) {
+        return new Response(
+          JSON.stringify({ error: "Invalid tenant ID" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Create a notification for each relevant user in the tenant
+      const { data: tenantUsers, error: usersError } = await supabase
+        .from("tenant_user_roles")
+        .select("user_id")
+        .eq("tenant_id", milestoneAlert.tenant_id);
+        
+      if (usersError) {
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch tenant users" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // If a specific user_id is provided, only notify that user
+      const usersToNotify = milestoneAlert.user_id 
+        ? [{ user_id: milestoneAlert.user_id }]
+        : tenantUsers;
+
+      // Create notifications for all users in the tenant
+      const notifications = usersToNotify.map(user => ({
+        tenant_id: milestoneAlert.tenant_id,
+        user_id: user.user_id,
+        title: milestoneAlert.title,
+        message: milestoneAlert.message,
+        type: milestoneAlert.importance === 'high' ? 'alert' : 
+              milestoneAlert.importance === 'medium' ? 'warning' : 'info',
+        icon: milestoneAlert.icon || (
+          milestoneAlert.achievement_type === 'kpi' ? 'trophy' :
+          milestoneAlert.achievement_type === 'strategy' ? 'lightbulb' :
+          milestoneAlert.achievement_type === 'plugin' ? 'puzzle' :
+          milestoneAlert.achievement_type === 'agent' ? 'robot' : 'bell'
+        ),
+        action_url: milestoneAlert.action_url,
+        context: {
+          achievement_type: milestoneAlert.achievement_type,
+          achievement_id: milestoneAlert.achievement_id,
+          importance: milestoneAlert.importance
+        }
+      }));
+      
+      // Insert notifications
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert(notifications);
+        
+      if (notificationError) {
+        return new Response(
+          JSON.stringify({ error: "Failed to create notifications", details: notificationError }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Log the milestone alert
+      await supabase
+        .from("system_logs")
+        .insert({
+          tenant_id: milestoneAlert.tenant_id,
+          module: "notifications",
+          event: "milestone_alert_created",
+          context: {
+            achievement_type: milestoneAlert.achievement_type,
+            achievement_id: milestoneAlert.achievement_id,
+            users_notified: usersToNotify.length
+          }
+        });
+      
       return new Response(
-        JSON.stringify({ message: "No matching tenants found" }),
+        JSON.stringify({ 
+          success: true, 
+          message: `Milestone alert sent to ${usersToNotify.length} users`,
+          notifications_created: notifications.length
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const alerts: MilestoneAlert[] = [];
-    
-    // Process each tenant
-    for (const tenant of tenants) {
-      // Get KPIs with significant changes
-      // Get recent KPIs for this tenant
-      const { data: recentKpis, error: kpiError } = await supabaseAdmin
-        .from("kpis")
-        .select("*")
-        .eq("tenant_id", tenant.id)
-        .in("category", options.kpiCategories)
-        .order("date", { ascending: false });
-        
-      if (kpiError) {
-        console.error(`Error finding KPIs for tenant ${tenant.name}:`, kpiError);
-        continue;
+    // Handle system milestone checks (daily CRON, etc.)
+    else if (body.type === 'system_check' || body.type === undefined) {
+      // Get tenants to process (if tenant_id provided, only process that one)
+      const tenantsQuery = supabase.from("tenants").select("id, name");
+      
+      if (body.tenant_id) {
+        tenantsQuery.eq("id", body.tenant_id);
       }
       
-      if (!recentKpis || recentKpis.length === 0) {
-        console.log(`No KPI data found for tenant ${tenant.name}`);
-        continue;
+      const { data: tenants, error: tenantsError } = await tenantsQuery;
+      
+      if (tenantsError) {
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch tenants", details: tenantsError }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
       
-      // Group by metric name to find the most recent and previous values
-      const kpiGroups = recentKpis.reduce((acc, kpi) => {
-        const key = `${kpi.name}_${kpi.category}_${kpi.source}`;
-        if (!acc[key]) {
-          acc[key] = [];
-        }
-        acc[key].push(kpi);
-        return acc;
-      }, {} as Record<string, any[]>);
+      if (!tenants || tenants.length === 0) {
+        return new Response(
+          JSON.stringify({ message: "No tenants to process" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
-      // Check each group for significant changes
-      for (const [key, kpis] of Object.entries(kpiGroups)) {
-        if (kpis.length < 2) continue; // Need at least 2 data points
+      const results: Record<string, any> = {};
+      
+      // Check for milestones for each tenant
+      for (const tenant of tenants) {
+        results[tenant.id] = {
+          name: tenant.name,
+          milestones_detected: 0,
+          notifications_sent: 0
+        };
         
-        // Sort by date descending (just to be sure)
-        kpis.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        const current = kpis[0];
-        const previous = kpis[1];
-        
-        const changePercent = calculateChangePercent(previous.value, current.value);
-        
-        // Check if the change is significant (exceeds threshold)
-        if (Math.abs(changePercent) >= options.threshold) {
-          // Determine if it's an improvement or warning
-          // For most metrics, increase is good; but some like "churn rate" lower is better
-          // For this example, we'll use a simple heuristic based on name
-          const worseIfHigher = ['churn_rate', 'customer_acquisition_cost', 'expense'].some(term => 
-            current.name.toLowerCase().includes(term)
-          );
-          
-          const isImprovement = worseIfHigher ? (changePercent < 0) : (changePercent > 0);
-          
-          alerts.push({
-            tenant_id: tenant.id,
-            tenant_name: tenant.name,
-            kpi_name: current.name,
-            previous_value: previous.value,
-            new_value: current.value,
-            percent_change: changePercent,
-            date: current.date,
-            type: isImprovement ? 'improvement' : 'warning',
-            threshold_crossed: options.threshold
-          });
-          
-          // Log the system event
-          await supabaseAdmin
-            .from('system_logs')
-            .insert({
-              tenant_id: tenant.id,
-              module: current.category || 'kpi',
-              event: `significant_${isImprovement ? 'improvement' : 'drop'}_in_${current.name}`,
-              context: {
-                kpi_name: current.name,
-                percent_change: changePercent,
-                previous_value: previous.value,
-                new_value: current.value,
-                date: current.date
-              }
-            });
+        // Check for KPI milestones (significant changes)
+        try {
+          // Get the latest KPI entries
+          const { data: latestKpis, error: kpisError } = await supabase
+            .from("kpis")
+            .select("*, previous_value")
+            .eq("tenant_id", tenant.id)
+            .order("date", { ascending: false })
+            .limit(10);
             
-          // Create notifications for tenant users if requested
-          if (options.notifyUsers) {
-            try {
-              // Get tenant users who should receive notifications
-              const { data: users } = await supabaseAdmin
-                .from("tenant_user_roles")
-                .select("user_id")
-                .eq("tenant_id", tenant.id)
-                .in("role", ["admin", "manager"]);
+          if (kpisError) {
+            console.error(`Error fetching KPIs for tenant ${tenant.name}:`, kpisError);
+            continue;
+          }
+          
+          // Check for significant improvements (20%+ increase)
+          for (const kpi of latestKpis || []) {
+            if (kpi.previous_value && kpi.value > 0 && kpi.previous_value > 0) {
+              const percentChange = ((kpi.value - kpi.previous_value) / kpi.previous_value) * 100;
+              
+              // Significant improvement threshold
+              if (percentChange >= 20) {
+                // Create milestone alert
+                const milestoneAlert: MilestoneAlert = {
+                  tenant_id: tenant.id,
+                  title: `${kpi.name} has improved by ${Math.round(percentChange)}%!`,
+                  message: `${kpi.name} grew from ${kpi.previous_value} to ${kpi.value}, a ${Math.round(percentChange)}% increase.`,
+                  achievement_type: 'kpi',
+                  achievement_id: `${kpi.name}-${kpi.date}`,
+                  importance: percentChange >= 50 ? 'high' : 'medium',
+                  action_url: '/insights'
+                };
                 
-              if (users && users.length > 0) {
-                const userIds = users.map(u => u.user_id);
-                
-                // Create notifications for all relevant users
-                await supabaseAdmin
-                  .from("notifications")
-                  .insert(userIds.map(uid => ({
+                // Notify tenant users
+                const { data: tenantUsers } = await supabase
+                  .from("tenant_user_roles")
+                  .select("user_id")
+                  .eq("tenant_id", tenant.id)
+                  .in("role", ["owner", "admin"]);
+                  
+                if (tenantUsers && tenantUsers.length > 0) {
+                  // Create notifications
+                  const notifications = tenantUsers.map(user => ({
                     tenant_id: tenant.id,
-                    user_id: uid,
-                    title: isImprovement 
-                      ? `${current.name} improved by ${Math.abs(changePercent).toFixed(1)}%` 
-                      : `${current.name} decreased by ${Math.abs(changePercent).toFixed(1)}%`,
-                    message: `${current.name} changed from ${previous.value} to ${current.value}`,
-                    type: isImprovement ? "success" : "warning",
-                    action_url: `/insights/kpis?metric=${encodeURIComponent(current.name)}`
-                  })));
+                    user_id: user.user_id,
+                    title: milestoneAlert.title,
+                    message: milestoneAlert.message,
+                    type: milestoneAlert.importance === 'high' ? 'alert' : 'warning',
+                    icon: 'trending-up',
+                    action_url: milestoneAlert.action_url,
+                    context: {
+                      achievement_type: 'kpi',
+                      kpi_name: kpi.name,
+                      percent_change: percentChange
+                    }
+                  }));
+                  
+                  await supabase.from("notifications").insert(notifications);
+                  
+                  results[tenant.id].milestones_detected++;
+                  results[tenant.id].notifications_sent += notifications.length;
+                }
               }
-            } catch (notifError) {
-              console.error(`Error creating notifications for tenant ${tenant.name}:`, notifError);
             }
           }
+        } catch (kpiError) {
+          console.error(`Error processing KPI milestones for tenant ${tenant.name}:`, kpiError);
         }
-      }
-    }
-    
-    // Send emails if applicable 
-    // (in a real implementation, this would integrate with an email service)
-    if (options.sendEmails && alerts.length > 0) {
-      console.log(`Would send ${alerts.length} email alerts`);
-      
-      // Example of what email sending would look like:
-      /*
-      const emailService = getEnv("EMAIL_SERVICE");
-      const emailApiKey = getEnv("EMAIL_API_KEY");
-      
-      if (emailService && emailApiKey) {
-        // Group alerts by tenant
-        const alertsByTenant = alerts.reduce((acc, alert) => {
-          if (!acc[alert.tenant_id]) {
-            acc[alert.tenant_id] = {
-              name: alert.tenant_name,
-              alerts: []
-            };
-          }
-          acc[alert.tenant_id].alerts.push(alert);
-          return acc;
-        }, {} as Record<string, {name: string, alerts: MilestoneAlert[]}>);
         
-        // For each tenant, send one digest email
-        for (const [tenantId, data] of Object.entries(alertsByTenant)) {
-          const emailHtml = generateAlertEmailHtml(data.name, data.alerts);
+        // Check for strategy completion milestones
+        try {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
           
-          // Send email using your service of choice
-          // await sendEmail({
-          //   to: "admin@example.com",
-          //   subject: `KPI Alerts for ${data.name}`,
-          //   html: emailHtml
-          // });
+          const { data: completedStrategies, error: strategiesError } = await supabase
+            .from("strategies")
+            .select("id, title, completion_percentage")
+            .eq("tenant_id", tenant.id)
+            .eq("status", "completed")
+            .gte("updated_at", `${yesterdayStr}T00:00:00`);
+            
+          if (strategiesError) {
+            console.error(`Error fetching completed strategies for tenant ${tenant.name}:`, strategiesError);
+            continue;
+          }
+          
+          if (completedStrategies && completedStrategies.length > 0) {
+            // Create milestone alert for completed strategies
+            const milestoneAlert: MilestoneAlert = {
+              tenant_id: tenant.id,
+              title: `${completedStrategies.length} Strategies Completed!`,
+              message: `${completedStrategies.length} strategies were successfully completed in the last 24 hours.`,
+              achievement_type: 'strategy',
+              importance: 'medium',
+              action_url: '/strategies'
+            };
+            
+            // Notify tenant users
+            const { data: tenantUsers } = await supabase
+              .from("tenant_user_roles")
+              .select("user_id")
+              .eq("tenant_id", tenant.id);
+              
+            if (tenantUsers && tenantUsers.length > 0) {
+              // Create notifications
+              const notifications = tenantUsers.map(user => ({
+                tenant_id: tenant.id,
+                user_id: user.user_id,
+                title: milestoneAlert.title,
+                message: milestoneAlert.message,
+                type: 'info',
+                icon: 'check-circle',
+                action_url: milestoneAlert.action_url,
+                context: {
+                  achievement_type: 'strategy',
+                  strategies: completedStrategies.map(s => ({ id: s.id, title: s.title }))
+                }
+              }));
+              
+              await supabase.from("notifications").insert(notifications);
+              
+              results[tenant.id].milestones_detected++;
+              results[tenant.id].notifications_sent += notifications.length;
+            }
+          }
+        } catch (strategyError) {
+          console.error(`Error processing strategy milestones for tenant ${tenant.name}:`, strategyError);
         }
       }
-      */
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Milestone check completed for ${tenants.length} tenants`,
+          results
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Processed ${alerts.length} milestone alerts`,
-        alerts_count: alerts.length,
-        alerts: alerts.length > 0 ? alerts : null,
-        threshold_used: options.threshold
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Invalid request
+    else {
+      return new Response(
+        JSON.stringify({ error: "Invalid request format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   } catch (error) {
-    console.error("Error in sendMilestoneAlerts:", error);
+    console.error("Error sending milestone alerts:", error);
     
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: "Internal server error", 
-        details: String(error)
-      }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
-        status: 500 
-      }
+      JSON.stringify({ error: "Internal server error", details: String(error) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

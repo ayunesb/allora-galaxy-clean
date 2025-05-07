@@ -41,3 +41,39 @@ export interface StrategyMetrics {
   success_rate: number;
   last_executed_at: string | null;
 }
+
+export interface KpiDataInput {
+  tenant_id: string;
+  name: string;
+  value: number;
+  previous_value?: number | null;
+  source: 'stripe' | 'ga4' | 'hubspot' | 'manual';
+  category: 'financial' | 'marketing' | 'sales' | 'product';
+  date?: string;
+}
+
+export interface MilestoneAlert {
+  tenant_id: string;
+  user_id?: string;
+  title: string;
+  message: string;
+  achievement_type: 'kpi' | 'strategy' | 'plugin' | 'agent' | 'user';
+  achievement_id?: string;
+  importance: 'low' | 'medium' | 'high';
+  icon?: string;
+  action_url?: string;
+}
+
+export interface UserInviteData {
+  email: string;
+  tenant_id: string;
+  tenant_name: string;
+  role?: string;
+  custom_message?: string;
+}
+
+export interface HubspotMqlData {
+  tenant_id: string;
+  hubspot_api_key?: string;
+  date?: string;
+}

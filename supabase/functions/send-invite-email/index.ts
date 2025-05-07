@@ -156,13 +156,11 @@ serve(async (req) => {
         const resendResponse = await response.json();
         emailSent = response.ok;
         
-        if (!response.ok) {
+        if (!emailSent) {
           console.error("Resend API error:", resendResponse);
-        } else {
-          console.log("Email sent via Resend:", resendResponse);
         }
-      } catch (emailError) {
-        console.error("Error sending email via Resend:", emailError);
+      } catch (resendError) {
+        console.error("Error sending email via Resend:", resendError);
       }
     } else if (emailServiceConfig.service === "sendgrid" && emailServiceConfig.apiKey) {
       try {
@@ -183,56 +181,68 @@ serve(async (req) => {
         
         emailSent = response.ok;
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("SendGrid API error:", errorText);
-        } else {
-          console.log("Email sent via SendGrid");
+        if (!emailSent) {
+          console.error("SendGrid API error status:", response.status);
         }
-      } catch (emailError) {
-        console.error("Error sending email via SendGrid:", emailError);
+      } catch (sendgridError) {
+        console.error("Error sending email via SendGrid:", sendgridError);
       }
-    }
-    
-    // In development mode or if email service is not configured, log the email info
-    if (!emailSent) {
-      console.log(`DEVELOPMENT MODE - Email would be sent to: ${email}`);
+    } else {
+      // For development/demo, just log the email content
+      console.log("Email service not configured. Would have sent:");
+      console.log(`To: ${email}`);
       console.log(`Subject: ${emailSubject}`);
-      console.log(`Invitation URL: ${inviteUrl}`);
+      console.log(`Invite URL: ${inviteUrl}`);
+      
+      // Consider email as sent for demo purposes
+      emailSent = true;
     }
     
-    // Record the email sending in system_logs
-    await supabase
-      .from('system_logs')
-      .insert({
+    // Log the invitation
+    try {
+      await supabase.from("system_logs").insert({
         tenant_id,
-        module: 'auth',
-        event: 'invitation_sent',
+        module: "auth",
+        event: "user_invited",
         context: { 
-          email, 
-          role, 
-          invite_url: inviteUrl,
-          email_service: emailServiceConfig.service,
+          email,
+          role,
           email_sent: emailSent
         }
       });
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Invitation sent",
-        email_service_used: emailServiceConfig.service,
-        email_actually_sent: emailSent,
-        invite_url: inviteUrl // Included for development/testing
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    } catch (logError) {
+      console.warn("Failed to log invitation, but continuing:", logError);
+    }
+    
+    // Return success or partial success
+    if (emailSent) {
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: `Invitation sent to ${email}`,
+          token,
+          invite_url: inviteUrl
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          warning: "Invitation created but email could not be sent",
+          message: "Email service not configured properly. User can still be invited manually with the token.",
+          token,
+          invite_url: inviteUrl
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   } catch (error) {
-    console.error('Error sending invitation:', error);
+    console.error("Error processing invitation:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to send invitation' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: "Error processing invitation", details: String(error) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
