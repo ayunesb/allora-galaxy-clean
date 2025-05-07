@@ -1,209 +1,209 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  ReactNode,
+} from 'react';
 import { useAuth } from './AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { UserRole } from '@/lib/auth/requireRole';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { notifyError } from '@/components/ui/BetterToast';
+import {
+  Home,
+  Settings,
+  Users,
+  BarChart,
+  Puzzle,
+  Building2,
+  KeyRound,
+  Mail,
+  HelpCircle,
+  Plus,
+  LucideIcon,
+  LayoutDashboard,
+  ListChecks,
+  TrendingUp,
+  Bell,
+} from 'lucide-react';
 
-type Tenant = {
-  id: string;
-  name: string;
-  slug: string;
-  metadata?: any;
-};
+interface NavigationItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  role?: string;
+}
 
-type WorkspaceContextType = {
-  tenants: Tenant[];
-  currentTenant: Tenant | null;
-  setCurrentTenant: (tenant: Tenant) => void;
+interface WorkspaceContextType {
+  currentTenant: any | null;
+  setCurrentTenant: (tenant: any | null) => void;
+  tenants: any[];
   loading: boolean;
-  error: string | null;
-  userRole: UserRole | null;
-  currentRole: UserRole | null;
-  createTenant: (name: string) => Promise<{ data: Tenant | null; error: any }>;
-};
+  currentRole: string | null;
+  navigationItems: NavigationItem[];
+}
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
+  undefined
+);
 
-export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
+interface WorkspaceProviderProps {
+  children: ReactNode;
+}
+
+export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
+  children,
+}) => {
+  const [currentTenant, setCurrentTenant] = useState<any | null>(null);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Fetch user's tenants when auth state changes
   useEffect(() => {
-    if (!user) {
-      setTenants([]);
-      setCurrentTenant(null);
-      setUserRole(null);
-      setLoading(false);
-      return;
-    }
-
-    async function fetchTenants() {
+    const fetchWorkspaces = async () => {
       setLoading(true);
       try {
-        // Get tenants where user has a role
-        const { data, error } = await supabase
+        if (!user) {
+          setTenants([]);
+          setCurrentTenant(null);
+          return;
+        }
+
+        const { data: userTenants, error } = await supabase
           .from('tenant_user_roles')
-          .select('tenant:tenants(*), role')
+          .select('tenant_id, role, tenants(*)')
           .eq('user_id', user.id);
 
-        if (error) throw error;
-
-        // Extract tenant data and remove duplicates
-        const fetchedTenants = data
-          .map((item: any) => item.tenant as Tenant)
-          .filter((tenant: Tenant | null): tenant is Tenant => tenant !== null);
-
-        setTenants(fetchedTenants);
-
-        // If we have tenants but no current tenant set, set the first one
-        if (fetchedTenants.length > 0 && !currentTenant) {
-          // Try to get the last used tenant from local storage
-          const lastTenantId = localStorage.getItem('lastTenantId');
-          const lastTenant = lastTenantId 
-            ? fetchedTenants.find(t => t.id === lastTenantId)
-            : null;
-          
-          const selectedTenant = lastTenant || fetchedTenants[0];
-          setCurrentTenant(selectedTenant);
-          
-          // Set user role for the current tenant
-          const userTenantRole = data.find((item: any) => 
-            item.tenant && item.tenant.id === selectedTenant.id
-          );
-          
-          if (userTenantRole) {
-            setUserRole(userTenantRole.role as UserRole);
-          }
+        if (error) {
+          console.error('Error fetching user workspaces:', error);
+          notifyError('Error fetching workspaces', error.message);
+          setLoading(false);
+          return;
         }
-        
-        setError(null);
+
+        if (!userTenants || userTenants.length === 0) {
+          setTenants([]);
+          setCurrentTenant(null);
+          setLoading(false);
+          return;
+        }
+
+        const availableTenants = userTenants.map((ut) => ({
+          id: ut.tenant_id,
+          ...ut.tenants,
+          role: ut.role,
+        }));
+
+        setTenants(availableTenants);
+
+        // If a tenant is already selected, ensure it's still valid
+        if (currentTenant) {
+          const stillValidTenant = availableTenants.find(
+            (t) => t.id === currentTenant.id
+          );
+          if (stillValidTenant) {
+            setCurrentTenant(stillValidTenant);
+            setCurrentRole(stillValidTenant.role);
+          } else {
+            // Tenant is no longer valid for the user, clear it
+            setCurrentTenant(null);
+            setCurrentRole(null);
+          }
+        } else if (availableTenants.length > 0) {
+          // Auto-select the first tenant if none is selected
+          setCurrentTenant(availableTenants[0]);
+          setCurrentRole(availableTenants[0].role);
+        } else {
+          setCurrentTenant(null);
+          setCurrentRole(null);
+        }
       } catch (err: any) {
-        console.error('Error fetching tenants:', err);
-        setError(err.message || 'Failed to fetch workspaces');
-        toast({
-          title: 'Error fetching workspaces',
-          description: err.message || 'Please try again later',
-          variant: 'destructive',
-        });
+        console.error('Unexpected error fetching workspaces:', err);
+        notifyError('Unexpected error', err.message);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchTenants();
+    fetchWorkspaces();
   }, [user]);
 
-  // Update user role when current tenant changes
-  useEffect(() => {
-    if (user && currentTenant) {
-      const fetchUserRole = async () => {
-        const { data, error } = await supabase
-          .from('tenant_user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('tenant_id', currentTenant.id)
-          .single();
-        
-        if (!error && data) {
-          setUserRole(data.role as UserRole);
-        }
-      };
-      
-      fetchUserRole();
-    }
-  }, [currentTenant, user]);
-
-  // Save selected tenant to local storage when it changes
   useEffect(() => {
     if (currentTenant) {
-      localStorage.setItem('lastTenantId', currentTenant.id);
+      localStorage.setItem('currentTenantId', currentTenant.id);
+    } else {
+      localStorage.removeItem('currentTenantId');
     }
   }, [currentTenant]);
 
-  const createTenant = async (name: string) => {
-    if (!user) {
-      return { data: null, error: new Error('User not authenticated') };
-    }
+  const navigationItems: NavigationItem[] = React.useMemo(() => {
+    return [
+      {
+        title: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Strategies',
+        href: '/strategies',
+        icon: ListChecks,
+      },
+      {
+        title: 'Insights',
+        href: '/insights',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Notifications',
+        href: '/notifications',
+        icon: Bell,
+      },
+      {
+        title: 'Agents',
+        href: '/agents',
+        icon: Puzzle,
+      },
+      {
+        title: 'Team',
+        href: '/team',
+        icon: Users,
+        role: 'admin',
+      },
+      {
+        title: 'Billing',
+        href: '/billing',
+        icon: BarChart,
+        role: 'admin',
+      },
+      {
+        title: 'Settings',
+        href: '/settings',
+        icon: Settings,
+        role: 'admin',
+      },
+    ];
+  }, []);
 
-    try {
-      // Generate a URL-friendly slug from the name
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-
-      // Create a new tenant
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({ name, slug, owner_id: user.id })
-        .select()
-        .single();
-
-      if (tenantError) throw tenantError;
-      
-      if (!tenant) throw new Error('Failed to create tenant');
-
-      // Create owner role for the current user
-      const { error: roleError } = await supabase
-        .from('tenant_user_roles')
-        .insert({
-          tenant_id: tenant.id,
-          user_id: user.id,
-          role: 'owner',
-        });
-
-      if (roleError) throw roleError;
-
-      // Update local state
-      setTenants([...tenants, tenant]);
-      setCurrentTenant(tenant);
-      setUserRole('owner');
-
-      toast({
-        title: 'Workspace created',
-        description: `${name} has been created successfully`,
-      });
-
-      return { data: tenant, error: null };
-    } catch (err: any) {
-      console.error('Error creating tenant:', err);
-      toast({
-        title: 'Failed to create workspace',
-        description: err.message || 'Please try again',
-        variant: 'destructive',
-      });
-      return { data: null, error: err };
-    }
+  const value: WorkspaceContextType = {
+    currentTenant,
+    setCurrentTenant,
+    tenants,
+    loading,
+    currentRole,
+    navigationItems,
   };
 
   return (
-    <WorkspaceContext.Provider
-      value={{
-        tenants,
-        currentTenant,
-        setCurrentTenant,
-        loading,
-        error,
-        userRole,
-        currentRole: userRole,
-        createTenant,
-      }}
-    >
-      {children}
-    </WorkspaceContext.Provider>
+    <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
   );
-}
+};
 
-export function useWorkspace() {
+export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useWorkspace must be used within a WorkspaceProvider');
   }
   return context;
-}
+};

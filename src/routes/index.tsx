@@ -9,7 +9,7 @@ import ProtectedRoutes from './ProtectedRoutes';
 import PublicRoutes from './PublicRoutes';
 
 const AppRoutes: React.FC = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { currentTenant, loading: workspaceLoading } = useWorkspace();
   const location = useLocation();
 

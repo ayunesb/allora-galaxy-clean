@@ -10,6 +10,7 @@ import {
 import { toast as sonnerToast } from 'sonner';
 import { toast } from '@/hooks/use-toast';
 import { Button } from './button';
+import { ToastActionElement } from './toast';
 
 export type ToastVariant = 'default' | 'destructive' | 'success' | 'warning' | 'info';
 
@@ -17,7 +18,7 @@ interface ToastProps {
   title: string;
   description?: string;
   variant?: ToastVariant;
-  action?: React.ReactNode;
+  action?: ToastActionElement;
 }
 
 function getIconForVariant(variant: ToastVariant) {
@@ -86,14 +87,20 @@ export function BetterToast({
     toastVariant = 'default';
   }
   
-  // Convert the action to a proper element if provided
-  const actionElement = action ? (
-    typeof action === 'string' ? (
-      <Button variant="outline" size="sm">{action}</Button>
-    ) : (
-      action
-    )
-  ) : undefined;
+  // Ensure action is properly typed as ToastActionElement
+  let actionElement: ToastActionElement | undefined = undefined;
+  
+  if (action) {
+    if (typeof action === 'string') {
+      actionElement = (
+        <Button variant="outline" size="sm" asChild>
+          <span>{action}</span>
+        </Button>
+      ) as ToastActionElement;
+    } else {
+      actionElement = action;
+    }
+  }
   
   return toast({
     title,

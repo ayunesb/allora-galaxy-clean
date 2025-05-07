@@ -3,14 +3,41 @@ export interface ExecuteStrategyInput {
   strategy_id: string;
   tenant_id: string;
   user_id?: string;
-  options?: Record<string, any>;
+  options?: {
+    send_notifications?: boolean;
+    record_analytics?: boolean;
+    run_mode?: 'manual' | 'scheduled' | 'automated';
+  };
 }
 
 export interface ExecuteStrategyResult {
   success: boolean;
   message?: string;
+  data?: any;
   error?: string;
-  data?: Record<string, any>;
   execution_time?: number;
   execution_id?: string | null;
+  plugins_executed?: number;
+  plugins_succeeded?: number;
+  plugins_failed?: number;
+  completion_percentage?: number;
+  errors?: Array<{plugin_name?: string, error: string}>;
+}
+
+export interface PluginExecutionResult {
+  plugin_id: string;
+  name?: string;
+  status: 'success' | 'failure' | 'pending' | 'skipped';
+  execution_time?: number;
+  error?: string;
+  output?: Record<string, any>;
+  xp_earned?: number;
+}
+
+export interface StrategyMetrics {
+  total_executions: number;
+  successful_executions: number;
+  average_execution_time: number;
+  success_rate: number;
+  last_executed_at: string | null;
 }
