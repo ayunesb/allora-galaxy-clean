@@ -16,6 +16,7 @@ export interface Plugin {
   created_by?: string;
   xp?: number;
   dependencies?: string[];
+  roi?: number;
 }
 
 /**
@@ -36,4 +37,16 @@ export interface PluginExecutionOptions {
   maxRetries?: number;
   backoffStrategy?: 'linear' | 'exponential';
   trackXp?: boolean;
+}
+
+/**
+ * Interface for plugin execution result
+ */
+export interface PluginResult {
+  pluginId: string;
+  success: boolean;
+  output?: any;
+  error?: string;
+  executionTime?: number;
+  xpEarned?: number;
 }
