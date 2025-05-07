@@ -23,6 +23,26 @@ const InspectorContent: React.FC<InspectorContentProps> = ({ node }) => {
   const getNodeTypeContent = () => {
     if (!node) return null;
 
+    // Helper function to determine badge variant based on status
+    const getStatusVariant = (status: string) => {
+      switch (status) {
+        case 'active':
+        case 'approved':
+        case 'completed':
+          return 'default';
+        case 'draft':
+        case 'inactive':
+          return 'secondary';
+        case 'pending':
+          return 'outline';
+        case 'rejected':
+        case 'deprecated':
+          return 'destructive';
+        default:
+          return 'outline';
+      }
+    };
+
     switch (node.type) {
       case "strategy":
         return (

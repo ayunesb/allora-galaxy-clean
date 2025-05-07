@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ import {
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
-  getSortingRowModel,
+  getSortedRowModel,
   getFilteredRowModel,
   ColumnDef,
   SortingState,
@@ -309,7 +308,7 @@ const UserManagement: React.FC = () => {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getSortingRowModel: getSortingRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
