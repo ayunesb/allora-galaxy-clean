@@ -3,152 +3,136 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertCircle,
-  Bell,
   CheckCircle2,
   Info,
-  MoreHorizontal,
-  Trash2,
-  MailOpen
+  MailOpen,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Notification } from './NotificationCenter';
+
+export interface NotificationItemType {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  isRead: boolean;
+  createdAt: string;
+  link?: string;
+  module?: string;
+}
 
 interface NotificationItemProps {
-  notification: Notification;
+  notification: NotificationItemType;
   onMarkAsRead: (id: string) => void;
-  onClose?: () => void;
+  onDelete: (id: string) => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
-  onClose
+  onDelete
 }) => {
-  const {
-    id,
-    title,
-    description,
-    type,
-    isRead,
-    createdAt,
-    link
-  } = notification;
-
-  const getTypeIcon = () => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />;
       case 'warning':
-        return <AlertCircle className="h-5 w-5 text-amber-500" />;
+        return <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />;
       case 'info':
       default:
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-5 w-5 text-blue-500 shrink-0" />;
     }
   };
 
-  const getModuleColor = () => {
-    switch (notification.module) {
-      case 'strategy':
-        return 'bg-blue-100 text-blue-800';
-      case 'agent':
-        return 'bg-purple-100 text-purple-800';
-      case 'plugin':
-        return 'bg-amber-100 text-amber-800';
-      case 'billing':
-        return 'bg-green-100 text-green-800';
-      case 'system':
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getModuleBadge = (module?: string) => {
+    if (!module) return null;
+    
+    const colors: Record<string, string> = {
+      'strategy': 'bg-blue-100 text-blue-800',
+      'agent': 'bg-purple-100 text-purple-800',
+      'plugin': 'bg-amber-100 text-amber-800',
+      'billing': 'bg-green-100 text-green-800',
+      'system': 'bg-gray-100 text-gray-800',
+    };
+    
+    return (
+      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors[module] || 'bg-gray-100 text-gray-800'}`}>
+        {module}
+      </span>
+    );
   };
 
-  const formattedDate = () => {
+  const formatDate = (dateString: string) => {
     try {
-      return formatDistanceToNow(new Date(createdAt), { addSuffix: true });
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch (e) {
       return 'recently';
     }
   };
 
-  const handleClick = () => {
-    if (!isRead) {
-      onMarkAsRead(id);
-    }
-    if (onClose) {
-      onClose();
-    }
-  };
-
   const renderNotificationContent = () => (
-    <div className={cn(
-      "flex gap-3 p-4 hover:bg-accent cursor-pointer transition-colors",
-      !isRead && "bg-accent/50"
-    )}>
-      <div className="shrink-0">
-        {getTypeIcon()}
+    <div className={`relative flex gap-4 rounded-lg border p-4 ${notification.isRead ? '' : 'bg-accent'}`}>
+      {!notification.isRead && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
+      )}
+      <div className="flex-shrink-0">
+        {getTypeIcon(notification.type)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <h4 className={cn(
-            "text-sm font-medium",
-            !isRead && "font-semibold"
-          )}>
-            {title}
-          </h4>
+          <h3 className="text-sm font-medium">
+            {notification.title}
+          </h3>
           <div className="flex items-center gap-2">
-            {notification.module && (
-              <span className={cn(
-                "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                getModuleColor()
-              )}>
-                {notification.module}
-              </span>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+            {notification.module && getModuleBadge(notification.module)}
+            <div className="flex space-x-1">
+              {!notification.isRead && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onMarkAsRead(notification.id);
+                  }}
+                  className="h-7 w-7"
+                >
+                  <MailOpen className="h-3.5 w-3.5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {!isRead && (
-                  <DropdownMenuItem onClick={() => onMarkAsRead(id)}>
-                    <MailOpen className="mr-2 h-4 w-4" />
-                    <span>Mark as read</span>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Delete</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(notification.id);
+                }}
+                className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
-        {description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{description}</p>
+        {notification.description && (
+          <p className="text-sm text-muted-foreground mt-1">{notification.description}</p>
         )}
-        <p className="text-xs text-muted-foreground mt-1">{formattedDate()}</p>
+        <p className="text-xs text-muted-foreground mt-2">{formatDate(notification.createdAt)}</p>
       </div>
     </div>
   );
 
-  return link ? (
-    <Link to={link} onClick={handleClick}>
+  return notification.link ? (
+    <Link to={notification.link} className="block hover:no-underline">
       {renderNotificationContent()}
     </Link>
   ) : (
-    <div onClick={handleClick}>
+    <div className="cursor-default">
       {renderNotificationContent()}
     </div>
   );

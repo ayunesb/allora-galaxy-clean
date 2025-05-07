@@ -11,7 +11,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 // Ensure all properties are properly bound
 supabase.from = supabase.from.bind(supabase);
 supabase.rpc = supabase.rpc.bind(supabase);
-supabase.functions = supabase.functions;
 
 // Add realtime property to fix typing issues
 if (!('realtime' in supabase)) {
