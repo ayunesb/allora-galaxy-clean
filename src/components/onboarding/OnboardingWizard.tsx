@@ -51,12 +51,23 @@ const OnboardingWizard: React.FC = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  // Define step titles
+  const stepTitles = [
+    'Company',
+    'Additional Info',
+    'Persona'
+  ];
+
   const handleNextStep = () => {
     setCurrentStep(currentStep + 1);
   };
 
   const handlePrevStep = () => {
     setCurrentStep(currentStep - 1);
+  };
+
+  const handleStepClick = (step: number) => {
+    setCurrentStep(step);
   };
 
   const handleSubmit = async () => {
@@ -224,7 +235,12 @@ const OnboardingWizard: React.FC = () => {
             <CardDescription>{currentStepData.description}</CardDescription>
           </CardHeader>
           <CardContent>
-            <OnboardingProgress currentStep={currentStep} totalSteps={steps.length} />
+            <OnboardingProgress 
+              currentStep={currentStep} 
+              totalSteps={steps.length} 
+              stepTitles={stepTitles}
+              onStepClick={handleStepClick}
+            />
             
             {currentStepData.component}
             

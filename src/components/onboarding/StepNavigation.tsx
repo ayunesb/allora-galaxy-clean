@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface StepNavigationProps {
   currentStep: number;
@@ -10,6 +11,8 @@ interface StepNavigationProps {
   onComplete?: () => void;
   isNextDisabled: boolean;
   isSubmitting: boolean;
+  showSkip?: boolean;
+  onSkip?: () => void;
 }
 
 const StepNavigation: React.FC<StepNavigationProps> = ({
@@ -20,27 +23,49 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
   onComplete,
   isNextDisabled,
   isSubmitting,
+  showSkip = false,
+  onSkip
 }) => {
   const isLastStep = currentStep === totalSteps - 1;
+  const isFirstStep = currentStep === 0;
   
   return (
     <div className="flex justify-between mt-8">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onPrevious}
-        disabled={currentStep === 0 || isSubmitting}
-      >
-        Previous
-      </Button>
+      {!isFirstStep ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onPrevious}
+          disabled={isSubmitting}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Previous
+        </Button>
+      ) : (
+        <div>
+          {showSkip && onSkip && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onSkip}
+              disabled={isSubmitting}
+            >
+              Skip
+            </Button>
+          )}
+        </div>
+      )}
       
       {!isLastStep ? (
         <Button
           type="button"
           onClick={onNext}
           disabled={isNextDisabled || isSubmitting}
+          className="flex items-center gap-2"
         >
           Next
+          <ArrowRight className="h-4 w-4" />
         </Button>
       ) : (
         <Button
@@ -48,7 +73,14 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
           onClick={onComplete}
           disabled={isNextDisabled || isSubmitting}
         >
-          {isSubmitting ? 'Submitting...' : 'Complete Setup'}
+          {isSubmitting ? (
+            <>
+              <span className="animate-spin mr-2 h-4 w-4 border-b-2 border-background rounded-full inline-block"></span>
+              Submitting...
+            </>
+          ) : (
+            'Complete Setup'
+          )}
         </Button>
       )}
     </div>
