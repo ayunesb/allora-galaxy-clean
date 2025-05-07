@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase, realtime } from '@/lib/supabase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { PageHelmet } from '@/components/PageHelmet';
+import PageHelmet from '@/components/PageHelmet';
 import NotificationsPageHeader from '@/components/notifications/NotificationsPageHeader';
 import NotificationList from '@/components/notifications/NotificationList';
 import { NotificationContent } from '@/components/notifications/NotificationCenterContent';
