@@ -9,6 +9,7 @@ import ForceGraph from '@/components/galaxy/ForceGraph';
 import EmptyState from '@/components/galaxy/EmptyState';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
 import { GraphNode, GraphData, GraphLink } from '@/types/galaxy';
+import PageHelmet from '@/components/PageHelmet';
 
 const GalaxyExplorer: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -79,46 +80,52 @@ const GalaxyExplorer: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">Galaxy Explorer</h1>
-      <p className="text-muted-foreground mt-2">Visualize connections between strategies and plugins</p>
-      
-      <div className="flex justify-between items-center my-6">
-        <ViewModeSelector viewMode={viewMode} setViewMode={setViewMode} />
-        <ZoomControls 
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onRefresh={() => refetch()}
+    <>
+      <PageHelmet 
+        title="Galaxy Explorer"
+        description="Visualize the connections between strategies, plugins, and agents in your Allora OS workspace"
+      />
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold">Galaxy Explorer</h1>
+        <p className="text-muted-foreground mt-2">Visualize connections between strategies and plugins</p>
+        
+        <div className="flex justify-between items-center my-6">
+          <ViewModeSelector viewMode={viewMode} setViewMode={setViewMode} />
+          <ZoomControls 
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onRefresh={() => refetch()}
+          />
+        </div>
+        
+        <div className="mt-4">
+          <Card className="overflow-hidden">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-96">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
+            ) : graphData.nodes.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <ForceGraph 
+                graphData={graphData} 
+                fgRef={fgRef} 
+                onNodeClick={handleNodeClick}
+              />
+            )}
+          </Card>
+        </div>
+        
+        <GraphLegend />
+        
+        {/* Inspector Sidebar */}
+        <InspectorSidebar 
+          node={selectedNode} 
+          open={showSidebar} 
+          onOpenChange={handleSidebarClose}
         />
       </div>
-      
-      <div className="mt-4">
-        <Card className="overflow-hidden">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-96">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-          ) : graphData.nodes.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <ForceGraph 
-              graphData={graphData} 
-              fgRef={fgRef} 
-              onNodeClick={handleNodeClick}
-            />
-          )}
-        </Card>
-      </div>
-      
-      <GraphLegend />
-      
-      {/* Inspector Sidebar */}
-      <InspectorSidebar 
-        node={selectedNode} 
-        open={showSidebar} 
-        onOpenChange={handleSidebarClose}
-      />
-    </div>
+    </>
   );
 };
 

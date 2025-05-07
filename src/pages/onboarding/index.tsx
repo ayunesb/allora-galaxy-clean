@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 import { useTenantAvailability } from '@/hooks/useTenantId';
 import { useAuth } from '@/context/AuthContext';
+import PageHelmet from '@/components/PageHelmet';
 
 const OnboardingPage: React.FC = () => {
   const { tenantId, isAvailable } = useTenantAvailability();
@@ -21,9 +22,15 @@ const OnboardingPage: React.FC = () => {
   }
   
   return (
-    <div className="min-h-screen">
-      <OnboardingWizard />
-    </div>
+    <>
+      <PageHelmet 
+        title="Onboarding"
+        description="Set up your Allora OS workspace and get started"
+      />
+      <div className="min-h-screen">
+        <OnboardingWizard />
+      </div>
+    </>
   );
 };
 
