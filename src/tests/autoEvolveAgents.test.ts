@@ -1,143 +1,82 @@
 
-import { expect, test, describe, vi, beforeEach } from 'vitest';
-import * as autoEvolve from '@/lib/agents/autoEvolve';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { autoEvolveAgents } from '@/lib/agents/autoEvolve';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock the autoEvolve module
-vi.mock('@/lib/agents/autoEvolve', () => ({
-  checkAgentForPromotion: vi.fn(),
-  checkAndEvolveAgent: vi.fn(),
-  checkAndEvolveAgents: vi.fn(),
+// Mock supabase client
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          is: vi.fn(() => ({
+            gt: vi.fn(() => ({
+              lt: vi.fn(() => ({
+                order: vi.fn(() => Promise.resolve({
+                  data: [
+                    { id: 'agent1', plugin_id: 'plugin1', prompt: 'test prompt', version: 'v1', upvotes: 1, downvotes: 5 }
+                  ],
+                  error: null
+                }))
+              }))
+            }))
+          }))
+        })),
+        gte: vi.fn(() => ({
+          is: vi.fn(() => ({
+            groupBy: vi.fn(() => Promise.resolve({
+              data: [
+                { agent_version_id: 'agent1', status: 'success', count: 10 }
+              ],
+              error: null
+            }))
+          }))
+        })),
+        not: vi.fn(() => Promise.resolve({
+          data: [
+            { comment: 'This needs improvement', vote_type: 'down' }
+          ],
+          error: null
+        }))
+      })),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({
+            data: { id: 'new-agent-id' },
+            error: null
+          }))
+        }))
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({
+          data: null,
+          error: null
+        }))
+      }))
+    })),
+    rpc: vi.fn(() => ({
+      multiply_value: () => 1.5 // Mock for the multiply_value RPC function
+    }))
+  }
 }));
 
-// Mock the fetch function for testing edge functions
-global.fetch = vi.fn();
+// Mock the logSystemEvent function
+vi.mock('@/lib/system/logSystemEvent', () => ({
+  logSystemEvent: vi.fn(() => Promise.resolve())
+}));
 
-describe('Auto Evolve Agents Edge Function', () => {
+describe('Auto Evolve Agents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  test('should evolve agents when conditions are met', async () => {
-    // Setup mocks
-    const mockAgentVersions = [
-      { id: 'agent-1', name: 'Agent 1', tenant_id: 'tenant-1' },
-      { id: 'agent-2', name: 'Agent 2', tenant_id: 'tenant-1' },
-    ];
+  it('should evolve agents that need evolution', async () => {
+    const tenantId = 'test-tenant';
     
-    const mockResponse = {
-      evolvedCount: 1,
-      results: [
-        { agentId: 'agent-1', evolved: true, reason: 'High XP score' },
-        { agentId: 'agent-2', evolved: false, reason: 'Not enough votes' },
-      ]
-    };
+    const result = await autoEvolveAgents(tenantId);
     
-    // Mock the checkAndEvolveAgents function to return our mock response
-    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
-    
-    // Mock the global fetch to simulate the edge function response
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
-
-    // Call the function through the edge function interface
-    const response = await fetch('/functions/autoEvolveAgents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: 'tenant-1' }),
-    });
-    
-    const result = await response.json();
-    
-    // Verify the result
-    expect(result.evolvedCount).toEqual(1);
-    expect(result.results.length).toEqual(2);
-    expect(result.results[0].evolved).toBe(true);
-    expect(autoEvolve.checkAndEvolveAgents).toHaveBeenCalledWith('tenant-1');
-  });
-
-  test('should handle empty agent list', async () => {
-    // Setup mocks for empty response
-    const mockEmptyResponse = {
-      evolvedCount: 0,
-      results: []
-    };
-    
-    // Mock the checkAndEvolveAgents function to return empty response
-    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockResolvedValue(mockEmptyResponse);
-    
-    // Mock the global fetch
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockEmptyResponse),
-    });
-
-    // Call the function
-    const response = await fetch('/functions/autoEvolveAgents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}), // No tenant ID, should use default
-    });
-    
-    const result = await response.json();
-    
-    // Verify the result
-    expect(result.evolvedCount).toEqual(0);
-    expect(result.results).toEqual([]);
-    expect(autoEvolve.checkAndEvolveAgents).toHaveBeenCalled();
-  });
-
-  test('should handle errors during evolution', async () => {
-    // Setup mock for error case
-    const mockError = new Error('Evolution process failed');
-    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockRejectedValue(mockError);
-    
-    // Mock the global fetch to return error
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ error: 'Internal server error' }),
-    });
-
-    // Call the function and expect it to fail properly
-    const response = await fetch('/functions/autoEvolveAgents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: 'tenant-1' }),
-    });
-    
-    expect(response.ok).toBe(false);
-    expect(response.status).toEqual(500);
-    
-    // Verify the function was called despite the error
-    expect(autoEvolve.checkAndEvolveAgents).toHaveBeenCalledWith('tenant-1');
-  });
-
-  test('should validate input parameters', async () => {
-    // Mock implementation for invalid tenant ID
-    (autoEvolve.checkAndEvolveAgents as ReturnType<typeof vi.fn>).mockImplementation((tenantId) => {
-      if (!tenantId || typeof tenantId !== 'string') {
-        throw new Error('Invalid tenant ID');
-      }
-      return { evolvedCount: 0, results: [] };
-    });
-    
-    // Mock fetch with validation error
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: false,
-      status: 400,
-      json: () => Promise.resolve({ error: 'Invalid tenant ID format' }),
-    });
-
-    // Call with invalid tenant ID format
-    const response = await fetch('/functions/autoEvolveAgents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId: 123 }), // Invalid - should be string
-    });
-    
-    expect(response.ok).toBe(false);
-    expect(response.status).toEqual(400);
+    expect(result.success).toBe(true);
+    expect(result.evolved).toBeGreaterThan(0);
+    expect(supabase.from).toHaveBeenCalledWith('agent_versions');
   });
 });

@@ -119,14 +119,18 @@ describe('Execution Record Functions', () => {
       })),
     } as any));
     
-    // Mock setTimeout properly to avoid TS2741 error
+    // Create a properly typed setTimeout mock
     const originalSetTimeout = global.setTimeout;
-    const mockedSetTimeout = vi.fn((callback: Function) => {
-      callback();
-      return 1 as unknown as NodeJS.Timeout;
-    });
     
-    global.setTimeout = mockedSetTimeout;
+    // Properly typed mock that satisfies the NodeJS.Timeout interface
+    global.setTimeout = vi.fn((callback: Function, _ms?: number) => {
+      callback();
+      return { 
+        ref: () => ({}),
+        unref: () => ({}),
+        hasRef: () => false, 
+      } as unknown as NodeJS.Timeout;
+    });
     
     const input: ExecutionRecordInput = {
       tenantId: 'test-tenant',

@@ -2,8 +2,7 @@
 /**
  * Interface for environment variable validation
  */
-import { getEnvVar, corsHeaders } from '@/lib/env/envUtils';
-import type { EnvVariable } from '@/lib/env/envUtils';
+import { getEnvVar, corsHeaders, EnvVariable, validateEnv as validateEnvironment } from '@/lib/env/envUtils';
 
 export { getEnvVar, corsHeaders };
 export type { EnvVariable };
@@ -15,19 +14,16 @@ export type { EnvVariable };
  */
 export function validateEnv(envVars: EnvVariable[]): Record<string, string> {
   const result: Record<string, string> = {};
-  const missing: string[] = [];
+  const validationResult = validateEnvironment(envVars);
+  
+  // Add validation result to output for reference
+  result._valid = String(validationResult.valid);
+  result._missing = validationResult.missing.join(',');
 
+  // Add actual env var values to result
   for (const envVar of envVars) {
     const value = getEnvVar(envVar.name, envVar.default || '');
     result[envVar.name] = value;
-
-    if (envVar.required && !value) {
-      missing.push(`${envVar.name} (${envVar.description})`);
-    }
-  }
-
-  if (missing.length > 0) {
-    console.warn(`⚠️ Missing required environment variables: ${missing.join(', ')}`);
   }
 
   return result;

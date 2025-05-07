@@ -4,41 +4,51 @@
  */
 
 /**
- * Environment variable names enum
+ * Environment variable interface
+ */
+export interface EnvVariable {
+  name: string;
+  required?: boolean;
+  description?: string;
+  default?: string;
+}
+
+/**
+ * Common environment variable names
  * Add all environment variables that your application uses here
  */
-export enum EnvVariable {
-  VITE_SUPABASE_URL = 'VITE_SUPABASE_URL',
-  VITE_SUPABASE_ANON_KEY = 'VITE_SUPABASE_ANON_KEY',
-  VITE_OPENAI_API_KEY = 'VITE_OPENAI_API_KEY',
-  VITE_HUBSPOT_API_KEY = 'VITE_HUBSPOT_API_KEY',
-  VITE_STRIPE_SECRET_KEY = 'VITE_STRIPE_SECRET_KEY',
-  VITE_STRIPE_PUBLISHABLE_KEY = 'VITE_STRIPE_PUBLISHABLE_KEY'
-}
+export const ENV = {
+  SUPABASE_URL: 'VITE_SUPABASE_URL',
+  SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
+  OPENAI_API_KEY: 'VITE_OPENAI_API_KEY',
+  HUBSPOT_API_KEY: 'VITE_HUBSPOT_API_KEY',
+  STRIPE_SECRET_KEY: 'VITE_STRIPE_SECRET_KEY',
+  STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY'
+};
 
 /**
  * Get an environment variable in a safe way
  * 
  * @param name The name of the environment variable to get
- * @param required Whether the environment variable is required (throws if not found)
- * @param defaultValue A default value to return if the environment variable is not found and not required
+ * @param defaultValue A default value to return if the environment variable is not found
  * @returns The value of the environment variable
  */
 export function getEnvVar(
-  name: EnvVariable | string,
-  required: boolean = false,
+  name: string,
   defaultValue: string = ''
 ): string {
   let value: string | undefined;
   
   // Try to get from Deno.env if in Deno environment (edge functions)
-  if (typeof Deno !== 'undefined' && Deno?.env) {
-    try {
-      value = Deno.env.get(name);
-    } catch (e) {
-      // Deno.env might be restricted in some contexts
-      console.debug(`Could not access Deno.env for ${name}`);
+  try {
+    if (typeof globalThis !== 'undefined' && 
+        'Deno' in globalThis && 
+        globalThis.Deno?.env) {
+      value = globalThis.Deno.env.get(name);
     }
+  } catch (e) {
+    // Deno.env might be restricted in some contexts
+    console.debug(`Could not access Deno.env for ${name}`);
   }
   
   // Fallback to process.env if in Node environment
@@ -51,12 +61,6 @@ export function getEnvVar(
     value = (import.meta.env as any)[name];
   }
   
-  // Handle missing required variables
-  if (!value && required) {
-    throw new Error(`Required environment variable ${name} is not set`);
-  }
-  
-  // Return the value or default
   return value || defaultValue;
 }
 
@@ -69,14 +73,16 @@ export function getEnvVar(
 export function validateEnv(requiredVars: EnvVariable[]): { valid: boolean; missing: string[] } {
   const missing: string[] = [];
   
-  for (const varName of requiredVars) {
+  for (const envVar of requiredVars) {
     try {
-      const value = getEnvVar(varName);
-      if (!value) {
-        missing.push(varName);
+      const value = getEnvVar(envVar.name);
+      if (!value && envVar.required) {
+        missing.push(envVar.name);
       }
     } catch (e) {
-      missing.push(varName);
+      if (envVar.required) {
+        missing.push(envVar.name);
+      }
     }
   }
   

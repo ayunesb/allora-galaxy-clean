@@ -1,34 +1,124 @@
 
-import { describe, it, expect, vi } from 'vitest';
-import { AgentVote, VoteType } from '@/types/fixed';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { voteOnAgent } from '@/lib/agents/vote';
+import { supabase } from '@/integrations/supabase/client';
+import { logSystemEvent } from '@/lib/system/logSystemEvent'; 
 
-// Mock before top-level imports
+// Mock supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: () => ({
-      insert: vi.fn().mockResolvedValue({ data: { id: 'mock-id' }, error: null }),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ 
-        data: { upvotes: 5, downvotes: 2 }, 
-        error: null 
-      }),
-    }),
-  },
+    from: vi.fn(() => ({
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({
+            data: { id: 'test-vote-id' },
+            error: null
+          }))
+        }))
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({
+          data: null,
+          error: null
+        }))
+      }))
+    }))
+  }
 }));
 
-import { voteOnAgentVersion } from '@/lib/agents/vote';
+// Mock the logSystemEvent function
+vi.mock('@/lib/system/logSystemEvent', () => ({
+  logSystemEvent: vi.fn(() => Promise.resolve())
+}));
 
-describe('Agent Voting', () => {
-  it('should vote successfully', async () => {
-    const result = await voteOnAgentVersion(
-      'test-agent',
-      'up' as VoteType,
-      'test-user'
+describe('Agent Voting System', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should successfully record an upvote', async () => {
+    const voteData = {
+      agentVersionId: 'test-agent-id',
+      userId: 'test-user-id',
+      tenantId: 'test-tenant-id',
+      voteType: 'up' as const,
+      comment: 'Great performance!'
+    };
+    
+    const result = await voteOnAgent(
+      voteData.agentVersionId,
+      voteData.userId,
+      voteData.tenantId,
+      voteData.voteType,
+      voteData.comment
     );
     
     expect(result.success).toBe(true);
-    expect(result.upvotes).toBe(5);
-    expect(result.downvotes).toBe(2);
+    expect(result.voteId).toBe('test-vote-id');
+    expect(supabase.from).toHaveBeenCalledWith('agent_votes');
+    expect(supabase.from).toHaveBeenCalledWith('agent_versions');
+    expect(logSystemEvent).toHaveBeenCalledWith(
+      voteData.tenantId, 
+      'agent', 
+      'agent_voted',
+      expect.objectContaining({
+        agent_version_id: voteData.agentVersionId,
+        vote_type: voteData.voteType
+      })
+    );
+  });
+
+  it('should successfully record a downvote', async () => {
+    const voteData = {
+      agentVersionId: 'test-agent-id',
+      userId: 'test-user-id',
+      tenantId: 'test-tenant-id',
+      voteType: 'down' as const,
+      comment: 'Could be improved'
+    };
+    
+    const result = await voteOnAgent(
+      voteData.agentVersionId,
+      voteData.userId,
+      voteData.tenantId,
+      voteData.voteType,
+      voteData.comment
+    );
+    
+    expect(result.success).toBe(true);
+    expect(result.voteId).toBe('test-vote-id');
+    expect(supabase.from).toHaveBeenCalledWith('agent_votes');
+    expect(supabase.from).toHaveBeenCalledWith('agent_versions');
+  });
+  
+  it('should handle errors gracefully', async () => {
+    // Mock an error when inserting vote
+    vi.mocked(supabase.from).mockImplementationOnce(() => ({
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({
+            data: null,
+            error: { message: 'Database error' }
+          }))
+        }))
+      }))
+    } as any));
+    
+    const voteData = {
+      agentVersionId: 'test-agent-id',
+      userId: 'test-user-id',
+      tenantId: 'test-tenant-id',
+      voteType: 'up' as const
+    };
+    
+    const result = await voteOnAgent(
+      voteData.agentVersionId,
+      voteData.userId,
+      voteData.tenantId,
+      voteData.voteType
+    );
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 });
