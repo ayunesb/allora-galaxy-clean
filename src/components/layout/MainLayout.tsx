@@ -8,7 +8,7 @@ import CookieConsent from '../CookieConsent';
 import { useWorkspace } from '@/context/WorkspaceContext';
 
 // Import the NavigationItem type directly from the context
-import type { NavigationItem } from '@/context/WorkspaceContext';
+import { NavigationItem } from '@/context/WorkspaceContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;

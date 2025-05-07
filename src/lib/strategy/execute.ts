@@ -104,3 +104,63 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
     };
   }
 }
+
+/**
+ * Function to validate strategy parameters
+ */
+export function validateStrategyParameters(params: Record<string, any>): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Define required parameters
+  const requiredParams = ['name', 'description'];
+  
+  // Check if all required parameters are provided
+  for (const param of requiredParams) {
+    if (!params[param]) {
+      errors.push(`Missing required parameter: ${param}`);
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Function to track execution metrics
+ */
+export async function trackExecutionMetrics(
+  tenant_id: string, 
+  strategy_id: string, 
+  execution_id: string,
+  metrics: {
+    execution_time: number;
+    success: boolean;
+    error?: string;
+  }
+): Promise<void> {
+  try {
+    // In a real implementation, this would send metrics to a monitoring system
+    console.log(`Tracking metrics for execution ${execution_id}:`, metrics);
+  } catch (error) {
+    console.error("Failed to track execution metrics:", error);
+  }
+}
+
+/**
+ * Function to notify stakeholders about strategy execution
+ */
+export async function notifyStakeholders(
+  tenant_id: string,
+  strategy_id: string,
+  execution_id: string,
+  result: ExecuteStrategyResult
+): Promise<void> {
+  try {
+    // In a real implementation, this would send notifications
+    console.log(`Notifying stakeholders about execution ${execution_id}:`, result);
+  } catch (error) {
+    console.error("Failed to notify stakeholders:", error);
+  }
+}

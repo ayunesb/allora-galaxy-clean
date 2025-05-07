@@ -1,5 +1,6 @@
 
 import { runStrategy } from "@/lib/strategy/execute";
+import { expect, test } from "vitest";
 
 test("runStrategy works as expected", async () => {
   // Mock input for testing

@@ -9,6 +9,138 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_versions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          downvotes: number | null
+          id: string
+          plugin_id: string | null
+          prompt: string
+          status: string
+          updated_at: string | null
+          upvotes: number | null
+          version: string
+          xp: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          downvotes?: number | null
+          id?: string
+          plugin_id?: string | null
+          prompt: string
+          status: string
+          updated_at?: string | null
+          upvotes?: number | null
+          version: string
+          xp?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          downvotes?: number | null
+          id?: string
+          plugin_id?: string | null
+          prompt?: string
+          status?: string
+          updated_at?: string | null
+          upvotes?: number | null
+          version?: string
+          xp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_versions_plugin_id_fkey"
+            columns: ["plugin_id"]
+            isOneToOne: false
+            referencedRelation: "plugins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_votes: {
+        Row: {
+          agent_version_id: string | null
+          comment: string | null
+          created_at: string | null
+          id: string
+          user_id: string | null
+          vote_type: string
+        }
+        Insert: {
+          agent_version_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          vote_type: string
+        }
+        Update: {
+          agent_version_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_votes_agent_version_id_fkey"
+            columns: ["agent_version_id"]
+            isOneToOne: false
+            referencedRelation: "agent_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_profiles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          industry: string | null
+          name: string
+          revenue_range: string | null
+          size: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          name: string
+          revenue_range?: string | null
+          size?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          name?: string
+          revenue_range?: string | null
+          size?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cookie_preferences: {
         Row: {
           accepted_at: string | null
@@ -39,12 +171,453 @@ export type Database = {
         }
         Relationships: []
       }
+      executions: {
+        Row: {
+          agent_version_id: string | null
+          created_at: string | null
+          error: string | null
+          executed_by: string | null
+          execution_time: number | null
+          id: string
+          input: Json | null
+          output: Json | null
+          plugin_id: string | null
+          status: string
+          strategy_id: string | null
+          tenant_id: string | null
+          type: string
+          xp_earned: number | null
+        }
+        Insert: {
+          agent_version_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          executed_by?: string | null
+          execution_time?: number | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          plugin_id?: string | null
+          status: string
+          strategy_id?: string | null
+          tenant_id?: string | null
+          type: string
+          xp_earned?: number | null
+        }
+        Update: {
+          agent_version_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          executed_by?: string | null
+          execution_time?: number | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          plugin_id?: string | null
+          status?: string
+          strategy_id?: string | null
+          tenant_id?: string | null
+          type?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executions_agent_version_id_fkey"
+            columns: ["agent_version_id"]
+            isOneToOne: false
+            referencedRelation: "agent_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executions_plugin_id_fkey"
+            columns: ["plugin_id"]
+            isOneToOne: false
+            referencedRelation: "plugins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executions_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpis: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          date: string
+          id: string
+          name: string
+          previous_value: number | null
+          source: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          name: string
+          previous_value?: number | null
+          source?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          name?: string
+          previous_value?: number | null
+          source?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persona_profiles: {
+        Row: {
+          created_at: string | null
+          goals: string[] | null
+          id: string
+          name: string
+          tenant_id: string | null
+          tone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          goals?: string[] | null
+          id?: string
+          name: string
+          tenant_id?: string | null
+          tone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          goals?: string[] | null
+          id?: string
+          name?: string
+          tenant_id?: string | null
+          tone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persona_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plugin_logs: {
+        Row: {
+          agent_version_id: string | null
+          created_at: string | null
+          error: string | null
+          execution_time: number | null
+          id: string
+          input: Json | null
+          output: Json | null
+          plugin_id: string | null
+          status: string
+          strategy_id: string | null
+          tenant_id: string | null
+          xp_earned: number | null
+        }
+        Insert: {
+          agent_version_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          execution_time?: number | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          plugin_id?: string | null
+          status: string
+          strategy_id?: string | null
+          tenant_id?: string | null
+          xp_earned?: number | null
+        }
+        Update: {
+          agent_version_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          execution_time?: number | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          plugin_id?: string | null
+          status?: string
+          strategy_id?: string | null
+          tenant_id?: string | null
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugin_logs_agent_version_id_fkey"
+            columns: ["agent_version_id"]
+            isOneToOne: false
+            referencedRelation: "agent_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_logs_plugin_id_fkey"
+            columns: ["plugin_id"]
+            isOneToOne: false
+            referencedRelation: "plugins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_logs_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plugins: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          roi: number | null
+          status: string
+          updated_at: string | null
+          xp: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          roi?: number | null
+          status: string
+          updated_at?: string | null
+          xp?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          roi?: number | null
+          status?: string
+          updated_at?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
+      strategies: {
+        Row: {
+          approved_by: string | null
+          completion_percentage: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          id: string
+          priority: string | null
+          status: string
+          tags: string[] | null
+          tenant_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          status: string
+          tags?: string[] | null
+          tenant_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          completion_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          status?: string
+          tags?: string[] | null
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_logs: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          event: string
+          id: string
+          module: string
+          tenant_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          event: string
+          id?: string
+          module: string
+          tenant_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          event?: string
+          id?: string
+          module?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: string
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          owner_id: string | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          owner_id?: string | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          owner_id?: string | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_tenant_admin: {
+        Args: { tenant_id: string }
+        Returns: boolean
+      }
+      is_tenant_member: {
+        Args: { tenant_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
