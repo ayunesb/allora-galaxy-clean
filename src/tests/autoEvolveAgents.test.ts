@@ -1,6 +1,6 @@
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { autoEvolveAgent } from '@/lib/agents/autoEvolve';
+import autoEvolveAgent from '@/lib/agents/autoEvolve';
 
 // Mock supabase
 vi.mock('@/lib/supabase', () => ({

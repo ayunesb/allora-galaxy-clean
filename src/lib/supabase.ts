@@ -12,19 +12,19 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 supabase.from = supabase.from.bind(supabase);
 supabase.rpc = supabase.rpc.bind(supabase);
 
-// Add realtime property to fix typing issues
-if (!('realtime' in supabase)) {
-  (supabase as any).realtime = {
-    channel: (name: string) => supabase.channel(name),
-    // Safely add removeChannel if it doesn't exist
-    removeChannel: (channel: any) => {
-      if (typeof supabase.removeChannel === 'function') {
-        return supabase.removeChannel(channel);
-      }
-      return false;
+// Create a properly typed realtime property
+export const realtime = {
+  channel: (name: string) => supabase.channel(name),
+  removeChannel: (channel: any) => {
+    if (typeof supabase.removeChannel === 'function') {
+      return supabase.removeChannel(channel);
     }
-  };
-}
+    return false;
+  }
+};
+
+// Add realtime property to the supabase client
+(supabase as any).realtime = realtime;
 
 // Export default client for compatibility
 export default supabase;

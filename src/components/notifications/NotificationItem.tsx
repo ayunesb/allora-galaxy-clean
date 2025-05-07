@@ -27,12 +27,14 @@ interface NotificationItemProps {
   notification: NotificationItemType;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
+  onClose?: () => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
-  onDelete
+  onDelete,
+  onClose
 }) => {
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -71,6 +73,12 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch (e) {
       return 'recently';
+    }
+  };
+
+  const handleClick = () => {
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -128,7 +136,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   );
 
   return notification.link ? (
-    <Link to={notification.link} className="block hover:no-underline">
+    <Link to={notification.link} className="block hover:no-underline" onClick={handleClick}>
       {renderNotificationContent()}
     </Link>
   ) : (

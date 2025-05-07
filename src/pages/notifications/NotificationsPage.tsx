@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, realtime } from '@/lib/supabase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { NotificationItemType } from '@/components/notifications/NotificationItem';
@@ -23,38 +22,24 @@ const NotificationsPage: React.FC = () => {
       fetchNotifications();
 
       // Set up real-time subscription for new notifications
-      const setupSubscription = async () => {
-        try {
-          const channel = supabase.realtime
-            .channel('notifications_changes')
-            .on('postgres_changes', 
-              {
-                event: '*', // Listen for all changes
-                schema: 'public',
-                table: 'notifications',
-                filter: `user_id=eq.${user.id}`
-              }, 
-              () => {
-                fetchNotifications();
-              }
-            )
-            .subscribe();
-          
-          return channel;
-        } catch (error) {
-          console.error('Error setting up realtime subscription:', error);
-          return null;
-        }
-      };
-      
-      const channel = setupSubscription();
+      const channel = realtime
+        .channel('notifications_changes')
+        .on('postgres_changes', 
+          {
+            event: '*', // Listen for all changes
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          }, 
+          () => {
+            fetchNotifications();
+          }
+        )
+        .subscribe();
       
       return () => {
         if (channel) {
-          // Safely handle removeChannel method
-          if ('removeChannel' in supabase.realtime) {
-            supabase.realtime.removeChannel(channel);
-          }
+          realtime.removeChannel(channel);
         }
       };
     }
