@@ -50,3 +50,12 @@ export interface PluginResult {
   executionTime?: number;
   xpEarned?: number;
 }
+
+/**
+ * Interface for plugin chain execution result
+ */
+export interface RunPluginChainResult {
+  success: boolean;
+  results: PluginResult[];
+  error?: string;
+}
