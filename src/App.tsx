@@ -14,10 +14,18 @@ import { ProtectedRoute, MainRoute, AdminRoute } from './routes/ProtectedRoutes'
 import Dashboard from './pages/dashboard/Dashboard';
 import KpiDashboard from './pages/insights/KpiDashboard';
 import BillingPage from './pages/billing/BillingPage';
+import LoadingScreen from './components/LoadingScreen';
 import './App.css';
 
 // Lazy loaded components
-const LazyLoadingScreen = React.lazy(() => import('./components/LoadingScreen'));
+const NotificationsPage = React.lazy(() => import('./pages/notifications/NotificationsPage'));
+const ProfileSettings = React.lazy(() => import('./pages/settings/ProfileSettings'));
+const PluginsPage = React.lazy(() => import('./pages/plugins/PluginsPage'));
+const GalaxyPage = React.lazy(() => import('./pages/galaxy/GalaxyPage'));
+const AgentPerformance = React.lazy(() => import('./pages/agents/AgentPerformance'));
+const UserManagement = React.lazy(() => import('./pages/admin/UserManagement'));
+const SystemLogs = React.lazy(() => import('./pages/admin/SystemLogs'));
+const AiDecisions = React.lazy(() => import('./pages/admin/AiDecisions'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,48 +59,72 @@ function App() {
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/insights/kpis" element={<KpiDashboard />} />
                       <Route path="/billing" element={<BillingPage />} />
-                      <Route path="/notifications" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/notifications/NotificationsPage')) />
-                        </React.Suspense>
-                      } />
-                      <Route path="/settings" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/settings/ProfileSettings')) />
-                        </React.Suspense>
-                      } />
-                      <Route path="/plugins/*" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/plugins/PluginsPage')) />
-                        </React.Suspense>
-                      } />
-                      <Route path="/galaxy" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/galaxy/GalaxyPage')) />
-                        </React.Suspense>
-                      } />
-                      <Route path="/agents/performance" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/agents/AgentPerformance')) />
-                        </React.Suspense>
-                      } />
+                      <Route
+                        path="/notifications"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <NotificationsPage />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="/settings"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <ProfileSettings />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="/plugins/*"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <PluginsPage />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="/galaxy"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <GalaxyPage />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="/agents/performance"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <AgentPerformance />
+                          </React.Suspense>
+                        }
+                      />
                     </Route>
                     <Route path="/admin/*" element={<AdminRoute />}>
-                      <Route path="users" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/admin/UserManagement')) />
-                        </React.Suspense>
-                      } />
-                      <Route path="system-logs" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/admin/SystemLogs')) />
-                        </React.Suspense>
-                      } />
-                      <Route path="ai-decisions" element={
-                        <React.Suspense fallback={<LazyLoadingScreen />}>
-                          <React.lazy(() => import('./pages/admin/AiDecisions')) />
-                        </React.Suspense>
-                      } />
+                      <Route
+                        path="users"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <UserManagement />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="system-logs"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <SystemLogs />
+                          </React.Suspense>
+                        }
+                      />
+                      <Route
+                        path="ai-decisions"
+                        element={
+                          <React.Suspense fallback={<LoadingScreen />}>
+                            <AiDecisions />
+                          </React.Suspense>
+                        }
+                      />
                     </Route>
                   </Route>
                   
