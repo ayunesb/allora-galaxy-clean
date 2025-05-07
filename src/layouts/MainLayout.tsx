@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import SidebarNav from '@/components/layout/SidebarNav';
+import { SidebarNav } from '@/components/layout/SidebarNav';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { NavigationItem } from '@/types/navigation';
 
