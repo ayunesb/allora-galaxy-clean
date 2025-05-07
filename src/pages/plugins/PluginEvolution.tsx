@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -16,24 +17,26 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, 
-  ResponsiveContainer, ScatterChart, Scatter, ZAxis 
+  ResponsiveContainer, ScatterChart, Scatter, ZAxis, LineChart, Line
 } from 'recharts';
 import { 
   Loader2, 
   ChevronLeft, 
   CloudOff,
   BarChart2,
-  LineChart,
-  Table2
+  LineChart as LineChartIcon,
+  Table2,
+  AlertCircle,
+  Flag
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/EmptyState';
 import PageHelmet from '@/components/PageHelmet';
 import { useTenantId } from '@/hooks/useTenantId';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import PromptDiffAnalysis from '@/components/admin/PromptDiffAnalysis';
 
 const PluginEvolution = () => {
   const { id: pluginId } = useParams<{ id: string }>();
@@ -140,6 +143,30 @@ const PluginEvolution = () => {
     }
   };
 
+  // Flag an agent version for review
+  const flagForReview = async (agentVersionId: string) => {
+    try {
+      await logSystemEvent(
+        tenantId,
+        'agent',
+        'agent_version_flagged_for_review',
+        { agent_version_id: agentVersionId, plugin_id: pluginId }
+      );
+      
+      toast({
+        title: 'Agent Version Flagged',
+        description: 'This agent version has been flagged for human review.',
+      });
+    } catch (error: any) {
+      console.error('Error flagging agent:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to flag agent version for review.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Handle tab change and log the event
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -214,8 +241,12 @@ const PluginEvolution = () => {
                 <span>XP History</span>
               </TabsTrigger>
               <TabsTrigger value="roi-exec" className="flex items-center gap-2">
-                <LineChart className="h-4 w-4" />
+                <LineChartIcon className="h-4 w-4" />
                 <span>ROI vs Execution Time</span>
+              </TabsTrigger>
+              <TabsTrigger value="executions" className="flex items-center gap-2">
+                <LineChartIcon className="h-4 w-4" />
+                <span>Recent Executions</span>
               </TabsTrigger>
               <TabsTrigger value="versions" className="flex items-center gap-2">
                 <Table2 className="h-4 w-4" />
@@ -297,45 +328,165 @@ const PluginEvolution = () => {
                 <EmptyState
                   title="No execution data"
                   description="This plugin has no execution history to show"
-                  icon={<LineChart className="h-12 w-12" />}
+                  icon={<LineChartIcon className="h-12 w-12" />}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="executions">
+              {pluginLogs && pluginLogs.length > 0 ? (
+                <div className="space-y-4 mt-4">
+                  <h3 className="text-lg font-medium">Recent Plugin Executions</h3>
+                  <div className="relative">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={pluginLogs.slice(0, 20).reverse()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="index" tick={false} />
+                        <YAxis />
+                        <RechartsTooltip 
+                          formatter={(value: any) => [`${value} XP`, 'XP Earned']}
+                          labelFormatter={(index) => `Execution ${index + 1}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="xp_earned" 
+                          stroke="#8884d8" 
+                          activeDot={{ r: 8 }} 
+                          name="XP"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="space-y-3 mt-4">
+                    {pluginLogs.slice(0, 10).map((log, index) => (
+                      <Card key={log.id} className="overflow-hidden">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant={log.status === 'success' ? 'default' : 'destructive'}
+                                >
+                                  {log.status === 'success' ? 'Success' : 'Failed'}
+                                </Badge>
+                                {log.strategy && (
+                                  <span className="text-sm font-medium">
+                                    {log.strategy.title}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{log.xp_earned} XP</Badge>
+                              <Badge variant="secondary">{log.execution_time.toFixed(2)}s</Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {pluginLogs.length > 10 && (
+                      <div className="text-center py-2">
+                        <Button variant="ghost" size="sm">
+                          View All ({pluginLogs.length}) Executions
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  title="No executions found"
+                  description="This plugin hasn't been executed yet"
+                  icon={<LineChartIcon className="h-12 w-12" />}
                 />
               )}
             </TabsContent>
 
             <TabsContent value="versions">
               {agentVersions && agentVersions.length > 0 ? (
-                <div className="rounded-md border mt-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Version</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>XP</TableHead>
-                        <TableHead>Votes</TableHead>
-                        <TableHead>Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {agentVersions.map(version => (
-                        <TableRow key={version.id}>
-                          <TableCell>v{version.version}</TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusBadgeVariant(version.status)}>
-                              {version.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{version.xp} XP</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="text-green-500">{version.upvotes || 0}👍</span>
-                              <span className="text-red-500">{version.downvotes || 0}👎</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{format(new Date(version.created_at), 'PP')}</TableCell>
+                <div className="space-y-6 mt-4">
+                  {agentVersions.length > 1 && (
+                    <Card className="border-blue-100 bg-blue-50">
+                      <CardContent className="p-4">
+                        <PromptDiffAnalysis
+                          currentPrompt={agentVersions[0].prompt}
+                          previousPrompt={agentVersions[1].prompt}
+                          agentVersionId={agentVersions[0].id}
+                          pluginId={pluginId}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Version</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>XP</TableHead>
+                          <TableHead>Votes</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {agentVersions.map(version => {
+                          // Check if agent is underperforming compared to previous version
+                          const isUnderperforming = agentVersions.length > 1 && 
+                                                   version.status === 'active' && 
+                                                   version.xp < agentVersions[1].xp;
+                          
+                          return (
+                            <TableRow key={version.id}>
+                              <TableCell>v{version.version}</TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusBadgeVariant(version.status)}>
+                                  {version.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{version.xp} XP</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-green-500">{version.upvotes || 0}👍</span>
+                                  <span className="text-red-500">{version.downvotes || 0}👎</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{format(new Date(version.created_at), 'PP')}</TableCell>
+                              <TableCell>
+                                {isUnderperforming && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="flex items-center gap-1 text-amber-600 border-amber-200"
+                                    onClick={() => flagForReview(version.id)}
+                                  >
+                                    <Flag className="h-3 w-3" />
+                                    <span>Flag for Review</span>
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {agentVersions.length > 0 && agentVersions[0].status === 'active' && agentVersions[0].xp < 10 && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Low Performance Alert</AlertTitle>
+                      <AlertDescription>
+                        The current active version is showing low XP performance. Consider reviewing the prompt.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               ) : (
                 <EmptyState

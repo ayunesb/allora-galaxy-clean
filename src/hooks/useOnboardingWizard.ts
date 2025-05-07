@@ -8,6 +8,7 @@ import { OnboardingFormData } from '@/types/onboarding';
 import { submitOnboardingData } from '@/services/onboardingService';
 import { useOnboardingSteps } from '@/hooks/useOnboardingSteps';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export type { OnboardingFormData } from '@/types/onboarding';
 
@@ -21,6 +22,7 @@ export const useOnboardingWizard = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState<OnboardingFormData>({
@@ -50,6 +52,69 @@ export const useOnboardingWizard = () => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
+  // Generate AI strategy based on company and persona data
+  const generateAIStrategy = async (tenantId: string, userId: string) => {
+    setIsGeneratingStrategy(true);
+    
+    try {
+      // Prepare data for the AI
+      const companyProfile = {
+        name: formData.companyName,
+        industry: formData.industry,
+        size: formData.teamSize,
+        revenue_range: formData.revenueRange,
+        website: formData.website,
+        description: formData.description
+      };
+      
+      const personaProfile = {
+        name: formData.personaName,
+        tone: formData.tone,
+        goals: formData.goals.split(',').map(goal => goal.trim())
+      };
+      
+      // Call the edge function to generate a strategy
+      const { data, error } = await supabase.functions.invoke('generateStrategy', {
+        body: {
+          tenant_id: tenantId,
+          company_profile: companyProfile,
+          persona_profile: personaProfile,
+          user_id: userId
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'Failed to generate strategy');
+      }
+      
+      toast({
+        title: 'Strategy generated!',
+        description: 'Your AI-powered strategy is ready to review.',
+      });
+      
+      // Log successful generation
+      await logSystemEvent(
+        tenantId,
+        'strategy',
+        'strategy_generated_onboarding',
+        { strategy_id: data.strategy?.id }
+      );
+      
+      return data.strategy;
+    } catch (error: any) {
+      console.error('Strategy generation error:', error);
+      toast({
+        title: 'Strategy generation failed',
+        description: error.message || 'Please try again later',
+        variant: 'destructive',
+      });
+      
+      return null;
+    } finally {
+      setIsGeneratingStrategy(false);
+    }
+  };
+
   // Handle onboarding submission
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -71,7 +136,7 @@ export const useOnboardingWizard = () => {
         description: 'Your workspace has been set up successfully.',
       });
 
-      // Set the current tenant and redirect to dashboard
+      // Set the current tenant
       if (result.tenantId) {
         setCurrentTenant({
           id: result.tenantId,
@@ -87,7 +152,10 @@ export const useOnboardingWizard = () => {
           { tenant_id: result.tenantId }
         );
         
-        // Use React Router's navigate for redirection
+        // Generate AI strategy
+        await generateAIStrategy(result.tenantId, user.id);
+        
+        // Redirect to dashboard
         navigate('/dashboard');
       }
     } catch (error: any) {
@@ -121,5 +189,6 @@ export const useOnboardingWizard = () => {
     isStepValid,
     resetError,
     validateCurrentStep,
+    isGeneratingStrategy
   };
 };

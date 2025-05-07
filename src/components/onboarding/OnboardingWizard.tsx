@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -12,6 +12,7 @@ import StepContent, { stepTitles, stepDetails } from './StepContent';
 import OnboardingErrorDialog from './OnboardingErrorDialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import StrategyGenerationStep from './steps/StrategyGenerationStep';
 
 const OnboardingWizard: React.FC = () => {
   const {
@@ -29,6 +30,7 @@ const OnboardingWizard: React.FC = () => {
     isStepValid,
     resetError,
     validateCurrentStep,
+    isGeneratingStrategy
   } = useOnboardingWizard();
 
   // Redirect to dashboard if user already has tenants
@@ -44,6 +46,9 @@ const OnboardingWizard: React.FC = () => {
   const currentStepData = stepDetails[currentStep];
   const { errors } = validateCurrentStep();
   const hasValidationErrors = Object.keys(errors).length > 0;
+  
+  // If we're in the final step and strategy generation is in process
+  const isStrategyGenerationStep = currentStep === stepDetails.length - 1;
 
   return (
     <ErrorBoundary tenant_id="system" supportEmail="support@alloraos.com">
@@ -75,11 +80,15 @@ const OnboardingWizard: React.FC = () => {
               </Alert>
             )}
             
-            <StepContent 
-              currentStep={currentStep}
-              formData={formData}
-              updateFormData={updateFormData}
-            />
+            {isStrategyGenerationStep && isGeneratingStrategy ? (
+              <StrategyGenerationStep />
+            ) : (
+              <StepContent 
+                currentStep={currentStep}
+                formData={formData}
+                updateFormData={updateFormData}
+              />
+            )}
             
             <StepNavigation
               currentStep={currentStep}
@@ -88,7 +97,7 @@ const OnboardingWizard: React.FC = () => {
               onNext={handleNextStep}
               onComplete={handleSubmit}
               isNextDisabled={!isStepValid()}
-              isSubmitting={isSubmitting}
+              isSubmitting={isSubmitting || isGeneratingStrategy}
             />
           </CardContent>
         </Card>

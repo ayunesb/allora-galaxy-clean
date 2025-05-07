@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertTriangle, Clock, ThumbsUp, ThumbsDown, Code, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import PromptDiffViewer from '@/components/PromptDiffViewer';
+import PromptDiffAnalysis from '@/components/admin/PromptDiffAnalysis';
 import AgentVotePanel from '@/components/AgentVotePanel';
 import { Progress } from '@/components/ui/progress';
 import { Link } from 'react-router-dom';
@@ -44,6 +45,7 @@ const AiDecisions: React.FC = () => {
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<AgentVersion | null>(null);
   const [previousVersion, setPreviousVersion] = useState<AgentVersion | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('versions');
   const { toast } = useToast();
   const tenantId = useTenantId();
 
@@ -148,6 +150,12 @@ const AiDecisions: React.FC = () => {
     return (upvotes / total) * 100;
   };
 
+  // Handle tab change and log it
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    logSystemEvent(tenantId, 'admin', 'ai_decisions_tab_change', { tab: value });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold">AI Decisions</h1>
@@ -202,10 +210,11 @@ const AiDecisions: React.FC = () => {
                 icon={<AlertTriangle className="h-12 w-12 text-yellow-500" />}
               />
             ) : (
-              <Tabs defaultValue="versions">
+              <Tabs defaultValue={activeTab} onValueChange={handleTabChange}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="versions">Versions</TabsTrigger>
                   <TabsTrigger value="diff">Prompt Diff</TabsTrigger>
+                  <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
                   <TabsTrigger value="performance">Performance</TabsTrigger>
                 </TabsList>
                 
@@ -301,7 +310,7 @@ const AiDecisions: React.FC = () => {
                                 agent_version_id={version.id}
                                 initialUpvotes={version.upvotes}
                                 initialDownvotes={version.downvotes}
-                                userId="current-user-id" // Replace with actual user ID
+                                userId={tenantId} // Replace with actual user ID
                               />
                             </div>
                           </div>
@@ -335,6 +344,23 @@ const AiDecisions: React.FC = () => {
                     <EmptyState
                       title="No comparison available"
                       description="There needs to be at least two versions to show a comparison"
+                      icon={<AlertTriangle className="h-12 w-12 text-yellow-500" />}
+                    />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="analysis" className="mt-4">
+                  {currentVersion && previousVersion ? (
+                    <PromptDiffAnalysis
+                      currentPrompt={currentVersion.prompt}
+                      previousPrompt={previousVersion.prompt}
+                      agentVersionId={currentVersion.id}
+                      pluginId={selectedPlugin || ''}
+                    />
+                  ) : (
+                    <EmptyState
+                      title="No analysis available"
+                      description="There needs to be at least two versions to analyze changes"
                       icon={<AlertTriangle className="h-12 w-12 text-yellow-500" />}
                     />
                   )}
