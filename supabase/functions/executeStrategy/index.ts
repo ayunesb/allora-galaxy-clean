@@ -1,441 +1,348 @@
-
+// Import Deno standard libraries and custom utilities
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateEnv, corsHeaders, logEnvStatus } from "../../../src/lib/edge/envManager.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-/**
- * Helper function to safely get environment variables with fallbacks
- */
-function getEnv(name: string, fallback: string = ""): string {
-  try {
-    return Deno.env.get(name) ?? fallback;
-  } catch (err) {
-    console.warn(`Error accessing env variable ${name}:`, err);
-    return fallback;
-  }
+interface ExecuteStrategyRequest {
+  strategyId: string;
+  tenantId: string;
+  plugins?: string[];
+  input?: Record<string, any>;
 }
 
-serve(async (req) => {
+// Validate all required environment variables at startup
+const env = validateEnv([
+  { 
+    name: 'SUPABASE_URL', 
+    required: true,
+    description: 'Supabase project URL for database access'
+  },
+  { 
+    name: 'SUPABASE_SERVICE_ROLE_KEY', 
+    required: true,
+    description: 'Service role key for admin database access'
+  },
+  { 
+    name: 'EXECUTION_TIMEOUT_MS',
+    required: false,
+    fallback: '30000',
+    description: 'Maximum execution time in milliseconds'
+  }
+]);
+
+// Log environment status on startup
+logEnvStatus(env);
+
+// Create Supabase admin client with service role key
+const supabaseAdmin = createClient(
+  env.SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// The main function handler
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
-  // Track timing for performance logging
-  const startTime = performance.now();
-  let executionId: string | null = null;
-  
   try {
     // Parse request body
-    let body;
-    try {
-      body = await req.json();
-    } catch (parseError) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid JSON in request body",
-          details: String(parseError)
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
-    
-    const { strategy_id, tenant_id, user_id } = body;
-    
-    // Validate required parameters
-    if (!strategy_id) {
-      return new Response(
-        JSON.stringify({ error: "Strategy ID is required" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
-    }
-    
-    if (!tenant_id) {
-      return new Response(
-        JSON.stringify({ error: "Tenant ID is required" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
-    }
-    
-    // Create Supabase client with service role for admin access
-    const supabaseAdmin = createClient(
-      getEnv("SUPABASE_URL"),
-      getEnv("SUPABASE_SERVICE_ROLE_KEY"),
-      {
-        global: { 
-          headers: { Authorization: req.headers.get("Authorization") || "" } 
-        },
-      }
-    );
+    const requestData: ExecuteStrategyRequest = await req.json();
+    const { strategyId, tenantId, plugins, input } = requestData;
 
-    // Create execution record first to track this process
-    try {
-      const { data: execution, error: executionError } = await supabaseAdmin
-        .from("executions")
-        .insert({
-          tenant_id: tenant_id,
-          strategy_id,
-          executed_by: user_id,
-          type: 'strategy',
-          status: 'pending',
-          input: { strategy_id, tenant_id }
-        })
-        .select()
-        .single();
-        
-      if (executionError) {
-        console.error("Error creating execution record, but continuing:", executionError);
-      } else {
-        executionId = execution?.id;
-      }
-    } catch (error) {
-      console.error("Failed to create execution record, but continuing:", error);
+    if (!strategyId || !tenantId) {
+      throw new Error("Missing required parameters: strategyId and tenantId are required");
     }
-    
-    // Get the strategy
-    let strategy;
-    try {
-      const { data, error: strategyError } = await supabaseAdmin
-        .from("strategies")
-        .select("*, plugins(id, name)")
-        .eq("id", strategy_id)
-        .single();
 
-      if (strategyError || !data) {
-        // Update execution if we have an ID
-        if (executionId) {
-          await supabaseAdmin
-            .from("executions")
-            .update({
-              status: "failure",
-              error: "Strategy not found",
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", executionId);
-        }
-        
-        return new Response(
-          JSON.stringify({ error: "Strategy not found", details: strategyError }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
-        );
-      }
-      
-      strategy = data;
-      
-      // Verify tenant access
-      if (strategy.tenant_id !== tenant_id) {
-        // Update execution if we have an ID
-        if (executionId) {
-          await supabaseAdmin
-            .from("executions")
-            .update({
-              status: "failure",
-              error: "Strategy does not belong to the specified tenant",
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", executionId);
-        }
-        
-        return new Response(
-          JSON.stringify({ error: "Access denied: Strategy does not belong to your tenant" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching strategy:", error);
-      
-      // Update execution if we have an ID
-      if (executionId) {
-        await supabaseAdmin
-          .from("executions")
-          .update({
-            status: "failure",
-            error: String(error),
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", executionId);
-      }
-      
-      return new Response(
-        JSON.stringify({ error: "Error fetching strategy", details: String(error) }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-      );
-    }
+    // Set execution timeout based on environment variable
+    const timeoutMs = parseInt(env.EXECUTION_TIMEOUT_MS || '30000', 10);
     
-    // Get associated plugins for this strategy via plugin_logs
-    let pluginLogs;
-    try {
-      const { data, error: pluginLogsError } = await supabaseAdmin
-        .from("plugin_logs")
-        .select("*, plugins(*), agent_versions(*)")
-        .eq("strategy_id", strategy_id);
-      
-      if (pluginLogsError) {
-        console.error("Error loading plugin logs, but continuing:", pluginLogsError);
-      } else {
-        pluginLogs = data || [];
-      }
-    } catch (error) {
-      console.error("Error fetching plugin logs, but continuing:", error);
-      pluginLogs = [];
-    }
-    
-    // For each plugin log, update status and execute
-    let successCount = 0;
-    let totalPlugins = pluginLogs?.length || 0;
-    let errors = [];
-    
-    // Process plugins in series to maintain order and prevent race conditions
-    for (const log of pluginLogs || []) {
-      try {
-        // Mark log as processing
-        await supabaseAdmin
-          .from("plugin_logs")
-          .update({
-            status: "pending",
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", log.id);
-          
-        // Get agent version
-        const agentVersion = log.agent_versions;
-        
-        if (!agentVersion) {
-          throw new Error("Agent version not found");
-        }
-        
-        // In a real implementation, this would call an AI service
-        // Here we're simulating a plugin execution
-        const startTime = performance.now();
-        const randomSuccess = Math.random() > 0.2; // 80% success rate
-        const executionTime = Math.random() * 2.5 + 0.5; // 0.5 to 3 seconds
-        const xpEarned = Math.floor(Math.random() * 15) + 5; // 5 to 20 XP
-        
-        // Wait to simulate processing time
-        await new Promise(resolve => setTimeout(resolve, executionTime * 1000));
-        
-        if (!randomSuccess) {
-          throw new Error(`Plugin execution failed for ${log.plugins?.name || 'unknown plugin'}`);
-        }
-        
-        const pluginResult = {
-          output: {
-            result: `Generated content for ${strategy.title} using ${log.plugins?.name || 'plugin'}`,
-            metadata: {
-              strategyId: strategy.id,
-              pluginId: log.plugin_id,
-              agentVersionId: log.agent_version_id
-            }
-          }
-        };
-        
-        // Update the plugin log
-        await supabaseAdmin
-          .from("plugin_logs")
-          .update({
-            status: "success",
-            output: pluginResult.output,
-            execution_time: executionTime,
-            xp_earned: xpEarned,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", log.id);
-          
-        // Update plugin XP
-        if (log.plugin_id) {
-          try {
-            const { data: plugin } = await supabaseAdmin
-              .from("plugins")
-              .select("xp")
-              .eq("id", log.plugin_id)
-              .single();
-              
-            if (plugin) {
-              await supabaseAdmin
-                .from("plugins")
-                .update({ 
-                  xp: plugin.xp + xpEarned,
-                  updated_at: new Date().toISOString()
-                })
-                .eq("id", log.plugin_id);
-            }
-          } catch (error) {
-            console.error("Error updating plugin XP, but continuing:", error);
-          }
-        }
-        
-        // Update agent version XP
-        if (log.agent_version_id) {
-          try {
-            const { data: agent } = await supabaseAdmin
-              .from("agent_versions")
-              .select("xp")
-              .eq("id", log.agent_version_id)
-              .single();
-              
-            if (agent) {
-              await supabaseAdmin
-                .from("agent_versions")
-                .update({ 
-                  xp: agent.xp + xpEarned,
-                  updated_at: new Date().toISOString()
-                })
-                .eq("id", log.agent_version_id);
-            }
-          } catch (error) {
-            console.error("Error updating agent XP, but continuing:", error);
-          }
-        }
-        
-        successCount++;
-      } catch (error) {
-        console.error(`Error executing plugin ${log.plugins?.name || 'unknown'}:`, error);
-        
-        // Track errors for reporting
-        errors.push({
-          plugin_name: log.plugins?.name || 'unknown',
-          error: String(error)
-        });
-        
-        // Update the plugin log with error
-        try {
-          await supabaseAdmin
-            .from("plugin_logs")
-            .update({
-              status: "failure",
-              error: String(error),
-              execution_time: Math.random() * 1.5, // Mock failed execution time
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", log.id);
-        } catch (updateError) {
-          console.error("Error updating plugin log status, continuing:", updateError);
-        }
-      }
-    }
-    
-    // Calculate completion percentage
-    const completionPercentage = totalPlugins > 0 
-      ? Math.round((successCount / totalPlugins) * 100)
-      : 100;
-    
-    // Update strategy status and completion
-    try {
-      await supabaseAdmin
-        .from("strategies")
-        .update({ 
-          status: "completed",
-          completion_percentage: completionPercentage,
-          updated_at: new Date().toISOString() 
-        })
-        .eq("id", strategy_id);
-    } catch (error) {
-      console.error("Error updating strategy status, but continuing:", error);
-    }
-    
-    // Update execution status
-    if (executionId) {
-      try {
-        await supabaseAdmin
-          .from("executions")
-          .update({
-            status: errors.length > 0 ? (successCount > 0 ? "partial" : "failure") : "success",
-            output: { 
-              success: errors.length === 0,
-              completion_percentage: completionPercentage,
-              plugins_executed: totalPlugins,
-              plugins_succeeded: successCount,
-              errors: errors.length > 0 ? errors : undefined
-            },
-            execution_time: performance.now() - startTime,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", executionId);
-      } catch (error) {
-        console.error("Error updating execution record, but continuing:", error);
-      }
-    }
-    
-    // Log completion to system logs
-    try {
-      await supabaseAdmin
-        .from("system_logs")
-        .insert({
-          tenant_id,
-          module: "strategy",
-          event: errors.length > 0 ? "strategy_execution_partial" : "strategy_execution_complete",
-          context: {
-            strategy_id,
-            execution_id: executionId,
-            completion_percentage: completionPercentage,
-            plugins_succeeded: successCount,
-            plugins_failed: totalPlugins - successCount,
-            execution_time: performance.now() - startTime
-          }
-        });
-    } catch (error) {
-      console.error("Error logging to system logs, but continuing:", error);
-    }
-    
-    // Return success response with details
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: errors.length > 0 
-          ? `Strategy execution completed with ${totalPlugins - successCount} errors` 
-          : "Strategy executed successfully",
-        completion_percentage: completionPercentage,
-        plugins_executed: totalPlugins,
-        plugins_succeeded: successCount,
-        plugins_failed: totalPlugins - successCount,
-        execution_time: performance.now() - startTime,
-        execution_id: executionId,
-        errors: errors.length > 0 ? errors : undefined
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    // Execute strategy with timeout
+    const executionPromise = executeStrategy(strategyId, tenantId, plugins, input);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Execution timed out")), timeoutMs)
     );
+    
+    // Race the execution against the timeout
+    const result = await Promise.race([executionPromise, timeoutPromise]);
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error executing strategy:", error);
     
-    // Update execution if we have an ID
-    if (executionId) {
+    // Create structured error response
+    const errorResponse = {
+      success: false,
+      error: error.message || "Unknown error occurred",
+      timestamp: new Date().toISOString()
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
+async function executeStrategy(
+  strategyId: string,
+  tenantId: string,
+  plugins?: string[],
+  input?: Record<string, any>
+) {
+  // Log the execution start
+  console.log(`Executing strategy ${strategyId} for tenant ${tenantId}`);
+  
+  try {
+    // Fetch the strategy details
+    const { data: strategy, error: strategyError } = await supabaseAdmin
+      .from('strategies')
+      .select('*')
+      .eq('id', strategyId)
+      .eq('tenant_id', tenantId)
+      .single();
+    
+    if (strategyError || !strategy) {
+      throw new Error(`Strategy not found: ${strategyError?.message || 'No data returned'}`);
+    }
+    
+    // Create execution record
+    const { data: execution, error: executionError } = await supabaseAdmin
+      .from('executions')
+      .insert({
+        strategy_id: strategyId,
+        tenant_id: tenantId,
+        type: 'strategy',
+        status: 'pending',
+        input: input || {}
+      })
+      .select()
+      .single();
+    
+    if (executionError) {
+      throw new Error(`Failed to create execution record: ${executionError.message}`);
+    }
+    
+    // Determine which plugins to execute
+    const pluginsToExecute = plugins || [];
+    
+    // Execute each plugin in sequence
+    const results = [];
+    let lastOutput = input || {};
+    
+    for (const pluginId of pluginsToExecute) {
+      // Fetch plugin details
+      const { data: plugin, error: pluginError } = await supabaseAdmin
+        .from('plugins')
+        .select('*')
+        .eq('id', pluginId)
+        .single();
+      
+      if (pluginError || !plugin) {
+        console.warn(`Plugin ${pluginId} not found, skipping: ${pluginError?.message}`);
+        continue;
+      }
+      
+      // Get the latest active version of the plugin
+      const { data: agentVersion, error: versionError } = await supabaseAdmin
+        .from('agent_versions')
+        .select('*')
+        .eq('plugin_id', pluginId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (versionError || !agentVersion) {
+        console.warn(`No active version found for plugin ${pluginId}, skipping`);
+        continue;
+      }
+      
+      // Execute the plugin
       try {
-        const supabaseAdmin = createClient(
-          getEnv("SUPABASE_URL"),
-          getEnv("SUPABASE_SERVICE_ROLE_KEY")
+        console.log(`Executing plugin ${plugin.name} (${pluginId})`);
+        
+        // Here you would implement the actual plugin execution logic
+        // This could involve calling an AI service, processing data, etc.
+        const pluginResult = await executePlugin(
+          plugin,
+          agentVersion,
+          lastOutput,
+          tenantId
         );
         
+        // Log the plugin execution
         await supabaseAdmin
-          .from("executions")
-          .update({
-            status: "failure",
-            error: String(error),
-            execution_time: performance.now() - startTime,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", executionId);
-      } catch (updateError) {
-        console.error("Failed to update execution record after error:", updateError);
+          .from('plugin_logs')
+          .insert({
+            plugin_id: pluginId,
+            strategy_id: strategyId,
+            tenant_id: tenantId,
+            agent_version_id: agentVersion.id,
+            status: 'success',
+            input: lastOutput,
+            output: pluginResult,
+            execution_time: 0, // You would calculate the actual execution time
+            xp_earned: plugin.xp || 0
+          });
+        
+        // Add to results and use as input for next plugin
+        results.push({
+          plugin_id: pluginId,
+          plugin_name: plugin.name,
+          output: pluginResult
+        });
+        
+        lastOutput = {
+          ...lastOutput,
+          ...pluginResult
+        };
+      } catch (pluginExecutionError) {
+        console.error(`Error executing plugin ${pluginId}:`, pluginExecutionError);
+        
+        // Log the failure
+        await supabaseAdmin
+          .from('plugin_logs')
+          .insert({
+            plugin_id: pluginId,
+            strategy_id: strategyId,
+            tenant_id: tenantId,
+            agent_version_id: agentVersion.id,
+            status: 'failure',
+            input: lastOutput,
+            error: pluginExecutionError.message,
+            execution_time: 0,
+            xp_earned: 0
+          });
+        
+        // Add the error to results but continue with other plugins
+        results.push({
+          plugin_id: pluginId,
+          plugin_name: plugin.name,
+          error: pluginExecutionError.message
+        });
       }
     }
     
-    return new Response(
-      JSON.stringify({ 
-        error: "Internal server error", 
-        details: String(error),
-        execution_id: executionId
-      }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
-        status: 500 
-      }
-    );
+    // Update the execution record with the final status
+    await supabaseAdmin
+      .from('executions')
+      .update({
+        status: 'success',
+        output: {
+          results,
+          final: lastOutput
+        }
+      })
+      .eq('id', execution.id);
+    
+    // Return the final results
+    return {
+      success: true,
+      execution_id: execution.id,
+      results,
+      output: lastOutput
+    };
+  } catch (error) {
+    console.error(`Strategy execution failed:`, error);
+    
+    // Update execution record with failure status if it was created
+    if (execution?.id) {
+      await supabaseAdmin
+        .from('executions')
+        .update({
+          status: 'failure',
+          error: error.message
+        })
+        .eq('id', execution.id);
+    }
+    
+    throw error;
   }
-});
+}
+
+// Helper function to execute a plugin
+async function executePlugin(
+  plugin: any,
+  agentVersion: any,
+  input: Record<string, any>,
+  tenantId: string
+): Promise<Record<string, any>> {
+  // This is a placeholder for the actual plugin execution logic
+  // In a real implementation, this would call an AI service or perform other operations
+  
+  // Simulate processing time
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return a mock result
+  return {
+    plugin_result: `Executed ${plugin.name} v${agentVersion.version}`,
+    timestamp: new Date().toISOString(),
+    processed_input: Object.keys(input)
+  };
+}
+
+// Helper function to create Supabase client
+function createClient(url: string, key: string) {
+  return {
+    from: (table: string) => ({
+      select: (columns?: string) => ({
+        eq: (column: string, value: any) => ({
+          single: () => fetch(`${url}/rest/v1/${table}?select=${columns || '*'}&${column}=eq.${value}&limit=1`, {
+            headers: {
+              'apikey': key,
+              'Authorization': `Bearer ${key}`,
+              'Content-Type': 'application/json'
+            }
+          }).then(res => res.json())
+            .then(data => ({ data: data[0] || null, error: null }))
+            .catch(error => ({ data: null, error }))
+        })
+      }),
+      insert: (data: any) => ({
+        select: () => ({
+          single: () => fetch(`${url}/rest/v1/${table}`, {
+            method: 'POST',
+            headers: {
+              'apikey': key,
+              'Authorization': `Bearer ${key}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          }).then(res => res.json())
+            .then(responseData => ({ data: responseData[0] || null, error: null }))
+            .catch(error => ({ data: null, error }))
+        })
+      }),
+      update: (data: any) => ({
+        eq: (column: string, value: any) => fetch(`${url}/rest/v1/${table}?${column}=eq.${value}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(data)
+        }).then(res => res.json())
+          .then(responseData => ({ data: responseData[0] || null, error: null }))
+          .catch(error => ({ data: null, error }))
+      })
+    }),
+    rpc: (functionName: string, params: any) => fetch(`${url}/rest/v1/rpc/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params)
+    }).then(res => res.json())
+      .then(data => ({ data, error: null }))
+      .catch(error => ({ data: null, error }))
+  };
+}

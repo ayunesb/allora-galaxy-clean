@@ -5,6 +5,7 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { validateOnboardingData, generateSlug } from '@/lib/onboarding/validateOnboardingData';
 
 export type OnboardingFormData = {
   // Company profile data
@@ -63,11 +64,11 @@ export const useOnboardingWizard = () => {
   const isStepValid = () => {
     switch (currentStep) {
       case 0:
-        return formData.companyName && formData.industry && formData.teamSize && formData.revenueRange;
+        return !!(formData.companyName && formData.industry && formData.teamSize && formData.revenueRange);
       case 1:
         return true; // Additional info is optional
       case 2:
-        return formData.personaName && formData.tone && formData.goals;
+        return !!(formData.personaName && formData.tone && formData.goals);
       default:
         return false;
     }
@@ -82,8 +83,15 @@ export const useOnboardingWizard = () => {
         throw new Error("User is not authenticated");
       }
 
-      // Create new tenant with proper slug
-      const slug = formData.companyName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      // Validate all form data before submission
+      const { isValid, errors } = validateOnboardingData(formData);
+      if (!isValid) {
+        const errorMessages = Object.values(errors).join(", ");
+        throw new Error(`Validation failed: ${errorMessages}`);
+      }
+
+      // Generate slug from company name
+      const slug = generateSlug(formData.companyName);
       
       // Use retryOperation to handle potential network issues
       const { data: newTenant, error: tenantError } = await supabase.retryOperation(async () => {
@@ -175,7 +183,6 @@ export const useOnboardingWizard = () => {
       
       // Redirect to dashboard
       window.location.href = '/dashboard';
-
     } catch (error: any) {
       console.error('Onboarding error:', error);
       setError(error.message || 'An unexpected error occurred during onboarding');
