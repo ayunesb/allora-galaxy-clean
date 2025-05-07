@@ -8,7 +8,7 @@ import { logSystemEvent } from '@/lib/system/logSystemEvent';
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
-      invoke: vi.fn().mockImplementation(() => ({
+      invoke: vi.fn().mockImplementation(() => Promise.resolve({
         data: { 
           success: true,
           execution_id: 'exec-123',
@@ -100,10 +100,12 @@ describe('runStrategy Utility', () => {
     
     // Mock Supabase error response
     const supabaseMock = await import('@/integrations/supabase/client');
-    vi.mocked(supabaseMock.supabase.functions.invoke).mockImplementationOnce(() => ({
-      data: null,
-      error: { message: 'Edge function error' }
-    }));
+    vi.mocked(supabaseMock.supabase.functions.invoke).mockImplementationOnce(() => 
+      Promise.resolve({
+        data: null,
+        error: { message: 'Edge function error' }
+      })
+    );
     
     // Act
     const result = await runStrategy(mockInput);

@@ -1,77 +1,103 @@
 
-import { z } from "https://esm.sh/zod@3.22.4";
+import { corsHeaders } from "./corsHeaders";
 
 /**
- * Standard schema for analyzePromptDiff endpoint
+ * Generic zod schema type for request validation
  */
-export const analyzePromptDiffSchema = z.object({
-  current_prompt: z.string(),
-  previous_prompt: z.string(),
-  plugin_id: z.string().uuid().optional(),
-  agent_version_id: z.string().uuid().optional(),
-});
+export interface Schema {
+  parse: (data: any) => any;
+  safeParse: (data: any) => { success: boolean; data?: any; error?: any };
+}
 
 /**
- * Helper to safely parse request body with a zod schema
+ * Safely parse a request body with a zod schema
+ * @param req The request object
+ * @param schema A zod schema for validation
+ * @returns A tuple with [parsed data, error message]
  */
-export async function safeParseRequest<T>(
-  req: Request, 
-  schema: z.ZodType<T>
-): Promise<[T | null, string | null]> {
+export async function safeParseRequest(
+  req: Request,
+  schema: Schema
+): Promise<[any, string | null]> {
   try {
     const body = await req.json();
     const result = schema.safeParse(body);
     
     if (!result.success) {
-      return [null, result.error.message];
+      return [null, "Invalid request format"];
     }
     
     return [result.data, null];
   } catch (error) {
-    return [null, `Error parsing request: ${error.message || "Invalid JSON"}`];
+    return [null, "Invalid JSON in request body"];
   }
 }
 
 /**
- * Format standard API error response
+ * Format error response for edge functions
  */
 export function formatErrorResponse(
-  status: number = 500,
+  status: number,
   message: string,
-  details?: any,
-  processingTime?: number
+  details?: string,
+  executionTime?: number
 ): Response {
   const body = {
     success: false,
     error: message,
     details: details || null,
-    processing_time: processingTime,
+    executionTime,
     timestamp: new Date().toISOString()
   };
 
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
   });
 }
 
 /**
- * Format standard API success response
+ * Format success response for edge functions
  */
 export function formatSuccessResponse(
-  data: any,
-  processingTime?: number,
-  status: number = 200
+  data: Record<string, any>,
+  executionTime?: number
 ): Response {
   const body = {
     success: true,
-    data,
-    processing_time: processingTime,
+    ...data,
+    executionTime,
     timestamp: new Date().toISOString()
   };
 
   return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
   });
 }
+
+// Schema for analyzing prompt diff params
+export const analyzePromptDiffSchema = {
+  parse: (data: any) => data,
+  safeParse: (data: any) => {
+    if (!data) return { success: false, error: "Missing request body" };
+    if (!data.current_prompt || !data.previous_prompt) {
+      return {
+        success: false,
+        error: "Both current_prompt and previous_prompt are required"
+      };
+    }
+    return { success: true, data };
+  }
+};
+
+// Schema for syncing MQLs params
+export const syncMQLsSchema = {
+  parse: (data: any) => data,
+  safeParse: (data: any) => {
+    if (!data) return { success: false, error: "Missing request body" };
+    if (!data.tenant_id) {
+      return { success: false, error: "tenant_id is required" };
+    }
+    return { success: true, data };
+  }
+};
