@@ -65,19 +65,74 @@ const App = () => (
                       <ProtectedRoute />
                     </WorkspaceProvider>
                   }>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/launch" element={<StrategyEngine />} />
-                    <Route path="/plugins" element={<PluginsPage />} />
-                    <Route path="/plugins/:id/evolution" element={<PluginEvolutionPage />} />
-                    <Route path="/explore" element={<GalaxyExplorer />} />
-                    <Route path="/agents/performance" element={<AgentPerformance />} />
-                    <Route path="/insights/kpis" element={<KpiDashboard />} />
+                    <Route path="/" element={
+                      <>
+                        <MobileNav />
+                        <Dashboard />
+                      </>
+                    } />
+                    <Route path="/launch" element={
+                      <>
+                        <MobileNav />
+                        <StrategyEngine />
+                      </>
+                    } />
+                    <Route path="/plugins" element={
+                      <>
+                        <MobileNav />
+                        <PluginsPage />
+                      </>
+                    } />
+                    <Route path="/plugins/:id/evolution" element={
+                      <>
+                        <MobileNav />
+                        <PluginEvolutionPage />
+                      </>
+                    } />
+                    <Route path="/explore" element={
+                      <>
+                        <MobileNav />
+                        <GalaxyExplorer />
+                      </>
+                    } />
+                    <Route path="/agents/performance" element={
+                      <>
+                        <MobileNav />
+                        <AgentPerformance />
+                      </>
+                    } />
+                    <Route path="/insights/kpis" element={
+                      <>
+                        <MobileNav />
+                        <KpiDashboard />
+                      </>
+                    } />
                     
                     {/* Admin routes */}
-                    <Route path="/admin/ai-decisions" element={<AiDecisions />} />
-                    <Route path="/admin/plugin-logs" element={<PluginLogs />} />
-                    <Route path="/admin/system-logs" element={<SystemLogs />} />
-                    <Route path="/admin/users" element={<UserManagement />} />
+                    <Route path="/admin/ai-decisions" element={
+                      <>
+                        <MobileNav />
+                        <AiDecisions />
+                      </>
+                    } />
+                    <Route path="/admin/plugin-logs" element={
+                      <>
+                        <MobileNav />
+                        <PluginLogs />
+                      </>
+                    } />
+                    <Route path="/admin/system-logs" element={
+                      <>
+                        <MobileNav />
+                        <SystemLogs />
+                      </>
+                    } />
+                    <Route path="/admin/users" element={
+                      <>
+                        <MobileNav />
+                        <UserManagement />
+                      </>
+                    } />
                   </Route>
                   
                   {/* Catch-all route */}

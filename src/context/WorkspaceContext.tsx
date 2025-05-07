@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { UserRole } from '@/lib/auth/requireRole';
 
 type Tenant = {
   id: string;
@@ -17,6 +18,7 @@ type WorkspaceContextType = {
   setCurrentTenant: (tenant: Tenant) => void;
   loading: boolean;
   error: string | null;
+  userRole: UserRole | null;
   createTenant: (name: string) => Promise<{ data: Tenant | null; error: any }>;
 };
 
@@ -27,6 +29,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -35,6 +38,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (!user) {
       setTenants([]);
       setCurrentTenant(null);
+      setUserRole(null);
       setLoading(false);
       return;
     }
@@ -45,7 +49,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         // Get tenants where user has a role
         const { data, error } = await supabase
           .from('tenant_user_roles')
-          .select('tenant:tenants(*)')
+          .select('tenant:tenants(*), role')
           .eq('user_id', user.id);
 
         if (error) throw error;
@@ -65,7 +69,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             ? fetchedTenants.find(t => t.id === lastTenantId)
             : null;
           
-          setCurrentTenant(lastTenant || fetchedTenants[0]);
+          const selectedTenant = lastTenant || fetchedTenants[0];
+          setCurrentTenant(selectedTenant);
+          
+          // Set user role for the current tenant
+          const userTenantRole = data.find((item: any) => 
+            item.tenant && item.tenant.id === selectedTenant.id
+          );
+          
+          if (userTenantRole) {
+            setUserRole(userTenantRole.role as UserRole);
+          }
         }
         
         setError(null);
@@ -84,6 +98,26 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     fetchTenants();
   }, [user]);
+
+  // Update user role when current tenant changes
+  useEffect(() => {
+    if (user && currentTenant) {
+      const fetchUserRole = async () => {
+        const { data, error } = await supabase
+          .from('tenant_user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('tenant_id', currentTenant.id)
+          .single();
+        
+        if (!error && data) {
+          setUserRole(data.role as UserRole);
+        }
+      };
+      
+      fetchUserRole();
+    }
+  }, [currentTenant, user]);
 
   // Save selected tenant to local storage when it changes
   useEffect(() => {
@@ -129,6 +163,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       // Update local state
       setTenants([...tenants, tenant]);
       setCurrentTenant(tenant);
+      setUserRole('owner');
 
       toast({
         title: 'Workspace created',
@@ -155,6 +190,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setCurrentTenant,
         loading,
         error,
+        userRole,
         createTenant,
       }}
     >

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -192,7 +191,7 @@ const UserManagement: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users?.map((user) => (
+              {users && users.length > 0 ? users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center">
@@ -244,8 +243,7 @@ const UserManagement: React.FC = () => {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
-              {users?.length === 0 && (
+              )) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8">
                     <div className="flex flex-col items-center">

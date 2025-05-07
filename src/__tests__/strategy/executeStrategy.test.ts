@@ -1,6 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { runStrategy } from '@/lib/strategy/runStrategy';
+import { ExecuteStrategyInput } from '@/lib/strategy/types';
 
 // Mock the supabase import
 vi.mock('@/integrations/supabase/client', () => ({
@@ -16,7 +17,13 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 describe('Execute Strategy', () => {
   it('should execute a strategy', async () => {
-    const result = await runStrategy('mock-strategy');
+    const mockInput: ExecuteStrategyInput = {
+      strategy_id: 'mock-strategy',
+      tenant_id: 'mock-tenant',
+      user_id: 'mock-user'
+    };
+    
+    const result = await runStrategy(mockInput);
     expect(result.success).toBe(true);
   });
 });

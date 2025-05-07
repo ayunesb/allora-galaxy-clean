@@ -1,64 +1,47 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import PageHelmet from '@/components/PageHelmet';
+import { ShieldAlert, Home, ArrowLeft } from 'lucide-react';
 
 const Unauthorized: React.FC = () => {
   const navigate = useNavigate();
   
   return (
-    <div className="container mx-auto px-4 py-16 flex justify-center">
-      <PageHelmet title="Unauthorized" description="You don't have permission to access this page" />
-      
-      <Card className="max-w-lg w-full shadow-lg border-destructive/30">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-destructive">Access Denied</CardTitle>
+    <div className="container mx-auto px-4 flex items-center justify-center min-h-screen">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto bg-red-100 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+            <ShieldAlert className="h-8 w-8 text-red-600" />
+          </div>
+          <CardTitle className="text-2xl">Access Denied</CardTitle>
           <CardDescription>
-            You don't have permission to access this page
+            You don't have permission to access this resource
           </CardDescription>
         </CardHeader>
-        
-        <CardContent>
-          <Alert className="border-destructive/40 bg-destructive/10">
-            <AlertTitle>Insufficient Permissions</AlertTitle>
-            <AlertDescription>
-              This area requires additional privileges. If you believe this is an error,
-              please contact your workspace administrator.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="mt-6 text-muted-foreground">
-            <p>You might want to:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Return to the dashboard</li>
-              <li>Contact your workspace admin for access</li>
-              <li>Access another available section</li>
-            </ul>
-          </div>
+        <CardContent className="text-center">
+          <p className="text-muted-foreground">
+            This page requires higher privileges than your current role provides. 
+            Please contact your workspace administrator if you believe you should have access.
+          </p>
         </CardContent>
-        
-        <CardFooter className="flex gap-2 justify-end">
+        <CardFooter className="flex flex-col space-y-2">
           <Button 
-            variant="ghost" 
-            onClick={() => window.history.back()}
-          >
-            Go Back
-          </Button>
-          <Button 
-            variant="default"
+            variant="default" 
+            className="w-full" 
             onClick={() => navigate('/')}
           >
+            <Home className="mr-2 h-4 w-4" />
             Go to Dashboard
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Back
           </Button>
         </CardFooter>
       </Card>

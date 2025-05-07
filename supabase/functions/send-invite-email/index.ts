@@ -1,95 +1,81 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email, tenantId, role } = await req.json();
-    
-    if (!email || !tenantId || !role) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { email, tenant_id, tenant_name, role } = await req.json();
+
+    if (!email || !tenant_id || !tenant_name) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase client with service role for admin access
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
-      }
-    );
-
-    // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .single();
-      
-    let userId = existingUser?.id;
-      
-    if (!userId) {
-      // In a real implementation, you would:
-      // 1. Create a user in auth.users (Supabase Admin API)
-      // 2. Generate a one-time password reset link
-      // 3. Send an email with the link via email service
-      
-      // For this demo, we'll just simulate success
-      userId = crypto.randomUUID();
-      
-      console.log(`Would create user with email ${email} and send invitation`);
-    }
+    // Generate a unique invitation token
+    const token = crypto.randomUUID();
     
-    // Add role to tenant_user_roles
-    const { error: roleError } = await supabaseAdmin
-      .from("tenant_user_roles")
+    // Store the invitation with the token
+    const { error: inviteError } = await supabase
+      .from('user_invites')
       .insert({
-        tenant_id: tenantId,
-        user_id: userId,
-        role: role,
+        email,
+        tenant_id,
+        role,
+        token,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
       });
       
-    if (roleError) {
-      throw new Error(`Error adding user role: ${roleError.message}`);
+    if (inviteError) {
+      throw inviteError;
     }
+
+    // Generate the invitation URL with the token
+    const inviteUrl = `${req.headers.get('origin') || supabaseUrl}/invite?token=${token}`;
+
+    // Log the invitation for development purposes
+    console.log(`Invitation URL for ${email}: ${inviteUrl}`);
     
-    // Add system log entry
-    await supabaseAdmin
-      .from("system_logs")
+    // In a real application, send an email using a service like SendGrid, Postmark, or SMTP
+    // For now, we'll just simulate sending an email by logging to the console
+    console.log(`Sending invitation email to ${email} for workspace ${tenant_name} with role ${role}`);
+    
+    // Record the email sending in system_logs
+    await supabase
+      .from('system_logs')
       .insert({
-        module: "user_management",
-        event: "user_invited",
-        context: {
-          email,
-          tenant_id: tenantId,
-          role,
-        },
+        tenant_id,
+        module: 'auth',
+        event: 'invitation_sent',
+        context: { email, role, invite_url: inviteUrl }
       });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Invitation sent to ${email}`,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: true }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    console.error('Error sending invitation:', error);
+    
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      JSON.stringify({ error: error.message || 'Failed to send invitation' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

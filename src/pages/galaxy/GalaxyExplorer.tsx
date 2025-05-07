@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -31,14 +32,19 @@ const GalaxyExplorer: React.FC = () => {
         filteredNodes = graphDataQuery.nodes.filter(node => node.type === viewMode);
         
         // Only include links where both source and target nodes are in the filtered set
-        const nodeIds = new Set(filteredNodes.map(n => n.id ?? ''));
+        const nodeIds = new Set(filteredNodes.map(n => {
+          return typeof n.id === 'string' ? n.id : '';
+        }));
+        
         filteredLinks = graphDataQuery.links.filter(link => {
           const sourceId = typeof link.source === 'object' ? 
-            (link.source && 'id' in link.source ? link.source.id : '') : 
-            link.source || '';
+            (link.source && 'id' in link.source ? String(link.source.id) : '') : 
+            String(link.source || '');
+            
           const targetId = typeof link.target === 'object' ? 
-            (link.target && 'id' in link.target ? link.target.id : '') : 
-            link.target || '';
+            (link.target && 'id' in link.target ? String(link.target.id) : '') : 
+            String(link.target || '');
+            
           return nodeIds.has(sourceId) && nodeIds.has(targetId);
         });
       }

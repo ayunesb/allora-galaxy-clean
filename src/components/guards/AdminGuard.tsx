@@ -1,57 +1,65 @@
+
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { requireRole } from '@/lib/auth/requireRole';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 
 interface AdminGuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
-  redirectTo?: string;
+  redirect?: boolean;
 }
 
-export const AdminGuard: React.FC<AdminGuardProps> = ({ 
-  children, 
-  fallback, 
-  redirectTo = '/unauthorized' 
+export const AdminGuard: React.FC<AdminGuardProps> = ({
+  children,
+  fallback,
+  redirect = true,
 }) => {
-  const navigate = useNavigate();
-  const hasPermission = requireRole('admin');
+  const { userRole, loading } = useWorkspace();
   
-  if (!hasPermission) {
-    // If a fallback is provided, render it instead of redirecting
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+  
+  // Check if user has admin privileges
+  const isAdmin = userRole === 'owner' || userRole === 'admin';
+  
+  if (!isAdmin) {
+    // Redirect to unauthorized page
+    if (redirect) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+    
+    // Show fallback UI if provided
     if (fallback) {
       return <>{fallback}</>;
     }
     
-    // Otherwise, redirect to the specified route
-    return <Navigate to={redirectTo} replace />;
+    // Default fallback UI
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>
+            You don't have permission to access this page. Please contact an administrator.
+          </AlertDescription>
+        </Alert>
+        
+        <Button variant="secondary" asChild>
+          <a href="/">Return to Dashboard</a>
+        </Button>
+      </div>
+    );
   }
   
+  // User has admin rights, render children
   return <>{children}</>;
-};
-
-// Fallback component when access is denied
-export const AccessDeniedFallback: React.FC = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Alert className="max-w-md">
-        <AlertTitle className="text-lg">Access Denied</AlertTitle>
-        <AlertDescription>
-          <p className="mb-4">
-            You don't have permission to view this page. This area requires administrator privileges.
-          </p>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/')}
-          >
-            Return to Dashboard
-          </Button>
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
 };
