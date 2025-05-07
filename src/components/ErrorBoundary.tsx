@@ -11,6 +11,7 @@ interface Props {
   supportEmail?: string;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   resetOnRouteChange?: boolean;
+  logErrors?: boolean;
 }
 
 interface State {
@@ -24,6 +25,12 @@ interface State {
  * logs those errors, and displays a fallback UI instead of crashing the whole app
  */
 class ErrorBoundary extends Component<Props, State> {
+  public static defaultProps = {
+    logErrors: true,
+    resetOnRouteChange: true,
+    supportEmail: 'support@alloraos.com'
+  };
+  
   public state: State = {
     hasError: false
   };
@@ -44,28 +51,33 @@ class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
     
-    // Log to system logs if tenant_id is available
-    if (this.props.tenant_id) {
-      logSystemEvent(
-        this.props.tenant_id,
-        'error',
-        'React error boundary caught error',
-        {
-          message: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-          location: window.location.href
-        }
-      ).catch(logError => {
-        console.error("Failed to log system event:", logError);
-        // Try to show toast notification as a fallback
-        toast({
-          title: "Error Logging Failed",
-          description: "Could not log error details to system",
-          variant: "destructive"
-        });
-      });
+    // Log to system logs if tenant_id is available and logging is enabled
+    if (this.props.tenant_id && this.props.logErrors) {
+      this.logErrorToSystem(error, errorInfo);
     }
+  }
+  
+  private logErrorToSystem(error: Error, errorInfo: ErrorInfo) {
+    logSystemEvent(
+      this.props.tenant_id || 'system',
+      'error',
+      'React error boundary caught error',
+      {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        location: window.location.href,
+        timestamp: new Date().toISOString()
+      }
+    ).catch(logError => {
+      console.error("Failed to log system event:", logError);
+      // Try to show toast notification as a fallback
+      toast({
+        title: "Error Logging Failed",
+        description: "Could not log error details to system",
+        variant: "destructive"
+      });
+    });
   }
 
   private handleReset = () => {

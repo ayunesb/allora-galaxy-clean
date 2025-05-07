@@ -3,7 +3,27 @@ import { expect, test, vi, beforeEach } from "vitest";
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the supabase client
-vi.mock('@/integrations/supabase/client');
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    functions: {
+      invoke: vi.fn().mockResolvedValue({
+        data: { 
+          success: true, 
+          message: 'KPIs updated successfully',
+          results: {
+            'test-tenant': {
+              metrics: [
+                { name: 'Monthly Recurring Revenue', value: 8500, previous_value: 8000 },
+                { name: 'Customer Acquisition Cost', value: 350 }
+              ]
+            }
+          }
+        },
+        error: null
+      })
+    }
+  }
+}));
 
 beforeEach(() => {
   // Clear all mocks before each test
@@ -31,8 +51,8 @@ test("updateKPIs edge function invocation works correctly", async () => {
 
 test("updateKPIs requires tenant_id parameter", async () => {
   // Mock supabase.functions.invoke to simulate an error response
-  const mockSupabase = await import('@/integrations/supabase/client');
-  mockSupabase.supabase.functions.invoke = vi.fn().mockResolvedValue({
+  const mockSupabase = supabase;
+  vi.mocked(mockSupabase.functions.invoke).mockResolvedValueOnce({
     data: { success: false, error: "Missing required parameter: tenantId" },
     error: null
   });

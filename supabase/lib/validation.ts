@@ -1,5 +1,5 @@
 
-import { corsHeaders } from "./corsHeaders";
+import { corsHeaders } from "./env";
 
 /**
  * Generic zod schema type for request validation
@@ -119,7 +119,7 @@ export async function handleRequest(
   }
 }
 
-// Schema for analyzing prompt diff params
+// Utility schemas for common use cases
 export const analyzePromptDiffSchema = {
   parse: (data: any) => data,
   safeParse: (data: any) => {

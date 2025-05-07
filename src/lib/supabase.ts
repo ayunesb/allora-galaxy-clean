@@ -1,34 +1,27 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getEnvVar } from '@/lib/env/envUtils';
 
-// Safe environment variable access with fallbacks
-const getEnvVar = (key: string): string => {
-  // Handle both browser and Deno/Edge environments
-  const value = import.meta.env?.[key] || 
-                process.env?.[key] || 
-                // Use typeof check instead of direct Deno reference
-                (typeof globalThis !== 'undefined' && 
-                 'Deno' in globalThis && 
-                 typeof (globalThis as any).Deno?.env?.get === 'function' ? 
-                 (globalThis as any).Deno.env.get(key) : '') || 
-                '';
-                
-  if (!value) {
-    console.warn(`Environment variable ${key} not found`);
-  }
-  
-  return value;
-};
+// Get Supabase configuration with proper error handling
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
-// Get Supabase configuration with fallbacks
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || 'https://your-supabase-project.supabase.co';
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY') || '';
+// Validate Supabase configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(`
+    Missing required Supabase configuration: 
+    - VITE_SUPABASE_URL: ${supabaseUrl ? 'Found' : 'Missing'}
+    - VITE_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'Found' : 'Missing'}
+    
+    Please check your environment variables.
+  `);
+}
 
 // Create Supabase client
 export const supabase: SupabaseClient = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || '',
   {
     auth: {
       persistSession: true,

@@ -2,45 +2,18 @@
 /**
  * Interface for environment variable validation
  */
-export interface EnvVar {
-  name: string;
-  required: boolean;
-  description: string;
-  default?: string;
-}
+import { getEnvVar, corsHeaders } from '@/lib/env/envUtils';
+import type { EnvVariable } from '@/lib/env/envUtils';
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-/**
- * Safely get environment variables with fallback support
- * @param name Environment variable name
- * @param fallback Optional fallback value
- * @returns Environment variable value or fallback
- */
-export function getEnvVar(name: string, fallback: string = ""): string {
-  try {
-    // Check if we're in Deno environment
-    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis && typeof (globalThis as any).Deno?.env?.get === 'function') {
-      return (globalThis as any).Deno.env.get(name) || fallback;
-    }
-    // Fallback to process.env for Node environment
-    return process.env[name] || fallback;
-  } catch (error) {
-    // If all else fails, return the fallback
-    console.warn(`Error accessing env var ${name}:`, error);
-    return fallback;
-  }
-}
+export { getEnvVar, corsHeaders };
+export type { EnvVariable };
 
 /**
  * Validate environment variables
  * @param envVars Array of environment variables to validate
  * @returns Object containing validated environment variables
  */
-export function validateEnv(envVars: EnvVar[]): Record<string, string> {
+export function validateEnv(envVars: EnvVariable[]): Record<string, string> {
   const result: Record<string, string> = {};
   const missing: string[] = [];
 

@@ -1,4 +1,6 @@
 
+import { corsHeaders } from '@/lib/env/envUtils';
+
 /**
  * Utility for consistent error handling in edge functions
  */
@@ -10,13 +12,8 @@ export interface ErrorResponse {
   timestamp: string;
 }
 
-/**
- * CORS headers for edge functions
- */
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Export the CORS headers
+export { corsHeaders };
 
 /**
  * Format a standardized error response
