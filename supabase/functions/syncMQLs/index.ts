@@ -36,7 +36,7 @@ serve(async (req) => {
     // Process each tenant
     for (const tenant of tenants || []) {
       // Get HubSpot API key from tenant metadata
-      const hubspotApiKey = tenant.metadata?.hubspot_api_key;
+      const hubspotApiKey = tenant.metadata?.hubspot_api_key || hubspotToken;
       
       if (hubspotApiKey) {
         try {
@@ -76,8 +76,36 @@ serve(async (req) => {
             .insert(kpiData);
             
           console.log(`Updated MQL count for tenant ${tenant.name}: ${mockMQLCount}`);
+
+          // Log system event for tracking
+          await supabaseAdmin
+            .from("system_logs")
+            .insert({
+              tenant_id: tenant.id,
+              module: 'marketing',
+              event: 'kpi_updated',
+              context: { kpi_name: 'Marketing Qualified Leads', source: 'hubspot' }
+            });
         } catch (error) {
           console.error(`Error updating MQL count for tenant ${tenant.name}:`, error);
+          
+          // Log error to system logs for tracking
+          try {
+            await supabaseAdmin
+              .from("system_logs")
+              .insert({
+                tenant_id: tenant.id,
+                module: 'marketing',
+                event: 'kpi_update_failed',
+                context: { 
+                  kpi_name: 'Marketing Qualified Leads', 
+                  source: 'hubspot',
+                  error: String(error)
+                }
+              });
+          } catch (logError) {
+            console.error('Failed to log error', logError);
+          }
         }
       }
     }

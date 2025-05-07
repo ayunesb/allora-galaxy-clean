@@ -80,6 +80,16 @@ serve(async (req) => {
             .insert(kpiData);
             
           console.log(`Updated MRR for tenant ${tenant.name}: $${mockMRR}`);
+
+          // Log the system event
+          await supabaseAdmin
+            .from("system_logs")
+            .insert({
+              tenant_id: tenant.id,
+              module: 'billing',
+              event: 'kpi_updated',
+              context: { kpi_name: 'Monthly Recurring Revenue', source: 'stripe' }
+            });
         } catch (error) {
           console.error(`Error updating MRR for tenant ${tenant.name}:`, error);
         }

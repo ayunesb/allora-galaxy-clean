@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
@@ -5,15 +6,28 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BarChart, Calendar, Plug, Settings, LayoutGrid } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ArrowRight, BarChart, Calendar, Plug, Settings, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { currentTenant } = useWorkspace();
   const { user } = useAuth();
+  
+  // Check if user is being impersonated (email includes +impersonate)
+  const isImpersonated = user?.email?.includes('+impersonate');
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {isImpersonated && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          <AlertDescription>
+            ⚠️ You are impersonating a user. All actions may be audited.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome to Allora OS</h1>
