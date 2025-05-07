@@ -25,7 +25,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       invoke: vi.fn().mockImplementation(() => ({
         data: { 
           success: true,
-          message: 'executed successfully',
+          error: null,
           executionTime: 1.5
         },
         error: null
@@ -65,7 +65,6 @@ describe('Execute Strategy', () => {
     
     // Assert
     expect(result.success).toBe(true);
-    expect(result.message).toContain('executed successfully');
   });
   
   it('should handle missing strategy_id', async () => {

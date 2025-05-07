@@ -37,10 +37,10 @@ vi.mock('@/lib/strategy/runStrategy', () => ({
     }
     return Promise.resolve({
       success: true,
-      message: 'Strategy executed successfully',
-      data: { result: 'success' },
+      error: null,
       executionTime: 1.5,
-      executionId: 'exec-123'
+      outputs: { result: 'success' },
+      logs: []
     });
   })
 }));
@@ -72,7 +72,6 @@ describe('executeStrategy Edge Function', () => {
     
     // Assert
     expect(result.success).toBe(true);
-    expect(result.executionId).toBeDefined();
     expect(result.executionTime).toBeGreaterThan(0);
   });
   
@@ -89,7 +88,7 @@ describe('executeStrategy Edge Function', () => {
     // Assert
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
-    expect(result.error).toContain('Invalid input');
+    expect(result.error).toContain('Strategy ID is required');
   });
   
   it('should handle missing tenantId', async () => {
@@ -105,7 +104,7 @@ describe('executeStrategy Edge Function', () => {
     // Assert
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
-    expect(result.error).toContain('Invalid input');
+    expect(result.error).toContain('Tenant ID is required');
   });
   
   it('should handle strategy execution failure', async () => {

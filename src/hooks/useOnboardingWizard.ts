@@ -141,7 +141,6 @@ export const useOnboardingWizard = () => {
         setCurrentTenant({
           id: result.tenantId,
           name: formData.companyName,
-          role: 'owner'
         });
         
         // Log successful completion

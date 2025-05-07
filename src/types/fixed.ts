@@ -16,9 +16,9 @@ export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 export interface Tenant {
   id: string;
   name: string;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
+  slug?: string;
+  createdAt?: string;
+  updatedAt?: string;
   ownerId?: string;
   metadata?: Record<string, any>;
 }
@@ -205,7 +205,7 @@ export interface PluginResult {
   output?: any;
   error?: string;
   executionTime?: number;
-  xpEarned?: number;
+  xpEarned: number;
 }
 
 export interface RunPluginChainResult {
