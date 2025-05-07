@@ -39,7 +39,7 @@ export async function safeParseRequest(
 export function formatErrorResponse(
   status: number,
   message: string,
-  details?: string,
+  details?: string | object,
   executionTime?: number
 ): Response {
   const body = {
@@ -73,6 +73,50 @@ export function formatSuccessResponse(
   return new Response(JSON.stringify(body), {
     headers: { ...corsHeaders, "Content-Type": "application/json" }
   });
+}
+
+/**
+ * Handle edge function request with consistent error handling
+ */
+export async function handleRequest(
+  req: Request, 
+  handler: (body: any) => Promise<Response>,
+  schema?: Schema
+): Promise<Response> {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
+  try {
+    let body;
+    
+    // Parse and validate the request body
+    if (schema) {
+      const [parsedBody, error] = await safeParseRequest(req, schema);
+      if (error) {
+        return formatErrorResponse(400, error);
+      }
+      body = parsedBody;
+    } else {
+      // If no schema provided, just parse JSON
+      try {
+        body = await req.json();
+      } catch (error) {
+        return formatErrorResponse(400, "Invalid JSON in request body");
+      }
+    }
+    
+    // Process the request
+    return await handler(body);
+  } catch (error: any) {
+    console.error("Error handling request:", error);
+    return formatErrorResponse(
+      500, 
+      error.message || "An unexpected error occurred",
+      error.stack
+    );
+  }
 }
 
 // Schema for analyzing prompt diff params

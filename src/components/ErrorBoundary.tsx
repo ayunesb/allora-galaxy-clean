@@ -10,11 +10,13 @@ interface Props {
   tenant_id?: string;
   supportEmail?: string;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  resetOnRouteChange?: boolean;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 /**
@@ -34,6 +36,9 @@ class ErrorBoundary extends Component<Props, State> {
     // Log the error to our logging service
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
     
+    // Update state with error info for debugging
+    this.setState({ errorInfo });
+    
     // Call onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
@@ -48,7 +53,8 @@ class ErrorBoundary extends Component<Props, State> {
         {
           message: error.message,
           stack: error.stack,
-          componentStack: errorInfo.componentStack
+          componentStack: errorInfo.componentStack,
+          location: window.location.href
         }
       ).catch(logError => {
         console.error("Failed to log system event:", logError);
@@ -63,8 +69,19 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset error state when route changes if resetOnRouteChange is true
+    if (
+      this.props.resetOnRouteChange &&
+      this.state.hasError &&
+      prevProps.children !== this.props.children
+    ) {
+      this.handleReset();
+    }
+  }
 
   public render() {
     if (this.state.hasError) {
@@ -77,6 +94,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <ErrorFallback 
           error={this.state.error || new Error('Unknown error')}
+          errorInfo={this.state.errorInfo}
           resetErrorBoundary={this.handleReset}
           tenant_id={this.props.tenant_id}
           supportEmail={this.props.supportEmail}
