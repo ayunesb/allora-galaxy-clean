@@ -57,7 +57,14 @@ const App = () => (
                   <Route path="/unauthorized" element={<Unauthorized />} />
                   
                   {/* Onboarding */}
-                  <Route path="/onboarding" element={<OnboardingWizard />} />
+                  <Route 
+                    path="/onboarding" 
+                    element={
+                      <WorkspaceProvider>
+                        <OnboardingWizard />
+                      </WorkspaceProvider>
+                    } 
+                  />
                   
                   {/* Protected routes */}
                   <Route element={
