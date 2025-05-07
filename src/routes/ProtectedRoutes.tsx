@@ -1,111 +1,85 @@
-
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import MainLayout from '@/components/layout/MainLayout';
+import AdminLayout from '@/components/layout/AdminLayout';
+import { useRoleCheck } from '@/lib/auth/useRoleCheck';
 
-// Main pages
-import Dashboard from '@/pages/dashboard/Dashboard';
-import StrategyEngine from '@/pages/strategy/StrategyEngine';
-import StrategyBuilder from '@/pages/launch/StrategyBuilder';
-import PluginsPage from '@/pages/plugins/PluginsPage';
-import PluginEvolutionPage from '@/pages/plugins/PluginEvolutionPage';
-import GalaxyExplorer from '@/pages/galaxy/GalaxyExplorer';
-import AgentPerformance from '@/pages/agents/AgentPerformance';
-import KpiDashboard from '@/pages/insights/KpiDashboard';
-import SettingsPage from '@/pages/settings/SettingsPage';
-import DeletionRequestPage from '@/pages/legal/DeletionRequestPage';
+// Lazy-loaded pages
+const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
+const GalaxyExplorer = lazy(() => import('@/pages/galaxy/GalaxyExplorer'));
+const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
+const PluginLogs = lazy(() => import('@/pages/admin/PluginLogs'));
+const SystemLogs = lazy(() => import('@/pages/admin/SystemLogs'));
+const AiDecisions = lazy(() => import('@/pages/admin/AiDecisions'));
+const AgentPerformance = lazy(() => import('@/pages/agents/AgentPerformance'));
+const PluginsPage = lazy(() => import('@/pages/plugins/PluginsPage'));
+const StrategyEngine = lazy(() => import('@/pages/strategy/StrategyEngine'));
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const KpiDashboard = lazy(() => import('@/pages/insights/KpiDashboard'));
+const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const UnauthorizedPage = lazy(() => import('@/pages/unauthorized'));
 
-// Admin pages
-import AiDecisions from '@/pages/admin/AiDecisions';
-import PluginLogs from '@/pages/admin/PluginLogs';
-import SystemLogs from '@/pages/admin/SystemLogs';
-import UserManagement from '@/pages/admin/UserManagement';
-import DeletionRequestsPage from '@/pages/admin/DeletionRequestsPage';
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 const ProtectedRoutes: React.FC = () => {
+  // Pre-check admin access to avoid route flicker
+  const { hasAccess: isAdmin } = useRoleCheck({ 
+    requiredRole: ['admin', 'owner'],
+    silent: true
+  });
+  
   return (
-    <Routes>
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={
-          <MainLayout>
-            <Dashboard />
-          </MainLayout>
-        } />
-        <Route path="/launch" element={
-          <MainLayout>
-            <StrategyEngine />
-          </MainLayout>
-        } />
-        <Route path="/launch/builder" element={
-          <MainLayout>
-            <StrategyBuilder />
-          </MainLayout>
-        } />
-        <Route path="/plugins" element={
-          <MainLayout>
-            <PluginsPage />
-          </MainLayout>
-        } />
-        <Route path="/plugins/:id/evolution" element={
-          <MainLayout>
-            <PluginEvolutionPage />
-          </MainLayout>
-        } />
-        <Route path="/explore" element={
-          <MainLayout>
-            <GalaxyExplorer />
-          </MainLayout>
-        } />
-        <Route path="/agents/performance" element={
-          <MainLayout>
-            <AgentPerformance />
-          </MainLayout>
-        } />
-        <Route path="/insights/kpis" element={
-          <MainLayout>
-            <KpiDashboard />
-          </MainLayout>
-        } />
-        <Route path="/settings" element={
-          <MainLayout>
-            <SettingsPage />
-          </MainLayout>
-        } />
-        <Route path="/deletion-request" element={
-          <MainLayout>
-            <DeletionRequestPage />
-          </MainLayout>
-        } />
-        
-        {/* Admin routes */}
-        <Route path="/admin/ai-decisions" element={
-          <MainLayout>
-            <AiDecisions />
-          </MainLayout>
-        } />
-        <Route path="/admin/plugin-logs" element={
-          <MainLayout>
-            <PluginLogs />
-          </MainLayout>
-        } />
-        <Route path="/admin/system-logs" element={
-          <MainLayout>
-            <SystemLogs />
-          </MainLayout>
-        } />
-        <Route path="/admin/users" element={
-          <MainLayout>
-            <UserManagement />
-          </MainLayout>
-        } />
-        <Route path="/admin/deletion-requests" element={
-          <MainLayout>
-            <DeletionRequestsPage />
-          </MainLayout>
-        } />
-      </Route>
-    </Routes>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        {/* Main layout routes */}
+        <Route element={<MainLayout />}>
+          {/* Dashboard */}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Galaxy */}
+          <Route path="/galaxy" element={<GalaxyExplorer />} />
+          
+          {/* Agents */}
+          <Route path="/agents/performance" element={<AgentPerformance />} />
+          
+          {/* Plugins */}
+          <Route path="/plugins" element={<PluginsPage />} />
+          
+          {/* Strategy */}
+          <Route path="/strategies" element={<StrategyEngine />} />
+          
+          {/* Insights */}
+          <Route path="/insights" element={<KpiDashboard />} />
+          <Route path="/insights/kpis" element={<KpiDashboard />} />
+          
+          {/* Settings */}
+          <Route path="/settings" element={<SettingsPage />} />
+          
+          {/* Billing */}
+          <Route path="/billing" element={<BillingPage />} />
+          
+          {/* Admin routes */}
+          <Route path="/admin">
+            <Route element={<AdminLayout />}>
+              <Route path="users" element={<UserManagement />} />
+              <Route path="plugin-logs" element={<PluginLogs />} />
+              <Route path="system-logs" element={<SystemLogs />} />
+              <Route path="ai-decisions" element={<AiDecisions />} />
+            </Route>
+          </Route>
+          
+          {/* Other routes */}
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 };
 

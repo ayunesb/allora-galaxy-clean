@@ -1,268 +1,570 @@
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, formatDistanceToNow } from 'date-fns';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, ChevronDown, Filter, RefreshCw } from 'lucide-react';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useTenantId } from '@/hooks/useTenantId';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { useToast } from '@/hooks/use-toast';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import {
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+  SortingState,
+  ColumnDef,
+  ColumnFiltersState,
+  getFilteredRowModel,
+} from '@tanstack/react-table';
+import { ChevronDown, AlertCircle, RefreshCw, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
-interface PluginLogType {
+// Define types for plugin logs
+interface PluginLog {
   id: string;
   plugin_id: string;
-  plugin: { name: string };
-  strategy_id: string | null;
-  strategy: { title: string } | null;
-  agent_version_id: string | null;
-  agent_version: { version: string; plugin_id: string } | null;
-  status: string;
+  plugin_name?: string;
+  strategy_id: string;
+  strategy_name?: string;
+  agent_version_id: string;
+  status: 'success' | 'failure' | 'pending';
   execution_time: number;
   xp_earned: number;
-  input: any;
-  output: any;
-  error: string | null;
   created_at: string;
+  error?: string;
+  input?: any;
+  output?: any;
 }
 
-const PluginLogs: React.FC = () => {
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
-  const tenantId = useTenantId();
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleString();
+};
 
-  const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['plugin_logs', statusFilter],
-    queryFn: async () => {
+const truncate = (str: string, length = 30) => {
+  return str && str.length > length ? str.substring(0, length) + '...' : str;
+};
+
+const StatusBadge = ({ status }: { status: PluginLog['status'] }) => {
+  const variant = 
+    status === 'success' ? 'success' :
+    status === 'failure' ? 'destructive' : 
+    'outline';
+  
+  return <Badge variant={variant}>{status}</Badge>;
+};
+
+const PluginLogs: React.FC = () => {
+  const [logs, setLogs] = useState<PluginLog[]>([]);
+  const [plugins, setPlugins] = useState<{id: string, name: string}[]>([]);
+  const [strategies, setStrategies] = useState<{id: string, title: string}[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [selectedPlugin, setSelectedPlugin] = useState<string>('');
+  const [selectedStrategy, setSelectedStrategy] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  
+  const tenantId = useTenantId();
+  const { toast } = useToast();
+  const { currentRole } = useWorkspace();
+  
+  // Check if user has admin privileges
+  const isAdmin = currentRole === 'admin' || currentRole === 'owner';
+  
+  // Define columns for the table
+  const columns: ColumnDef<PluginLog>[] = useMemo(() => [
+    {
+      accessorKey: 'plugin_name',
+      header: 'Plugin',
+      cell: ({ row }) => <span className="font-medium">{row.original.plugin_name || 'Unknown Plugin'}</span>,
+    },
+    {
+      accessorKey: 'strategy_name',
+      header: 'Strategy',
+      cell: ({ row }) => truncate(row.original.strategy_name || 'Direct Execution'),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      accessorKey: 'execution_time',
+      header: 'Time (ms)',
+      cell: ({ row }) => <span>{row.original.execution_time.toFixed(2)}</span>,
+    },
+    {
+      accessorKey: 'xp_earned',
+      header: 'XP',
+      cell: ({ row }) => <span>{row.original.xp_earned}</span>,
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Date',
+      cell: ({ row }) => <span>{formatDate(row.original.created_at)}</span>,
+    },
+    {
+      id: 'details',
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              Details <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-96">
+            <div className="p-4">
+              <h3 className="font-bold">Log Details</h3>
+              {row.original.error && (
+                <div className="mt-2">
+                  <strong className="text-red-500">Error:</strong>
+                  <pre className="text-xs text-red-500 mt-1 p-2 bg-red-50 rounded overflow-x-auto">
+                    {row.original.error}
+                  </pre>
+                </div>
+              )}
+              {row.original.input && (
+                <div className="mt-2">
+                  <strong>Input:</strong>
+                  <pre className="text-xs mt-1 p-2 bg-gray-50 rounded overflow-x-auto">
+                    {JSON.stringify(row.original.input, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {row.original.output && (
+                <div className="mt-2">
+                  <strong>Output:</strong>
+                  <pre className="text-xs mt-1 p-2 bg-gray-50 rounded overflow-x-auto">
+                    {JSON.stringify(row.original.output, null, 2)}
+                  </pre>
+                </div>
+              )}
+              <div className="mt-2">
+                <strong>ID:</strong> <span className="text-xs">{row.original.id}</span>
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ], []);
+  
+  // Set up table
+  const table = useReactTable({
+    data: logs,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    state: {
+      sorting,
+      columnFilters,
+    },
+  });
+  
+  // Function to load plugins for filter dropdown
+  const loadPlugins = async () => {
+    if (!tenantId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('plugins')
+        .select('id, name')
+        .eq('tenant_id', tenantId);
+      
+      if (error) throw error;
+      
+      setPlugins(data || []);
+    } catch (err: any) {
+      console.error('Error loading plugins:', err);
+    }
+  };
+  
+  // Function to load strategies for filter dropdown
+  const loadStrategies = async () => {
+    if (!tenantId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('strategies')
+        .select('id, title')
+        .eq('tenant_id', tenantId);
+      
+      if (error) throw error;
+      
+      setStrategies(data || []);
+    } catch (err: any) {
+      console.error('Error loading strategies:', err);
+    }
+  };
+  
+  // Function to load plugin logs
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!tenantId) {
+        throw new Error('No tenant selected');
+      }
+      
+      // Base query
       let query = supabase
         .from('plugin_logs')
         .select(`
-          *,
-          plugin:plugins(name),
-          strategy:strategies(title),
-          agent_version:agent_versions(version, plugin_id)
+          id,
+          plugin_id,
+          strategy_id,
+          agent_version_id,
+          status,
+          execution_time,
+          xp_earned,
+          created_at,
+          error,
+          input,
+          output
         `)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
+      
+      // Apply filters
+      if (selectedPlugin) {
+        query = query.eq('plugin_id', selectedPlugin);
+      }
+      
+      if (selectedStrategy) {
+        query = query.eq('strategy_id', selectedStrategy);
+      }
+      
+      if (selectedStatus) {
+        query = query.eq('status', selectedStatus);
+      }
+      
+      if (selectedDate) {
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
         
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        query = query
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString());
       }
       
-      const { data, error } = await query;
+      // Limited to 100 logs for now, could implement pagination for more
+      query = query.limit(100);
       
-      if (error) throw error;
-      return data as PluginLogType[];
-    }
-  });
-
-  // Group logs by plugin
-  const groupedLogs = React.useMemo(() => {
-    if (!logs) return {};
-    
-    return logs.reduce((acc, log) => {
-      const pluginId = log.plugin_id;
-      const pluginName = log.plugin?.name || 'Unknown Plugin';
+      const { data: logData, error: logsError } = await query;
       
-      if (!acc[pluginId]) {
-        acc[pluginId] = {
-          name: pluginName,
-          logs: []
-        };
+      if (logsError) throw logsError;
+      
+      // If there's no data, return early
+      if (!logData?.length) {
+        setLogs([]);
+        setLoading(false);
+        return;
       }
       
-      acc[pluginId].logs.push(log);
-      return acc;
-    }, {} as Record<string, { name: string; logs: PluginLogType[] }>);
-  }, [logs]);
-
-  // Toggle expanded state for a log
-  const toggleExpanded = (logId: string) => {
-    setExpandedLogs(prev => ({
-      ...prev,
-      [logId]: !prev[logId]
-    }));
-
-    // Log view details event
-    if (!expandedLogs[logId]) {
-      logSystemEvent(
-        tenantId,
-        'logs',
-        'plugin_log_details_viewed',
-        { log_id: logId }
-      );
+      // Get plugin names
+      const pluginIds = [...new Set(logData.map(log => log.plugin_id).filter(Boolean))];
+      const { data: pluginData, error: pluginError } = await supabase
+        .from('plugins')
+        .select('id, name')
+        .in('id', pluginIds);
+      
+      if (pluginError) throw pluginError;
+      
+      const pluginLookup: Record<string, string> = {};
+      pluginData?.forEach(p => {
+        pluginLookup[p.id] = p.name;
+      });
+      
+      // Get strategy names
+      const strategyIds = [...new Set(logData.map(log => log.strategy_id).filter(Boolean))];
+      const { data: strategyData, error: strategyError } = await supabase
+        .from('strategies')
+        .select('id, title')
+        .in('id', strategyIds);
+      
+      if (strategyError) throw strategyError;
+      
+      const strategyLookup: Record<string, string> = {};
+      strategyData?.forEach(s => {
+        strategyLookup[s.id] = s.title;
+      });
+      
+      // Combine the data
+      const logsWithNames = logData.map(log => ({
+        ...log,
+        plugin_name: log.plugin_id ? pluginLookup[log.plugin_id] : undefined,
+        strategy_name: log.strategy_id ? strategyLookup[log.strategy_id] : undefined
+      }));
+      
+      setLogs(logsWithNames);
+    } catch (err: any) {
+      console.error('Error loading plugin logs:', err);
+      setError(err.message);
+      toast({
+        title: 'Error loading logs',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
-
-  // Status badge renderer
-  const renderStatusBadge = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <Badge className="bg-green-500">Success</Badge>;
-      case 'failure':
-        return <Badge variant="destructive">Failure</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pending</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  
+  // Load data when filters change
+  useEffect(() => {
+    if (tenantId) {
+      loadLogs();
     }
-  };
-
-  // Convert JSON object to React element for display
-  const renderJsonPreview = (json: any) => {
-    if (!json) return <span className="text-gray-400">None</span>;
-    
-    try {
-      return (
-        <pre className="text-xs overflow-hidden text-ellipsis whitespace-pre-wrap max-h-20">
-          {JSON.stringify(json, null, 2)}
-        </pre>
-      );
-    } catch (e) {
-      return <span className="text-red-500">Invalid JSON</span>;
+  }, [tenantId, selectedPlugin, selectedStrategy, selectedDate, selectedStatus]);
+  
+  // Load dropdown data on initial load
+  useEffect(() => {
+    if (tenantId) {
+      loadPlugins();
+      loadStrategies();
     }
+  }, [tenantId]);
+  
+  // Reset filters
+  const resetFilters = () => {
+    setSelectedPlugin('');
+    setSelectedStrategy('');
+    setSelectedDate(undefined);
+    setSelectedStatus('');
   };
-
-  const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value);
-    
-    // Log filter change
-    logSystemEvent(
-      tenantId,
-      'logs',
-      'plugin_logs_filtered',
-      { filter: value }
+  
+  if (!isAdmin) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Access Denied</AlertTitle>
+        <AlertDescription>
+          You do not have permission to access this page. Please contact your administrator.
+        </AlertDescription>
+      </Alert>
     );
-  };
-
+  }
+  
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">Plugin Logs</h1>
-      <p className="text-muted-foreground mt-2">Monitor plugin executions and errors</p>
-      
-      <div className="flex justify-between items-center my-6">
-        <div className="flex items-center gap-3">
-          <span className="text-sm">Filter by status:</span>
-          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="success">Success</SelectItem>
-              <SelectItem value="failure">Failure</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
-      
-      {isLoading ? (
-        <div className="py-12 flex justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : logs && logs.length > 0 ? (
-        <div>
-          {/* Plugin Group Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {Object.entries(groupedLogs).map(([pluginId, pluginGroup]) => (
-              <Card key={pluginId}>
-                <CardHeader>
-                  <CardTitle>{pluginGroup.name}</CardTitle>
-                  <CardDescription>
-                    {pluginGroup.logs.length} execution{pluginGroup.logs.length !== 1 ? 's' : ''}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {pluginGroup.logs.map((log) => (
-                      <Collapsible 
-                        key={log.id} 
-                        open={expandedLogs[log.id]} 
-                        onOpenChange={() => toggleExpanded(log.id)}
-                        className="border rounded-md"
-                      >
-                        <div className="py-3 px-4 flex justify-between items-center">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              {renderStatusBadge(log.status)}
-                              <span className="font-medium text-sm">
-                                {log.agent_version && `v${log.agent_version.version}`}
-                              </span>
-                              {log.strategy && (
-                                <span className="text-xs text-muted-foreground">
-                                  Strategy: {log.strategy.title}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono">+{log.xp_earned} XP</Badge>
-                            <Badge variant="secondary">{log.execution_time.toFixed(2)}s</Badge>
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <ChevronDown className={`h-4 w-4 transition-transform ${expandedLogs[log.id] ? 'transform rotate-180' : ''}`} />
-                              </Button>
-                            </CollapsibleTrigger>
-                          </div>
-                        </div>
-                        
-                        <CollapsibleContent>
-                          <Separator />
-                          <div className="p-4">
-                            <div className="grid grid-cols-1 gap-4">
-                              <div>
-                                <h4 className="text-sm font-medium mb-1">Input</h4>
-                                <div className="p-2 bg-muted rounded-md">
-                                  {renderJsonPreview(log.input)}
-                                </div>
-                              </div>
-                              <div>
-                                <h4 className="text-sm font-medium mb-1">Output</h4>
-                                <div className="p-2 bg-muted rounded-md">
-                                  {log.status === 'failure' && log.error ? (
-                                    <div className="text-red-500 text-xs">{log.error}</div>
-                                  ) : (
-                                    renderJsonPreview(log.output)
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <EmptyState 
-          title="No logs found" 
-          description="No plugin execution logs match your current filter criteria."
-          icon={<Filter className="h-12 w-12" />}
-          action={
-            <Button variant="outline" onClick={() => refetch()}>
-              Refresh Logs
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Plugin Logs</CardTitle>
+          <CardDescription>
+            View execution logs for all plugins in your workspace.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <div className="w-full sm:w-auto">
+              <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
+                <SelectTrigger className="w-full sm:w-[250px]">
+                  <SelectValue placeholder="Filter by plugin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All plugins</SelectItem>
+                  {plugins.map(plugin => (
+                    <SelectItem key={plugin.id} value={plugin.id}>
+                      {plugin.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="w-full sm:w-auto">
+              <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+                <SelectTrigger className="w-full sm:w-[250px]">
+                  <SelectValue placeholder="Filter by strategy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All strategies</SelectItem>
+                  {strategies.map(strategy => (
+                    <SelectItem key={strategy.id} value={strategy.id}>
+                      {strategy.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="w-full sm:w-auto">
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="success">Success</SelectItem>
+                  <SelectItem value="failure">Failure</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="w-full sm:w-auto">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-[200px] justify-start text-left font-normal"
+                  >
+                    <Filter className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, 'PPP') : "Filter by date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <Button variant="outline" onClick={resetFilters}>
+              Clear filters
             </Button>
-          }
-        />
-      )}
+            
+            <Button variant="outline" onClick={loadLogs} className="ml-auto">
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          </div>
+          
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="text-center py-8">
+                      <div className="flex justify-center">
+                        <RefreshCw className="h-6 w-6 animate-spin text-gray-500" />
+                      </div>
+                      <p className="mt-2 text-gray-500">Loading logs...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="text-center py-8">
+                      <p className="text-gray-500">No logs found</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Try changing the filters or run some plugin executions
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="flex-1 text-sm text-muted-foreground">
+              {loading ? (
+                "Loading..."
+              ) : (
+                `Showing ${table.getRowModel().rows.length} of ${logs.length} logs`
+              )}
+            </div>
+            <div className="space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

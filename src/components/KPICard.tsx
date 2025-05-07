@@ -1,103 +1,102 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { 
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip
-} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface KPICardProps {
-  name: string;
-  value: number;
-  previousValue?: number;
-  trendData?: Array<{date: string; value: number}>;
-  source?: 'stripe' | 'ga4' | 'hubspot' | 'manual';
-  category?: 'financial' | 'marketing' | 'sales' | 'product';
-  format?: 'currency' | 'number' | 'percentage';
+export interface KPICardProps {
+  title: string;
+  value: string | number;
+  change?: number;
+  changeLabel?: string;
+  icon?: React.ReactNode;
+  className?: string;
+  loading?: boolean;
+  trendDirection?: 'up' | 'down' | 'neutral';
+  formatter?: (value: string | number) => string;
 }
 
-const formatValue = (value: number, format?: string): string => {
-  switch (format) {
-    case 'currency':
-      return `$${value.toLocaleString()}`;
-    case 'percentage':
-      return `${value.toFixed(1)}%`;
-    default:
-      return value.toLocaleString();
-  }
-};
-
-const KPICard: React.FC<KPICardProps> = ({
-  name,
+const KPICard = ({
+  title,
   value,
-  previousValue,
-  trendData,
-  source,
-  category,
-  format = 'number'
-}) => {
-  const percentChange = previousValue 
-    ? ((value - previousValue) / previousValue) * 100
-    : 0;
-  const isPositive = percentChange >= 0;
-
+  change,
+  changeLabel,
+  icon,
+  className,
+  loading = false,
+  trendDirection,
+  formatter = (val) => String(val),
+}: KPICardProps) => {
+  // If change exists but trendDirection wasn't specified, calculate it
+  const calculatedTrendDirection = trendDirection || 
+    (change ? (change > 0 ? 'up' : change < 0 ? 'down' : 'neutral') : undefined);
+  
+  // Colors based on trend direction
+  const trendColorClasses = {
+    up: 'text-green-600',
+    down: 'text-red-600',
+    neutral: 'text-gray-500',
+  };
+  
+  const trendIcon = {
+    up: <TrendingUp className="h-4 w-4" />,
+    down: <TrendingDown className="h-4 w-4" />,
+    neutral: <Minus className="h-4 w-4" />,
+  };
+  
+  // Format the change value with + or - prefix
+  const formatChange = (val?: number) => {
+    if (val === undefined) return '';
+    return val > 0 ? `+${val}` : val.toString();
+  };
+  
+  if (loading) {
+    return (
+      <Card className={cn("overflow-hidden", className)}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            <Skeleton className="h-4 w-40" />
+          </CardTitle>
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-8 w-28 mb-2" />
+          <Skeleton className="h-4 w-20" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm text-muted-foreground">{name}</p>
-            <h3 className="text-2xl font-bold">{formatValue(value, format)}</h3>
-          </div>
-          {source && (
-            <Badge variant="outline" className="capitalize">
-              {source}
-            </Badge>
-          )}
-        </div>
-
-        {previousValue !== undefined && (
-          <div className={`flex items-center text-sm ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-            {isPositive ? (
-              <TrendingUp className="h-4 w-4 mr-1" />
-            ) : (
-              <TrendingDown className="h-4 w-4 mr-1" />
-            )}
-            <span>{`${isPositive ? '+' : ''}${percentChange.toFixed(1)}% from previous`}</span>
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">
+          {title}
+        </CardTitle>
+        {icon && (
+          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+            {icon}
           </div>
         )}
-
-        {trendData && trendData.length > 1 && (
-          <div className="h-24 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <XAxis 
-                  dataKey="date" 
-                  hide={true} 
-                />
-                <YAxis 
-                  hide={true} 
-                  domain={['dataMin - 5%', 'dataMax + 5%']}
-                />
-                <Tooltip 
-                  formatter={(value) => [formatValue(Number(value), format), name]}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={isPositive ? "#10b981" : "#ef4444"} 
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
+          {formatter(value)}
+        </div>
+        {(change !== undefined || changeLabel) && (
+          <div className="flex items-center pt-1">
+            {calculatedTrendDirection && (
+              <span className={`${trendColorClasses[calculatedTrendDirection]} mr-1`}>
+                {trendIcon[calculatedTrendDirection]}
+              </span>
+            )}
+            <p className={cn(
+              "text-xs",
+              calculatedTrendDirection ? trendColorClasses[calculatedTrendDirection] : "text-muted-foreground"
+            )}>
+              {change !== undefined ? formatChange(change) : ''} {changeLabel || ''}
+            </p>
           </div>
         )}
       </CardContent>

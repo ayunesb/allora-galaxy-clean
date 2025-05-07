@@ -1,8 +1,16 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { notifyError } from '@/components/ui/BetterToast';
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+const roleHierarchy: Record<UserRole, number> = {
+  'owner': 4,
+  'admin': 3,
+  'member': 2,
+  'viewer': 1,
+};
 
 /**
  * Checks if a user has the required role within the specified tenant using RLS security definer functions
@@ -12,7 +20,7 @@ export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
  */
 export async function requireRole(
   tenant_id: string,
-  role: string | string[]
+  role: UserRole | UserRole[]
 ): Promise<boolean> {
   try {
     if (!tenant_id) {
@@ -28,7 +36,7 @@ export async function requireRole(
       return false;
     }
     
-    // Check if the user is an admin - this now uses our security definer function via RLS
+    // Use security definer function to check if user is admin
     if (Array.isArray(role) && (role.includes('admin') || role.includes('owner'))) {
       const { data, error } = await supabase.rpc('is_tenant_admin', { tenant_id });
       
@@ -60,12 +68,20 @@ export async function requireRole(
       return false;
     }
     
+    const userRoleLevel = roleHierarchy[roleData.role as UserRole] || 0;
+    
     // Check if the user has the required role
     if (Array.isArray(role)) {
-      return role.includes(roleData.role);
+      // Find the minimum required level from the array of roles
+      const minimumRequiredLevel = Math.min(
+        ...role.map(r => roleHierarchy[r] || Number.MAX_SAFE_INTEGER)
+      );
+      return userRoleLevel >= minimumRequiredLevel;
     }
     
-    return roleData.role === role;
+    // Check against a single role
+    const requiredRoleLevel = roleHierarchy[role] || Number.MAX_SAFE_INTEGER;
+    return userRoleLevel >= requiredRoleLevel;
   } catch (err) {
     console.error('Error in requireRole:', err);
     return false;
@@ -82,7 +98,7 @@ export async function requireRole(
 export function withRequiredRole<T extends any[], R>(
   fn: (...args: T) => Promise<R>,
   tenant_id: string,
-  role: string | string[]
+  role: UserRole | UserRole[]
 ): (...args: T) => Promise<R | void> {
   return async (...args: T): Promise<R | void> => {
     try {
@@ -100,4 +116,38 @@ export function withRequiredRole<T extends any[], R>(
       return;
     }
   };
+}
+
+/**
+ * Hook that returns the current user's role level (0-4)
+ * @returns The user's role level or 0 if not authenticated
+ */
+export function useRoleLevel(): number {
+  const { currentRole } = useWorkspace();
+  return currentRole ? (roleHierarchy[currentRole as UserRole] || 0) : 0;
+}
+
+/**
+ * Check if the current user's role meets or exceeds the required role
+ * @param requiredRole The minimum role level required
+ * @returns Boolean indicating if user meets the requirement
+ */
+export function hasRequiredRole(requiredRole: UserRole | UserRole[]): boolean {
+  const { currentRole } = useWorkspace();
+  
+  if (!currentRole) {
+    return false;
+  }
+  
+  const userRoleLevel = roleHierarchy[currentRole as UserRole] || 0;
+  
+  if (Array.isArray(requiredRole)) {
+    const minimumRequiredLevel = Math.min(
+      ...requiredRole.map(r => roleHierarchy[r] || Number.MAX_SAFE_INTEGER)
+    );
+    return userRoleLevel >= minimumRequiredLevel;
+  }
+  
+  const requiredRoleLevel = roleHierarchy[requiredRole] || Number.MAX_SAFE_INTEGER;
+  return userRoleLevel >= requiredRoleLevel;
 }
