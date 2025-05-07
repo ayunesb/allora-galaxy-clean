@@ -53,9 +53,8 @@ const NotificationCenter: React.FC = () => {
       // Set up real-time subscription for new notifications
       const setupSubscription = async () => {
         try {
-          const channel = supabase.channel('notifications_changes');
-          
-          channel
+          const channel = supabase
+            .channel('notifications_changes')
             .on('postgres_changes', 
               {
                 event: 'INSERT',
@@ -83,7 +82,10 @@ const NotificationCenter: React.FC = () => {
       
       return () => {
         if (channel) {
-          supabase.removeChannel(channel);
+          // Safely handle removeChannel method
+          if (typeof supabase.removeChannel === 'function') {
+            supabase.removeChannel(channel);
+          }
         }
       };
     }

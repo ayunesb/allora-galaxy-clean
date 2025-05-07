@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -129,9 +128,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user || !currentTenant) return;
     
     // Use the supabase client's realtime subscription
-    const subscription = supabase
-      .from('notifications')
-      .on('INSERT', (payload) => {
+    const channel = supabase
+      .channel('notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `tenant_id=eq.${currentTenant.id} AND user_id=eq.${user.id}`
+      }, (payload) => {
         const newNotification = payload.new as Notification;
           
         // Only handle notifications for current tenant
@@ -161,7 +165,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchNotifications();
     
     return () => {
-      supabase.from('notifications').unsubscribe();
+      // Safely handle removeChannel method
+      if (typeof supabase.removeChannel === 'function') {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user, currentTenant]);
   

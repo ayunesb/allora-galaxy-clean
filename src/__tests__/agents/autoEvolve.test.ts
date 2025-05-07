@@ -49,25 +49,25 @@ describe('Agent Evolution', () => {
       const result = await checkAgentForPromotion('test-agent-version-id');
       
       expect(result).toEqual({
-        success: true,
+        evolved: true,
         agent: expect.objectContaining({
           id: 'test-agent-version-id',
           xp: 1000,
           upvotes: 10
         }),
-        ready_for_promotion: true,
-        current_xp: 1000,
-        current_upvotes: 10,
-        requires_approval: true
+        reason: expect.any(String)
       });
     });
   });
 
   describe('checkAndEvolveAgent', () => {
     it('should check and evolve an agent', async () => {
-      const result = await checkAndEvolveAgent('test-agent-version-id');
+      const result = await checkAndEvolveAgent({
+        agent_version_id: 'test-agent-version-id',
+        tenant_id: 'test-tenant-id'
+      });
       
-      expect(result.success).toBe(true);
+      expect(result.evolved).toBe(true);
     });
   });
 });

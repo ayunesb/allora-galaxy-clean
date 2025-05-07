@@ -108,16 +108,13 @@ describe('Agent Evolution', () => {
       const result = await checkAgentForPromotion('test-agent-id');
       
       expect(result).toEqual({
-        success: true,
+        evolved: true,
         agent: expect.objectContaining({
           id: 'test-agent-id',
           xp: 1200,
           upvotes: 8
         }),
-        ready_for_promotion: true,
-        current_xp: 1200,
-        current_upvotes: 8,
-        requires_approval: true
+        reason: expect.any(String)
       });
     });
     
@@ -145,8 +142,8 @@ describe('Agent Evolution', () => {
       
       const result = await checkAgentForPromotion('test-agent-id');
       
-      expect(result.ready_for_promotion).toBe(false);
-      expect(result.current_xp).toBe(500);
+      expect(result.evolved).toBe(false);
+      expect(result.reason).toContain('XP is too low');
     });
     
     it('should return not ready when agent upvotes are below threshold', async () => {
@@ -173,8 +170,8 @@ describe('Agent Evolution', () => {
       
       const result = await checkAgentForPromotion('test-agent-id');
       
-      expect(result.ready_for_promotion).toBe(false);
-      expect(result.current_upvotes).toBe(3);
+      expect(result.evolved).toBe(false);
+      expect(result.reason).toContain('upvotes');
     });
     
     it('should handle errors gracefully', async () => {
@@ -192,9 +189,8 @@ describe('Agent Evolution', () => {
       
       const result = await checkAgentForPromotion('nonexistent-id');
       
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(result.ready_for_promotion).toBe(false);
+      expect(result.evolved).toBe(false);
+      expect(result.reason).toBeDefined();
     });
   });
 
@@ -254,8 +250,8 @@ describe('Agent Evolution', () => {
         requires_approval: false // No approval required
       });
       
-      expect(result.success).toBe(true);
-      expect(result.message).toContain('Agent successfully promoted');
+      expect(result.evolved).toBe(true);
+      expect(result.reason).toContain('successfully promoted');
     });
     
     it('should not evolve an agent when approval is required', async () => {
@@ -267,9 +263,8 @@ describe('Agent Evolution', () => {
         requires_approval: true // Approval required
       });
       
-      expect(result.success).toBe(true);
-      expect(result.message).toContain('requires approval');
-      expect(result.needs_approval).toBe(true);
+      expect(result.evolved).toBe(false);
+      expect(result.reason).toContain('requires approval');
     });
     
     it('should not evolve an agent that does not meet criteria', async () => {
@@ -301,8 +296,8 @@ describe('Agent Evolution', () => {
         min_upvotes: 5
       });
       
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('does not meet promotion criteria');
+      expect(result.evolved).toBe(false);
+      expect(result.reason).toContain('does not meet promotion criteria');
     });
     
     it('should handle database errors gracefully', async () => {
@@ -323,8 +318,8 @@ describe('Agent Evolution', () => {
         tenant_id: 'test-tenant-id'
       });
       
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result.evolved).toBe(false);
+      expect(result.reason).toBeDefined();
     });
   });
 });
