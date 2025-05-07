@@ -23,7 +23,7 @@ export type OnboardingFormData = {
 
 export const useOnboardingWizard = () => {
   const { user } = useAuth();
-  const { createTenant, tenants } = useWorkspace();
+  const { createTenant, tenants, setCurrentTenant } = useWorkspace();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,20 +78,53 @@ export const useOnboardingWizard = () => {
     setError(null);
 
     try {
-      // Create new tenant
-      const { data: tenant, error: tenantError } = await supabase.retryOperation(async () => {
-        return await createTenant(formData.companyName);
+      if (!user) {
+        throw new Error("User is not authenticated");
+      }
+
+      // Create new tenant with proper slug
+      const slug = formData.companyName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      
+      // Use retryOperation to handle potential network issues
+      const { data: newTenant, error: tenantError } = await supabase.retryOperation(async () => {
+        return await supabase
+          .from('tenants')
+          .insert({
+            name: formData.companyName,
+            slug,
+            owner_id: user.id,
+            metadata: {
+              industry: formData.industry,
+              size: formData.teamSize,
+              revenue_range: formData.revenueRange
+            }
+          })
+          .select()
+          .single();
       });
 
       if (tenantError) throw tenantError;
-      if (!tenant) throw new Error("Failed to create tenant: No data returned");
+      if (!newTenant) throw new Error("Failed to create tenant: No data returned");
+
+      // Create tenant user role with owner permission
+      const { error: roleError } = await supabase.retryOperation(async () => {
+        return await supabase
+          .from('tenant_user_roles')
+          .insert({
+            tenant_id: newTenant.id,
+            user_id: user.id,
+            role: 'owner'
+          });
+      });
+
+      if (roleError) throw roleError;
 
       // Create company profile
       const { error: companyError } = await supabase.retryOperation(async () => {
         return await supabase
           .from('company_profiles')
           .insert({
-            tenant_id: tenant.id,
+            tenant_id: newTenant.id,
             name: formData.companyName,
             industry: formData.industry,
             size: formData.teamSize,
@@ -108,7 +141,7 @@ export const useOnboardingWizard = () => {
         return await supabase
           .from('persona_profiles')
           .insert({
-            tenant_id: tenant.id,
+            tenant_id: newTenant.id,
             name: formData.personaName,
             tone: formData.tone,
             goals: formData.goals.split('\n').filter(goal => goal.trim() !== ''),
@@ -119,11 +152,11 @@ export const useOnboardingWizard = () => {
 
       // Log successful onboarding
       await logSystemEvent(
-        tenant.id,
+        newTenant.id,
         'onboarding',
         'onboarding_complete',
         {
-          user_id: user?.id,
+          user_id: user.id,
           company_name: formData.companyName,
           industry: formData.industry
         }
@@ -134,8 +167,14 @@ export const useOnboardingWizard = () => {
         description: 'Your workspace has been set up successfully.',
       });
 
+      // Set the current tenant and redirect to dashboard
+      setCurrentTenant({
+        ...newTenant,
+        role: 'owner'
+      });
+      
       // Redirect to dashboard
-      window.location.href = '/';
+      window.location.href = '/dashboard';
 
     } catch (error: any) {
       console.error('Onboarding error:', error);

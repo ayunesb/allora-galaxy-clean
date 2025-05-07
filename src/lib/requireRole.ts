@@ -2,8 +2,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { notifyError } from '@/components/ui/BetterToast';
 
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+
 /**
- * Checks if a user has the required role within the specified tenant
+ * Checks if a user has the required role within the specified tenant using RLS security definer functions
  * @param tenant_id The tenant ID to check roles for
  * @param role The role required or array of roles where any match is sufficient
  * @returns A promise that resolves to boolean indicating if the user has the required role
@@ -26,7 +28,21 @@ export async function requireRole(
       return false;
     }
     
-    // Get the user's roles for the specified tenant
+    // Check if the user is an admin - this now uses our security definer function via RLS
+    if (Array.isArray(role) && (role.includes('admin') || role.includes('owner'))) {
+      const { data, error } = await supabase.rpc('is_tenant_admin', { tenant_id });
+      
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+      
+      if (data === true) {
+        return true;
+      }
+    }
+    
+    // Check if user has the specific role
     const { data: roleData, error } = await supabase
       .from('tenant_user_roles')
       .select('role')
