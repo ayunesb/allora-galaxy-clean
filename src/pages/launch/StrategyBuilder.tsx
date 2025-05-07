@@ -22,6 +22,27 @@ import { Loader, Plus, Play, Check, AlertTriangle, ChevronRight, XCircle, CheckC
 import { format } from 'date-fns';
 import { mockStrategies } from '@/lib/__mocks__/mockStrategies';
 
+// Define extended plugin type to include agent_versions
+interface ExtendedPlugin extends Plugin {
+  agent_versions?: {
+    id: string;
+    version: string;
+  }[];
+}
+
+// Define extended plugin log type to include related data
+interface ExtendedPluginLog extends PluginLog {
+  plugins?: {
+    id: string;
+    name: string;
+    icon?: string;
+  };
+  agent_versions?: {
+    id: string;
+    version: string;
+  };
+}
+
 const StrategyBuilder: React.FC = () => {
   const tenantId = useTenantId();
   const { userRole } = useWorkspace();
@@ -33,7 +54,7 @@ const StrategyBuilder: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPluginModalOpen, setIsPluginModalOpen] = useState(false);
-  const [selectedPlugins, setSelectedPlugins] = useState<Plugin[]>([]);
+  const [selectedPlugins, setSelectedPlugins] = useState<ExtendedPlugin[]>([]);
   const [activeStrategyId, setActiveStrategyId] = useState<string | null>(null);
   const [isExecutionSheetOpen, setIsExecutionSheetOpen] = useState(false);
 
@@ -88,7 +109,7 @@ const StrategyBuilder: React.FC = () => {
         return [];
       }
       
-      return data as Plugin[];
+      return data as ExtendedPlugin[];
     },
   });
 
@@ -113,7 +134,7 @@ const StrategyBuilder: React.FC = () => {
         return [];
       }
       
-      return data as PluginLog[];
+      return data as ExtendedPluginLog[];
     },
     enabled: !!activeStrategyId,
   });
@@ -302,7 +323,7 @@ const StrategyBuilder: React.FC = () => {
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       case 'completed':
-        return <Badge variant="success" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600 text-white">Completed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -323,7 +344,7 @@ const StrategyBuilder: React.FC = () => {
   };
 
   // Handle plugin selection
-  const togglePluginSelection = (plugin: Plugin) => {
+  const togglePluginSelection = (plugin: ExtendedPlugin) => {
     setSelectedPlugins(prevSelected => {
       const isAlreadySelected = prevSelected.some(p => p.id === plugin.id);
       
