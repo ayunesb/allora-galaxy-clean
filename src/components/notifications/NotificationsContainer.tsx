@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, realtime } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NotificationsPageHeader from './NotificationsPageHeader';
@@ -25,8 +25,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       fetchNotifications();
 
       // Set up real-time subscription for new notifications
-      const channel = supabase
-        .channel('notifications_changes')
+      const channel = realtime('notifications_changes')
         .on('postgres_changes', 
           {
             event: '*',
@@ -46,9 +45,9 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
         }
       };
     }
-  }, [user?.id, currentTenant?.id, selectedTab, filter]);
+  }, [user?.id, currentTenant?.id, selectedTab, filter, fetchNotifications]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (): Promise<void> => {
     if (!user?.id || !currentTenant?.id) return;
     
     setLoading(true);
@@ -85,14 +84,14 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       
       setNotifications(transformedNotifications);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const markAsRead = async (id: string) => {
+  const markAsRead = async (id: string): Promise<{ success: boolean; error?: unknown }> => {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -109,7 +108,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       );
       
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error marking notification as read:', error);
       return { success: false, error };
     }
@@ -139,12 +138,12 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
         prev.map(notif => ({ ...notif, read: true }))
       );
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error marking all notifications as read:', error);
     }
   };
 
-  const deleteNotification = async (id: string) => {
+  const deleteNotification = async (id: string): Promise<{ success: boolean; error?: unknown }> => {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -157,13 +156,13 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       setNotifications(prev => prev.filter(notif => notif.id !== id));
       
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting notification:', error);
       return { success: false, error };
     }
   };
 
-  const deleteAllNotifications = async () => {
+  const deleteAllNotifications = async (): Promise<void> => {
     if (!user?.id || !currentTenant?.id) return;
     
     try {
@@ -190,7 +189,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       // Update local state by refetching
       fetchNotifications();
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting all notifications:', error);
     }
   };
