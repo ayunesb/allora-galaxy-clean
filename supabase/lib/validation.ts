@@ -1,111 +1,77 @@
 
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 /**
- * Common response type for all edge functions
+ * Standard schema for analyzePromptDiff endpoint
  */
-export interface EdgeFunctionResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  execution_time?: number;
-}
+export const analyzePromptDiffSchema = z.object({
+  current_prompt: z.string(),
+  previous_prompt: z.string(),
+  plugin_id: z.string().uuid().optional(),
+  agent_version_id: z.string().uuid().optional(),
+});
 
 /**
- * Format standard API successful response
+ * Helper to safely parse request body with a zod schema
  */
-export function formatSuccessResponse<T>(
-  data: T,
-  executionTime?: number
-): Response {
-  const body: EdgeFunctionResponse<T> = {
-    success: true,
-    data,
-    ...(executionTime !== undefined && { execution_time: executionTime })
-  };
-
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+export async function safeParseRequest<T>(
+  req: Request, 
+  schema: z.ZodType<T>
+): Promise<[T | null, string | null]> {
+  try {
+    const body = await req.json();
+    const result = schema.safeParse(body);
+    
+    if (!result.success) {
+      return [null, result.error.message];
     }
-  });
+    
+    return [result.data, null];
+  } catch (error) {
+    return [null, `Error parsing request: ${error.message || "Invalid JSON"}`];
+  }
 }
 
 /**
  * Format standard API error response
  */
 export function formatErrorResponse(
-  status: number,
+  status: number = 500,
   message: string,
-  details?: string,
-  executionTime?: number
+  details?: any,
+  processingTime?: number
 ): Response {
-  const body: EdgeFunctionResponse = {
+  const body = {
     success: false,
     error: message,
-    ...(details && { data: { details } }),
-    ...(executionTime !== undefined && { execution_time: executionTime })
+    details: details || null,
+    processing_time: processingTime,
+    timestamp: new Date().toISOString()
   };
 
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
-    }
+    headers: { 'Content-Type': 'application/json' }
   });
 }
 
-export const uuidSchema = z.string().uuid();
-
-export const executeStrategySchema = z.object({
-  strategy_id: uuidSchema,
-  tenant_id: uuidSchema,
-  user_id: uuidSchema.optional().nullable(),
-  options: z.record(z.unknown()).optional().default({})
-});
-
-export const updateKPIsSchema = z.object({
-  tenant_id: uuidSchema.optional(),
-  sources: z.array(z.enum(['stripe', 'ga4', 'hubspot'])).optional(),
-  run_mode: z.enum(['cron', 'manual', 'scheduled']).optional().default('cron')
-});
-
-export const syncMQLsSchema = z.object({
-  tenant_id: uuidSchema.optional(),
-  hubspot_api_key: z.string().optional()
-});
-
-export const analyzePromptDiffSchema = z.object({
-  current_prompt: z.string(),
-  previous_prompt: z.string(),
-  plugin_id: uuidSchema.optional(),
-  agent_version_id: uuidSchema.optional()
-});
-
 /**
- * Safely parse the request body using zod schema
- * @param request The incoming request object
- * @param schema The zod schema to validate against
- * @returns A tuple containing [parsed data, error]
+ * Format standard API success response
  */
-export async function safeParseRequest<T extends z.ZodType>(
-  request: Request,
-  schema: T
-): Promise<[z.infer<T> | null, string | null]> {
-  try {
-    const body = await request.json();
-    const result = schema.safeParse(body);
-    if (result.success) {
-      return [result.data, null];
-    } else {
-      return [null, `Invalid request: ${result.error.message}`];
-    }
-  } catch (error) {
-    return [null, `Failed to parse request: ${error.message || String(error)}`];
-  }
+export function formatSuccessResponse(
+  data: any,
+  processingTime?: number,
+  status: number = 200
+): Response {
+  const body = {
+    success: true,
+    data,
+    processing_time: processingTime,
+    timestamp: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }

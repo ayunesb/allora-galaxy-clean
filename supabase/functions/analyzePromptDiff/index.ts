@@ -5,15 +5,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { diffLines } from "https://esm.sh/diff@5.2.0";
 
 // Import environment utilities
-import { getEnv } from "../../lib/env.ts";
-import { corsHeaders } from "../../lib/corsHeaders.ts";
-import { validateEnv, type EnvVar } from "../../lib/validateEnv.ts";
+import { getEnv } from "../lib/env.ts";
+import { corsHeaders } from "../lib/corsHeaders.ts";
+import { validateEnv, type EnvVar } from "../lib/validateEnv.ts";
 import { 
   analyzePromptDiffSchema,
   formatErrorResponse,
   formatSuccessResponse,
   safeParseRequest
-} from "../../lib/validation.ts";
+} from "../lib/validation.ts";
 
 const MODULE_NAME = "analyzePromptDiff";
 

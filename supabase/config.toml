@@ -18,3 +18,6 @@ verify_jwt = true
 
 [functions.cleanupLogs]
 verify_jwt = true
+
+[functions.analyzePromptDiff]
+verify_jwt = true
