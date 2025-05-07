@@ -1,10 +1,11 @@
-
 import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BarChart, Calendar, Plugin, Settings, LayoutGrid } from 'lucide-react';
+import { ArrowRight, BarChart, Calendar, Plug, Settings, LayoutGrid } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
@@ -83,7 +84,7 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="flex justify-between items-center">
             <div className="rounded-full bg-primary/10 p-3">
-              <Plugin className="h-6 w-6 text-primary" />
+              <Plug className="h-6 w-6 text-primary" />
             </div>
             <Button asChild>
               <Link to="/plugins">Explore</Link>

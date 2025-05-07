@@ -26,6 +26,7 @@ import KpiDashboard from "./pages/insights/KpiDashboard";
 // Admin pages
 import AiDecisions from "./pages/admin/AiDecisions";
 import PluginLogs from "./pages/admin/PluginLogs";
+import SystemLogs from "./pages/admin/SystemLogs";
 import UserManagement from "./pages/admin/UserManagement";
 
 // Auth and workspace providers
@@ -65,6 +66,7 @@ const App = () => (
               {/* Admin routes */}
               <Route path="/admin/ai-decisions" element={<AiDecisions />} />
               <Route path="/admin/plugin-logs" element={<PluginLogs />} />
+              <Route path="/admin/system-logs" element={<SystemLogs />} />
               <Route path="/admin/users" element={<UserManagement />} />
             </Route>
             
