@@ -30,12 +30,12 @@ export async function runPluginChain(
     }
     
     // Log the start of the plugin chain execution
-    await logSystemEvent({
+    await logSystemEvent(
       tenant_id,
-      module: 'plugins', 
-      event: 'plugin_chain_started',
-      context: { strategy_id: strategyId }
-    });
+      'plugins', 
+      'plugin_chain_started',
+      { strategy_id: strategyId }
+    );
     
     // Get all plugins associated with this strategy
     const { plugins, error: pluginsError } = await fetchPluginsForStrategy(strategyId);
@@ -119,12 +119,12 @@ export async function runPluginChain(
     console.error("Error running plugin chain:", error);
     
     // Log the error
-    await logSystemEvent({
+    await logSystemEvent(
       tenant_id,
-      module: 'plugins',
-      event: 'plugin_chain_error',
-      context: { strategy_id: strategyId, error: error.message }
-    });
+      'plugins',
+      'plugin_chain_error',
+      { strategy_id: strategyId, error: error.message }
+    );
     
     const endTime = performance.now();
     

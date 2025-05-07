@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function logSystemEvent(
   tenant_id: string,
-  module: 'strategy' | 'plugin' | 'agent' | 'auth' | 'billing',
+  module: string,
   event: string,
   context?: Record<string, any>
 ): Promise<string | null> {
