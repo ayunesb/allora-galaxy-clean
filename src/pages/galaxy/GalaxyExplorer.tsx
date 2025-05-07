@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import InspectorSidebar, { InspectorContent } from '@/components/galaxy/InspectorSidebar';
 import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
 import ZoomControls from '@/components/galaxy/ZoomControls';
@@ -13,6 +14,7 @@ import { GraphNode, GraphData, GraphLink } from '@/types/galaxy';
 import PageHelmet from '@/components/PageHelmet';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { useToast } from '@/hooks/use-toast';
 
 const GalaxyExplorer: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -20,6 +22,8 @@ const GalaxyExplorer: React.FC = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [viewMode, setViewMode] = useState('all');
   const fgRef = useRef<any>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Check if we're on mobile
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -80,10 +84,40 @@ const GalaxyExplorer: React.FC = () => {
     }
   }, [graphDataQuery, viewMode]);
   
-  // Handle node selection
+  // Handle node selection and navigation
   const handleNodeClick = (node: GraphNode) => {
     setSelectedNode(node);
     setShowSidebar(true);
+    
+    // Navigate to detailed view based on node type
+    if (node.realId) {
+      switch (node.type) {
+        case 'plugin':
+          // You can uncomment this when you have a plugin detail page
+          // navigate(`/plugins/${node.realId}`);
+          toast({
+            title: "Plugin Selected",
+            description: `Viewing details for ${node.name || 'plugin'}`
+          });
+          break;
+        case 'strategy':
+          // You can uncomment this when you have a strategy detail page
+          // navigate(`/strategy/${node.realId}`);
+          toast({
+            title: "Strategy Selected",
+            description: `Viewing details for ${node.name || node.title || 'strategy'}`
+          });
+          break;
+        case 'agent':
+          toast({
+            title: "Agent Selected",
+            description: `Viewing details for ${node.name || 'agent version'}`
+          });
+          break;
+        default:
+          break;
+      }
+    }
   };
   
   // Handle sidebar close

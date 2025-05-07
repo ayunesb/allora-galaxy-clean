@@ -3,7 +3,7 @@ import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
-export const KPICardSkeleton: React.FC = () => {
+export function KPICardSkeleton() {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -21,4 +21,4 @@ export const KPICardSkeleton: React.FC = () => {
       </CardContent>
     </Card>
   );
-};
+}
