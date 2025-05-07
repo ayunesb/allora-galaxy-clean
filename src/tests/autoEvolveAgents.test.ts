@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { autoEvolveAgents } from '@/lib/agents/autoEvolve';
+import { autoEvolveAgents } from '@/lib/agents/evolution';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock supabase client
