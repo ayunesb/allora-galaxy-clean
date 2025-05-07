@@ -20,6 +20,7 @@ export function formatErrorResponse(
   details?: any
 ): Response {
   const body = {
+    success: false,
     error: message,
     details: details || null,
     timestamp: new Date().toISOString()

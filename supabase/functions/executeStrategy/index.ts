@@ -1,9 +1,25 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Import environment utilities
 import { getEnv } from "../../lib/env.ts";
-import { corsHeaders, formatErrorResponse } from "../../lib/corsHeaders.ts";
 import { validateEnv, type EnvVar } from "../../lib/validateEnv.ts";
+import { 
+  executeStrategySchema,
+  formatErrorResponse,
+  formatSuccessResponse,
+  safeParseRequest
+} from "../../lib/validation.ts";
+
+const MODULE_NAME = "executeStrategy";
+
+// Cors headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 // Define required environment variables
 const requiredEnv: EnvVar[] = [
@@ -14,83 +30,153 @@ const requiredEnv: EnvVar[] = [
 // Validate environment variables
 const env = validateEnv(requiredEnv);
 
-// Interface for the strategy execution request
-interface ExecuteRequest {
-  strategy_id: string;
-  tenant_id: string;
-  user_id?: string;
-  options?: Record<string, any>;
-}
-
-// Function to validate input
-function validateInput(input: any): { valid: boolean; errors?: string[] } {
-  const errors: string[] = [];
-  
-  if (!input) {
-    errors.push("Request body is required");
-    return { valid: false, errors };
-  }
-  
-  if (!input.strategy_id) {
-    errors.push("strategy_id is required");
-  }
-  
-  if (!input.tenant_id) {
-    errors.push("tenant_id is required");
-  }
-  
-  return { valid: errors.length === 0, errors };
-}
-
-// Function to execute a strategy
-async function executeStrategy(input: ExecuteRequest, supabase: any) {
+serve(async (req) => {
   const startTime = performance.now();
-  const executionId = crypto.randomUUID();
+  let executionId: string | null = null;
   
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Verify the strategy exists and belongs to the tenant
-    const { data: strategy, error: strategyError } = await supabase
-      .from('strategies')
-      .select('id, title, status')
-      .eq('id', input.strategy_id)
-      .eq('tenant_id', input.tenant_id)
-      .single();
-    
-    if (strategyError || !strategy) {
-      throw new Error(`Strategy not found or access denied: ${strategyError?.message || 'Unknown error'}`);
+    console.log(`${MODULE_NAME}: Processing request`);
+
+    // Create Supabase client with admin privileges
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error(`${MODULE_NAME}: Missing Supabase configuration`);
+      return formatErrorResponse(
+        500, 
+        "Supabase client could not be initialized", 
+        "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured",
+        (performance.now() - startTime) / 1000
+      );
     }
     
-    if (strategy.status !== 'approved' && strategy.status !== 'pending') {
-      throw new Error(`Strategy cannot be executed with status: ${strategy.status}`);
+    const supabaseAdmin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+
+    // Parse and validate request using zod schema
+    const [payload, parseError] = await safeParseRequest(req, executeStrategySchema);
+    
+    if (parseError || !payload) {
+      console.error(`${MODULE_NAME}: Invalid payload - ${parseError}`);
+      return formatErrorResponse(400, parseError || "Invalid request", undefined, (performance.now() - startTime) / 1000);
     }
     
-    // Record the execution start
+    const { strategy_id, tenant_id, user_id, options } = payload;
+
+    // Generate a unique execution ID
+    executionId = crypto.randomUUID();
+
     try {
-      const { error: execError } = await supabase
+      console.log(`${MODULE_NAME}: Creating execution record ${executionId}`);
+      
+      // Record the execution start
+      const { error: execError } = await supabaseAdmin
         .from('executions')
         .insert({
           id: executionId,
-          tenant_id: input.tenant_id,
-          strategy_id: input.strategy_id,
-          executed_by: input.user_id,
+          tenant_id: tenant_id,
+          strategy_id: strategy_id,
+          executed_by: user_id,
           type: 'strategy',
           status: 'pending',
-          input: input.options || {},
+          input: options || {},
           created_at: new Date().toISOString()
         });
       
       if (execError) {
-        throw new Error(`Failed to record execution: ${execError.message}`);
+        console.error(`${MODULE_NAME}: Failed to record execution:`, execError);
       }
     } catch (recordError) {
-      console.error("Error recording execution start, but continuing:", recordError);
+      console.error(`${MODULE_NAME}: Error recording execution start, but continuing:`, recordError);
       // Continue execution despite recording error
+    }
+    
+    try {
+      // Verify the strategy exists and belongs to the tenant
+      console.log(`${MODULE_NAME}: Fetching strategy ${strategy_id} for tenant ${tenant_id}`);
+      
+      const { data: strategy, error: strategyError } = await supabaseAdmin
+        .from('strategies')
+        .select('id, title, status')
+        .eq('id', strategy_id)
+        .eq('tenant_id', tenant_id)
+        .single();
+      
+      if (strategyError || !strategy) {
+        const errorMessage = `Strategy not found or access denied: ${strategyError?.message || 'Unknown error'}`;
+        console.error(`${MODULE_NAME}: ${errorMessage}`);
+        
+        // Update execution record with error
+        try {
+          if (executionId) {
+            await supabaseAdmin
+              .from('executions')
+              .update({
+                status: 'failure',
+                error: errorMessage,
+                execution_time: (performance.now() - startTime) / 1000
+              })
+              .eq('id', executionId);
+          }
+        } catch (updateError) {
+          console.error(`${MODULE_NAME}: Error updating execution status:`, updateError);
+        }
+        
+        return formatErrorResponse(404, errorMessage, undefined, (performance.now() - startTime) / 1000);
+      }
+      
+      if (strategy.status !== 'approved' && strategy.status !== 'pending') {
+        const errorMessage = `Strategy cannot be executed with status: ${strategy.status}`;
+        console.error(`${MODULE_NAME}: ${errorMessage}`);
+        
+        // Update execution record with error
+        try {
+          if (executionId) {
+            await supabaseAdmin
+              .from('executions')
+              .update({
+                status: 'failure',
+                error: errorMessage,
+                execution_time: (performance.now() - startTime) / 1000
+              })
+              .eq('id', executionId);
+          }
+        } catch (updateError) {
+          console.error(`${MODULE_NAME}: Error updating execution status:`, updateError);
+        }
+        
+        return formatErrorResponse(400, errorMessage, undefined, (performance.now() - startTime) / 1000);
+      }
+    } catch (strategyCheckError) {
+      console.error(`${MODULE_NAME}: Error verifying strategy:`, strategyCheckError);
+      
+      // Update execution record with error
+      try {
+        if (executionId) {
+          await supabaseAdmin
+            .from('executions')
+            .update({
+              status: 'failure',
+              error: String(strategyCheckError),
+              execution_time: (performance.now() - startTime) / 1000
+            })
+            .eq('id', executionId);
+        }
+      } catch (updateError) {
+        console.error(`${MODULE_NAME}: Error updating execution status:`, updateError);
+      }
+      
+      return formatErrorResponse(500, "Failed to verify strategy", String(strategyCheckError), (performance.now() - startTime) / 1000);
     }
     
     // Fetch plugins associated with this strategy
     let plugins;
     try {
-      const { data, error: pluginsError } = await supabase
+      console.log(`${MODULE_NAME}: Fetching active plugins for strategy ${strategy_id}`);
+      
+      const { data, error: pluginsError } = await supabaseAdmin
         .from('plugins')
         .select('*')
         .eq('status', 'active')
@@ -102,7 +188,7 @@ async function executeStrategy(input: ExecuteRequest, supabase: any) {
       
       plugins = data || [];
     } catch (pluginsError) {
-      console.error("Error fetching plugins:", pluginsError);
+      console.error(`${MODULE_NAME}: Error fetching plugins:`, pluginsError);
       // Set empty plugins array and continue
       plugins = [];
     }
@@ -115,17 +201,17 @@ async function executeStrategy(input: ExecuteRequest, supabase: any) {
     for (const plugin of plugins) {
       try {
         // In a real implementation, we would execute the plugin's logic
-        console.log(`Executing plugin ${plugin.id} for strategy ${input.strategy_id}`);
+        console.log(`${MODULE_NAME}: Executing plugin ${plugin.id} for strategy ${strategy_id}`);
         
         // Record plugin execution
-        const { data: logData, error: logError } = await supabase
+        const { data: logData, error: logError } = await supabaseAdmin
           .from('plugin_logs')
           .insert({
             plugin_id: plugin.id,
-            strategy_id: input.strategy_id,
-            tenant_id: input.tenant_id,
+            strategy_id: strategy_id,
+            tenant_id: tenant_id,
             status: 'success',
-            input: input.options || {},
+            input: options || {},
             output: { message: "Plugin executed successfully" },
             execution_time: 0.5,
             xp_earned: 10
@@ -147,31 +233,31 @@ async function executeStrategy(input: ExecuteRequest, supabase: any) {
         xpEarned += 10;
         successfulPlugins++;
         
-      } catch (pluginError: any) {
-        console.error(`Error executing plugin ${plugin.id}:`, pluginError);
+      } catch (pluginError) {
+        console.error(`${MODULE_NAME}: Error executing plugin ${plugin.id}:`, pluginError);
         
         // Record failed plugin execution
         try {
-          await supabase
+          await supabaseAdmin
             .from('plugin_logs')
             .insert({
               plugin_id: plugin.id,
-              strategy_id: input.strategy_id,
-              tenant_id: input.tenant_id,
+              strategy_id: strategy_id,
+              tenant_id: tenant_id,
               status: 'failure',
-              input: input.options || {},
-              error: pluginError.message,
+              input: options || {},
+              error: String(pluginError),
               execution_time: 0.3,
               xp_earned: 0
             });
         } catch (logError) {
-          console.error("Error recording plugin failure:", logError);
+          console.error(`${MODULE_NAME}: Error recording plugin failure:`, logError);
         }
         
         pluginResults.push({
           plugin_id: plugin.id,
           success: false,
-          error: pluginError.message,
+          error: String(pluginError),
           xp_earned: 0
         });
       }
@@ -183,7 +269,9 @@ async function executeStrategy(input: ExecuteRequest, supabase: any) {
     
     // Update the execution record
     try {
-      await supabase
+      console.log(`${MODULE_NAME}: Updating execution record ${executionId} with status ${status}`);
+      
+      await supabaseAdmin
         .from('executions')
         .update({
           status,
@@ -193,103 +281,83 @@ async function executeStrategy(input: ExecuteRequest, supabase: any) {
         })
         .eq('id', executionId);
     } catch (updateError) {
-      console.error("Error updating execution record:", updateError);
+      console.error(`${MODULE_NAME}: Error updating execution record:`, updateError);
     }
     
     // Update strategy progress if execution was successful
     if (status === 'success' || status === 'partial') {
       try {
-        // In a real implementation, this would update the strategy's progress
-        await supabase
+        console.log(`${MODULE_NAME}: Updating strategy progress for ${strategy_id}`);
+        
+        await supabaseAdmin
           .from('strategies')
           .update({
-            completion_percentage: Math.min(100, (strategy.completion_percentage || 0) + 25)
+            completion_percentage: supabaseAdmin.rpc('increment_percentage', { 
+              current_value: 0,  // Will be overridden by the RPC function
+              strategy_id: strategy_id,
+              amount: 25
+            })
           })
-          .eq('id', input.strategy_id);
+          .eq('id', strategy_id);
       } catch (updateError) {
-        console.error("Error updating strategy progress:", updateError);
+        console.error(`${MODULE_NAME}: Error updating strategy progress:`, updateError);
       }
     }
     
-    return {
-      success: true,
-      execution_id: executionId,
-      strategy_id: input.strategy_id,
-      status: 'success',
-      plugins_executed: plugins.length || 0,
-      execution_time: (performance.now() - startTime) / 1000
-    };
+    // Log system event
+    try {
+      await supabaseAdmin
+        .from('system_logs')
+        .insert({
+          tenant_id: tenant_id,
+          module: 'strategy',
+          event: 'strategy_executed',
+          context: {
+            strategy_id: strategy_id,
+            execution_id: executionId,
+            status,
+            plugins_executed: plugins.length || 0,
+            successful_plugins: successfulPlugins,
+            xp_earned: xpEarned
+          }
+        });
+    } catch (logError) {
+      console.error(`${MODULE_NAME}: Error logging system event:`, logError);
+    }
     
-  } catch (error: any) {
-    console.error("Error executing strategy:", error);
+    console.log(`${MODULE_NAME}: Strategy execution completed with status ${status}`);
+    
+    return formatSuccessResponse({
+      execution_id: executionId,
+      strategy_id: strategy_id,
+      status,
+      plugins_executed: plugins.length || 0,
+      successful_plugins: successfulPlugins,
+      execution_time: executionTime,
+      xp_earned: xpEarned
+    }, executionTime);
+    
+  } catch (error) {
+    console.error(`${MODULE_NAME}: Unhandled error:`, error);
     
     // Update execution record with error
     try {
-      await supabase
-        .from('executions')
-        .update({
-          status: 'failure',
-          error: error.message,
-          execution_time: (performance.now() - startTime) / 1000
-        })
-        .eq('id', executionId);
+      if (executionId) {
+        const supabaseAdmin = createClient(env.SUPABASE_URL || '', env.SUPABASE_SERVICE_ROLE_KEY || '');
+        
+        await supabaseAdmin
+          .from('executions')
+          .update({
+            status: 'failure',
+            error: String(error),
+            execution_time: (performance.now() - startTime) / 1000
+          })
+          .eq('id', executionId);
+      }
     } catch (updateError) {
-      console.error("Error updating execution with error status:", updateError);
+      console.error(`${MODULE_NAME}: Error updating execution with error status:`, updateError);
     }
     
-    return {
-      success: false,
-      execution_id: executionId,
-      strategy_id: input.strategy_id,
-      error: error.message
-    };
-  }
-}
-
-// Main handler function
-serve(async (req) => {
-  try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
-    
-    // Parse request body
-    let input: ExecuteRequest;
-    try {
-      input = await req.json();
-    } catch (parseError) {
-      return formatErrorResponse(400, "Invalid JSON in request body", String(parseError));
-    }
-    
-    // Validate input
-    const validation = validateInput(input);
-    if (!validation.valid) {
-      return formatErrorResponse(400, "Invalid input", validation.errors);
-    }
-    
-    // Check if Supabase client was initialized
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-      return formatErrorResponse(500, "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
-    }
-    
-    // Create Supabase client
-    let supabase;
-    try {
-      supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-    } catch (clientError) {
-      return formatErrorResponse(500, "Failed to create Supabase client", String(clientError));
-    }
-    
-    // Execute the strategy
-    const result = await executeStrategy(input, supabase);
-    
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-    
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    return formatErrorResponse(500, "Failed to execute strategy", String(error));
+    return formatErrorResponse(500, "Failed to execute strategy", String(error), (performance.now() - startTime) / 1000);
   }
 });
