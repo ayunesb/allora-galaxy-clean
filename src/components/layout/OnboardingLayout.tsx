@@ -36,7 +36,7 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({ children }) => {
       
       <Footer />
       
-      <style jsx>{`
+      <style jsx="true">{`
         @keyframes progress {
           from { width: 0; }
           to { width: 100%; }
