@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import PageHelmet from '@/components/PageHelmet';
 import KPICard from '@/components/KPICard';
-import KPICardSkeleton from '@/components/skeletons/KPICardSkeleton';
+import { KPICardSkeleton } from '@/components/skeletons/KPICardSkeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
 import { useQuery } from '@tanstack/react-query';
@@ -124,15 +123,13 @@ const KpiDashboard: React.FC = () => {
             filteredKpis.map(kpi => (
               <KPICard
                 key={kpi.id}
-                title={kpi.name}
+                name={kpi.name}
                 value={kpi.value}
                 previousValue={kpi.previousValue}
                 category={kpi.category as KPICategory}
                 source={kpi.source as KPISource}
-                badgeText={kpi.source || 'Manual'}
-                badgeVariant={kpi.source === 'manual' ? 'outline' : 'default'}
-                onClick={() => setSelectedKpi(kpi.id)}
-                isSelected={selectedKpi === kpi.id}
+                format={kpi.category === 'financial' ? 'currency' : 'number'}
+                trendData={selectedKpi === kpi.id ? trendData : undefined}
               />
             ))
           ) : (
