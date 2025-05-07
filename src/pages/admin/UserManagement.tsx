@@ -1,279 +1,162 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { AdminGuard } from '@/components/guards/AdminGuard';
-import { UserRole } from '@/lib/auth/requireRole';
-import { useToast } from '@/hooks/use-toast';
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Check, ChevronDown, Edit, Trash, User, Users, X } from 'lucide-react';
-import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import InviteUserDialog from '@/components/admin/InviteUserDialog';
+import { Loader2, UserPlus } from 'lucide-react';
 
+// Define TypeScript interfaces for our data
 interface UserWithRole {
   id: string;
   email: string;
   created_at: string;
-  role: UserRole;
-  role_id: string;
+  role: string;
 }
 
 const UserManagement: React.FC = () => {
-  const { currentTenant } = useWorkspace();
-  const { toast } = useToast();
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const { toast } = useToast();
 
-  const {
-    data,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['tenant-users', currentTenant?.id],
-    queryFn: async () => {
-      if (!currentTenant) return [] as UserWithRole[];
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-      // Get all users with roles in the current tenant
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      
       const { data, error } = await supabase
         .from('tenant_user_roles')
         .select(`
-          id,
-          role,
           user_id,
-          user:user_id (
+          role,
+          users:user_id (
             id,
             email,
             created_at
           )
         `)
-        .eq('tenant_id', currentTenant.id);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Make sure data is an array and map properly
-      if (!data || !Array.isArray(data)) return [] as UserWithRole[];
       
-      return data.map(item => ({
-        id: item.user?.id || '',
-        email: item.user?.email || '',
-        created_at: item.user?.created_at || '',
-        role: item.role as UserRole,
-        role_id: item.id
-      })).filter(user => user.id !== '') as UserWithRole[];
-    },
-    enabled: !!currentTenant
-  });
-
-  // Ensure users is always an array of UserWithRole objects
-  const users: UserWithRole[] = data || [];
-
-  const updateUserRole = async (roleId: string, newRole: UserRole) => {
-    try {
-      const { error } = await supabase
-        .from('tenant_user_roles')
-        .update({ role: newRole })
-        .eq('id', roleId);
-
-      if (error) throw error;
-
+      if (data) {
+        // Transform the nested structure into a flat array for easier rendering
+        const transformedUsers: UserWithRole[] = data.map(item => ({
+          id: item.users.id,
+          email: item.users.email,
+          created_at: item.users.created_at,
+          role: item.role
+        }));
+        
+        setUsers(transformedUsers);
+      }
+    } catch (error: any) {
+      console.error('Error fetching users:', error.message);
       toast({
-        title: "Role updated",
-        description: "User role has been updated successfully.",
+        title: 'Failed to load users',
+        description: error.message,
+        variant: 'destructive',
       });
-
-      refetch();
-    } catch (err: any) {
-      toast({
-        title: "Failed to update role",
-        description: err.message || "An error occurred while updating the user role.",
-        variant: "destructive"
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const removeUser = async (roleId: string, email: string) => {
-    if (!confirm(`Are you sure you want to remove ${email} from this workspace?`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('tenant_user_roles')
-        .delete()
-        .eq('id', roleId);
-
-      if (error) throw error;
-
-      toast({
-        title: "User removed",
-        description: "The user has been removed from the workspace."
-      });
-
-      refetch();
-    } catch (err: any) {
-      toast({
-        title: "Failed to remove user",
-        description: err.message || "An error occurred while removing the user.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getRoleBadgeVariant = (role: UserRole) => {
-    switch (role) {
-      case 'owner': return 'default';
-      case 'admin': return 'secondary';
-      case 'member': return 'outline';
-      case 'viewer': return 'outline';
-      case 'pending': return 'destructive';
-      default: return 'outline';
-    }
-  };
-
-  const handleInviteSuccess = () => {
-    refetch();
+  const handleInviteComplete = () => {
     setInviteDialogOpen(false);
+    fetchUsers();
+    toast({
+      title: 'Invitation sent',
+      description: 'The user has been invited to the workspace.',
+    });
   };
 
   return (
-    <AdminGuard>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">User Management</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage users and permissions for {currentTenant?.name}
-            </p>
-          </div>
-          <Button onClick={() => setInviteDialogOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            Invite User
-          </Button>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <p className="text-muted-foreground">Manage users and their roles in your workspace</p>
         </div>
-
-        {isLoading ? (
-          <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 py-3">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-[250px]" />
-                  <Skeleton className="h-4 w-[200px]" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : error ? (
-          <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-            Error loading users: {(error as Error).message}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users && users.length > 0 ? users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <div className="bg-muted rounded-full p-2 mr-2">
-                        <User className="h-4 w-4" />
-                      </div>
-                      {user.email}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit <ChevronDown className="h-4 w-4 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {user.role !== 'owner' && (
-                          <>
-                            <DropdownMenuItem onClick={() => updateUserRole(user.role_id, 'admin')}>
-                              Make Admin
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateUserRole(user.role_id, 'member')}>
-                              Make Member
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateUserRole(user.role_id, 'viewer')}>
-                              Make Viewer
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => removeUser(user.role_id, user.email)}
-                          disabled={user.role === 'owner'}
-                        >
-                          <Trash className="h-4 w-4 mr-1" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    <div className="flex flex-col items-center">
-                      <Users className="h-8 w-8 mb-2 opacity-50" />
-                      <p>No users found</p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4"
-                        onClick={() => setInviteDialogOpen(true)}
-                      >
-                        Invite your first user
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
+        
+        <Button onClick={() => setInviteDialogOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite User
+        </Button>
       </div>
-
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm">
+                        Edit Role
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                
+                {users.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      No users found. Invite users to get started.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+      
       <InviteUserDialog 
         open={inviteDialogOpen} 
-        onOpenChange={setInviteDialogOpen} 
-        onSuccess={handleInviteSuccess} 
+        onOpenChange={setInviteDialogOpen}
+        onComplete={handleInviteComplete}
       />
-    </AdminGuard>
+    </div>
   );
 };
 
