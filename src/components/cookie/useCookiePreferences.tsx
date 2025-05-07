@@ -15,7 +15,6 @@ export interface CookiePreferences {
 export const useCookiePreferences = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { currentTenant } = useWorkspace();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -24,11 +23,23 @@ export const useCookiePreferences = () => {
     marketing: false,
     analytics: false
   });
+  
+  // Safely try to get the workspace context
+  // This prevents errors on pages where WorkspaceProvider isn't available
+  const workspaceContext = (() => {
+    try {
+      return useWorkspace();
+    } catch (e) {
+      return { currentTenant: null };
+    }
+  })();
+  
+  const { currentTenant } = workspaceContext;
 
-  // Check if user has already set cookie preferences
+  // Only check preferences if both user and tenant are available
   useEffect(() => {
     const checkPreferences = async () => {
-      if (!user || !currentTenant) {
+      if (!user) {
         setLoading(false);
         return;
       }
@@ -38,8 +49,27 @@ export const useCookiePreferences = () => {
           .from('cookie_preferences')
           .select('*')
           .eq('user_id', user.id)
-          .eq('tenant_id', currentTenant.id)
           .maybeSingle();
+
+        // If using a tenant, filter by tenant
+        if (currentTenant) {
+          const { data: tenantData, error: tenantError } = await supabase
+            .from('cookie_preferences')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('tenant_id', currentTenant.id)
+            .maybeSingle();
+            
+          if (!tenantError && tenantData) {
+            setPreferences({
+              functional: tenantData.functional,
+              marketing: tenantData.marketing,
+              analytics: tenantData.analytics
+            });
+            setLoading(false);
+            return;
+          }
+        }
 
         if (error) throw error;
 
@@ -79,18 +109,24 @@ export const useCookiePreferences = () => {
   }, []);
 
   const savePreferences = async (prefs: CookiePreferences) => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
     
     setLoading(true);
     try {
+      const preferenceData: any = {
+        user_id: user.id,
+        ...prefs,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Include tenant_id if available
+      if (currentTenant) {
+        preferenceData.tenant_id = currentTenant.id;
+      }
+      
       const { error } = await supabase
         .from('cookie_preferences')
-        .upsert({
-          user_id: user.id,
-          tenant_id: currentTenant.id,
-          ...prefs,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(preferenceData);
 
       if (error) throw error;
       
@@ -112,7 +148,7 @@ export const useCookiePreferences = () => {
   };
 
   const handleAcceptAll = async () => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
     
     const allEnabled = {
       functional: true,
@@ -124,7 +160,7 @@ export const useCookiePreferences = () => {
   };
 
   const handleRejectAll = async () => {
-    if (!user || !currentTenant) return;
+    if (!user) return;
     
     const allMinimal = {
       functional: true, // Functional cookies are always enabled
