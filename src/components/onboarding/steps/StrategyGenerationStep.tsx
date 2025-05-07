@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
 const StrategyGenerationStep: React.FC = () => {
-  const { tenant } = useWorkspace();
+  const { currentTenant } = useWorkspace();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(true);
   const [progressMessage, setProgressMessage] = useState('Initializing strategy generation...');
@@ -16,7 +15,7 @@ const StrategyGenerationStep: React.FC = () => {
 
   useEffect(() => {
     const generateStrategy = async () => {
-      if (!tenant?.id) {
+      if (!currentTenant?.id) {
         setError('No tenant information available. Please restart the onboarding process.');
         setIsGenerating(false);
         return;
@@ -30,7 +29,7 @@ const StrategyGenerationStep: React.FC = () => {
         const { data: companyProfile, error: companyError } = await supabase
           .from('company_profiles')
           .select('*')
-          .eq('tenant_id', tenant.id)
+          .eq('tenant_id', currentTenant.id)
           .single();
           
         if (companyError) {
@@ -44,7 +43,7 @@ const StrategyGenerationStep: React.FC = () => {
         const { data: personaProfile, error: personaError } = await supabase
           .from('persona_profiles')
           .select('*')
-          .eq('tenant_id', tenant.id)
+          .eq('tenant_id', currentTenant.id)
           .single();
           
         if (personaError) {
@@ -57,7 +56,7 @@ const StrategyGenerationStep: React.FC = () => {
         // Call the generateStrategy edge function
         const { data: generationResult, error: functionError } = await supabase.functions.invoke('generateStrategy', {
           body: {
-            tenant_id: tenant.id,
+            tenant_id: currentTenant.id,
             company_profile: companyProfile,
             persona_profile: personaProfile
           }
@@ -94,10 +93,10 @@ const StrategyGenerationStep: React.FC = () => {
       }
     };
 
-    if (tenant?.id) {
+    if (currentTenant?.id) {
       generateStrategy();
     }
-  }, [tenant, toast]);
+  }, [currentTenant, toast]);
 
   if (error) {
     return (

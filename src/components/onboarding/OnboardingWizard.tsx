@@ -81,7 +81,7 @@ const OnboardingWizard: React.FC = () => {
               </Alert>
             )}
             
-            {isStrategyGenerationStep && (isGeneratingStrategy || isSubmitting) ? (
+            {isStrategyGenerationStep ? (
               <StrategyGenerationStep />
             ) : (
               <StepContent 

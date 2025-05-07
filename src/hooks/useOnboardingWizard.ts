@@ -17,7 +17,7 @@ export type { OnboardingFormData } from '@/types/onboarding';
  */
 export const useOnboardingWizard = () => {
   const { user } = useAuth();
-  const { tenants, setCurrentTenant } = useWorkspace();
+  const { tenants, currentTenant, setCurrentTenant } = useWorkspace();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);

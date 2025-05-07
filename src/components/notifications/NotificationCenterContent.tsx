@@ -5,7 +5,7 @@ import NotificationList from './NotificationList';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { useNotificationActions } from '@/hooks/useNotificationActions';
-import { NotificationItemType } from '@/types/notifications';
+import { Notification } from '@/types/notifications';
 
 // Define the allowed notification types for proper type checking
 type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
@@ -40,15 +40,15 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
     return <NotificationCenterLoading />;
   }
 
-  // Map internal notifications to the expected NotificationItemType format
-  const mapToNotificationItemType = (notification: NotificationContent): NotificationItemType => {
+  // Map internal notifications to the expected Notification format
+  const mapToNotificationItem = (notification: NotificationContent): Notification => {
     return {
       id: notification.id,
       title: notification.title,
       description: notification.description,
       createdAt: notification.timestamp,
       isRead: notification.read,
-      type: notification.type
+      type: notification.type as any
     };
   };
 
@@ -66,28 +66,28 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   }
 
   // Map notifications to the expected type for NotificationList
-  const notificationItems = filteredNotifications.map(mapToNotificationItemType);
+  const notificationItems = filteredNotifications.map(mapToNotificationItem);
 
   return (
     <Tabs defaultValue="all" className="w-full">
       <TabsContent value="all" className="m-0">
         <NotificationList 
           notifications={filter === 'all' ? notificationItems : []} 
-          markAsRead={markAsRead} 
+          onMarkAsRead={markAsRead} 
         />
       </TabsContent>
       
       <TabsContent value="unread" className="m-0">
         <NotificationList 
           notifications={filter === 'unread' ? notificationItems : []} 
-          markAsRead={markAsRead} 
+          onMarkAsRead={markAsRead} 
         />
       </TabsContent>
       
       <TabsContent value="system" className="m-0">
         <NotificationList 
           notifications={filter === 'system' ? notificationItems : []} 
-          markAsRead={markAsRead} 
+          onMarkAsRead={markAsRead} 
         />
       </TabsContent>
     </Tabs>
