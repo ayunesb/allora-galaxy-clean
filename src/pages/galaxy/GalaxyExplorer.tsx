@@ -1,6 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -9,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 import InspectorSidebar from '@/components/galaxy/InspectorSidebar';
+
+// Lazy loading the ForceGraph2D component to avoid initial load issues
+const ForceGraph2D = React.lazy(() => import('react-force-graph-2d'));
 
 // Type definitions for graph data
 interface GraphNode {
@@ -240,18 +242,24 @@ const GalaxyExplorer: React.FC = () => {
             </div>
           ) : (
             <div className="h-[800px] w-full">
-              <ForceGraph2D
-                ref={fgRef}
-                graphData={graphData}
-                nodeId="id"
-                nodeLabel="name"
-                nodeColor={getNodeColor}
-                linkDirectionalArrowLength={3.5}
-                linkDirectionalArrowRelPos={1}
-                linkCurvature={0.25}
-                nodeRelSize={6}
-                onNodeClick={handleNodeClick}
-              />
+              <Suspense fallback={
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              }>
+                <ForceGraph2D
+                  ref={fgRef}
+                  graphData={graphData}
+                  nodeId="id"
+                  nodeLabel="name"
+                  nodeColor={getNodeColor}
+                  linkDirectionalArrowLength={3.5}
+                  linkDirectionalArrowRelPos={1}
+                  linkCurvature={0.25}
+                  nodeRelSize={6}
+                  onNodeClick={handleNodeClick}
+                />
+              </Suspense>
             </div>
           )}
         </Card>
