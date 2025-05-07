@@ -1,13 +1,12 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import ErrorFallback from '@/components/ErrorFallback';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  tenant_id?: string;
+  supportEmail?: string;
 }
 
 interface State {
@@ -15,6 +14,10 @@ interface State {
   error?: Error;
 }
 
+/**
+ * A component that catches JavaScript errors anywhere in its child component tree,
+ * logs those errors, and displays a fallback UI instead of crashing the whole app
+ */
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false
@@ -25,49 +28,43 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log the error to our logging service
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    
+    // Log to system logs if tenant_id is available
+    if (this.props.tenant_id) {
+      logSystemEvent(
+        this.props.tenant_id,
+        'error',
+        'React error boundary caught error',
+        {
+          message: error.message,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack
+        }
+      );
+    }
   }
 
-  private handleReload = () => {
-    window.location.reload();
+  private handleReset = () => {
+    this.setState({ hasError: false, error: undefined });
   };
 
   public render() {
     if (this.state.hasError) {
+      // Use custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
+      // Otherwise use our default error fallback
       return (
-        <div className="container mx-auto px-4 py-16 flex items-center justify-center min-h-[80vh]">
-          <Card className="max-w-lg w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                Something went wrong
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Alert variant="destructive" className="mb-4">
-                <AlertTitle>Application Error</AlertTitle>
-                <AlertDescription>
-                  {this.state.error?.message || 'An unexpected error occurred.'}
-                </AlertDescription>
-              </Alert>
-              <p className="text-muted-foreground mb-4">
-                Sorry, something went wrong. Please try again or contact support if the issue persists.
-              </p>
-            </CardContent>
-            <CardFooter className="flex gap-4">
-              <Button onClick={this.handleReload}>
-                Reload Application
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="mailto:support@example.com">Contact Support</a>
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+        <ErrorFallback 
+          error={this.state.error || new Error('Unknown error')}
+          resetErrorBoundary={this.handleReset}
+          tenant_id={this.props.tenant_id}
+          supportEmail={this.props.supportEmail}
+        />
       );
     }
 

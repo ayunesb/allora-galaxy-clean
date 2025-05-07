@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { recordExecution } from "@/lib/executions/recordExecution";
-import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import { logSystemEvent, notifyError, notifySuccess } from "@/lib/system/logSystemEvent";
 import { RunPluginChainResult, PluginResult } from "./types";
 import { validateStrategy, fetchPluginsForStrategy, executePlugin } from "./pluginUtils";
 
@@ -46,6 +46,7 @@ export async function runPluginChain(
     
     if (!plugins || plugins.length === 0) {
       // No plugins found for this strategy
+      notifySuccess("Strategy Execution", "Strategy has no plugins to execute");
       return {
         strategy_id: strategyId,
         success: true,
@@ -66,24 +67,40 @@ export async function runPluginChain(
     
     // Execute each plugin in order
     for (const plugin of sortedPlugins) {
-      if (plugin.status !== 'active') {
-        // Skip inactive plugins but log them
+      try {
+        if (plugin.status !== 'active') {
+          // Skip inactive plugins but log them
+          results.push({
+            plugin_id: plugin.id,
+            name: plugin.name,
+            status: 'skipped',
+            execution_time: 0,
+            xp_earned: 0
+          });
+          continue;
+        }
+        
+        const pluginResult = await executePlugin(plugin, strategyId, tenant_id);
+        results.push(pluginResult);
+        
+        if (pluginResult.status === 'success') {
+          totalSuccessful++;
+        } else if (pluginResult.status === 'failure') {
+          totalFailed++;
+        }
+      } catch (pluginError: any) {
+        // Handle individual plugin errors without breaking the chain
+        console.error(`Error executing plugin ${plugin.name}:`, pluginError);
+        
         results.push({
           plugin_id: plugin.id,
           name: plugin.name,
-          status: 'skipped',
+          status: 'failure',
           execution_time: 0,
+          error: pluginError.message || 'Unknown error during plugin execution',
           xp_earned: 0
         });
-        continue;
-      }
-      
-      const pluginResult = await executePlugin(plugin, strategyId, tenant_id);
-      results.push(pluginResult);
-      
-      if (pluginResult.status === 'success') {
-        totalSuccessful++;
-      } else if (pluginResult.status === 'failure') {
+        
         totalFailed++;
       }
     }
@@ -101,9 +118,29 @@ export async function runPluginChain(
       executed_by: user_id,
       execution_time: performance.now() - startTime,
       xp_earned: results.reduce((sum, r) => sum + r.xp_earned, 0)
+    }).catch(err => {
+      console.error("Failed to record execution, but continuing:", err);
     });
     
     const endTime = performance.now();
+    
+    // Notify user of results
+    if (executionStatus === 'success') {
+      notifySuccess(
+        "Strategy Executed Successfully", 
+        `All ${totalSuccessful} plugins completed successfully`
+      );
+    } else if (executionStatus === 'pending') {
+      notifySuccess(
+        "Strategy Partially Executed", 
+        `${totalSuccessful} plugins completed, ${totalFailed} failed`
+      );
+    } else {
+      notifyError(
+        "Strategy Execution Failed",
+        `All ${totalFailed} plugins failed to execute`
+      );
+    }
     
     return {
       strategy_id: strategyId,
@@ -124,6 +161,12 @@ export async function runPluginChain(
       'plugins',
       'plugin_chain_error',
       { strategy_id: strategyId, error: error.message }
+    );
+    
+    // Notify the user
+    notifyError(
+      "Strategy Execution Failed", 
+      error.message || "An unexpected error occurred"
     );
     
     const endTime = performance.now();
