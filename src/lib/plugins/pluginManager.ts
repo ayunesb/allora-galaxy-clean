@@ -2,27 +2,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { recordExecution } from "@/lib/executions/recordExecution";
 import { logSystemEvent } from "@/lib/system/logSystemEvent";
-import { Json } from "@/integrations/supabase/types";
-
-interface PluginResult {
-  plugin_id: string;
-  name: string;
-  status: 'success' | 'failure' | 'skipped';
-  execution_time: number;
-  error?: string;
-  output?: Record<string, any>;
-  xp_earned: number;
-}
-
-interface RunPluginChainResult {
-  strategy_id: string;
-  success: boolean;
-  results: PluginResult[];
-  total_execution_time: number;
-  total_plugins_run: number;
-  successful_plugins: number;
-  failed_plugins: number;
-}
+import { RunPluginChainResult, PluginResult } from "./types";
+import { validateStrategy, fetchPluginsForStrategy, executePlugin } from "./pluginUtils";
 
 /**
  * Runs all plugins associated with a strategy in order based on priority
@@ -42,48 +23,25 @@ export async function runPluginChain(
   let totalFailed = 0;
   
   try {
-    // First, fetch the strategy to ensure it exists
-    const { data: strategy, error: strategyError } = await supabase
-      .from("strategies")
-      .select("id, title, tenant_id")
-      .eq("id", strategyId)
-      .single();
-    
-    if (strategyError || !strategy) {
-      throw new Error(`Strategy not found: ${strategyError?.message || "Unknown error"}`);
-    }
-    
-    // Ensure tenant_id matches strategy's tenant_id for security
-    if (strategy.tenant_id !== tenant_id) {
-      throw new Error("Strategy does not belong to the specified tenant");
+    // Validate the strategy exists and belongs to the tenant
+    const { valid, strategy, error } = await validateStrategy(strategyId, tenant_id);
+    if (!valid) {
+      throw new Error(error);
     }
     
     // Log the start of the plugin chain execution
     await logSystemEvent({
       tenant_id,
-      module: 'plugins',
+      module: 'plugins', 
       event: 'plugin_chain_started',
-      context: { strategy_id: strategyId },
-      user_id
+      context: { strategy_id: strategyId }
     });
     
     // Get all plugins associated with this strategy
-    const { data: plugins, error: pluginsError } = await supabase
-      .from("plugins")
-      .select(`
-        id,
-        name,
-        description,
-        status,
-        metadata,
-        xp,
-        roi
-      `)
-      .eq("strategy_id", strategyId)
-      .order("created_at", { ascending: true });
+    const { plugins, error: pluginsError } = await fetchPluginsForStrategy(strategyId);
     
     if (pluginsError) {
-      throw new Error(`Error fetching plugins: ${pluginsError.message}`);
+      throw new Error(pluginsError);
     }
     
     if (!plugins || plugins.length === 0) {
@@ -120,72 +78,20 @@ export async function runPluginChain(
         continue;
       }
       
-      const pluginStartTime = performance.now();
-      let pluginStatus: 'success' | 'failure' = 'success';
-      let pluginError: string | undefined;
-      let pluginOutput: Record<string, any> | undefined;
-      let xpEarned = 0;
+      const pluginResult = await executePlugin(plugin, strategyId, tenant_id);
+      results.push(pluginResult);
       
-      try {
-        // Simulate plugin execution (in a real system, this would call the actual plugin logic)
-        // In a real implementation, you'd fetch the latest agent version and execute it
-        
-        // For demo purposes, we'll just log the execution and simulate success
-        pluginOutput = { executed: true, timestamp: new Date().toISOString() };
-        
-        // Calculate XP earned based on execution time and success
-        // In a real system, this would be more sophisticated
-        xpEarned = Math.floor(Math.random() * 10) + 1; // 1-10 XP for now
-        
+      if (pluginResult.status === 'success') {
         totalSuccessful++;
-      } catch (error: any) {
-        pluginStatus = 'failure';
-        pluginError = error.message || 'Unknown plugin error';
+      } else if (pluginResult.status === 'failure') {
         totalFailed++;
-      }
-      
-      const pluginEndTime = performance.now();
-      const executionTime = pluginEndTime - pluginStartTime;
-      
-      // Record the plugin execution in plugin_logs
-      await supabase
-        .from("plugin_logs")
-        .insert({
-          plugin_id: plugin.id,
-          strategy_id: strategyId,
-          tenant_id,
-          status: pluginStatus,
-          input: { strategy_id: strategyId } as Json,
-          output: pluginOutput as Json,
-          error: pluginError,
-          execution_time: executionTime,
-          xp_earned: xpEarned
-        });
-      
-      // Add to results
-      results.push({
-        plugin_id: plugin.id,
-        name: plugin.name,
-        status: pluginStatus,
-        execution_time: executionTime,
-        error: pluginError,
-        output: pluginOutput,
-        xp_earned: xpEarned
-      });
-      
-      // Update the plugin's total XP
-      if (pluginStatus === 'success') {
-        await supabase
-          .from("plugins")
-          .update({ xp: plugin.xp + xpEarned })
-          .eq("id", plugin.id);
       }
     }
     
     // Record the overall execution
     const executionStatus: 'success' | 'failure' | 'pending' = 
       totalFailed === 0 ? 'success' : 
-      (totalSuccessful > 0 ? 'pending' : 'failure'); // Changed 'partial' to 'pending' to match expected types
+      (totalSuccessful > 0 ? 'pending' : 'failure');
     
     await recordExecution({
       tenant_id,
@@ -217,8 +123,7 @@ export async function runPluginChain(
       tenant_id,
       module: 'plugins',
       event: 'plugin_chain_error',
-      context: { strategy_id: strategyId, error: error.message },
-      user_id
+      context: { strategy_id: strategyId, error: error.message }
     });
     
     const endTime = performance.now();
