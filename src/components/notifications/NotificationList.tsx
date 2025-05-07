@@ -2,19 +2,25 @@
 import React from 'react';
 import NotificationItem from './NotificationItem';
 import { NotificationContent } from '@/types/notifications';
+import NotificationCenterEmptyState from './NotificationCenterEmptyState';
+import { Loader2 } from 'lucide-react';
 
 interface NotificationListProps {
   notifications: NotificationContent[];
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   onNotificationClick?: () => void;
   onDelete?: (id: string) => void;
+  loading?: boolean;
+  filter?: string;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   markAsRead,
   onNotificationClick,
-  onDelete
+  onDelete,
+  loading = false,
+  filter = 'all'
 }) => {
   const handleMarkAsRead = async (id: string) => {
     await markAsRead(id);
@@ -22,6 +28,20 @@ const NotificationList: React.FC<NotificationListProps> = ({
       onNotificationClick();
     }
   };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (notifications.length === 0) {
+    return (
+      <NotificationCenterEmptyState filter={filter} />
+    );
+  }
   
   return (
     <div className="space-y-3">

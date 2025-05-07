@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
@@ -109,8 +108,10 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
         )
       );
       
+      return { success: true };
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
+      return { success: false, error };
     }
   };
 
@@ -155,8 +156,10 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       // Update local state
       setNotifications(prev => prev.filter(notif => notif.id !== id));
       
+      return { success: true };
     } catch (error: any) {
       console.error('Error deleting notification:', error);
+      return { success: false, error };
     }
   };
 
@@ -212,9 +215,8 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
             <NotificationList 
               notifications={notifications} 
               loading={loading} 
-              selectedTab={selectedTab} 
-              filter={filter}
-              onMarkAsRead={markAsRead}
+              filter={selectedTab}
+              markAsRead={markAsRead}
               onDelete={deleteNotification}
             />
           </CardContent>

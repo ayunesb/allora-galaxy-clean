@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Notification } from '@/types/notifications';
 import NotificationCenterLoading from './NotificationCenterLoading';
-import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationList from './NotificationList';
 
 interface NotificationCenterTabsProps {
@@ -70,27 +69,23 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
       
       <ScrollArea className="flex-1 px-2">
         <TabsContent value="all" className="m-0 py-2">
-          {notifications.length === 0 ? (
-            <NotificationCenterEmptyState filter="all" />
-          ) : (
-            <NotificationList
-              notifications={transformedNotifications}
-              markAsRead={markAsRead}
-              onNotificationClick={onClose}
-            />
-          )}
+          <NotificationList
+            notifications={transformedNotifications}
+            markAsRead={markAsRead}
+            onNotificationClick={onClose}
+            loading={false}
+            filter="all"
+          />
         </TabsContent>
         
         <TabsContent value="unread" className="m-0 py-2">
-          {unreadCount === 0 ? (
-            <NotificationCenterEmptyState filter="unread" message="You have no unread notifications." />
-          ) : (
-            <NotificationList
-              notifications={transformedNotifications}
-              markAsRead={markAsRead}
-              onNotificationClick={onClose}
-            />
-          )}
+          <NotificationList
+            notifications={transformedNotifications}
+            markAsRead={markAsRead}
+            onNotificationClick={onClose}
+            loading={false}
+            filter="unread"
+          />
         </TabsContent>
       </ScrollArea>
     </Tabs>
