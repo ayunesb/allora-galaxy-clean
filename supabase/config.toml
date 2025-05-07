@@ -3,40 +3,30 @@ project_id = "ijrnwpgsqsxzqdemtknz"
 
 [api]
 enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
 
 [db]
-shadow_database_url = ""
+port = 54322
 
-[auth]
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000", "https://allora-workspace.vercel.app"]
-jwt_expiry = 3600
-enable_signup = true
-
-[realtime]
+[studio]
 enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
 
 [storage]
 enabled = true
 
-[edge_functions]
-[edge_functions.executeStrategy]
-verify_jwt = true
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
 
-[edge_functions.send-webhook-alert]
-verify_jwt = true
+[realtime]
+enabled = true
 
-[edge_functions.send-invite-email]
-verify_jwt = true
-
-[edge_functions.sendMilestoneAlerts]
-verify_jwt = true
-
-[edge_functions.syncMQLs]
-verify_jwt = true
-
-[edge_functions.updateKPIs]
-verify_jwt = true
-
-[edge_functions.syncHubSpotMQLs]
+[functions.autoEvolveAgents]
 verify_jwt = true

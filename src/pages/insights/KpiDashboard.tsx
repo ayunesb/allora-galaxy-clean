@@ -1,393 +1,255 @@
-import React from 'react';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { KPI } from '@/types/index';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { ArrowDown, ArrowUp, BarChart3, DollarSign, RefreshCw, Users } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { getTrendDelta, formatTrendPercentage } from '@/lib/kpi/analyzeTrends';
-import PageHelmet from '@/components/PageHelmet';
 
-const KpiDashboard = () => {
-  const { currentTenant } = useWorkspace();
+import React, { useState, useEffect } from 'react';
+import { PageHelmet } from "@/components/PageHelmet";
+import { useTranslation } from 'react-i18next';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import KPICard from "@/components/KPICard";
+import KPICardSkeleton from "@/components/skeletons/KPICardSkeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { useTenantId } from "@/hooks/useTenantId";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
-  const { data: kpiData, isLoading, refetch } = useQuery({
-    queryKey: ['kpi-data', currentTenant?.id],
-    queryFn: async () => {
-      if (!currentTenant) return [];
+interface KPI {
+  id: string;
+  name: string;
+  value: number;
+  previous_value?: number;
+  date: string;
+  category?: string;
+  source?: string;
+}
 
-      const { data, error } = await supabase
-        .from('kpis')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .order('date', { ascending: false });
+interface KPITrendData {
+  date: string;
+  value: number;
+}
+
+const KpiDashboard: React.FC = () => {
+  const { t } = useTranslation();
+  const tenantId = useTenantId();
+  const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState<KPI[]>([]);
+  const [selectedKpi, setSelectedKpi] = useState<string | null>(null);
+  const [trendData, setTrendData] = useState<KPITrendData[]>([]);
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+
+  // Fetch KPIs
+  useEffect(() => {
+    const fetchKPIs = async () => {
+      if (!tenantId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('kpis')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('date', new Date().toISOString().split('T')[0]);
+          
+        if (error) throw error;
         
-      if (error) throw error;
-      
-      // Convert the raw data to match our KPI type
-      return (data || []).map(item => ({
-        id: item.id,
-        tenant_id: item.tenant_id,
-        name: item.name,
-        value: item.value,
-        previous_value: item.previous_value,
-        source: item.source,
-        category: item.category,
-        date: item.date,
-        created_at: item.created_at || new Date().toISOString(),
-        updated_at: item.updated_at || new Date().toISOString()
-      })) as KPI[];
-    },
-    enabled: !!currentTenant
-  });
-
-  // Group KPIs by category
-  const financialKpis = kpiData?.filter(kpi => kpi.category === 'financial') || [];
-  const marketingKpis = kpiData?.filter(kpi => kpi.category === 'marketing') || [];
-  const salesKpis = kpiData?.filter(kpi => kpi.category === 'sales') || [];
-
-  // Format data for charts
-  const formatChartData = (kpis: KPI[], kpiName: string) => {
-    const filteredKpis = kpis
-      .filter(kpi => kpi.name === kpiName)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        setKpis(data || []);
+        
+        // Set the first KPI as selected if available
+        if (data && data.length > 0 && !selectedKpi) {
+          setSelectedKpi(data[0].name);
+        }
+      } catch (error: any) {
+        console.error('Error fetching KPIs:', error);
+        toast({
+          title: "Failed to load KPIs",
+          description: error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return filteredKpis.map(kpi => ({
-      date: new Date(kpi.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: kpi.value
-    }));
-  };
+    fetchKPIs();
+  }, [tenantId]);
 
-  const mrrData = formatChartData(financialKpis, 'Monthly Recurring Revenue');
-  const mqlData = formatChartData(marketingKpis, 'Marketing Qualified Leads');
+  // Fetch trend data whenever selected KPI changes
+  useEffect(() => {
+    const fetchTrendData = async () => {
+      if (!tenantId || !selectedKpi) return;
+      
+      try {
+        setLoading(true);
+        
+        // Calculate date range based on period
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        if (period === '7d') {
+          startDate.setDate(endDate.getDate() - 7);
+        } else if (period === '30d') {
+          startDate.setDate(endDate.getDate() - 30);
+        } else {
+          startDate.setDate(endDate.getDate() - 90);
+        }
+        
+        const { data, error } = await supabase
+          .from('kpis')
+          .select('name, value, date')
+          .eq('tenant_id', tenantId)
+          .eq('name', selectedKpi)
+          .gte('date', startDate.toISOString().split('T')[0])
+          .lte('date', endDate.toISOString().split('T')[0])
+          .order('date', { ascending: true });
+          
+        if (error) throw error;
+        
+        // Format data for chart
+        const formattedData = (data || []).map(item => ({
+          date: new Date(item.date).toLocaleDateString(),
+          value: item.value
+        }));
+        
+        setTrendData(formattedData);
+      } catch (error: any) {
+        console.error('Error fetching KPI trend data:', error);
+        toast({
+          title: "Failed to load trend data",
+          description: error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTrendData();
+  }, [tenantId, selectedKpi, period]);
 
-  // Get the most recent KPI value
-  const getLatestKpi = (kpis: KPI[], kpiName: string) => {
-    return kpis.find(kpi => kpi.name === kpiName);
-  };
-
-  const latestMrr = getLatestKpi(financialKpis, 'Monthly Recurring Revenue');
-  const latestMql = getLatestKpi(marketingKpis, 'Marketing Qualified Leads');
-
-  // Format percentage change for display
-  const formatPercentageChange = (change: number | null) => {
-    if (change === null) return "—";
-    return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
-  };
-  
-  const isEmptyData = !isLoading && (!kpiData || kpiData.length === 0);
+  // Generate unique KPI names for the selector
+  const kpiNames = Array.from(new Set(kpis.map(kpi => kpi.name)));
 
   return (
     <>
-      <PageHelmet 
-        title="KPI Dashboard"
-        description="Track key performance indicators for your business in real-time"
-      />
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">KPI Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Track key performance indicators for your business
-            </p>
-          </div>
-          <Button onClick={() => refetch()} variant="outline" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh Data
-          </Button>
-        </div>
-
-        {isEmptyData ? (
-          <EmptyState 
-            title="No KPI metrics available" 
-            description="Connect integrations or wait for CRON sync to see your KPI data." 
-            icon={<BarChart3 className="h-12 w-12" />}
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {/* MRR Card */}
+      <PageHelmet title={t('insights.kpi.title')} />
+      
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">{t('insights.kpi.title')}</h1>
+        
+        {/* KPI Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {loading ? (
+            <>
+              <KPICardSkeleton />
+              <KPICardSkeleton />
+              <KPICardSkeleton />
+              <KPICardSkeleton />
+            </>
+          ) : kpis.length > 0 ? (
+            kpis.map((kpi) => (
+              <KPICard
+                key={kpi.id}
+                title={kpi.name}
+                value={kpi.value}
+                previousValue={kpi.previous_value}
+                category={kpi.category}
+                source={kpi.source}
+              />
+            ))
+          ) : (
+            <div className="col-span-4">
               <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Monthly Recurring Revenue</CardDescription>
-                  <div className="flex justify-between items-start">
-                    {isLoading ? (
-                      <Skeleton className="h-8 w-24" />
-                    ) : (
-                      <CardTitle className="text-2xl">
-                        ${latestMrr?.value?.toLocaleString() || 0}
-                      </CardTitle>
-                    )}
-                    {!isLoading && latestMrr && latestMrr.previous_value !== undefined && (
-                      <div className={`flex items-center`}>
-                        <Badge className={`flex items-center ${getTrendDelta(latestMrr) >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
-                          {getTrendDelta(latestMrr) >= 0 ? (
-                            <ArrowUp className="h-4 w-4 mr-1" />
-                          ) : (
-                            <ArrowDown className="h-4 w-4 mr-1" />
-                          )}
-                          <span>{formatPercentageChange(getTrendDelta(latestMrr))}</span>
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[120px] w-full" />
-                  ) : mrrData.length > 1 ? (
-                    <ResponsiveContainer width="100%" height={120}>
-                      <LineChart data={mrrData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} width={40} />
-                        <Tooltip />
-                        <Line 
-                          type="monotone" 
-                          dataKey="value" 
-                          stroke="#8884d8" 
-                          strokeWidth={2} 
-                          dot={false} 
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[120px] flex items-center justify-center text-muted-foreground">
-                      <p>Not enough historical data</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* MQL Card */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Marketing Qualified Leads</CardDescription>
-                  <div className="flex justify-between items-start">
-                    {isLoading ? (
-                      <Skeleton className="h-8 w-24" />
-                    ) : (
-                      <CardTitle className="text-2xl">
-                        {latestMql?.value?.toLocaleString() || 0}
-                      </CardTitle>
-                    )}
-                    {!isLoading && latestMql && latestMql.previous_value !== undefined && (
-                      <div className={`flex items-center`}>
-                        <Badge className={`flex items-center ${getTrendDelta(latestMql) >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
-                          {getTrendDelta(latestMql) >= 0 ? (
-                            <ArrowUp className="h-4 w-4 mr-1" />
-                          ) : (
-                            <ArrowDown className="h-4 w-4 mr-1" />
-                          )}
-                          <span>{formatPercentageChange(getTrendDelta(latestMql))}</span>
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[120px] w-full" />
-                  ) : mqlData.length > 1 ? (
-                    <ResponsiveContainer width="100%" height={120}>
-                      <LineChart data={mqlData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} width={40} />
-                        <Tooltip />
-                        <Line 
-                          type="monotone" 
-                          dataKey="value" 
-                          stroke="#82ca9d" 
-                          strokeWidth={2} 
-                          dot={false} 
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[120px] flex items-center justify-center text-muted-foreground">
-                      <p>Not enough historical data</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Placeholder for another KPI */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Customer Acquisition Cost</CardDescription>
-                  <div className="flex justify-between items-start">
-                    {isLoading ? (
-                      <Skeleton className="h-8 w-24" />
-                    ) : (
-                      <CardTitle className="text-2xl">$125</CardTitle>
-                    )}
-                    <Badge className="flex items-center bg-green-500">
-                      <ArrowDown className="h-4 w-4 mr-1" />
-                      <span>3.2%</span>
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[120px] w-full" />
-                  ) : (
-                    <div className="h-[120px] flex items-center justify-center text-muted-foreground">
-                      <p>No historical data available</p>
-                    </div>
-                  )}
+                <CardContent className="pt-6">
+                  <p className="text-center text-muted-foreground">
+                    {t('insights.kpi.noData')}
+                  </p>
                 </CardContent>
               </Card>
             </div>
-
-            <Tabs defaultValue="all" className="mt-6">
-              <TabsList>
-                <TabsTrigger value="all">All KPIs</TabsTrigger>
-                <TabsTrigger value="financial">Financial</TabsTrigger>
-                <TabsTrigger value="marketing">Marketing</TabsTrigger>
-                <TabsTrigger value="sales">Sales</TabsTrigger>
-              </TabsList>
+          )}
+        </div>
+        
+        {/* KPI Trend Chart */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>KPI Trend Analysis</CardTitle>
+            <CardDescription>Track your KPI performance over time</CardDescription>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Select 
+                value={selectedKpi || ''} 
+                onValueChange={(value) => setSelectedKpi(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Select KPI" />
+                </SelectTrigger>
+                <SelectContent>
+                  {kpiNames.map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               
-              <TabsContent value="all" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>All Key Performance Indicators</CardTitle>
-                    <CardDescription>
-                      Overview of all tracked metrics across departments
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoading ? (
-                      <div className="space-y-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Skeleton key={i} className="h-12 w-full" />
-                        ))}
-                      </div>
-                    ) : kpiData && kpiData.length > 0 ? (
-                      <div className="space-y-4">
-                        {kpiData.slice(0, 10).map((kpi) => (
-                          <div key={kpi.id} className="flex items-center justify-between border-b pb-2">
-                            <div>
-                              <p className="font-medium">{kpi.name}</p>
-                              <p className="text-sm text-muted-foreground">{kpi.date}</p>
-                            </div>
-                            <div className="flex items-center">
-                              <p className="font-medium mr-4">
-                                {kpi.name.includes('Revenue') ? '$' : ''}{kpi.value.toLocaleString()}
-                              </p>
-                              {kpi.previous_value && (
-                                <Badge 
-                                  className={`flex items-center ${kpi.value >= kpi.previous_value ? 'bg-green-500' : 'bg-red-500'}`}
-                                >
-                                  {kpi.value >= kpi.previous_value ? (
-                                    <ArrowUp className="h-4 w-4 mr-1" />
-                                  ) : (
-                                    <ArrowDown className="h-4 w-4 mr-1" />
-                                  )}
-                                  <span>
-                                    {formatTrendPercentage(kpi)}
-                                  </span>
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-2 text-lg font-medium">No KPI data available</h3>
-                        <p className="text-muted-foreground">
-                          KPI data will appear here once it's collected.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="financial" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Financial Metrics</CardTitle>
-                    <CardDescription>
-                      Revenue, costs, and other financial indicators
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoading ? (
-                      <Skeleton className="h-64 w-full" />
-                    ) : (
-                      <div className="h-64 flex items-center justify-center text-muted-foreground">
-                        <DollarSign className="h-12 w-12 mb-2" />
-                        <p className="ml-2">Financial metrics visualization</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="marketing" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Marketing Metrics</CardTitle>
-                    <CardDescription>
-                      Leads, conversions, and campaign performance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoading ? (
-                      <Skeleton className="h-64 w-full" />
-                    ) : (
-                      <div className="h-64 flex items-center justify-center text-muted-foreground">
-                        <Users className="h-12 w-12 mb-2" />
-                        <p className="ml-2">Marketing metrics visualization</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="sales" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Sales Metrics</CardTitle>
-                    <CardDescription>
-                      Deals, pipeline, and revenue forecasts
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isLoading ? (
-                      <Skeleton className="h-64 w-full" />
-                    ) : (
-                      <div className="h-64 flex items-center justify-center text-muted-foreground">
-                        <BarChart3 className="h-12 w-12 mb-2" />
-                        <p className="ml-2">Sales metrics visualization</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
+              <div className="flex gap-2">
+                <Button 
+                  variant={period === '7d' ? 'default' : 'outline'} 
+                  onClick={() => setPeriod('7d')}
+                >
+                  7d
+                </Button>
+                <Button 
+                  variant={period === '30d' ? 'default' : 'outline'} 
+                  onClick={() => setPeriod('30d')}
+                >
+                  30d
+                </Button>
+                <Button 
+                  variant={period === '90d' ? 'default' : 'outline'} 
+                  onClick={() => setPeriod('90d')}
+                >
+                  90d
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center h-80">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : trendData.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={trendData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      name={selectedKpi || 'Value'}
+                      stroke="#8884d8"
+                      activeDot={{ r: 8 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-80 text-muted-foreground">
+                <CalendarIcon className="h-12 w-12 mb-2" />
+                <p>No trend data available for the selected KPI</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );
-};
-
-// Helper function to calculate percentage change
-const getPercentageChange = (current: number, previous: number): number => {
-  if (previous === 0) {
-    return 0; // Avoid division by zero
-  }
-  return ((current - previous) / previous) * 100;
 };
 
 export default KpiDashboard;

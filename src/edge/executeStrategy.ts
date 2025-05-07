@@ -1,208 +1,65 @@
 
-import { runStrategy } from "@/lib/strategy/runStrategy";
-import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/lib/strategy/types";
-import { recordExecution } from "@/lib/executions/recordExecution";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from '@supabase/supabase-js';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/lib/strategy/types';
+import { runStrategy } from '@/lib/strategy/runStrategy';
 
 export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
-  // Input validation
-  if (!input.strategy_id) {
-    return {
-      success: false,
-      error: "Strategy ID is required"
-    };
-  }
-
-  if (!input.tenant_id) {
-    return {
-      success: false, 
-      error: "Tenant ID is required"
-    };
-  }
-  
-  let executionId: string | null = null;
-  const startTime = performance.now();
+  const startTime = Date.now();
   
   try {
-    // Record the execution start
-    try {
-      executionId = await recordExecution({
-        tenant_id: input.tenant_id,
-        type: 'strategy',
-        status: 'pending',
-        strategy_id: input.strategy_id,
-        executed_by: input.user_id,
-        input: { strategy_id: input.strategy_id }
-      });
-    } catch (recordError) {
-      console.error("Failed to record execution start, but continuing:", recordError);
-      // Continue execution even if recording fails
-    }
-
-    // Execute the strategy
-    const result = await runStrategy(input);
-
-    // Record end time for performance tracking
-    const executionTime = performance.now() - startTime;
-
-    // Update the execution record on success
-    if (result.success && executionId) {
-      try {
-        await recordExecution({
-          tenant_id: input.tenant_id,
-          type: 'strategy',
-          status: 'success',
-          strategy_id: input.strategy_id,
-          executed_by: input.user_id,
-          output: result.data,
-          execution_time: executionTime,
-          xp_earned: 25 // Default XP for successful execution
-        });
-      } catch (recordError) {
-        console.error("Failed to update execution record on success, but continuing:", recordError);
-      }
-
-      // Auto-vote on agents after plugin success
-      try {
-        await autoVoteOnSuccessfulAgents(input.strategy_id, input.tenant_id, input.user_id);
-      } catch (voteError) {
-        console.error("Failed to auto-vote on agents, but continuing:", voteError);
-      }
-    } else if (!result.success && executionId) {
-      // Record failure if the execution was unsuccessful
-      try {
-        await recordExecution({
-          tenant_id: input.tenant_id,
-          type: 'strategy',
-          status: 'failure',
-          strategy_id: input.strategy_id,
-          executed_by: input.user_id,
-          error: result.error || "Unknown error",
-          execution_time: executionTime
-        });
-      } catch (recordError) {
-        console.error("Failed to update execution record on failure, but continuing:", recordError);
-      }
-    }
-
-    // Add execution metrics to the result
-    return {
-      ...result,
-      execution_time: executionTime,
-      execution_id: executionId
-    };
-  } catch (error: any) {
-    // Record the execution failure
-    try {
-      if (input.tenant_id) {
-        await recordExecution({
-          tenant_id: input.tenant_id,
-          type: 'strategy',
-          status: 'failure',
-          strategy_id: input.strategy_id,
-          executed_by: input.user_id,
-          error: error.message || 'Unknown error occurred',
-          execution_time: performance.now() - startTime
-        });
-      }
-    } catch (recordError) {
-      console.error("Failed to record execution failure, continuing with error response:", recordError);
-    }
-
-    return {
-      success: false,
-      error: error.message || 'An unknown error occurred while executing the strategy',
-      execution_time: performance.now() - startTime,
-      execution_id: executionId
-    };
-  }
-}
-
-/**
- * Automatically vote on agents that were successful in a strategy execution
- * This function is designed to continue despite individual failures
- */
-async function autoVoteOnSuccessfulAgents(
-  strategy_id: string,
-  tenant_id: string,
-  user_id?: string
-): Promise<void> {
-  try {
-    // Get all successful plugin executions for this strategy
-    const { data: successfulPlugins, error } = await supabase
-      .from('plugin_logs')
-      .select('agent_version_id')
-      .eq('strategy_id', strategy_id)
-      .eq('status', 'success')
-      .not('agent_version_id', 'is', null);
-
-    if (error) {
-      console.log('Error fetching successful plugins:', error);
-      return;
+    // Validate required inputs
+    if (!input.strategy_id) {
+      return {
+        success: false,
+        error: 'Strategy ID is required',
+        execution_time: (Date.now() - startTime) / 1000
+      };
     }
     
-    if (!successfulPlugins || !successfulPlugins.length) {
-      console.log('No successful plugins found for auto-voting');
-      return;
+    if (!input.tenant_id) {
+      return {
+        success: false,
+        error: 'Tenant ID is required',
+        execution_time: (Date.now() - startTime) / 1000
+      };
     }
 
-    // Extract unique agent version IDs
-    const agentVersionIds = [...new Set(successfulPlugins
-      .map(p => p.agent_version_id)
-      .filter(id => id !== null && id !== undefined))];
-
-    // Create a system vote for each successful agent version
-    for (const agent_version_id of agentVersionIds) {
-      if (!agent_version_id) continue;
-      
-      try {
-        // Check if a vote from the system already exists for this agent version
-        const { data: existingVote, error: voteError } = await supabase
-          .from('agent_votes')
-          .select('id')
-          .eq('agent_version_id', agent_version_id)
-          .eq('vote_type', 'up')
-          .eq('user_id', user_id || 'system')
-          .maybeSingle();
-          
-        if (voteError) {
-          console.error('Error checking for existing votes:', voteError);
-          continue;
-        }
-
-        // If no existing vote, create one
-        if (!existingVote) {
-          const { error: insertError } = await supabase
-            .from('agent_votes')
-            .insert({
-              agent_version_id,
-              user_id: user_id || 'system',
-              vote_type: 'up',
-              comment: 'Automated upvote for successful execution'
-            });
-            
-          if (insertError) {
-            console.error('Error creating auto-vote:', insertError);
-          } else {
-            console.log(`Auto-upvote created for agent version ${agent_version_id}`);
-            
-            // Update the agent version upvote count using the original Supabase client methods
-            await supabase
-              .from('agent_versions')
-              .update({
-                upvotes: supabase.rpc('increment', { amount: 1 }),
-                xp: supabase.rpc('increment', { amount: 5 })
-              })
-              .eq('id', agent_version_id);
-          }
-        }
-      } catch (agentError) {
-        console.error(`Error processing agent ${agent_version_id}:`, agentError);
-        // Continue with next agent despite error
-      }
+    // Optional inputs and their defaults
+    input.user_id = input.user_id || null; 
+    input.options = input.options || {};
+    
+    // Create Supabase client with safe fallbacks for different environments
+    let supabaseUrl, supabaseKey;
+    
+    try {
+      // Deno environment (Edge Functions)
+      supabaseUrl = Deno.env.get('SUPABASE_URL');
+      supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
+    } catch (error) {
+      // Node/browser environment
+      supabaseUrl = process.env.SUPABASE_URL || 'https://ijrnwpgsqsxzqdemtknz.supabase.co';
+      supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo';
     }
-  } catch (err) {
-    console.error('Error in auto-voting process:', err);
-    // Function should not throw to prevent breaking the parent function
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase URL or key is missing');
+    }
+    
+    // Execute the strategy using the runStrategy function
+    const result = await runStrategy(input);
+    
+    // Add execution time to the result
+    result.execution_time = (Date.now() - startTime) / 1000;
+    
+    return result;
+  } catch (error: any) {
+    // Handle unexpected errors gracefully
+    console.error('Error executing strategy:', error);
+    
+    return {
+      success: false,
+      error: error.message || 'Unexpected error',
+      execution_time: (Date.now() - startTime) / 1000
+    };
   }
 }

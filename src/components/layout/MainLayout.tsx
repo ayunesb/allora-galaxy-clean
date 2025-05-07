@@ -1,13 +1,11 @@
 
 import React from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { SidebarNav } from './SidebarNav';
+import { SidebarNav, NavigationItem } from './SidebarNav';
 import MobileNav from './MobileNav';
 import Footer from './Footer';
 import CookieConsent from '../CookieConsent';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import { NavigationItem as WorkspaceNavigationItem } from '@/context/WorkspaceContext';
-import { NavigationItem } from './SidebarNav';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -18,12 +16,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { navigationItems } = useWorkspace();
   
   // Convert WorkspaceNavigationItem to NavigationItem
-  const convertedNavigationItems: NavigationItem[] = 
-    (navigationItems as WorkspaceNavigationItem[]).map(item => ({
-      ...item,
-      // This ensures the icon is correctly typed as ReactNode
-      icon: item.icon
-    }));
+  // This is already compatible since we fixed the exported NavigationItem type
+  const convertedNavigationItems: NavigationItem[] = navigationItems as NavigationItem[];
   
   return (
     <SidebarProvider defaultOpen={true}>
