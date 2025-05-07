@@ -2,7 +2,7 @@
 // Helper function to safely get environment variables with fallbacks
 function getEnv(name: string, fallback: string = ""): string {
   try {
-    return typeof Deno !== "undefined" && Deno.env 
+    return typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env 
       ? Deno.env.get(name) ?? fallback
       : process.env[name] || fallback;
   } catch (err) {

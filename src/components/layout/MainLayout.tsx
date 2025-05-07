@@ -25,7 +25,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <CookieConsent />
         
         <div className="flex flex-1 w-full">
-          <SidebarNav items={navigationItems as NavigationItem[]} />
+          <SidebarNav items={navigationItems as unknown as NavigationItem[]} />
           
           <main className="flex-1 p-4 md:p-6">
             {children}
