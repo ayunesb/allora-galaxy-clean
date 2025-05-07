@@ -7,6 +7,7 @@ import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { OnboardingFormData } from '@/types/onboarding';
 import { submitOnboardingData } from '@/services/onboardingService';
 import { useOnboardingSteps } from '@/hooks/useOnboardingSteps';
+import { useNavigate } from 'react-router-dom';
 
 export type { OnboardingFormData } from '@/types/onboarding';
 
@@ -17,6 +18,7 @@ export const useOnboardingWizard = () => {
   const { user } = useAuth();
   const { tenants, setCurrentTenant } = useWorkspace();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,10 +78,18 @@ export const useOnboardingWizard = () => {
           name: formData.companyName,
           role: 'owner'
         });
+        
+        // Log successful completion
+        await logSystemEvent(
+          result.tenantId,
+          'onboarding',
+          'onboarding_completed',
+          { tenant_id: result.tenantId }
+        );
+        
+        // Use React Router's navigate for redirection
+        navigate('/dashboard');
       }
-      
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Onboarding error:', error);
       setError(error.message || 'An unexpected error occurred during onboarding');

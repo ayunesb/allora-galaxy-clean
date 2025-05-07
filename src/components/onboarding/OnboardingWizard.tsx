@@ -10,6 +10,8 @@ import OnboardingProgress from './OnboardingProgress';
 import StepNavigation from './StepNavigation';
 import StepContent, { stepTitles, stepDetails } from './StepContent';
 import OnboardingErrorDialog from './OnboardingErrorDialog';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const OnboardingWizard: React.FC = () => {
   const {
@@ -26,11 +28,12 @@ const OnboardingWizard: React.FC = () => {
     handleSubmit,
     isStepValid,
     resetError,
+    validateCurrentStep,
   } = useOnboardingWizard();
 
   // Redirect to dashboard if user already has tenants
-  if (tenants.length > 0) {
-    return <Navigate to="/" replace />;
+  if (tenants && tenants.length > 0) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Redirect to login if not authenticated
@@ -39,6 +42,8 @@ const OnboardingWizard: React.FC = () => {
   }
 
   const currentStepData = stepDetails[currentStep];
+  const { errors } = validateCurrentStep();
+  const hasValidationErrors = Object.keys(errors).length > 0;
 
   return (
     <ErrorBoundary tenant_id="system" supportEmail="support@alloraos.com">
@@ -55,6 +60,20 @@ const OnboardingWizard: React.FC = () => {
               stepTitles={stepTitles}
               onStepClick={handleStepClick}
             />
+            
+            {hasValidationErrors && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Validation Error</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-5 mt-2">
+                    {Object.values(errors).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
             
             <StepContent 
               currentStep={currentStep}
@@ -74,7 +93,7 @@ const OnboardingWizard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <OnboardingErrorDialog error={error} onClose={resetError} />
+        <OnboardingErrorDialog error={error} onClose={resetError} tenant_id="system" />
       </div>
     </ErrorBoundary>
   );

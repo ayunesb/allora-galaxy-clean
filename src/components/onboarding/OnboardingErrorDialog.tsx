@@ -20,7 +20,7 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
   error,
   onClose,
   onRetry,
-  tenant_id
+  tenant_id = 'system'
 }) => {
   const [isRetrying, setIsRetrying] = useState(false);
   
@@ -28,7 +28,7 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
 
   // Log the error when dialog is shown
   React.useEffect(() => {
-    if (error && tenant_id) {
+    if (error) {
       logSystemEvent(
         tenant_id,
         'onboarding',
@@ -54,14 +54,12 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
       console.error('Retry failed:', retryError);
       
       // Log the retry failure
-      if (tenant_id) {
-        logSystemEvent(
-          tenant_id,
-          'onboarding',
-          'onboarding_retry_failed',
-          { original_error: error, retry_error: retryError.message }
-        ).catch(err => console.error('Failed to log retry error:', err));
-      }
+      logSystemEvent(
+        tenant_id,
+        'onboarding',
+        'onboarding_retry_failed',
+        { original_error: error, retry_error: retryError.message }
+      ).catch(err => console.error('Failed to log retry error:', err));
       
       notifyError(
         'Retry Failed',
