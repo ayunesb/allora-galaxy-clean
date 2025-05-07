@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { getEnvVar } from '@/lib/env/envUtils'; // Ensure this path is correct or create the module
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getEnvVar } from '@/lib/env/envUtils';
 
 // Get Supabase configuration with proper error handling
 const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
@@ -31,7 +31,7 @@ export const supabase: SupabaseClient = createClient(
 );
 
 // Export realtime channel functionality
-export const realtime = supabase.channel;
+export const realtime = supabase.realtime;
 
 // Ensure we export a singleton instance
 export default supabase;

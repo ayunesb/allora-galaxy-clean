@@ -1,6 +1,6 @@
-
 import React from "react";
 import { diffLines, Change } from "diff";
+import * as Diff from 'diff'; // Ensure proper import for the 'diff' module
 
 interface PromptDiffViewerProps {
   oldPrompt: string;
@@ -14,8 +14,8 @@ const PromptDiffViewer: React.FC<PromptDiffViewerProps> = ({
   const diff = diffLines(oldPrompt || "", newPrompt || "");
 
   return (
-    <div className="font-mono text-sm overflow-auto max-h-96 border rounded-md">
-      {diff.map((part, index) => {
+    <div role="region" className="font-mono text-sm overflow-auto max-h-96 border rounded-md">
+      {diff.map((part: Diff.Change, index: number) => {
         const color = part.added
           ? "bg-green-100 text-green-800"
           : part.removed
@@ -25,11 +25,8 @@ const PromptDiffViewer: React.FC<PromptDiffViewerProps> = ({
         const prefix = part.added ? "+ " : part.removed ? "- " : "  ";
         
         return (
-          <pre
-            key={index}
-            className={`p-1 whitespace-pre-wrap ${color}`}
-          >
-            {part.value.split('\n').map((line, lineIndex, array) => {
+          <div role="region" key={index} className={`p-1 whitespace-pre-wrap ${color}`}>
+            {part.value.split('\n').map((line: string, lineIndex: number, array: string[]) => {
               // Skip empty lines at the end of the diff part
               if (lineIndex === array.length - 1 && line === '') {
                 return null;
@@ -42,7 +39,7 @@ const PromptDiffViewer: React.FC<PromptDiffViewerProps> = ({
                 </div>
               );
             })}
-          </pre>
+          </div>
         );
       })}
     </div>
