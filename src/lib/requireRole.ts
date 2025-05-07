@@ -13,10 +13,16 @@ export async function requireRole(
   role: string | string[]
 ): Promise<boolean> {
   try {
+    if (!tenant_id) {
+      console.error('requireRole: tenant_id is required');
+      return false;
+    }
+
     // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (userError || !user) {
+      console.error('requireRole: Failed to get user:', userError?.message);
       return false;
     }
     
@@ -26,10 +32,15 @@ export async function requireRole(
       .select('role')
       .eq('tenant_id', tenant_id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
       
-    if (error || !roleData) {
+    if (error) {
       console.error('Error checking user role:', error);
+      return false;
+    }
+    
+    if (!roleData) {
+      console.error(`User has no role for tenant ${tenant_id}`);
       return false;
     }
     
@@ -58,13 +69,19 @@ export function withRequiredRole<T extends any[], R>(
   role: string | string[]
 ): (...args: T) => Promise<R | void> {
   return async (...args: T): Promise<R | void> => {
-    const hasRole = await requireRole(tenant_id, role);
-    
-    if (!hasRole) {
-      notifyError('Access Denied', 'You do not have permission to perform this action.');
+    try {
+      const hasRole = await requireRole(tenant_id, role);
+      
+      if (!hasRole) {
+        notifyError('Access Denied', 'You do not have permission to perform this action.');
+        return;
+      }
+      
+      return fn(...args);
+    } catch (error) {
+      console.error('Error in withRequiredRole:', error);
+      notifyError('Error', 'An unexpected error occurred while checking your permissions.');
       return;
     }
-    
-    return fn(...args);
   };
 }
