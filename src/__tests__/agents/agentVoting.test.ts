@@ -1,6 +1,6 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { voteOnAgent } from '@/lib/agents/vote';
+import { voteOnAgentVersion } from '@/lib/agents/vote';
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent'; 
 
@@ -45,11 +45,11 @@ describe('Agent Voting System', () => {
       comment: 'Great performance!'
     };
     
-    const result = await voteOnAgent(
+    const result = await voteOnAgentVersion(
       voteData.agentVersionId,
+      voteData.voteType,
       voteData.userId,
       voteData.tenantId,
-      voteData.voteType,
       voteData.comment
     );
     
@@ -77,11 +77,11 @@ describe('Agent Voting System', () => {
       comment: 'Could be improved'
     };
     
-    const result = await voteOnAgent(
+    const result = await voteOnAgentVersion(
       voteData.agentVersionId,
+      voteData.voteType,
       voteData.userId,
       voteData.tenantId,
-      voteData.voteType,
       voteData.comment
     );
     
@@ -111,11 +111,11 @@ describe('Agent Voting System', () => {
       voteType: 'up' as const
     };
     
-    const result = await voteOnAgent(
+    const result = await voteOnAgentVersion(
       voteData.agentVersionId,
+      voteData.voteType,
       voteData.userId,
-      voteData.tenantId,
-      voteData.voteType
+      voteData.tenantId
     );
     
     expect(result.success).toBe(false);

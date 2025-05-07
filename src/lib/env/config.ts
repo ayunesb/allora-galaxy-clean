@@ -1,5 +1,5 @@
 
-import { EnvVariable, validateEnv, ENV } from './envUtils';
+import { EnvVariable, validateEnv, ENV, getEnvVar } from './envUtils';
 
 /**
  * Core environment variables required by the application

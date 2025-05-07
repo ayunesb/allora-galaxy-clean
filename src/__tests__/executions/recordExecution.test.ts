@@ -119,18 +119,18 @@ describe('Execution Record Functions', () => {
       })),
     } as any));
     
-    // Create a properly typed setTimeout mock
+    // Create a properly typed setTimeout mock that includes __promisify__
     const originalSetTimeout = global.setTimeout;
-    
-    // Properly typed mock that satisfies the NodeJS.Timeout interface
-    global.setTimeout = vi.fn((callback: Function, _ms?: number) => {
+    const mockSetTimeout = vi.fn((callback: Function, _ms?: number) => {
       callback();
-      return { 
-        ref: () => ({}),
-        unref: () => ({}),
-        hasRef: () => false, 
-      } as unknown as NodeJS.Timeout;
+      return {} as unknown as NodeJS.Timeout;
     });
+    
+    // Add the required __promisify__ property
+    (mockSetTimeout as any).__promisify__ = function() {};
+    
+    // Replace global setTimeout with our mock
+    global.setTimeout = mockSetTimeout as unknown as typeof setTimeout;
     
     const input: ExecutionRecordInput = {
       tenantId: 'test-tenant',
