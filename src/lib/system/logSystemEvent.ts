@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Log a system event to the system_logs table
+ * With fallbacks for when Supabase is unavailable
  * 
  * @param tenant_id - The tenant ID
  * @param module - The system module (e.g., 'auth', 'strategy', 'plugin')
@@ -101,7 +102,7 @@ export async function syncLocalEventsToSupabase(): Promise<{
     const remaining = localEvents.slice(20);
     
     // Prepare data for bulk insert
-    const batchData = batchToSync.map(event => ({
+    const batchData = batchToSync.map((event: any) => ({
       tenant_id: event.tenant_id,
       module: event.module,
       event: event.event,

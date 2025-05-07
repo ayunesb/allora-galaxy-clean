@@ -61,34 +61,24 @@ export function validateEnv(envVars: EnvVar[]): Record<string, string> {
 }
 
 /**
- * Log environment status without exposing values
- * @param env Object containing environment variables
- */
-export function logEnvStatus(env: Record<string, string>): void {
-  console.log('Environment status:');
-  
-  for (const [key, value] of Object.entries(env)) {
-    const status = value ? '✅' : '❌';
-    console.log(`- ${key}: ${status}`);
-  }
-}
-
-/**
  * Format standard API error response
- * @param message Error message
  * @param status HTTP status code
+ * @param message Error message
  * @param details Additional error details
+ * @param executionTime Execution time in seconds
  * @returns Response object with error details
  */
 export function formatErrorResponse(
+  status: number,
   message: string,
-  status: number = 500,
-  details?: any
+  details?: string,
+  executionTime?: number
 ): Response {
   const body = {
     success: false,
     error: message,
     details: details || null,
+    executionTime,
     timestamp: new Date().toISOString()
   };
 
@@ -101,21 +91,21 @@ export function formatErrorResponse(
 /**
  * Format standard API success response
  * @param data Response data
- * @param status HTTP status code
+ * @param executionTime Execution time in seconds
  * @returns Response object with success details
  */
 export function formatSuccessResponse(
   data: any,
-  status: number = 200
+  executionTime?: number
 ): Response {
   const body = {
     success: true,
-    data,
+    ...data,
+    executionTime,
     timestamp: new Date().toISOString()
   };
 
   return new Response(JSON.stringify(body), {
-    status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
@@ -140,8 +130,8 @@ export async function handleEdgeRequest(
   } catch (error: any) {
     console.error('Edge function error:', error);
     return formatErrorResponse(
-      error.message || 'An unexpected error occurred',
-      500
+      500,
+      error.message || 'An unexpected error occurred'
     );
   }
 }

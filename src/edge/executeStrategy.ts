@@ -5,16 +5,14 @@ import { runStrategy } from '@/lib/strategy/runStrategy';
 import { 
   getEnvVar, 
   formatErrorResponse,
-  formatSuccessResponse,
-  handleEdgeRequest 
+  formatSuccessResponse
 } from '@/lib/edge/envManager';
 
-export default async function executeStrategy(input: { 
-  userId?: string; 
-  strategyId: string; 
-  tenantId: string;
-  options?: Record<string, unknown>;
-}): Promise<ExecuteStrategyResult> {
+/**
+ * Execute a strategy via edge function
+ * This function serves as the entry point for strategy execution
+ */
+export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   const startTime = Date.now();
   
   try {
@@ -35,19 +33,14 @@ export default async function executeStrategy(input: {
       };
     }
     
-    // Convert input to ExecuteStrategyInput
-    const validatedInput: ExecuteStrategyInput = {
-      strategyId: input.strategyId,
-      tenantId: input.tenantId,
-      userId: input.userId,
-      options: input.options
-    };
+    // Execute the strategy using the shared runStrategy utility
+    // This allows for easier testing and code reuse
+    const result = await runStrategy(input);
     
-    // Execute the strategy using the runStrategy function
-    const result = await runStrategy(validatedInput);
-    
-    // Add execution time to the result
-    result.executionTime = (Date.now() - startTime) / 1000;
+    // Add execution time to the result if not already present
+    if (!result.executionTime) {
+      result.executionTime = (Date.now() - startTime) / 1000;
+    }
     
     return result;
   } catch (error: any) {

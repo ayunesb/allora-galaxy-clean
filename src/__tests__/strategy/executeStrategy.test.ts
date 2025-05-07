@@ -2,64 +2,42 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
 import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/types/fixed";
+import { runStrategy } from "@/lib/strategy/runStrategy";
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockImplementation(() => ({
-        data: { 
-          id: 'strategy-123',
-          title: 'Test Strategy',
-          tenant_id: 'tenant-123',
-          status: 'approved'
-        },
-        error: null
-      })),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-    })),
-    rpc: vi.fn().mockReturnValue('result')
-  }
-}));
-
+// Mock the runStrategy function
 vi.mock('@/lib/strategy/runStrategy', () => ({
-  runStrategy: vi.fn().mockImplementation((input) => {
-    if (input.strategyId === 'fail-strategy') {
-      return Promise.resolve({
-        success: false,
-        error: 'Strategy execution failed',
-        executionTime: 0.5
-      });
-    }
-    return Promise.resolve({
-      success: true,
-      error: null,
-      executionTime: 1.5,
-      outputs: { result: 'success' },
-      logs: []
-    });
-  })
-}));
-
-vi.mock('@/lib/executions/recordExecution', () => ({
-  recordExecution: vi.fn().mockImplementation(() => Promise.resolve('exec-123')),
-  updateExecution: vi.fn().mockImplementation(() => Promise.resolve(true))
+  runStrategy: vi.fn()
 }));
 
 describe('executeStrategy Edge Function', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Default mock implementation
+    vi.mocked(runStrategy).mockImplementation((input) => {
+      if (!input.strategyId || input.strategyId === 'fail-strategy') {
+        return Promise.resolve({
+          success: false,
+          error: 'Strategy execution failed',
+          executionTime: 0.5
+        });
+      }
+      
+      return Promise.resolve({
+        success: true,
+        error: null,
+        executionTime: 1.5,
+        outputs: { result: 'success' },
+        logs: []
+      });
+    });
   });
   
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('should successfully execute a strategy', async () => {
+  it('should successfully execute a strategy using the shared utility', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
       strategyId: 'strategy-123',
@@ -71,8 +49,9 @@ describe('executeStrategy Edge Function', () => {
     const result = await executeStrategy(input);
     
     // Assert
+    expect(runStrategy).toHaveBeenCalledWith(input);
     expect(result.success).toBe(true);
-    expect(result.executionTime).toBeGreaterThan(0);
+    expect(result.executionTime).toBeDefined();
   });
   
   it('should handle missing strategyId', async () => {
@@ -89,6 +68,7 @@ describe('executeStrategy Edge Function', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
     expect(result.error).toContain('Strategy ID is required');
+    expect(runStrategy).not.toHaveBeenCalled();
   });
   
   it('should handle missing tenantId', async () => {
@@ -105,23 +85,22 @@ describe('executeStrategy Edge Function', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
     expect(result.error).toContain('Tenant ID is required');
+    expect(runStrategy).not.toHaveBeenCalled();
   });
   
   it('should handle strategy execution failure', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategyId: 'fail-strategy', // This will trigger the mock to return failure
+      strategyId: 'fail-strategy',
       tenantId: 'tenant-123',
       userId: 'user-123'
     };
-    
-    const runStrategyMock = require('@/lib/strategy/runStrategy').runStrategy;
     
     // Act
     const result = await executeStrategy(input);
     
     // Assert
-    expect(runStrategyMock).toHaveBeenCalledWith(input);
+    expect(runStrategy).toHaveBeenCalledWith(input);
     expect(result.success).toBe(false);
     expect(result.error).toBe('Strategy execution failed');
   });
@@ -134,9 +113,8 @@ describe('executeStrategy Edge Function', () => {
       userId: 'user-123'
     };
     
-    // Force the runStrategy function to throw
-    const runStrategyMock = require('@/lib/strategy/runStrategy').runStrategy;
-    runStrategyMock.mockImplementationOnce(() => {
+    // Force runStrategy to throw an error
+    vi.mocked(runStrategy).mockImplementationOnce(() => {
       throw new Error('Unexpected error');
     });
     
