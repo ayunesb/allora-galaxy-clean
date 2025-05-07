@@ -1,32 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { notifyInfo, notifySuccess, notifyWarning } from '@/components/ui/BetterToast';
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  created_at: string;
-  read_at: string | null;
-  tenant_id: string;
-  user_id: string;
-  action_url?: string;
-  action_label?: string;
-}
-
-interface NotificationsContextValue {
-  notifications: Notification[];
-  unreadCount: number;
-  loading: boolean;
-  error: Error | null;
-  markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
-  refreshNotifications: () => Promise<void>;
-}
+import { supabase } from '@/lib/supabase';
+import { 
+  subscribeToNotifications,
+  fetchNotifications as fetchNotificationsService 
+} from '@/services/notificationService';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
+import { Notification, NotificationsContextValue } from '@/types/notifications';
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
@@ -37,6 +19,8 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const { user } = useAuth();
   const { currentTenant } = useWorkspace();
   
+  const { markAsRead: markAsReadAction, markAllAsRead: markAllAsReadAction, removeNotification } = useNotificationActions();
+  
   const fetchNotifications = async () => {
     if (!user || !currentTenant) return;
     
@@ -44,12 +28,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: false });
+      const { data, error: fetchError } = await fetchNotificationsService(user.id, currentTenant.id);
       
       if (fetchError) throw fetchError;
       
@@ -63,63 +42,32 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   };
   
   const markAsRead = async (id: string) => {
-    if (!user) return;
+    const { success } = await markAsReadAction(id);
     
-    try {
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
-      if (updateError) throw updateError;
-      
+    if (success) {
       setNotifications(prev => 
         prev.map(notif => 
           notif.id === id ? { ...notif, read_at: new Date().toISOString() } : notif
         )
       );
-    } catch (err: any) {
-      console.error('Error marking notification as read:', err);
     }
   };
   
   const markAllAsRead = async () => {
-    if (!user || !currentTenant) return;
+    const { success } = await markAllAsReadAction();
     
-    try {
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('tenant_id', currentTenant.id)
-        .is('read_at', null);
-      
-      if (updateError) throw updateError;
-      
+    if (success) {
       setNotifications(prev => 
         prev.map(notif => ({ ...notif, read_at: notif.read_at || new Date().toISOString() }))
       );
-    } catch (err: any) {
-      console.error('Error marking all notifications as read:', err);
     }
   };
   
   const deleteNotification = async (id: string) => {
-    if (!user) return;
+    const { success } = await removeNotification(id);
     
-    try {
-      const { error: deleteError } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
-      if (deleteError) throw deleteError;
-      
+    if (success) {
       setNotifications(prev => prev.filter(notif => notif.id !== id));
-    } catch (err: any) {
-      console.error('Error deleting notification:', err);
     }
   };
 
@@ -127,42 +75,32 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user || !currentTenant) return;
     
-    // Use the supabase client's realtime subscription
-    const channel = supabase.realtime
-      .channel('notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `tenant_id=eq.${currentTenant.id} AND user_id=eq.${user.id}`
-      }, (payload) => {
-        const newNotification = payload.new as Notification;
-          
-        // Only handle notifications for current tenant
-        if (newNotification.tenant_id === currentTenant.id) {
-          setNotifications(prev => [newNotification, ...prev]);
-            
-          // Show a toast for the new notification
-          switch (newNotification.type) {
-            case 'success':
-              notifySuccess(newNotification.title, newNotification.message);
-              break;
-            case 'warning':
-              notifyWarning(newNotification.title, newNotification.message);
-              break;
-            case 'error':
-              notifyWarning(newNotification.title, newNotification.message);
-              break;
-            default:
-              notifyInfo(newNotification.title, newNotification.message);
-              break;
-          }
-        }
-      })
-      .subscribe();
-    
     // Initial fetch
     fetchNotifications();
+    
+    // Setup subscription
+    const channel = subscribeToNotifications(currentTenant.id, user.id, (newNotification: Notification) => {
+      // Only handle notifications for current tenant
+      if (newNotification.tenant_id === currentTenant.id) {
+        setNotifications(prev => [newNotification, ...prev]);
+          
+        // Show a toast for the new notification
+        switch (newNotification.type) {
+          case 'success':
+            notifySuccess(newNotification.title, newNotification.message);
+            break;
+          case 'warning':
+            notifyWarning(newNotification.title, newNotification.message);
+            break;
+          case 'error':
+            notifyWarning(newNotification.title, newNotification.message);
+            break;
+          default:
+            notifyInfo(newNotification.title, newNotification.message);
+            break;
+        }
+      }
+    });
     
     return () => {
       // Safely handle removeChannel method
@@ -199,3 +137,5 @@ export const useNotifications = () => {
   }
   return context;
 };
+
+export type { Notification } from '@/types/notifications';
