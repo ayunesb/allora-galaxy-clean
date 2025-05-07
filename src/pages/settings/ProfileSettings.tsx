@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { LanguageSelector } from '@/components/settings/LanguageSelector';
+import LanguageSelector from '@/components/settings/LanguageSelector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Camera, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -77,6 +76,7 @@ const ProfileSettings: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   // Initialize form with default values
   const form = useForm<ProfileFormValues>({
@@ -205,11 +205,26 @@ const ProfileSettings: React.FC = () => {
     }
 
     const file = event.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`;
+    setAvatarFile(file);
 
-    setUploadingAvatar(true);
+    // Show avatar in UI immediately
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarUrl(objectUrl);
+
+    // Upload to storage if available
     try {
+      setUploadingAvatar(true);
+      
+      // Check if Supabase storage is available
+      if (!supabase.storage) {
+        console.warn("Storage API not available");
+        setUploadingAvatar(false);
+        return;
+      }
+      
+      const fileExt = file.name.split('.').pop();
+      const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`;
+
       // Upload image
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -244,9 +259,15 @@ const ProfileSettings: React.FC = () => {
       console.error('Error uploading avatar:', error);
       toast({
         title: 'Error',
-        description: `Failed to upload avatar: ${error.message}`,
+        description: `Failed to upload avatar to storage: ${error.message}`,
         variant: 'destructive'
       });
+      
+      // Despite error, keep showing the local avatar
+      if (avatarFile) {
+        const objectUrl = URL.createObjectURL(avatarFile);
+        setAvatarUrl(objectUrl);
+      }
     } finally {
       setUploadingAvatar(false);
       // Clear file input

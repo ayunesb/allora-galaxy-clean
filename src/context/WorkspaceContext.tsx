@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -6,7 +7,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { useAuth } from './AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { notifyError } from '@/components/ui/BetterToast';
 import { Tenant, UserRole, CompanyProfile } from '@/types/fixed';
@@ -99,7 +100,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         .insert({
           tenant_id: newTenant.id,
           user_id: user.id,
-          role: 'owner' as UserRole
+          role: 'owner'
         });
 
       if (roleError) {

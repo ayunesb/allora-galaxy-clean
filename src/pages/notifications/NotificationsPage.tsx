@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,23 +33,38 @@ const NotificationsPage: React.FC = () => {
       fetchNotifications();
 
       // Set up real-time subscription for new notifications
-      const channel = supabase
-        .channel('notifications_changes')
-        .on('postgres_changes', 
-          {
-            event: '*', // Listen for all changes
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`
-          }, 
-          (_) => {
-            fetchNotifications();
+      const setupSubscription = async () => {
+        try {
+          if (supabase.realtime) {
+            const channel = supabase.realtime.channel('notifications_changes');
+            
+            channel.on('postgres_changes', 
+              {
+                event: '*', // Listen for all changes
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${user.id}`
+              }, 
+              () => {
+                fetchNotifications();
+              }
+            ).subscribe();
+            
+            return channel;
           }
-        )
-        .subscribe();
-        
+          return null;
+        } catch (error) {
+          console.error('Error setting up realtime subscription:', error);
+          return null;
+        }
+      };
+      
+      const channel = setupSubscription();
+      
       return () => {
-        supabase.removeChannel(channel);
+        if (channel && supabase.realtime) {
+          supabase.realtime.removeChannel(channel);
+        }
       };
     }
   }, [user?.id, currentTenant?.id, selectedTab, filter]);

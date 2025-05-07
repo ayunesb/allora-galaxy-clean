@@ -45,6 +45,7 @@ export interface Tenant {
   updated_at?: string;
   owner_id?: string;
   metadata?: Record<string, any>;
+  role?: UserRole; // Added for convenience when joining with tenant_user_roles
 }
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
@@ -104,18 +105,18 @@ export function camelToSnake(obj: any): any {
   }, {} as Record<string, any>);
 }
 
-export function snakeToCamel(obj: any): any {
+export function snakeToCamel<T = any>(obj: any): T {
   if (obj === null || obj === undefined) return obj;
   
   if (typeof obj !== 'object') return obj;
   
   if (Array.isArray(obj)) {
-    return obj.map(item => snakeToCamel(item));
+    return obj.map(item => snakeToCamel(item)) as unknown as T;
   }
   
   return Object.keys(obj).reduce((acc, key) => {
     const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     acc[camelKey] = snakeToCamel(obj[key]);
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, any>) as T;
 }

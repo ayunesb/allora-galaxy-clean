@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import SidebarNav from '@/components/layout/SidebarNav';
+import { SidebarNav } from '@/components/layout/SidebarNav';
 import Footer from '@/components/layout/Footer';
 
 export interface MainLayoutProps {

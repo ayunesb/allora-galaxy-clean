@@ -35,13 +35,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 export const MainRoute: React.FC = () => {
-  const layoutProps = {
-    children: <Outlet />
-  };
-  
-  return (
-    <MainLayout {...layoutProps} />
-  );
+  // We don't need to pass children to MainLayout here
+  // as the Outlet is already included in MainLayout
+  return <MainLayout />;
 };
 
 export const AdminRoute: React.FC = () => {
@@ -58,11 +54,7 @@ export const AdminRoute: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
   
-  const layoutProps = {
-    children: <Outlet />
-  };
-  
-  return (
-    <AdminLayout {...layoutProps} />
-  );
+  // We don't need to pass children to AdminLayout here
+  // as the Outlet is already included in AdminLayout
+  return <AdminLayout />;
 };

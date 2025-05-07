@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Bell, X, CheckCircle2, AlertCircle, Info, MailOpen, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import NotificationItem from './NotificationItem';
 
 export interface Notification {
@@ -52,26 +51,41 @@ const NotificationCenter: React.FC = () => {
       fetchUnreadCount();
       
       // Set up real-time subscription for new notifications
-      const channel = supabase
-        .channel('notifications_changes')
-        .on('postgres_changes', 
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `tenant_id=eq.${currentTenant.id}`
-          }, 
-          (payload) => {
-            fetchUnreadCount();
-            if (open) {
-              fetchNotifications();
-            }
+      const setupSubscription = async () => {
+        try {
+          if (supabase.realtime) {
+            const channel = supabase.realtime.channel('notifications_changes');
+            
+            channel.on('postgres_changes', 
+              {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'notifications',
+                filter: `tenant_id=eq.${currentTenant.id}`
+              }, 
+              () => {
+                fetchUnreadCount();
+                if (open) {
+                  fetchNotifications();
+                }
+              }
+            ).subscribe();
+            
+            return channel;
           }
-        )
-        .subscribe();
-        
+          return null;
+        } catch (error) {
+          console.error('Error setting up realtime subscription:', error);
+          return null;
+        }
+      };
+      
+      const channel = setupSubscription();
+      
       return () => {
-        supabase.removeChannel(channel);
+        if (channel && supabase.realtime) {
+          supabase.realtime.removeChannel(channel);
+        }
       };
     }
   }, [user?.id, currentTenant?.id]);
