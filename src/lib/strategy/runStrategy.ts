@@ -1,7 +1,6 @@
 
-import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
+import { ExecuteStrategyInput, ExecuteStrategyResult, camelToSnake } from '@/types/fixed';
 import { supabase } from '@/integrations/supabase/client';
-import { camelToSnake } from '@/types/fixed';
 
 /**
  * Execute a strategy

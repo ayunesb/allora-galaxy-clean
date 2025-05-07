@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { 
   ExecuteStrategyInput, 
   ExecuteStrategyResult,
-  executeStrategySchema 
+  camelToSnake
 } from '@/types/fixed';
 import { runStrategy } from '@/lib/strategy/runStrategy';
 
@@ -23,21 +23,22 @@ function getEnvVar(name: string, fallback: string = ""): string {
   }
 }
 
-export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
+export default async function executeStrategy(input: { 
+  userId?: string; 
+  strategyId: string; 
+  tenantId: string;
+  options?: Record<string, unknown>;
+}): Promise<ExecuteStrategyResult> {
   const startTime = Date.now();
   
   try {
-    // Validate input against schema
-    const validationResult = executeStrategySchema.safeParse(input);
-    if (!validationResult.success) {
-      return {
-        success: false,
-        error: `Invalid input: ${validationResult.error.message}`,
-        executionTime: (Date.now() - startTime) / 1000
-      };
-    }
-
-    const validatedInput = validationResult.data;
+    // Convert input to ExecuteStrategyInput
+    const validatedInput: ExecuteStrategyInput = {
+      strategyId: input.strategyId,
+      tenantId: input.tenantId,
+      userId: input.userId,
+      options: input.options
+    };
     
     // Execute the strategy using the runStrategy function
     const result = await runStrategy(validatedInput);
