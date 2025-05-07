@@ -1,17 +1,33 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Stripe } from "https://esm.sh/stripe@12.0.0?target=deno";
 
+type KpiCategory = 'financial' | 'marketing' | 'sales' | 'product';
+type KpiSource = 'stripe' | 'ga4' | 'hubspot';
+
+interface KpiData {
+  name: string;
+  value: number;
+  previous_value?: number | null;
+  source: KpiSource;
+  category: KpiCategory;
+  date: string;
+  tenant_id: string;
+}
+
 serve(async (req) => {
   try {
     // Create Supabase client with service role
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = typeof Deno !== 'undefined' ? Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL || '';
+    const supabaseServiceRole = typeof Deno !== 'undefined' ? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") : process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRole);
     
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+    const stripeSecretKey = typeof Deno !== 'undefined' ? Deno.env.get("STRIPE_SECRET_KEY") : process.env.STRIPE_SECRET_KEY || '';
+    
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2023-10-16",
     });
     
@@ -31,10 +47,6 @@ serve(async (req) => {
       
       if (stripeCustomerId) {
         try {
-          // Fetch MRR from Stripe
-          // In a real implementation, you would use Stripe's API to get subscription data
-          // Here we're just mocking the functionality
-          
           // Calculate MRR (mock implementation)
           const mockMRR = Math.floor(Math.random() * 10000) + 5000;
           
@@ -48,19 +60,24 @@ serve(async (req) => {
             .order("date", { ascending: false })
             .limit(1)
             .single();
+          
+          const currentDate = new Date().toISOString().split('T')[0];
+            
+          // Create KPI entry with proper typing
+          const kpiData: KpiData = {
+            tenant_id: tenant.id,
+            name: "Monthly Recurring Revenue",
+            value: mockMRR,
+            previous_value: previousKpi?.value || null,
+            source: "stripe",
+            category: "financial",
+            date: currentDate,
+          };
             
           // Insert new KPI entry
           await supabaseAdmin
             .from("kpis")
-            .insert({
-              tenant_id: tenant.id,
-              name: "Monthly Recurring Revenue",
-              value: mockMRR,
-              previous_value: previousKpi?.value || null,
-              source: "stripe",
-              category: "financial",
-              date: new Date().toISOString().split('T')[0],
-            });
+            .insert(kpiData);
             
           console.log(`Updated MRR for tenant ${tenant.name}: $${mockMRR}`);
         } catch (error) {

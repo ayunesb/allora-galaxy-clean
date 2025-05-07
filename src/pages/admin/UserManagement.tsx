@@ -65,7 +65,7 @@ const UserManagement: React.FC = () => {
       
       if (data) {
         // Transform the nested structure into a flat array for easier rendering
-        const transformedUsers: UserWithRole[] = data.map((item: NestedUserData) => ({
+        const transformedUsers: UserWithRole[] = data.map((item: any) => ({
           id: item.users.id,
           email: item.users.email,
           created_at: item.users.created_at,
@@ -164,7 +164,6 @@ const UserManagement: React.FC = () => {
       <InviteUserDialog 
         open={inviteDialogOpen} 
         onOpenChange={setInviteDialogOpen}
-        onComplete={handleInviteComplete}
       />
     </div>
   );
