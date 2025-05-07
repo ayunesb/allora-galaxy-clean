@@ -23,9 +23,9 @@ const Dashboard: React.FC = () => {
         title="Dashboard"
         description="Overview of your Allora OS workspace strategies, plugins, and performance metrics"
       />
-      <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
         {isImpersonated && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertDescription>
               ⚠️ You are impersonating a user. All actions may be audited.
@@ -33,7 +33,7 @@ const Dashboard: React.FC = () => {
           </Alert>
         )}
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Welcome to Allora OS</h1>
             <p className="text-muted-foreground mt-1">
@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Active Strategies</CardTitle>

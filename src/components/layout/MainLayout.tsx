@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import SidebarNav from './SidebarNav';
 import MobileNav from './MobileNav';
 import Footer from './Footer';
 import CookieConsent from '../CookieConsent';
@@ -10,16 +12,22 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <MobileNav />
-      <CookieConsent />
-      
-      <main className="flex-1">
-        {children}
-      </main>
-      
-      <Footer />
-    </div>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex flex-col min-h-screen w-full bg-background">
+        <MobileNav />
+        <CookieConsent />
+        
+        <div className="flex flex-1 w-full">
+          <SidebarNav />
+          
+          <main className="flex-1 p-4 md:p-6">
+            {children}
+          </main>
+        </div>
+        
+        <Footer />
+      </div>
+    </SidebarProvider>
   );
 };
 

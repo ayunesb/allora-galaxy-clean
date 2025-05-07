@@ -6,8 +6,7 @@ import {
   DrawerContent, 
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger, 
-  DrawerClose
+  DrawerTrigger
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +14,7 @@ import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 // Add your navigation items here
 const navigationItems = [
@@ -46,55 +46,43 @@ export const MobileNav: React.FC = () => {
   };
 
   if (!isMobile) {
-    return null;
+    return (
+      <div className="h-14 border-b px-4 flex items-center justify-between">
+        <div className="font-semibold">
+          {currentTenant?.name || 'Allora OS'}
+        </div>
+        <SidebarTrigger />
+      </div>
+    );
   }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button variant="ghost" size="sm" className="md:hidden">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Open menu</span>
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader className="flex justify-between items-center">
-            <DrawerTitle>
-              {currentTenant?.name || 'Navigation'}
-            </DrawerTitle>
-            <DrawerClose asChild>
-              <Button variant="ghost" size="icon">
+    <div className="h-14 border-b px-4 flex items-center justify-between">
+      <div className="font-semibold">
+        {currentTenant?.name || 'Allora OS'}
+      </div>
+
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerTrigger asChild>
+          <Button variant="ghost" size="sm" className="md:hidden">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Open menu</span>
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm">
+            <DrawerHeader className="flex justify-between items-center">
+              <DrawerTitle>
+                {currentTenant?.name || 'Navigation'}
+              </DrawerTitle>
+              <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
               </Button>
-            </DrawerClose>
-          </DrawerHeader>
-          <div className="px-4 py-2">
-            <div className="space-y-1">
-              {navigationItems.map((item) => (
-                <Button
-                  key={item.path}
-                  variant={location.pathname === item.path ? 'secondary' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start',
-                    location.pathname === item.path && 'bg-secondary'
-                  )}
-                  onClick={() => handleNavigate(item.path)}
-                >
-                  {item.name}
-                </Button>
-              ))}
-            </div>
-
-            <Separator className="my-4" />
-            
-            <div className="pt-2">
-              <p className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Admin
-              </p>
-              <div className="mt-2 space-y-1">
-                {adminItems.map((item) => (
+            </DrawerHeader>
+            <div className="px-4 py-2">
+              <div className="space-y-1">
+                {navigationItems.map((item) => (
                   <Button
                     key={item.path}
                     variant={location.pathname === item.path ? 'secondary' : 'ghost'}
@@ -108,11 +96,34 @@ export const MobileNav: React.FC = () => {
                   </Button>
                 ))}
               </div>
+
+              <Separator className="my-4" />
+              
+              <div className="pt-2">
+                <p className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Admin
+                </p>
+                <div className="mt-2 space-y-1">
+                  {adminItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant={location.pathname === item.path ? 'secondary' : 'ghost'}
+                      className={cn(
+                        'w-full justify-start',
+                        location.pathname === item.path && 'bg-secondary'
+                      )}
+                      onClick={() => handleNavigate(item.path)}
+                    >
+                      {item.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </DrawerContent>
-    </Drawer>
+        </DrawerContent>
+      </Drawer>
+    </div>
   );
 };
 
