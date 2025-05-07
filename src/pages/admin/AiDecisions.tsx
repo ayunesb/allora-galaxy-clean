@@ -9,16 +9,40 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Clock, ThumbsUp, ThumbsDown, Code } from 'lucide-react';
+import { AlertTriangle, Clock, ThumbsUp, ThumbsDown, Code, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import PromptDiffViewer from '@/components/PromptDiffViewer';
 import AgentVotePanel from '@/components/AgentVotePanel';
 import { Progress } from '@/components/ui/progress';
+import { Link } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
+import { EmptyState } from '@/components/ui/EmptyState';
+
+interface AgentVersion {
+  id: string;
+  plugin_id: string;
+  version: string;
+  status: 'active' | 'training' | 'deprecated';
+  prompt: string;
+  created_at: string;
+  upvotes: number;
+  downvotes: number;
+  xp: number;
+  created_by: {
+    email: string;
+  } | null;
+}
+
+interface Plugin {
+  id: string;
+  name: string;
+}
 
 const AiDecisions: React.FC = () => {
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
-  const [currentVersion, setCurrentVersion] = useState<any | null>(null);
-  const [previousVersion, setPreviousVersion] = useState<any | null>(null);
+  const [currentVersion, setCurrentVersion] = useState<AgentVersion | null>(null);
+  const [previousVersion, setPreviousVersion] = useState<AgentVersion | null>(null);
+  const { toast } = useToast();
 
   // Fetch plugins
   const { data: plugins, isLoading: loadingPlugins } = useQuery({
@@ -30,12 +54,12 @@ const AiDecisions: React.FC = () => {
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data as Plugin[];
     }
   });
 
   // Fetch agent versions for selected plugin
-  const { data: agentVersions, isLoading: loadingVersions } = useQuery({
+  const { data: agentVersions, isLoading: loadingVersions, refetch: refetchVersions } = useQuery({
     queryKey: ['agent_versions', selectedPlugin],
     queryFn: async () => {
       if (!selectedPlugin) return [];
@@ -47,10 +71,10 @@ const AiDecisions: React.FC = () => {
           created_by:created_by(email)
         `)
         .eq('plugin_id', selectedPlugin)
-        .order('created_at', { ascending: false });
+        .order('version', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as AgentVersion[];
     },
     enabled: !!selectedPlugin
   });
@@ -72,36 +96,38 @@ const AiDecisions: React.FC = () => {
   }, [agentVersions]);
 
   // Toggle agent version status
-  const toggleAgentStatus = async (id: string, currentStatus: 'active' | 'deprecated') => {
-    const newStatus = currentStatus === 'active' ? 'deprecated' : 'active';
-    
-    const { error } = await supabase
-      .from('agent_versions')
-      .update({ status: newStatus })
-      .eq('id', id);
+  const toggleAgentStatus = async (id: string, currentStatus: 'active' | 'deprecated' | 'training') => {
+    try {
+      let newStatus: 'active' | 'deprecated';
       
-    if (!error) {
-      // Refresh agent versions
-      const { data } = await supabase
-        .from('agent_versions')
-        .select(`
-          *,
-          created_by:created_by(email)
-        `)
-        .eq('plugin_id', selectedPlugin)
-        .order('created_at', { ascending: false });
-        
-      if (data) {
-        if (data.length > 0) {
-          setCurrentVersion(data[0]);
-          
-          if (data.length > 1) {
-            setPreviousVersion(data[1]);
-          } else {
-            setPreviousVersion(null);
-          }
-        }
+      if (currentStatus === 'active') {
+        newStatus = 'deprecated';
+      } else {
+        newStatus = 'active';
       }
+      
+      const { error } = await supabase
+        .from('agent_versions')
+        .update({ status: newStatus })
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: `Agent ${newStatus}`,
+        description: `The agent version has been ${newStatus === 'active' ? 'activated' : 'deprecated'}.`,
+      });
+      
+      // Refresh agent versions
+      refetchVersions();
+    } catch (error: any) {
+      toast({
+        title: "Error updating agent",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
 
@@ -119,57 +145,69 @@ const AiDecisions: React.FC = () => {
       <div className="mt-6 space-y-6">
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <CardTitle>Agent Version History</CardTitle>
-              <Select value={selectedPlugin || ''} onValueChange={setSelectedPlugin}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Plugin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadingPlugins ? (
-                    <SelectItem value="loading" disabled>Loading plugins...</SelectItem>
-                  ) : (
-                    plugins?.map(plugin => (
-                      <SelectItem key={plugin.id} value={plugin.id}>
-                        {plugin.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Link to="/agents/performance">
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="mr-1 h-4 w-4" />
+                    Agent Performance
+                  </Button>
+                </Link>
+                <Select value={selectedPlugin || ''} onValueChange={setSelectedPlugin}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Plugin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingPlugins ? (
+                      <SelectItem value="loading" disabled>Loading plugins...</SelectItem>
+                    ) : (
+                      plugins?.map(plugin => (
+                        <SelectItem key={plugin.id} value={plugin.id}>
+                          {plugin.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {!selectedPlugin ? (
-              <div className="text-center py-8">
-                <p>Select a plugin to view agent versions</p>
-              </div>
+              <EmptyState
+                title="Select a plugin"
+                description="Choose a plugin to view its agent version history"
+                icon={<Code className="h-12 w-12" />}
+              />
             ) : loadingVersions ? (
               <div className="text-center py-8">
                 <p>Loading versions...</p>
               </div>
             ) : agentVersions?.length === 0 ? (
-              <div className="text-center py-8">
-                <p>No agent versions found for this plugin</p>
-              </div>
+              <EmptyState
+                title="No agent versions found"
+                description="There are no agent versions for this plugin yet"
+                icon={<AlertTriangle className="h-12 w-12 text-yellow-500" />}
+              />
             ) : (
               <Tabs defaultValue="versions">
-                <TabsList>
+                <TabsList className="mb-4">
                   <TabsTrigger value="versions">Versions</TabsTrigger>
                   <TabsTrigger value="diff">Prompt Diff</TabsTrigger>
                   <TabsTrigger value="performance">Performance</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="versions" className="mt-4">
+                <TabsContent value="versions">
                   <div className="space-y-6">
                     {agentVersions?.map((version) => (
                       <Card key={version.id} className="overflow-hidden">
                         <CardHeader className="bg-muted pb-2">
-                          <div className="flex justify-between items-center">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
                               <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-medium">Version: {version.version}</h3>
-                                <Badge variant={version.status === 'active' ? 'default' : 'secondary'}>
+                                <Badge variant={version.status === 'active' ? 'default' : version.status === 'training' ? 'outline' : 'secondary'}>
                                   {version.status}
                                 </Badge>
                               </div>
@@ -206,13 +244,15 @@ const AiDecisions: React.FC = () => {
                                   </DialogFooter>
                                 </DialogContent>
                               </Dialog>
-                              <Button 
-                                variant={version.status === 'active' ? 'destructive' : 'default'} 
-                                size="sm"
-                                onClick={() => toggleAgentStatus(version.id, version.status)}
-                              >
-                                {version.status === 'active' ? 'Deactivate' : 'Activate'}
-                              </Button>
+                              {version.status !== 'training' && (
+                                <Button 
+                                  variant={version.status === 'active' ? 'destructive' : 'default'} 
+                                  size="sm"
+                                  onClick={() => toggleAgentStatus(version.id, version.status)}
+                                >
+                                  {version.status === 'active' ? 'Deactivate' : 'Activate'}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardHeader>
@@ -281,16 +321,22 @@ const AiDecisions: React.FC = () => {
                       />
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
-                      <p className="mt-2">No previous version available for comparison</p>
-                    </div>
+                    <EmptyState
+                      title="No comparison available"
+                      description="There needs to be at least two versions to show a comparison"
+                      icon={<AlertTriangle className="h-12 w-12 text-yellow-500" />}
+                    />
                   )}
                 </TabsContent>
                 
                 <TabsContent value="performance" className="mt-4">
                   <div className="text-center py-8">
-                    <p>Performance metrics coming soon</p>
+                    <Link to="/agents/performance">
+                      <Button>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Full Performance Analytics
+                      </Button>
+                    </Link>
                   </div>
                 </TabsContent>
               </Tabs>

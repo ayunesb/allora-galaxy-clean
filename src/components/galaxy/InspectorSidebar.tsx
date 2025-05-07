@@ -12,11 +12,12 @@ interface InspectorSidebarProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
-  node,
-  open,
-  onOpenChange,
-}) => {
+interface InspectorContentProps {
+  node: any;
+}
+
+// Separate component for the sidebar content to be reusable in mobile view
+const InspectorContent: React.FC<InspectorContentProps> = ({ node }) => {
   if (!node) return null;
 
   const getNodeTypeContent = () => {
@@ -149,6 +150,16 @@ const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     }
   };
 
+  return getNodeTypeContent();
+};
+
+const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
+  node,
+  open,
+  onOpenChange,
+}) => {
+  if (!node) return null;
+
   const getNodeTitle = () => {
     if (!node) return 'Details';
     
@@ -198,7 +209,7 @@ const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
           </SheetDescription>
         </SheetHeader>
         <div className="mt-6">
-          {getNodeTypeContent()}
+          <InspectorContent node={node} />
         </div>
         <SheetFooter className="mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
@@ -207,5 +218,8 @@ const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     </Sheet>
   );
 };
+
+// Add the Content component as a static property to make it accessible in mobile view
+InspectorSidebar.Content = InspectorContent;
 
 export default InspectorSidebar;

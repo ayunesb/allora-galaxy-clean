@@ -60,6 +60,8 @@ export async function autoEvolveAgents() {
           tenant_id: agent.tenant_id || "system",
           module: 'agents',
           event: 'agent_promoted',
+          severity: 'info',
+          message: `Agent version ${agent.id} was promoted to active status`,
           context: {
             agent_version_id: agent.id,
             plugin_id: agent.plugin_id,
@@ -90,6 +92,8 @@ export async function autoEvolveAgents() {
       tenant_id: "system",
       module: 'agents',
       event: 'auto_evolve_error',
+      severity: 'error',
+      message: `Auto-evolve error: ${error.message}`,
       context: {
         error: error.message
       }
@@ -149,6 +153,8 @@ export async function checkAgentForPromotion(agentVersionId: string) {
       tenant_id: agent.tenant_id || "system",
       module: 'agents',
       event: 'agent_promoted',
+      severity: 'info',
+      message: `Agent version ${agent.id} was promoted to active status`,
       context: {
         agent_version_id: agent.id,
         plugin_id: agent.plugin_id,
@@ -208,6 +214,8 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
         tenant_id: tenant_id || "system",
         module: 'agents',
         event: 'agent_version_not_found',
+        severity: 'warning',
+        message: `Agent version ${agent_version_id} not found`,
         context: {
           agent_version_id,
           error: error?.message || 'Agent version not found'
@@ -226,6 +234,8 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
         tenant_id: tenant_id || "system",
         module: 'agents',
         event: 'agent_version_access_denied',
+        severity: 'warning',
+        message: `Access to agent version ${agent_version_id} denied for tenant ${tenant_id}`,
         context: {
           agent_version_id,
           tenant_id,
@@ -288,6 +298,8 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
         tenant_id: tenant_id || "system",
         module: 'agents',
         event: 'agent_evolved',
+        severity: 'info',
+        message: `Agent evolved from v${agent.version} to v${nextVersion.version}`,
         context: {
           agent_version_id,
           new_version_id: nextVersion.id,

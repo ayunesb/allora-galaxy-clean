@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -10,6 +11,8 @@ import EmptyState from '@/components/galaxy/EmptyState';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
 import { GraphNode, GraphData, GraphLink } from '@/types/galaxy';
 import PageHelmet from '@/components/PageHelmet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 const GalaxyExplorer: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
@@ -17,6 +20,9 @@ const GalaxyExplorer: React.FC = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [viewMode, setViewMode] = useState('all');
   const fgRef = useRef<any>(null);
+  
+  // Check if we're on mobile
+  const isMobile = useMediaQuery("(max-width: 768px)");
   
   // Load data for the graph
   const { data: graphDataQuery, isLoading, refetch } = useGalaxyData();
@@ -79,6 +85,14 @@ const GalaxyExplorer: React.FC = () => {
     }
   };
 
+  // Center the graph
+  const handleCenterGraph = () => {
+    if (fgRef.current) {
+      fgRef.current.centerAt();
+      fgRef.current.zoomToFit(400);
+    }
+  };
+
   return (
     <>
       <PageHelmet 
@@ -89,12 +103,13 @@ const GalaxyExplorer: React.FC = () => {
         <h1 className="text-3xl font-bold">Galaxy Explorer</h1>
         <p className="text-muted-foreground mt-2">Visualize connections between strategies and plugins</p>
         
-        <div className="flex justify-between items-center my-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-4">
           <ViewModeSelector viewMode={viewMode} setViewMode={setViewMode} />
           <ZoomControls 
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onRefresh={() => refetch()}
+            onCenter={handleCenterGraph}
           />
         </div>
         
@@ -118,12 +133,26 @@ const GalaxyExplorer: React.FC = () => {
         
         <GraphLegend />
         
-        {/* Inspector Sidebar */}
-        <InspectorSidebar 
-          node={selectedNode} 
-          open={showSidebar} 
-          onOpenChange={handleSidebarClose}
-        />
+        {isMobile ? (
+          // Mobile bottom sheet
+          <Sheet open={showSidebar} onOpenChange={setShowSidebar}>
+            <SheetContent side="bottom" className="h-[80vh] rounded-t-lg">
+              {selectedNode && (
+                <div className="pt-4">
+                  <h2 className="text-xl font-bold mb-4">{selectedNode.name || selectedNode.title || 'Details'}</h2>
+                  <InspectorSidebar.Content node={selectedNode} />
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+        ) : (
+          // Desktop sidebar
+          <InspectorSidebar 
+            node={selectedNode} 
+            open={showSidebar} 
+            onOpenChange={handleSidebarClose}
+          />
+        )}
       </div>
     </>
   );

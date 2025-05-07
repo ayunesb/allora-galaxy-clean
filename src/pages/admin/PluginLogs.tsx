@@ -3,16 +3,37 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatDistanceToNow } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, ChevronDown, Filter, RefreshCw } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+
+interface PluginLogType {
+  id: string;
+  plugin_id: string;
+  plugin: { name: string };
+  strategy_id: string | null;
+  strategy: { title: string } | null;
+  agent_version_id: string | null;
+  agent_version: { version: string; plugin_id: string } | null;
+  status: string;
+  execution_time: number;
+  xp_earned: number;
+  input: any;
+  output: any;
+  error: string | null;
+  created_at: string;
+}
 
 const PluginLogs: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ['plugin_logs', statusFilter],
     queryFn: async () => {
       let query = supabase
@@ -32,9 +53,37 @@ const PluginLogs: React.FC = () => {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data;
+      return data as PluginLogType[];
     }
   });
+
+  // Group logs by plugin
+  const groupedLogs = React.useMemo(() => {
+    if (!logs) return {};
+    
+    return logs.reduce((acc, log) => {
+      const pluginId = log.plugin_id;
+      const pluginName = log.plugin?.name || 'Unknown Plugin';
+      
+      if (!acc[pluginId]) {
+        acc[pluginId] = {
+          name: pluginName,
+          logs: []
+        };
+      }
+      
+      acc[pluginId].logs.push(log);
+      return acc;
+    }, {} as Record<string, { name: string; logs: PluginLogType[] }>);
+  }, [logs]);
+
+  // Toggle expanded state for a log
+  const toggleExpanded = (logId: string) => {
+    setExpandedLogs(prev => ({
+      ...prev,
+      [logId]: !prev[logId]
+    }));
+  };
 
   // Status badge renderer
   const renderStatusBadge = (status: string) => {
@@ -85,6 +134,10 @@ const PluginLogs: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
       
       {isLoading ? (
@@ -92,62 +145,97 @@ const PluginLogs: React.FC = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : logs && logs.length > 0 ? (
-        <div className="space-y-4">
-          {logs.map((log) => (
-            <Card key={log.id}>
-              <CardHeader className="py-3 px-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-base">
-                      {log.plugin?.name || 'Unknown Plugin'}
-                      {log.agent_version && ` (v${log.agent_version.version})`}
-                    </CardTitle>
-                    {log.strategy && (
-                      <p className="text-sm text-muted-foreground">
-                        Strategy: {log.strategy.title}
-                      </p>
-                    )}
+        <div>
+          {/* Plugin Group Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {Object.entries(groupedLogs).map(([pluginId, pluginGroup]) => (
+              <Card key={pluginId}>
+                <CardHeader>
+                  <CardTitle>{pluginGroup.name}</CardTitle>
+                  <CardDescription>
+                    {pluginGroup.logs.length} execution{pluginGroup.logs.length !== 1 ? 's' : ''}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {pluginGroup.logs.map((log) => (
+                      <Collapsible 
+                        key={log.id} 
+                        open={expandedLogs[log.id]} 
+                        onOpenChange={() => toggleExpanded(log.id)}
+                        className="border rounded-md"
+                      >
+                        <div className="py-3 px-4 flex justify-between items-center">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              {renderStatusBadge(log.status)}
+                              <span className="font-medium text-sm">
+                                {log.agent_version && `v${log.agent_version.version}`}
+                              </span>
+                              {log.strategy && (
+                                <span className="text-xs text-muted-foreground">
+                                  Strategy: {log.strategy.title}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono">+{log.xp_earned} XP</Badge>
+                            <Badge variant="secondary">{log.execution_time.toFixed(2)}s</Badge>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <ChevronDown className={`h-4 w-4 transition-transform ${expandedLogs[log.id] ? 'transform rotate-180' : ''}`} />
+                              </Button>
+                            </CollapsibleTrigger>
+                          </div>
+                        </div>
+                        
+                        <CollapsibleContent>
+                          <Separator />
+                          <div className="p-4">
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <h4 className="text-sm font-medium mb-1">Input</h4>
+                                <div className="p-2 bg-muted rounded-md">
+                                  {renderJsonPreview(log.input)}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium mb-1">Output</h4>
+                                <div className="p-2 bg-muted rounded-md">
+                                  {log.status === 'failure' && log.error ? (
+                                    <div className="text-red-500 text-xs">{log.error}</div>
+                                  ) : (
+                                    renderJsonPreview(log.output)
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-3">
-                    {renderStatusBadge(log.status)}
-                    <Badge variant="outline" className="font-mono">+{log.xp_earned} XP</Badge>
-                    <Badge variant="secondary">{log.execution_time.toFixed(2)}s</Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 px-4 pb-3">
-                <div className="text-sm text-muted-foreground mb-2">
-                  {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                </div>
-                
-                <Separator className="my-2" />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Input</h4>
-                    <div className="p-2 bg-muted rounded-md">
-                      {renderJsonPreview(log.input)}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Output</h4>
-                    <div className="p-2 bg-muted rounded-md">
-                      {log.status === 'failure' && log.error ? (
-                        <div className="text-red-500 text-xs">{log.error}</div>
-                      ) : (
-                        renderJsonPreview(log.output)
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : (
-        <div className="py-12 text-center">
-          <p className="text-muted-foreground">No logs found</p>
-        </div>
+        <EmptyState 
+          title="No logs found" 
+          description="No plugin execution logs match your current filter criteria."
+          icon={<Filter className="h-12 w-12" />}
+          action={
+            <Button variant="outline" onClick={() => refetch()}>
+              Refresh Logs
+            </Button>
+          }
+        />
       )}
     </div>
   );
