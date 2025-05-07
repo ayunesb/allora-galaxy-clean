@@ -1,5 +1,9 @@
+
 // Deno edge function to update KPIs from various sources
-// Entry point for the updateKPIs edge function
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 // Helper function to safely get environment variables with fallbacks
 function getEnv(name: string, fallback: string = ""): string {
@@ -11,6 +15,56 @@ function getEnv(name: string, fallback: string = ""): string {
     console.error(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
+}
+
+// Define environment variable structure
+type EnvVar = {
+  name: string;
+  required: boolean;
+  description: string;
+};
+
+// Validate environment variables
+function validateEnv(requiredEnvs: EnvVar[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  const missing: string[] = [];
+  
+  for (const env of requiredEnvs) {
+    const value = getEnv(env.name);
+    result[env.name] = value;
+    
+    if (env.required && !value) {
+      missing.push(env.name);
+    }
+  }
+  
+  if (missing.length > 0) {
+    console.warn(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  
+  return result;
+}
+
+// Format error response
+function formatErrorResponse(status: number, message: string, details?: string) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*", 
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Content-Type": "application/json"
+  };
+  
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: message,
+      details: details || undefined,
+      timestamp: new Date().toISOString()
+    }),
+    { 
+      status,
+      headers
+    }
+  );
 }
 
 // Cors headers
@@ -32,27 +86,71 @@ const requiredEnv: EnvVar[] = [
 // Validate environment variables at startup
 const env = validateEnv(requiredEnv);
 
+// Input schema validation using Zod
+const updateKpisSchema = z.object({
+  tenant_id: z.string().uuid(),
+  run_mode: z.enum(['manual', 'cron']).optional().default('manual'),
+  sources: z.array(z.enum(['stripe', 'ga4', 'hubspot'])).optional().default(['stripe', 'ga4', 'hubspot'])
+});
+
 // Main handler function to update KPIs
 serve(async (req) => {
+  const startTime = performance.now();
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
   
   try {
-    // Parse request body
-    const { tenant_id, sources = ["stripe", "ga4", "hubspot"] } = await req.json();
+    console.log('updateKPIs: Processing request');
     
-    if (!tenant_id) {
-      return formatErrorResponse(400, "tenant_id is required");
+    // Parse and validate request body
+    let payload;
+    try {
+      const body = await req.json();
+      const result = updateKpisSchema.safeParse(body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+        return formatErrorResponse(400, `Invalid request payload: ${errorMessage}`);
+      }
+      
+      payload = result.data;
+    } catch (parseError) {
+      return formatErrorResponse(400, "Failed to parse request body", String(parseError));
     }
+    
+    const { tenant_id, run_mode, sources } = payload;
     
     // Create Supabase client
     if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-      return formatErrorResponse(500, "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
+      return formatErrorResponse(500, "Supabase credentials not configured");
     }
     
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Verify tenant exists
+    try {
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .eq('id', tenant_id)
+        .maybeSingle();
+        
+      if (tenantError) {
+        throw new Error(`Failed to verify tenant: ${tenantError.message}`);
+      }
+      
+      if (!tenant) {
+        return formatErrorResponse(404, `Tenant with ID ${tenant_id} not found`);
+      }
+      
+      console.log(`updateKPIs: Processing KPI updates for tenant ${tenant.name}`);
+    } catch (tenantError) {
+      console.error("Error verifying tenant:", tenantError);
+      return formatErrorResponse(500, "Failed to verify tenant", String(tenantError));
+    }
     
     // Results object to track KPI updates
     const results = {
@@ -106,7 +204,7 @@ serve(async (req) => {
           .eq('source', 'stripe')
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         
         const previousMrr = previousKpi?.value || 0;
         
@@ -135,7 +233,9 @@ serve(async (req) => {
           kpis: [{ name: 'mrr', value: mrr, previous: previousMrr }] 
         };
         
-      } catch (error) {
+        console.log(`updateKPIs: Successfully updated MRR KPI to ${mrr}`);
+        
+      } catch (error: any) {
         results.stripe = { 
           success: false, 
           message: `Failed to update Stripe KPIs: ${error.message}`, 
@@ -164,7 +264,7 @@ serve(async (req) => {
             message: "GA4 integration not yet implemented", 
             kpis: [] 
           };
-        } catch (error) {
+        } catch (error: any) {
           results.ga4 = { 
             success: false, 
             message: `Failed to update GA4 KPIs: ${error.message}`, 
@@ -187,14 +287,22 @@ serve(async (req) => {
       
       if (HUBSPOT_API_KEY) {
         try {
-          // We could call our syncMQLs edge function here instead of duplicating code
-          // This is just a placeholder for demonstration
+          // Call the syncMQLs edge function instead of duplicating code
+          const { data: syncResult, error: syncError } = await supabase.functions.invoke('syncMQLs', {
+            body: { tenant_id }
+          });
+          
+          if (syncError) {
+            throw new Error(`Failed to sync HubSpot MQLs: ${syncError.message}`);
+          }
+          
           results.hubspot = { 
-            success: false, 
-            message: "HubSpot integration should use syncMQLs edge function", 
-            kpis: [] 
+            success: true, 
+            message: "Successfully updated HubSpot KPIs via syncMQLs function", 
+            kpis: syncResult?.data ? [syncResult.data] : [] 
           };
-        } catch (error) {
+          
+        } catch (error: any) {
           results.hubspot = { 
             success: false, 
             message: `Failed to update HubSpot KPIs: ${error.message}`, 
@@ -212,25 +320,52 @@ serve(async (req) => {
     }
     
     // Log system event
-    await supabase
-      .from('system_logs')
-      .insert({
-        tenant_id: tenant_id,
-        module: 'kpi',
-        event: 'update_kpis',
-        context: { results }
-      });
+    try {
+      await supabase
+        .from('system_logs')
+        .insert({
+          tenant_id: tenant_id,
+          module: 'kpi',
+          event: 'update_kpis',
+          context: { 
+            results,
+            run_mode,
+            execution_time: (performance.now() - startTime) / 1000
+          }
+        });
+    } catch (logError) {
+      console.warn("Failed to log KPI update event:", logError);
+    }
     
     // Return response with results
     return new Response(JSON.stringify({
       success: true,
-      data: results
+      data: results,
+      execution_time: (performance.now() - startTime) / 1000
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating KPIs:", error);
+    
+    // Try to log the error
+    if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+        await supabase
+          .from('system_logs')
+          .insert({
+            tenant_id: 'system',
+            module: 'kpi',
+            event: 'update_kpis_error',
+            context: { error: String(error) }
+          });
+      } catch (logError) {
+        console.error("Error logging KPI update failure:", logError);
+      }
+    }
+    
     return formatErrorResponse(500, "Failed to update KPIs", String(error));
   }
 });

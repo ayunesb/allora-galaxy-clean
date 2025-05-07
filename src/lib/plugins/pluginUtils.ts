@@ -18,7 +18,7 @@ export const validateStrategy = async (strategyId: string, tenantId: string) => 
       .select('id, title, status')
       .eq('id', strategyId)
       .eq('tenant_id', tenantId)
-      .single();
+      .maybeSingle();
     
     if (error) {
       return { valid: false, error: error.message, strategy: null };
