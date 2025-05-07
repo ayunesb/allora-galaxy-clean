@@ -1,10 +1,11 @@
-// Import Deno standard libraries and custom utilities
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { validateEnv, corsHeaders, logEnvStatus } from "../../../src/lib/edge/envManager.ts";
+import { getEnvVar, corsHeaders, validateEnv, logEnvStatus, formatErrorResponse } from "../../../src/lib/edge/envManager.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Validate all required environment variables at startup
-const env = validateEnv([
+// Define environment variables needed for this function
+const requiredEnv = [
   { 
     name: 'SUPABASE_URL', 
     required: true,
@@ -30,10 +31,31 @@ const env = validateEnv([
     required: false,
     description: 'HubSpot API key for fetching marketing data'
   }
-]);
+];
+
+// Validate all required environment variables at startup
+const env = validateEnv(requiredEnv);
 
 // Log environment status on startup (redacted)
 logEnvStatus(env);
+
+type KpiCategory = 'financial' | 'marketing' | 'sales' | 'product';
+type KpiSource = 'stripe' | 'ga4' | 'hubspot' | 'manual';
+
+interface KpiData {
+  tenant_id: string;
+  name: string;
+  value: number;
+  previous_value?: number | null;
+  source: KpiSource;
+  category: KpiCategory;
+  date: string;
+}
+
+// Create Supabase client outside the handler
+const supabaseAdmin = env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -41,12 +63,20 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
+  // Check if Supabase client was initialized properly
+  if (!supabaseAdmin) {
+    return formatErrorResponse(
+      500, 
+      "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured"
+    );
+  }
+
   try {
     // Parse request payload
     const { tenantId, sources } = await req.json();
     
     if (!tenantId) {
-      throw new Error("Missing required parameter: tenantId");
+      return formatErrorResponse(400, "Missing required parameter: tenantId");
     }
 
     // Initialize results object
@@ -61,7 +91,7 @@ serve(async (req: Request) => {
     
     // Process each data source in parallel with proper error handling
     const updatePromises = updateSources.map(source => 
-      updateKpiSource(source, tenantId, env)
+      updateKpiSource(source, tenantId, env, supabaseAdmin)
         .then(message => results.updates.push(message))
         .catch(error => {
           console.error(`Error updating ${source} KPIs:`, error);
@@ -77,20 +107,31 @@ serve(async (req: Request) => {
       results.success = false;
     }
 
+    // Log the update attempt regardless of outcome
+    try {
+      await supabaseAdmin
+        .from('system_logs')
+        .insert({
+          tenant_id: tenantId,
+          module: 'kpi',
+          event: 'kpi_update_attempt',
+          context: { 
+            sources: updateSources,
+            success: results.success,
+            errors: results.errors.length > 0 ? results.errors : null
+          }
+        });
+    } catch (logError) {
+      console.error("Error logging KPI update attempt:", logError);
+    }
+
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in updateKPIs function:", error);
     
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message || "Unknown error occurred",
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return formatErrorResponse(500, error.message || "Unknown error occurred");
   }
 });
 
@@ -98,7 +139,8 @@ serve(async (req: Request) => {
 async function updateKpiSource(
   source: string, 
   tenantId: string, 
-  env: Record<string, string>
+  env: Record<string, string>,
+  supabase: any
 ): Promise<string> {
   // Switch based on source type
   switch (source) {
@@ -114,10 +156,10 @@ async function updateKpiSource(
         
         // Update financial KPIs based on Stripe data
         // Placeholder: Replace with actual database update logic
-        await updateFinancialKpis(tenantId, stripeData);
+        await updateFinancialKpis(tenantId, stripeData, supabase);
         
         return "Stripe KPIs updated successfully";
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error updating Stripe KPIs:", error);
         throw new Error("Failed to update Stripe KPIs: " + error.message);
       }
@@ -134,10 +176,10 @@ async function updateKpiSource(
         
         // Update marketing KPIs based on GA4 data
         // Placeholder: Replace with actual database update logic
-        await updateMarketingKpis(tenantId, ga4Data);
+        await updateMarketingKpis(tenantId, ga4Data, supabase);
         
         return "GA4 KPIs updated successfully";
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error updating GA4 KPIs:", error);
         throw new Error("Failed to update GA4 KPIs: " + error.message);
       }
@@ -154,10 +196,10 @@ async function updateKpiSource(
         
         // Update sales KPIs based on HubSpot data
         // Placeholder: Replace with actual database update logic
-        await updateSalesKpis(tenantId, hubspotData);
+        await updateSalesKpis(tenantId, hubspotData, supabase);
         
         return "HubSpot KPIs updated successfully";
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error updating HubSpot KPIs:", error);
         throw new Error("Failed to update HubSpot KPIs: " + error.message);
       }
@@ -187,17 +229,78 @@ async function fetchHubspotData(apiKey: string): Promise<any> {
 }
 
 // Placeholder functions for updating KPIs in the database
-async function updateFinancialKpis(tenantId: string, data: any): Promise<void> {
-  // Replace with actual database update logic
-  console.log("Updating financial KPIs for tenant:", tenantId, "with data:", data);
+async function updateFinancialKpis(tenantId: string, data: any, supabase: any): Promise<void> {
+  // Mock MRR value
+  const mockMRR = Math.floor(Math.random() * 2000) + 8000;
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  // Get previous MRR value
+  const { data: previousKpi } = await supabase
+    .from('kpis')
+    .select('value')
+    .eq('tenant_id', tenantId)
+    .eq('name', 'Monthly Recurring Revenue')
+    .eq('source', 'stripe')
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+    
+  // Create KPI entry
+  const kpiData: KpiData = {
+    tenant_id: tenantId,
+    name: "Monthly Recurring Revenue",
+    value: mockMRR,
+    previous_value: previousKpi?.value || null,
+    source: "stripe",
+    category: "financial",
+    date: currentDate,
+  };
+    
+  // Insert new KPI entry
+  await supabase
+    .from("kpis")
+    .upsert(kpiData, { 
+      onConflict: "tenant_id,name,date",
+      ignoreDuplicates: false
+    });
 }
 
-async function updateMarketingKpis(tenantId: string, data: any): Promise<void> {
-  // Replace with actual database update logic
-  console.log("Updating marketing KPIs for tenant:", tenantId, "with data:", data);
+async function updateMarketingKpis(tenantId: string, data: any, supabase: any): Promise<void> {
+  // Mock metrics
+  const mockWebsiteVisits = Math.floor(Math.random() * 5000) + 1000;
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  await supabase
+    .from("kpis")
+    .upsert({
+      tenant_id: tenantId,
+      name: "Website Visitors",
+      value: mockWebsiteVisits,
+      source: "ga4",
+      category: "marketing",
+      date: currentDate,
+    }, { 
+      onConflict: "tenant_id,name,date",
+      ignoreDuplicates: false
+    });
 }
 
-async function updateSalesKpis(tenantId: string, data: any): Promise<void> {
-  // Replace with actual database update logic
-  console.log("Updating sales KPIs for tenant:", tenantId, "with data:", data);
+async function updateSalesKpis(tenantId: string, data: any, supabase: any): Promise<void> {
+  // Mock metrics
+  const mockLeads = Math.floor(Math.random() * 200) + 50;
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  await supabase
+    .from("kpis")
+    .upsert({
+      tenant_id: tenantId,
+      name: "Sales Leads",
+      value: mockLeads,
+      source: "hubspot",
+      category: "sales",
+      date: currentDate,
+    }, { 
+      onConflict: "tenant_id,name,date",
+      ignoreDuplicates: false
+    });
 }

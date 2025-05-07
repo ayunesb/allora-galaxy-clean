@@ -66,3 +66,94 @@ CREATE POLICY "tenant_user_roles_delete" ON tenant_user_roles
   USING (
     is_tenant_admin(tenant_id)
   );
+
+-- Fix common RLS policy issues for other tables
+-- Add missing DELETE and UPDATE policies for strategies
+DROP POLICY IF EXISTS "strategies_delete" ON public.strategies;
+DROP POLICY IF EXISTS "strategies_update" ON public.strategies;
+
+CREATE POLICY "strategies_delete" ON public.strategies
+  FOR DELETE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_id = strategies.tenant_id AND role IN ('owner', 'admin')
+    )
+  );
+
+CREATE POLICY "strategies_update" ON public.strategies
+  FOR UPDATE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_id = strategies.tenant_id AND role IN ('owner', 'admin')
+    )
+  );
+
+-- Add missing DELETE and UPDATE policies for plugins
+DROP POLICY IF EXISTS "plugins_delete" ON public.plugins;
+DROP POLICY IF EXISTS "plugins_update" ON public.plugins;
+
+CREATE POLICY "plugins_delete" ON public.plugins
+  FOR DELETE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_id = tenant_id AND role IN ('owner', 'admin')
+    )
+  );
+
+CREATE POLICY "plugins_update" ON public.plugins
+  FOR UPDATE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_id = tenant_id AND role IN ('owner', 'admin')
+    )
+  );
+
+-- Add missing DELETE and UPDATE policies for agent_versions
+DROP POLICY IF EXISTS "agent_versions_delete" ON public.agent_versions;
+DROP POLICY IF EXISTS "agent_versions_update" ON public.agent_versions;
+
+CREATE POLICY "agent_versions_delete" ON public.agent_versions
+  FOR DELETE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_user_roles.tenant_id = tenant_id AND role IN ('owner', 'admin')
+    )
+    OR auth.uid() = created_by
+  );
+
+CREATE POLICY "agent_versions_update" ON public.agent_versions
+  FOR UPDATE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_user_roles.tenant_id = tenant_id AND role IN ('owner', 'admin')
+    )
+    OR auth.uid() = created_by
+  );
+
+-- Add missing DELETE and UPDATE policies for kpis
+DROP POLICY IF EXISTS "kpis_delete" ON public.kpis;
+DROP POLICY IF EXISTS "kpis_update" ON public.kpis;
+
+CREATE POLICY "kpis_delete" ON public.kpis
+  FOR DELETE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_user_roles.tenant_id = kpis.tenant_id AND role IN ('owner', 'admin')
+    )
+  );
+
+CREATE POLICY "kpis_update" ON public.kpis
+  FOR UPDATE
+  USING (
+    auth.uid() IN (
+      SELECT user_id FROM tenant_user_roles 
+      WHERE tenant_user_roles.tenant_id = kpis.tenant_id AND role IN ('owner', 'admin')
+    )
+  );

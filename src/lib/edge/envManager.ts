@@ -1,112 +1,98 @@
 
 /**
- * Environment variable manager for edge functions with fallback support
- * Works in both Supabase Edge Functions (Deno) and Node.js environments
+ * Interface for environment variable validation
  */
-
-// Type for environment variable configuration
-export interface EnvVarConfig {
+export interface EnvVar {
   name: string;
   required: boolean;
-  fallback?: string;
   description: string;
+  default?: string;
 }
 
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 /**
- * Get environment variable with fallback support
+ * Safely get environment variables with fallback support
  * @param name Environment variable name
- * @param required Whether the variable is required
- * @param fallback Fallback value if not found
- * @returns The environment variable value or fallback
+ * @param fallback Optional fallback value
+ * @returns Environment variable value or fallback
  */
-export function getEnv(
-  name: string, 
-  required = false, 
-  fallback = '',
-  description = ''
-): string {
-  let value: string | undefined;
-  
-  // Try runtime-specific environment access
-  // This approach avoids direct references to Deno which causes build errors
+export function getEnvVar(name: string, fallback: string = ""): string {
   try {
-    // @ts-ignore - Runtime environments handled differently
-    const runtimeEnv = 
-      // For Deno runtime (Supabase Edge Functions)
-      (typeof globalThis !== 'undefined' && 
-       // @ts-ignore - Deno runtime check without direct reference
-       globalThis.Deno?.env?.get) ? 
-        // @ts-ignore - Deno runtime environment
-        globalThis.Deno.env.get(name) :
-      // For Node.js/browser runtime
-      (typeof process !== 'undefined' && process.env) ?
-        process.env[name] :
-      undefined;
-      
-    if (runtimeEnv) value = runtimeEnv;
-  } catch (error) {
-    // Suppress errors in environments where these objects might not exist
-    console.debug(`Environment access error for ${name}:`, error);
-  }
-  
-  // Fallback to import.meta.env for Vite
-  if (!value && typeof import.meta !== 'undefined' && import.meta.env) {
-    value = import.meta.env[`VITE_${name}`] || import.meta.env[name];
-  }
-  
-  // If value is still not found
-  if (!value) {
-    if (required && !fallback) {
-      console.error(`Required environment variable ${name} not found: ${description}`);
-      throw new Error(`Required environment variable ${name} not found`);
+    // Check if we're in Deno environment
+    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis && typeof (globalThis as any).Deno?.env?.get === 'function') {
+      return (globalThis as any).Deno.env.get(name) || fallback;
     }
+    // Fallback to process.env for Node environment
+    return process.env[name] || fallback;
+  } catch (error) {
+    // If all else fails, return the fallback
+    console.warn(`Error accessing env var ${name}:`, error);
     return fallback;
   }
-  
-  return value;
 }
 
 /**
- * Validate multiple environment variables at once
- * @param configs Array of environment variable configurations
- * @returns Object with all environment variables
+ * Validate environment variables
+ * @param envVars Array of environment variables to validate
+ * @returns Object containing validated environment variables
  */
-export function validateEnv(configs: EnvVarConfig[]): Record<string, string> {
+export function validateEnv(envVars: EnvVar[]): Record<string, string> {
   const result: Record<string, string> = {};
-  
-  for (const config of configs) {
-    try {
-      result[config.name] = getEnv(
-        config.name,
-        config.required,
-        config.fallback || '',
-        config.description
-      );
-    } catch (error: any) {
-      // Rethrow with more context if validation fails
-      throw new Error(`Environment validation failed: ${error.message}`);
+  const missing: string[] = [];
+
+  for (const envVar of envVars) {
+    const value = getEnvVar(envVar.name, envVar.default || '');
+    result[envVar.name] = value;
+
+    if (envVar.required && !value) {
+      missing.push(`${envVar.name} (${envVar.description})`);
     }
   }
-  
+
+  if (missing.length > 0) {
+    console.warn(`⚠️ Missing required environment variables: ${missing.join(', ')}`);
+  }
+
   return result;
 }
 
 /**
- * Log environment variable status (with redacted values)
- * @param env Environment variables object
+ * Log environment status without exposing values
+ * @param env Object containing environment variables
  */
 export function logEnvStatus(env: Record<string, string>): void {
+  console.log('Environment status:');
+  
   for (const [key, value] of Object.entries(env)) {
-    const redactedValue = value ? '✓ [set]' : '✗ [missing]';
-    console.log(`ENV ${key}: ${redactedValue}`);
+    const status = value ? '✅' : '❌';
+    console.log(`- ${key}: ${status}`);
   }
 }
 
 /**
- * Generate CORS headers for edge functions
+ * Format standard API error response
+ * @param status HTTP status code
+ * @param message Error message
+ * @param details Additional error details
+ * @returns Response object with error details
  */
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-};
+export function formatErrorResponse(
+  status: number,
+  message: string,
+  details?: any
+): Response {
+  const body = {
+    error: message,
+    details: details || null,
+    timestamp: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
