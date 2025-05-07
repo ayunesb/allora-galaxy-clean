@@ -9,7 +9,6 @@ const MainLayout: React.FC = () => {
   const { navigationItems } = useWorkspace();
 
   // We need to explicitly cast the navigationItems to ensure type compatibility
-  // This is safe since both types now use the same NavigationItem interface
   const typedNavigationItems: NavigationItem[] = navigationItems;
 
   return (

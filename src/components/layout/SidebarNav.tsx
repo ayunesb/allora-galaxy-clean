@@ -9,7 +9,7 @@ interface SidebarNavProps {
   className?: string;
 }
 
-const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
+export const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
   return (

@@ -18,7 +18,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   `);
 }
 
-// Create Supabase client
+// Create Supabase client with fallback empty values to prevent crashes
+// The application will show appropriate errors if these values are missing
 export const supabase: SupabaseClient = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || '',
@@ -29,9 +30,6 @@ export const supabase: SupabaseClient = createClient(
     }
   }
 );
-
-// Create realtime client using the same configuration
-export const realtime = supabase;
 
 // Ensure we export a singleton instance
 export default supabase;
