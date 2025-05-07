@@ -44,14 +44,6 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
     input.user_id = input.user_id || null; 
     input.options = input.options || {};
     
-    // Create Supabase client with safe fallbacks for different environments
-    const supabaseUrl = getEnvVar("SUPABASE_URL", "https://ijrnwpgsqsxzqdemtknz.supabase.co");
-    const supabaseKey = getEnvVar("SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo");
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase URL or key is missing');
-    }
-    
     // Execute the strategy using the runStrategy function
     const result = await runStrategy(input);
     

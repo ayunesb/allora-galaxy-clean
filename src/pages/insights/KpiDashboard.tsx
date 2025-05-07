@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PageHelmet from "@/components/PageHelmet";
 import { useTranslation } from 'react-i18next';
@@ -209,7 +208,7 @@ const KpiDashboard: React.FC = () => {
               {filteredKpis.map((kpi) => (
                 <KPICard
                   key={kpi.id}
-                  title={kpi.name}
+                  name={kpi.name}
                   value={kpi.value}
                   previousValue={kpi.previous_value || 0}
                   category={kpi.category}

@@ -57,7 +57,7 @@ export async function autoEvolveAgents() {
         
         // Log the promotion event
         await logSystemEvent({
-          tenant_id: agent.tenant_id,
+          tenant_id: agent.tenant_id || "system",
           module: 'agents',
           event: 'agent_promoted',
           context: {
@@ -146,7 +146,7 @@ export async function checkAgentForPromotion(agentVersionId: string) {
     
     // Log the promotion event
     await logSystemEvent({
-      tenant_id: agent.tenant_id,
+      tenant_id: agent.tenant_id || "system",
       module: 'agents',
       event: 'agent_promoted',
       context: {
@@ -205,7 +205,7 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
       
     if (error || !agent) {
       await logSystemEvent({
-        tenant_id,
+        tenant_id: tenant_id || "system",
         module: 'agents',
         event: 'agent_version_not_found',
         context: {
@@ -223,7 +223,7 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
     // Check if the agent belongs to the specified tenant
     if (agent.tenant_id && agent.tenant_id !== tenant_id) {
       await logSystemEvent({
-        tenant_id,
+        tenant_id: tenant_id || "system",
         module: 'agents',
         event: 'agent_version_access_denied',
         context: {
@@ -285,7 +285,7 @@ export async function checkAndEvolveAgent(options: AutoEvolveOptions) {
       
       // Log the evolution event
       await logSystemEvent({
-        tenant_id,
+        tenant_id: tenant_id || "system",
         module: 'agents',
         event: 'agent_evolved',
         context: {
