@@ -14,7 +14,8 @@ interface StepContentProps {
 export const stepTitles = [
   'Company',
   'Additional Info',
-  'Persona'
+  'Persona',
+  'Generate Strategy'
 ];
 
 export const stepDetails = [
@@ -30,6 +31,10 @@ export const stepDetails = [
     title: 'Persona Settings',
     description: 'Define your brand persona and goals',
   },
+  {
+    title: 'Generate Strategy',
+    description: 'Creating your AI-powered strategy',
+  }
 ];
 
 const StepContent: React.FC<StepContentProps> = ({ 
@@ -72,6 +77,9 @@ const StepContent: React.FC<StepContentProps> = ({
             setGoals={(value) => updateFormData('goals', value)}
           />
         );
+      case 3:
+        // The strategy generation step will be rendered by the parent component
+        return null;
       default:
         return null;
     }

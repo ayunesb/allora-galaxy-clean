@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
@@ -52,11 +52,20 @@ export const useOnboardingWizard = () => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
+  // Check if we should redirect to dashboard if user already completed onboarding
+  useEffect(() => {
+    if (tenants && tenants.length > 0) {
+      navigate('/dashboard');
+    }
+  }, [tenants, navigate]);
+
   // Generate AI strategy based on company and persona data
   const generateAIStrategy = async (tenantId: string, userId: string) => {
     setIsGeneratingStrategy(true);
-    
     try {
+      // Move to last step to show strategy generation
+      handleStepClick(3);
+      
       // Prepare data for the AI
       const companyProfile = {
         name: formData.companyName,
@@ -97,10 +106,10 @@ export const useOnboardingWizard = () => {
         tenantId,
         'strategy',
         'strategy_generated_onboarding',
-        { strategy_id: data.strategy?.id }
+        { strategy_id: data?.strategy?.id }
       );
       
-      return data.strategy;
+      return data?.strategy;
     } catch (error: any) {
       console.error('Strategy generation error:', error);
       toast({
@@ -151,11 +160,16 @@ export const useOnboardingWizard = () => {
           { tenant_id: result.tenantId }
         );
         
+        // Move to the strategy generation step
+        handleStepClick(3);
+        
         // Generate AI strategy
         await generateAIStrategy(result.tenantId, user.id);
         
-        // Redirect to dashboard
-        navigate('/dashboard');
+        // Redirect to dashboard after a delay to allow seeing the result
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 3000);
       }
     } catch (error: any) {
       console.error('Onboarding error:', error);

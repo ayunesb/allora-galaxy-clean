@@ -47,8 +47,9 @@ const OnboardingWizard: React.FC = () => {
   const { errors } = validateCurrentStep();
   const hasValidationErrors = Object.keys(errors).length > 0;
   
-  // If we're in the final step and strategy generation is in process
+  // Check if we're in the final step (strategy generation)
   const isStrategyGenerationStep = currentStep === stepDetails.length - 1;
+  const totalSteps = stepDetails.length;
 
   return (
     <ErrorBoundary tenant_id="system" supportEmail="support@alloraos.com">
@@ -61,7 +62,7 @@ const OnboardingWizard: React.FC = () => {
           <CardContent>
             <OnboardingProgress 
               currentStep={currentStep} 
-              totalSteps={stepDetails.length} 
+              totalSteps={totalSteps} 
               stepTitles={stepTitles}
               onStepClick={handleStepClick}
             />
@@ -80,7 +81,7 @@ const OnboardingWizard: React.FC = () => {
               </Alert>
             )}
             
-            {isStrategyGenerationStep && isGeneratingStrategy ? (
+            {isStrategyGenerationStep && (isGeneratingStrategy || isSubmitting) ? (
               <StrategyGenerationStep />
             ) : (
               <StepContent 
@@ -92,7 +93,7 @@ const OnboardingWizard: React.FC = () => {
             
             <StepNavigation
               currentStep={currentStep}
-              totalSteps={stepDetails.length}
+              totalSteps={totalSteps}
               onPrevious={handlePrevStep}
               onNext={handleNextStep}
               onComplete={handleSubmit}

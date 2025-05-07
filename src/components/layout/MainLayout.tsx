@@ -1,37 +1,30 @@
 
 import React from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { SidebarNav } from './SidebarNav';
-import MobileNav from './MobileNav';
-import Footer from './Footer';
-import CookieConsent from '../CookieConsent';
+import { Outlet } from 'react-router-dom';
+import SidebarNav from '@/components/layout/SidebarNav';
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { NavigationItem } from '@/types/navigation';
 
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  // Get navigation items based on user role
+const MainLayout: React.FC = () => {
   const { navigationItems } = useWorkspace();
-  
+
+  // We need to explicitly cast the navigationItems to ensure type compatibility
+  // This is safe since both types now use the same NavigationItem interface
+  const typedNavigationItems: NavigationItem[] = navigationItems;
+
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex flex-col min-h-screen w-full bg-background">
-        <MobileNav />
-        <CookieConsent />
-        
-        <div className="flex flex-1 w-full">
-          <SidebarNav items={navigationItems as any} />
-          
-          <main className="flex-1 p-4 md:p-6">
-            {children}
-          </main>
-        </div>
-        
-        <Footer />
+    <div className="flex min-h-screen flex-col">
+      <div className="flex flex-1">
+        <aside className="hidden w-64 flex-col border-r bg-background md:flex">
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            <SidebarNav items={typedNavigationItems} />
+          </div>
+        </aside>
+        <main className="flex-1 p-6">
+          <Outlet />
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
