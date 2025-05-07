@@ -24,6 +24,16 @@ interface UserWithRole {
   role: string;
 }
 
+interface NestedUserData {
+  user_id: string;
+  role: string;
+  users: {
+    id: string;
+    email: string;
+    created_at: string;
+  };
+}
+
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +65,7 @@ const UserManagement: React.FC = () => {
       
       if (data) {
         // Transform the nested structure into a flat array for easier rendering
-        const transformedUsers: UserWithRole[] = data.map(item => ({
+        const transformedUsers: UserWithRole[] = data.map((item: NestedUserData) => ({
           id: item.users.id,
           email: item.users.email,
           created_at: item.users.created_at,

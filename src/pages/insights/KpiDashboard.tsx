@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { ArrowDown, ArrowUp, BarChart3, DollarSign, RefreshCw, Users } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -25,7 +27,16 @@ const KpiDashboard = () => {
         .order('date', { ascending: false });
         
       if (error) throw error;
-      return data as KPI[];
+      return data as Array<{
+        id: string;
+        name: string;
+        value: number;
+        previous_value?: number;
+        date: string;
+        category: string;
+        source?: string;
+        tenant_id: string;
+      }>;
     },
     enabled: !!currentTenant
   });
@@ -52,8 +63,14 @@ const KpiDashboard = () => {
 
   // Calculate percentage change
   const getPercentageChange = (current: number, previous: number | null | undefined) => {
-    if (previous === null || previous === undefined || previous === 0) return 0;
+    if (previous === null || previous === undefined || previous === 0) return null;
     return ((current - previous) / previous) * 100;
+  };
+
+  // Format percentage change for display
+  const formatPercentageChange = (change: number | null) => {
+    if (change === null) return "—";
+    return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
   };
 
   // Get the most recent KPI value
@@ -64,8 +81,8 @@ const KpiDashboard = () => {
   const latestMrr = getLatestKpi(financialKpis, 'Monthly Recurring Revenue');
   const latestMql = getLatestKpi(marketingKpis, 'Marketing Qualified Leads');
 
-  const mrrChange = latestMrr ? getPercentageChange(latestMrr.value, latestMrr.previous_value) : 0;
-  const mqlChange = latestMql ? getPercentageChange(latestMql.value, latestMql.previous_value) : 0;
+  const mrrChange = latestMrr ? getPercentageChange(latestMrr.value, latestMrr.previous_value) : null;
+  const mqlChange = latestMql ? getPercentageChange(latestMql.value, latestMql.previous_value) : null;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -95,10 +112,16 @@ const KpiDashboard = () => {
                   ${latestMrr?.value?.toLocaleString() || 0}
                 </CardTitle>
               )}
-              {!isLoading && (
-                <div className={`flex items-center ${mrrChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {mrrChange >= 0 ? <ArrowUp className="h-4 w-4 mr-1" /> : <ArrowDown className="h-4 w-4 mr-1" />}
-                  <span>{Math.abs(mrrChange).toFixed(1)}%</span>
+              {!isLoading && mrrChange !== null && (
+                <div className={`flex items-center`}>
+                  <Badge className={`flex items-center ${mrrChange >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
+                    {mrrChange >= 0 ? (
+                      <ArrowUp className="h-4 w-4 mr-1" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4 mr-1" />
+                    )}
+                    <span>{formatPercentageChange(mrrChange)}</span>
+                  </Badge>
                 </div>
               )}
             </div>
@@ -113,7 +136,13 @@ const KpiDashboard = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} width={40} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} dot={false} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#8884d8" 
+                    strokeWidth={2} 
+                    dot={false} 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -132,10 +161,16 @@ const KpiDashboard = () => {
                   {latestMql?.value?.toLocaleString() || 0}
                 </CardTitle>
               )}
-              {!isLoading && (
-                <div className={`flex items-center ${mqlChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {mqlChange >= 0 ? <ArrowUp className="h-4 w-4 mr-1" /> : <ArrowDown className="h-4 w-4 mr-1" />}
-                  <span>{Math.abs(mqlChange).toFixed(1)}%</span>
+              {!isLoading && mqlChange !== null && (
+                <div className={`flex items-center`}>
+                  <Badge className={`flex items-center ${mqlChange >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
+                    {mqlChange >= 0 ? (
+                      <ArrowUp className="h-4 w-4 mr-1" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4 mr-1" />
+                    )}
+                    <span>{formatPercentageChange(mqlChange)}</span>
+                  </Badge>
                 </div>
               )}
             </div>
@@ -150,7 +185,13 @@ const KpiDashboard = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} width={40} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#82ca9d" strokeWidth={2} dot={false} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#82ca9d" 
+                    strokeWidth={2} 
+                    dot={false} 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -167,10 +208,10 @@ const KpiDashboard = () => {
               ) : (
                 <CardTitle className="text-2xl">$125</CardTitle>
               )}
-              <div className="text-green-500 flex items-center">
+              <Badge className="flex items-center bg-green-500">
                 <ArrowDown className="h-4 w-4 mr-1" />
                 <span>3.2%</span>
-              </div>
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -221,16 +262,18 @@ const KpiDashboard = () => {
                           {kpi.name.includes('Revenue') ? '$' : ''}{kpi.value.toLocaleString()}
                         </p>
                         {kpi.previous_value && (
-                          <div className={`flex items-center ${kpi.value >= kpi.previous_value ? 'text-green-500' : 'text-red-500'}`}>
+                          <Badge 
+                            className={`flex items-center ${kpi.value >= kpi.previous_value ? 'bg-green-500' : 'bg-red-500'}`}
+                          >
                             {kpi.value >= kpi.previous_value ? (
                               <ArrowUp className="h-4 w-4 mr-1" />
                             ) : (
                               <ArrowDown className="h-4 w-4 mr-1" />
                             )}
                             <span>
-                              {Math.abs(getPercentageChange(kpi.value, kpi.previous_value)).toFixed(1)}%
+                              {formatPercentageChange(getPercentageChange(kpi.value, kpi.previous_value))}
                             </span>
-                          </div>
+                          </Badge>
                         )}
                       </div>
                     </div>
