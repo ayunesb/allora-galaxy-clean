@@ -40,7 +40,7 @@ const UserManagement: React.FC = () => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   const {
-    data: users,
+    data,
     isLoading,
     error,
     refetch
@@ -79,6 +79,9 @@ const UserManagement: React.FC = () => {
     },
     enabled: !!currentTenant
   });
+
+  // Ensure users is always an array of UserWithRole objects
+  const users: UserWithRole[] = data || [];
 
   const updateUserRole = async (roleId: string, newRole: UserRole) => {
     try {

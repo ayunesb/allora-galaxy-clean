@@ -24,7 +24,7 @@ const GalaxyExplorer: React.FC = () => {
   // Update graph data when API data changes
   useEffect(() => {
     if (graphDataQuery) {
-      let filteredNodes = [...graphDataQuery.nodes];
+      let filteredNodes: GraphNode[] = [...graphDataQuery.nodes];
       let filteredLinks = [...graphDataQuery.links];
       
       // Apply view mode filter
@@ -33,7 +33,7 @@ const GalaxyExplorer: React.FC = () => {
         
         // Only include links where both source and target nodes are in the filtered set
         const nodeIds = new Set(filteredNodes.map(n => {
-          return typeof n.id === 'string' ? n.id : '';
+          return String(n.id);
         }));
         
         filteredLinks = graphDataQuery.links.filter(link => {
