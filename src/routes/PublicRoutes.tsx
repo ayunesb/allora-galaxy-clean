@@ -4,6 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import AuthLayout from '@/components/layout/AuthLayout';
 import TermsPage from '@/pages/legal/TermsPage';
 import PrivacyPage from '@/pages/legal/PrivacyPage';
+import DeletionRequestPage from '@/pages/legal/DeletionRequestPage';
 import NotFound from '@/pages/NotFound';
 import Unauthorized from '@/pages/unauthorized';
 
@@ -19,6 +20,11 @@ const PublicRoutes: React.FC = () => {
       <Route path="/privacy" element={
         <AuthLayout>
           <PrivacyPage />
+        </AuthLayout>
+      } />
+      <Route path="/deletion-request" element={
+        <AuthLayout>
+          <DeletionRequestPage />
         </AuthLayout>
       } />
       
