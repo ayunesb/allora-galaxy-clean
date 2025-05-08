@@ -1,4 +1,3 @@
-
 // System event types
 export type SystemEventModule = 
   | 'auth'
@@ -84,6 +83,7 @@ export interface KPITrend {
   change: number;
   direction: TrendDirection;
   isPositive: boolean;
+  percentage?: number; // Add percentage property to KPITrend interface
 }
 
 export type LogStatus = 'pending' | 'running' | 'success' | 'error' | 'warning';

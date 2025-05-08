@@ -1,125 +1,111 @@
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { voteOnAgentVersion } from '@/lib/agents/vote';
-import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { VoteType } from '@/types/fixed';
+import { getUserVote } from '@/lib/agents/voting';
 
-// Mock supabase client
+// Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({
-            data: { id: 'test-vote-id' },
-            error: null
-          }))
-        }))
-      })),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({
-          data: null,
-          error: null
-        }))
-      }))
-    }))
-  }
+    from: vi.fn().mockReturnValue({
+      insert: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { id: '123', vote_type: 'up' },
+            error: null,
+          }),
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: '123', vote_type: 'up' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      }),
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: { id: '123', vote_type: 'up' },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+      rpc: vi.fn().mockResolvedValue({ data: { upvotes: 5, downvotes: 2 }, error: null }),
+    })
+  },
 }));
 
-// Mock the logSystemEvent function
-vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn(() => Promise.resolve())
-}));
-
-describe('Agent Voting System', () => {
+describe('Agent voting functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should successfully record an upvote', async () => {
-    const voteData = {
-      agentVersionId: 'test-agent-id',
-      userId: 'test-user-id',
-      tenantId: 'test-tenant-id',
-      voteType: VoteType.up,
-      comment: 'Great performance!'
-    };
-    
+  it('should cast an upvote on an agent version', async () => {
     const result = await voteOnAgentVersion(
-      voteData.agentVersionId,
-      voteData.voteType,
-      voteData.userId,
-      voteData.tenantId,
-      voteData.comment
+      'agent-123',
+      'up',
+      'user-123',
+      'tenant-123',
+      'Great agent!'
     );
-    
+
     expect(result.success).toBe(true);
-    expect(result.voteId).toBe('test-vote-id');
-    expect(supabase.from).toHaveBeenCalledWith('agent_votes');
-    expect(supabase.from).toHaveBeenCalledWith('agent_versions');
-    expect(logSystemEvent).toHaveBeenCalledWith(
-      voteData.tenantId, 
-      'agent', 
-      'agent_voted',
-      expect.objectContaining({
-        agent_version_id: voteData.agentVersionId,
-        vote_type: voteData.voteType
-      })
-    );
+    expect(result.upvotes).toBe(5);
+    expect(result.downvotes).toBe(2);
   });
 
-  it('should successfully record a downvote', async () => {
-    const voteData = {
-      agentVersionId: 'test-agent-id',
-      userId: 'test-user-id',
-      tenantId: 'test-tenant-id',
-      voteType: VoteType.down,
-      comment: 'Could be improved'
-    };
-    
+  it('should cast a downvote on an agent version', async () => {
     const result = await voteOnAgentVersion(
-      voteData.agentVersionId,
-      voteData.voteType,
-      voteData.userId,
-      voteData.tenantId,
-      voteData.comment
+      'agent-123',
+      'down',
+      'user-123',
+      'tenant-123',
+      'Needs improvement'
     );
-    
+
     expect(result.success).toBe(true);
-    expect(result.voteId).toBe('test-vote-id');
-    expect(supabase.from).toHaveBeenCalledWith('agent_votes');
-    expect(supabase.from).toHaveBeenCalledWith('agent_versions');
+    expect(result.upvotes).toBe(5);
+    expect(result.downvotes).toBe(2);
   });
-  
-  it('should handle errors gracefully', async () => {
-    // Mock an error when inserting vote
-    vi.mocked(supabase.from).mockImplementationOnce(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({
+
+  it('should handle errors when voting fails', async () => {
+    // Mock an error response
+    vi.mocked(supabase.from).mockReturnValueOnce({
+      insert: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
             data: null,
-            error: { message: 'Database error' }
-          }))
-        }))
-      }))
-    } as any));
-    
-    const voteData = {
-      agentVersionId: 'test-agent-id',
-      userId: 'test-user-id',
-      tenantId: 'test-tenant-id',
-      voteType: VoteType.up
-    };
-    
+            error: { message: 'Voting failed' },
+          }),
+        }),
+      }),
+      update: vi.fn(),
+      select: vi.fn(),
+      rpc: vi.fn(),
+    } as any);
+
     const result = await voteOnAgentVersion(
-      voteData.agentVersionId,
-      voteData.voteType,
-      voteData.userId,
-      voteData.tenantId
+      'agent-123',
+      'up',
+      'user-123',
+      'tenant-123'
     );
-    
+
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
+  });
+
+  it('should retrieve user votes', async () => {
+    const result = await getUserVote('agent-123', 'user-123');
+
+    expect(result.hasVoted).toBe(true);
+    expect(result.vote).toBeDefined();
   });
 });

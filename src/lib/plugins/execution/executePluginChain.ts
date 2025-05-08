@@ -1,7 +1,6 @@
 
 import { Plugin, PluginResult, RunPluginChainResult } from '@/types/plugin';
 import { executePlugin } from './executePlugin';
-import { ExecutionParams } from '@/types/shared';
 
 /**
  * Execute a chain of plugins in sequence
@@ -28,6 +27,7 @@ export async function executePluginChain(
     return {
       success: false,
       results: [],
+      output: {},
       error: 'No plugins provided'
     };
   }
@@ -36,6 +36,7 @@ export async function executePluginChain(
     return {
       success: false,
       results: [],
+      output: {},
       error: 'Tenant ID is required'
     };
   }
