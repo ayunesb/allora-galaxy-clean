@@ -1,29 +1,35 @@
 
-import React, { createContext, useContext } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { WorkspaceContextType } from './workspace/types';
-import { useWorkspaceState, initialWorkspaceState } from './workspace/useWorkspaceState';
+import React, { createContext, useContext, PropsWithChildren } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { TenantWithRole } from './workspace/types';
+import { useWorkspaceState } from './workspace/useWorkspaceState';
 
-// Create the workspace context
-const WorkspaceContext = createContext<WorkspaceContextType>(initialWorkspaceState);
+export interface WorkspaceContextType {
+  currentTenant: TenantWithRole | null;
+  tenants: TenantWithRole[];
+  setCurrentTenant: (tenant: TenantWithRole | null) => void;
+  isLoading: boolean;
+}
 
-// Workspace context provider component
-export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const workspaceData = useWorkspaceState(user?.id);
+// Create the context with a default value
+export const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
 
-  return <WorkspaceContext.Provider value={workspaceData}>{children}</WorkspaceContext.Provider>;
+export const WorkspaceProvider: React.FC<PropsWithChildren<{}>> = ({ children }) => {
+  const workspaceState = useWorkspaceState();
+  
+  return (
+    <WorkspaceContext.Provider value={workspaceState}>
+      {children}
+    </WorkspaceContext.Provider>
+  );
 };
 
-// Hook to use the workspace context
 export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
   
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useWorkspace must be used within a WorkspaceProvider');
   }
   
   return context;
 };
-
-export default WorkspaceContext;

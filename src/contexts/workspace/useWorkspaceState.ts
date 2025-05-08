@@ -1,101 +1,79 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { sortTenantsByRole, getUserTenants } from './workspaceUtils';
-import { TenantWithRole } from '@/types/tenant';
+import { sortTenantsByRole } from './workspaceUtils';
+import { TenantWithRole, WorkspaceContextType } from './types';
 
-export interface WorkspaceState {
-  loading: boolean;
-  tenants: TenantWithRole[];
-  currentTenant: TenantWithRole | null;
-  setCurrentTenant: (tenant: TenantWithRole) => void;
-  refreshTenants: () => Promise<void>;
-  error: string | null;
-}
-
-export function useWorkspaceState(): WorkspaceState {
-  const [loading, setLoading] = useState<boolean>(true);
+export function useWorkspaceState(): WorkspaceContextType {
   const [tenants, setTenants] = useState<TenantWithRole[]>([]);
   const [currentTenant, setCurrentTenant] = useState<TenantWithRole | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTenants = async () => {
-    try {
-      setLoading(true);
-      
-      // Get the current authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setError('No authenticated user found');
-        setLoading(false);
-        return;
-      }
-      
-      // Fetch tenants for this user with their roles
-      const { data, error: fetchError } = await supabase
-        .from('tenant_user_roles')
-        .select(`
-          tenants:tenant_id(id, name, created_at),
-          role
-        `)
-        .eq('user_id', user.id);
-      
-      if (fetchError) {
-        throw fetchError;
-      }
-      
-      // Transform the data into the required format
-      const formattedTenants: TenantWithRole[] = data?.map(item => ({
-        id: item.tenants.id,
-        name: item.tenants.name,
-        created_at: item.tenants.created_at,
-        role: item.role
-      })) || [];
-      
-      // Sort tenants by role
-      const sortedTenants = sortTenantsByRole(formattedTenants);
-      
-      setTenants(sortedTenants);
-      
-      // Set the current tenant to the first one if not already set
-      if (!currentTenant && sortedTenants.length > 0) {
-        setCurrentTenant(sortedTenants[0]);
-      }
-      
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching tenants:', err.message);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchTenants();
-    
-    // Subscribe to auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        fetchTenants();
-      } else if (event === 'SIGNED_OUT') {
-        setTenants([]);
-        setCurrentTenant(null);
+    const loadUserTenants = async () => {
+      setIsLoading(true);
+      try {
+        // Get the current authenticated user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+          console.error("Error loading user:", userError);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get tenants the user has access to with their role
+        const { data: tenantsData, error: tenantsError } = await supabase
+          .from('tenant_user_roles')
+          .select(`
+            tenant_id,
+            role,
+            tenants:tenant_id (
+              id,
+              name,
+              slug,
+              created_at,
+              updated_at,
+              metadata
+            )
+          `)
+          .eq('user_id', user.id);
+        
+        if (tenantsError) {
+          console.error("Error loading tenants:", tenantsError);
+          setIsLoading(false);
+          return;
+        }
+
+        // Transform the data to the format we need
+        const userTenants: TenantWithRole[] = (tenantsData || []).map((item: any) => ({
+          ...item.tenants,
+          role: item.role,
+        }));
+
+        // Sort tenants by role (owners first, then admins, etc.)
+        const sortedTenants = sortTenantsByRole(userTenants);
+        
+        setTenants(sortedTenants);
+        
+        // Set the current tenant to the first one if there's no current tenant yet
+        if (sortedTenants.length > 0 && !currentTenant) {
+          setCurrentTenant(sortedTenants[0]);
+        }
+      } catch (error) {
+        console.error("Unexpected error loading workspace data:", error);
+      } finally {
+        setIsLoading(false);
       }
-    });
-    
-    return () => {
-      authListener?.subscription.unsubscribe();
     };
+
+    loadUserTenants();
   }, []);
 
   return {
-    loading,
-    tenants,
     currentTenant,
-    setCurrentTenant: (tenant: TenantWithRole) => setCurrentTenant(tenant),
-    refreshTenants: fetchTenants,
-    error
+    tenants,
+    setCurrentTenant,
+    isLoading
   };
 }
