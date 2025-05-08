@@ -6,11 +6,13 @@ import { withRoleCheck } from '@/lib/auth/withRoleCheck';
 import { useTenantId } from '@/hooks/useTenantId';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 const SystemLogs: React.FC = () => {
   const tenantId = useTenantId();
@@ -19,12 +21,48 @@ const SystemLogs: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   
+  // Fetch module and event types for filters
+  const [availableModules, setAvailableModules] = useState<SystemEventModule[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<SystemEventType[]>([]);
+  
   // Fetch system logs
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery],
     queryFn: async () => {
       if (!tenantId) return [];
       
+      // First, fetch module and event types
+      try {
+        const { data: modules, error: modulesError } = await supabase
+          .from('system_logs')
+          .select('module')
+          .eq('tenant_id', tenantId)
+          .limit(100);
+          
+        if (!modulesError && modules) {
+          const uniqueModules = Array.from(
+            new Set(modules.map(item => item.module))
+          ) as SystemEventModule[];
+          setAvailableModules(uniqueModules);
+        }
+        
+        const { data: events, error: eventsError } = await supabase
+          .from('system_logs')
+          .select('event')
+          .eq('tenant_id', tenantId)
+          .limit(100);
+          
+        if (!eventsError && events) {
+          const uniqueEvents = Array.from(
+            new Set(events.map(item => item.event))
+          ) as SystemEventType[];
+          setAvailableEvents(uniqueEvents);
+        }
+      } catch (err) {
+        console.error('Error fetching filter options:', err);
+      }
+      
+      // Now fetch logs with filters
       let query = supabase
         .from('system_logs')
         .select('*')
@@ -119,6 +157,8 @@ const SystemLogs: React.FC = () => {
               setSearchQuery={setSearchQuery}
               onReset={resetFilters}
               onFilterChange={handleFilterChange}
+              modules={availableModules}
+              events={availableEvents}
             />
           </div>
           

@@ -1,27 +1,29 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useTenantId } from '@/hooks/useTenantId';
+import { SystemLogFilters, LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
-import { format } from 'date-fns';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import { SystemEventModule } from '@/types/shared';
 
-export const AuditLog = () => {
-  const { currentTenant } = useWorkspace();
-  const tenantId = currentTenant?.id;
+export const AuditLog: React.FC = () => {
+  const tenantId = useTenantId();
   
-  const [moduleFilter, setModuleFilter] = useState('');
-  const [eventFilter, setEventFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Log filter states
+  const [moduleFilter, setModuleFilter] = useState<string>('');
+  const [eventFilter, setEventFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   
   // Fetch system logs
-  const { data: logs, isLoading } = useQuery({
-    queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery],
+  const { data: logs, isLoading, refetch } = useQuery({
+    queryKey: ['auditLogs', tenantId, moduleFilter, eventFilter, searchQuery],
     queryFn: async () => {
       if (!tenantId) return [];
       
@@ -30,7 +32,7 @@ export const AuditLog = () => {
         .select('*')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(50);
       
       if (moduleFilter) {
         query = query.eq('module', moduleFilter);
@@ -62,6 +64,20 @@ export const AuditLog = () => {
     setSearchQuery('');
   };
   
+  const handleFilterChange = (newFilters: LogFilterState) => {
+    setModuleFilter(newFilters.moduleFilter);
+    setEventFilter(newFilters.eventFilter);
+    setSearchQuery(newFilters.searchQuery);
+  };
+  
+  const handleViewDetails = (log: any) => {
+    setSelectedLog(log);
+  };
+  
+  const handleRefresh = () => {
+    refetch();
+  };
+  
   const getModuleBadgeColor = (module: string) => {
     switch (module.toLowerCase()) {
       case 'strategy': return 'bg-blue-100 text-blue-800';
@@ -74,96 +90,39 @@ export const AuditLog = () => {
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>System Audit Log</CardTitle>
-          <CardDescription>
-            SOC2-style traceability for AI strategy evolution and execution
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <SystemLogFilters
-              moduleFilter={moduleFilter}
-              setModuleFilter={setModuleFilter}
-              eventFilter={eventFilter}
-              setEventFilter={setEventFilter}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onReset={resetFilters}
-            />
-          </div>
-          
-          <div className="border rounded-md overflow-hidden">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-muted/50">
-                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Module
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Event
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Context
-                  </th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center">
-                      <div className="mx-auto w-8 h-8 border-2 border-t-transparent border-primary rounded-full animate-spin"></div>
-                    </td>
-                  </tr>
-                ) : logs && logs.length > 0 ? (
-                  logs.map((log) => (
-                    <tr key={log.id} className="border-t hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm font-mono">
-                        {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getModuleBadgeColor(log.module)}`}>
-                          {log.module}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {log.event}
-                      </td>
-                      <td className="px-4 py-3 text-sm max-w-xs truncate">
-                        {log.context ? JSON.stringify(log.context).substring(0, 50) + '...' : 'No context'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => setSelectedLog(log)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      No logs found matching your criteria.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-      
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>Audit Log</span>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </CardTitle>
+        <CardDescription>System and AI decision trail</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-6">
+          <SystemLogFilters
+            moduleFilter={moduleFilter}
+            setModuleFilter={setModuleFilter}
+            eventFilter={eventFilter}
+            setEventFilter={setEventFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onReset={resetFilters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
+        
+        <SystemLogsTable 
+          logs={logs || []} 
+          isLoading={isLoading} 
+          onViewDetails={handleViewDetails}
+          emptyMessage="No logs found matching your criteria."
+        />
+      </CardContent>
+        
       <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -210,6 +169,8 @@ export const AuditLog = () => {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </Card>
   );
 };
+
+export default AuditLog;

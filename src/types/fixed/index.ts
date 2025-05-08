@@ -19,8 +19,6 @@ export type {
   ExecutionType,
   KPITrend,
   TenantFeature,
-  PluginResult,
-  RunPluginChainResult
 } from '../shared';
 
 // Export RunPluginChainResult specifically as it's needed
@@ -43,3 +41,9 @@ export interface ExecutionRecordInput {
   xpEarned?: number;
   error?: string;
 }
+
+// Ensure the VoteType matches the shared type
+export type { PluginResult } from '../plugin';
+
+// We're aligning with the shared.ts definition to ensure consistency
+export { type VoteType as AgentVoteType } from '../shared';

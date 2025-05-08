@@ -1,6 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { castVote, upvoteAgentVersion, downvoteAgentVersion, getUserVote } from '@/lib/agents/voting';
+import { castVote, upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting';
+import { VoteType } from '@/types/shared';
 
 // Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({
@@ -27,16 +28,19 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock getUserVote function
-vi.mock('@/lib/agents/voting/voteOnAgentVersion', async (importOriginal) => {
-  // Import the original module
-  const mod = await importOriginal();
+vi.mock('@/lib/agents/voting/voteOnAgentVersion', async () => {
+  // Return a mocked module
   return {
-    ...mod,
     getUserVote: vi.fn().mockResolvedValue({ 
       success: true, 
       hasVoted: false, 
       vote: null 
     }),
+    voteOnAgentVersion: vi.fn().mockResolvedValue({
+      success: true,
+      upvotes: 5,
+      downvotes: 2
+    })
   };
 });
 
@@ -71,7 +75,7 @@ describe('Agent Voting System', () => {
       });
       
       // Execute the vote
-      const result = await castVote('agent-123', 'upvote');
+      const result = await castVote('agent-123', 'upvote' as VoteType);
       
       // Assertions
       expect(result.success).toBe(true);
@@ -86,7 +90,7 @@ describe('Agent Voting System', () => {
         data: { session: null }
       } as any);
       
-      const result = await castVote('agent-123', 'upvote');
+      const result = await castVote('agent-123', 'upvote' as VoteType);
       
       expect(result.success).toBe(false);
       expect(result.error).toBe('You must be logged in to vote');
@@ -99,7 +103,7 @@ describe('Agent Voting System', () => {
         throw new Error('Database error');
       });
       
-      const result = await castVote('agent-123', 'upvote');
+      const result = await castVote('agent-123', 'upvote' as VoteType);
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('Failed to cast vote');
@@ -117,14 +121,14 @@ describe('Agent Voting System', () => {
       
       // Replace the imported castVote with our mock
       const originalCastVote = castVote;
-      vi.mocked(castVote).mockImplementation(mockCastVote);
+      vi.mocked(castVote as any).mockImplementation(mockCastVote);
       
       await upvoteAgentVersion('agent-123', 'Great agent!');
       
       expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'upvote', 'Great agent!');
       
       // Restore original mock implementation
-      vi.mocked(castVote).mockImplementation(originalCastVote);
+      vi.mocked(castVote as any).mockImplementation(originalCastVote);
     });
     
     it('should call castVote with downvote type', async () => {
@@ -137,14 +141,14 @@ describe('Agent Voting System', () => {
       
       // Replace the imported castVote with our mock
       const originalCastVote = castVote;
-      vi.mocked(castVote).mockImplementation(mockCastVote);
+      vi.mocked(castVote as any).mockImplementation(mockCastVote);
       
       await downvoteAgentVersion('agent-123', 'Needs improvement');
       
       expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'downvote', 'Needs improvement');
       
       // Restore original mock implementation
-      vi.mocked(castVote).mockImplementation(originalCastVote);
+      vi.mocked(castVote as any).mockImplementation(originalCastVote);
     });
   });
 });

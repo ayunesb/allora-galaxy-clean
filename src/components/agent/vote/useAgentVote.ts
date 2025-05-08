@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { VoteType } from '@/types/fixed';
+import { VoteType } from '@/types/shared';
 import { castVote, getUserVote } from '@/lib/agents/voting';
 import { UseAgentVoteParams, UseAgentVoteReturn } from './types';
 
@@ -24,7 +24,7 @@ export function useAgentVote({
         const { vote, hasVoted } = await getUserVote(agentVersionId, userId);
         
         if (hasVoted && vote) {
-          setUserVote(vote.voteType === 'upvote' ? 'up' : 'down');
+          setUserVote(vote.vote_type === 'upvote' ? 'up' : 'down');
           if (vote.comment) {
             setComment(vote.comment);
           }
@@ -48,7 +48,13 @@ export function useAgentVote({
       if (result.success) {
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
-        setUserVote(voteType === 'upvote' ? 'up' : 'down');
+        
+        // Convert VoteType to UI state
+        if (voteType === 'upvote') {
+          setUserVote('up');
+        } else if (voteType === 'downvote') {
+          setUserVote('down');
+        }
         
         // Show comment dialog for new votes or if changing vote type
         if (!userVote || (userVote === 'up' && voteType === 'downvote') || (userVote === 'down' && voteType === 'upvote')) {
@@ -68,7 +74,8 @@ export function useAgentVote({
     setSubmitting(true);
     
     try {
-      const voteType = userVote === 'up' ? 'upvote' : 'downvote';
+      // Convert UI state to VoteType
+      const voteType: VoteType = userVote === 'up' ? 'upvote' : 'downvote';
       const result = await castVote(agentVersionId, voteType, comment);
       
       if (result.success) {

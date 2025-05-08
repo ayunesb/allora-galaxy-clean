@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { VoteType } from '@/types/fixed';
+import { VoteType } from '@/types/shared';
 
 /**
  * Vote on an agent version
