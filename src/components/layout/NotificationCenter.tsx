@@ -35,7 +35,7 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
   };
 
   // Mark all notifications as read
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = async (): Promise<void> => {
     try {
       const result = await markAllAsRead();
       if (!result.success) {
@@ -46,7 +46,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
         description: "All notifications marked as read",
         variant: "default",
       });
-      // Return explicitly for void type compatibility
       return;
     } catch (error) {
       console.error("Error marking notifications as read:", error);
@@ -55,7 +54,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
         description: "Failed to mark notifications as read",
         variant: "destructive",
       });
-      // Return explicitly for void type compatibility
       return;
     }
   };
@@ -86,3 +84,5 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
     </Sheet>
   );
 };
+
+export default NotificationCenter;

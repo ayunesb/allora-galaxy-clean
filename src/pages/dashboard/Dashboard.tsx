@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { useWorkspace } from '@/context/WorkspaceContext';
@@ -10,6 +11,8 @@ import { ArrowRight, BarChart, Calendar, Plug, Settings, LayoutGrid, AlertTriang
 import { Link } from 'react-router-dom';
 import PageHelmet from '@/components/PageHelmet';
 import StrategyApprovalCard from '@/components/dashboard/StrategyApprovalCard';
+import { toast } from '@/hooks/use-toast';
+import { mockStrategies } from '@/lib/__mocks__/mockStrategies';
 
 const Dashboard: React.FC = () => {
   const { currentTenant } = useWorkspace();
@@ -17,6 +20,26 @@ const Dashboard: React.FC = () => {
   
   // Check if user is being impersonated (email includes +impersonate)
   const isImpersonated = user?.email?.includes('+impersonate');
+
+  // Strategy approval handlers
+  const handleApproveStrategy = (id: string) => {
+    toast({
+      title: "Strategy approved",
+      description: `Strategy ${id} has been approved successfully.`,
+      variant: "default",
+    });
+  };
+
+  const handleRejectStrategy = (id: string) => {
+    toast({
+      title: "Strategy rejected",
+      description: `Strategy ${id} has been rejected.`,
+      variant: "destructive",
+    });
+  };
+
+  // Use the first pending strategy from mock data for the approval card
+  const pendingStrategy = mockStrategies.find(strategy => strategy.status === 'pending');
 
   return (
     <>
@@ -82,8 +105,26 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* New Strategy Approval Card */}
-          <StrategyApprovalCard />
+          {/* Strategy Approval Card - Only show if there's a pending strategy */}
+          {pendingStrategy ? (
+            <StrategyApprovalCard 
+              strategy={pendingStrategy}
+              onApprove={handleApproveStrategy}
+              onReject={handleRejectStrategy}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Pending Strategies</CardTitle>
+                <CardDescription>All strategies have been reviewed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  There are currently no strategies waiting for your approval.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="md:col-span-2">
             <Card>
