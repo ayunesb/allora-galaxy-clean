@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
 import KpiSection from '@/components/dashboard/KpiSection';
 import StrategyCard from '@/components/strategy/StrategyCard';
 import { fetchStrategies } from '@/services/strategyService';

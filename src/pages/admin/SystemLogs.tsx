@@ -62,14 +62,16 @@ const SystemLogs: React.FC = () => {
             />
             
             {error && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive" className="mb-6 mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             
-            <SystemLogsTable logs={logs} loading={loading} />
+            <div className="mt-6">
+              <SystemLogsTable logs={logs} loading={loading} />
+            </div>
           </CardContent>
         </Card>
       </div>
