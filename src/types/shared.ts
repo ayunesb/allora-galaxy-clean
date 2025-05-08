@@ -12,6 +12,9 @@ export interface KPITrend {
   isPositive: boolean;
 }
 
+// Vote types
+export type VoteType = 'up' | 'down' | null;
+
 // Execution record types
 export type ExecutionType = 'agent' | 'strategy' | 'plugin';
 

@@ -1,35 +1,79 @@
-import { updateKPIs } from '../kpi/updateKPIs';
-import { syncMQLs } from '../kpi/syncMQLs';
-import { cleanupLogs } from '../system/cleanupLogs';
-// Import autoEvolveAgents only if we're going to use it
-// import { autoEvolveAgents } from '../agents/evolution/autoEvolveAgents';
 
-/**
- * Schedule all background jobs
- */
-export function scheduleJobs() {
-  // Schedule KPI updates (daily)
-  scheduleJob('update-kpis', '0 0 * * *', updateKPIs);
-  
-  // Schedule MQL sync (weekly)
-  scheduleJob('sync-mqls', '0 0 * * 0', syncMQLs);
-  
-  // Schedule log cleanup (weekly)
-  scheduleJob('cleanup-logs', '0 0 * * 0', cleanupLogs);
-  
-  // Uncomment when ready to use auto evolution
-  // scheduleJob('auto-evolve-agents', '0 12 * * *', autoEvolveAgents);
+import { autoEvolveAgents } from '../agents/evolution';
+import { notifyAndLog } from '../notifications/notifyAndLog';
+
+// This is a simple scheduler for jobs that need to run periodically
+// In production, these would be handled by Supabase's cron jobs or a proper scheduler
+
+export interface ScheduledJob {
+  id: string;
+  name: string;
+  description: string;
+  schedule: string; // Cron expression format
+  enabled: boolean;
+  lastRun?: Date;
+  nextRun?: Date;
+  handler: () => Promise<any>;
 }
 
 /**
- * Helper function to schedule a job
+ * List of available scheduled jobs
  */
-function scheduleJob(name: string, cronPattern: string, jobFunction: Function) {
+export const scheduledJobs: ScheduledJob[] = [
+  {
+    id: 'auto-evolve-agents',
+    name: 'Auto Evolve Agents',
+    description: 'Analyzes agent performance and evolves agents when needed',
+    schedule: '0 3 * * *', // Every day at 3 AM
+    enabled: true,
+    handler: async () => {
+      const tenantIds = ['system']; // In production, would fetch active tenant IDs
+      
+      for (const tenantId of tenantIds) {
+        try {
+          const result = await autoEvolveAgents(tenantId);
+          return {
+            success: result.success,
+            evolved: result.evolved,
+            errors: result.errors
+          };
+        } catch (error: any) {
+          console.error('Auto evolve job failed:', error);
+          await notifyAndLog(
+            'system',
+            'Scheduled job failed: Auto Evolve Agents',
+            error.message || 'Unknown error',
+            'error'
+          );
+          return { success: false, error: error.message };
+        }
+      }
+    }
+  }
+];
+
+/**
+ * Run a scheduled job by ID
+ */
+export async function runScheduledJob(jobId: string) {
+  const job = scheduledJobs.find(j => j.id === jobId);
+  
+  if (!job) {
+    throw new Error(`Job ${jobId} not found`);
+  }
+  
+  if (!job.enabled) {
+    throw new Error(`Job ${jobId} is disabled`);
+  }
+  
   try {
-    console.log(`Scheduling ${name} with pattern ${cronPattern}`);
-    // This would be replaced with actual CRON implementation
-    // cron.schedule(cronPattern, jobFunction);
-  } catch (error) {
-    console.error(`Error scheduling ${name}:`, error);
+    job.lastRun = new Date();
+    const result = await job.handler();
+    return { success: true, result };
+  } catch (error: any) {
+    return { 
+      success: false, 
+      error: error.message || 'Unknown error occurred while running the job' 
+    };
   }
 }

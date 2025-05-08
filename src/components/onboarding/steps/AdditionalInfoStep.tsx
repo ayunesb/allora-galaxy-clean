@@ -20,7 +20,6 @@ export interface AdditionalInfoStepProps {
 
 const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({ 
   formData,
-  updateFormData,
   setFieldValue
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

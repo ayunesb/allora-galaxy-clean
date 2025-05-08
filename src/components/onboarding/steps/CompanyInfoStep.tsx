@@ -48,7 +48,7 @@ export interface CompanyInfoStepProps {
   setFieldValue: (key: string, value: any) => void;
 }
 
-const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormData, setFieldValue }) => {
+const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormData }) => {
   // Handle form field changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

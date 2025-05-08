@@ -8,7 +8,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { type StrategyGenerationStepProps } from '../StepContent';
+import { StrategyGenerationStepProps } from '../StepContent';
 
 const StrategyGenerationStep: React.FC<StrategyGenerationStepProps> = ({ 
   formData,
@@ -52,7 +52,7 @@ const StrategyGenerationStep: React.FC<StrategyGenerationStepProps> = ({
               <div>
                 <div className="font-medium">Persona Goals</div>
                 <ul className="list-disc list-inside">
-                  {formData.persona.goals.map((goal, index) => (
+                  {formData.persona.goals.map((goal: string, index: number) => (
                     <li key={index}>{goal}</li>
                   ))}
                 </ul>

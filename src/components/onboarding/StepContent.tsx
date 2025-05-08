@@ -14,6 +14,11 @@ export interface StepContentProps {
   isGenerating?: boolean;
 }
 
+export interface StrategyGenerationStepProps {
+  formData: OnboardingFormData;
+  isGenerating?: boolean;
+}
+
 const StepContent: React.FC<StepContentProps> = ({ 
   step, 
   formData, 
