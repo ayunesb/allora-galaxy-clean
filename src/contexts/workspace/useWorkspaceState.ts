@@ -1,115 +1,101 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { WorkspaceContextType } from './types';
-import { getUserTenants } from './workspaceUtils';
-import { Tenant } from '@/types/tenant';
-import { UserRole } from '@/types/shared';
-import { getNavigationItems } from './navigationItems';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { sortTenantsByRole, getUserTenants } from './workspaceUtils';
+import { TenantWithRole } from '@/types/tenant';
 
-export const initialWorkspaceState: WorkspaceContextType = {
-  tenant: null,
-  tenantId: null,
-  userRole: null,
-  tenantsList: [],
-  loading: true,
-  isLoading: true,
-  error: null,
-  setTenantId: () => {},
-  setUserRole: () => {},
-  refreshTenant: () => {},
-  navigationItems: []
-};
+export interface WorkspaceState {
+  loading: boolean;
+  tenants: TenantWithRole[];
+  currentTenant: TenantWithRole | null;
+  setCurrentTenant: (tenant: TenantWithRole) => void;
+  refreshTenants: () => Promise<void>;
+  error: string | null;
+}
 
-export const useWorkspaceState = (userId: string | undefined): WorkspaceContextType => {
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [tenantId, setTenantId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [tenantsList, setTenantsList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function useWorkspaceState(): WorkspaceState {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [tenants, setTenants] = useState<TenantWithRole[]>([]);
+  const [currentTenant, setCurrentTenant] = useState<TenantWithRole | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadTenantData = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
+  const fetchTenants = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      // Fetch user's tenants
-      const tenants = await getUserTenants(userId);
       
-      if (!tenants || tenants.length === 0) {
-        // User has no tenants
-        setTenant(null);
-        setTenantId(null);
-        setUserRole(null);
-        setTenantsList([]);
+      // Get the current authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setError('No authenticated user found');
         setLoading(false);
         return;
       }
       
-      // Set the tenants list
-      setTenantsList(tenants);
+      // Fetch tenants for this user with their roles
+      const { data, error: fetchError } = await supabase
+        .from('tenant_user_roles')
+        .select(`
+          tenants:tenant_id(id, name, created_at),
+          role
+        `)
+        .eq('user_id', user.id);
       
-      // Use the currently selected tenant or default to the first one
-      let selectedTenantId = tenantId;
-      
-      // If no tenant is selected or the selected tenant is not in the list, use the first one
-      if (!selectedTenantId || !tenants.find(t => t.id === selectedTenantId)) {
-        selectedTenantId = tenants[0].id;
-        setTenantId(selectedTenantId);
+      if (fetchError) {
+        throw fetchError;
       }
       
-      // Find the current tenant and role
-      const currentTenant = tenants.find(t => t.id === selectedTenantId);
+      // Transform the data into the required format
+      const formattedTenants: TenantWithRole[] = data?.map(item => ({
+        id: item.tenants.id,
+        name: item.tenants.name,
+        created_at: item.tenants.created_at,
+        role: item.role
+      })) || [];
       
-      if (currentTenant) {
-        setTenant({
-          id: currentTenant.id,
-          name: currentTenant.name,
-          slug: currentTenant.slug,
-          role: currentTenant.role // Include role in tenant object
-        } as Tenant);
-        setUserRole(currentTenant.role as UserRole);
-      } else {
-        setTenant(null);
-        setUserRole(null);
+      // Sort tenants by role
+      const sortedTenants = sortTenantsByRole(formattedTenants);
+      
+      setTenants(sortedTenants);
+      
+      // Set the current tenant to the first one if not already set
+      if (!currentTenant && sortedTenants.length > 0) {
+        setCurrentTenant(sortedTenants[0]);
       }
-    } catch (err) {
-      console.error('Error loading workspace data:', err);
-      setError(err instanceof Error ? err : new Error('Failed to load workspace data'));
+      
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching tenants:', err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [userId, tenantId]);
+  };
 
-  // Initial load and when userId changes
   useEffect(() => {
-    loadTenantData();
-  }, [loadTenantData]);
-
-  // Refresh tenant data
-  const refreshTenant = useCallback(() => {
-    loadTenantData();
-  }, [loadTenantData]);
-
-  // Generate navigation items based on user role
-  const navigationItems = userRole ? getNavigationItems(userRole) : [];
+    fetchTenants();
+    
+    // Subscribe to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchTenants();
+      } else if (event === 'SIGNED_OUT') {
+        setTenants([]);
+        setCurrentTenant(null);
+      }
+    });
+    
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
 
   return {
-    tenant,
-    tenantId,
-    userRole,
-    tenantsList,
     loading,
-    isLoading: loading, // Map loading to isLoading for backwards compatibility
-    error,
-    setTenantId,
-    setUserRole,
-    refreshTenant,
-    navigationItems
+    tenants,
+    currentTenant,
+    setCurrentTenant: (tenant: TenantWithRole) => setCurrentTenant(tenant),
+    refreshTenants: fetchTenants,
+    error
   };
-};
+}

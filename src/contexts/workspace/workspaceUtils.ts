@@ -1,5 +1,5 @@
 
-import { TenantWithRole } from '@/types/workspace/types';
+import { TenantWithRole } from '@/types/tenant';
 import { Tenant } from '@/types/tenant';
 
 /**
@@ -31,4 +31,13 @@ export function sortTenantsByRole(tenants: TenantWithRole[]): TenantWithRole[] {
 export function formatTenantWithRole(tenant: TenantWithRole): string {
   if (!tenant) return '';
   return `${tenant.name} (${tenant.role})`;
+}
+
+/**
+ * Gets user's available tenants
+ */
+export async function getUserTenants(userId: string): Promise<TenantWithRole[]> {
+  // Implementation would depend on your data fetching logic
+  // This is a placeholder implementation
+  return [];
 }

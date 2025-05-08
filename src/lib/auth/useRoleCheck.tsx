@@ -1,64 +1,81 @@
 
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { UserRole } from '@/types/shared';
-import { toast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface UseRoleCheckOptions {
-  requiredRoles: UserRole[];
-  redirectPath?: string;
-  showToast?: boolean;
-  toastMessage?: string;
+export interface UseRoleCheckOptions {
+  roles?: string[];
+  tenantScoped?: boolean;
+  tenantId?: string;
 }
 
-/**
- * Hook to check if the user has the required role
- * If not, redirects to the specified path
- */
-export function useRoleCheck({
-  requiredRoles,
-  redirectPath = '/unauthorized',
-  showToast = true,
-  toastMessage = 'You do not have permission to access this page'
-}: UseRoleCheckOptions) {
-  const { user } = useAuth();
-  const { userRole, loading } = useWorkspace();
-  const navigate = useNavigate();
-  const [hasAccess, setHasAccess] = useState<boolean>(false);
-  const [checkComplete, setCheckComplete] = useState<boolean>(false);
+export function useRoleCheck(options: UseRoleCheckOptions = {}) {
+  const [hasAccess, setHasAccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
-  // Check if the user has the required role
   useEffect(() => {
-    if (!loading) {
-      // Not logged in
-      if (!user) {
-        setHasAccess(false);
-        setCheckComplete(true);
-        return;
-      }
+    const checkUserRole = async () => {
+      try {
+        // Get current user session
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData?.session;
 
-      // Check if the user has the required role
-      if (userRole && requiredRoles.includes(userRole)) {
-        setHasAccess(true);
-      } else {
-        setHasAccess(false);
-        
-        if (showToast) {
-          toast({
-            title: 'Access denied',
-            description: toastMessage,
-            variant: 'destructive',
-          });
+        if (!session) {
+          setHasAccess(false);
+          return;
         }
-        
-        navigate(redirectPath, { replace: true });
-      }
-      
-      setCheckComplete(true);
-    }
-  }, [user, userRole, loading, requiredRoles, redirectPath, navigate, showToast, toastMessage]);
 
-  return { hasAccess, loading: !checkComplete };
+        // If no specific roles required, user just needs to be authenticated
+        if (!options.roles || options.roles.length === 0) {
+          setHasAccess(true);
+          return;
+        }
+
+        // If tenant scoped, we need to check the user's role for that tenant
+        if (options.tenantScoped) {
+          const tenantId = options.tenantId;
+          
+          if (!tenantId) {
+            console.error('Tenant scoped role check requires a tenantId');
+            setHasAccess(false);
+            return;
+          }
+          
+          // Get the user's role for this tenant
+          const { data: roleData } = await supabase
+            .from('tenant_user_roles')
+            .select('role')
+            .eq('tenant_id', tenantId)
+            .eq('user_id', session.user.id)
+            .single();
+          
+          if (roleData) {
+            const userRole = roleData.role;
+            setUserRoles([userRole]);
+            
+            // Check if the user's role is in the allowed roles
+            setHasAccess(options.roles.includes(userRole));
+          } else {
+            setHasAccess(false);
+          }
+        } else {
+          // Global role check from user's claims
+          const userRole = session.user.app_metadata?.role || 'user';
+          setUserRoles([userRole]);
+          
+          // Check if the user's role is in the allowed roles
+          setHasAccess(options.roles.includes(userRole));
+        }
+      } catch (error) {
+        console.error('Error checking user role:', error);
+        setHasAccess(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
+  }, [options.roles, options.tenantScoped, options.tenantId]);
+
+  return { hasAccess, loading, userRoles };
 }

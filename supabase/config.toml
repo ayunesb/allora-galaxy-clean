@@ -1,23 +1,30 @@
 
+# This is the project's configuration file
 project_id = "ijrnwpgsqsxzqdemtknz"
+project_name = "Allora OS"
 
-[functions.updateKPIs]
-verify_jwt = true
+# API configurations
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
 
-[functions.syncMQLs]
-verify_jwt = true
+# Auth configurations
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
 
-[functions.autoEvolveAgents]
-verify_jwt = true
+# Database configurations
+[db]
+major_version = 15
+shadow_major_version = 15
+port = 54322
 
-[functions.executeStrategy]
-verify_jwt = true
-
-[functions.createDbFunctions]
-verify_jwt = true
-
-[functions.cleanupLogs]
-verify_jwt = true
-
-[functions.analyzePromptDiff]
-verify_jwt = true
+# Edge functions configurations
+[functions]
+[functions.allora-brain]
+verify_jwt = false

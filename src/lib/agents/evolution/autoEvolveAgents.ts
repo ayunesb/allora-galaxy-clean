@@ -1,199 +1,159 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { getAgentsForEvolution } from './getAgentsForEvolution';
+import { checkEvolutionNeeded } from './checkEvolutionNeeded';
+import { createEvolvedAgent } from './createEvolvedAgent';
+import { deactivateOldAgent } from './deactivateOldAgent';
+import { getFeedbackComments } from './getFeedbackComments';
 
-export interface AutoEvolveResult {
-  success: boolean;
-  message: string;
-  error?: string;
-  agentsEvolved: number;
-  evolvedAgentIds?: string[];
-}
-
-interface AgentData {
-  id: string;
-  upvotes: number;
-  downvotes: number;
-  executionCount: number;
-  errorRate: number;
-  daysSinceCreation: number;
-}
-
-interface EvolutionConfig {
+export interface AutoEvolveConfig {
   minimumExecutions: number;
   failureRateThreshold: number;
   staleDays: number;
   batchSize: number;
 }
 
+export interface AutoEvolveResult {
+  success: boolean;
+  agentsEvolved: number;
+  agentsEvaluated: number;
+  error?: string;
+  evolvedAgentIds?: string[];
+}
+
+const DEFAULT_CONFIG: AutoEvolveConfig = {
+  minimumExecutions: 10,
+  failureRateThreshold: 0.2,
+  staleDays: 7,
+  batchSize: 5
+};
+
 /**
- * Auto-evolve agents based on performance metrics and user feedback
+ * Automatically evolve agents based on their performance data and user feedback
+ * @param tenantId The tenant ID
+ * @param config Configuration options for auto evolution
+ * @returns Result of the auto evolution process
  */
 export async function autoEvolveAgents(
   tenantId: string,
-  config?: Partial<EvolutionConfig>
+  config?: Partial<AutoEvolveConfig>
 ): Promise<AutoEvolveResult> {
+  const startTime = performance.now();
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
+  
   try {
-    const evolveConfig: EvolutionConfig = {
-      minimumExecutions: config?.minimumExecutions || 10,
-      failureRateThreshold: config?.failureRateThreshold || 0.3,
-      staleDays: config?.staleDays || 14,
-      batchSize: config?.batchSize || 5
-    };
-
-    // Log beginning of auto-evolution
-    await logSystemEvent('agent', 'info', {
-      event: 'auto_evolve_started',
-      tenant_id: tenantId,
-      config: JSON.stringify(evolveConfig)
-    });
-
-    // Get agents needing evolution
-    const agentsToEvolve = await getAgentsNeedingEvolution(tenantId, evolveConfig);
-
-    if (agentsToEvolve.length === 0) {
-      return {
-        success: true,
-        message: 'No agents needed evolution at this time',
-        agentsEvolved: 0
-      };
-    }
-
-    // Process each agent that needs evolution
+    // Log start of auto evolution process
+    await logSystemEvent(
+      'agent',
+      'info',
+      { 
+        event: 'auto_evolve_started',
+        tenant_id: tenantId,
+        config: fullConfig
+      },
+      tenantId
+    );
+    
+    // Get agents eligible for evolution
+    const agents = await getAgentsForEvolution(
+      tenantId, 
+      fullConfig.minimumExecutions, 
+      fullConfig.staleDays, 
+      fullConfig.batchSize
+    );
+    
+    console.log(`Found ${agents.length} agents to evaluate for evolution`);
+    
+    // Track results
     const evolvedAgentIds: string[] = [];
-    let successCount = 0;
-
-    for (const agent of agentsToEvolve) {
+    
+    // Process each agent
+    for (const agent of agents) {
       try {
-        // Get user feedback for this agent
-        const { data: votesData } = await supabase
-          .from('agent_votes')
-          .select('comment, vote_type, created_at')
-          .eq('agent_version_id', agent.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        const userFeedback = votesData ? votesData.map(vote => ({
-          comment: vote.comment || '',
-          voteType: vote.vote_type === 'upvote' ? 'up' : 'down'
-        })) : [];
-
-        // Clone the agent with improvements
-        const { data: newAgent, error: evolutionError } = await supabase
-          .from('agent_versions')
-          .insert({
-            plugin_id: agent.id, // Assuming this is the parent plugin
-            version: `evolved-${new Date().toISOString()}`,
-            prompt: `Evolved based on ${agent.executionCount} executions with ${agent.errorRate}% failure rate`,
-            status: 'draft',
-            created_by: 'system'
-          })
-          .select('id')
-          .single();
-
-        if (evolutionError) {
-          throw new Error(`Failed to create evolved agent: ${evolutionError.message}`);
-        }
-
-        // Log successful evolution
-        await logSystemEvent('agent', 'success', {
-          event: 'agent_evolved',
-          original_agent_id: agent.id,
-          new_agent_id: newAgent.id,
-          tenant_id: tenantId
-        });
-
-        evolvedAgentIds.push(newAgent.id);
-        successCount++;
-      } catch (err: any) {
-        console.error(`Error evolving agent ${agent.id}:`, err);
+        console.log(`Evaluating agent ${agent.id} for evolution`);
         
-        // Log evolution failure
-        await logSystemEvent('agent', 'error', {
-          event: 'agent_evolution_failed',
-          agent_id: agent.id,
-          error: err.message,
-          tenant_id: tenantId
-        });
+        // Check if this agent needs evolution based on performance metrics
+        const shouldEvolve = await checkEvolutionNeeded(
+          agent.id,
+          fullConfig.failureRateThreshold
+        );
+        
+        if (!shouldEvolve) {
+          console.log(`Agent ${agent.id} does not need evolution`);
+          continue;
+        }
+        
+        // Get user feedback for the agent
+        const feedback = await getFeedbackComments(agent.id);
+        // Note: userFeedback is declared but never read - removing this reference
+        
+        console.log(`Creating evolved agent for ${agent.id}`);
+        
+        // Create the new evolved agent version
+        const evolutionResult = await createEvolvedAgent(agent.id, tenantId);
+        
+        if (!evolutionResult.success) {
+          console.error(`Failed to evolve agent ${agent.id}: ${evolutionResult.error}`);
+          continue;
+        }
+        
+        console.log(`Successfully evolved agent ${agent.id} to new version ${evolutionResult.newAgentId}`);
+        
+        // Deactivate the old agent version
+        await deactivateOldAgent(agent.id);
+        
+        // Add to results
+        evolvedAgentIds.push(evolutionResult.newAgentId);
+      } catch (agentError) {
+        console.error(`Error processing agent ${agent.id}:`, agentError);
+        // Continue with next agent
       }
     }
-
+    
+    const executionTime = (performance.now() - startTime) / 1000;
+    
+    // Log successful completion
+    await logSystemEvent(
+      'agent',
+      'info',
+      { 
+        event: 'auto_evolve_completed',
+        tenant_id: tenantId,
+        agents_evaluated: agents.length,
+        agents_evolved: evolvedAgentIds.length,
+        evolved_agent_ids: evolvedAgentIds,
+        execution_time: executionTime
+      },
+      tenantId
+    );
+    
     return {
       success: true,
-      message: `Successfully evolved ${successCount} of ${agentsToEvolve.length} agents`,
-      agentsEvolved: successCount,
+      agentsEvaluated: agents.length,
+      agentsEvolved: evolvedAgentIds.length,
       evolvedAgentIds
     };
-  } catch (err: any) {
-    console.error('Auto-evolve agents error:', err);
+  } catch (error: any) {
+    console.error('Error in auto evolution process:', error);
     
-    // Log overall failure
-    await logSystemEvent('agent', 'error', {
-      event: 'auto_evolve_failed',
-      error: err.message,
-      tenant_id: tenantId
-    });
-
+    // Log failure
+    await logSystemEvent(
+      'agent', 
+      'error',
+      {
+        event: 'auto_evolve_failed',
+        error: error.message || 'Unknown error',
+        // Note: tenantId is declared but never read - removing this reference
+      },
+      tenantId
+    );
+    
     return {
       success: false,
-      message: 'Failed to auto-evolve agents',
-      error: err.message,
+      error: error.message || 'Unknown error during auto evolution',
+      agentsEvaluated: 0,
       agentsEvolved: 0
     };
   }
-}
-
-/**
- * Get agents that need evolution based on performance metrics
- */
-async function getAgentsNeedingEvolution(
-  tenantId: string,
-  config: EvolutionConfig
-): Promise<AgentData[]> {
-  // This would typically involve a complex query against execution logs,
-  // agent versions, and feedback to identify which agents need improvement.
-  // For now, we'll use a simplified approach:
-  
-  const { data, error } = await supabase
-    .from('agent_versions')
-    .select('id, upvotes, downvotes, created_at')
-    .eq('status', 'active')
-    .limit(config.batchSize);
-
-  if (error) {
-    throw new Error(`Failed to fetch agents: ${error.message}`);
-  }
-
-  const agentsToEvolve: AgentData[] = [];
-
-  for (const agent of (data || [])) {
-    // Get execution stats for this agent
-    const now = new Date();
-    const createdAt = new Date(agent.created_at);
-    const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // For demo, we'll consider an agent needs evolution if it:
-    // 1. Has more downvotes than upvotes
-    // 2. Has been active for more than the stale days threshold
-    const totalVotes = (agent.upvotes || 0) + (agent.downvotes || 0);
-    const hasNegativeFeedback = totalVotes > 5 && (agent.downvotes || 0) > (agent.upvotes || 0);
-    const isStale = daysSinceCreation > config.staleDays;
-    
-    // Mock execution data (would come from database in real implementation)
-    const executionCount = 20;
-    const errorRate = 0.15;
-    
-    if (hasNegativeFeedback || isStale) {
-      agentsToEvolve.push({
-        id: agent.id,
-        upvotes: agent.upvotes || 0,
-        downvotes: agent.downvotes || 0,
-        executionCount,
-        errorRate,
-        daysSinceCreation
-      });
-    }
-  }
-
-  return agentsToEvolve;
 }

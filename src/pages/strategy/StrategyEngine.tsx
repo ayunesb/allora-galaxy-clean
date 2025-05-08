@@ -1,224 +1,171 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Rocket, AlertCircle, Check, X, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { runStrategy, RunStrategyInput } from '@/lib/strategy/runStrategy';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
-interface Strategy {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at?: string;
-  created_by?: string;
-  tenant_id?: string;
-  tags?: string[];
-}
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { runStrategy } from '@/lib/strategy/runStrategy';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const StrategyEngine: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { tenantId } = useWorkspace();
-  
-  const [strategy, setStrategy] = useState<Strategy | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [strategy, setStrategy] = useState<any>(null);
   const [executionResult, setExecutionResult] = useState<any>(null);
-  
+  const { toast } = useToast();
+
   useEffect(() => {
+    const fetchStrategy = async () => {
+      if (!id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('strategies')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (error) throw error;
+        setStrategy(data);
+      } catch (error: any) {
+        console.error('Error fetching strategy:', error);
+        toast({
+          title: "Error",
+          description: `Failed to load strategy: ${error.message}`,
+          variant: "destructive"
+        });
+      }
+    };
+    
     fetchStrategy();
-  }, [id]);
-  
-  const fetchStrategy = async () => {
-    if (!id) return;
+  }, [id, toast]);
+
+  const handleRunStrategy = async () => {
+    if (!strategy) return;
     
+    setLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
+      const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
-        .from('strategies')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      
-      setStrategy(data);
-      await logSystemEvent('strategy', 'info', {
-        action: 'view_strategy',
-        strategy_id: id
-      }, tenantId);
-    } catch (err: any) {
-      console.error('Error fetching strategy:', err);
-      setError(err.message);
-      toast({
-        title: 'Error',
-        description: `Failed to load strategy: ${err.message}`,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleExecuteStrategy = async () => {
-    if (!strategy || !tenantId) return;
-    
-    try {
-      setIsExecuting(true);
-      setError(null);
-      setExecutionResult(null);
-      
-      const input: RunStrategyInput = {
+      const result = await runStrategy({
         strategyId: strategy.id,
-        tenantId,
-        options: {
-          timeout: 60000, // 1 minute timeout
-        }
-      };
-      
-      const result = await runStrategy(input);
+        tenantId: strategy.tenant_id,
+        userId: user?.id,
+      });
       
       setExecutionResult(result);
       
       if (result.success) {
         toast({
-          title: 'Strategy Executed',
-          description: 'The strategy was executed successfully',
-          variant: 'default',
+          title: "Success",
+          description: "Strategy executed successfully",
         });
       } else {
-        setError(result.error || 'Execution failed');
         toast({
-          title: 'Execution Failed',
-          description: result.error || 'Failed to execute strategy',
-          variant: 'destructive',
+          title: "Execution Error",
+          description: result.error || "Failed to execute strategy",
+          variant: "destructive"
         });
       }
-    } catch (err: any) {
-      console.error('Strategy execution error:', err);
-      setError(err.message);
+    } catch (error: any) {
+      console.error('Error running strategy:', error);
       toast({
-        title: 'Error',
-        description: `Execution error: ${err.message}`,
-        variant: 'destructive',
+        title: "Error",
+        description: `Failed to run strategy: ${error.message}`,
+        variant: "destructive"
       });
     } finally {
-      setIsExecuting(false);
+      setLoading(false);
     }
   };
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
+
   if (!strategy) {
     return (
-      <Alert variant="destructive" className="mt-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Strategy Not Found</AlertTitle>
-        <AlertDescription>
-          The requested strategy could not be found or you don't have permission to view it.
-        </AlertDescription>
-      </Alert>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
-  
+
   return (
-    <div className="container px-4 py-6 mx-auto max-w-6xl">
-      <div className="mb-6">
+    <div className="container mx-auto py-8 space-y-6">
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{strategy.title}</h1>
-        <p className="text-muted-foreground mt-2">{strategy.description}</p>
+        <Button 
+          onClick={handleRunStrategy} 
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Run Strategy
+        </Button>
       </div>
       
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Rocket className="h-5 w-5 mr-2" />
-            Execute Strategy
-          </CardTitle>
-          <CardDescription>
-            Launch this strategy to execute all associated plugins and generate results
-          </CardDescription>
+          <CardTitle>Strategy Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center">
-              <div className="mr-2 h-4 w-4 rounded-full bg-blue-500"></div>
-              <div>Status: <span className="font-medium capitalize">{strategy.status}</span></div>
+          <p className="text-muted-foreground mb-4">{strategy.description}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-medium">Status</h3>
+              <p className="capitalize">{strategy.status}</p>
             </div>
-            
-            {strategy.tags && strategy.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {strategy.tags.map((tag, i) => (
-                  <div key={i} className="px-2 py-1 bg-muted rounded text-xs">
-                    {tag}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {executionResult && executionResult.success && (
-              <Alert variant="default" className="border-green-500 bg-green-50 dark:bg-green-950">
-                <Check className="h-4 w-4 text-green-500" />
-                <AlertTitle>Strategy Executed Successfully</AlertTitle>
-                <AlertDescription>
-                  <div>Execution ID: {executionResult.execution_id}</div>
-                  <div>Execution Time: {executionResult.execution_time} seconds</div>
-                  <div>Plugins Executed: {executionResult.plugins_executed}</div>
-                  <div>XP Earned: {executionResult.xp_earned}</div>
-                </AlertDescription>
-              </Alert>
-            )}
+            <div>
+              <h3 className="font-medium">Created</h3>
+              <p>{new Date(strategy.created_at).toLocaleDateString()}</p>
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Back
-          </Button>
-          <Button 
-            onClick={handleExecuteStrategy} 
-            disabled={isExecuting || strategy.status !== 'approved'} 
-            className="flex items-center"
-          >
-            {isExecuting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Executing...
-              </>
-            ) : (
-              <>
-                <Rocket className="mr-2 h-4 w-4" />
-                Execute Strategy
-              </>
-            )}
-          </Button>
-        </CardFooter>
       </Card>
       
-      {/* Additional sections for execution history, plugins, etc. would go here */}
-      
+      {executionResult && (
+        <Card className={executionResult.success ? "border-green-500" : "border-red-500"}>
+          <CardHeader>
+            <CardTitle>Execution Result</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium">Status</h3>
+                  <p className="capitalize">{executionResult.status}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Execution Time</h3>
+                  <p>{executionResult.execution_time ? `${executionResult.execution_time.toFixed(2)}s` : 'N/A'}</p>
+                </div>
+                {executionResult.plugins_executed && (
+                  <>
+                    <div>
+                      <h3 className="font-medium">Plugins Executed</h3>
+                      <p>{executionResult.plugins_executed}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Successful Plugins</h3>
+                      <p>{executionResult.successful_plugins} / {executionResult.plugins_executed}</p>
+                    </div>
+                  </>
+                )}
+                {executionResult.xp_earned && (
+                  <div>
+                    <h3 className="font-medium">XP Earned</h3>
+                    <p>{executionResult.xp_earned}</p>
+                  </div>
+                )}
+              </div>
+              
+              {executionResult.error && (
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
+                  <h3 className="font-medium text-red-700 dark:text-red-300">Error</h3>
+                  <p className="text-red-600 dark:text-red-400">{executionResult.error}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
