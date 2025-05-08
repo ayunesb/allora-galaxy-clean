@@ -6,14 +6,19 @@ import { CheckIcon, FilterIcon } from 'lucide-react';
 
 export type NotificationType = 'all' | 'system' | 'info' | 'success' | 'warning' | 'error' | 'milestone';
 
+interface FilterOption {
+  value: NotificationType;
+  label: string;
+}
+
 interface NotificationFiltersProps {
   selectedFilter: NotificationType;
   onFilterChange: (filter: NotificationType) => void;
   className?: string;
-  filterOptions?: Array<{ value: NotificationType | null; label: string }>;
+  filterOptions?: FilterOption[];
 }
 
-const defaultNotificationTypes: { value: NotificationType; label: string }[] = [
+const defaultNotificationTypes: FilterOption[] = [
   { value: 'all', label: 'All Notifications' },
   { value: 'system', label: 'System' },
   { value: 'info', label: 'Information' },
@@ -41,8 +46,8 @@ const NotificationFilters: React.FC<NotificationFiltersProps> = ({
         <DropdownMenuContent align="end">
           {filterOptions.map((type) => (
             <DropdownMenuItem
-              key={type.value?.toString() || 'all'}
-              onClick={() => onFilterChange(type.value as NotificationType)}
+              key={type.value}
+              onClick={() => onFilterChange(type.value)}
               className="flex items-center justify-between"
             >
               <span>{type.label}</span>

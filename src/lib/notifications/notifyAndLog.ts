@@ -39,7 +39,7 @@ export async function notifyAndLog({
     });
     
     // Then, send the notification
-    const notification = await sendNotification({
+    const result = await sendNotification({
       tenant_id,
       user_id,
       title,
@@ -50,7 +50,21 @@ export async function notifyAndLog({
       is_read
     });
     
-    return notification;
+    if (result.id) {
+      return {
+        id: result.id,
+        title,
+        description,
+        type,
+        tenant_id,
+        user_id,
+        is_read,
+        action_url,
+        action_label,
+        created_at: new Date().toISOString()
+      };
+    }
+    return undefined;
   } catch (error) {
     console.error('Error in notifyAndLog:', error);
     return undefined;
@@ -88,14 +102,15 @@ export async function notifySystemEvent({
   // Send notifications to all affected users
   const notifications = await Promise.all(
     user_ids.map(user_id =>
-      sendNotification({
+      notifyAndLog({
         tenant_id,
         user_id,
         title,
         description,
         type: 'system',
         action_url,
-        action_label
+        action_label,
+        module
       })
     )
   );

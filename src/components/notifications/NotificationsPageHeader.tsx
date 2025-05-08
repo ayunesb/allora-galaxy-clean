@@ -18,13 +18,13 @@ const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
   onDeleteAll
 }) => {
   const filterOptions = [
-    { value: 'all' as NotificationType, label: 'All Types' },
-    { value: 'system' as NotificationType, label: 'System' },
-    { value: 'info' as NotificationType, label: 'Information' },
-    { value: 'success' as NotificationType, label: 'Success' },
-    { value: 'warning' as NotificationType, label: 'Warning' },
-    { value: 'error' as NotificationType, label: 'Error' },
-    { value: 'milestone' as NotificationType, label: 'Milestone' },
+    { value: 'all', label: 'All Types' },
+    { value: 'system', label: 'System' },
+    { value: 'info', label: 'Information' },
+    { value: 'success', label: 'Success' },
+    { value: 'warning', label: 'Warning' },
+    { value: 'error', label: 'Error' },
+    { value: 'milestone', label: 'Milestone' },
   ];
 
   return (

@@ -1,12 +1,18 @@
 
-// Re-export the original toast functionality from the shadcn package
-import { useToast as useShadcnToast, toast as shadcnToast } from "@/components/ui/toast";
-import { ToastActionElement } from "@/components/ui/toast";
+// Re-export the toast functionality from shadcn
+import { 
+  type ToastProps,
+  type ToastActionElement,
+  toast as shadcnToast
+} from "@/components/ui/toast";
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from './useTenantId';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useCallback } from "react";
+
+// Get the useToast function from shadcn's toaster
+import { useToast as useShadcnToast } from "@/components/ui/toaster";
 
 export const useToast = useShadcnToast;
 
@@ -15,7 +21,8 @@ export const toast = (props: {
   title: string;
   description?: string;
   action?: ToastActionElement;
-  variant?: "default" | "destructive" | "success" | "warning";
+  variant?: "default" | "destructive";
+  className?: string;
   duration?: number;
   persist?: boolean; // If true, also save to notifications system
 }) => {
@@ -24,7 +31,7 @@ export const toast = (props: {
 
   // If persist is true, save to supabase
   if (props.persist) {
-    const notificationType = props.variant || "info";
+    const notificationType = props.variant === "destructive" ? "error" : "info";
     const tenant_id = localStorage.getItem('currentTenantId');
     
     supabase.auth.getUser().then(({ data }) => {
@@ -32,7 +39,7 @@ export const toast = (props: {
         supabase.from('notifications').insert({
           id: uuidv4(),
           title: props.title,
-          message: props.description || '',
+          description: props.description || '',
           tenant_id,
           user_id: data.user.id,
           type: notificationType,
@@ -85,12 +92,14 @@ export const useNotify = () => {
       }
       
       // Also show as a toast
+      const variant = params.type === 'error' ? 'destructive' : 'default';
+      const className = getClassNameByType(params.type);
+      
       shadcnToast({
         title: params.title,
         description: params.description,
-        variant: (params.type === 'error' ? 'destructive' : 
-                 (params.type === 'success' ? 'success' : 
-                 (params.type === 'warning' ? 'warning' : 'default'))) as any
+        variant,
+        className
       });
       
       // Refresh notifications
@@ -105,3 +114,17 @@ export const useNotify = () => {
   
   return { notify };
 };
+
+// Helper function to get class names based on notification type
+function getClassNameByType(type?: string): string | undefined {
+  switch (type) {
+    case 'success':
+      return 'border-green-600 bg-green-50 dark:bg-green-950/30';
+    case 'warning':
+      return 'border-yellow-600 bg-yellow-50 dark:bg-yellow-950/30';
+    case 'error':
+      return ''; // Using destructive variant instead
+    default:
+      return undefined;
+  }
+}

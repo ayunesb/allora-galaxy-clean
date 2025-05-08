@@ -11,6 +11,11 @@ export const useNotifications = () => {
   const tenantId = useTenantId();
 
   const refreshNotifications = useCallback(async () => {
+    if (!tenantId) {
+      setLoading(false);
+      return { success: true };
+    }
+    
     try {
       setLoading(true);
       
@@ -64,6 +69,8 @@ export const useNotifications = () => {
   }, []);
   
   const markAllAsRead = useCallback(async () => {
+    if (!tenantId) return { success: true };
+    
     try {
       const { error } = await supabase
         .from('notifications')
@@ -114,57 +121,6 @@ export const useNotifications = () => {
     }
   }, []);
   
-  const deleteAllNotificationsFromDB = useCallback(async (filter: string | null, unreadOnly: boolean) => {
-    try {
-      let query = supabase
-        .from('notifications')
-        .delete()
-        .eq('tenant_id', tenantId);
-      
-      if (unreadOnly) {
-        query = query.eq('is_read', false);
-      }
-      
-      if (filter && filter !== 'all') {
-        query = query.eq('type', filter);
-      }
-      
-      const { error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Update local state based on filter
-      if (filter === null || filter === 'all') {
-        if (unreadOnly) {
-          setNotifications(prevNotifications => 
-            prevNotifications.filter(notification => notification.is_read)
-          );
-        } else {
-          setNotifications([]);
-        }
-      } else {
-        if (unreadOnly) {
-          setNotifications(prevNotifications => 
-            prevNotifications.filter(notification => 
-              notification.type !== filter || notification.is_read
-            )
-          );
-        } else {
-          setNotifications(prevNotifications => 
-            prevNotifications.filter(notification => notification.type !== filter)
-          );
-        }
-      }
-      
-      return { success: true };
-    } catch (err) {
-      console.error('Error deleting all notifications:', err);
-      return { success: false, error: err as Error };
-    }
-  }, [tenantId]);
-  
   // Calculate unread count
   const unreadCount = notifications.filter(notification => !notification.is_read).length;
   
@@ -183,7 +139,6 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    deleteAllNotificationsFromDB,
     refreshNotifications
   };
 };

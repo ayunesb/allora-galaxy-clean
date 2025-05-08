@@ -2,6 +2,7 @@
 import { useEffect, useCallback } from 'react';
 import { supabase, channel } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { Notification } from '@/types/notifications';
 
 /**
  * A hook for setting up realtime notifications using Supabase
@@ -9,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
  * @param onNotification Callback to be called when a notification is received
  * @returns An object with the cleanup function
  */
-export function useRealtimeNotifications<T = any>(onNotification: (payload: T) => void) {
+export function useRealtimeNotifications(onNotification: (payload: Notification) => void) {
   const { user } = useAuth();
 
   const setupRealtimeSubscription = useCallback(() => {
@@ -27,7 +28,7 @@ export function useRealtimeNotifications<T = any>(onNotification: (payload: T) =
         },
         (payload) => {
           // Call the callback with the payload
-          onNotification(payload.new as T);
+          onNotification(payload.new as Notification);
         }
       )
       .subscribe();
@@ -47,7 +48,6 @@ export function useRealtimeNotifications<T = any>(onNotification: (payload: T) =
   }, [setupRealtimeSubscription]);
 
   return {
-    // Add additional utilities if needed
     forceReconnect: setupRealtimeSubscription
   };
 }

@@ -4,7 +4,6 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { Badge } from '@/components/ui/badge';
-import NotificationCenter from './NotificationCenter';
 
 export interface NotificationBellProps {
   className?: string;
@@ -22,7 +21,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
   };
   
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className || ''}`}>
       <Button
         variant="ghost"
         size="icon"
@@ -40,12 +39,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
           </Badge>
         )}
       </Button>
-      
-      {isOpen && (
-        <div className="absolute right-0 mt-2 z-50">
-          <NotificationCenter isOpen={isOpen} onClose={() => setIsOpen(false)} />
-        </div>
-      )}
     </div>
   );
 };

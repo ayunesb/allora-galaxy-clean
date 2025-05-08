@@ -1,7 +1,7 @@
 
 import { useMemo } from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
-import { Notification, NotificationType } from '@/types/notifications';
+import { NotificationType } from '@/types/notifications';
 
 interface UseFilteredNotificationsOptions {
   type?: NotificationType | 'all';

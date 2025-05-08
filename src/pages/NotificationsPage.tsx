@@ -3,24 +3,19 @@ import React, { useState } from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import NotificationTabs from '@/components/notifications/NotificationTabs';
 import NotificationFilters, { NotificationType } from '@/components/notifications/NotificationFilters';
+import NotificationsPageHeader from '@/components/notifications/NotificationsPageHeader';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Trash2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
+import PageHelmet from '@/components/PageHelmet';
 
 const NotificationsPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('all');
   const [typeFilter, setTypeFilter] = useState<NotificationType>('all');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  const { 
-    notifications, 
-    loading, 
-    markAsRead,
-    deleteNotification,
-    refreshNotifications
-  } = useNotificationsContext();
+  const { notifications, loading } = useNotificationsContext();
+  const { markAllAsRead, deleteNotification, refreshNotifications } = useNotificationActions();
   
   // Filter notifications based on selected type
   const filteredNotifications = React.useMemo(() => {
@@ -41,21 +36,30 @@ const NotificationsPage: React.FC = () => {
   
   const handleDeleteAll = async () => {
     try {
-      setIsDeleting(true);
+      setIsLoading(true);
       
       // In a real implementation, you would call a function to delete all notifications
       // For now, we'll mock it with a toast
       toast({
         title: "Deleting notifications",
-        description: "This functionality is not yet implemented."
+        description: "Working on clearing your notifications..."
       });
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Delete each notification individually
+      for (const notification of filteredNotifications) {
+        await deleteNotification(notification.id);
+      }
       
       toast({
-        title: "Operation complete",
-        description: "All filtered notifications would be deleted."
+        title: "Notifications cleared",
+        description: `Successfully cleared ${filteredNotifications.length} notifications.`,
+        variant: "default",
+        className: "border-green-600 bg-green-50 dark:bg-green-950/30"
       });
+
+      // Refresh the list
+      await refreshNotifications();
+      
     } catch (error) {
       console.error('Error deleting notifications:', error);
       toast({
@@ -64,70 +68,54 @@ const NotificationsPage: React.FC = () => {
         variant: "destructive"
       });
     } finally {
-      setIsDeleting(false);
+      setIsLoading(false);
     }
   };
   
-  const handleRefresh = async () => {
+  const handleMarkAllAsRead = async () => {
     try {
-      setIsRefreshing(true);
-      await refreshNotifications();
+      setIsLoading(true);
+      await markAllAsRead();
+      
       toast({
-        title: "Notifications refreshed",
-        description: "Your notifications have been updated."
+        title: "Notifications marked as read",
+        description: "All notifications have been marked as read.",
+        variant: "default",
+        className: "border-green-600 bg-green-50 dark:bg-green-950/30"
       });
     } catch (error) {
-      console.error('Error refreshing notifications:', error);
+      console.error('Error marking notifications as read:', error);
       toast({
         title: "Error",
-        description: "Failed to refresh notifications",
+        description: "Failed to mark notifications as read",
         variant: "destructive"
       });
     } finally {
-      setIsRefreshing(false);
+      setIsLoading(false);
     }
   };
   
   return (
     <div className="container py-6 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold">Notifications</h1>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDeleteAll}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete All
-          </Button>
-          
-          <NotificationFilters
-            selectedFilter={typeFilter}
-            onFilterChange={setTypeFilter}
-          />
-        </div>
-      </div>
+      <PageHelmet 
+        title="Notifications" 
+        description="View and manage your notifications"
+      />
+      
+      <NotificationsPageHeader
+        filter={typeFilter}
+        setFilter={setTypeFilter}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onDeleteAll={handleDeleteAll}
+      />
       
       <Card className="overflow-hidden">
         <NotificationTabs
           selectedTab={selectedTab}
           setSelectedTab={setSelectedTab}
           notifications={filteredNotifications}
-          loading={loading}
-          markAsRead={markAsRead}
+          loading={loading || isLoading}
+          markAsRead={markAllAsRead}
           onDelete={deleteNotification}
         />
       </Card>

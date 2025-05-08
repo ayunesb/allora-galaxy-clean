@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
-import { NotificationsContextType } from '@/types/notifications';
+import { Notification, NotificationsContextType } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
 // Create the context with default values
@@ -31,28 +31,11 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     unreadCount,
     loading,
     error,
-    refreshNotifications: originalRefreshNotifications,
-    markAsRead: originalMarkAsRead,
-    markAllAsRead: originalMarkAllAsRead,
-    deleteNotification: originalDeleteNotification,
+    refreshNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
   } = useNotifications();
-  
-  // Wrap the original functions to ensure they return Promise<void>
-  const refreshNotifications = async (): Promise<void> => {
-    await originalRefreshNotifications();
-  };
-  
-  const markAsRead = async (id: string): Promise<void> => {
-    await originalMarkAsRead(id);
-  };
-  
-  const markAllAsRead = async (): Promise<void> => {
-    await originalMarkAllAsRead();
-  };
-  
-  const deleteNotification = async (id: string): Promise<void> => {
-    await originalDeleteNotification(id);
-  };
   
   // Set up polling for new notifications
   React.useEffect(() => {
@@ -70,7 +53,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     return () => {
       clearInterval(pollingInterval);
     };
-  }, [tenantId]);
+  }, [tenantId, refreshNotifications]);
   
   const contextValue: NotificationsContextType = {
     notifications,
@@ -96,7 +79,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
 export const useNotificationsContext = (): NotificationsContextType => {
   const context = useContext(NotificationsContext);
   
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useNotificationsContext must be used within a NotificationsProvider');
   }
   
