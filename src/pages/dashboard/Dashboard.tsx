@@ -2,21 +2,27 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card } from '@/components/ui/card';
 import KpiSection from '@/components/dashboard/KpiSection';
 import StrategyCard from '@/components/strategy/StrategyCard';
 import { fetchStrategies } from '@/services/strategyService';
 import PageHelmet from '@/components/PageHelmet';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { StrategiesGrid } from '@/components/dashboard/StrategyGrid';
-import { CalendarIcon, BarChart, CheckCircle, Clock } from 'lucide-react';
-import { Strategy } from '@/types/strategy';
+import { CheckCircle, Clock, CalendarIcon } from 'lucide-react';
 
 interface DashboardProps {}
 
+interface Strategy {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+  tags: string[];
+}
+
 const Dashboard: React.FC<DashboardProps> = () => {
-  const [activeTab, setActiveTab] = React.useState('overview');
   const { tenant } = useWorkspace();
 
   // Fetch strategies
@@ -27,9 +33,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
   });
 
   // Filter strategies by status
-  const approvedStrategies = strategies.filter(s => s.status === 'approved');
-  const pendingStrategies = strategies.filter(s => s.status === 'pending');
-  const draftStrategies = strategies.filter(s => s.status === 'draft');
+  const approvedStrategies = strategies.filter((s: Strategy) => s.status === 'approved');
+  const pendingStrategies = strategies.filter((s: Strategy) => s.status === 'pending');
+  const draftStrategies = strategies.filter((s: Strategy) => s.status === 'draft');
 
   return (
     <>
@@ -48,7 +54,15 @@ const Dashboard: React.FC<DashboardProps> = () => {
         </div>
         
         {/* KPI Section */}
-        <KpiSection />
+        <KpiSection 
+          title="Key Performance Indicators" 
+          isLoading={false}
+          kpiData={[
+            { name: 'Total Strategies', value: strategies.length },
+            { name: 'Approved Strategies', value: approvedStrategies.length },
+            { name: 'Pending Strategies', value: pendingStrategies.length }
+          ]}
+        />
         
         {/* Strategies Section */}
         <div>
@@ -83,7 +97,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             
             <TabsContent value="approved">
               <StrategiesGrid isLoading={isLoadingStrategies} strategies={approvedStrategies}>
-                {approvedStrategies.map((strategy) => (
+                {approvedStrategies.map((strategy: Strategy) => (
                   <StrategyCard 
                     key={strategy.id}
                     title={strategy.title}
@@ -100,7 +114,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             
             <TabsContent value="pending">
               <StrategiesGrid isLoading={isLoadingStrategies} strategies={pendingStrategies}>
-                {pendingStrategies.map((strategy) => (
+                {pendingStrategies.map((strategy: Strategy) => (
                   <StrategyCard 
                     key={strategy.id}
                     title={strategy.title}
@@ -116,7 +130,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             
             <TabsContent value="draft">
               <StrategiesGrid isLoading={isLoadingStrategies} strategies={draftStrategies}>
-                {draftStrategies.map((strategy) => (
+                {draftStrategies.map((strategy: Strategy) => (
                   <StrategyCard 
                     key={strategy.id}
                     title={strategy.title}

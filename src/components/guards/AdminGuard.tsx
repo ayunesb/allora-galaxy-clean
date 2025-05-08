@@ -2,65 +2,30 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import LoadingScreen from '@/components/LoadingScreen';
 
 interface AdminGuardProps {
   children: React.ReactNode;
-  fallback?: React.ReactNode;
-  redirect?: boolean;
 }
 
-export const AdminGuard: React.FC<AdminGuardProps> = ({
-  children,
-  fallback,
-  redirect = true,
-}) => {
-  const { currentRole, loading } = useWorkspace();
+/**
+ * Guard component to protect admin routes
+ * Only allows access if user has admin role
+ */
+const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
+  const { tenant, isLoading, error } = useWorkspace();
   
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+  // Show loading while checking role
+  if (isLoading) {
+    return <LoadingScreen />;
   }
   
-  // Check if user has admin privileges
-  const isAdmin = currentRole === 'owner' || currentRole === 'admin';
-  
-  if (!isAdmin) {
-    // Redirect to unauthorized page
-    if (redirect) {
-      return <Navigate to="/unauthorized" replace />;
-    }
-    
-    // Show fallback UI if provided
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-    
-    // Default fallback UI
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You don't have permission to access this page. Please contact an administrator.
-          </AlertDescription>
-        </Alert>
-        
-        <Button variant="secondary" asChild>
-          <a href="/">Return to Dashboard</a>
-        </Button>
-      </div>
-    );
+  // Redirect to unauthorized page if user doesn't have admin role
+  if (!tenant?.role || !['admin', 'owner'].includes(tenant.role)) {
+    return <Navigate to="/unauthorized" replace />;
   }
   
-  // User has admin rights, render children
+  // Return children if user has admin role
   return <>{children}</>;
 };
 

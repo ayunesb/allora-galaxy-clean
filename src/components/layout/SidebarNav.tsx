@@ -23,21 +23,6 @@ interface SidebarNavProps {
   className?: string;
 }
 
-// Define icon mapping
-const iconMap: Record<string, LucideIcon> = {
-  'layout-dashboard': LayoutDashboard,
-  'grid-3x3': Grid3x3,
-  'rocket': Rocket,
-  'bot': Bot,
-  'plug': Plug,
-  'bar-chart': BarChart,
-  'settings': Settings,
-  'users': Users,
-  'brain': Brain,
-  'list': List,
-  'clipboard-list': ClipboardList
-};
-
 const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 

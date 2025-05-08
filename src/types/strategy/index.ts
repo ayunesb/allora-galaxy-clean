@@ -1,49 +1,32 @@
 
-import { Notification } from '../notifications';
-
-// Define the input interface for executing a strategy
-export interface ExecuteStrategyInput {
-  strategy_id: string;
-  tenant_id: string;
-  user_id?: string;
-  options?: Record<string, any>;
-}
-
-// Define the result interface for a strategy execution
-export interface ExecuteStrategyResult {
-  success: boolean;
-  error?: string;
-  execution_id?: string;
-  execution_time?: number;
-  message?: string;
-  status?: 'success' | 'partial' | 'failure' | 'pending';
-  plugins_executed?: number;
-  successful_plugins?: number;
-  xp_earned?: number;
-  outputs?: Record<string, any>;
-  results?: Record<string, any>;
-  logs?: Array<any>;
-  data?: any;
-  strategy_id?: string;
-}
-
-// Define a notification type for strategy status notifications
-export interface StrategyStatusNotification extends Omit<Notification, 'id' | 'created_at'> {
-  tenant_id: string;
-  user_id: string;
+export interface Strategy {
+  id: string;
   title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  action_url?: string;
-  action_label?: string;
-  is_read: boolean;
+  description: string;
+  status: 'draft' | 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at?: string;
+  approved_by?: string;
+  created_by?: string;
+  priority?: string;
+  tags?: string[];
+  tenant_id?: string;
+  due_date?: string;
+  completion_percentage?: number;
 }
 
-// Add ValidationResult interface required by strategy functions
-export interface ValidationResult {
-  valid: boolean;
+export interface StrategyExecutionResult {
+  success: boolean;
+  strategyId?: string;
+  executionId?: string;
   error?: string;
-  errors?: string[];
+  status?: string;
 }
 
-export * from './fixed';
+export interface StrategyInput {
+  title: string;
+  description: string;
+  priority?: string;
+  tags?: string[];
+  due_date?: string | null;
+}
