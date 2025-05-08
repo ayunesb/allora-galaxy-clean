@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -7,23 +8,15 @@ import React, {
 } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
 import { notifyError } from '@/components/ui/BetterToast';
 import { Tenant, UserRole } from '@/types/fixed';
 import { snakeToCamel } from '@/types/fixed';
 import { NavigationItem } from '@/types/navigation';
 import {
-  Home,
-  Settings,
-  Users,
   BarChart,
+  Users,
+  Settings,
   Puzzle,
-  Building2,
-  KeyRound,
-  Mail,
-  HelpCircle,
-  Plus,
-  LucideIcon,
   LayoutDashboard,
   ListChecks,
   TrendingUp,
@@ -57,7 +50,6 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
   const [loading, setLoading] = useState(true);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   // Add userRole property as an alias of currentRole for backward compatibility
   const userRole = currentRole;

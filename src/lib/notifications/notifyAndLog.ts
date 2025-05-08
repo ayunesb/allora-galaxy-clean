@@ -13,7 +13,7 @@ export async function notifyAndLog({
   tenant_id,
   user_id,
   title,
-  message,
+  description, // Changed from message to description
   type = 'info',
   action_url,
   action_label,
@@ -23,7 +23,7 @@ export async function notifyAndLog({
   tenant_id: string;
   user_id: string;
   title: string;
-  message: string;
+  description: string; // Changed from message to description
   type?: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
@@ -43,7 +43,7 @@ export async function notifyAndLog({
       tenant_id,
       user_id,
       title,
-      message,
+      description, // Using description instead of message
       type,
       action_url,
       action_label,
@@ -64,7 +64,7 @@ export async function notifySystemEvent({
   tenant_id,
   user_ids,
   title,
-  message,
+  description, // Changed from message to description
   event,
   module = 'system',
   action_url,
@@ -73,7 +73,7 @@ export async function notifySystemEvent({
   tenant_id: string;
   user_ids: string[];
   title: string;
-  message: string;
+  description: string; // Changed from message to description
   event: string;
   module?: string;
   action_url?: string;
@@ -92,7 +92,7 @@ export async function notifySystemEvent({
         tenant_id,
         user_id,
         title,
-        message,
+        description, // Using description instead of message
         type: 'system',
         action_url,
         action_label

@@ -4,6 +4,8 @@ import { Notification } from '@/types/notifications';
 import NotificationItem from './NotificationItem';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 export interface NotificationCenterContentProps {
   notifications: Notification[];
@@ -18,6 +20,7 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   onMarkAsRead,
   onDelete,
   loading = false,
+  onMarkAllAsRead,
 }) => {
   if (loading) {
     return <NotificationCenterLoading />;
@@ -29,6 +32,18 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
 
   return (
     <div className="space-y-2 p-2">
+      {onMarkAllAsRead && notifications.some(n => !n.is_read) && (
+        <div className="flex justify-end p-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onMarkAllAsRead()}
+          >
+            Mark all as read
+          </Button>
+        </div>
+      )}
+      
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}

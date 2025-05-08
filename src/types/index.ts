@@ -1,3 +1,4 @@
+
 // Central type exports file
 // This file re-exports all types from the type system for easier imports
 
@@ -20,7 +21,7 @@ export interface Strategy {
   id: string;
   title: string;
   description: string;
-  status: string;
+  status: "pending" | "approved" | "rejected" | "in_progress" | "completed";
   created_at?: string;
   updated_at?: string;
   tags?: string[];
@@ -47,4 +48,5 @@ export interface KPI {
   updated_at: string;
   tenant_id: string;
   metadata?: Record<string, any>;
+  date: string;
 }

@@ -36,4 +36,17 @@ export interface StrategyExecutionResult {
   errors?: string[];
   warnings?: string[];
   execution_time_ms?: number;
+  plugins_executed?: number;
+  successful_plugins?: number;
+  xp_earned?: number;
+  data?: Record<string, any>;
+  error?: string;
+  execution_time?: number;
+}
+
+export interface ExecuteStrategyInput {
+  strategy_id: string;
+  tenant_id: string;
+  user_id?: string;
+  options?: Record<string, any>;
 }

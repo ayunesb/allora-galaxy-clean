@@ -15,8 +15,7 @@ export interface NotificationContent {
 export interface Notification {
   id: string;
   title: string;
-  description?: string;
-  message?: string; // Add message as an optional property to fix TS errors
+  description: string; // This maps to 'message' in the UI
   created_at: string;
   is_read?: boolean;
   read_at?: string;

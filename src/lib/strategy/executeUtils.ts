@@ -1,198 +1,67 @@
 
-import { ExecuteStrategyInput, ValidationResult } from './types';
-import { getEnv } from '../utils/env';
-import { createClient } from '@supabase/supabase-js';
+import { StrategyExecutionResult } from './types';
 
 /**
- * Validate strategy execution input
- * @param input The input to validate
- * @returns Validation result
+ * Helper function to safely get environment variables with fallbacks
  */
-export function validateInput(input: any): ValidationResult {
-  const errors: string[] = [];
-  
+export function safeGetEnv(name: string, fallback: string = ""): string {
+  try {
+    // Use a more TypeScript-friendly approach to check for Deno environment
+    if (typeof globalThis !== "undefined" && 
+        typeof (globalThis as any).Deno !== "undefined" && 
+        typeof (globalThis as any).Deno.env?.get === "function") {
+      return (globalThis as any).Deno.env.get(name) ?? fallback;
+    }
+    
+    // Node.js environment
+    if (typeof process !== "undefined" && process.env) {
+      return process.env[name] || fallback;
+    }
+    
+    return fallback;
+  } catch (err) {
+    console.warn(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
+}
+
+/**
+ * Validate input parameters for strategy execution
+ */
+export function validateStrategyInput(input: any): { valid: boolean; error?: string } {
   if (!input) {
-    errors.push("Request body is required");
-    return { valid: false, errors };
+    return { valid: false, error: "No input provided" };
   }
   
   if (!input.strategy_id) {
-    errors.push("strategy_id is required");
+    return { valid: false, error: "Strategy ID is required" };
   }
   
   if (!input.tenant_id) {
-    errors.push("tenant_id is required");
+    return { valid: false, error: "Tenant ID is required" };
   }
   
-  return { valid: errors.length === 0, errors };
+  return { valid: true };
 }
 
 /**
- * Create a Supabase admin client with service role
- * @returns Supabase client instance or null if environment variables are missing
+ * Track execution metrics for a strategy run
  */
-export function createSupabaseAdmin() {
-  const supabaseUrl = getEnv("SUPABASE_URL");
-  const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
-    return null;
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
-
-/**
- * Log execution start to database
- * @param supabase Supabase client
- * @param executionId Unique execution ID
- * @param input Execution input
- * @returns Success status
- */
-export async function logExecutionStart(
-  supabase: any,
-  executionId: string,
-  input: ExecuteStrategyInput
-): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('executions')
-      .insert({
-        id: executionId,
-        tenant_id: input.tenant_id,
-        strategy_id: input.strategy_id,
-        executed_by: input.user_id,
-        type: 'strategy',
-        status: 'pending',
-        input: input.options || {},
-        created_at: new Date().toISOString()
-      });
-    
-    if (error) {
-      console.error(`Failed to record execution start: ${error.message}`);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error recording execution start:", error);
-    return false;
-  }
-}
-
-/**
- * Log execution completion to database
- * @param supabase Supabase client
- * @param executionId Unique execution ID
- * @param status Execution status
- * @param output Execution output
- * @param executionTime Time taken to execute
- * @param xpEarned XP earned from execution
- */
-export async function logExecutionComplete(
-  supabase: any,
-  executionId: string,
-  status: 'success' | 'partial' | 'failure',
-  output: any,
-  executionTime: number,
-  xpEarned: number
+export async function trackStrategyMetrics(
+  tenant_id: string,
+  strategy_id: string,
+  execution_id: string,
+  result: StrategyExecutionResult
 ): Promise<void> {
   try {
-    await supabase
-      .from('executions')
-      .update({
-        status,
-        output,
-        execution_time: executionTime,
-        xp_earned: xpEarned
-      })
-      .eq('id', executionId);
+    console.log(`[${execution_id}] Strategy execution metrics:`, {
+      tenant_id,
+      strategy_id,
+      success: result.success,
+      execution_time: result.execution_time,
+      status: result.status
+    });
   } catch (error) {
-    console.error("Error updating execution record:", error);
-  }
-}
-
-/**
- * Log plugin execution to database
- * @param supabase Supabase client
- * @param tenantId Tenant ID
- * @param strategyId Strategy ID
- * @param pluginId Plugin ID
- * @param status Execution status
- * @param input Execution input
- * @param output Execution output 
- * @param error Error message if any
- * @param executionTime Time taken to execute
- * @param xpEarned XP earned from execution
- * @returns Log entry ID or null on error
- */
-export async function logPluginExecution(
-  supabase: any,
-  tenantId: string,
-  strategyId: string,
-  pluginId: string,
-  status: 'success' | 'failure' | 'pending',
-  input: any,
-  output: any = null,
-  error: string | null = null,
-  executionTime: number = 0,
-  xpEarned: number = 0
-): Promise<string | null> {
-  try {
-    const { data, error: logError } = await supabase
-      .from('plugin_logs')
-      .insert({
-        plugin_id: pluginId,
-        strategy_id: strategyId,
-        tenant_id: tenantId,
-        status,
-        input,
-        output,
-        error,
-        execution_time: executionTime,
-        xp_earned: xpEarned
-      })
-      .select('id')
-      .single();
-    
-    if (logError) {
-      console.error(`Failed to log plugin execution: ${logError.message}`);
-      return null;
-    }
-    
-    return data?.id || null;
-  } catch (error) {
-    console.error("Error logging plugin execution:", error);
-    return null;
-  }
-}
-
-/**
- * Log system event to database
- * @param supabase Supabase client
- * @param tenantId Tenant ID
- * @param module System module
- * @param event Event name
- * @param context Event context
- */
-export async function logSystemEvent(
-  supabase: any,
-  tenantId: string,
-  module: string,
-  event: string,
-  context: any = {}
-): Promise<void> {
-  try {
-    await supabase
-      .from('system_logs')
-      .insert({
-        tenant_id: tenantId,
-        module,
-        event,
-        context
-      });
-  } catch (error) {
-    console.error("Error logging system event:", error);
+    console.error("Failed to track strategy metrics:", error);
   }
 }

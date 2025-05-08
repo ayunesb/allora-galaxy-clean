@@ -1,128 +1,109 @@
 
-import React from 'react';
+import { toast as sonnerToast, Toast, ToastProps } from 'sonner';
 import { 
   CheckCircle, 
-  XCircle, 
+  AlertCircle, 
   AlertTriangle, 
   Info,
 } from 'lucide-react';
-import { toast as sonnerToast } from 'sonner';
-import { toast } from '@/hooks/use-toast';
-import { Button } from './button';
-import { ToastActionElement } from './toast';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
-export type ToastVariant = 'default' | 'destructive' | 'success' | 'warning' | 'info';
+type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
-interface ToastProps {
-  title: string;
-  description?: string;
-  variant?: ToastVariant;
-  action?: ToastActionElement;
+/**
+ * Display a success toast notification
+ */
+export function notifySuccess(title: string, message?: string) {
+  sonnerToast.success(title, { description: message });
 }
 
-function getIconForVariant(variant: ToastVariant) {
-  switch (variant) {
-    case 'success':
-      return <CheckCircle className="h-5 w-5 text-green-600" />;
-    case 'destructive':
-      return <XCircle className="h-5 w-5 text-red-600" />;
-    case 'warning':
-      return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
-    case 'info':
-      return <Info className="h-5 w-5 text-blue-600" />;
-    default:
-      return null;
-  }
+/**
+ * Display an error toast notification
+ */
+export function notifyError(title: string, message?: string) {
+  sonnerToast.error(title, { description: message });
 }
 
-export function notifySuccess(title: string, description?: string) {
-  toast({
-    title,
-    description,
-    variant: "default",
-    className: "border-green-600 bg-green-50 dark:bg-green-950/30",
-  });
+/**
+ * Display a warning toast notification
+ */
+export function notifyWarning(title: string, message?: string) {
+  sonnerToast.warning(title, { description: message });
 }
 
-export function notifyError(title: string, description?: string) {
-  toast({
-    title,
-    description,
-    variant: "destructive",
-  });
+/**
+ * Display an info toast notification
+ */
+export function notifyInfo(title: string, message?: string) {
+  sonnerToast.info(title, { description: message });
 }
 
-export function notifyWarning(title: string, description?: string) {
-  toast({
-    title,
-    description,
-    variant: "default",
-    className: "border-yellow-600 bg-yellow-50 dark:bg-yellow-950/30",
-  });
-}
+/**
+ * Custom toast component for consistent styling
+ */
+export function BetterToast({ toast, position, ...props }: ToastProps) {
+  const { id, title, description, action, type, cancel } = toast;
 
-export function notifyInfo(title: string, description?: string) {
-  toast({
-    title,
-    description,
-    variant: "default",
-    className: "border-blue-600 bg-blue-50 dark:bg-blue-950/30",
-  });
-}
+  const variantClassNames = {
+    success: 'border-green-500/20 bg-green-500/10 text-green-500',
+    error: 'border-red-500/20 bg-red-500/10 text-red-500',
+    warning: 'border-yellow-500/20 bg-yellow-500/10 text-yellow-500',
+    info: 'border-blue-500/20 bg-blue-500/10 text-blue-500',
+    default: 'border-gray-500/20 bg-gray-500/10 text-foreground',
+  };
 
-export function BetterToast({
-  title,
-  description,
-  variant = 'default',
-  action,
-}: ToastProps) {
-  // Convert our internal variant to what toast component accepts
-  let toastVariant: 'default' | 'destructive';
-  if (variant === 'destructive') {
-    toastVariant = 'destructive';
-  } else {
-    toastVariant = 'default';
-  }
-  
-  // Ensure action is properly typed as ToastActionElement
-  let actionElement: ToastActionElement | undefined = undefined;
-  
-  if (action) {
-    if (typeof action === 'string') {
-      actionElement = (
-        <Button variant="outline" size="sm" asChild>
-          <span>{action}</span>
-        </Button>
-      ) as ToastActionElement;
-    } else {
-      actionElement = action;
-    }
-  }
-  
-  return toast({
-    title,
-    description,
-    variant: toastVariant,
-    className: variant !== 'default' && variant !== 'destructive' 
-      ? `border-${variant === 'success' ? 'green' : variant === 'warning' ? 'yellow' : 'blue'}-600` 
-      : undefined,
-    action: actionElement,
-  });
-}
+  const variant = type as ToastVariant || 'default';
+  const toastClassName = variantClassNames[variant] || variantClassNames.default;
 
-// Sonner toast variants for simpler usage patterns
-export function sonnerSuccess(title: string, description?: string) {
-  sonnerToast.success(title, { description });
-}
-
-export function sonnerError(title: string, description?: string) {
-  sonnerToast.error(title, { description });
-}
-
-export function sonnerWarning(title: string, description?: string) {
-  sonnerToast.warning(title, { description });
-}
-
-export function sonnerInfo(title: string, description?: string) {
-  sonnerToast.info(title, { description });
+  return (
+    <Toast
+      className={cn(
+        "group relative border p-3 rounded-xl shadow-lg",
+        toastClassName
+      )}
+      {...props}
+    >
+      <div className="flex gap-3">
+        <div className="flex-shrink-0">
+          {type === 'success' && <CheckCircle className="h-5 w-5" />}
+          {type === 'error' && <AlertCircle className="h-5 w-5" />}
+          {type === 'warning' && <AlertTriangle className="h-5 w-5" />}
+          {type === 'info' && <Info className="h-5 w-5" />}
+        </div>
+        <div className="flex-1 space-y-1">
+          {title && <div className="font-semibold text-foreground">{title}</div>}
+          {description && <div className="text-sm text-muted-foreground">{description}</div>}
+          
+          {(action || cancel) && (
+            <div className="mt-2 flex gap-2">
+              {action && (
+                <Button 
+                  size="sm" 
+                  onClick={() => {
+                    action.onClick();
+                    sonnerToast.dismiss(id);
+                  }}
+                >
+                  {action.label}
+                </Button>
+              )}
+              {cancel && (
+                <Button 
+                  size="sm"
+                  variant="outline" 
+                  onClick={() => {
+                    if (cancel.onClick) cancel.onClick();
+                    sonnerToast.dismiss(id);
+                  }}
+                >
+                  {cancel.label}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Toast>
+  );
 }

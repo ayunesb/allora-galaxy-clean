@@ -1,94 +1,79 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { createNotification } from '@/services/notificationService';
+import { useAuth } from '@/context/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { sendNotification } from '@/lib/notifications/sendNotification';
+import { notifySuccess, notifyError } from '@/components/ui/BetterToast';
+import { Strategy } from '@/types';
 
-/**
- * Hook for handling AI strategy generation
- */
 export const useStrategyGeneration = () => {
-  const { toast } = useToast();
-  const [isGeneratingStrategy, setIsGeneratingStrategy] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { currentTenant } = useWorkspace();
+  const { user } = useAuth();
 
-  /**
-   * Generate AI strategy based on company and persona data
-   */
-  const generateAIStrategy = async (tenantId: string, userId: string, formData: any) => {
-    setIsGeneratingStrategy(true);
+  const generateStrategy = async (
+    title: string,
+    description: string,
+    goals: string[]
+  ): Promise<{ success: boolean; strategy?: Strategy; error?: Error }> => {
+    if (!currentTenant || !user) {
+      notifyError('Error', 'No active workspace or user session');
+      return { success: false, error: new Error('No active workspace or user session') };
+    }
+
+    setIsGenerating(true);
+
     try {
-      // Prepare data for the AI
-      const companyProfile = {
-        name: formData.companyName,
-        industry: formData.industry,
-        size: formData.teamSize,
-        revenue_range: formData.revenueRange,
-        website: formData.website,
-        description: formData.description
-      };
+      const strategyId = uuidv4();
       
-      const personaProfile = {
-        name: formData.personaName,
-        tone: formData.tone,
-        goals: formData.goals.split(',').map((goal: string) => goal.trim())
-      };
-      
-      // Call the edge function to generate a strategy
-      const { data, error } = await supabase.functions.invoke('generateStrategy', {
-        body: {
-          tenant_id: tenantId,
-          company_profile: companyProfile,
-          persona_profile: personaProfile,
-          user_id: userId
-        }
-      });
-      
-      if (error) {
-        throw new Error(error.message || 'Failed to generate strategy');
-      }
-      
-      toast({
-        title: 'Strategy generated!',
-        description: 'Your AI-powered strategy is ready to review.',
-      });
+      // Create strategy record
+      const { data: strategy, error: createError } = await supabase
+        .from('strategies')
+        .insert({
+          id: strategyId,
+          title,
+          description,
+          tags: goals,
+          status: 'pending',
+          tenant_id: currentTenant.id,
+          created_by: user.id,
+          completion_percentage: 0,
+          priority: 'medium'
+        })
+        .select()
+        .single();
 
-      // Create notification about the new strategy
-      await createNotification({
-        tenant_id: tenantId,
-        user_id: userId,
-        title: 'New AI Strategy Ready',
-        message: 'Your first AI-generated strategy has been created and is ready for review.',
+      if (createError) {
+        throw createError;
+      }
+
+      // Send notification about the new strategy
+      await sendNotification({
+        tenant_id: currentTenant.id,
+        user_id: user.id,
+        title: 'Strategy Created',
+        description: `Your strategy "${title}" has been created and is ready for review.`,
         type: 'info',
-        action_url: '/strategies',
+        action_url: `/strategies/${strategyId}`,
         action_label: 'View Strategy'
       });
+
+      notifySuccess('Strategy Created', 'Your strategy has been created successfully');
       
-      // Log successful generation
-      await logSystemEvent(
-        tenantId,
-        'strategy',
-        'strategy_generated_onboarding',
-        { strategy_id: data?.strategy?.id }
-      );
-      
-      return data?.strategy;
+      return { success: true, strategy };
     } catch (error: any) {
       console.error('Strategy generation error:', error);
-      toast({
-        title: 'Strategy generation failed',
-        description: error.message || 'Please try again later',
-        variant: 'destructive',
-      });
-      
-      return null;
+      notifyError('Strategy Creation Failed', error.message);
+      return { success: false, error };
     } finally {
-      setIsGeneratingStrategy(false);
+      setIsGenerating(false);
     }
   };
 
   return {
-    generateAIStrategy,
-    isGeneratingStrategy
+    isGenerating,
+    generateStrategy
   };
 };

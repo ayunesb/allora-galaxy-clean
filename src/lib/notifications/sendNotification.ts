@@ -7,7 +7,7 @@ interface SendNotificationParams {
   tenant_id: string;
   user_id: string;
   title: string;
-  message: string; // Match the name in Notification type
+  description: string; // Changed from message to description to match DB schema
   type?: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
@@ -22,7 +22,7 @@ export async function sendNotification({
   tenant_id,
   user_id,
   title,
-  message,
+  description,
   type = 'info',
   action_url,
   action_label,
@@ -34,8 +34,7 @@ export async function sendNotification({
       tenant_id,
       user_id,
       title,
-      description: message, // Map message to description for DB schema
-      message, // Keep message for type compatibility
+      description, // Directly using description for DB schema
       type,
       is_read,
       action_url,
@@ -53,21 +52,7 @@ export async function sendNotification({
       return undefined;
     }
 
-    // Transform to match our Notification interface
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      message: data.description || '',
-      type: data.type as 'info' | 'success' | 'warning' | 'error' | 'system',
-      created_at: data.created_at,
-      read_at: data.is_read ? data.updated_at : null,
-      is_read: data.is_read,
-      tenant_id: data.tenant_id,
-      user_id: data.user_id,
-      action_url: data.action_url,
-      action_label: data.action_label
-    };
+    return data as Notification;
   } catch (error) {
     console.error('Error in sendNotification:', error);
     return undefined;
@@ -81,7 +66,7 @@ export async function broadcastNotification({
   tenant_id,
   user_ids,
   title,
-  message,
+  description,
   type = 'info',
   action_url,
   action_label
@@ -92,7 +77,7 @@ export async function broadcastNotification({
         tenant_id,
         user_id,
         title,
-        message,
+        description,
         type,
         action_url,
         action_label

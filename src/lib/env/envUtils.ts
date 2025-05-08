@@ -41,13 +41,12 @@ export function getEnvVar(name: string, fallback: string = ''): string {
     if (typeof globalThis !== 'undefined' && 
         'Deno' in globalThis && 
         typeof (globalThis as any).Deno?.env?.get === 'function') {
-      const value = (globalThis as any).Deno.env.get(name);
-      if (value) return value;
+      return (globalThis as any).Deno.env.get(name) || fallback;
     }
     
     // Node.js environment
     if (typeof process !== 'undefined' && process.env && process.env[name]) {
-      return process.env[name];
+      return process.env[name] || fallback;
     }
     
     // Return fallback if no value found

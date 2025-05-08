@@ -2,22 +2,26 @@
 import { useEffect } from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
-import { useNotificationActions } from '@/hooks/useNotificationActions';
 
 interface NotificationCenterProps {
   className?: string;
 }
 
 export const NotificationCenter = ({ className }: NotificationCenterProps) => {
-  const { isOpen, setIsOpen, notifications, loading } = useNotificationsContext();
-  const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
+  const { 
+    isOpen, 
+    setIsOpen, 
+    notifications, 
+    loading, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification 
+  } = useNotificationsContext();
   
-  // Get unreadCount from notifications
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
   // Close notification center when Escape key is pressed
   useEffect(() => {
     const handleEscPress = (e: KeyboardEvent) => {
@@ -31,11 +35,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
       window.removeEventListener('keydown', handleEscPress);
     };
   }, [isOpen, setIsOpen]);
-
-  // Close the notification center
-  const handleClose = () => {
-    setIsOpen(false);
-  };
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -55,6 +54,10 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle>Notifications</SheetTitle>
+        </SheetHeader>
+        
         <NotificationCenterContent 
           notifications={notifications}
           onMarkAsRead={markAsRead}

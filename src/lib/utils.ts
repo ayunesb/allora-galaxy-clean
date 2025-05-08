@@ -1,74 +1,88 @@
 
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
+/**
+ * Merges Tailwind CSS classes
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(input: string | number | Date): string {
-  const date = new Date(input);
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+/**
+ * Format number with commas for thousands
+ */
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-US').format(num);
 }
 
-export function formatDateTime(input: string | number | Date): string {
-  const date = new Date(input);
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-  });
+/**
+ * Format currency amount with $ symbol and 2 decimal places
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
-export function slugify(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+/**
+ * Format percentage with % symbol
+ */
+export function formatPercentage(value: number, minimumFractionDigits = 2): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'percent',
+    minimumFractionDigits,
+    maximumFractionDigits: minimumFractionDigits,
+  }).format(value / 100);
 }
 
-export function truncate(str: string, length: number): string {
-  return str.length > length ? `${str.substring(0, length)}...` : str;
+/**
+ * Format trend percentage with + or - sign
+ */
+export function formatTrendPercentage(value: number | undefined | null): string {
+  if (value === undefined || value === null) return '0%';
+  
+  const sign = value >= 0 ? '+' : '';
+  return `${sign}${value.toFixed(1)}%`;
 }
 
-export function getInitials(name: string): string {
-  const parts = name.split(" ");
-  if (parts.length === 1) {
-    return parts[0].substring(0, 2).toUpperCase();
-  }
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+/**
+ * Generate a unique ID
+ */
+export function generateId(prefix = 'id'): string {
+  return `${prefix}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-// CORS headers for edge functions
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+/**
+ * Safely access an object property by path
+ */
+export function get(obj: any, path: string, defaultValue: any = undefined): any {
+  const travel = (regexp: RegExp) =>
+    String.prototype.split
+      .call(path, regexp)
+      .filter(Boolean)
+      .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj);
 
-// Safe Environment Variable function for serverless functions
-export function getSafeEnv(key: string, fallback: string = ""): string {
+  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
+  return result === undefined || result === obj ? defaultValue : result;
+}
+
+/**
+ * Safely access Deno environment in edge functions
+ */
+export function safeGetDenoEnv(name: string): string | undefined {
   try {
-    // Try Deno for edge functions
-    if (typeof globalThis !== "undefined" && 
-        'Deno' in globalThis && 
-        typeof globalThis.Deno?.env?.get === 'function') {
-      return globalThis.Deno.env.get(key) ?? fallback;
+    if (typeof globalThis !== 'undefined') {
+      const deno = globalThis as any;
+      if (deno.Deno && typeof deno.Deno.env?.get === 'function') {
+        return deno.Deno.env.get(name);
+      }
     }
-    // Fallback to process.env for node environments
-    if (typeof process !== "undefined" && process.env) {
-      return process.env[key as keyof typeof process.env] || fallback;
-    }
-    return fallback;
-  } catch (err) {
-    console.error(`Error accessing env variable ${key}:`, err);
-    return fallback;
+  } catch (e) {
+    console.error(`Error accessing Deno env: ${e}`);
   }
+  return undefined;
 }

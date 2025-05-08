@@ -1,27 +1,49 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { MoreHorizontal, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Card, CardContent } from '@/components/ui/card';
 import { NotificationContent } from '@/types/notifications';
+import { 
+  Bell, 
+  CheckCircle, 
+  AlertCircle, 
+  X, 
+  Info, 
+  AlertTriangle,
+  ExternalLink
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export interface NotificationItemProps {
+interface NotificationItemProps {
   notification: NotificationContent;
   onMarkAsRead: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<any>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
-  onDelete,
+  onDelete
 }) => {
+  // Get the appropriate icon based on notification type
+  const getIcon = () => {
+    switch (notification.type) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'error':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'info':
+        return <Info className="h-5 w-5 text-blue-500" />;
+      case 'system':
+        return <Bell className="h-5 w-5 text-purple-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
   const handleMarkAsRead = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!notification.read) {
@@ -36,72 +58,95 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  // Format the timestamp
-  const formattedTime = notification.timestamp
-    ? format(new Date(notification.timestamp), 'MMM d, h:mm a')
-    : '';
+  const handleActionClick = () => {
+    if (!notification.read) {
+      onMarkAsRead(notification.id);
+    }
+  };
+
+  const formattedDate = (() => {
+    try {
+      const date = new Date(notification.timestamp);
+      return format(date, 'MMM d, h:mm a');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return notification.timestamp;
+    }
+  })();
 
   return (
-    <div
-      className={`rounded-lg border p-4 transition-all hover:bg-accent/50 ${
-        !notification.read ? 'bg-accent/30' : ''
-      }`}
+    <Card 
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-accent/50",
+        !notification.read && "border-l-4 border-l-primary"
+      )}
       onClick={handleMarkAsRead}
     >
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <div className="font-medium flex items-center gap-2">
-            {notification.title}
-            {!notification.read && (
-              <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-            )}
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <div className="pt-1">
+            {getIcon()}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-muted-foreground">{formattedTime}</span>
+          
+          <div className="flex-1">
+            <div className="font-medium leading-tight">
+              {notification.title}
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {notification.message}
+            </div>
+            
             {notification.action_url && notification.action_label && (
-              <a
-                href={notification.action_url}
-                className="text-xs font-medium text-primary hover:underline"
-                onClick={(e) => e.stopPropagation()}
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="p-0 h-auto mt-1 text-sm flex items-center"
+                onClick={handleActionClick}
+                asChild
               >
-                {notification.action_label}
-              </a>
+                <a 
+                  href={notification.action_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  {notification.action_label} <ExternalLink className="ml-1 h-3 w-3" />
+                </a>
+              </Button>
+            )}
+            
+            <div className="text-xs text-muted-foreground mt-1">
+              {formattedDate}
+            </div>
+          </div>
+          
+          <div className="flex gap-1">
+            {!notification.read && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-6 w-6"
+                onClick={handleMarkAsRead}
+                title="Mark as read"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            
+            {onDelete && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                onClick={handleDelete}
+                title="Delete notification"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
             )}
           </div>
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {!notification.read && (
-              <DropdownMenuItem onClick={handleMarkAsRead}>
-                <Check className="mr-2 h-4 w-4" />
-                Mark as read
-              </DropdownMenuItem>
-            )}
-            {onDelete && (
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

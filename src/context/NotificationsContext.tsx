@@ -14,6 +14,7 @@ interface NotificationsContextType {
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
   deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
+  unreadCount: number;
 }
 
 const NotificationsContext = createContext<NotificationsContextType>({
@@ -26,6 +27,7 @@ const NotificationsContext = createContext<NotificationsContextType>({
   markAsRead: async () => ({ success: false }),
   markAllAsRead: async () => ({ success: false }),
   deleteNotification: async () => ({ success: false }),
+  unreadCount: 0,
 });
 
 export const useNotificationsContext = () => useContext(NotificationsContext);
@@ -36,6 +38,9 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  // Calculate unread count
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const fetchNotifications = async () => {
     if (!tenantId) return;
@@ -67,7 +72,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', id);
       
       if (error) throw error;
@@ -76,7 +81,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       setNotifications(prev => 
         prev.map(notification => 
           notification.id === id 
-            ? { ...notification, is_read: true } 
+            ? { ...notification, is_read: true, read_at: new Date().toISOString() } 
             : notification
         )
       );
@@ -94,7 +99,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('tenant_id', tenantId)
         .eq('is_read', false);
       
@@ -102,7 +107,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Update local state
       setNotifications(prev => 
-        prev.map(notification => ({ ...notification, is_read: true }))
+        prev.map(notification => ({ ...notification, is_read: true, read_at: new Date().toISOString() }))
       );
       
       return { success: true };
@@ -170,6 +175,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        unreadCount,
       }}
     >
       {children}

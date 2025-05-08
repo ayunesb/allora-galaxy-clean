@@ -8,7 +8,7 @@ export interface SidebarProfileProps {
   className?: string;
 }
 
-export const SidebarProfile: React.FC<SidebarProfileProps> = () => {
+export const SidebarProfile: React.FC<SidebarProfileProps> = ({ className }) => {
   const { currentTenant } = useWorkspace();
   const { user } = useAuth();
 
@@ -22,7 +22,7 @@ export const SidebarProfile: React.FC<SidebarProfileProps> = () => {
   };
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2">
+    <div className={`flex items-center gap-2 px-4 py-2 ${className || ''}`}>
       <Avatar className="h-8 w-8">
         <AvatarImage src={currentTenant?.metadata?.logo_url || ''} alt={currentTenant?.name || 'Tenant'} />
         <AvatarFallback>{currentTenant?.name ? getInitials(currentTenant.name) : 'A'}</AvatarFallback>
