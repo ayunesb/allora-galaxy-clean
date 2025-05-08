@@ -1,35 +1,17 @@
 
 import { NavigationItem } from '@/types/navigation';
-import { UserRole } from '@/lib/auth/roleTypes';
 
 export interface Tenant {
   id: string;
   name: string;
   slug?: string;
-  created_at?: string;
-  updated_at?: string;
-  owner_id?: string;
-  metadata?: Record<string, any>;
-  role?: UserRole;
+  role?: string;
 }
 
 export interface WorkspaceContextType {
-  navigationItems: NavigationItem[];
-  currentTenant: Tenant | null;
-  tenants: Tenant[];
-  currentUrl: string;
+  tenant: Tenant | null;
   isLoading: boolean;
-  currentRole?: UserRole;
-  loading?: boolean;
-  tenant?: Tenant | null;
-  userRole?: UserRole;
-  setCurrentUrl: (url: string) => void;
-  switchTenant: (tenantId: string) => Promise<boolean>;
-}
-
-export interface WorkspaceData {
+  error: string | null;
   navigationItems: NavigationItem[];
-  currentTenant: Tenant | null;
-  tenants: Tenant[];
-  isLoading: boolean;
+  refreshTenant: () => Promise<void>;
 }

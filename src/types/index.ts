@@ -28,7 +28,8 @@ export type { NotificationType } from './notifications';
 
 // Re-export remaining types
 export type * from './galaxy';
-export type * from './onboarding';
+// Remove the conflicting export and use a more specific one
+export type { OnboardingStep, OnboardingFormData, OnboardingState, OnboardingAction } from './onboarding';
 
 // Fixed exports to avoid ambiguity
 export type { 

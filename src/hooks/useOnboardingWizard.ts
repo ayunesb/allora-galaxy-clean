@@ -7,7 +7,7 @@ import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData'
 import { completeOnboarding } from '@/services/onboardingService';
 import { useOnboardingStore } from '@/lib/onboarding/onboardingState';
 import { trackOnboardingStepCompleted, trackOnboardingStepView } from '@/lib/onboarding/onboardingAnalytics';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { OnboardingStep } from '@/types/onboarding';
 
 /**
  * Main hook for managing the onboarding wizard

@@ -78,7 +78,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingAction>((se
   }),
   
   // Validation helpers
-  validateStep: (step: OnboardingStep) => {
+  validateStep: (step: OnboardingStep): boolean => {
     const state = useOnboardingStore.getState();
     
     switch (step) {

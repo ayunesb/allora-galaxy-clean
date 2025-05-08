@@ -1,30 +1,39 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import MainLayout from '@/components/layout/MainLayout';
 
+import React from 'react';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
+import MainLayout from '@/components/layout/MainLayout';
+import LoadingScreen from '@/components/LoadingScreen';
+import { SidebarProvider } from '@/components/ui/sidebar';
+
+/**
+ * Protected routes wrapper component
+ * - Ensures user is authenticated
+ * - Redirects to login if not authenticated
+ * - Provides Workspace context to all child routes
+ */
 const ProtectedRoutes: React.FC = () => {
   const { user, loading } = useAuth();
-  
-  // Show loading while checking authentication
+  const location = useLocation();
+
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
-  
-  // If no user is signed in, redirect to login
+
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // Redirect to login page with current location as intended destination
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
-  
-  // Otherwise, render the protected routes within the layout
+
   return (
-    <MainLayout>
-      <Outlet />
-    </MainLayout>
+    <SidebarProvider>
+      <WorkspaceProvider>
+        <MainLayout>
+          <Outlet />
+        </MainLayout>
+      </WorkspaceProvider>
+    </SidebarProvider>
   );
 };
 

@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import ForceGraph2D from 'react-force-graph';
+import ForceGraph2D from 'react-force-graph-2d';
 import { useTheme } from '@/hooks/useTheme';
 import { ForceGraphProps, GraphNode } from '@/types/galaxy';
 
@@ -79,7 +79,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     <Card className={`overflow-hidden border ${className}`} ref={containerRef}>
       <div className="w-full h-full">
         {graphData?.nodes && graphData.nodes.length > 0 && (
-          <ForceGraph2D.default
+          <ForceGraph2D
             ref={graphRef}
             graphData={graphData}
             width={dimensions.width}
