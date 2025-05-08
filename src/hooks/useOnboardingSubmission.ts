@@ -1,75 +1,123 @@
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { sendNotification } from '@/lib/notifications/sendNotification';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { notifySuccess, notifyError } from '@/components/ui/BetterToast';
+import { notifyAndLog } from '@/lib/notifications/notifyAndLog';
 import { useAuth } from '@/context/AuthContext';
 
-export const useOnboardingSubmission = () => {
-  const { user } = useAuth();
-  const { currentTenant } = useWorkspace();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface OnboardingDataType {
+  companyName: string;
+  industry: string;
+  companySize: string;
+  description: string;
+  goals: string[];
+  strategy: {
+    title: string;
+    description: string;
+  };
+}
 
-  const submitOnboardingData = async (formData: any) => {
-    if (!currentTenant || !user) {
-      notifyError('Error', 'No active workspace or user session');
-      return { success: false };
+interface OnboardingSubmissionResult {
+  success: boolean;
+  error?: Error;
+  tenantId?: string;
+}
+
+export const useOnboardingSubmission = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+
+  const submitOnboardingData = async (data: OnboardingDataType): Promise<OnboardingSubmissionResult> => {
+    if (!user) {
+      return { success: false, error: new Error('User not authenticated') };
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      // Update company profile with onboarding data
-      const { error: updateError } = await supabase
-        .from('company_profiles')
-        .upsert({
-          tenant_id: currentTenant.id,
-          name: formData.companyName || currentTenant.name,
-          industry: formData.industry,
-          size: formData.companySize,
-          goals: formData.goals,
-          description: formData.description
+      // Create a new tenant
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .insert({
+          name: data.companyName,
+          slug: data.companyName.toLowerCase().replace(/\s+/g, '-'),
+          owner_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (tenantError) throw tenantError;
+
+      const tenantId = tenantData.id;
+
+      // Add user to tenant with owner role
+      const { error: roleError } = await supabase
+        .from('tenant_user_roles')
+        .insert({
+          tenant_id: tenantId,
+          user_id: user.id,
+          role: 'owner',
         });
-        
-      if (updateError) {
-        throw new Error(`Failed to update company profile: ${updateError.message}`);
-      }
-      
-      // Log event
-      await logSystemEvent(
-        currentTenant.id,
-        'onboarding',
-        'onboarding_completed',
-        { user_id: user.id }
-      );
-      
-      // Send notification
-      await sendNotification({
-        tenant_id: currentTenant.id,
+
+      if (roleError) throw roleError;
+
+      // Create company profile
+      const { error: companyError } = await supabase
+        .from('company_profiles')
+        .insert({
+          tenant_id: tenantId,
+          name: data.companyName,
+          industry: data.industry,
+          size: data.companySize,
+          description: data.description,
+        });
+
+      if (companyError) throw companyError;
+
+      // Create persona profile
+      const { error: personaError } = await supabase
+        .from('persona_profiles')
+        .insert({
+          tenant_id: tenantId,
+          name: 'Default Persona',
+          goals: data.goals,
+          tone: 'Professional',
+        });
+
+      if (personaError) throw personaError;
+
+      // Create initial strategy
+      const { data: strategyData, error: strategyError } = await supabase
+        .from('strategies')
+        .insert({
+          tenant_id: tenantId,
+          title: data.strategy.title,
+          description: data.strategy.description,
+          status: 'pending',
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (strategyError) throw strategyError;
+
+      // Create notification for completed onboarding
+      await notifyAndLog({
+        tenant_id: tenantId,
         user_id: user.id,
-        title: 'Onboarding Complete',
-        description: 'Your workspace is now set up and ready to use.',
+        title: 'Onboarding completed',
+        description: 'Your account has been set up successfully.',
         type: 'success',
-        action_url: '/dashboard',
-        action_label: 'Go to Dashboard'
+        module: 'onboarding',
       });
-      
-      notifySuccess('Onboarding complete', 'Your workspace is now set up');
-      return { success: true };
-      
-    } catch (error: any) {
-      console.error('Onboarding submission error:', error);
-      notifyError('Submission failed', error.message);
-      return { success: false, error };
+
+      return { success: true, tenantId };
+    } catch (error) {
+      console.error('Error in submitOnboardingData:', error);
+      return { success: false, error: error as Error };
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  return {
-    isSubmitting,
-    submitOnboardingData
-  };
+
+  return { submitOnboardingData, isSubmitting };
 };

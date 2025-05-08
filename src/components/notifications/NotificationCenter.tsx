@@ -55,7 +55,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
           notifications={notifications}
           onMarkAsRead={handleMarkNotificationAsRead}
           onDelete={handleDeleteNotification}
-          onClose={onClose}
+          onMarkAllAsRead={handleMarkAllAsRead}
         />
       </ScrollArea>
       

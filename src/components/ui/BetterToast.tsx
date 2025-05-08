@@ -1,5 +1,5 @@
 
-import { toast as sonnerToast, Toast, ToastProps } from 'sonner';
+import { toast as sonnerToast } from 'sonner';
 import { 
   CheckCircle, 
   AlertCircle, 
@@ -42,7 +42,8 @@ export function notifyInfo(title: string, message?: string) {
 /**
  * Custom toast component for consistent styling
  */
-export function BetterToast({ toast, position, ...props }: ToastProps) {
+export function BetterToast(props: any) {
+  const { toast, position } = props;
   const { id, title, description, action, type, cancel } = toast;
 
   const variantClassNames = {
@@ -57,7 +58,7 @@ export function BetterToast({ toast, position, ...props }: ToastProps) {
   const toastClassName = variantClassNames[variant] || variantClassNames.default;
 
   return (
-    <Toast
+    <div
       className={cn(
         "group relative border p-3 rounded-xl shadow-lg",
         toastClassName
@@ -104,6 +105,6 @@ export function BetterToast({ toast, position, ...props }: ToastProps) {
           )}
         </div>
       </div>
-    </Toast>
+    </div>
   );
 }

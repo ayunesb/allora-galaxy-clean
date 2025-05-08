@@ -1,91 +1,69 @@
 
+import { createClient } from '@supabase/supabase-js';
+import { getEnv } from '@/lib/env/envUtils';
+import { corsHeaders } from '@/lib/env/envUtils';
+
 /**
- * Interface for environment variable validation
+ * Get environment variable with appropriate fallback
  */
-import { getEnvVar, corsHeaders, validateEnv } from '@/lib/env/envUtils';
-
-export { getEnvVar, corsHeaders, validateEnv };
-
-// Define the EnvVariable interface here to avoid importing it
-export interface EnvVariable {
-  name: string;
-  required: boolean;
-  description?: string;
-  default?: string;
+export function getEdgeEnv(key: string, fallback = ''): string {
+  if (typeof Deno !== 'undefined') {
+    return Deno.env.get(key) || fallback;
+  }
+  
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || fallback;
+  }
+  
+  return fallback;
 }
 
 /**
- * Format standard API error response
- * @param status HTTP status code
- * @param message Error message
- * @param details Additional error details
- * @param executionTime Execution time in seconds
- * @returns Response object with error details
+ * Create authenticated Supabase client for edge functions
  */
-export function formatErrorResponse(
-  status: number,
-  message: string,
-  details?: string,
-  executionTime?: number
-): Response {
-  const body = {
-    success: false,
-    error: message,
-    details: details || null,
-    executionTime,
-    timestamp: new Date().toISOString()
-  };
+export function createEdgeSupabaseClient(authHeader?: string) {
+  const supabaseUrl = getEdgeEnv('SUPABASE_URL');
+  const supabaseKey = authHeader ? getEdgeEnv('SUPABASE_SERVICE_ROLE_KEY') : getEdgeEnv('SUPABASE_ANON_KEY');
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase credentials for edge function');
+  }
+  
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: authHeader ? { Authorization: authHeader } : {},
+    },
+  });
+}
 
+/**
+ * Create a Response with CORS headers for edge functions
+ */
+export function createCorsResponse(
+  body: any,
+  status = 200,
+  additionalHeaders: Record<string, string> = {}
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders,
+      ...additionalHeaders,
+    },
   });
 }
 
 /**
- * Format standard API success response
- * @param data Response data
- * @param executionTime Execution time in seconds
- * @returns Response object with success details
+ * Create error response with CORS headers
  */
-export function formatSuccessResponse(
-  data: any,
-  executionTime?: number
+export function createErrorResponse(
+  message: string,
+  status = 400
 ): Response {
-  const body = {
-    success: true,
-    ...data,
-    executionTime,
-    timestamp: new Date().toISOString()
-  };
-
-  return new Response(JSON.stringify(body), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-/**
- * Handle edge function request with consistent error handling
- * @param req Request object
- * @param handler Request handler function
- * @returns Response object
- */
-export async function handleEdgeRequest(
-  req: Request,
-  handler: (req: Request) => Promise<Response>
-): Promise<Response> {
-  try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
-    
-    return await handler(req);
-  } catch (error: any) {
-    console.error('Edge function error:', error);
-    return formatErrorResponse(
-      500,
-      error.message || 'An unexpected error occurred'
-    );
-  }
+  return createCorsResponse({ error: message }, status);
 }

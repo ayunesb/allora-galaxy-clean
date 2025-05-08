@@ -1,91 +1,87 @@
 
 import React from 'react';
-import { OnboardingFormData } from '@/hooks/useOnboardingWizard';
+import { useTranslation } from 'react-i18next';
+import { OnboardingFormData, OnboardingStep } from '@/hooks/useOnboardingWizard';
 import CompanyInfoStep from './steps/CompanyInfoStep';
-import AdditionalInfoStep from './steps/AdditionalInfoStep';
 import PersonaStep from './steps/PersonaStep';
+import StrategyGenerationStep from './steps/StrategyGenerationStep';
 
 interface StepContentProps {
-  currentStep: number;
+  step: OnboardingStep;
   formData: OnboardingFormData;
-  updateFormData: (key: keyof OnboardingFormData, value: string) => void;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+  isGeneratingStrategy?: boolean;
+  setFieldValue: (key: string, value: any) => void;
 }
 
-export const stepTitles = [
-  'Company',
-  'Additional Info',
-  'Persona',
-  'Generate Strategy'
-];
-
-export const stepDetails = [
-  {
-    title: 'Company Information',
-    description: 'Tell us about your company',
-  },
-  {
-    title: 'Additional Information',
-    description: 'Provide more details about your company',
-  },
-  {
-    title: 'Persona Settings',
-    description: 'Define your brand persona and goals',
-  },
-  {
-    title: 'Generate Strategy',
-    description: 'Creating your AI-powered strategy',
-  }
-];
-
 const StepContent: React.FC<StepContentProps> = ({ 
-  currentStep, 
+  step, 
   formData, 
-  updateFormData 
+  updateFormData,
+  isGeneratingStrategy = false,
+  setFieldValue 
 }) => {
-  const renderStep = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <CompanyInfoStep
-            companyName={formData.companyName}
-            setCompanyName={(value) => updateFormData('companyName', value)}
-            industry={formData.industry}
-            setIndustry={(value) => updateFormData('industry', value)}
-            teamSize={formData.teamSize}
-            setTeamSize={(value) => updateFormData('teamSize', value)}
-            revenueRange={formData.revenueRange}
-            setRevenueRange={(value) => updateFormData('revenueRange', value)}
-          />
-        );
-      case 1:
-        return (
-          <AdditionalInfoStep
-            website={formData.website}
-            setWebsite={(value) => updateFormData('website', value)}
-            description={formData.description}
-            setDescription={(value) => updateFormData('description', value)}
-          />
-        );
-      case 2:
-        return (
-          <PersonaStep
-            personaName={formData.personaName}
-            setPersonaName={(value) => updateFormData('personaName', value)}
-            tone={formData.tone}
-            setTone={(value) => updateFormData('tone', value)}
-            goals={formData.goals}
-            setGoals={(value) => updateFormData('goals', value)}
-          />
-        );
-      case 3:
-        // The strategy generation step will be rendered by the parent component
-        return null;
-      default:
-        return null;
-    }
-  };
+  const { t } = useTranslation();
 
-  return renderStep();
+  switch (step) {
+    case 'company':
+      return (
+        <CompanyInfoStep 
+          formData={formData} 
+          updateFormData={updateFormData}
+          setFieldValue={setFieldValue}
+        />
+      );
+    case 'goals':
+      return (
+        <PersonaStep 
+          formData={formData} 
+          updateFormData={updateFormData}
+          setFieldValue={setFieldValue}
+        />
+      );
+    case 'strategy':
+      return (
+        <StrategyGenerationStep
+          formData={formData}
+          updateFormData={updateFormData}
+          isGenerating={isGeneratingStrategy}
+          setFieldValue={setFieldValue}
+        />
+      );
+    case 'complete':
+      return (
+        <div className="py-6">
+          <h2 className="text-2xl font-semibold mb-4">{t('onboarding.complete.title')}</h2>
+          <p className="text-muted-foreground mb-6">
+            {t('onboarding.complete.description')}
+          </p>
+          <div className="border rounded-lg p-6 bg-muted/30">
+            <h3 className="text-xl font-medium mb-2">{formData.companyName}</h3>
+            <p className="text-muted-foreground mb-4">{formData.description}</p>
+            
+            <h4 className="font-medium mb-2">Goals:</h4>
+            <ul className="list-disc list-inside space-y-1 mb-4">
+              {formData.goals.map((goal, index) => (
+                <li key={index}>{goal}</li>
+              ))}
+            </ul>
+            
+            {formData.strategy.title && (
+              <>
+                <h4 className="font-medium mb-2">Initial Strategy:</h4>
+                <div className="border rounded p-3 bg-card">
+                  <h5 className="font-medium">{formData.strategy.title}</h5>
+                  <p className="text-sm text-muted-foreground">{formData.strategy.description}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    default:
+      return null;
+  }
 };
 
 export default StepContent;

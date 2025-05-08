@@ -1,169 +1,96 @@
 
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import {
-  Home,
-  ArrowRight,
-  Plug,
-  Users,
-  LayoutGrid,
-  BarChart,
-  Shield,
-  AlertCircle,
-  Database,
+  LayoutDashboard,
+  Target,
+  BarChart3,
+  Rocket,
   Settings,
+  Network,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
-import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarSeparator,
-} from '@/components/ui/sidebar';
-import { hasRequiredRole } from '@/lib/requireRole';
+import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/components/ui/sidebar/SidebarProvider';
 
-// Define navigation groups as separate constants for better organization
-const mainNavItems = [
-  {
-    title: 'Dashboard',
-    icon: Home,
-    path: '/',
-  },
-  {
-    title: 'Strategy Engine',
-    icon: ArrowRight,
-    path: '/launch',
-  },
-  {
-    title: 'Plugins',
-    icon: Plug,
-    path: '/plugins',
-  },
-  {
-    title: 'Galaxy Explorer',
-    icon: LayoutGrid,
-    path: '/explore',
-  },
-];
-
-const insightsNavItems = [
-  {
-    title: 'Agent Performance',
-    icon: Users,
-    path: '/agents/performance',
-  },
-  {
-    title: 'KPI Dashboard',
-    icon: BarChart,
-    path: '/insights/kpis',
-  },
-];
-
-const adminNavItems = [
-  {
-    title: 'User Management',
-    icon: Users,
-    path: '/admin/users',
-  },
-  {
-    title: 'System Logs',
-    icon: AlertCircle,
-    path: '/admin/system-logs',
-  },
-  {
-    title: 'Plugin Logs',
-    icon: Database,
-    path: '/admin/plugin-logs',
-  },
-  {
-    title: 'AI Decisions',
-    icon: Shield,
-    path: '/admin/ai-decisions',
-  },
-  {
-    title: 'Settings',
-    icon: Settings,
-    path: '/admin/settings',
-  },
-];
-
-interface NavItemsProps {
-  isActive: (path: string) => boolean;
-  handleNavigation: (path: string) => void;
+export interface NavItemsProps {
+  className?: string;
 }
 
-export const NavItems: React.FC<NavItemsProps> = ({ isActive, handleNavigation }) => {
-  const isAdmin = hasRequiredRole(['admin', 'owner']);
+export function NavItems({ className }: NavItemsProps) {
+  const location = useLocation();
+  const { collapsed, setCollapsed } = useSidebar();
   
+  const menuItems = [
+    {
+      label: 'Dashboard',
+      path: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      label: 'Strategies',
+      path: '/strategies',
+      icon: Target,
+    },
+    {
+      label: 'Insights',
+      path: '/insights',
+      icon: BarChart3,
+    },
+    {
+      label: 'Galaxy',
+      path: '/galaxy',
+      icon: Network,
+    },
+    {
+      label: 'Launch',
+      path: '/launch',
+      icon: Rocket,
+    },
+    {
+      label: 'Settings',
+      path: '/settings',
+      icon: Settings,
+    },
+  ];
+
   return (
-    <>
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {mainNavItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton 
-                  isActive={isActive(item.path)}
-                  tooltip={item.title}
-                  onClick={() => handleNavigation(item.path)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      <SidebarSeparator />
-
-      <SidebarGroup>
-        <SidebarGroupLabel>Insights</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {insightsNavItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton 
-                  isActive={isActive(item.path)}
-                  tooltip={item.title}
-                  onClick={() => handleNavigation(item.path)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      {isAdmin && (
-        <>
-          <SidebarSeparator />
-
-          <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminNavItems.map((item) => (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton 
-                      isActive={isActive(item.path)}
-                      tooltip={item.title}
-                      onClick={() => handleNavigation(item.path)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </>
-      )}
-    </>
+    <div className={cn("flex flex-col gap-1", className)}>
+      {menuItems.map((item, index) => {
+        const isActive = location.pathname.startsWith(item.path);
+        
+        return (
+          <Link
+            key={index}
+            to={item.path}
+            className={cn(
+              "flex items-center h-10 rounded-md px-3 py-2 text-sm font-medium",
+              "hover:bg-accent hover:text-accent-foreground",
+              isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+              collapsed && "justify-center px-2"
+            )}
+          >
+            <item.icon className={cn("h-5 w-5", collapsed ? "mr-0" : "mr-2")} />
+            {!collapsed && <span>{item.label}</span>}
+          </Link>
+        );
+      })}
+      
+      {/* Toggle sidebar collapse state */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "mt-auto mb-4",
+          collapsed ? "mx-auto" : "ml-auto mr-4"
+        )}
+        onClick={() => setCollapsed(!collapsed)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+      </Button>
+    </div>
   );
-};
+}

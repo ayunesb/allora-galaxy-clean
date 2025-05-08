@@ -36,6 +36,18 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
     };
   }, [isOpen, setIsOpen]);
 
+  const handleMarkAsRead = async (id: string): Promise<void> => {
+    await markAsRead(id);
+  };
+
+  const handleDeleteNotification = async (id: string): Promise<void> => {
+    await deleteNotification(id);
+  };
+
+  const handleMarkAllAsRead = async (): Promise<void> => {
+    await markAllAsRead();
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -60,10 +72,10 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
         
         <NotificationCenterContent 
           notifications={notifications}
-          onMarkAsRead={markAsRead}
-          onDelete={deleteNotification}
+          onMarkAsRead={handleMarkAsRead}
+          onDelete={handleDeleteNotification}
           loading={loading}
-          onMarkAllAsRead={markAllAsRead}
+          onMarkAllAsRead={handleMarkAllAsRead}
         />
       </SheetContent>
     </Sheet>

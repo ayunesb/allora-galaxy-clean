@@ -1,88 +1,59 @@
 
+// Utility functions for environment variable management
+
 /**
- * Utility functions for handling environment variables across
- * different environments (browser, Node, Deno)
+ * CORS headers for edge functions
  */
-
-export type EnvVariable = {
-  name: string;
-  required: boolean;
-  description?: string;
-  default?: string;
-};
-
-// Environment variable constants
-export const ENV = {
-  SUPABASE_URL: 'VITE_SUPABASE_URL',
-  SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
-  STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY',
-  OPENAI_API_KEY: 'VITE_OPENAI_API_KEY',
-  HUBSPOT_API_KEY: 'HUBSPOT_API_KEY',
-  GA_MEASUREMENT_ID: 'VITE_GA_MEASUREMENT_ID',
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 /**
- * Gets an environment variable with a fallback value
- * Works in browser, Node.js, and Deno environments
+ * Environment variable type
  */
-export function getEnvVar(name: string, fallback: string = ''): string {
-  try {
-    // Browser environment (window.ENV for injected variables)
-    if (typeof window !== 'undefined' && window.ENV && window.ENV[name]) {
-      return window.ENV[name];
-    }
-    
-    // Vite environment variables
-    if (import.meta?.env && (import.meta.env as any)[name]) {
-      return (import.meta.env as any)[name];
-    }
-    
-    // Deno environment
-    if (typeof globalThis !== 'undefined' && 
-        'Deno' in globalThis && 
-        typeof (globalThis as any).Deno?.env?.get === 'function') {
-      return (globalThis as any).Deno.env.get(name) || fallback;
-    }
-    
-    // Node.js environment
-    if (typeof process !== 'undefined' && process.env && process.env[name]) {
-      return process.env[name] || fallback;
-    }
-    
-    // Return fallback if no value found
-    return fallback;
-  } catch (error) {
-    console.warn(`Error accessing environment variable ${name}:`, error);
-    return fallback;
+export type EnvVariable = string | undefined;
+
+/**
+ * Environment variable interface
+ */
+export interface ENV {
+  SUPABASE_URL: string;
+  SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
+  [key: string]: string | undefined;
+}
+
+/**
+ * Get an environment variable with a fallback
+ */
+export function getEnv(name: string, fallback: string = ''): string {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[name] || fallback;
+  } 
+  
+  if (typeof Deno !== 'undefined' && Deno.env) {
+    return Deno.env.get(name) || fallback;
   }
+  
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[name] || fallback;
+  }
+  
+  return fallback;
 }
 
 /**
- * Safely check if we're in a browser environment
+ * Validate required environment variables
  */
-export function isBrowser(): boolean {
-  return typeof window !== 'undefined';
-}
-
-/**
- * Safely check if we're in a server environment (Node.js or Deno)
- */
-export function isServer(): boolean {
-  return !isBrowser();
-}
-
-/**
- * Validate environment variables
- */
-export function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[] } {
+export function validateEnv(requiredEnvVars: string[]): { valid: boolean; missing: string[] } {
   const missing: string[] = [];
   
-  for (const envVar of envVars) {
-    if (envVar.required) {
-      const value = getEnvVar(envVar.name, envVar.default);
-      if (!value) {
-        missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
-      }
+  for (const envVar of requiredEnvVars) {
+    const value = getEnv(envVar);
+    if (!value) {
+      missing.push(envVar);
     }
   }
   
@@ -91,12 +62,3 @@ export function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: 
     missing
   };
 }
-
-/**
- * CORS headers for edge functions
- */
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};

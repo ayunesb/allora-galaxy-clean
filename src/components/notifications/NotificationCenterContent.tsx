@@ -5,7 +5,6 @@ import NotificationItem from './NotificationItem';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 
 export interface NotificationCenterContentProps {
   notifications: Notification[];

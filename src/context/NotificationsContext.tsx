@@ -1,21 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Notification } from '@/types/notifications';
+import { Notification, NotificationsContextType } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
-
-interface NotificationsContextType {
-  notifications: Notification[];
-  loading: boolean;
-  error: Error | null;
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  refreshNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
-  deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  unreadCount: number;
-}
 
 const NotificationsContext = createContext<NotificationsContextType>({
   notifications: [],
