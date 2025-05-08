@@ -12,6 +12,42 @@ const isNode = typeof process !== 'undefined' &&
 // Browser environments
 const isBrowser = typeof window !== 'undefined';
 
+// Common environment variable names used in the application
+export interface EnvVariable {
+  key: string;
+  isRequired: boolean;
+  defaultValue?: string;
+}
+
+// Centralized environment configuration
+export const ENV = {
+  SUPABASE_URL: { key: 'VITE_SUPABASE_URL', isRequired: true },
+  SUPABASE_ANON_KEY: { key: 'VITE_SUPABASE_ANON_KEY', isRequired: true },
+  API_URL: { key: 'VITE_API_URL', isRequired: false, defaultValue: '' },
+  DEBUG_MODE: { key: 'VITE_DEBUG_MODE', isRequired: false, defaultValue: 'false' },
+};
+
+// Validate that all required environment variables are present
+export function validateEnv(): Record<string, string | undefined> {
+  const missing: string[] = [];
+  const values: Record<string, string | undefined> = {};
+  
+  Object.entries(ENV).forEach(([name, config]) => {
+    const value = getEnvVar(config.key, config.defaultValue);
+    values[name] = value;
+    
+    if (config.isRequired && !value) {
+      missing.push(config.key);
+    }
+  });
+  
+  if (missing.length > 0) {
+    console.error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  
+  return values;
+}
+
 /**
  * Get an environment variable value safely
  * 
@@ -19,7 +55,7 @@ const isBrowser = typeof window !== 'undefined';
  * @param defaultValue - Optional fallback value
  * @returns The environment variable value or default
  */
-export function getEnvVar(key: string, defaultValue?: string): string {
+export function getEnvVar(key: string, defaultValue: string = ""): string {
   // For Deno/Edge environments
   if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
     try {
@@ -72,3 +108,12 @@ export function isEnvVarTrue(key: string): boolean {
   const val = getEnvVar(key, 'false').toLowerCase();
   return val === 'true' || val === '1' || val === 'yes';
 }
+
+/**
+ * CORS headers for edge functions
+ */
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};

@@ -32,7 +32,7 @@ export const supabase: SupabaseClient = createClient(
 );
 
 // Export the channel functionality for realtime features
-export const realtime = supabase.channel;
+export const realtime = supabase.channel.bind(supabase);
 
 // Ensure we export a singleton instance
 export default supabase;

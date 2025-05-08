@@ -75,3 +75,6 @@ enable_confirmations = false
 [functions]
 # Port to use for Edge Functions emulator.
 port = 54321
+
+[functions.executeStrategy]
+verify_jwt = true

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AlertTriangle, RefreshCw, Mail, Bug, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -92,6 +91,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
     setIsExpanded(!isExpanded);
   };
 
+  
   return (
     <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
       <Card className="max-w-lg w-full">
