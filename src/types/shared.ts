@@ -66,3 +66,7 @@ export interface TenantFeature {
   enabled: boolean;
   config?: Record<string, any>;
 }
+
+export interface UseRoleCheckOptions {
+  redirectTo?: string;
+}

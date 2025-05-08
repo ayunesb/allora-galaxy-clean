@@ -1,15 +1,7 @@
 
 import React, { createContext, useContext, PropsWithChildren } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { TenantWithRole } from './workspace/types';
+import { TenantWithRole, WorkspaceContextType } from './workspace/types';
 import { useWorkspaceState } from './workspace/useWorkspaceState';
-
-export interface WorkspaceContextType {
-  currentTenant: TenantWithRole | null;
-  tenants: TenantWithRole[];
-  setCurrentTenant: (tenant: TenantWithRole | null) => void;
-  isLoading: boolean;
-}
 
 // Create the context with a default value
 export const WorkspaceContext = createContext<WorkspaceContextType | null>(null);

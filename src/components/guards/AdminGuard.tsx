@@ -2,31 +2,22 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import LoadingScreen from '@/components/LoadingScreen';
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
-/**
- * Guard component to protect admin routes
- * Only allows access if user has admin role
- */
-const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
-  const { userRole, loading } = useWorkspace();
-  
-  // Show loading while checking role
-  if (loading) {
-    return <LoadingScreen />;
+export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
+  const { userRole, isLoading } = useWorkspace();
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   }
-  
-  // Redirect to unauthorized page if user doesn't have admin role
-  if (!userRole || !['admin', 'owner'].includes(userRole)) {
-    return <Navigate to="/unauthorized" replace />;
+
+  // Check if user has admin role
+  if (userRole !== 'admin' && userRole !== 'owner') {
+    return <Navigate to="/dashboard" replace />;
   }
-  
-  // Return children if user has admin role
+
   return <>{children}</>;
 };
-
-export default AdminGuard;

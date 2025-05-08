@@ -104,12 +104,7 @@ export function logErrorEvent(
 
 /**
  * Log audit events for security-sensitive operations
- * @param action The action being performed
- * @param userId The ID of the user performing the action
- * @param resourceType The type of resource being accessed
- * @param resourceId The ID of the resource being accessed
- * @param additionalContext Additional context for the audit
- * @param tenantId Optional tenant ID (defaults to 'system' for system-wide audits)
+ * This will be treated as a special event type for compliance purposes
  */
 export function logAuditEvent(
   action: string,
@@ -119,11 +114,12 @@ export function logAuditEvent(
   additionalContext: Record<string, any> = {},
   tenantId: string = 'system'
 ): void {
-  safeLogSystemEvent('security', 'audit', {
+  safeLogSystemEvent('security', 'info', {
     action,
     user_id: userId,
     resource_type: resourceType,
     resource_id: resourceId,
+    audit: true,  // Mark as an audit event
     ...additionalContext
   }, tenantId);
 }

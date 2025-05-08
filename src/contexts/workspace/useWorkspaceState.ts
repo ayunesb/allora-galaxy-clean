@@ -1,79 +1,100 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { sortTenantsByRole } from './workspaceUtils';
-import { TenantWithRole, WorkspaceContextType } from './types';
+import { TenantWithRole } from './types';
+import { UserRole } from '@/types/shared';
 
-export function useWorkspaceState(): WorkspaceContextType {
-  const [tenants, setTenants] = useState<TenantWithRole[]>([]);
+export function useWorkspaceState() {
   const [currentTenant, setCurrentTenant] = useState<TenantWithRole | null>(null);
+  const [tenants, setTenants] = useState<TenantWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [userRole, setUserRole] = useState<UserRole | undefined>(undefined);
+  
   useEffect(() => {
-    const loadUserTenants = async () => {
-      setIsLoading(true);
+    const fetchTenants = async () => {
       try {
-        // Get the current authenticated user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        setIsLoading(true);
         
-        if (userError || !user) {
-          console.error("Error loading user:", userError);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
           setIsLoading(false);
           return;
         }
-
-        // Get tenants the user has access to with their role
-        const { data: tenantsData, error: tenantsError } = await supabase
+        
+        // Fetch tenants the user has access to
+        const { data: userTenants, error } = await supabase
           .from('tenant_user_roles')
           .select(`
-            tenant_id,
-            role,
-            tenants:tenant_id (
-              id,
-              name,
-              slug,
-              created_at,
-              updated_at,
-              metadata
-            )
+            tenants:tenant_id (id, name, slug),
+            role
           `)
-          .eq('user_id', user.id);
-        
-        if (tenantsError) {
-          console.error("Error loading tenants:", tenantsError);
+          .eq('user_id', session.user.id);
+          
+        if (error) {
+          console.error('Error fetching tenants:', error);
           setIsLoading(false);
           return;
         }
-
-        // Transform the data to the format we need
-        const userTenants: TenantWithRole[] = (tenantsData || []).map((item: any) => ({
-          ...item.tenants,
-          role: item.role,
+        
+        // Transform the data
+        const formattedTenants: TenantWithRole[] = userTenants.map((item: any) => ({
+          id: item.tenants.id,
+          name: item.tenants.name,
+          slug: item.tenants.slug,
+          role: item.role as UserRole
         }));
-
-        // Sort tenants by role (owners first, then admins, etc.)
-        const sortedTenants = sortTenantsByRole(userTenants);
         
-        setTenants(sortedTenants);
+        setTenants(formattedTenants);
         
-        // Set the current tenant to the first one if there's no current tenant yet
-        if (sortedTenants.length > 0 && !currentTenant) {
-          setCurrentTenant(sortedTenants[0]);
+        // Set first tenant as current if none is selected
+        if (formattedTenants.length > 0 && !currentTenant) {
+          const firstTenant = formattedTenants[0];
+          setCurrentTenant(firstTenant);
+          setUserRole(firstTenant.role);
         }
       } catch (error) {
-        console.error("Unexpected error loading workspace data:", error);
+        console.error('Error in fetchTenants:', error);
       } finally {
         setIsLoading(false);
       }
     };
-
-    loadUserTenants();
-  }, []);
-
+    
+    fetchTenants();
+    
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      fetchTenants();
+    });
+    
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [currentTenant]);
+  
+  // Update userRole when currentTenant changes
+  useEffect(() => {
+    if (currentTenant) {
+      setUserRole(currentTenant.role);
+    } else {
+      setUserRole(undefined);
+    }
+  }, [currentTenant]);
+  
+  const handleSetCurrentTenant = (tenant: TenantWithRole | null) => {
+    setCurrentTenant(tenant);
+    if (tenant) {
+      setUserRole(tenant.role);
+    } else {
+      setUserRole(undefined);
+    }
+  };
+  
   return {
     currentTenant,
     tenants,
-    setCurrentTenant,
-    isLoading
+    setCurrentTenant: handleSetCurrentTenant,
+    isLoading,
+    userRole
   };
 }

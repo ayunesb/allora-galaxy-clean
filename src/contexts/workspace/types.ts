@@ -1,8 +1,9 @@
 
+import { UserRole } from '@/types/shared';
 import { Tenant } from '@/types/tenant';
 
 export interface TenantWithRole extends Tenant {
-  role: string;
+  role: UserRole;
 }
 
 export interface WorkspaceContextType {
@@ -10,4 +11,5 @@ export interface WorkspaceContextType {
   tenants: TenantWithRole[];
   setCurrentTenant: (tenant: TenantWithRole | null) => void;
   isLoading: boolean;
+  userRole?: UserRole;
 }
