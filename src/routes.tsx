@@ -1,294 +1,179 @@
 
-import React, { lazy, Suspense } from 'react';
-import { RouteObject } from 'react-router-dom';
-import LoadingScreen from '@/components/LoadingScreen';
-import { RequireAuth } from '@/components/auth/RequireAuth';
-import MainLayout from '@/components/layout/MainLayout';
-import AdminLayout from '@/components/layout/AdminLayout';
-import AuthLayout from '@/components/layout/AuthLayout';
-import OnboardingLayout from '@/components/layout/OnboardingLayout';
+import { Navigate, RouteObject } from "react-router-dom";
 
-// Lazy load pages
-const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
-const Login = lazy(() => import('@/pages/auth/Login'));
-const Register = lazy(() => import('@/pages/auth/Register'));
-const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
-const Onboarding = lazy(() => import('@/pages/onboarding'));
-const AdminDashboard = lazy(() => import('@/pages/admin').then(m => ({ default: m.default })));
-const UserManagement = lazy(() => import('@/pages/admin').then(m => ({ default: m.Users })));
-const SystemLogsPage = lazy(() => import('@/pages/admin').then(m => ({ default: m.SystemLogs })));
-const ApiKeysPage = lazy(() => import('@/pages/admin').then(m => ({ default: m.ApiKeys })));
-const NotFound = lazy(() => import('@/pages/NotFound'));
-const LaunchPage = lazy(() => import('@/pages/launch/LaunchPage'));
-const InsightsPage = lazy(() => import('@/pages/insights/InsightsPage'));
-const KpisPage = lazy(() => import('@/pages/insights/KpisPage'));
-const Galaxy = lazy(() => import('@/pages/galaxy/GalaxyPage'));
-const PluginsPage = lazy(() => import('@/pages/plugins/PluginsPage'));
-const PluginDetailsPage = lazy(() => import('@/pages/plugins/PluginDetailsPage'));
-const PluginEvolutionPage = lazy(() => import('@/pages/plugins/PluginEvolutionPage'));
-const AgentsPerformancePage = lazy(() => import('@/pages/agents/AgentsPerformancePage'));
-const Notifications = lazy(() => import('@/pages/notifications/NotificationsPage'));
-const EvolutionPage = lazy(() => import('@/pages/evolution'));
-const AlloraBrainPage = lazy(() => import('@/pages/allora-brain/AlloraBrainPage'));
-const AlloraBrainDocsPage = lazy(() => import('@/pages/allora-brain/AlloraBrainDocsPage'));
-const StandaloneAgentOS = lazy(() => import('@/pages/standalone/StandaloneAgentOSPage'));
+// Layouts
+import MainLayout from "@/components/layout/MainLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
+import AuthLayout from "@/layouts/AuthLayout";
+import OnboardingLayout from "@/layouts/OnboardingLayout";
 
-// Create a routes array with lazy-loaded components wrapped in Suspense
+// Pages
+import Dashboard from "@/pages/dashboard/Dashboard";
+import NotFound from "@/pages/NotFound";
+import AuthPage from "@/pages/auth/AuthPage";
+import LoginPage from "@/pages/auth/LoginPage";
+import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import OnboardingPage from "@/pages/onboarding";
+import LaunchPage from "@/pages/launch/LaunchPage";
+import GalaxyPage from "@/pages/galaxy/GalaxyPage";
+import KpiDashboard from "@/pages/insights/KpiDashboard";
+import PluginsPage from "@/pages/plugins/PluginsPage";
+import PluginDetailPage from "@/pages/plugins/PluginDetailPage";
+import PluginEvolutionPage from "@/pages/plugins/PluginEvolutionPage";
+import AgentPerformance from "@/pages/agents/AgentPerformance";
+import EvolutionPage from "@/pages/evolution";
+import AlloraBrainPage from "@/pages/allora-brain/AlloraBrainPage";
+import AlloraBrainDocsPage from "@/pages/allora-brain/AlloraBrainDocsPage";
+import StandaloneAgentOSPage from "@/pages/standalone/StandaloneAgentOSPage";
+
+// Admin Pages
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import UserManagement from "@/pages/admin/UserManagement";
+import SystemLogs from "@/pages/admin/SystemLogs";
+import AiDecisions from "@/pages/admin/AiDecisions";
+import PluginLogs from "@/pages/admin/PluginLogs";
+import ApiKeysPage from "@/pages/admin/ApiKeysPage";
+
+// Unauthorized
+import Unauthorized from "@/pages/unauthorized";
+
 export const routes: RouteObject[] = [
   {
-    path: '/',
-    element: (
-      <RequireAuth>
-        <MainLayout />
-      </RequireAuth>
-    ),
-    errorElement: <NotFound />,
+    path: "/auth",
+    element: <AuthLayout />,
     children: [
       {
         index: true,
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Dashboard />
-          </Suspense>
-        ),
+        element: <Navigate to="/auth/login" replace />
       },
       {
-        path: 'dashboard',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Dashboard />
-          </Suspense>
-        ),
+        path: "login",
+        element: <LoginPage />
       },
       {
-        path: 'launch',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <LaunchPage />
-          </Suspense>
-        ),
+        path: "register",
+        element: <RegisterPage />
       },
       {
-        path: 'insights',
-        children: [
-          {
-            index: true,
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <InsightsPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'kpis',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <KpisPage />
-              </Suspense>
-            ),
-          },
-        ],
+        path: "forgot-password",
+        element: <ForgotPasswordPage />
       },
       {
-        path: 'galaxy',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Galaxy />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'plugins',
-        children: [
-          {
-            index: true,
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PluginsPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: ':id',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PluginDetailsPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: ':id/evolution',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <PluginEvolutionPage />
-              </Suspense>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'agents',
-        children: [
-          {
-            path: 'performance',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <AgentsPerformancePage />
-              </Suspense>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'admin',
-        element: (
-          <AdminLayout />
-        ),
-        children: [
-          {
-            index: true,
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <AdminDashboard />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'users',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <UserManagement />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'logs',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <SystemLogsPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'api-keys',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <ApiKeysPage />
-              </Suspense>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'notifications',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Notifications />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'evolution',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <EvolutionPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'allora-brain',
-        children: [
-          {
-            index: true,
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <AlloraBrainPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'docs',
-            element: (
-              <Suspense fallback={<LoadingScreen />}>
-                <AlloraBrainDocsPage />
-              </Suspense>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'standalone',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <StandaloneAgentOS />
-          </Suspense>
-        ),
-      },
-    ],
+        path: "reset-password",
+        element: <ResetPasswordPage />
+      }
+    ]
   },
   {
-    path: '/auth',
-    element: (
-      <AuthLayout>
-        <></>
-      </AuthLayout>
-    ),
-    children: [
-      {
-        path: 'login',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Login />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'register',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Register />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'forgot-password',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <ForgotPassword />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'reset-password',
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <ResetPassword />
-          </Suspense>
-        ),
-      },
-    ],
-  },
-  {
-    path: '/onboarding',
-    element: (
-      <OnboardingLayout>
-        <></>
-      </OnboardingLayout>
-    ),
+    path: "/onboarding",
+    element: <OnboardingLayout />,
     children: [
       {
         index: true,
-        element: (
-          <Suspense fallback={<LoadingScreen />}>
-            <Onboarding />
-          </Suspense>
-        ),
-      },
-    ],
+        element: <OnboardingPage />
+      }
+    ]
   },
   {
-    path: '*',
-    element: <NotFound />,
+    path: "/",
+    element: <MainLayout />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard" replace />
+      },
+      {
+        path: "dashboard",
+        element: <Dashboard />
+      },
+      {
+        path: "launch",
+        element: <LaunchPage />
+      },
+      {
+        path: "galaxy",
+        element: <GalaxyPage />
+      },
+      {
+        path: "plugins",
+        children: [
+          {
+            index: true,
+            element: <PluginsPage />
+          },
+          {
+            path: ":id",
+            element: <PluginDetailPage />
+          },
+          {
+            path: ":id/evolution",
+            element: <PluginEvolutionPage />
+          }
+        ]
+      },
+      {
+        path: "agents/performance",
+        element: <AgentPerformance />
+      },
+      {
+        path: "insights/kpis",
+        element: <KpiDashboard />
+      },
+      {
+        path: "evolution",
+        element: <EvolutionPage />
+      },
+      {
+        path: "allora-brain",
+        element: <AlloraBrainPage />
+      },
+      {
+        path: "standalone",
+        element: <StandaloneAgentOSPage />
+      },
+      {
+        path: "admin",
+        element: <AdminLayout><Outlet /></AdminLayout>,
+        children: [
+          {
+            index: true,
+            element: <AdminDashboard />
+          },
+          {
+            path: "users",
+            element: <UserManagement />
+          },
+          {
+            path: "system-logs",
+            element: <SystemLogs />
+          },
+          {
+            path: "ai-decisions",
+            element: <AiDecisions />
+          },
+          {
+            path: "plugin-logs",
+            element: <PluginLogs />
+          },
+          {
+            path: "api-keys",
+            element: <ApiKeysPage />
+          }
+        ]
+      },
+      {
+        path: "unauthorized",
+        element: <Unauthorized />
+      }
+    ]
   },
+  {
+    path: "*",
+    element: <NotFound />
+  }
 ];
+
+// Add missing import for the Outlet component
+import { Outlet } from "react-router-dom";

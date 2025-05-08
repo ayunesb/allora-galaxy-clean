@@ -1,55 +1,71 @@
 
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { NavigationItem } from '@/types/shared';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { NavigationItem } from '@/types/shared';
+import SidebarProfile from './sidebar/SidebarProfile';
+import SidebarFooterActions from './sidebar/SidebarFooterActions';
 
 interface SidebarProps {
-  navigationItems: NavigationItem[];
+  items: NavigationItem[];
+  className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ navigationItems }) => {
-  const navigate = useNavigate();
+const Sidebar: React.FC<SidebarProps> = ({ items, className }) => {
   const location = useLocation();
-  const { tenant } = useWorkspace();
-
+  const { userRole } = useWorkspace();
+  
+  // Filter items based on user role
+  const filteredItems = items.filter(item => {
+    if (!item.requiresRole) return true;
+    return userRole && item.requiresRole.includes(userRole);
+  });
+  
   return (
-    <div className="hidden md:flex flex-col border-r h-[calc(100vh-4rem)] w-64">
-      <div className="p-4 border-b">
-        <h2 className="font-semibold tracking-tight">
-          {tenant?.name || 'Allora OS'}
-        </h2>
-      </div>
-      
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {navigationItems.map((item, index) => {
-            const isActive = location.pathname.startsWith(item.href);
-            
-            return (
-              <Button
-                key={index}
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start",
-                  isActive ? "bg-secondary" : ""
-                )}
-                onClick={() => navigate(item.href)}
-              >
-                {item.icon}
-                <span className="ml-2">{item.title}</span>
-              </Button>
-            );
-          })}
+    <div className={cn(
+      'w-64 h-screen border-r shrink-0 overflow-y-auto sticky top-0 bg-background',
+      className
+    )}>
+      <div className="flex flex-col h-full">
+        <div className="flex-1 py-2">
+          <div className="px-3 py-2">
+            <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
+              Navigation
+            </h2>
+            <div className="space-y-1">
+              {filteredItems.map((item, i) => {
+                const isActive = item.isActive 
+                  ? item.isActive(location.pathname)
+                  : location.pathname.startsWith(item.href);
+                  
+                const IconComponent = item.icon;
+                
+                return (
+                  <Link
+                    key={i}
+                    to={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
+                      isActive
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {IconComponent && (
+                      <IconComponent className="h-4 w-4" />
+                    )}
+                    {item.title}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </ScrollArea>
-      
-      <div className="p-4 border-t">
-        <div className="text-xs text-muted-foreground">
-          <p>Version: 1.0.0</p>
+        
+        <div className="mt-auto">
+          <SidebarProfile />
+          <SidebarFooterActions />
         </div>
       </div>
     </div>

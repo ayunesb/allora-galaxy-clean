@@ -63,32 +63,32 @@ export async function executePlugin(
     console.error(`Error executing plugin ${plugin.name} (${plugin.id}):`, error);
     
     // Log the error
-    await logSystemEvent('plugin', 'error', {
-      plugin_id: plugin.id,
-      plugin_name: plugin.name,
-      error: error.message || 'Unknown error',
-      user_id: userId
-    }, tenantId).then(() => {
-      // Promise successfully resolved
-    }).catch((err: Error) => {
+    try {
+      await logSystemEvent('plugin', 'error', {
+        plugin_id: plugin.id,
+        plugin_name: plugin.name,
+        error: error.message || 'Unknown error',
+        user_id: userId
+      }, tenantId);
+    } catch (err: Error) {
       console.error('Error logging plugin failure:', err);
-    });
+    }
     
     // Log the failed execution to plugin_logs table
-    await supabase.from('plugin_logs').insert({
-      plugin_id: plugin.id,
-      tenant_id: tenantId,
-      strategy_id: strategyId,
-      status: 'error',
-      input,
-      error: error.message || 'Unknown error',
-      execution_time: 0,
-      xp_earned: 0
-    }).then(() => {
-      // Promise successfully resolved
-    }).catch((err: Error) => {
+    try {
+      await supabase.from('plugin_logs').insert({
+        plugin_id: plugin.id,
+        tenant_id: tenantId,
+        strategy_id: strategyId,
+        status: 'error',
+        input,
+        error: error.message || 'Unknown error',
+        execution_time: 0,
+        xp_earned: 0
+      });
+    } catch (err: Error) {
       console.error('Error logging plugin failure to database:', err);
-    });
+    }
     
     return {
       success: false,

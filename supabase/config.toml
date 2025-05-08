@@ -1,30 +1,5 @@
 
-# This is the project's configuration file
 project_id = "ijrnwpgsqsxzqdemtknz"
-project_name = "Allora OS"
 
-# API configurations
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
-
-# Auth configurations
-[auth]
-enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
-jwt_expiry = 3600
-enable_refresh_token_rotation = true
-refresh_token_reuse_interval = 10
-
-# Database configurations
-[db]
-major_version = 15
-shadow_major_version = 15
-port = 54322
-
-# Edge functions configurations
-[functions]
-[functions.allora-brain]
-verify_jwt = false
+[functions.scheduledIntelligence]
+verify_jwt = true
