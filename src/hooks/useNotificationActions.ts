@@ -1,9 +1,9 @@
 
 import { useCallback } from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useNotifications } from '@/lib/notifications/useNotifications';
 
 export const useNotificationActions = () => {
-  const { markAsRead, markAllAsRead, deleteNotification, refreshNotifications } = useNotificationsContext();
+  const { markAsRead, markAllAsRead, deleteNotification, refreshNotifications } = useNotifications();
 
   const handleMarkAsRead = useCallback(async (id: string) => {
     await markAsRead(id);

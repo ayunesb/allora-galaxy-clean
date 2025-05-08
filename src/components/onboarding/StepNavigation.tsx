@@ -1,86 +1,73 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Loader2 } from 'lucide-react';
 
-interface StepNavigationProps {
+export interface StepNavigationProps {
   currentStep: number;
   totalSteps: number;
-  onPrevious: () => void;
-  onNext: () => void;
-  onComplete?: () => void;
-  isNextDisabled: boolean;
   isSubmitting: boolean;
-  showSkip?: boolean;
-  onSkip?: () => void;
+  isNextDisabled: boolean;
+  onNext: () => void;
+  onPrev: () => void;
+  onSubmit: () => Promise<void>;
+  isGenerating?: boolean;
 }
 
 const StepNavigation: React.FC<StepNavigationProps> = ({
   currentStep,
   totalSteps,
-  onPrevious,
-  onNext,
-  onComplete,
-  isNextDisabled,
   isSubmitting,
-  showSkip = false,
-  onSkip
+  isNextDisabled,
+  onNext,
+  onPrev,
+  onSubmit,
+  isGenerating = false
 }) => {
   const isLastStep = currentStep === totalSteps - 1;
-  const isFirstStep = currentStep === 0;
-  
+
   return (
-    <div className="flex justify-between mt-8">
-      {!isFirstStep ? (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onPrevious}
-          disabled={isSubmitting}
-          className="flex items-center gap-2"
+    <div className="flex justify-between items-center border-t mt-4 pt-4 px-4 md:px-0">
+      {currentStep > 0 ? (
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onPrev}
+          disabled={isSubmitting || isGenerating}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Previous
+          <ArrowLeft className="mr-2 h-4 w-4" /> 
+          Back
         </Button>
       ) : (
-        <div>
-          {showSkip && onSkip && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onSkip}
-              disabled={isSubmitting}
-            >
-              Skip
-            </Button>
-          )}
-        </div>
+        <div /> // Empty div to maintain layout when back button is not visible
       )}
-      
-      {!isLastStep ? (
-        <Button
-          type="button"
-          onClick={onNext}
-          disabled={isNextDisabled || isSubmitting}
-          className="flex items-center gap-2"
+
+      {isLastStep ? (
+        <Button 
+          type="button" 
+          onClick={onSubmit} 
+          disabled={isSubmitting || isNextDisabled || isGenerating}
         >
-          Next
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          onClick={onComplete}
-          disabled={isNextDisabled || isSubmitting}
-        >
-          {isSubmitting ? (
+          {isSubmitting || isGenerating ? (
             <>
-              <span className="animate-spin mr-2 h-4 w-4 border-b-2 border-background rounded-full inline-block"></span>
-              Submitting...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {isGenerating ? 'Generating...' : 'Saving...'}
             </>
           ) : (
-            'Complete Setup'
+            <>
+              <Save className="mr-2 h-4 w-4" /> 
+              Create Workspace
+            </>
           )}
+        </Button>
+      ) : (
+        <Button 
+          type="button" 
+          onClick={onNext}
+          disabled={isNextDisabled || isSubmitting || isGenerating}
+        >
+          Next
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       )}
     </div>

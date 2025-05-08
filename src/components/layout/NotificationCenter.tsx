@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useNotifications } from '@/lib/notifications/useNotifications';
 import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
     markAsRead, 
     markAllAsRead, 
     deleteNotification 
-  } = useNotificationsContext();
+  } = useNotifications();
   
   // Close notification center when Escape key is pressed
   useEffect(() => {
@@ -37,15 +37,27 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
   }, [isOpen, setIsOpen]);
 
   const handleMarkAsRead = async (id: string): Promise<void> => {
-    await markAsRead(id);
+    try {
+      await markAsRead(id);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   const handleDeleteNotification = async (id: string): Promise<void> => {
-    await deleteNotification(id);
+    try {
+      await deleteNotification(id);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
   };
 
   const handleMarkAllAsRead = async (): Promise<void> => {
-    await markAllAsRead();
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   return (

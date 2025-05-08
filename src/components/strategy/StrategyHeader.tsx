@@ -6,13 +6,11 @@ import { StrategyStatusBadge } from './StrategyStatusBadge';
 import { Strategy } from '@/types';
 
 interface StrategyHeaderProps {
-  title: string;
   status: Strategy['status'];
   onBack: () => void;
 }
 
 export const StrategyHeader: React.FC<StrategyHeaderProps> = ({
-  title,
   status,
   onBack
 }) => {

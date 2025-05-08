@@ -1,6 +1,6 @@
 
 import React, { useCallback } from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useNotifications } from '@/lib/notifications/useNotifications';
 import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterContent from './NotificationCenterContent';
 import NotificationCenterFooter from './NotificationCenterFooter';
@@ -18,7 +18,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
     markAsRead,
     markAllAsRead,
     deleteNotification,
-  } = useNotificationsContext();
+  } = useNotifications();
   
   const handleMarkNotificationAsRead = useCallback(async (id: string): Promise<void> => {
     try {

@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from './useTenantId';
-import { useNotificationsContext } from '@/context/NotificationsContext';
+import { useNotifications } from '@/lib/notifications/useNotifications';
 
 // Define the toast types
 export interface Toast {
@@ -87,7 +87,7 @@ export const toast = (props: {
 // Hook for sending notifications that are persisted
 export const useNotify = () => {
   const tenantId = useTenantId();
-  const { refreshNotifications } = useNotificationsContext();
+  const { refreshNotifications } = useNotifications();
   
   const notify = useCallback(async (params: {
     title: string;

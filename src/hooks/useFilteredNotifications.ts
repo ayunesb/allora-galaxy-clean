@@ -1,7 +1,7 @@
 
 import { useMemo } from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
-import { NotificationType } from '@/types/notifications';
+import { useNotifications } from '@/lib/notifications/useNotifications';
+import { Notification, NotificationType } from '@/types/notifications';
 
 interface UseFilteredNotificationsOptions {
   type?: NotificationType | 'all';
@@ -11,23 +11,23 @@ interface UseFilteredNotificationsOptions {
 
 export function useFilteredNotifications(options: UseFilteredNotificationsOptions = {}) {
   const { type = 'all', unreadOnly = false, limit } = options;
-  const { notifications, loading } = useNotificationsContext();
+  const { notifications, loading } = useNotifications();
 
   const filteredNotifications = useMemo(() => {
     let filtered = [...notifications];
     
     // Filter by type if not 'all'
     if (type !== 'all') {
-      filtered = filtered.filter(notification => notification.type === type);
+      filtered = filtered.filter((notification: Notification) => notification.type === type);
     }
     
     // Filter by read status if unreadOnly is true
     if (unreadOnly) {
-      filtered = filtered.filter(notification => !notification.is_read);
+      filtered = filtered.filter((notification: Notification) => !notification.is_read);
     }
     
     // Sort by creation date (newest first)
-    filtered.sort((a, b) => 
+    filtered.sort((a: Notification, b: Notification) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     
@@ -47,7 +47,7 @@ export function useFilteredNotifications(options: UseFilteredNotificationsOption
 }
 
 export function useNotificationStats() {
-  const { notifications } = useNotificationsContext();
+  const { notifications } = useNotifications();
   
   return useMemo(() => {
     const stats = {
@@ -56,7 +56,7 @@ export function useNotificationStats() {
       byType: {} as Record<string, number>
     };
     
-    notifications.forEach(notification => {
+    notifications.forEach((notification: Notification) => {
       // Count unread
       if (!notification.is_read) {
         stats.unread++;

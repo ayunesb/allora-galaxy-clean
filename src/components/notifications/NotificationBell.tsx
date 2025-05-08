@@ -1,45 +1,32 @@
 
 import React from 'react';
-import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNotificationsContext } from '@/context/NotificationsContext';
-import { Badge } from '@/components/ui/badge';
+import { Bell } from 'lucide-react';
+import { useNotifications } from '@/lib/notifications/useNotifications';
 
-export interface NotificationBellProps {
+interface NotificationBellProps {
+  onClick: () => void;
   className?: string;
 }
 
-const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
-  const { unreadCount, isOpen, setIsOpen, refreshNotifications } = useNotificationsContext();
-  
-  const toggleNotificationCenter = async () => {
-    if (!isOpen) {
-      // Refresh notifications when opening
-      await refreshNotifications();
-    }
-    setIsOpen(!isOpen);
-  };
-  
+export const NotificationBell: React.FC<NotificationBellProps> = ({ onClick, className }) => {
+  const { unreadCount } = useNotifications();
+
   return (
-    <div className={`relative ${className || ''}`}>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleNotificationCenter}
-        aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
-        className="relative"
-      >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-1 -right-1 min-w-[1.2rem] h-[1.2rem] flex items-center justify-center p-0 text-[0.65rem]"
-          >
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </Badge>
-        )}
-      </Button>
-    </div>
+    <Button 
+      variant="ghost" 
+      size="icon" 
+      className={`relative ${className}`} 
+      onClick={onClick}
+      aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
+    >
+      <Bell className="h-5 w-5" />
+      {unreadCount > 0 && (
+        <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center text-white text-xs">
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+      )}
+    </Button>
   );
 };
 

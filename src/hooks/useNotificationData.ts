@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
-import { NotificationContent } from '@/types/notifications';
+import { useNotifications } from '@/lib/notifications/useNotifications';
+import { Notification, NotificationContent } from '@/types/notifications';
 
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 
@@ -9,13 +9,13 @@ export const useNotificationData = (tabFilter: string | null = null) => {
     loading,
     error,
     refreshNotifications
-  } = useNotificationsContext();
+  } = useNotifications();
   
   const [filteredNotifications, setFilteredNotifications] = useState<NotificationContent[]>([]);
 
   // Transform Notification[] to NotificationContent[]
   const transformNotifications = useCallback(() => {
-    return notifications.map(notification => ({
+    return notifications.map((notification: Notification) => ({
       id: notification.id,
       title: notification.title,
       message: notification.description || '',
