@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { useAuth } from '@/context/AuthContext';
-import { supabase, channel } from '@/lib/supabase';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import React, { useState } from 'react';
+import { useNotificationData } from '@/hooks/useNotificationData';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
 import NotificationsPageHeader from './NotificationsPageHeader';
-import NotificationList from './NotificationList';
-import { NotificationContent } from '@/types/notifications';
+import NotificationTabs from './NotificationTabs';
 
 interface NotificationsContainerProps {
   filter: string | null;
@@ -14,184 +11,38 @@ interface NotificationsContainerProps {
 }
 
 const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter, setFilter }) => {
-  const { currentTenant } = useWorkspace();
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<NotificationContent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
+  const { notifications, loading, fetchNotifications } = useNotificationData(selectedTab, filter);
+  const { markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } = useNotificationActions();
 
-  useEffect(() => {
-    if (user?.id && currentTenant?.id) {
-      fetchNotifications();
-
-      // Set up real-time subscription for new notifications
-      const supabaseChannel = channel('notifications_changes')
-        .on('postgres_changes', 
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`
-          }, 
-          () => {
-            fetchNotifications();
-          }
-        )
-        .subscribe();
-      
-      return () => {
-        if (supabaseChannel) {
-          supabase.removeChannel(supabaseChannel);
-        }
-      };
-    }
-  }, [user?.id, currentTenant?.id, selectedTab, filter]);
-
-  const fetchNotifications = async () => {
-    if (!user?.id || !currentTenant?.id) return;
-    
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('notifications')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .eq('user_id', user.id);
-      
-      // Apply tab filters
-      if (selectedTab === 'unread') {
-        query = query.eq('is_read', false);
-      }
-      
-      // Apply module filter
-      if (filter) {
-        query = query.eq('module', filter);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      // Transform to frontend notification format
-      const transformedNotifications: NotificationContent[] = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        message: item.description || '',
-        timestamp: item.created_at,
-        read: item.is_read,
-        type: (item.type || 'info') as 'info' | 'success' | 'warning' | 'error' | 'system'
-      }));
-      
-      setNotifications(transformedNotifications);
-      
-    } catch (error: any) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-        
-      if (error) throw error;
-      
+  const handleMarkAsRead = async (id: string) => {
+    const result = await markAsRead(id);
+    if (result.success) {
       // Update local state
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === id ? { ...notif, read: true } : notif
-        )
-      );
-      
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error marking notification as read:', error);
-      return { success: false, error };
+      await fetchNotifications();
     }
+    return result;
   };
 
-  const markAllAsRead = async () => {
-    if (!user?.id || !currentTenant?.id) return;
-    
-    try {
-      let query = supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('tenant_id', currentTenant.id)
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-      
-      if (filter) {
-        query = query.eq('module', filter);
-      }
-      
-      const { error } = await query;
-      
-      if (error) throw error;
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
-      );
-      
-    } catch (error: any) {
-      console.error('Error marking all notifications as read:', error);
+  const handleDeleteNotification = async (id: string) => {
+    const result = await deleteNotification(id);
+    if (result.success) {
+      // Refresh notifications
+      await fetchNotifications();
     }
+    return result;
   };
 
-  const deleteNotification = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setNotifications(prev => prev.filter(notif => notif.id !== id));
-      
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error deleting notification:', error);
-      return { success: false, error };
-    }
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
+    // Refresh notifications
+    await fetchNotifications();
   };
 
-  const deleteAllNotifications = async () => {
-    if (!user?.id || !currentTenant?.id) return;
-    
-    try {
-      let query = supabase
-        .from('notifications')
-        .delete()
-        .eq('tenant_id', currentTenant.id)
-        .eq('user_id', user.id);
-      
-      // Apply tab filters
-      if (selectedTab === 'unread') {
-        query = query.eq('is_read', false);
-      }
-      
-      // Apply module filter
-      if (filter) {
-        query = query.eq('module', filter);
-      }
-      
-      const { error } = await query;
-      
-      if (error) throw error;
-      
-      // Update local state by refetching
-      fetchNotifications();
-      
-    } catch (error: any) {
-      console.error('Error deleting all notifications:', error);
-    }
+  const handleDeleteAll = async () => {
+    await deleteAllNotifications(filter, selectedTab);
+    // Refresh notifications
+    await fetchNotifications();
   };
 
   return (
@@ -199,28 +50,19 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       <NotificationsPageHeader
         filter={filter}
         setFilter={setFilter}
-        onMarkAllAsRead={markAllAsRead}
-        onDeleteAll={deleteAllNotifications}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onDeleteAll={handleDeleteAll}
       />
       
-      <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All Notifications</TabsTrigger>
-          <TabsTrigger value="unread">Unread</TabsTrigger>
-        </TabsList>
-        
-        <Card>
-          <CardContent className="p-6">
-            <NotificationList 
-              notifications={notifications} 
-              loading={loading} 
-              filter={selectedTab}
-              markAsRead={markAsRead}
-              onDelete={deleteNotification}
-            />
-          </CardContent>
-        </Card>
-      </Tabs>
+      <NotificationTabs
+        selectedTab={selectedTab}
+        setSelectedTab={setSelectedTab}
+        notifications={notifications}
+        loading={loading}
+        filter={filter}
+        markAsRead={handleMarkAsRead}
+        onDelete={handleDeleteNotification}
+      />
     </>
   );
 };
