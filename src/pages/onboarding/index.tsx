@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
+import WelcomeScreen from '@/components/onboarding/WelcomeScreen';
 import { useTenantAvailability } from '@/hooks/useTenantAvailability';
 import { useAuth } from '@/context/AuthContext';
 import PageHelmet from '@/components/PageHelmet';
@@ -10,7 +11,8 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 const OnboardingPage: React.FC = () => {
   const { tenantId, isAvailable, isLoading: tenantLoading } = useTenantAvailability();
   const { user, loading: authLoading } = useAuth();
-  const { loading: workspaceLoading } = useWorkspace();
+  const { isLoading: workspaceLoading } = useWorkspace();
+  const [showWelcome, setShowWelcome] = useState(true);
   
   // Show loading while authentication or workspace data is loading
   if (authLoading || workspaceLoading || tenantLoading) {
@@ -31,6 +33,11 @@ const OnboardingPage: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
   
+  // Start the onboarding process
+  const handleStartOnboarding = () => {
+    setShowWelcome(false);
+  };
+  
   return (
     <>
       <PageHelmet 
@@ -38,7 +45,11 @@ const OnboardingPage: React.FC = () => {
         description="Set up your Allora OS workspace and get started"
       />
       <div className="min-h-screen px-4 sm:px-0">
-        <OnboardingWizard />
+        {showWelcome ? (
+          <WelcomeScreen onStart={handleStartOnboarding} />
+        ) : (
+          <OnboardingWizard />
+        )}
       </div>
     </>
   );

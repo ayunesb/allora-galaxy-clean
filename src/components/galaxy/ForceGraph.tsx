@@ -1,27 +1,16 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
-// We'll use react-force-graph directly instead of react-force-graph-2d
 import ForceGraph2D from 'react-force-graph';
 import { useTheme } from '@/hooks/useTheme';
+import { ForceGraphProps, GraphNode } from '@/types/galaxy';
 
-interface ForceGraphProps {
-  graphData: any;
-  onNodeClick: (node: any) => void;
-  onBackgroundClick: () => void;
-  highlightedNodeId?: string | null;
-  selectedNodeId?: string | null;
-  viewMode?: string;
-  className?: string;
-}
-
-export const ForceGraph: React.FC<ForceGraphProps> = ({
+const ForceGraph: React.FC<ForceGraphProps> = ({
   graphData,
   onNodeClick,
-  onBackgroundClick,
+  onBackgroundClick = () => {},
   highlightedNodeId,
   selectedNodeId,
-  viewMode = 'strategy',
   className = '',
 }) => {
   const graphRef = useRef<any>(null);
@@ -46,7 +35,9 @@ export const ForceGraph: React.FC<ForceGraphProps> = ({
   }, []);
 
   // Node color based on type and theme
-  const getNodeColor = (node: any) => {
+  const getNodeColor = (node: GraphNode) => {
+    if (node.color) return node.color;
+    
     const isDark = theme === 'dark';
     
     switch (node.type) {
@@ -62,12 +53,12 @@ export const ForceGraph: React.FC<ForceGraphProps> = ({
   };
 
   // Link color based on theme
-  const getLinkColor = (link: any) => {
+  const getLinkColor = () => {
     return theme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)';
   };
 
   // Handle node size
-  const getNodeSize = (node: any) => {
+  const getNodeSize = (node: GraphNode) => {
     if (node.id === selectedNodeId || node.id === highlightedNodeId) {
       return 8;
     }
@@ -88,12 +79,12 @@ export const ForceGraph: React.FC<ForceGraphProps> = ({
     <Card className={`overflow-hidden border ${className}`} ref={containerRef}>
       <div className="w-full h-full">
         {graphData?.nodes && graphData.nodes.length > 0 && (
-          <ForceGraph2D
+          <ForceGraph2D.default
             ref={graphRef}
             graphData={graphData}
             width={dimensions.width}
             height={dimensions.height}
-            nodeLabel={node => node.name || node.id}
+            nodeLabel={(node: GraphNode) => node.name || node.id}
             nodeColor={getNodeColor}
             nodeRelSize={6}
             nodeVal={getNodeSize}

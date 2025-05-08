@@ -1,195 +1,111 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { logSystemEvent } from "@/lib/system/logSystemEvent";
-import { OnboardingFormData } from "@/types/onboarding";
-import { TenantWithRole } from "@/types/tenant";
+import { supabase } from '@/integrations/supabase/client';
+import { Tenant } from '@/contexts/workspace/types';
 
 /**
- * Check if user already has existing tenants
+ * Check if the user has existing tenants
  */
-export async function checkExistingTenants(userId: string): Promise<TenantWithRole[]> {
+export async function checkExistingTenants(userId: string): Promise<Tenant[] | null> {
   try {
-    const { data, error } = await supabase
+    // First get tenant_ids from tenant_user_roles
+    const { data: userTenants, error: userTenantsError } = await supabase
       .from('tenant_user_roles')
-      .select('tenant_id, role, tenants:tenant_id(id, name, slug)')
+      .select('tenant_id, role')
       .eq('user_id', userId);
-
-    if (error) {
-      console.error('Error checking tenants:', error);
-      throw error;
+    
+    if (userTenantsError) {
+      console.error('Error checking tenants:', userTenantsError);
+      return null;
     }
-
-    // Transform the data to match the TenantWithRole type
-    const tenants: TenantWithRole[] = data?.map(item => ({
-      id: item.tenant_id,
-      name: item.tenants ? (item.tenants as any).name : 'Unknown Tenant',
-      slug: item.tenants ? (item.tenants as any).slug : undefined,
-      role: item.role
-    })) || [];
-
-    return tenants;
+    
+    if (!userTenants || userTenants.length === 0) {
+      return [];
+    }
+    
+    // Now fetch the tenant details without using RLS
+    // Create an array of tenant_ids
+    const tenantIds = userTenants.map(ut => ut.tenant_id);
+    
+    const { data: tenants, error: tenantsError } = await supabase
+      .from('tenants')
+      .select('id, name, slug')
+      .in('id', tenantIds);
+    
+    if (tenantsError) {
+      console.error('Error checking tenants:', tenantsError);
+      return null;
+    }
+    
+    // Combine tenant details with roles
+    return tenants.map(tenant => {
+      const userTenant = userTenants.find(ut => ut.tenant_id === tenant.id);
+      return {
+        ...tenant,
+        role: userTenant?.role
+      };
+    });
   } catch (error) {
     console.error('Error checking tenants:', error);
-    return [];
+    return null;
   }
 }
 
 /**
- * Creates a new tenant from onboarding form data
+ * Create a new tenant for a user
  */
-export async function createTenantFromOnboarding(
-  userId: string, 
-  data: OnboardingFormData
-): Promise<{ success: boolean; tenantId?: string; error?: string }> {
+export async function createTenant(
+  userId: string,
+  name: string,
+  metadata: Record<string, any> = {}
+): Promise<string | null> {
   try {
-    if (!userId) {
-      return { success: false, error: 'User ID is required' };
-    }
-
-    // Generate a unique slug from company name
-    const slug = createSlug(data.companyName);
-
-    // 1. Create the tenant
-    const { data: tenantData, error: tenantError } = await supabase
+    // Generate slug from name
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    // Create tenant
+    const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
       .insert({
-        name: data.companyName,
+        name,
         slug,
         owner_id: userId,
-        metadata: {
-          industry: data.industry,
-          size: data.companySize,
-          revenueRange: data.revenueRange,
-          website: data.website || '',
-          onboarding_completed: true
-        }
+        metadata
       })
       .select('id')
       .single();
-
+    
     if (tenantError) {
-      await logSystemEvent(
-        'system',
-        'onboarding',
-        'tenant_creation_failed',
-        { error: tenantError.message, user_id: userId }
-      );
-      return { success: false, error: `Tenant creation failed: ${tenantError.message}` };
+      console.error('Error creating tenant:', tenantError);
+      return null;
     }
-
-    const tenantId = tenantData.id;
-
-    // 2. Add user as owner
+    
+    if (!tenant) {
+      console.error('No tenant created');
+      return null;
+    }
+    
+    // Connect user to tenant with owner role
     const { error: roleError } = await supabase
       .from('tenant_user_roles')
       .insert({
-        tenant_id: tenantId,
+        tenant_id: tenant.id,
         user_id: userId,
         role: 'owner'
       });
-
+    
     if (roleError) {
-      await logSystemEvent(
-        tenantId,
-        'onboarding',
-        'tenant_role_creation_failed',
-        { error: roleError.message, user_id: userId }
-      );
-      return { success: false, error: `Role assignment failed: ${roleError.message}` };
+      console.error('Error assigning role:', roleError);
+      // Clean up tenant
+      await supabase.from('tenants').delete().eq('id', tenant.id);
+      return null;
     }
-
-    // 3. Add company profile
-    const { error: companyError } = await supabase
-      .from('company_profiles')
-      .insert({
-        tenant_id: tenantId,
-        name: data.companyName,
-        description: data.description,
-        industry: data.industry,
-        size: data.companySize,
-        revenue_range: data.revenueRange,
-        website: data.website || ''
-      });
-
-    if (companyError) {
-      await logSystemEvent(
-        tenantId,
-        'onboarding',
-        'company_profile_creation_failed',
-        { error: companyError.message }
-      );
-      return { success: false, error: `Company profile creation failed: ${companyError.message}` };
-    }
-
-    // 4. Add persona profile
-    if (data.persona) {
-      const { error: personaError } = await supabase
-        .from('persona_profiles')
-        .insert({
-          tenant_id: tenantId,
-          name: data.persona.name,
-          goals: data.persona.goals,
-          tone: data.persona.tone
-        });
-
-      if (personaError) {
-        await logSystemEvent(
-          tenantId,
-          'onboarding',
-          'persona_profile_creation_failed',
-          { error: personaError.message }
-        );
-        return { success: false, error: `Persona profile creation failed: ${personaError.message}` };
-      }
-    }
-
-    // 5. Update user profile to mark onboarding as completed
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ onboarding_completed: true })
-      .eq('id', userId);
-
-    if (profileError) {
-      console.warn('Failed to update profile onboarding status:', profileError);
-      // Non-critical error, continue
-    }
-
-    // Log successful tenant creation
-    await logSystemEvent(
-      tenantId,
-      'onboarding',
-      'tenant_created',
-      {
-        user_id: userId,
-        company_name: data.companyName,
-        industry: data.industry
-      }
-    );
-
-    return { success: true, tenantId };
-  } catch (error: any) {
+    
+    return tenant.id;
+  } catch (error) {
     console.error('Error creating tenant:', error);
-    await logSystemEvent(
-      'system',
-      'onboarding',
-      'tenant_creation_error',
-      { error: error.message }
-    );
-    return { success: false, error: error.message };
+    return null;
   }
-}
-
-/**
- * Create a URL-friendly slug from a name
- */
-function createSlug(name: string): string {
-  const baseSlug = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  
-  const randomSuffix = Math.random().toString(36).substring(2, 8);
-  return `${baseSlug}-${randomSuffix}`;
 }

@@ -4,16 +4,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
 import { GraphNode } from '@/types/galaxy';
-import { ViewModeSelector } from '@/components/galaxy/ViewModeSelector';
-import { ZoomControls } from '@/components/galaxy/ZoomControls';
-import { ForceGraph } from '@/components/galaxy/ForceGraph';
+import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
+import ZoomControls from '@/components/galaxy/ZoomControls';
+import ForceGraph from '@/components/galaxy/ForceGraph';
 import { InspectorSidebar } from '@/components/galaxy/InspectorSidebar';
 import { GraphLegend } from '@/components/galaxy/GraphLegend';
 import MobileInspector from '@/components/galaxy/MobileInspector';
-import { useMobile } from '@/hooks/use-mobile';
+import { useMobile } from '@/hooks/useMobile';
 
 const GalaxyExplorer: React.FC = () => {
-  const { graphData, loading, error } = useGalaxyData();
+  const { data: graphData, isLoading: loading, error } = useGalaxyData();
   const [viewMode, setViewMode] = useState<string>('strategy');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const fgRef = useRef<any>();
@@ -57,7 +57,7 @@ const GalaxyExplorer: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
         <h2 className="text-xl font-bold text-destructive mb-2">Error Loading Galaxy Data</h2>
-        <p className="text-muted-foreground mb-4">{error}</p>
+        <p className="text-muted-foreground mb-4">{error.message}</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
@@ -101,11 +101,12 @@ const GalaxyExplorer: React.FC = () => {
             
             {/* Force Graph */}
             <div className="h-full">
-              <ForceGraph 
-                data={graphData} 
-                fgRef={fgRef} 
-                onNodeClick={handleNodeClick}
-              />
+              {graphData && (
+                <ForceGraph 
+                  graphData={graphData} 
+                  onNodeClick={handleNodeClick}
+                />
+              )}
             </div>
 
             {/* Inspector */}

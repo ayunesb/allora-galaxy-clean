@@ -1,12 +1,19 @@
 
-import { ForceGraphInstance } from 'react-force-graph';
+/**
+ * Types for the Galaxy Explorer
+ */
 
 export interface NodeData {
   id: string;
-  name?: string;
+  name: string;
   type: 'strategy' | 'plugin' | 'agent';
   status?: string;
   metadata?: Record<string, any>;
+  color?: string;
+  borderColor?: string;
+  description?: string;
+  version?: string;
+  plugin_id?: string;
 }
 
 export interface LinkData {
@@ -29,8 +36,19 @@ export interface GraphOptions {
 }
 
 export interface ForceGraphRef {
-  graph: ForceGraphInstance;
+  graph: any;
   centerGraph: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+}
+
+export type GraphNode = NodeData;
+
+export interface ForceGraphProps {
+  graphData: GraphData;
+  onNodeClick: (node: GraphNode) => void;
+  onBackgroundClick?: () => void;
+  highlightedNodeId?: string | null;
+  selectedNodeId?: string | null;
+  className?: string;
 }

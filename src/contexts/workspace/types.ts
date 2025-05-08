@@ -19,6 +19,10 @@ export interface WorkspaceContextType {
   tenants: Tenant[];
   currentUrl: string;
   isLoading: boolean;
+  currentRole?: UserRole;
+  loading?: boolean;
+  tenant?: Tenant | null;
+  userRole?: UserRole;
   setCurrentUrl: (url: string) => void;
   switchTenant: (tenantId: string) => Promise<boolean>;
 }

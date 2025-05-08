@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
 import EmptyState from '@/components/galaxy/EmptyState';
 import ForceGraph from '@/components/galaxy/ForceGraph';
-import { GraphNode, GraphData } from '@/types/galaxy';
+import { GraphData, GraphNode } from '@/types/galaxy';
 
 interface GalaxyLoaderProps {
   viewMode: string;
@@ -25,7 +25,7 @@ const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({
   // Update graph data when API data changes or view mode changes
   React.useEffect(() => {
     if (graphDataQuery) {
-      let filteredNodes: GraphNode[] = [...graphDataQuery.nodes];
+      let filteredNodes = [...graphDataQuery.nodes];
       let filteredLinks = [...graphDataQuery.links];
       
       // Apply view mode filter
@@ -84,7 +84,6 @@ const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({
       ) : (
         <ForceGraph 
           graphData={graphData} 
-          fgRef={fgRef} 
           onNodeClick={onNodeClick}
         />
       )}

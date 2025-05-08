@@ -1,26 +1,58 @@
+
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useOnboardingForm } from './useOnboardingForm';
-import { useOnboardingSteps } from './useOnboardingSteps';
-import { useOnboardingTenants } from './useOnboardingTenants';
-import { useOnboardingSubmission } from './useOnboardingSubmission';
+import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData';
+import { completeOnboarding } from '@/services/onboardingService';
+import { useOnboardingStore } from '@/lib/onboarding/onboardingState';
+import { trackOnboardingStepCompleted, trackOnboardingStepView } from '@/lib/onboarding/onboardingAnalytics';
+import { OnboardingStep } from '@/types/onboarding';
 
 /**
  * Main hook for managing the onboarding wizard
  */
 export function useOnboardingWizard() {
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { formData, updateFormData, setFieldValue, validateStep } = useOnboardingForm();
-  const { tenantsList, hasTenants } = useOnboardingTenants(currentUser);
-  const { isSubmitting, error, handleSubmit: submitForm, resetError } = useOnboardingSubmission();
+  const [error, setError] = useState<string | null>(null);
+  
+  // Get state from store
+  const {
+    currentStep,
+    formData,
+    isSubmitting,
+    updateFormData,
+    setField,
+    setStep,
+    nextStep,
+    prevStep,
+    setSubmitting,
+    setComplete
+  } = useOnboardingStore();
+  
+  // Define steps
+  const steps = [
+    { id: 'company-info' as OnboardingStep, label: 'Company Info' },
+    { id: 'persona' as OnboardingStep, label: 'Target Persona' },
+    { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
+    { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
+  ];
+  
+  const step = steps[currentStep];
+  
+  // Track step view
+  const trackStepView = useCallback(() => {
+    if (user) {
+      trackOnboardingStepView(user.id, step.id);
+    }
+  }, [step.id, user]);
   
   // Validate current step
   const validateCurrentStep = () => {
     const stepId = steps[currentStep].id;
-    const validation = validateStep(stepId);
+    const validation = validateOnboardingData(formData, stepId);
     
     if (!validation.valid) {
       // Show validation errors
@@ -34,56 +66,123 @@ export function useOnboardingWizard() {
     return validation;
   };
   
-  // Initialize steps management
-  const {
-    steps,
-    currentStep,
-    step,
-    handleNextStep,
-    handlePrevStep,
-    handleStepClick
-  } = useOnboardingSteps(validateCurrentStep);
-  
   // Check if current step is valid
   const isStepValid = () => {
-    return validateStep(steps[currentStep].id).valid;
+    return validateOnboardingData(steps[currentStep].id, formData).valid;
+  };
+  
+  // Handle step navigation
+  const handleStepClick = (index: number) => {
+    // Only allow going to completed steps or next step
+    if (index <= currentStep + 1) {
+      setStep(index);
+      trackStepView();
+    }
+  };
+  
+  // Handle next step
+  const handleNextStep = () => {
+    const validation = validateCurrentStep();
+    
+    if (!validation.valid) {
+      return false;
+    }
+    
+    if (currentStep < steps.length - 1) {
+      // Track step completion
+      if (user) {
+        trackOnboardingStepCompleted(user.id, steps[currentStep].id);
+      }
+      
+      nextStep();
+      trackStepView();
+      return true;
+    }
+    
+    return false;
+  };
+  
+  // Handle previous step
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      prevStep();
+      trackStepView();
+    }
   };
   
   // Handle form submission
   const handleSubmit = async () => {
-    // For the final step, we need to generate a strategy
-    if (currentStep === steps.length - 1) {
-      const success = await submitForm(formData);
-      if (success) {
+    if (!user) {
+      setError('User must be logged in to complete onboarding');
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to complete onboarding',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      // Complete the onboarding process
+      const result = await completeOnboarding(user.id, formData);
+      
+      if (result.success && result.tenantId) {
+        toast({
+          title: 'Welcome to Allora OS!',
+          description: 'Your workspace has been created successfully.',
+        });
+        
+        // Mark onboarding as complete
+        setComplete(true, result.tenantId);
+        
         // Navigate to dashboard
         navigate('/dashboard');
+      } else {
+        setError(result.error || 'Failed to create workspace');
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to create workspace',
+          variant: 'destructive',
+        });
       }
-    } else {
-      // Otherwise, move to the next step
-      handleNextStep();
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+      toast({
+        title: 'Error',
+        description: err.message || 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+      console.error('Onboarding error:', err);
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  // Return all necessary values and functions
+  
+  const resetError = () => setError(null);
+  
+  // Initialize step tracking
+  useState(() => {
+    trackStepView();
+  });
+  
   return {
-    step,
-    currentStep,
-    formData,
     steps,
+    currentStep,
+    step,
+    formData,
     error,
     isSubmitting,
-    tenantsList,
-    currentUser,
     updateFormData,
+    setFieldValue: setField,
+    handleStepClick,
     handleNextStep,
     handlePrevStep,
-    handleStepClick,
     handleSubmit,
     isStepValid,
     resetError,
-    validateCurrentStep,
-    setFieldValue,
-    isGeneratingStrategy: isSubmitting,
-    hasTenants
+    validateCurrentStep
   };
 }
