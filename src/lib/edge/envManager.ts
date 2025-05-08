@@ -1,6 +1,5 @@
 
 import { getEnvWithDefault } from '@/lib/env/envUtils';
-import { corsHeaders } from '@/lib/env';
 
 /**
  * Universal environment variable getter that works in both Deno and Node environments
@@ -40,8 +39,45 @@ export function getEnv(key: string, defaultValue: string = ""): string {
   }
 }
 
-// Re-export CORS headers for use in edge functions
-export { corsHeaders };
+/**
+ * Default CORS headers for edge functions
+ */
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
 
-// Export getEnvWithDefault for convenience
+// Re-export getEnvWithDefault for convenience
 export { getEnvWithDefault };
+
+/**
+ * Check if we're in a production environment
+ */
+export function isProduction(): boolean {
+  const env = getEnv('NODE_ENV', '');
+  return env === 'production';
+}
+
+/**
+ * Get base URL for the current environment
+ */
+export function getBaseUrl(): string {
+  return getEnv('VITE_APP_URL', 'http://localhost:8080');
+}
+
+/**
+ * Safe environment variable getter that logs warnings for missing critical variables
+ * @param key The environment variable key
+ * @param defaultValue Default value if not found
+ * @param required Whether this variable is critical (will log warning if missing)
+ */
+export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
+  const value = getEnv(key, defaultValue);
+  
+  if (required && (value === defaultValue || value === "")) {
+    console.warn(`⚠️ Critical environment variable ${key} is missing!`);
+  }
+  
+  return value;
+}
