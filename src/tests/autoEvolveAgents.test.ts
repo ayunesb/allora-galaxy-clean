@@ -1,82 +1,115 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { autoEvolveAgents } from '@/lib/agents/evolution';
 import { supabase } from '@/integrations/supabase/client';
+import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-// Mock supabase client
+// Mock dependencies
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          is: vi.fn(() => ({
-            gt: vi.fn(() => ({
-              lt: vi.fn(() => ({
-                order: vi.fn(() => Promise.resolve({
-                  data: [
-                    { id: 'agent1', plugin_id: 'plugin1', prompt: 'test prompt', version: 'v1', upvotes: 1, downvotes: 5 }
-                  ],
-                  error: null
-                }))
-              }))
-            }))
-          }))
-        })),
-        gte: vi.fn(() => ({
-          is: vi.fn(() => ({
-            groupBy: vi.fn(() => Promise.resolve({
-              data: [
-                { agent_version_id: 'agent1', status: 'success', count: 10 }
-              ],
-              error: null
-            }))
-          }))
-        })),
-        not: vi.fn(() => Promise.resolve({
-          data: [
-            { comment: 'This needs improvement', vote_type: 'down' }
-          ],
-          error: null
-        }))
-      })),
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({
-            data: { id: 'new-agent-id' },
-            error: null
-          }))
-        }))
-      })),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({
-          data: null,
-          error: null
-        }))
-      }))
-    })),
-    rpc: vi.fn(() => ({
-      multiply_value: () => 1.5 // Mock for the multiply_value RPC function
-    }))
+    from: vi.fn()
   }
 }));
 
-// Mock the logSystemEvent function
 vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn(() => Promise.resolve())
+  logSystemEvent: vi.fn().mockResolvedValue({ success: true })
 }));
 
-describe('Auto Evolve Agents', () => {
+describe('autoEvolveAgents', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    
+    // Setup default mock responses
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: 'agent-1',
+                upvotes: 3,
+                downvotes: 10,
+                created_at: '2023-01-01T00:00:00Z'
+              },
+              {
+                id: 'agent-2',
+                upvotes: 20,
+                downvotes: 5,
+                created_at: '2023-05-01T00:00:00Z'
+              }
+            ],
+            error: null
+          })
+        })
+      }),
+      insert: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { id: 'new-agent-id' },
+            error: null
+          })
+        })
+      })
+    } as any);
   });
 
-  it('should evolve agents that need evolution', async () => {
-    const tenantId = 'test-tenant';
-    
-    const result = await autoEvolveAgents({ tenantId });
+  it('should auto-evolve agents that need improvement', async () => {
+    const config = {
+      minimumExecutions: 5,
+      failureRateThreshold: 0.2,
+      staleDays: 30,
+      batchSize: 10
+    };
+
+    const result = await autoEvolveAgents('test-tenant-id', config);
     
     expect(result.success).toBe(true);
     expect(result.agentsEvolved).toBeGreaterThan(0);
-    expect(supabase.from).toHaveBeenCalledWith('agent_versions');
+    expect(logSystemEvent).toHaveBeenCalled();
+  });
+
+  it('should handle empty agent list', async () => {
+    vi.mocked(supabase.from).mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      })
+    } as any);
+    
+    const result = await autoEvolveAgents('test-tenant-id');
+    
+    expect(result.success).toBe(true);
+    expect(result.agentsEvolved).toBe(0);
+    expect(result.message).toContain('No agents needed evolution');
+  });
+
+  it('should handle database errors', async () => {
+    vi.mocked(supabase.from).mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue({
+            data: null,
+            error: new Error('Database error')
+          })
+        })
+      })
+    } as any);
+    
+    const result = await autoEvolveAgents('test-tenant-id');
+    
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(logSystemEvent).toHaveBeenCalledWith(
+      'agent',
+      'error',
+      expect.objectContaining({
+        event: 'auto_evolve_failed'
+      }),
+      'test-tenant-id'
+    );
   });
 });

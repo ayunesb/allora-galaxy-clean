@@ -11,25 +11,28 @@ export type * from './tenant';
 
 // Export shared types
 export type {
+  UserRole,
+  NavigationItem,
+  VoteType,
+  TrendDirection,
+  SystemEventModule,
+  SystemEventType,
+  OnboardingStep,
+  // Now also export the previously missing types
   BaseEntity,
   ExecutionParams,
   ExecutionType,
   KPITrend,
   LogStatus,
-  SystemEventModule,
-  SystemEventType,
-  TenantFeature,
-  TrendDirection,
-  UserRole,
-  VoteType
+  TenantFeature
 } from './shared';
 
 export type { NotificationType } from './notifications';
 
 // Re-export remaining types
 export type * from './galaxy';
-// Remove the conflicting export and use a more specific one
-export type { OnboardingStep, OnboardingFormData, OnboardingState, OnboardingAction } from './onboarding';
+// Export onboarding types without conflicts
+export type { OnboardingFormData, OnboardingState, OnboardingAction } from './onboarding';
 
 // Fixed exports to avoid ambiguity
 export type { 

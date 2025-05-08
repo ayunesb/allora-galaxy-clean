@@ -1,57 +1,48 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { AgentVoteStats } from "./types";
+import { supabase } from '@/integrations/supabase/client';
+import { AgentVoteStats } from './types';
 
 /**
- * Get vote statistics for an agent version
- * @param agentVersionId Agent version ID
- * @returns Vote statistics
+ * Get voting statistics for an agent version
+ * @param agentVersionId The agent version ID
+ * @returns The vote stats (upvotes, downvotes, total, ratio)
  */
 export async function getAgentVoteStats(agentVersionId: string): Promise<AgentVoteStats> {
   try {
-    const { data: agent, error } = await supabase
+    const { data, error } = await supabase
       .from('agent_versions')
-      .select('upvotes, downvotes, xp')
+      .select('upvotes, downvotes')
       .eq('id', agentVersionId)
       .single();
-      
-    if (error) throw error;
-    
-    // Get recent comments
-    const { data: recentComments, error: commentsError } = await supabase
-      .from('agent_votes')
-      .select('id, vote_type, comment, created_at')
-      .eq('agent_version_id', agentVersionId)
-      .not('comment', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(5);
-      
-    if (commentsError) {
-      console.warn('Error fetching vote comments:', commentsError);
+
+    if (error) {
+      console.error('Error fetching agent vote stats:', error);
+      return {
+        upvotes: 0,
+        downvotes: 0,
+        total: 0,
+        ratio: 0
+      };
     }
-    
-    const upvotes = agent.upvotes || 0;
-    const downvotes = agent.downvotes || 0;
-    const totalVotes = upvotes + downvotes;
-    const ratio = totalVotes > 0 ? Math.round((upvotes / totalVotes) * 100) : 0;
-    
+
+    const upvotes = data?.upvotes || 0;
+    const downvotes = data?.downvotes || 0;
+    const total = upvotes + downvotes;
+    const ratio = total > 0 ? upvotes / total : 0;
+
     return {
-      agentVersionId,
       upvotes,
       downvotes,
-      xp: agent.xp || 0,
-      totalVotes,
-      ratio,
-      recentComments: recentComments || []
+      total,
+      ratio
     };
-  } catch (error: any) {
-    console.error('Error getting agent vote stats:', error);
+  } catch (err) {
+    console.error('Unexpected error getting agent vote stats:', err);
     return {
-      agentVersionId,
       upvotes: 0,
       downvotes: 0,
-      xp: 0,
-      totalVotes: 0
+      total: 0,
+      ratio: 0
     };
   }
 }

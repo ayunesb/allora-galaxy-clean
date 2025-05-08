@@ -18,3 +18,16 @@ export interface VoteResult {
   upvotes: number;
   downvotes: number;
 }
+
+export interface AgentVoteStats {
+  upvotes: number;
+  downvotes: number;
+  total: number;
+  ratio: number;
+}
+
+export type VoteStats = AgentVoteStats;
+
+export type CastVoteFn = (agentVersionId: string, voteType: VoteType, comment?: string) => Promise<VoteResult>;
+export type UpvoteAgentVersionFn = (agentVersionId: string, comment?: string) => Promise<VoteResult>;
+export type DownvoteAgentVersionFn = (agentVersionId: string, comment?: string) => Promise<VoteResult>;

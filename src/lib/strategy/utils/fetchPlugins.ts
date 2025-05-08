@@ -1,5 +1,4 @@
 
-// Remove unused variable 'strategy'
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { Plugin } from '@/types';
@@ -14,9 +13,9 @@ import { Plugin } from '@/types';
 export async function fetchPluginsForStrategy(strategyId: string, tenantId: string): Promise<Plugin[]> {
   try {
     // Log the plugin fetch attempt
-    await logSystemEvent(tenantId, 'strategy', 'fetch_plugins_started', {
+    await logSystemEvent('strategy' as any, 'info', {
       strategy_id: strategyId
-    });
+    }, tenantId);
 
     // Fetch available plugins for this tenant
     const { data, error } = await supabase
@@ -30,20 +29,20 @@ export async function fetchPluginsForStrategy(strategyId: string, tenantId: stri
     }
 
     // Log the successful fetch
-    await logSystemEvent(tenantId, 'strategy', 'fetch_plugins_completed', {
+    await logSystemEvent('strategy' as any, 'info', {
       strategy_id: strategyId,
       plugin_count: data?.length || 0
-    });
+    }, tenantId);
 
     return data as Plugin[];
   } catch (err: any) {
     console.error('Error fetching plugins:', err);
     
     // Log the error
-    await logSystemEvent(tenantId, 'strategy', 'fetch_plugins_error', {
+    await logSystemEvent('strategy' as any, 'error', {
       strategy_id: strategyId,
       error: err.message
-    });
+    }, tenantId);
     
     return [];
   }

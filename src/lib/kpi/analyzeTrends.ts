@@ -1,84 +1,58 @@
 
-import { format, subDays, parseISO } from 'date-fns';
-import { KPITrend, TrendDirection } from '@/types/shared';
+import { TrendDirection } from '@/types/shared';
+
+export interface KPITrend {
+  direction: TrendDirection;
+  percentage: number;
+  raw_change: number;
+}
 
 /**
- * Calculate the trend for a KPI
- * 
- * @param currentValue Current value of the KPI
- * @param previousValue Previous value of the KPI
- * @param higherIsBetter Whether a higher value is considered positive
- * @returns KPI trend analysis
+ * Calculate trends based on current and previous KPI values
+ * @param current The current KPI value
+ * @param previous The previous KPI value
+ * @returns Trend information including direction and percentage change
  */
-export function calculateTrend(
-  currentValue: number,
-  previousValue: number,
-  higherIsBetter: boolean = true
-): KPITrend {
-  // If no previous value, no trend
-  if (previousValue === 0) {
+export function calculateTrend(current: number, previous: number | null | undefined): KPITrend {
+  if (previous === null || previous === undefined || previous === 0) {
     return {
       direction: 'neutral',
       percentage: 0,
-      previousValue,
-      isPositive: false
+      raw_change: 0
     };
   }
+
+  const raw_change = current - previous;
+  const percentage = (raw_change / Math.abs(previous)) * 100;
   
-  // Calculate change percentage
-  const difference = currentValue - previousValue;
-  const percentage = Math.round((difference / Math.abs(previousValue)) * 100);
-  
-  // Determine direction
+  // Determine direction with a small threshold to avoid noise
+  const threshold = 0.5; // 0.5% change threshold for direction
   let direction: TrendDirection = 'neutral';
-  if (percentage > 0) {
-    direction = 'up';
-  } else if (percentage < 0) {
-    direction = 'down';
+  
+  if (Math.abs(percentage) >= threshold) {
+    direction = raw_change > 0 ? 'up' : 'down';
   }
-  
-  // Determine if positive based on direction and higherIsBetter
-  const isPositive = 
-    (direction === 'up' && higherIsBetter) || 
-    (direction === 'down' && !higherIsBetter);
-  
+
   return {
     direction,
-    percentage: Math.abs(percentage),
-    previousValue,
-    isPositive
+    percentage: Math.abs(Number(percentage.toFixed(1))),
+    raw_change
   };
 }
 
 /**
- * Get formatted date range for KPI comparisons
- * 
- * @param days Number of days to look back
- * @returns Object with formatted date strings
+ * Format a trend for display
+ * @param trend The KPI trend
+ * @param includePlus Whether to include a plus sign for positive trends
+ * @returns Formatted trend string
  */
-export function getDateRange(days: number = 30) {
-  const today = new Date();
-  const startDate = subDays(today, days);
-  
-  return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(today, 'yyyy-MM-dd'),
-    previousStartDate: format(subDays(startDate, days), 'yyyy-MM-dd'),
-    previousEndDate: format(subDays(today, 1), 'yyyy-MM-dd')
-  };
-}
-
-/**
- * Convert a date string to a formatted date for display
- * 
- * @param dateStr Date string to format
- * @param formatStr Format string for date-fns
- * @returns Formatted date string
- */
-export function formatDateStr(dateStr: string, formatStr: string = 'MMM d, yyyy'): string {
-  try {
-    return format(parseISO(dateStr), formatStr);
-  } catch (e) {
-    return dateStr;
+export function formatTrend(trend: KPITrend, includePlus: boolean = true): string {
+  if (trend.direction === 'neutral' || trend.percentage === 0) {
+    return '0%';
   }
+  
+  const prefix = trend.direction === 'up' && includePlus ? '+' : '';
+  const sign = trend.direction === 'down' ? '-' : '';
+  
+  return `${prefix}${sign}${trend.percentage}%`;
 }

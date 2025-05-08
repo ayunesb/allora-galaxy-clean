@@ -68,7 +68,7 @@ export async function executePlugin(
       plugin_name: plugin.name,
       error: error.message || 'Unknown error',
       user_id: userId
-    }, tenantId).catch(err => {
+    }, tenantId).catch((err: Error) => {
       console.error('Error logging plugin failure:', err);
     });
     
@@ -82,7 +82,7 @@ export async function executePlugin(
       error: error.message || 'Unknown error',
       execution_time: 0,
       xp_earned: 0
-    }).then(() => {}).catch(err => {
+    }).then(() => {}).catch((err: Error) => {
       console.error('Error logging plugin failure to database:', err);
     });
     
