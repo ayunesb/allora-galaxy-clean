@@ -12,12 +12,12 @@ export const initialWorkspaceState: WorkspaceContextType = {
   userRole: null,
   tenantsList: [],
   loading: true,
-  isLoading: true, // Add isLoading property
+  isLoading: true,
   error: null,
   setTenantId: () => {},
   setUserRole: () => {},
   refreshTenant: () => {},
-  navigationItems: [] // Initialize navigationItems
+  navigationItems: []
 };
 
 export const useWorkspaceState = (userId: string | undefined): WorkspaceContextType => {
@@ -105,7 +105,7 @@ export const useWorkspaceState = (userId: string | undefined): WorkspaceContextT
     userRole,
     tenantsList,
     loading,
-    isLoading: loading, // Map loading to isLoading
+    isLoading: loading, // Map loading to isLoading for backwards compatibility
     error,
     setTenantId,
     setUserRole,
