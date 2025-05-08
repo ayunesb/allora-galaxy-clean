@@ -1,9 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { NavigationItem } from '@/types/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/lib/auth/roleTypes';
+import { NavigationItem } from '@/types/navigation';
 
 interface Tenant {
   id: string;
@@ -44,11 +44,11 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
   // Default navigation items
   const navigationItems: NavigationItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-    { name: 'Galaxy', href: '/galaxy', icon: 'galaxy' },
-    { name: 'Plugins', href: '/plugins', icon: 'plugin' },
-    { name: 'Insights', href: '/insights/kpis', icon: 'insights' },
-    { name: 'Settings', href: '/settings', icon: 'settings' }
+    { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
+    { label: 'Galaxy', href: '/galaxy', icon: 'galaxy' },
+    { label: 'Plugins', href: '/plugins', icon: 'plugin' },
+    { label: 'Insights', href: '/insights/kpis', icon: 'insights' },
+    { label: 'Settings', href: '/settings', icon: 'settings' }
   ];
 
   const fetchTenant = async () => {

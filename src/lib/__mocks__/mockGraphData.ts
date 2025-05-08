@@ -5,24 +5,24 @@ export const mockGraphData: GraphData = {
   nodes: [
     {
       id: 'strategy-1',
-      realId: '1',
       name: 'Content Marketing Strategy',
       type: 'strategy',
-      description: 'A strategy focused on content marketing techniques'
+      description: 'A strategy focused on content marketing techniques',
+      realId: '1' // Added to match the expected interface
     },
     {
       id: 'plugin-1',
-      realId: '1',
       name: 'SEO Analyzer',
       type: 'plugin',
-      version: '1.0.0'
+      version: '1.0.0',
+      realId: '1' // Added to match the expected interface
     },
     {
       id: 'agent-1',
-      realId: '1',
       name: 'SEO Analyzer v1.2',
       type: 'agent',
-      plugin_id: '1'
+      plugin_id: '1',
+      realId: '1' // Added to match the expected interface
     }
   ],
   links: [

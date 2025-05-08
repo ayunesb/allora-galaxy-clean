@@ -9,13 +9,17 @@ interface StrategyActionsProps {
   status: Strategy['status'];
   isExecuting: boolean;
   onExecute: () => void;
+  onApprove?: () => Promise<void>;
+  onReject?: () => Promise<void>;
 }
 
 export const StrategyActions: React.FC<StrategyActionsProps> = ({
   strategyId,
   status,
   isExecuting,
-  onExecute
+  onExecute,
+  onApprove,
+  onReject
 }) => {
   const isCompleted = status === 'completed';
   const isRejected = status === 'rejected';

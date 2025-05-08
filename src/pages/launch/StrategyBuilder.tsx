@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const StrategyBuilder: React.FC = () => {
   const navigate = useNavigate();
-  const { currentTenant } = useWorkspace();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreateStrategy = async () => {

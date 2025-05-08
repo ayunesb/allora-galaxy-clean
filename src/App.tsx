@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
@@ -11,22 +11,7 @@ import AuthRoutes from './routes/AuthRoutes';
 import OnboardingRoutes from './routes/OnboardingRoutes';
 import PublicRoutes from './routes/PublicRoutes';
 import ProtectedRoutes from './routes/ProtectedRoutes';
-import LoadingScreen from './components/LoadingScreen';
 import './App.css';
-
-// Lazy loaded components
-const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'));
-const KpiDashboard = React.lazy(() => import('./pages/insights/KpiDashboard'));
-const BillingPage = React.lazy(() => import('./pages/billing/BillingPage'));
-const NotificationsPage = React.lazy(() => import('./pages/notifications/NotificationsPage'));
-const ProfileSettings = React.lazy(() => import('./pages/settings/ProfileSettings'));
-const PluginsPage = React.lazy(() => import('./pages/plugins/PluginsPage'));
-const GalaxyPage = React.lazy(() => import('./pages/galaxy/GalaxyPage'));
-const AgentPerformance = React.lazy(() => import('./pages/agents/AgentPerformance'));
-const UserManagement = React.lazy(() => import('./pages/admin/UserManagement'));
-const SystemLogs = React.lazy(() => import('./pages/admin/SystemLogs'));
-const AiDecisions = React.lazy(() => import('./pages/admin/AiDecisions'));
-const PluginLogs = React.lazy(() => import('./pages/admin/PluginLogs'));
 
 const queryClient = new QueryClient({
   defaultOptions: {

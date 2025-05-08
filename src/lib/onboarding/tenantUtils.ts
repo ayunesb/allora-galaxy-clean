@@ -22,8 +22,8 @@ export async function checkExistingTenants(userId: string): Promise<TenantWithRo
     // Transform the data to match the TenantWithRole type
     const tenants: TenantWithRole[] = data?.map(item => ({
       id: item.tenant_id,
-      name: item.tenants?.name || 'Unknown Tenant',
-      slug: item.tenants?.slug,
+      name: item.tenants ? (item.tenants as any).name : 'Unknown Tenant',
+      slug: item.tenants ? (item.tenants as any).slug : undefined,
       role: item.role
     })) || [];
 

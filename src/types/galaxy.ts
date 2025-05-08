@@ -11,6 +11,12 @@ export interface GraphNode {
   internalId?: string;
   status?: string;
   metadata?: Record<string, any>;
+  title?: string; // Added to fix the error
+  realId?: string; // Added to fix the error
+  description?: string;
+  plugin_id?: string;
+  version?: string;
+  borderColor?: string;
 }
 
 export interface GraphLink {
@@ -49,6 +55,7 @@ export interface GalaxyControlsProps {
   onZoomOut: () => void;
   onRefresh: () => void;
   onToggleLayout?: () => void;
+  onCenter?: () => void;
 }
 
 export interface InspectorSidebarProps {
@@ -61,7 +68,8 @@ export interface MobileInspectorProps {
   onClose: () => void;
 }
 
-export interface ForceGraphExtendedProps extends ForceGraphProps {
+// Extend the ForceGraphProps with our own properties
+export interface ForceGraphExtendedProps {
   data: GraphData;
   onNodeClick: (node: GraphNode) => void;
   selectedNode: GraphNode | null;

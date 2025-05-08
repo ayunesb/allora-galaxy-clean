@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -36,11 +37,11 @@ const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({
         
         filteredLinks = graphDataQuery.links.filter(link => {
           const sourceId = typeof link.source === 'object' ? 
-            (link.source && 'id' in link.source ? String(link.source.id) : '') : 
+            (link.source && (link.source as any).id ? String((link.source as any).id) : '') : 
             String(link.source || '');
             
           const targetId = typeof link.target === 'object' ? 
-            (link.target && 'id' in link.target ? String(link.target.id) : '') : 
+            (link.target && (link.target as any).id ? String((link.target as any).id) : '') : 
             String(link.target || '');
             
           return nodeIds.has(sourceId) && nodeIds.has(targetId);

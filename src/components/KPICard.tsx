@@ -9,7 +9,6 @@ interface KPICardProps {
   title: string;
   value: string | number;
   previousValue?: string | number;
-  change?: number;
   trendDirection?: TrendDirection;
   trend?: number; // Percentage change
   isPositive?: boolean;
@@ -25,7 +24,6 @@ const KPICard: React.FC<KPICardProps> = ({
   title,
   value,
   previousValue,
-  change,
   trendDirection = 'flat',
   trend,
   isPositive = true,

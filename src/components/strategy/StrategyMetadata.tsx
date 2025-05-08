@@ -1,60 +1,57 @@
 
 import React from 'react';
-import { Strategy } from '@/types';
-import { format } from 'date-fns';
-import { Calendar, User, Flag } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
 
-interface StrategyMetadataProps {
-  strategy: Strategy;
+export interface StrategyMetadataProps {
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  approved_by?: string | null;
 }
 
-export const StrategyMetadata: React.FC<StrategyMetadataProps> = ({ strategy }) => {
+const StrategyMetadata: React.FC<StrategyMetadataProps> = ({
+  created_at,
+  updated_at,
+  created_by,
+  approved_by
+}) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-4">
-        {strategy.created_at && (
-          <div className="flex items-center text-sm">
-            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            <div>
-              <p className="font-medium">Created</p>
-              <p className="text-muted-foreground">{format(new Date(strategy.created_at), 'MMM d, yyyy')}</p>
+    <Card className="mb-6">
+      <CardContent className="pt-6">
+        <div className="grid grid-cols-2 gap-4">
+          {created_at && (
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Created</p>
+              <p className="text-sm">
+                {formatDistanceToNow(new Date(created_at), { addSuffix: true })}
+              </p>
             </div>
-          </div>
-        )}
-        
-        {strategy.due_date && (
-          <div className="flex items-center text-sm">
-            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            <div>
-              <p className="font-medium">Due Date</p>
-              <p className="text-muted-foreground">{format(new Date(strategy.due_date), 'MMM d, yyyy')}</p>
+          )}
+          
+          {updated_at && (
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+              <p className="text-sm">
+                {formatDistanceToNow(new Date(updated_at), { addSuffix: true })}
+              </p>
             </div>
-          </div>
-        )}
-      </div>
-      
-      <div className="space-y-4">
-        {strategy.created_by && (
-          <div className="flex items-center text-sm">
-            <User className="h-4 w-4 mr-2 text-muted-foreground" />
-            <div>
-              <p className="font-medium">Created By</p>
-              <p className="text-muted-foreground">{strategy.created_by.substring(0, 8)}</p>
+          )}
+          
+          {created_by && (
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Created By</p>
+              <p className="text-sm">{created_by}</p>
             </div>
+          )}
+          
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Approved By</p>
+            <p className="text-sm">{approved_by || 'Pending'}</p>
           </div>
-        )}
-        
-        {strategy.priority && (
-          <div className="flex items-center text-sm">
-            <Flag className="h-4 w-4 mr-2 text-muted-foreground" />
-            <div>
-              <p className="font-medium">Priority</p>
-              <p className="text-muted-foreground">{strategy.priority}</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
