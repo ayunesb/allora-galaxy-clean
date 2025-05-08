@@ -7,7 +7,18 @@ export {
   corsHeaders, 
   errorHandler, 
   createSuccessResponse, 
-  createErrorResponse 
+  createErrorResponse,
+  type ErrorResponseData,
+  type SuccessResponseData
 } from './errorHandler';
 
-export * from '@/lib/env';
+export {
+  ENV,
+  getEnv,
+  getEnvVar,
+  getEnvWithDefault,
+  corsHeaders as envCorsHeaders,
+  isProduction,
+  getBaseUrl,
+  getSafeEnv
+} from '@/lib/env';

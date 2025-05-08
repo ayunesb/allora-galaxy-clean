@@ -7,37 +7,41 @@
 /**
  * Get an environment variable
  * @param key The name of the environment variable
- * @returns The value of the environment variable or undefined
+ * @param defaultValue Optional default value if env var is not found
+ * @returns The value of the environment variable or defaultValue
  */
-export function ENV(key: string): string | undefined {
+export function ENV(key: string, defaultValue?: string): string | undefined {
   // Try Deno.env in edge function context
   try {
     // @ts-ignore - Deno may be available in edge functions
     if (typeof Deno !== 'undefined' && Deno.env && Deno.env.get) {
       // @ts-ignore
-      return Deno.env.get(key);
+      const value = Deno.env.get(key);
+      if (value !== undefined) return value;
     }
   } catch (e) {
     // Ignore errors when Deno is not available
   }
   
   // Try Node.js process.env
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key];
+  if (typeof process !== 'undefined' && process.env) {
+    const value = process.env[key];
+    if (value !== undefined) return value;
   }
   
   // Try Vite import.meta.env
   try {
     // @ts-ignore - import.meta.env is available in Vite
-    if (import.meta && import.meta.env && import.meta.env[key]) {
+    if (import.meta && import.meta.env) {
       // @ts-ignore
-      return import.meta.env[key];
+      const value = import.meta.env[key];
+      if (value !== undefined) return value;
     }
   } catch (e) {
     // Ignore errors when import.meta is not available
   }
   
-  return undefined;
+  return defaultValue;
 }
 
 // Alias getEnv for backward compatibility
@@ -59,7 +63,7 @@ export function getEnvWithDefault(key: string, defaultValue: string): string {
  * Check if we're in a production environment
  */
 export function isProduction(): boolean {
-  const env = getEnv('NODE_ENV', '');
+  const env = ENV('NODE_ENV');
   return env === 'production';
 }
 
@@ -67,7 +71,7 @@ export function isProduction(): boolean {
  * Get base URL for the current environment
  */
 export function getBaseUrl(): string {
-  return getEnv('VITE_APP_URL', 'http://localhost:8080');
+  return getEnvWithDefault('VITE_APP_URL', 'http://localhost:8080');
 }
 
 /**
@@ -77,13 +81,13 @@ export function getBaseUrl(): string {
  * @param required Whether this variable is critical (will log warning if missing)
  */
 export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
-  const value = getEnv(key, defaultValue);
+  const value = ENV(key, defaultValue);
   
   if (required && (value === defaultValue || value === "")) {
     console.warn(`⚠️ Critical environment variable ${key} is missing!`);
   }
   
-  return value;
+  return value || defaultValue;
 }
 
 // CORS headers for edge functions

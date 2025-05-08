@@ -2,6 +2,11 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SystemEventModule, SystemEventType } from '@/types/shared';
 
+interface LogSystemEventResult {
+  success: boolean;
+  error?: string;
+}
+
 /**
  * Log a system event to the system_logs table
  * @param module The module where the event occurred
@@ -15,7 +20,7 @@ export async function logSystemEvent(
   event: SystemEventType,
   context: Record<string, any> = {},
   tenantId: string = 'system'
-) {
+): Promise<LogSystemEventResult> {
   try {
     // Ensure we have valid module and event values
     if (!module || !event) {
@@ -57,7 +62,7 @@ export function safeLogSystemEvent(
   event: SystemEventType,
   context: Record<string, any> = {},
   tenantId: string = 'system'
-) {
+): void {
   logSystemEvent(module, event, context, tenantId).catch(err => {
     console.warn('Failed to log system event (safe):', err);
   });
@@ -75,7 +80,7 @@ export function logErrorEvent(
   error: Error | string,
   additionalContext: Record<string, any> = {},
   tenantId: string = 'system'
-) {
+): void {
   const errorMessage = error instanceof Error ? error.message : error;
   const errorStack = error instanceof Error ? error.stack : undefined;
   
@@ -102,7 +107,7 @@ export function logAuditEvent(
   resourceId: string,
   additionalContext: Record<string, any> = {},
   tenantId: string = 'system'
-) {
+): void {
   safeLogSystemEvent('security', 'audit', {
     action,
     user_id: userId,

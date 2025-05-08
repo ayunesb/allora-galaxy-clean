@@ -1,7 +1,7 @@
 
 import { corsHeaders } from '@/lib/env';
 
-interface ErrorResponseData {
+export interface ErrorResponseData {
   success: false;
   error: string;
   details?: any;
@@ -10,7 +10,7 @@ interface ErrorResponseData {
   requestId?: string;
 }
 
-interface SuccessResponseData {
+export interface SuccessResponseData {
   success: true;
   timestamp: string;
   [key: string]: any;
@@ -22,12 +22,12 @@ interface SuccessResponseData {
  * @param requestId Optional request ID for tracking
  * @returns A JSON response with the error message and a 500 status code
  */
-export function errorHandler(err: any, requestId?: string) {
+export function errorHandler(err: any, requestId?: string): Response {
   console.error(`Edge Function Error${requestId ? ` [${requestId}]` : ''}:`, err);
   
-  const message = err.message || 'Internal Server Error';
-  const status = err.status || 500;
-  const code = err.code || 'INTERNAL_ERROR';
+  const message = err?.message || 'Internal Server Error';
+  const status = err?.status || 500;
+  const code = err?.code || 'INTERNAL_ERROR';
   
   const responseData: ErrorResponseData = { 
     success: false,
@@ -35,7 +35,7 @@ export function errorHandler(err: any, requestId?: string) {
     timestamp: new Date().toISOString()
   };
   
-  if (err.details) {
+  if (err?.details) {
     responseData.details = err.details;
   }
   
@@ -63,6 +63,9 @@ export { corsHeaders };
 
 /**
  * Create a standardized success response for edge functions
+ * @param data Response data
+ * @param status HTTP status code
+ * @returns Success response
  */
 export function createSuccessResponse(data: Record<string, any> = {}, status: number = 200): Response {
   const responseData: SuccessResponseData = {
