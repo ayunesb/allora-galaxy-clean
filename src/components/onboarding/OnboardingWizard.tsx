@@ -14,7 +14,8 @@ const OnboardingWizard: React.FC = () => {
     formData,
     error,
     isSubmitting,
-    isGeneratingStrategy,
+    tenantsList,
+    currentUser,
     updateFormData,
     handleStepClick,
     handleNextStep,
@@ -40,7 +41,7 @@ const OnboardingWizard: React.FC = () => {
           step={step.id}
           formData={formData}
           updateFormData={updateFormData}
-          isGenerating={isGeneratingStrategy}
+          isGenerating={isSubmitting}
           setFieldValue={setFieldValue}
         />
       </div>
@@ -54,7 +55,7 @@ const OnboardingWizard: React.FC = () => {
         onNext={handleNextStep}
         onPrev={handlePrevStep}
         onSubmit={handleSubmit}
-        isGenerating={isGeneratingStrategy}
+        isGenerating={isSubmitting}
       />
       
       {/* Error dialog */}

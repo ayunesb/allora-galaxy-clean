@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -267,10 +266,10 @@ const StrategyEngine: React.FC = () => {
               <Card className="mt-6">
                 <CardContent className="py-6">
                   <StrategyMetadata 
-                    created={strategy.created_at || ''}
-                    updated={strategy.updated_at || ''}
-                    createdBy={strategy.created_by || ''}
-                    approvedBy={strategy.approved_by || null}
+                    created_at={strategy.created_at}
+                    updated_at={strategy.updated_at}
+                    created_by={strategy.created_by}
+                    approved_by={strategy.approved_by}
                   />
                 </CardContent>
               </Card>

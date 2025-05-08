@@ -1,29 +1,35 @@
 
 import React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
-interface ViewModeSelectorProps {
+export interface ViewModeSelectorProps {
   viewMode: string;
-  setViewMode: (value: string) => void;
+  onModeChange: (mode: string) => void;
 }
 
-const ViewModeSelector: React.FC<ViewModeSelectorProps> = ({ viewMode, setViewMode }) => {
+export const ViewModeSelector: React.FC<ViewModeSelectorProps> = ({
+  viewMode,
+  onModeChange
+}) => {
+  const modes = [
+    { id: 'strategy', label: 'Strategy' },
+    { id: 'plugin', label: 'Plugin' },
+    { id: 'agent', label: 'Agent' },
+  ];
+
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm">View:</span>
-      <Select value={viewMode} onValueChange={setViewMode}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="View mode" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Entities</SelectItem>
-          <SelectItem value="strategy">Strategies Only</SelectItem>
-          <SelectItem value="plugin">Plugins Only</SelectItem>
-          <SelectItem value="agent">Agents Only</SelectItem>
-        </SelectContent>
-      </Select>
+    <div className="flex space-x-1 bg-secondary rounded-md p-1">
+      {modes.map((mode) => (
+        <Button
+          key={mode.id}
+          variant={viewMode === mode.id ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => onModeChange(mode.id)}
+          className="text-xs"
+        >
+          {mode.label}
+        </Button>
+      ))}
     </div>
   );
 };
-
-export default ViewModeSelector;

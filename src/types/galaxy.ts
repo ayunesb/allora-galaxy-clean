@@ -1,5 +1,5 @@
 
-import { ForceGraphProps } from 'react-force-graph';
+import { ForceGraphMethods } from 'react-force-graph';
 
 export interface GraphNode {
   id: string;
@@ -11,8 +11,8 @@ export interface GraphNode {
   internalId?: string;
   status?: string;
   metadata?: Record<string, any>;
-  title?: string; // Added to fix the error
-  realId?: string; // Added to fix the error
+  title?: string;
+  realId?: string;
   description?: string;
   plugin_id?: string;
   version?: string;
@@ -39,7 +39,7 @@ export interface GalaxyLoaderProps {
 
 export interface ViewModeSelectorProps {
   viewMode: string;
-  onChange: (mode: string) => void;
+  onModeChange: (mode: string) => void;
 }
 
 export interface ZoomControlsProps {
@@ -77,7 +77,7 @@ export interface ForceGraphExtendedProps {
 }
 
 export interface GraphLegendProps {
-  nodeTypes: {
+  items: {
     type: string;
     color: string;
     label: string;

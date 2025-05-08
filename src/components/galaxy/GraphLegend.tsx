@@ -1,23 +1,30 @@
 
 import React from 'react';
 
-const GraphLegend: React.FC = () => {
+interface LegendItem {
+  type: string;
+  color: string;
+  label: string;
+}
+
+interface GraphLegendProps {
+  items: LegendItem[];
+}
+
+export const GraphLegend: React.FC<GraphLegendProps> = ({ items }) => {
   return (
-    <div className="mt-6 flex flex-wrap gap-2">
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-        <span className="text-sm">Strategies</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-4 rounded-full bg-purple-600"></div>
-        <span className="text-sm">Plugins</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-4 rounded-full bg-green-500"></div>
-        <span className="text-sm">Agent Versions</span>
+    <div className="bg-background/80 backdrop-blur-sm p-2 rounded-md shadow-md">
+      <div className="flex flex-col space-y-1">
+        {items.map((item) => (
+          <div key={item.type} className="flex items-center space-x-2">
+            <div 
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            <span className="text-xs">{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
-
-export default GraphLegend;

@@ -1,175 +1,131 @@
 
-import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GraphNode } from '@/types/galaxy';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
-import { useIsMobile } from '@/hooks/use-mobile';
-import GalaxyLoader from '@/components/galaxy/GalaxyLoader';
-import InspectorSidebar from '@/components/galaxy/InspectorSidebar';
+import { GraphNode } from '@/types/galaxy';
+import { ViewModeSelector } from '@/components/galaxy/ViewModeSelector';
+import { ZoomControls } from '@/components/galaxy/ZoomControls';
+import { ForceGraph } from '@/components/galaxy/ForceGraph';
+import { InspectorSidebar } from '@/components/galaxy/InspectorSidebar';
+import { GraphLegend } from '@/components/galaxy/GraphLegend';
 import MobileInspector from '@/components/galaxy/MobileInspector';
-import GalaxyControls from '@/components/galaxy/GalaxyControls';
-import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
-import GraphLegend from '@/components/galaxy/GraphLegend';
-import EmptyState from '@/components/galaxy/EmptyState';
-import ForceGraph from '@/components/galaxy/ForceGraph';
+import { useMobile } from '@/hooks/use-mobile';
 
 const GalaxyExplorer: React.FC = () => {
-  const { data, isLoading, error, refetch } = useGalaxyData();
-  const isMobile = useIsMobile();
-  const fgRef = useRef();
-  const [viewMode, setViewMode] = useState('all');
+  const { graphData, loading, error } = useGalaxyData();
+  const [viewMode, setViewMode] = useState<string>('strategy');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [is3D, setIs3D] = useState(false);
+  const fgRef = useRef<any>();
+  const { isMobile } = useMobile();
 
-  // Handle node click
-  const handleNodeClick = (node: GraphNode) => {
-    setSelectedNode(prev => prev?.id === node.id ? null : node);
-  };
+  const handleNodeClick = useCallback((node: GraphNode) => {
+    setSelectedNode(node);
+  }, []);
 
-  // Reset selected node
-  const handleCloseInspector = () => {
+  const handleCloseInspector = useCallback(() => {
     setSelectedNode(null);
-  };
+  }, []);
 
-  // Zoom controls
-  const handleZoomIn = () => {
+  const handleZoomIn = useCallback(() => {
     if (fgRef.current) {
-      (fgRef.current as any).zoomIn();
+      fgRef.current.zoomIn();
     }
-  };
+  }, []);
 
-  const handleZoomOut = () => {
+  const handleZoomOut = useCallback(() => {
     if (fgRef.current) {
-      (fgRef.current as any).zoomOut();
+      fgRef.current.zoomOut();
     }
-  };
+  }, []);
 
-  const handleRefresh = () => {
-    refetch();
-    setSelectedNode(null);
-  };
-  
-  const handleCenterGraph = () => {
+  const handleRefresh = useCallback(() => {
     if (fgRef.current) {
-      (fgRef.current as any).zoomToFit();
+      fgRef.current.resetView();
     }
-  };
+  }, []);
 
-  // If loading, show a loading indicator
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
       </div>
     );
   }
 
-  // If error, show error message
   if (error) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Error Loading Galaxy Data</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-500">{(error as Error).message}</p>
-            <Button onClick={handleRefresh} className="mt-4">Retry</Button>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center h-full text-center p-4">
+        <h2 className="text-xl font-bold text-destructive mb-2">Error Loading Galaxy Data</h2>
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
   }
 
-  // If no data, show empty state
-  if (!data || data.nodes.length === 0) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="p-0">
-            <EmptyState />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // Node types for legend
   const nodeTypes = [
-    { type: 'strategy', color: '#2563eb', label: 'Strategy' },
+    { type: 'strategy', color: '#3b82f6', label: 'Strategy' },
     { type: 'plugin', color: '#10b981', label: 'Plugin' },
     { type: 'agent', color: '#f59e0b', label: 'Agent' },
   ];
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Strategy Galaxy</h1>
+    <div className="h-full flex flex-col">
+      <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <h1 className="text-2xl font-bold mb-2 sm:mb-0">Galaxy Explorer</h1>
         
-        <div className="flex gap-2">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
           <ViewModeSelector 
             viewMode={viewMode} 
-            onChange={setViewMode}
+            onModeChange={setViewMode} 
           />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        <div className={`md:col-span-${selectedNode && !isMobile ? '9' : '12'}`}>
-          <GalaxyControls 
-            viewMode={viewMode}
-            setViewMode={setViewMode}
+          
+          <ZoomControls
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onRefresh={handleRefresh}
-            onCenter={handleCenterGraph}
           />
-          
-          <Card className="mb-4">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Graph Legend</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <GraphLegend 
-                nodeTypes={nodeTypes}
-              />
-            </CardContent>
-          </Card>
-          
-          <Card className="overflow-hidden">
-            {data.nodes.length > 0 ? (
-              <ForceGraph 
-                graphData={data} 
-                fgRef={fgRef as any} 
-                onNodeClick={handleNodeClick}
-                selectedNode={selectedNode}
-              />
-            ) : (
-              <EmptyState />
-            )}
-          </Card>
         </div>
-        
-        {selectedNode && !isMobile && (
-          <div className="md:col-span-3">
-            <InspectorSidebar 
-              node={selectedNode} 
-              onClose={handleCloseInspector} 
-            />
-          </div>
+      </div>
+
+      <div className="flex-1 relative">
+        <Card className="absolute inset-0 m-4 overflow-hidden">
+          <CardContent className="p-0 h-full relative">
+            {/* Graph Legend */}
+            <div className="absolute top-4 left-4 z-10">
+              <GraphLegend
+                items={nodeTypes}
+              />
+            </div>
+            
+            {/* Force Graph */}
+            <div className="h-full">
+              <ForceGraph 
+                data={graphData} 
+                fgRef={fgRef} 
+                onNodeClick={handleNodeClick}
+              />
+            </div>
+
+            {/* Inspector */}
+            {selectedNode && !isMobile && (
+              <InspectorSidebar 
+                node={selectedNode} 
+                onClose={handleCloseInspector} 
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Inspector */}
+        {selectedNode && isMobile && (
+          <MobileInspector 
+            node={selectedNode} 
+            onClose={handleCloseInspector}
+          />
         )}
       </div>
-      
-      {isMobile && selectedNode && (
-        <MobileInspector 
-          node={selectedNode}
-          onClose={handleCloseInspector}
-        />
-      )}
     </div>
   );
 };

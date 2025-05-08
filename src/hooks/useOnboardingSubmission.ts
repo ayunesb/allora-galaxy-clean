@@ -43,6 +43,9 @@ export function useOnboardingSubmission() {
           user_id: user.id,
           action_label: 'View Dashboard',
           action_url: '/dashboard'
+        }).catch(err => {
+          console.warn('Failed to send welcome notification:', err);
+          // Non-critical error, continue with onboarding success
         });
         
         toast({

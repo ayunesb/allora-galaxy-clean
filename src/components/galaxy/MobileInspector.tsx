@@ -2,7 +2,7 @@
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { GraphNode } from '@/types/galaxy';
-import InspectorContent from './InspectorContent';
+import { InspectorContent } from './InspectorContent';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 

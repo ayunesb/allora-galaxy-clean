@@ -1,44 +1,28 @@
 
-import React from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { InspectorContent } from "./InspectorContent";
-import { getNodeTitle, getNodeType } from "./node-inspectors/NodeUtilities";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
+import { GraphNode } from '@/types/galaxy';
+import { InspectorContent } from './InspectorContent';
 
-interface InspectorSidebarProps {
-  node: any;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+export interface InspectorSidebarProps {
+  node: GraphNode;
+  onClose: () => void;
 }
 
-const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
-  node,
-  open,
-  onOpenChange,
-}) => {
-  if (!node) return null;
-
+export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({ node, onClose }) => {
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[400px] sm:max-w-lg overflow-auto">
-        <SheetHeader>
-          <SheetTitle>{getNodeTitle(node)}</SheetTitle>
-          <SheetDescription>
-            {getNodeType(node)} {node.id && `ID: ${node.id.substring(0, 8)}...`}
-          </SheetDescription>
-        </SheetHeader>
-        <div className="mt-6">
-          <InspectorContent node={node} />
+    <div className="absolute top-0 right-0 w-80 h-full bg-background border-l border-border shadow-lg overflow-y-auto">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg">{node.name || node.title || 'Node Details'}</h3>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-        <SheetFooter className="mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        
+        <InspectorContent node={node} />
+      </div>
+    </div>
   );
 };
-
-// Export InspectorContent separately for mobile use in GalaxyExplorer
-export { InspectorContent };
-
-export default InspectorSidebar;

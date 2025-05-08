@@ -1,58 +1,75 @@
 
-import React, { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import ForceGraph2D from 'react-force-graph-2d';
 import { GraphData, GraphNode } from '@/types/galaxy';
 
-// Using dynamic import instead of direct import to avoid build errors
-const ForceGraph2D = React.lazy(() => 
-  import('react-force-graph').then(module => ({ 
-    default: module.ForceGraph2D 
-  }))
-);
-
 interface ForceGraphProps {
-  graphData: GraphData;
-  fgRef: React.RefObject<any>;
+  data: GraphData;
+  fgRef?: React.MutableRefObject<any>;
   onNodeClick: (node: GraphNode) => void;
 }
 
-const ForceGraph: React.FC<ForceGraphProps> = ({ graphData, fgRef, onNodeClick }) => {
-  // Type-safe node color accessor
-  const getNodeColor = (node: any) => {
-    const typedNode = node as GraphNode;
-    if (typedNode.type === 'strategy') return '#3498db';
-    if (typedNode.type === 'plugin') return '#9b59b6';
-    if (typedNode.type === 'agent') return '#2ecc71';
-    return '#ccc';
-  };
+export const ForceGraph: React.FC<ForceGraphProps> = ({ data, fgRef, onNodeClick }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const localFgRef = useRef<any>();
+  const graphRef = fgRef || localFgRef;
 
-  // Type-safe node click handler
-  const handleNodeClick = (node: any, _event: MouseEvent) => {
-    onNodeClick(node as GraphNode);
-  };
+  // Update graph size on resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (graphRef.current && containerRef.current) {
+        graphRef.current.width(containerRef.current.clientWidth);
+        graphRef.current.height(containerRef.current.clientHeight);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    // Initial size
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [graphRef]);
+
+  if (!data || !data.nodes || !data.links) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>No data available for visualization</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-[800px] w-full">
-      <Suspense fallback={
-        <div className="flex justify-center items-center h-full">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      }>
-        <ForceGraph2D
-          ref={fgRef}
-          graphData={graphData}
-          nodeId="id"
-          nodeLabel="name"
-          nodeColor={getNodeColor}
-          linkDirectionalArrowLength={3.5}
-          linkDirectionalArrowRelPos={1}
-          linkCurvature={0.25}
-          nodeRelSize={6}
-          onNodeClick={handleNodeClick}
-        />
-      </Suspense>
+    <div ref={containerRef} className="w-full h-full">
+      <ForceGraph2D
+        ref={graphRef}
+        graphData={data}
+        nodeLabel={(node) => 
+          `${(node as GraphNode).name || (node as GraphNode).title || 'Unknown'}\n${
+            (node as GraphNode).type || 'Node'
+          }`
+        }
+        nodeColor={(node) => {
+          const n = node as GraphNode;
+          if (n.color) return n.color;
+          
+          switch (n.type) {
+            case 'strategy': return '#3b82f6';
+            case 'plugin': return '#10b981';
+            case 'agent': return '#f59e0b';
+            default: return '#94a3b8';
+          }
+        }}
+        nodeVal={(node) => (node as GraphNode).val || 1}
+        linkColor={() => '#cbd5e1'}
+        linkWidth={1}
+        linkDirectionalArrowLength={3.5}
+        linkDirectionalArrowRelPos={1}
+        onNodeClick={(node) => onNodeClick(node as GraphNode)}
+        cooldownTicks={100}
+        nodeRelSize={6}
+      />
     </div>
   );
 };
-
-export default ForceGraph;

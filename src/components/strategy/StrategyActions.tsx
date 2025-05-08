@@ -9,8 +9,8 @@ interface StrategyActionsProps {
   status: Strategy['status'];
   isExecuting: boolean;
   onExecute: () => void;
-  onApprove?: () => Promise<void>;
-  onReject?: () => Promise<void>;
+  onEdit?: () => void;
+  onDuplicate?: () => void;
 }
 
 export const StrategyActions: React.FC<StrategyActionsProps> = ({
@@ -18,12 +18,28 @@ export const StrategyActions: React.FC<StrategyActionsProps> = ({
   status,
   isExecuting,
   onExecute,
-  onApprove,
-  onReject
+  onEdit,
+  onDuplicate
 }) => {
   const isCompleted = status === 'completed';
   const isRejected = status === 'rejected';
   const canExecute = !isCompleted && !isRejected && !isExecuting;
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit();
+    } else {
+      window.location.href = `/strategies/${strategyId}/edit`;
+    }
+  };
+
+  const handleDuplicate = () => {
+    if (onDuplicate) {
+      onDuplicate();
+    } else {
+      window.location.href = `/strategies/${strategyId}/duplicate`;
+    }
+  };
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -46,13 +62,13 @@ export const StrategyActions: React.FC<StrategyActionsProps> = ({
       </Button>
       
       {status !== 'pending' && (
-        <Button variant="outline" onClick={() => window.location.href = `/strategies/${strategyId}/edit`}>
+        <Button variant="outline" onClick={handleEdit}>
           <FileEdit className="mr-2 h-4 w-4" />
           Edit
         </Button>
       )}
       
-      <Button variant="outline" onClick={() => window.location.href = `/strategies/${strategyId}/duplicate`}>
+      <Button variant="outline" onClick={handleDuplicate}>
         <Copy className="mr-2 h-4 w-4" />
         Duplicate
       </Button>

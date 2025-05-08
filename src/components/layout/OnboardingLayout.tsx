@@ -14,7 +14,7 @@ interface OnboardingLayoutProps {
 const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({ 
   children, 
   currentStep = 0, 
-  totalSteps = 3
+  totalSteps = 4
 }) => {
   const { t } = useTranslation();
   const { tenantId } = useTenantId();
