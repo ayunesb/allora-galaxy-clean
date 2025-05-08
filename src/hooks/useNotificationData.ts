@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNotifications } from '@/lib/notifications/useNotifications';
-import { Notification, NotificationContent } from '@/types/notifications';
+import { useNotificationsContext } from '@/context/NotificationsContext';
+import { NotificationContent } from '@/types/notifications';
 
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 
@@ -9,33 +9,36 @@ export const useNotificationData = (tabFilter: string | null = null) => {
     loading, 
     error,
     refreshNotifications 
-  } = useNotifications();
+  } = useNotificationsContext();
   
-  const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
+  const [filteredNotifications, setFilteredNotifications] = useState<NotificationContent[]>([]);
 
   // Transform Notification[] to NotificationContent[]
-  const transformedNotifications: NotificationContent[] = filteredNotifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.description || '',
-    timestamp: notification.created_at,
-    read: notification.is_read,
-    type: notification.type,
-    action_url: notification.action_url,
-    action_label: notification.action_label
-  }));
+  const transformNotifications = useCallback(() => {
+    return notifications.map(notification => ({
+      id: notification.id,
+      title: notification.title,
+      message: notification.description || '',
+      timestamp: notification.created_at,
+      read: notification.is_read || false,
+      type: notification.type,
+      action_url: notification.action_url,
+      action_label: notification.action_label
+    }));
+  }, [notifications]);
 
   // Filter notifications based on tab selection
   const filterNotifications = useCallback(() => {
+    const transformed = transformNotifications();
     if (!tabFilter || tabFilter === 'all') {
-      setFilteredNotifications(notifications);
+      setFilteredNotifications(transformed);
     } else if (tabFilter === 'unread') {
-      setFilteredNotifications(notifications.filter(n => !n.is_read));
+      setFilteredNotifications(transformed.filter(n => !n.read));
     } else {
       // Filter by notification type
-      setFilteredNotifications(notifications.filter(n => n.type === tabFilter));
+      setFilteredNotifications(transformed.filter(n => n.type === tabFilter));
     }
-  }, [notifications, tabFilter]);
+  }, [notifications, tabFilter, transformNotifications]);
 
   // Apply filters whenever notifications or tab filter changes
   useEffect(() => {
@@ -43,7 +46,7 @@ export const useNotificationData = (tabFilter: string | null = null) => {
   }, [notifications, tabFilter, filterNotifications]);
 
   return {
-    notifications: transformedNotifications,
+    notifications: filteredNotifications,
     loading,
     error,
     refresh: refreshNotifications

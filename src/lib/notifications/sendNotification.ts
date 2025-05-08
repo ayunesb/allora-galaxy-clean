@@ -11,6 +11,7 @@ interface SendNotificationParams {
   type?: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
+  is_read?: boolean;
 }
 
 /**
@@ -24,7 +25,8 @@ export async function sendNotification({
   message,
   type = 'info',
   action_url,
-  action_label
+  action_label,
+  is_read = false
 }: SendNotificationParams): Promise<Notification | undefined> {
   try {
     const notification = {
@@ -34,7 +36,7 @@ export async function sendNotification({
       title,
       description: message, // Map message to description for DB schema
       type,
-      is_read: false,
+      is_read,
       action_url,
       action_label
     };
@@ -54,10 +56,12 @@ export async function sendNotification({
     return {
       id: data.id,
       title: data.title,
+      description: data.description,
       message: data.description || '',
       type: data.type as 'info' | 'success' | 'warning' | 'error' | 'system',
       created_at: data.created_at,
       read_at: data.is_read ? data.updated_at : null,
+      is_read: data.is_read,
       tenant_id: data.tenant_id,
       user_id: data.user_id,
       action_url: data.action_url,

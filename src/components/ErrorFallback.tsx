@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -14,13 +14,19 @@ interface ErrorFallbackProps {
   tenant_id?: string;
 }
 
-export function ErrorFallback({ error, errorInfo, resetErrorBoundary, supportEmail }: ErrorFallbackProps) {
+export function ErrorFallback({ 
+  error, 
+  errorInfo, 
+  resetErrorBoundary, 
+  supportEmail,
+  tenant_id = 'system'
+}: ErrorFallbackProps) {
   const { toast } = useToast();
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Log the error to our system
     logSystemEvent(
-      'system', // Without tenant context, use system as tenant
+      tenant_id, // Without tenant context, use system as tenant
       'error',
       'react_error_boundary',
       {
@@ -29,7 +35,7 @@ export function ErrorFallback({ error, errorInfo, resetErrorBoundary, supportEma
         componentStack: errorInfo?.componentStack
       }
     ).catch(console.error);
-  }, [error, errorInfo]);
+  }, [error, errorInfo, tenant_id]);
 
   const handleReportError = () => {
     toast({

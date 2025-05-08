@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
 // Store logs locally if network is down
@@ -88,5 +88,8 @@ export function clearLocalLogQueue(): void {
  * Check if system has network connectivity
  */
 export function checkNetworkStatus(): boolean {
-  return navigator.onLine;
+  if (typeof navigator !== 'undefined') {
+    return navigator.onLine;
+  }
+  return true; // Default to true for server-side rendering
 }

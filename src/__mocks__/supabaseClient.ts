@@ -26,29 +26,29 @@ const dataStore: Record<string, any[]> = {
 // Create a mock function for Supabase client
 export const createMockSupabaseClient = () => {
   // Mock function to simulate responses for .from().select()
-  const mockSelect = vi.fn().mockImplementation((table: string) => {
-    if (table === 'users') {
+  const mockSelect = vi.fn().mockImplementation((tableName: string) => {
+    if (tableName === 'users') {
       return {
         data: mockUsers,
         error: null,
       };
     }
-    if (table === 'tenants') {
+    if (tableName === 'tenants') {
       return {
         data: mockTenants,
         error: null,
       };
     }
     return {
-      data: dataStore[table] || [],
+      data: dataStore[tableName] || [],
       error: null,
     };
   });
 
   // Mock function to simulate responses for .from().insert()
-  const mockInsert = vi.fn().mockImplementation((table: string, data: any) => {
-    if (!dataStore[table]) {
-      dataStore[table] = [];
+  const mockInsert = vi.fn().mockImplementation((tableName: string, data: any) => {
+    if (!dataStore[tableName]) {
+      dataStore[tableName] = [];
     }
     
     // Add id if not present
@@ -56,7 +56,7 @@ export const createMockSupabaseClient = () => {
       ? data.map(item => ({ id: `mock-${Math.random().toString(36)}`, ...item }))
       : { id: `mock-${Math.random().toString(36)}`, ...data };
     
-    dataStore[table].push(...(Array.isArray(insertedData) ? insertedData : [insertedData]));
+    dataStore[tableName].push(...(Array.isArray(insertedData) ? insertedData : [insertedData]));
     
     return {
       data: insertedData,
@@ -65,7 +65,7 @@ export const createMockSupabaseClient = () => {
   });
 
   // Mock function to simulate responses for .from().update()
-  const mockUpdate = vi.fn().mockImplementation((table: string, data: any) => {
+  const mockUpdate = vi.fn().mockImplementation((tableName: string, data: any) => {
     return {
       data,
       error: null,
@@ -80,9 +80,9 @@ export const createMockSupabaseClient = () => {
   });
 
   // Mock function to simulate responses for .from().upsert()
-  const mockUpsert = vi.fn().mockImplementation((table: string, data: any) => {
-    if (!dataStore[table]) {
-      dataStore[table] = [];
+  const mockUpsert = vi.fn().mockImplementation((tableName: string, data: any) => {
+    if (!dataStore[tableName]) {
+      dataStore[tableName] = [];
     }
     
     // Add id if not present
@@ -90,7 +90,7 @@ export const createMockSupabaseClient = () => {
       ? data.map(item => ({ id: `mock-${Math.random().toString(36)}`, ...item }))
       : { id: `mock-${Math.random().toString(36)}`, ...data };
     
-    dataStore[table].push(...(Array.isArray(upsertedData) ? upsertedData : [upsertedData]));
+    dataStore[tableName].push(...(Array.isArray(upsertedData) ? upsertedData : [upsertedData]));
     
     return {
       data: upsertedData,
@@ -99,97 +99,97 @@ export const createMockSupabaseClient = () => {
   });
 
   // Mock function for .from()
-  const mockFrom = vi.fn().mockImplementation((table: string) => {
+  const mockFrom = vi.fn().mockImplementation((tableName: string) => {
     return {
       select: () => ({
-        ...mockSelect(table),
+        ...mockSelect(tableName),
         order: () => ({
-          data: dataStore[table]?.[0] ? [dataStore[table][0]] : [],
+          data: dataStore[tableName]?.[0] ? [dataStore[tableName][0]] : [],
           error: null,
           limit: () => ({
-            data: dataStore[table]?.[0] ? [dataStore[table][0]] : [],
+            data: dataStore[tableName]?.[0] ? [dataStore[tableName][0]] : [],
             error: null,
             single: () => ({
-              data: dataStore[table]?.[0] || null,
+              data: dataStore[tableName]?.[0] || null,
               error: null,
             }),
             maybeSingle: () => ({
-              data: dataStore[table]?.[0] || null,
+              data: dataStore[tableName]?.[0] || null,
               error: null,
             }),
           }),
           single: () => ({
-            data: dataStore[table]?.[0] || null,
+            data: dataStore[tableName]?.[0] || null,
             error: null,
           }),
           maybeSingle: () => ({
-            data: dataStore[table]?.[0] || null,
+            data: dataStore[tableName]?.[0] || null,
             error: null,
           }),
         }),
         eq: () => ({
           eq: () => ({
             single: () => ({
-              data: dataStore[table]?.[0] || null,
+              data: dataStore[tableName]?.[0] || null,
               error: null,
             }),
             maybeSingle: () => ({
-              data: dataStore[table]?.[0] || null,
+              data: dataStore[tableName]?.[0] || null,
               error: null,
             }),
-            select: () => mockSelect(table),
+            select: () => mockSelect(tableName),
             delete: () => mockDelete(),
-            update: (data: any) => mockUpdate(table, data),
+            update: (data: any) => mockUpdate(tableName, data),
             order: () => ({
               limit: () => ({
                 single: () => ({
-                  data: dataStore[table]?.[0] || null,
+                  data: dataStore[tableName]?.[0] || null,
                   error: null,
                 }),
                 maybeSingle: () => ({
-                  data: dataStore[table]?.[0] || null,
+                  data: dataStore[tableName]?.[0] || null,
                   error: null,
                 }),
               }),
             }),
           }),
-          select: () => mockSelect(table),
+          select: () => mockSelect(tableName),
           single: () => ({
-            data: dataStore[table]?.[0] || null,
+            data: dataStore[tableName]?.[0] || null,
             error: null,
           }),
           maybeSingle: () => ({
-            data: dataStore[table]?.[0] || null,
+            data: dataStore[tableName]?.[0] || null,
             error: null,
           }),
           delete: () => mockDelete(),
-          update: (data: any) => mockUpdate(table, data),
+          update: (data: any) => mockUpdate(tableName, data),
           order: () => ({
             limit: () => ({
               single: () => ({
-                data: dataStore[table]?.[0] || null,
+                data: dataStore[tableName]?.[0] || null,
                 error: null,
               }),
               maybeSingle: () => ({
-                data: dataStore[table]?.[0] || null,
+                data: dataStore[tableName]?.[0] || null,
                 error: null,
               }),
             }),
           }),
         }),
         single: () => ({
-          data: dataStore[table]?.[0] || null,
+          data: dataStore[tableName]?.[0] || null,
           error: null,
         }),
         maybeSingle: () => ({
-          data: dataStore[table]?.[0] || null,
+          data: dataStore[tableName]?.[0] || null,
           error: null,
         }),
       }),
-      insert: (data: any) => mockInsert(table, data),
-      upsert: (data: any) => mockUpsert(table, data),
+      insert: (data: any) => mockInsert(tableName, data),
+      upsert: (data: any) => mockUpsert(tableName, data),
       update: (data: any) => ({
-        ...mockUpdate(table, data),
+        ...mockUpdate(tableName, data),
         eq: () => ({
           data: data,
           error: null,
@@ -205,35 +205,35 @@ export const createMockSupabaseClient = () => {
       eq: () => ({
         eq: () => ({
           single: () => ({
-            data: dataStore[table]?.[0] || null,
+            data: dataStore[tableName]?.[0] || null,
             error: null,
           }),
           maybeSingle: () => ({
-            data: dataStore[table]?.[0] || null,
+            data: dataStore[tableName]?.[0] || null,
             error: null,
           }),
-          select: () => mockSelect(table),
+          select: () => mockSelect(tableName),
           delete: () => mockDelete(),
-          update: (data: any) => mockUpdate(table, data),
+          update: (data: any) => mockUpdate(tableName, data),
         }),
-        select: () => mockSelect(table),
+        select: () => mockSelect(tableName),
         single: () => ({
-          data: dataStore[table]?.[0] || null,
+          data: dataStore[tableName]?.[0] || null,
           error: null,
         }),
         maybeSingle: () => ({
-          data: dataStore[table]?.[0] || null,
+          data: dataStore[tableName]?.[0] || null,
           error: null,
         }),
         delete: () => mockDelete(),
-        update: (data: any) => mockUpdate(table, data),
+        update: (data: any) => mockUpdate(tableName, data),
       }),
       single: () => ({
-        data: dataStore[table]?.[0] || null,
+        data: dataStore[tableName]?.[0] || null,
         error: null,
       }),
       maybeSingle: () => ({
-        data: dataStore[table]?.[0] || null,
+        data: dataStore[tableName]?.[0] || null,
         error: null,
       }),
     };

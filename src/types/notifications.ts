@@ -1,19 +1,17 @@
 
 export interface Notification {
   id: string;
-  tenant_id: string;
-  user_id: string;
   title: string;
-  description?: string;
   message?: string;
+  description?: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'system';
-  is_read: boolean;
+  created_at: string;
   read_at?: string | null;
+  is_read?: boolean;
   action_url?: string;
   action_label?: string;
-  module?: string;
-  created_at: string;
-  updated_at?: string;
+  tenant_id: string;
+  user_id: string;
 }
 
 export interface NotificationContent {
@@ -22,7 +20,7 @@ export interface NotificationContent {
   message: string;
   timestamp: string;
   read: boolean;
-  type: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
 }
@@ -35,6 +33,5 @@ export interface NotificationsContextType {
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
   deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  deleteAllNotificationsFromDB: (filter: string | null, unreadOnly: boolean) => Promise<{ success: boolean; error?: Error }>;
   refreshNotifications: () => Promise<{ success: boolean; error?: Error }>;
 }

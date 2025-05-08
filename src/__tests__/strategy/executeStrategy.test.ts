@@ -22,7 +22,9 @@ const mockDeno = {
 };
 
 // Assign mock to global
-global.Deno = mockDeno as any;
+if (typeof global.Deno === 'undefined') {
+  (global as any).Deno = mockDeno;
+}
 
 describe('executeStrategy Edge Function', () => {
   beforeEach(() => {
@@ -66,7 +68,6 @@ describe('executeStrategy Edge Function', () => {
     };
     
     // Act
-    // @ts-ignore - Ignoring type mismatch for testing purposes
     const result = await executeStrategy(input);
     
     // Assert
@@ -83,7 +84,6 @@ describe('executeStrategy Edge Function', () => {
     } as ExecuteStrategyInput;
     
     // Act
-    // @ts-ignore - Ignoring type mismatch for testing purposes
     const result = await executeStrategy(input);
     
     // Assert
@@ -101,7 +101,6 @@ describe('executeStrategy Edge Function', () => {
     } as ExecuteStrategyInput;
     
     // Act
-    // @ts-ignore - Ignoring type mismatch for testing purposes
     const result = await executeStrategy(input);
     
     // Assert
@@ -120,7 +119,6 @@ describe('executeStrategy Edge Function', () => {
     };
     
     // Act
-    // @ts-ignore - Ignoring type mismatch for testing purposes
     const result = await executeStrategy(input);
     
     // Assert
@@ -143,7 +141,6 @@ describe('executeStrategy Edge Function', () => {
     });
     
     // Act
-    // @ts-ignore - Ignoring type mismatch for testing purposes
     const result = await executeStrategy(input);
     
     // Assert

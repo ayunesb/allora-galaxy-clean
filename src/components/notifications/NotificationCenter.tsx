@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Bell } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,10 @@ import { useNotificationsContext } from '@/context/NotificationsContext';
 import { Badge } from '@/components/ui/badge';
 import NotificationCenterTabs from './NotificationCenterTabs';
 import NotificationCenterHeader from './NotificationCenterHeader';
+import { NotificationContent } from '@/types/notifications';
 
 const NotificationCenter: React.FC = () => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
   const {
     notifications,
     unreadCount,
@@ -18,6 +19,18 @@ const NotificationCenter: React.FC = () => {
     markAllAsRead,
     refreshNotifications,
   } = useNotificationsContext();
+
+  // Transform Notification[] to NotificationContent[]
+  const transformedNotifications: NotificationContent[] = notifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.message || notification.description || '',
+    timestamp: notification.created_at,
+    read: notification.is_read || false,
+    type: notification.type,
+    action_url: notification.action_url,
+    action_label: notification.action_label
+  }));
 
   const handleMarkAsRead = async (id: string) => {
     const result = await markAsRead(id);
@@ -31,9 +44,9 @@ const NotificationCenter: React.FC = () => {
     setOpen(false);
   };
 
-  // Wrap markAllAsRead to return void
-  const handleMarkAllAsRead = async (): Promise<void> => {
-    await markAllAsRead();
+  const handleMarkAllAsRead = async () => {
+    const result = await markAllAsRead();
+    return result;
   };
 
   return (
@@ -65,7 +78,7 @@ const NotificationCenter: React.FC = () => {
           
           <NotificationCenterTabs
             loading={loading}
-            notifications={notifications}
+            notifications={transformedNotifications}
             markAsRead={handleMarkAsRead}
             onClose={handleClose}
             unreadCount={unreadCount}

@@ -25,6 +25,7 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   const handleNotificationClick = async (id: string) => {
     await markAsRead(id);
     onClose();
+    return { success: true };
   };
 
   return (
@@ -44,7 +45,7 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           notifications={notifications} 
           loading={loading} 
           filter="all"
-          markAsRead={handleNotificationClick}
+          markAsRead={markAsRead}
         />
       </TabsContent>
       
@@ -53,7 +54,7 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           notifications={notifications} 
           loading={loading} 
           filter="unread"
-          markAsRead={handleNotificationClick}
+          markAsRead={markAsRead}
         />
       </TabsContent>
       
@@ -62,7 +63,7 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           notifications={notifications} 
           loading={loading} 
           filter="system"
-          markAsRead={handleNotificationClick}
+          markAsRead={markAsRead}
         />
       </TabsContent>
     </Tabs>

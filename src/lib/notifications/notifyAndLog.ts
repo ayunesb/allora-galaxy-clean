@@ -17,7 +17,8 @@ export async function notifyAndLog({
   type = 'info',
   action_url,
   action_label,
-  module = 'notifications'
+  module = 'notifications',
+  is_read = false
 }: {
   tenant_id: string;
   user_id: string;
@@ -27,6 +28,7 @@ export async function notifyAndLog({
   action_url?: string;
   action_label?: string;
   module?: string;
+  is_read?: boolean;
 }): Promise<Notification | undefined> {
   try {
     // First, log the event
@@ -44,7 +46,8 @@ export async function notifyAndLog({
       message,
       type,
       action_url,
-      action_label
+      action_label,
+      is_read
     });
     
     return notification;
