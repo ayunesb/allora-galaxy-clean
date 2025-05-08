@@ -1,111 +1,39 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { OnboardingStep } from '@/types/onboarding';
 
 /**
- * Track onboarding step view
+ * Track when a user views an onboarding step
  */
-export async function trackOnboardingStepView(
+export const trackOnboardingStepView = async (
   userId: string,
-  stepId: string,
-  metadata: Record<string, any> = {}
-): Promise<void> {
+  stepId: OnboardingStep
+) => {
   try {
-    await logSystemEvent(
-      'system',
-      'onboarding',
-      'step_view',
-      {
-        user_id: userId,
-        step_id: stepId,
-        ...metadata
-      }
-    );
+    await logSystemEvent('system', 'onboarding', 'view_step', {
+      user_id: userId,
+      step_id: stepId,
+    });
   } catch (error) {
+    // Non-critical tracking, just log the error
     console.error('Failed to track onboarding step view:', error);
-    // Non-blocking error - don't throw
   }
-}
+};
 
 /**
- * Track onboarding step completion
+ * Track when a user completes an onboarding step
  */
-export async function trackOnboardingStepCompleted(
+export const trackOnboardingStepCompleted = async (
   userId: string,
-  stepId: string,
-  metadata: Record<string, any> = {}
-): Promise<void> {
+  stepId: OnboardingStep
+) => {
   try {
-    await logSystemEvent(
-      'system',
-      'onboarding',
-      'step_completed',
-      {
-        user_id: userId,
-        step_id: stepId,
-        ...metadata
-      }
-    );
+    await logSystemEvent('system', 'onboarding', 'complete_step', {
+      user_id: userId,
+      step_id: stepId,
+    });
   } catch (error) {
+    // Non-critical tracking, just log the error
     console.error('Failed to track onboarding step completion:', error);
-    // Non-blocking error - don't throw
   }
-}
-
-/**
- * Track onboarding completion
- */
-export async function trackOnboardingCompleted(
-  userId: string,
-  tenantId: string,
-  formData: Record<string, any> = {}
-): Promise<void> {
-  try {
-    // Update user profile to mark onboarding as completed
-    await supabase
-      .from('profiles')
-      .update({ onboarding_completed: true })
-      .eq('id', userId);
-      
-    // Log onboarding completion event  
-    await logSystemEvent(
-      tenantId,
-      'onboarding',
-      'completed',
-      {
-        user_id: userId,
-        tenant_id: tenantId,
-        company_name: formData.companyName,
-        industry: formData.industry
-      }
-    );
-  } catch (error) {
-    console.error('Failed to track onboarding completion:', error);
-    // Non-blocking error - don't throw
-  }
-}
-
-/**
- * Track onboarding abandonment
- */
-export async function trackOnboardingAbandoned(
-  userId: string,
-  stepId: string,
-  reason?: string
-): Promise<void> {
-  try {
-    await logSystemEvent(
-      'system',
-      'onboarding',
-      'abandoned',
-      {
-        user_id: userId,
-        step_id: stepId,
-        reason: reason || 'Unknown'
-      }
-    );
-  } catch (error) {
-    console.error('Failed to track onboarding abandonment:', error);
-    // Non-blocking error - don't throw
-  }
-}
+};

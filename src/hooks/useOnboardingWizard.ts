@@ -7,7 +7,7 @@ import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData'
 import { completeOnboarding } from '@/services/onboardingService';
 import { useOnboardingStore } from '@/lib/onboarding/onboardingState';
 import { trackOnboardingStepCompleted, trackOnboardingStepView } from '@/lib/onboarding/onboardingAnalytics';
-import { OnboardingStep } from '@/types/onboarding';
+import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
 
 /**
  * Main hook for managing the onboarding wizard
@@ -68,7 +68,8 @@ export function useOnboardingWizard() {
   
   // Check if current step is valid
   const isStepValid = () => {
-    return validateOnboardingData(steps[currentStep].id, formData).valid;
+    const stepId = steps[currentStep].id;
+    return validateOnboardingData(formData, stepId).valid;
   };
   
   // Handle step navigation

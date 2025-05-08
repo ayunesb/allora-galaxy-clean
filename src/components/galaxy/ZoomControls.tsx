@@ -7,12 +7,14 @@ interface ZoomControlsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onRefresh: () => void;
+  onCenter?: () => void;
 }
 
 const ZoomControls: React.FC<ZoomControlsProps> = ({
   onZoomIn,
   onZoomOut,
-  onRefresh
+  onRefresh,
+  onCenter
 }) => {
   return (
     <div className="flex space-x-1">
@@ -40,6 +42,16 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({
       >
         <RefreshCw className="h-4 w-4" />
       </Button>
+      {onCenter && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onCenter}
+          title="Center View"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 };

@@ -1,25 +1,8 @@
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { OnboardingFormData } from '@/types/onboarding';
+import { OnboardingFormData, OnboardingState, OnboardingAction, OnboardingStep } from '@/types/onboarding';
 
-interface OnboardingState {
-  currentStep: number;
-  formData: OnboardingFormData;
-  isSubmitting: boolean;
-  isComplete: boolean;
-  tenantId: string | null;
-  
-  setStep: (step: number) => void;
-  nextStep: () => void;
-  prevStep: () => void;
-  updateFormData: (data: Partial<OnboardingFormData>) => void;
-  setField: (key: string, value: any) => void;
-  setSubmitting: (isSubmitting: boolean) => void;
-  setComplete: (isComplete: boolean, tenantId?: string) => void;
-  resetOnboarding: () => void;
-}
-
+// Initial form data state
 const initialFormData: OnboardingFormData = {
   companyName: '',
   industry: '',
@@ -27,70 +10,92 @@ const initialFormData: OnboardingFormData = {
   revenueRange: '',
   website: '',
   description: '',
-  goals: [],
+  goals: [] as string[],
   additionalInfo: '',
   persona: {
     name: '',
-    goals: [],
+    goals: [] as string[],
     tone: ''
   }
 };
 
-export const useOnboardingStore = create<OnboardingState>()(
-  persist(
-    (set) => ({
-      currentStep: 0,
-      formData: initialFormData,
-      isSubmitting: false,
-      isComplete: false,
-      tenantId: null,
-      
-      setStep: (step) => set({ currentStep: step }),
-      nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
-      prevStep: () => set((state) => ({ currentStep: Math.max(0, state.currentStep - 1) })),
-      
-      updateFormData: (data) => 
-        set((state) => ({ 
-          formData: { ...state.formData, ...data } 
-        })),
-        
-      setField: (key, value) => 
-        set((state) => {
-          // Handle nested properties like 'persona.name'
-          if (key.includes('.')) {
-            const [parent, child] = key.split('.');
-            return {
-              formData: {
-                ...state.formData,
-                [parent]: {
-                  ...(state.formData[parent as keyof OnboardingFormData] as Record<string, any>),
-                  [child]: value
-                }
-              }
-            };
+// Initial onboarding state
+const initialState: OnboardingState = {
+  currentStep: 0,
+  formData: initialFormData,
+  isComplete: false,
+  tenantId: undefined,
+  isSubmitting: false,
+};
+
+// Create onboarding store
+export const useOnboardingStore = create<OnboardingState & OnboardingAction>((set) => ({
+  ...initialState,
+  
+  // Step navigation
+  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 3) })),
+  prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 0) })),
+  setStep: (step: number) => set({ currentStep: step }),
+  
+  // Form data management
+  updateFormData: (data: Partial<OnboardingFormData>) => 
+    set((state) => ({ formData: { ...state.formData, ...data } })),
+  
+  setField: (key: string, value: any) => set((state) => {
+    // Handle nested keys like 'persona.name'
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      return {
+        formData: {
+          ...state.formData,
+          [parent]: {
+            ...(state.formData[parent as keyof OnboardingFormData] as Record<string, any>),
+            [child]: value
           }
-          
-          // Handle direct properties
-          return {
-            formData: {
-              ...state.formData,
-              [key]: value
-            }
-          };
-        }),
-        
-      setSubmitting: (isSubmitting) => set({ isSubmitting }),
-      setComplete: (isComplete, tenantId = null) => set({ isComplete, tenantId }),
-      resetOnboarding: () => set({ 
-        currentStep: 0, 
-        formData: initialFormData,
-        isSubmitting: false,
-        isComplete: false,
-        tenantId: null
-      }),
-    }),
-    {
-      name: 'onboarding-storage',
+        }
+      };
     }
-  )
-);
+    
+    // Handle regular keys
+    return {
+      formData: {
+        ...state.formData,
+        [key]: value
+      }
+    };
+  }),
+  
+  // Reset to initial state
+  reset: () => set(initialState),
+  
+  // Status management
+  setSubmitting: (isSubmitting: boolean) => set({ isSubmitting }),
+  
+  // Completion
+  setComplete: (isComplete: boolean, tenantId?: string) => set({ 
+    isComplete, 
+    tenantId: tenantId || undefined 
+  }),
+  
+  // Validation helpers
+  validateStep: (step: OnboardingStep) => {
+    const state = useOnboardingStore.getState();
+    
+    switch (step) {
+      case 'company-info':
+        return !!state.formData.companyName && !!state.formData.industry;
+      
+      case 'persona':
+        return !!state.formData.persona?.name;
+      
+      case 'additional-info':
+        return true; // Optional step
+      
+      case 'strategy-generation':
+        return true; // Just confirmation step
+      
+      default:
+        return false;
+    }
+  }
+}));
