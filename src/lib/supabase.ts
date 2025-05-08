@@ -31,9 +31,8 @@ export const supabase: SupabaseClient = createClient(
   }
 );
 
-// Export realtime channel functionality
-// This is needed for the NotificationsContainer component
-export const realtime = supabase.channel.bind(supabase);
+// Export the channel functionality for realtime features
+export const realtime = supabase.channel;
 
 // Ensure we export a singleton instance
 export default supabase;

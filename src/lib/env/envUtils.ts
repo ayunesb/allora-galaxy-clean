@@ -21,10 +21,11 @@ const isBrowser = typeof window !== 'undefined';
  */
 export function getEnvVar(key: string, defaultValue?: string): string {
   // For Deno/Edge environments
-  if (typeof Deno !== 'undefined') {
+  if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
     try {
       // Try to get from Deno.env
-      const value = Deno.env.get(key);
+      const deno = (globalThis as any).Deno;
+      const value = deno?.env?.get?.(key);
       if (value !== undefined) return value;
     } catch (err) {
       // Likely running in a restricted environment

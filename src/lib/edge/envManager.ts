@@ -1,106 +1,78 @@
 
 /**
- * Interface for environment variable validation
+ * Common utilities for Supabase edge functions
  */
-import { getEnvVar, corsHeaders, EnvVariable, validateEnv as validateEnvironment } from '@/lib/env/envUtils';
-
-export { getEnvVar, corsHeaders };
-export type { EnvVariable };
 
 /**
- * Validate environment variables
- * @param envVars Array of environment variables to validate
- * @returns Object containing validated environment variables
+ * Helper function to safely get environment variables with fallbacks
  */
-export function validateEnv(envVars: EnvVariable[]): Record<string, string> {
-  const result: Record<string, string> = {};
-  const validationResult = validateEnvironment(envVars);
-  
-  // Add validation result to output for reference
-  result._valid = String(validationResult.valid);
-  result._missing = validationResult.missing.join(',');
-
-  // Add actual env var values to result
-  for (const envVar of envVars) {
-    const value = getEnvVar(envVar.name, envVar.default || '');
-    result[envVar.name] = value;
+export function getEnvVar(name: string, fallback: string = ""): string {
+  try {
+    // First try Deno.env if available (edge function context)
+    if (typeof globalThis !== "undefined" && "Deno" in globalThis) {
+      const deno = globalThis.Deno as any;
+      if (deno?.env?.get) {
+        return deno.env.get(name) ?? fallback;
+      }
+    }
+    // Fallback to process.env for Node.js environments
+    return process.env[name] || fallback;
+  } catch (err) {
+    console.warn(`Error accessing env variable ${name}:`, err);
+    return fallback;
   }
-
-  return result;
 }
 
 /**
- * Format standard API error response
- * @param status HTTP status code
- * @param message Error message
- * @param details Additional error details
- * @param executionTime Execution time in seconds
- * @returns Response object with error details
+ * Format a standard error response for edge functions
  */
 export function formatErrorResponse(
-  status: number,
-  message: string,
-  details?: string,
+  status: number, 
+  message: string, 
+  details?: string, 
   executionTime?: number
 ): Response {
-  const body = {
-    success: false,
-    error: message,
-    details: details || null,
-    executionTime,
-    timestamp: new Date().toISOString()
+  const headers = {
+    "Access-Control-Allow-Origin": "*", 
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Content-Type": "application/json"
   };
-
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-/**
- * Format standard API success response
- * @param data Response data
- * @param executionTime Execution time in seconds
- * @returns Response object with success details
- */
-export function formatSuccessResponse(
-  data: any,
-  executionTime?: number
-): Response {
-  const body = {
-    success: true,
-    ...data,
-    executionTime,
-    timestamp: new Date().toISOString()
-  };
-
-  return new Response(JSON.stringify(body), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-/**
- * Handle edge function request with consistent error handling
- * @param req Request object
- * @param handler Request handler function
- * @returns Response object
- */
-export async function handleEdgeRequest(
-  req: Request,
-  handler: (req: Request) => Promise<Response>
-): Promise<Response> {
-  try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+  
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: message,
+      details: details || undefined,
+      execution_time: executionTime,
+      timestamp: new Date().toISOString()
+    }),
+    { 
+      status,
+      headers
     }
-    
-    return await handler(req);
-  } catch (error: any) {
-    console.error('Edge function error:', error);
-    return formatErrorResponse(
-      500,
-      error.message || 'An unexpected error occurred'
-    );
-  }
+  );
+}
+
+/**
+ * Format a standard success response for edge functions
+ */
+export function formatSuccessResponse(data: any, executionTime?: number): Response {
+  const headers = {
+    "Access-Control-Allow-Origin": "*", 
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Content-Type": "application/json"
+  };
+  
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data,
+      execution_time: executionTime,
+      timestamp: new Date().toISOString()
+    }),
+    { 
+      status: 200,
+      headers
+    }
+  );
 }

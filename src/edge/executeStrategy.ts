@@ -34,7 +34,6 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
     }
     
     // Execute the strategy using the shared runStrategy utility
-    // This allows for easier testing and code reuse
     const result = await runStrategy(input);
     
     // Add execution time to the result if not already present
