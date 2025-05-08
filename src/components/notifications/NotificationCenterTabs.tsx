@@ -1,92 +1,70 @@
 
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Notification, NotificationContent } from '@/types/notifications';
-import NotificationCenterLoading from './NotificationCenterLoading';
-import NotificationList from './NotificationList';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { NotificationContent } from '@/types/notifications';
+import NotificationCenterContent from './NotificationCenterContent';
 
 interface NotificationCenterTabsProps {
+  notifications: NotificationContent[];
   loading: boolean;
-  notifications: Notification[];
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  markAllAsRead: () => Promise<void>;
+  markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
   onClose: () => void;
   unreadCount: number;
 }
 
 const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
-  loading,
   notifications,
+  loading,
   markAsRead,
   onClose,
-  unreadCount,
+  unreadCount
 }) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [tabValue, setTabValue] = useState('all');
 
-  // Filter notifications based on the active tab
-  const filteredNotifications = activeTab === 'unread'
-    ? notifications.filter(notification => !notification.is_read)
-    : notifications;
-
-  // Convert Notification[] to NotificationContent[]
-  const transformedNotifications: NotificationContent[] = filteredNotifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.description || '',
-    timestamp: notification.created_at,
-    read: notification.is_read,
-    type: notification.type
-  }));
-
-  if (loading) {
-    return <NotificationCenterLoading />;
-  }
+  const handleNotificationClick = async (id: string) => {
+    await markAsRead(id);
+    onClose();
+  };
 
   return (
-    <Tabs 
-      defaultValue="all" 
-      className="flex-1 overflow-hidden"
-      onValueChange={(value) => setActiveTab(value as 'all' | 'unread')}
-    >
-      <div className="border-b px-2">
-        <TabsList className="h-9 w-full justify-start rounded-none bg-transparent p-0">
-          <TabsTrigger 
-            value="all" 
-            className="h-9 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
-          >
-            All
-          </TabsTrigger>
-          <TabsTrigger 
-            value="unread" 
-            className="h-9 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
-          >
+    <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
+      <div className="px-4 py-2">
+        <TabsList className="w-full">
+          <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
+          <TabsTrigger value="unread" className="flex-1">
             Unread {unreadCount > 0 && `(${unreadCount})`}
           </TabsTrigger>
+          <TabsTrigger value="system" className="flex-1">System</TabsTrigger>
         </TabsList>
       </div>
       
-      <ScrollArea className="flex-1 px-2">
-        <TabsContent value="all" className="m-0 py-2">
-          <NotificationList
-            notifications={transformedNotifications}
-            markAsRead={markAsRead}
-            onNotificationClick={onClose}
-            loading={false}
-            filter="all"
-          />
-        </TabsContent>
-        
-        <TabsContent value="unread" className="m-0 py-2">
-          <NotificationList
-            notifications={transformedNotifications}
-            markAsRead={markAsRead}
-            onNotificationClick={onClose}
-            loading={false}
-            filter="unread"
-          />
-        </TabsContent>
-      </ScrollArea>
+      <TabsContent value="all" className="max-h-[300px] overflow-y-auto">
+        <NotificationCenterContent 
+          notifications={notifications} 
+          loading={loading} 
+          filter="all"
+          markAsRead={handleNotificationClick}
+        />
+      </TabsContent>
+      
+      <TabsContent value="unread" className="max-h-[300px] overflow-y-auto">
+        <NotificationCenterContent 
+          notifications={notifications} 
+          loading={loading} 
+          filter="unread"
+          markAsRead={handleNotificationClick}
+        />
+      </TabsContent>
+      
+      <TabsContent value="system" className="max-h-[300px] overflow-y-auto">
+        <NotificationCenterContent 
+          notifications={notifications} 
+          loading={loading} 
+          filter="system"
+          markAsRead={handleNotificationClick}
+        />
+      </TabsContent>
     </Tabs>
   );
 };

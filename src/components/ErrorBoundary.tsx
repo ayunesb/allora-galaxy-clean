@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import ErrorFallback from '@/components/ErrorFallback';
 import { toast } from '@/hooks/use-toast';

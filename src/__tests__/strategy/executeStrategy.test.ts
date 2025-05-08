@@ -1,13 +1,28 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
-import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/types/strategy";
+import { ExecuteStrategyInput } from "@/types/strategy";
 import { runStrategy } from "@/lib/strategy/runStrategy";
 
 // Mock the runStrategy function
 vi.mock('@/lib/strategy/runStrategy', () => ({
   runStrategy: vi.fn()
 }));
+
+// Define mock Deno globals for testing
+const mockDeno = {
+  env: {
+    get: vi.fn().mockImplementation(key => {
+      if (key === 'SUPABASE_URL') return 'https://test.supabase.co';
+      if (key === 'SUPABASE_ANON_KEY') return 'test-anon-key';
+      return undefined;
+    }),
+    set: vi.fn()
+  }
+};
+
+// Assign mock to global
+global.Deno = mockDeno as any;
 
 describe('executeStrategy Edge Function', () => {
   beforeEach(() => {
@@ -25,7 +40,7 @@ describe('executeStrategy Edge Function', () => {
           success: false,
           error: 'Strategy execution failed',
           executionTime: 0.5
-        } as ExecuteStrategyResult);
+        });
       }
       
       return Promise.resolve({
@@ -34,7 +49,7 @@ describe('executeStrategy Edge Function', () => {
         executionTime: 1.5,
         outputs: { result: 'success' },
         logs: []
-      } as ExecuteStrategyResult);
+      });
     });
   });
   

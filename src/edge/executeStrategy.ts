@@ -1,140 +1,142 @@
 
-// Edge function for executing strategies
-import { ExecuteStrategyInput, ExecuteStrategyResult, ValidationResult } from '@/types/strategy';
+import { corsHeaders } from '../lib/edge/corsHeaders';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '../types/strategy';
+import { logSystemEvent } from '../lib/system/logSystemEvent';
+import { supabase } from '../integrations/supabase/client';
+import { handleEdgeFunctionError } from '../lib/edge/errorHandler';
+import { getEnv } from '../lib/edge/envManager';
 
-// Helper function to safely get environment variables with fallbacks
-function getEnv(name: string, fallback: string = ""): string {
+// Mock for Deno in browser environment
+const Deno = globalThis.Deno || { env: { get: () => undefined } };
+
+/**
+ * Edge function to execute a strategy
+ * This function calls the runStrategy utility to perform the actual strategy execution,
+ * handles validation, logging, and error handling.
+ */
+export default async function executeStrategy(req: Request) {
+  const start = Date.now();
+  
   try {
-    // First try Deno.env if available
-    if (typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env) {
-      return Deno.env.get(name) ?? fallback;
+    // Parse input from request
+    let input: ExecuteStrategyInput;
+    
+    // Handle both Request objects and direct input objects for flexibility in testing
+    if (req instanceof Request) {
+      // For HTTP requests
+      input = await req.json();
+    } else {
+      // For direct function calls (testing)
+      input = req as unknown as ExecuteStrategyInput;
     }
-    // Fallback to process.env for non-Deno environments
-    return process.env[name] || fallback;
-  } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
-    return fallback;
-  }
-}
 
-// Cors headers
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Function to validate input
-function validateInput(input: any): ValidationResult {
-  const errors: string[] = [];
-  
-  if (!input) {
-    errors.push("Request body is required");
-    return { valid: false, errors };
-  }
-  
-  if (!input.strategy_id) {
-    errors.push("Strategy ID is required");
-  }
-  
-  if (!input.tenant_id) {
-    errors.push("Tenant ID is required");
-  }
-  
-  return { valid: errors.length === 0, errors };
-}
-
-// Main handler function for the edge function
-export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
-  const startTime = performance.now();
-  const executionId = crypto.randomUUID();
-  
-  try {
-    // Validate input first
-    const validation = validateInput(input);
-    if (!validation.valid && validation.errors) {
+    // Validate required fields
+    if (!input.strategy_id) {
       return {
         success: false,
-        error: validation.errors.join(", "),
-        execution_id: executionId,
-        execution_time: (performance.now() - startTime) / 1000
+        error: 'Strategy ID is required',
+        execution_time: (Date.now() - start) / 1000
       };
     }
 
-    // Ensure types are compatible with runStrategy
-    const inputForRunStrategy = {
+    if (!input.tenant_id) {
+      return {
+        success: false,
+        error: 'Tenant ID is required',
+        execution_time: (Date.now() - start) / 1000
+      };
+    }
+
+    // Normalize input format (snake_case to camelCase for backwards compatibility)
+    const normalizedInput = {
       strategyId: input.strategy_id,
       tenantId: input.tenant_id,
       userId: input.user_id,
-      options: input.options
+      options: input.options || {}
     };
 
-    // Import dynamically to avoid issues with edge function context
-    const { runStrategy } = await import('@/lib/strategy/runStrategy');
+    // Log execution start
+    await logSystemEvent(
+      input.tenant_id, 
+      'strategy',
+      'execute_strategy_started',
+      { 
+        strategy_id: input.strategy_id,
+        user_id: input.user_id
+      }
+    );
+
+    // Execute the strategy using the shared utility function
+    const { success, error, execution_id, execution_time, results, logs } = await runStrategy(normalizedInput);
+
+    // Create result object
+    const result = {
+      success,
+      error,
+      execution_id,
+      execution_time: execution_time || (Date.now() - start) / 1000,
+      results,
+      logs
+    } as ExecuteStrategyResult;
+
+    // Log execution result
+    await logSystemEvent(
+      input.tenant_id,
+      'strategy',
+      success ? 'execute_strategy_completed' : 'execute_strategy_failed',
+      { 
+        strategy_id: input.strategy_id,
+        execution_id: execution_id,
+        error: error,
+        execution_time: result.execution_time
+      }
+    );
+
+    // Return result
+    if (req instanceof Request) {
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    return result;
+
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
     
-    // Execute strategy
-    const result = await runStrategy(inputForRunStrategy);
+    // Log error
+    if (req instanceof Request) {
+      const inputObj = await req.clone().json().catch(() => ({}));
+      const tenantId = (inputObj as any)?.tenant_id || 'system';
+      
+      await logSystemEvent(
+        tenantId,
+        'strategy',
+        'execute_strategy_error',
+        { error }
+      ).catch(console.error);
+      
+      return handleEdgeFunctionError(error);
+    }
     
-    // Return result in the expected format
-    return {
-      ...result,
-      strategy_id: input.strategy_id,
-      execution_id: executionId,
-      execution_time: (performance.now() - startTime) / 1000
-    };
-  } catch (error: any) {
-    console.error("Error executing strategy:", error);
-    
-    // Return error information
+    // For testing/direct calls
     return {
       success: false,
-      strategy_id: input.strategy_id,
-      execution_id: executionId,
-      error: error.message || "An unexpected error occurred",
-      execution_time: (performance.now() - startTime) / 1000
+      error,
+      execution_time: (Date.now() - start) / 1000
     };
   }
 }
 
-// For Deno environment
-if (typeof Deno !== 'undefined') {
-  Deno.serve(async (req) => {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
-    
-    try {
-      // Parse request body
-      const input = await req.json() as ExecuteStrategyInput;
-      
-      // Execute strategy
-      const result = await executeStrategy(input);
-      
-      // Return result
-      return new Response(
-        JSON.stringify(result),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json" 
-          } 
-        }
-      );
-    } catch (error) {
-      console.error("Error processing request:", error);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Failed to process request" 
-        }),
-        { 
-          status: 500, 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json" 
-          } 
-        }
-      );
-    }
-  });
-}
+// Handle preflight CORS requests
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
+  try {
+    return await executeStrategy(req);
+  } catch (err) {
+    return handleEdgeFunctionError(err);
+  }
+});

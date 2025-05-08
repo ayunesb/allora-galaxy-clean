@@ -11,7 +11,7 @@ interface NotificationCenterContentProps {
   notifications: NotificationContent[];
   filter: string;
   className?: string;
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({

@@ -1,245 +1,180 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Notification } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
-import { useAuth } from '@/context/AuthContext';
-import { Notification, NotificationsContextType } from '@/types/notifications';
-import { checkNetworkStatus } from '@/lib/supabase';
 
-/**
- * Hook for managing notifications
- */
-export function useNotifications(): NotificationsContextType {
+export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const tenantId = useTenantId();
-  const { user } = useAuth();
-  
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    if (!tenantId || !user?.id) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-      return { success: false, error: new Error('No tenant or user ID available') };
-    }
 
-    setLoading(true);
-    setError(null);
-
+  const refreshNotifications = useCallback(async () => {
     try {
-      const { data, error: fetchError } = await supabase
+      setLoading(true);
+      
+      // Fetch notifications for the current tenant and user
+      const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('tenant_id', tenantId)
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        throw new Error(`Failed to fetch notifications: ${fetchError.message}`);
-      }
-
-      const typedData = data as Notification[];
-      setNotifications(typedData);
-      setUnreadCount(typedData.filter(n => !n.is_read).length);
       
+      if (error) {
+        throw error;
+      }
+      
+      setNotifications(data || []);
       return { success: true };
-    } catch (err: any) {
-      setError(err);
-      return { success: false, error: err };
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      setError(err as Error);
+      return { success: false, error: err as Error };
     } finally {
       setLoading(false);
     }
-  }, [tenantId, user?.id]);
-
-  // Mark notification as read
-  const markAsRead = async (id: string) => {
+  }, [tenantId]);
+  
+  const markAsRead = useCallback(async (id: string) => {
     try {
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id)
-        .eq('user_id', user?.id || '');
-
-      if (updateError) {
-        throw new Error(`Failed to mark notification as read: ${updateError.message}`);
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
       }
-
-      // Update local state to avoid refetch
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      
+      // Update local state
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notification => 
+          notification.id === id
+            ? { ...notification, is_read: true, read_at: new Date().toISOString() }
+            : notification
+        )
       );
       
-      // Update unread count
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err };
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+      return { success: false, error: err as Error };
     }
-  };
-
-  // Mark all notifications as read
-  const markAllAsRead = async () => {
-    if (!tenantId || !user?.id) {
-      return { success: false, error: new Error('No tenant or user ID available') };
-    }
-
+  }, []);
+  
+  const markAllAsRead = useCallback(async () => {
     try {
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true })
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('tenant_id', tenantId)
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        throw new Error(`Failed to mark all notifications as read: ${updateError.message}`);
+        .is('is_read', false);
+      
+      if (error) {
+        throw error;
       }
-
+      
       // Update local state
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notification => ({
+          ...notification,
+          is_read: true,
+          read_at: new Date().toISOString()
+        }))
+      );
       
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err };
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+      return { success: false, error: err as Error };
     }
-  };
-
-  // Delete a notification
-  const deleteNotification = async (id: string) => {
+  }, [tenantId]);
+  
+  const deleteNotification = useCallback(async (id: string) => {
     try {
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user?.id || '');
-
-      if (deleteError) {
-        throw new Error(`Failed to delete notification: ${deleteError.message}`);
-      }
-
-      // Update local state
-      const deleted = notifications.find(n => n.id === id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
+        .eq('id', id);
       
-      // Update unread count if needed
-      if (deleted && !deleted.is_read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
+      if (error) {
+        throw error;
       }
+      
+      // Update local state
+      setNotifications(prevNotifications => 
+        prevNotifications.filter(notification => notification.id !== id)
+      );
       
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err };
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      return { success: false, error: err as Error };
     }
-  };
-
-  // Delete all notifications with optional filter
-  const deleteAllNotificationsFromDB = async (filter: string | null, unreadOnly: boolean) => {
-    if (!tenantId || !user?.id) {
-      return { success: false, error: new Error('No tenant or user ID available') };
-    }
-
+  }, []);
+  
+  const deleteAllNotificationsFromDB = useCallback(async (filter: string | null, unreadOnly: boolean) => {
     try {
       let query = supabase
         .from('notifications')
         .delete()
-        .eq('tenant_id', tenantId)
-        .eq('user_id', user.id);
+        .eq('tenant_id', tenantId);
       
-      // Apply unread filter if specified
       if (unreadOnly) {
         query = query.eq('is_read', false);
       }
       
-      // Apply type filter if specified
       if (filter && filter !== 'all') {
         query = query.eq('type', filter);
       }
-
-      const { error: deleteError } = await query;
-
-      if (deleteError) {
-        throw new Error(`Failed to delete notifications: ${deleteError.message}`);
+      
+      const { error } = await query;
+      
+      if (error) {
+        throw error;
       }
-
-      // Update local state based on filters
-      if (filter === 'all' && !unreadOnly) {
-        setNotifications([]);
-        setUnreadCount(0);
+      
+      // Update local state based on filter
+      if (filter === null || filter === 'all') {
+        if (unreadOnly) {
+          setNotifications(prevNotifications => 
+            prevNotifications.filter(notification => notification.is_read)
+          );
+        } else {
+          setNotifications([]);
+        }
       } else {
-        const newNotifications = notifications.filter(n => {
-          if (unreadOnly && n.is_read) return true; // Keep read notifications
-          if (filter && filter !== 'all' && n.type !== filter) return true; // Keep other types
-          return false; // Delete matching notifications
-        });
-        
-        setNotifications(newNotifications);
-        setUnreadCount(newNotifications.filter(n => !n.is_read).length);
+        if (unreadOnly) {
+          setNotifications(prevNotifications => 
+            prevNotifications.filter(notification => 
+              notification.type !== filter || notification.is_read
+            )
+          );
+        } else {
+          setNotifications(prevNotifications => 
+            prevNotifications.filter(notification => notification.type !== filter)
+          );
+        }
       }
       
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err };
+    } catch (err) {
+      console.error('Error deleting all notifications:', err);
+      return { success: false, error: err as Error };
     }
-  };
-
-  // Initial fetch
+  }, [tenantId]);
+  
+  // Calculate unread count
+  const unreadCount = notifications.filter(notification => !notification.is_read).length;
+  
+  // Load notifications on mount and when tenant changes
   useEffect(() => {
-    if (tenantId && user?.id) {
-      fetchNotifications();
+    if (tenantId) {
+      refreshNotifications();
     }
-  }, [tenantId, user?.id, fetchNotifications]);
-
-  // Set up real-time notifications if supported
-  useEffect(() => {
-    if (!tenantId || !user?.id || !checkNetworkStatus()) return;
-    
-    // Set up real-time subscription for new notifications
-    const channel = supabase.channel('public:notifications')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'notifications',
-          filter: `tenant_id=eq.${tenantId} AND user_id=eq.${user.id}`
-        }, 
-        (payload) => {
-          // Handle different event types
-          if (payload.eventType === 'INSERT') {
-            setNotifications(prev => [payload.new as Notification, ...prev]);
-            if (!(payload.new as Notification).is_read) {
-              setUnreadCount(prev => prev + 1);
-            }
-          } 
-          else if (payload.eventType === 'UPDATE') {
-            setNotifications(prev => 
-              prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
-            );
-            // Recalculate unread count on updates
-            setNotifications(current => {
-              setUnreadCount(current.filter(n => !n.is_read).length);
-              return current;
-            });
-          }
-          else if (payload.eventType === 'DELETE') {
-            const deleted = payload.old as Notification;
-            setNotifications(prev => prev.filter(n => n.id !== deleted.id));
-            if (!deleted.is_read) {
-              setUnreadCount(prev => Math.max(0, prev - 1));
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tenantId, user?.id]);
-
+  }, [tenantId, refreshNotifications]);
+  
   return {
     notifications,
     unreadCount,
@@ -249,6 +184,6 @@ export function useNotifications(): NotificationsContextType {
     markAllAsRead,
     deleteNotification,
     deleteAllNotificationsFromDB,
-    refreshNotifications: fetchNotifications
+    refreshNotifications
   };
-}
+};

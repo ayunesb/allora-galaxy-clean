@@ -26,7 +26,7 @@ const dataStore: Record<string, any[]> = {
 // Create a mock function for Supabase client
 export const createMockSupabaseClient = () => {
   // Mock function to simulate responses for .from().select()
-  const mockSelect = vi.fn().mockImplementation((table: string, columns: string) => {
+  const mockSelect = vi.fn().mockImplementation((table: string) => {
     if (table === 'users') {
       return {
         data: mockUsers,
@@ -80,7 +80,7 @@ export const createMockSupabaseClient = () => {
   });
 
   // Mock function to simulate responses for .from().upsert()
-  const mockUpsert = vi.fn().mockImplementation((table: string, data: any, options: any) => {
+  const mockUpsert = vi.fn().mockImplementation((table: string, data: any) => {
     if (!dataStore[table]) {
       dataStore[table] = [];
     }
@@ -101,8 +101,8 @@ export const createMockSupabaseClient = () => {
   // Mock function for .from()
   const mockFrom = vi.fn().mockImplementation((table: string) => {
     return {
-      select: (columns?: string) => ({
-        ...mockSelect(table, columns),
+      select: () => ({
+        ...mockSelect(table),
         order: () => ({
           data: dataStore[table]?.[0] ? [dataStore[table][0]] : [],
           error: null,
@@ -137,7 +137,7 @@ export const createMockSupabaseClient = () => {
               data: dataStore[table]?.[0] || null,
               error: null,
             }),
-            select: () => mockSelect(table, '*'),
+            select: () => mockSelect(table),
             delete: () => mockDelete(),
             update: (data: any) => mockUpdate(table, data),
             order: () => ({
@@ -153,7 +153,7 @@ export const createMockSupabaseClient = () => {
               }),
             }),
           }),
-          select: () => mockSelect(table, '*'),
+          select: () => mockSelect(table),
           single: () => ({
             data: dataStore[table]?.[0] || null,
             error: null,
@@ -187,7 +187,7 @@ export const createMockSupabaseClient = () => {
         }),
       }),
       insert: (data: any) => mockInsert(table, data),
-      upsert: (data: any, options: any) => mockUpsert(table, data, options),
+      upsert: (data: any) => mockUpsert(table, data),
       update: (data: any) => ({
         ...mockUpdate(table, data),
         eq: () => ({
@@ -202,8 +202,8 @@ export const createMockSupabaseClient = () => {
           error: null,
         }),
       }),
-      eq: (column: string, value: any) => ({
-        eq: (column2: string, value2: any) => ({
+      eq: () => ({
+        eq: () => ({
           single: () => ({
             data: dataStore[table]?.[0] || null,
             error: null,
@@ -212,11 +212,11 @@ export const createMockSupabaseClient = () => {
             data: dataStore[table]?.[0] || null,
             error: null,
           }),
-          select: () => mockSelect(table, '*'),
+          select: () => mockSelect(table),
           delete: () => mockDelete(),
           update: (data: any) => mockUpdate(table, data),
         }),
-        select: () => mockSelect(table, '*'),
+        select: () => mockSelect(table),
         single: () => ({
           data: dataStore[table]?.[0] || null,
           error: null,

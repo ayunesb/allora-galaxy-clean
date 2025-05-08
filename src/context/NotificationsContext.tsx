@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
 import { Notification } from '@/types/notifications';
 
@@ -11,7 +11,7 @@ export interface NotificationsContextValue {
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
   deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  refreshNotifications: () => Promise<void>;
+  refreshNotifications: () => Promise<{ success: boolean; error?: Error }>;
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);

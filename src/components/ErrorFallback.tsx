@@ -10,9 +10,11 @@ interface ErrorFallbackProps {
   error: Error;
   errorInfo?: ErrorInfo;
   resetErrorBoundary: () => void;
+  supportEmail?: string;
+  tenant_id?: string;
 }
 
-export function ErrorFallback({ error, errorInfo, resetErrorBoundary }: ErrorFallbackProps) {
+export function ErrorFallback({ error, errorInfo, resetErrorBoundary, supportEmail }: ErrorFallbackProps) {
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -32,7 +34,7 @@ export function ErrorFallback({ error, errorInfo, resetErrorBoundary }: ErrorFal
   const handleReportError = () => {
     toast({
       title: "Error report sent",
-      description: "Thank you for reporting this issue. Our team will investigate.",
+      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
     });
   };
 
