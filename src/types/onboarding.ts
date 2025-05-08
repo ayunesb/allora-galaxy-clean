@@ -1,36 +1,34 @@
 
-/**
- * Onboarding form data interface
- * Used throughout the onboarding flow to collect and validate user input
- */
+export type OnboardingStep = 'company-info' | 'persona' | 'additional-info' | 'strategy-generation';
+
+export interface PersonaData {
+  name: string;
+  goals: string[];
+  tone: string;
+}
+
 export interface OnboardingFormData {
-  // Company profile data
   companyName: string;
   industry: string;
-  teamSize: string;
-  revenueRange: string;
-  website: string;
-  description: string;
-
-  // Persona profile data
-  personaName: string;
-  tone: string;
-  goals: string;
+  companySize: string;
+  goals: string[];
+  persona: PersonaData;
+  additionalInfo?: string;
+  website?: string;
+  revenueRange?: string;
+  teamSize?: string;
 }
 
-/**
- * Step validation result interface
- */
-export interface StepValidationResult {
-  isValid: boolean;
-  errors: Record<string, string>;
-}
-
-/**
- * Onboarding submission result interface
- */
-export interface OnboardingSubmissionResult {
-  success: boolean;
-  tenantId?: string;
-  error?: string;
+export interface OnboardingErrorData {
+  companyName?: string;
+  industry?: string;
+  companySize?: string;
+  goals?: string;
+  'persona.name'?: string;
+  'persona.goals'?: string;
+  'persona.tone'?: string;
+  additionalInfo?: string;
+  website?: string;
+  revenueRange?: string;
+  teamSize?: string;
 }

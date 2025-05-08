@@ -1,42 +1,44 @@
 
-// Base notification content interface for frontend use
-export interface NotificationContent {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  type: 'info' | 'success' | 'warning' | 'error' | 'system';
-  action_url?: string;
-  action_label?: string;
-}
+/**
+ * Notification types for the application
+ */
 
-// Database notification structure
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system' | 'milestone';
+
 export interface Notification {
   id: string;
   title: string;
-  description: string; // This maps to 'message' in the UI
-  created_at: string;
+  description?: string;
+  type: NotificationType;
+  tenant_id: string;
+  user_id: string;
   is_read?: boolean;
-  read_at?: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
-  tenant_id?: string;
-  user_id?: string;
+  created_at: string;
+  read_at?: string;
   metadata?: Record<string, any>;
 }
 
-// Context for notifications management
+export interface CreateNotificationInput {
+  title: string;
+  description?: string;
+  type: NotificationType;
+  tenant_id: string;
+  user_id: string;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface NotificationsContextType {
   notifications: Notification[];
   unreadCount: number;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
   loading: boolean;
-  error: Error | null;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  refreshNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
-  deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
+  refetch: () => void;
+  filterByType: (type: NotificationType | 'all') => void;
+  currentFilter: NotificationType | 'all';
 }

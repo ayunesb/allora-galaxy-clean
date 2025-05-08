@@ -1,74 +1,67 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { useOnboardingSubmission } from './useOnboardingSubmission';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData';
+import { useStrategyGeneration } from './useStrategyGeneration';
+import { sendNotification } from '@/lib/notifications/sendNotification';
 
-// Step type for the onboarding wizard
-export type OnboardingStep = 'company' | 'goals' | 'strategy' | 'complete';
-
-// Form data type for onboarding
-export interface OnboardingFormData {
-  companyName: string;
-  industry: string;
-  companySize: string;
-  description: string;
-  goals: string[];
-  strategy: {
-    title: string;
-    description: string;
-  };
-}
-
-export const useOnboardingWizard = () => {
-  const [step, setStep] = useState<OnboardingStep>('company');
+export function useOnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tenantsList, setTenantsList] = useState<any[]>([]);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const { isGenerating: isGeneratingStrategy, generateStrategy } = useStrategyGeneration();
+  
+  // Initial form data
   const [formData, setFormData] = useState<OnboardingFormData>({
     companyName: '',
     industry: '',
     companySize: '',
-    description: '',
     goals: [],
-    strategy: {
-      title: '',
-      description: '',
+    persona: { 
+      name: '',
+      goals: [],
+      tone: ''
     },
+    additionalInfo: ''
   });
-  const [error, setError] = useState<string | null>(null);
-  const { submitOnboardingData, isSubmitting } = useOnboardingSubmission();
-  const navigate = useNavigate();
-  const { currentTenant } = useWorkspace();
-  
-  // Define steps for the wizard
+
+  // Define steps
   const steps = [
-    { id: 'company', label: 'Company Info' },
-    { id: 'goals', label: 'Goals' },
-    { id: 'strategy', label: 'Strategy' },
-    { id: 'complete', label: 'Complete' },
+    { id: 'company-info', label: 'Company Info' },
+    { id: 'persona', label: 'Target Persona' },
+    { id: 'additional-info', label: 'Additional Info' },
+    { id: 'strategy-generation', label: 'Strategy' },
   ];
 
-  // Move to the next step
-  const handleNextStep = () => {
-    const currentIndex = steps.findIndex(s => s.id === step);
-    if (currentIndex < steps.length - 1) {
-      setCurrentStep(currentIndex + 1);
-      setStep(steps[currentIndex + 1].id as OnboardingStep);
+  // Check if user already has tenants
+  useEffect(() => {
+    if (currentUser?.id) {
+      checkExistingTenants();
     }
-  };
+  }, [currentUser]);
 
-  // Move to the previous step
-  const handlePrevStep = () => {
-    const currentIndex = steps.findIndex(s => s.id === step);
-    if (currentIndex > 0) {
-      setCurrentStep(currentIndex - 1);
-      setStep(steps[currentIndex - 1].id as OnboardingStep);
+  // Check if user already has tenants
+  const checkExistingTenants = async () => {
+    try {
+      const { data } = await supabase
+        .from('tenant_user_roles')
+        .select('tenant_id')
+        .eq('user_id', currentUser?.id);
+      
+      if (data && data.length > 0) {
+        setTenantsList(data);
+      }
+    } catch (err) {
+      console.error('Error checking tenants:', err);
     }
-  };
-
-  // Jump to a specific step
-  const handleStepClick = (stepId: OnboardingStep) => {
-    setStep(stepId);
-    setCurrentStep(steps.findIndex(s => s.id === stepId));
   };
 
   // Update form data
@@ -76,102 +69,115 @@ export const useOnboardingWizard = () => {
     setFormData(prev => ({ ...prev, ...data }));
   };
 
-  // Set field values
+  // Set a specific field value
   const setFieldValue = (key: string, value: any) => {
-    setFormData(prev => {
-      const keys = key.split('.');
-      if (keys.length === 1) {
-        return { ...prev, [key]: value };
-      } else {
-        const [parent, child] = keys;
-        return {
-          ...prev,
-          [parent]: {
-            ...(prev as any)[parent],
-            [child]: value
-          }
-        };
-      }
-    });
+    updateFormData({ [key]: value });
   };
 
-  // Validate the current step
-  const validateCurrentStep = (): boolean => {
-    if (step === 'company') {
-      if (!formData.companyName) {
-        setError('Company name is required');
-        return false;
+  // Navigate to next step
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      // Validate current step before proceeding
+      const validationResult = validateCurrentStep();
+      if (!validationResult.valid) {
+        return;
       }
+      
+      setCurrentStep(currentStep + 1);
+      
+      // Log step completion
+      logSystemEvent('system', 'onboarding', 'step_completed', {
+        step: steps[currentStep].id,
+        next_step: steps[currentStep + 1].id
+      });
     }
-    else if (step === 'goals') {
-      if (formData.goals.length === 0) {
-        setError('At least one goal is required');
-        return false;
-      }
+  };
+
+  // Navigate to previous step
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
-    
-    return true;
+  };
+
+  // Navigate to specific step
+  const handleStepClick = (step: number) => {
+    // Only allow clicking on steps that have been completed or the next available step
+    if (step <= currentStep || step === currentStep + 1) {
+      setCurrentStep(step);
+    }
+  };
+
+  // Validate current step
+  const validateCurrentStep = () => {
+    const stepId = steps[currentStep].id;
+    return validateOnboardingData(formData, stepId);
   };
 
   // Check if current step is valid
-  const isStepValid = (): boolean => {
-    switch (step) {
-      case 'company':
-        return !!formData.companyName;
-      case 'goals':
-        return formData.goals.length > 0;
-      case 'strategy':
-        return true;
-      default:
-        return true;
-    }
+  const isStepValid = () => {
+    return validateCurrentStep().valid;
   };
 
-  // Reset any error
-  const resetError = () => setError(null);
+  // Reset error
+  const resetError = () => {
+    setError(null);
+  };
 
-  // Handle form submission
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    try {
-      const result = await completeOnboarding();
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setError(result.error?.message || 'Failed to complete onboarding');
+  // Submit form
+  const handleSubmit = async () => {
+    // For the final step, we need to generate a strategy
+    if (currentStep === steps.length - 1) {
+      try {
+        setIsSubmitting(true);
+        
+        // Generate strategy
+        const result = await generateStrategy(formData);
+        
+        if (result.success) {
+          // Send notification
+          await sendNotification({
+            title: 'Welcome to Allora OS',
+            description: 'Your workspace is ready! We\'ve created your initial strategy.',
+            type: 'success',
+            tenant_id: result.tenantId,
+            user_id: currentUser?.id || '',
+            action_label: 'View Dashboard',
+            action_url: '/dashboard'
+          });
+          
+          toast({
+            title: 'Welcome to Allora OS!',
+            description: 'Your workspace has been created successfully.',
+          });
+          
+          // Navigate to dashboard
+          navigate('/dashboard');
+        } else {
+          setError(result.error || 'Failed to create workspace');
+        }
+      } catch (err: any) {
+        setError(err.message || 'An unexpected error occurred');
+        console.error('Onboarding error:', err);
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      console.error('Error in onboarding submission:', error);
-      setError((error as Error).message);
+    } else {
+      // Otherwise, move to the next step
+      handleNextStep();
     }
-  };
-
-  // Complete the onboarding process
-  const completeOnboarding = async () => {
-    const result = await submitOnboardingData(formData);
-    
-    if (result.success) {
-      // Navigate to dashboard after successful submission
-      navigate('/dashboard');
-    }
-    
-    return result;
   };
 
   return {
-    step,
+    step: steps[currentStep],
     currentStep,
     formData,
     steps,
     error,
     isSubmitting,
-    isGeneratingStrategy: false,
-    nextStep,
-    prevStep: handlePrevStep,
+    tenantsList,
+    currentUser,
     updateFormData,
-    completeOnboarding,
     handleNextStep,
     handlePrevStep,
     handleStepClick,
@@ -179,6 +185,7 @@ export const useOnboardingWizard = () => {
     isStepValid,
     resetError,
     validateCurrentStep,
-    setFieldValue
+    setFieldValue,
+    isGeneratingStrategy
   };
-};
+}

@@ -1,7 +1,7 @@
 
 // Environment variable manager for consistent access across the application
 import { createClient } from '@supabase/supabase-js';
-import { getEnv, validateEnv, corsHeaders, ENV } from './envUtils';
+import { getEnv, validateEnv, corsHeaders } from './envUtils';
 import type { EnvVariable } from './envUtils';
 
 /**
@@ -27,7 +27,7 @@ export function getSupabaseClient(authToken?: string) {
   return createClient(supabaseUrl, supabaseKey, {
     global: {
       headers: {
-        Authorization: authToken ? `Bearer ${authToken}` : undefined,
+        Authorization: authToken ? `Bearer ${authToken}` : '',
       },
     },
   });

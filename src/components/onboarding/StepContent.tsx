@@ -1,86 +1,79 @@
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { OnboardingFormData, OnboardingStep } from '@/hooks/useOnboardingWizard';
+import { OnboardingFormData } from '@/types/onboarding';
 import CompanyInfoStep from './steps/CompanyInfoStep';
 import PersonaStep from './steps/PersonaStep';
-import StrategyGenerationStep from './steps/StrategyGenerationStep';
+import AdditionalInfoStep from './steps/AdditionalInfoStep';
 
-interface StepContentProps {
-  step: OnboardingStep;
+// Export step titles and details for OnboardingWizard
+export const stepTitles = [
+  'Company Information',
+  'Target Persona',
+  'Additional Information',
+  'Strategy Generation',
+];
+
+export const stepDetails = [
+  {
+    title: 'Company Information',
+    description: 'Tell us about your company to customize your experience.',
+  },
+  {
+    title: 'Target Persona',
+    description: 'Define your target audience to optimize your strategies.',
+  },
+  {
+    title: 'Additional Information',
+    description: 'Help us tailor the AI to your specific needs.',
+  },
+  {
+    title: 'Generate Your Strategy',
+    description: 'We\'ll create a custom strategy based on your inputs.',
+  },
+];
+
+export interface StepContentProps {
+  currentStep: number;
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
-  isGeneratingStrategy?: boolean;
-  setFieldValue: (key: string, value: any) => void;
+  setFieldValue?: (key: string, value: any) => void;
+  isGenerating?: boolean;
 }
 
 const StepContent: React.FC<StepContentProps> = ({ 
-  step, 
+  currentStep, 
   formData, 
   updateFormData,
-  isGeneratingStrategy = false,
-  setFieldValue 
+  setFieldValue = (key, value) => updateFormData({ [key]: value })
 }) => {
-  const { t } = useTranslation();
-
-  switch (step) {
-    case 'company':
+  // Render the appropriate step based on currentStep
+  switch (currentStep) {
+    case 0:
       return (
         <CompanyInfoStep 
-          formData={formData} 
-          updateFormData={updateFormData}
-          setFieldValue={setFieldValue}
-        />
-      );
-    case 'goals':
-      return (
-        <PersonaStep 
-          formData={formData} 
-          updateFormData={updateFormData}
-          setFieldValue={setFieldValue}
-        />
-      );
-    case 'strategy':
-      return (
-        <StrategyGenerationStep
           formData={formData}
           updateFormData={updateFormData}
-          isGenerating={isGeneratingStrategy}
           setFieldValue={setFieldValue}
         />
       );
-    case 'complete':
+    case 1:
       return (
-        <div className="py-6">
-          <h2 className="text-2xl font-semibold mb-4">{t('onboarding.complete.title')}</h2>
-          <p className="text-muted-foreground mb-6">
-            {t('onboarding.complete.description')}
-          </p>
-          <div className="border rounded-lg p-6 bg-muted/30">
-            <h3 className="text-xl font-medium mb-2">{formData.companyName}</h3>
-            <p className="text-muted-foreground mb-4">{formData.description}</p>
-            
-            <h4 className="font-medium mb-2">Goals:</h4>
-            <ul className="list-disc list-inside space-y-1 mb-4">
-              {formData.goals.map((goal, index) => (
-                <li key={index}>{goal}</li>
-              ))}
-            </ul>
-            
-            {formData.strategy.title && (
-              <>
-                <h4 className="font-medium mb-2">Initial Strategy:</h4>
-                <div className="border rounded p-3 bg-card">
-                  <h5 className="font-medium">{formData.strategy.title}</h5>
-                  <p className="text-sm text-muted-foreground">{formData.strategy.description}</p>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <PersonaStep 
+          formData={formData}
+          updateFormData={updateFormData}
+          setFieldValue={setFieldValue}
+        />
+      );
+    case 2:
+      return (
+        <AdditionalInfoStep 
+          formData={formData}
+          updateFormData={updateFormData}
+          setFieldValue={setFieldValue}
+        />
       );
     default:
-      return null;
+      return <div>Unknown step</div>;
   }
 };
 

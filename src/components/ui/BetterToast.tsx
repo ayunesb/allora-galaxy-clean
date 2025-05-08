@@ -1,110 +1,119 @@
 
-import { toast as sonnerToast } from 'sonner';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  AlertTriangle, 
-  Info,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority";
+import { AlertCircle, CheckCircle2, XCircle, InfoIcon } from "lucide-react";
 
-type ToastVariant = 'success' | 'error' | 'warning' | 'info';
+const toastVariants = cva(
+  "group relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  {
+    variants: {
+      variant: {
+        default: "border bg-background text-foreground",
+        success:
+          "success group border-green-200 bg-green-50 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-200",
+        destructive:
+          "destructive group border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
+        info: "info group border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200",
+        warning:
+          "warning group border-yellow-200 bg-yellow-50 text-yellow-900 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
 
-/**
- * Display a success toast notification
- */
-export function notifySuccess(title: string, message?: string) {
-  sonnerToast.success(title, { description: message });
-}
-
-/**
- * Display an error toast notification
- */
-export function notifyError(title: string, message?: string) {
-  sonnerToast.error(title, { description: message });
-}
-
-/**
- * Display a warning toast notification
- */
-export function notifyWarning(title: string, message?: string) {
-  sonnerToast.warning(title, { description: message });
-}
-
-/**
- * Display an info toast notification
- */
-export function notifyInfo(title: string, message?: string) {
-  sonnerToast.info(title, { description: message });
-}
-
-/**
- * Custom toast component for consistent styling
- */
-export function BetterToast(props: any) {
-  const { toast, position } = props;
-  const { id, title, description, action, type, cancel } = toast;
-
-  const variantClassNames = {
-    success: 'border-green-500/20 bg-green-500/10 text-green-500',
-    error: 'border-red-500/20 bg-red-500/10 text-red-500',
-    warning: 'border-yellow-500/20 bg-yellow-500/10 text-yellow-500',
-    info: 'border-blue-500/20 bg-blue-500/10 text-blue-500',
-    default: 'border-gray-500/20 bg-gray-500/10 text-foreground',
-  };
-
-  const variant = type as ToastVariant || 'default';
-  const toastClassName = variantClassNames[variant] || variantClassNames.default;
-
+const Toast = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof toastVariants>
+>(({ className, variant, ...props }, ref) => {
   return (
     <div
-      className={cn(
-        "group relative border p-3 rounded-xl shadow-lg",
-        toastClassName
-      )}
+      ref={ref}
+      className={cn(toastVariants({ variant }), className)}
       {...props}
-    >
-      <div className="flex gap-3">
-        <div className="flex-shrink-0">
-          {type === 'success' && <CheckCircle className="h-5 w-5" />}
-          {type === 'error' && <AlertCircle className="h-5 w-5" />}
-          {type === 'warning' && <AlertTriangle className="h-5 w-5" />}
-          {type === 'info' && <Info className="h-5 w-5" />}
-        </div>
-        <div className="flex-1 space-y-1">
-          {title && <div className="font-semibold text-foreground">{title}</div>}
-          {description && <div className="text-sm text-muted-foreground">{description}</div>}
-          
-          {(action || cancel) && (
-            <div className="mt-2 flex gap-2">
-              {action && (
-                <Button 
-                  size="sm" 
-                  onClick={() => {
-                    action.onClick();
-                    sonnerToast.dismiss(id);
-                  }}
-                >
-                  {action.label}
-                </Button>
-              )}
-              {cancel && (
-                <Button 
-                  size="sm"
-                  variant="outline" 
-                  onClick={() => {
-                    if (cancel.onClick) cancel.onClick();
-                    sonnerToast.dismiss(id);
-                  }}
-                >
-                  {cancel.label}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    />
   );
+});
+Toast.displayName = "Toast";
+
+const ToastClose = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ className, ...props }, ref) => (
+  <button
+    ref={ref}
+    className={cn(
+      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none group-hover:opacity-100",
+      className
+    )}
+    toast-close=""
+    {...props}
+  >
+    <XCircle className="h-4 w-4" />
+  </button>
+));
+ToastClose.displayName = "ToastClose";
+
+interface ToastTitle extends React.HTMLAttributes<HTMLDivElement> {}
+
+const ToastTitle = React.forwardRef<HTMLDivElement, ToastTitle>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("text-sm font-semibold", className)}
+      {...props}
+    />
+  )
+);
+ToastTitle.displayName = "ToastTitle";
+
+const ToastDescription = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("text-sm opacity-90", className)}
+    {...props}
+  />
+));
+ToastDescription.displayName = "ToastDescription";
+
+type ToastVariant = NonNullable<VariantProps<typeof toastVariants>["variant"]>;
+
+export interface ToastIconProps {
+  variant?: ToastVariant;
+  className?: string;
 }
+
+const ToastIcon = React.forwardRef<HTMLDivElement, ToastIconProps>(
+  ({ variant, className }, ref) => {
+    const iconMap = {
+      default: <InfoIcon className="h-5 w-5" />,
+      success: <CheckCircle2 className="h-5 w-5" />,
+      destructive: <XCircle className="h-5 w-5" />,
+      info: <InfoIcon className="h-5 w-5" />,
+      warning: <AlertCircle className="h-5 w-5" />,
+    };
+
+    return (
+      <div ref={ref} className={cn("mr-3", className)}>
+        {variant ? iconMap[variant] : null}
+      </div>
+    );
+  }
+);
+ToastIcon.displayName = "ToastIcon";
+
+export {
+  type ToastVariant,
+  toastVariants,
+  Toast,
+  ToastClose,
+  ToastTitle,
+  ToastDescription,
+  ToastIcon,
+};

@@ -1,46 +1,72 @@
 
 import React, { createContext, useContext, useState } from 'react';
+import { useMobileBreakpoint } from '@/hooks/use-mobile';
 
-// Sidebar width constants
-export const SIDEBAR_WIDTH = 260; // Desktop sidebar width in pixels
+// Constants
+export const SIDEBAR_WIDTH = 240;
+export const SIDEBAR_WIDTH_COLLAPSED = 64;
+const SIDEBAR_WIDTH_MOBILE = SIDEBAR_WIDTH;
 
-// Sidebar context type
-interface SidebarContextType {
+// Context interface
+export interface SidebarContextType {
   collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
+  toggleCollapsed: () => void;
   isHovering: boolean;
   setIsHovering: (isHovering: boolean) => void;
+  isMobile: boolean;
 }
 
-// Create context with default values
-const SidebarContext = createContext<SidebarContextType>({
+// Default context state
+const initialState: SidebarContextType = {
   collapsed: false,
-  setCollapsed: () => {},
+  toggleCollapsed: () => {},
   isHovering: false,
   setIsHovering: () => {},
-});
+  isMobile: false
+};
 
-// Hook for accessing sidebar context
-export const useSidebar = () => useContext(SidebarContext);
+// Create context
+const SidebarContext = createContext<SidebarContextType>(initialState);
 
 // Provider component
-export const SidebarProvider: React.FC<{
+export function SidebarProvider({
+  children,
+  defaultCollapsed = false
+}: {
   children: React.ReactNode;
   defaultCollapsed?: boolean;
-}> = ({ children, defaultCollapsed = false }) => {
+}) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [isHovering, setIsHovering] = useState(false);
-
+  const isMobile = useMobileBreakpoint();
+  
+  // Toggle collapsed state
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+  
   return (
     <SidebarContext.Provider
       value={{
-        collapsed,
-        setCollapsed,
+        collapsed: isMobile ? false : collapsed,
+        toggleCollapsed,
         isHovering,
         setIsHovering,
+        isMobile
       }}
     >
       {children}
     </SidebarContext.Provider>
   );
+}
+
+// Hook for using the sidebar context
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  
+  if (context === undefined) {
+    throw new Error('useSidebar must be used within a SidebarProvider');
+  }
+  
+  return context;
 };

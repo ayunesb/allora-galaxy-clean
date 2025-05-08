@@ -1,21 +1,30 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { getEnv } from '@/lib/env/envUtils';
 import { corsHeaders } from '@/lib/env/envUtils';
 
 /**
  * Get environment variable with appropriate fallback
  */
 export function getEdgeEnv(key: string, fallback = ''): string {
-  if (typeof Deno !== 'undefined') {
-    return Deno.env.get(key) || fallback;
+  try {
+    // Check for Deno environment (edge functions)
+    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
+      const deno = (globalThis as any).Deno;
+      if (deno && deno.env && typeof deno.env.get === 'function') {
+        return deno.env.get(key) || fallback;
+      }
+    }
+    
+    // Check for Node.js environment
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env[key] || fallback;
+    }
+    
+    return fallback;
+  } catch (error) {
+    console.error(`Error accessing environment variable ${key}:`, error);
+    return fallback;
   }
-  
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key] || fallback;
-  }
-  
-  return fallback;
 }
 
 /**

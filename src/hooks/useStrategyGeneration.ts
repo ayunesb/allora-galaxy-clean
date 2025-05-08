@@ -1,108 +1,169 @@
 
 import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { notifyAndLog } from '@/lib/notifications/notifyAndLog';
-
-interface GenerateStrategyParams {
-  tenantId: string;
-  goals: string[];
-  industry: string;
-  companyName: string;
-  companySize: string;
-  description: string;
-  onSuccess?: (strategy: any) => void;
-  onError?: (error: Error) => void;
-}
+import { useAuth } from '@/context/AuthContext';
+import { OnboardingFormData } from '@/types/onboarding';
+import { v4 as uuidv4 } from 'uuid';
+import { sendNotification } from '@/lib/notifications/sendNotification';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export const useStrategyGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
-
-  const generateStrategy = async ({
-    tenantId,
-    goals,
-    industry,
-    companyName,
-    companySize,
-    description,
-    onSuccess,
-    onError
-  }: GenerateStrategyParams) => {
-    if (!tenantId || !user) {
-      const error = new Error('Missing tenant ID or user');
-      setError(error);
-      onError?.(error);
-      return;
+  
+  /**
+   * Generate an initial strategy based on onboarding data
+   */
+  const generateStrategy = async (formData: OnboardingFormData) => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
     }
-
+    
     setIsGenerating(true);
-    setError(null);
-
+    
     try {
-      // Call the edge function to generate a strategy
-      const { data, error: functionError } = await supabase.functions.invoke('generateStrategy', {
-        body: {
-          goals,
-          industry,
-          company_name: companyName,
-          company_size: companySize,
-          description,
-          tenant_id: tenantId,
-          user_id: user.id
-        }
-      });
-
-      if (functionError || !data) {
-        throw new Error(functionError || 'Failed to generate strategy');
+      // Step 1: Create the tenant
+      const tenantId = uuidv4();
+      const tenantSlug = formData.companyName
+        .toLowerCase()
+        .replace(/[^\w\s]/gi, '')
+        .replace(/\s+/g, '-');
+        
+      const { error: tenantError } = await supabase
+        .from('tenants')
+        .insert({
+          id: tenantId,
+          name: formData.companyName,
+          slug: `${tenantSlug}-${tenantId.slice(0, 8)}`,
+          owner_id: user.id,
+        });
+        
+      if (tenantError) {
+        throw new Error(`Failed to create tenant: ${tenantError.message}`);
       }
-
-      // Create the strategy in the database
-      const { data: strategyData, error: strategyError } = await supabase
+        
+      // Step 2: Add user as owner in tenant_user_roles
+      const { error: roleError } = await supabase
+        .from('tenant_user_roles')
+        .insert({
+          tenant_id: tenantId,
+          user_id: user.id,
+          role: 'owner'
+        });
+        
+      if (roleError) {
+        throw new Error(`Failed to set user role: ${roleError.message}`);
+      }
+        
+      // Step 3: Create company profile
+      const { error: profileError } = await supabase
+        .from('company_profiles')
+        .insert({
+          tenant_id: tenantId,
+          name: formData.companyName,
+          industry: formData.industry,
+          size: formData.companySize,
+          revenue_range: formData.revenueRange,
+          website: formData.website,
+        });
+        
+      if (profileError) {
+        throw new Error(`Failed to create company profile: ${profileError.message}`);
+      }
+        
+      // Step 4: Create persona
+      const { error: personaError } = await supabase
+        .from('persona_profiles')
+        .insert({
+          tenant_id: tenantId,
+          name: formData.persona.name,
+          goals: formData.persona.goals,
+          tone: formData.persona.tone
+        });
+        
+      if (personaError) {
+        throw new Error(`Failed to create persona: ${personaError.message}`);
+      }
+      
+      // Step 5: Create initial strategy
+      const { error: strategyError } = await supabase
         .from('strategies')
         .insert({
           tenant_id: tenantId,
-          title: data.title,
-          description: data.description,
+          title: `${formData.companyName} Initial Strategy`,
+          description: `Auto-generated strategy for ${formData.companyName} targeting ${formData.persona.name}`,
           status: 'pending',
           created_by: user.id,
-          tags: data.tags || [],
-          priority: data.priority || 'medium'
-        })
-        .select()
-        .single();
-
+          priority: 'high',
+          tags: ['initial', 'onboarding', formData.industry.toLowerCase()]
+        });
+        
       if (strategyError) {
-        throw strategyError;
+        throw new Error(`Failed to create strategy: ${strategyError.message}`);
       }
-
-      // Send a notification
-      await notifyAndLog({
+      
+      // Step 6: Mark onboarding completed
+      const { error: onboardingError } = await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', user.id);
+        
+      if (onboardingError) {
+        console.error('Failed to update onboarding status:', onboardingError);
+        // Non-critical error, continue
+      }
+      
+      // Notify user of successful setup
+      await sendNotification({
+        title: 'Workspace Created',
+        description: 'Your Allora OS workspace has been successfully created.',
+        type: 'success',
         tenant_id: tenantId,
         user_id: user.id,
-        title: 'Strategy Generated',
-        description: `A new strategy "${data.title}" has been generated and is ready for review.`,
-        type: 'info',
-        action_url: `/strategies/${strategyData.id}`,
-        action_label: 'View Strategy',
-        module: 'strategy_generation'
+        action_url: '/dashboard',
+        action_label: 'Go to Dashboard'
       });
-
-      onSuccess?.(strategyData);
-      return strategyData;
-    } catch (err) {
-      console.error('Error generating strategy:', err);
-      setError(err as Error);
-      onError?.(err as Error);
+      
+      // Log the event
+      await logSystemEvent(
+        tenantId,
+        'onboarding',
+        'workspace_created',
+        {
+          company_name: formData.companyName,
+          industry: formData.industry
+        }
+      );
+      
+      return {
+        success: true,
+        tenantId
+      };
+    } catch (error: any) {
+      console.error('Strategy generation error:', error);
+      
+      // Log the error
+      await logSystemEvent(
+        'system',
+        'onboarding',
+        'workspace_creation_failed',
+        {
+          error: error.message,
+          company_name: formData.companyName
+        }
+      );
+      
+      return {
+        success: false,
+        error: error.message || 'Failed to generate strategy'
+      };
     } finally {
       setIsGenerating(false);
     }
   };
 
   return {
-    generateStrategy,
     isGenerating,
-    error
+    generateStrategy
   };
 };

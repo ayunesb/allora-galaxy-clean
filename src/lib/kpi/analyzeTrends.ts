@@ -1,72 +1,40 @@
 
-import { KPI } from '@/types/index';
-
-export interface KPITrend {
-  id: string;
-  name: string;
-  change: number; // percentage change
-  trend: 'up' | 'down' | 'neutral';
-  currentValue: number;
-  previousValue: number | null;
-  unit: string;
-  category: string;
-}
+import { KPITrend, TrendDirection } from '@/types/shared';
 
 /**
- * Analyze KPI trends from a set of KPI data
+ * Analyze KPI trends from current and previous data points
  */
-export function analyzeTrends(kpis: KPI[]): KPITrend[] {
-  return kpis.map((kpi) => {
-    // Calculate the percentage change if previous value exists
-    let change = 0;
-    let trend: 'up' | 'down' | 'neutral' = 'neutral';
+export function analyzeTrends(
+  currentData: Array<{ 
+    id: string; 
+    name: string; 
+    value: number; 
+    previous_value?: number | null;
+    category: string;
+  }>
+): KPITrend[] {
+  return currentData.map(item => {
+    // Calculate change and trend direction
+    const previousValue = item.previous_value !== undefined ? item.previous_value : null;
+    const change = previousValue !== null ? 
+      ((item.value - previousValue) / Math.abs(previousValue || 1)) * 100 : 
+      0;
     
-    if (kpi.previous_value && kpi.previous_value !== 0) {
-      change = ((kpi.value - kpi.previous_value) / kpi.previous_value) * 100;
-      trend = change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
-    } else if (kpi.previous_value === 0 && kpi.value > 0) {
-      // If previous was 0 and now it's positive, it's an infinite increase
-      // We'll just use a large number
-      change = 100;
-      trend = 'up';
-    } else if (kpi.value === 0 && kpi.previous_value && kpi.previous_value > 0) {
-      // If previous was positive and now it's 0, it's a 100% decrease
-      change = -100;
-      trend = 'down';
+    let trend: TrendDirection = 'neutral';
+    if (previousValue !== null) {
+      if (change > 0) trend = 'up';
+      else if (change < 0) trend = 'down';
     }
-    
+
     return {
-      id: kpi.id,
-      name: kpi.name,
-      change: Number(change.toFixed(2)),
+      id: item.id,
+      name: item.name,
+      change: Math.abs(change),
       trend,
-      currentValue: kpi.value,
-      previousValue: kpi.previous_value,
-      unit: kpi.unit,
-      category: kpi.category,
+      currentValue: item.value,
+      previousValue,
+      unit: '%', // Default unit
+      category: item.category
     };
   });
-}
-
-/**
- * Calculate the overall health score based on KPI trends
- * Score ranges from 0 (bad) to 100 (excellent)
- */
-export function calculateHealthScore(trends: KPITrend[]): number {
-  if (trends.length === 0) return 50; // Neutral score if no data
-  
-  // Calculate weighted score based on trends
-  const totalWeight = trends.reduce((sum, trend) => {
-    // Assign category weights (revenue metrics are more important)
-    const categoryWeight = trend.category.toLowerCase().includes('revenue') ? 2 : 1;
-    return sum + categoryWeight;
-  }, 0);
-  
-  const weightedScore = trends.reduce((score, trend) => {
-    const categoryWeight = trend.category.toLowerCase().includes('revenue') ? 2 : 1;
-    const trendScore = trend.trend === 'up' ? 100 : trend.trend === 'down' ? 0 : 50;
-    return score + (trendScore * categoryWeight);
-  }, 0);
-  
-  return Math.round(weightedScore / totalWeight);
 }

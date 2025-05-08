@@ -20,8 +20,8 @@ const OnboardingWizard: React.FC = () => {
     isSubmitting,
     error,
     formData,
-    tenants,
-    user,
+    tenantsList,
+    currentUser,
     updateFormData,
     handleNextStep,
     handlePrevStep,
@@ -34,18 +34,18 @@ const OnboardingWizard: React.FC = () => {
   } = useOnboardingWizard();
 
   // Redirect to dashboard if user already has tenants
-  if (tenants && tenants.length > 0) {
+  if (tenantsList && tenantsList.length > 0) {
     return <Navigate to="/dashboard" replace />;
   }
 
   // Redirect to login if not authenticated
-  if (!user) {
+  if (!currentUser) {
     return <Navigate to="/auth" replace />;
   }
 
   const currentStepData = stepDetails[currentStep];
-  const { errors } = validateCurrentStep();
-  const hasValidationErrors = Object.keys(errors).length > 0;
+  const validationResult = validateCurrentStep();
+  const hasValidationErrors = validationResult.errors && Object.keys(validationResult.errors).length > 0;
   
   // Check if we're in the final step (strategy generation)
   const isStrategyGenerationStep = currentStep === stepDetails.length - 1;
@@ -64,16 +64,16 @@ const OnboardingWizard: React.FC = () => {
               currentStep={currentStep} 
               totalSteps={totalSteps} 
               stepTitles={stepTitles}
-              onStepClick={handleStepClick}
+              onStepClick={(step) => handleStepClick(step)}
             />
             
-            {hasValidationErrors && (
+            {hasValidationErrors && validationResult.errors && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Validation Error</AlertTitle>
                 <AlertDescription>
                   <ul className="list-disc pl-5 mt-2">
-                    {Object.values(errors).map((error, index) => (
+                    {Object.values(validationResult.errors).map((error, index) => (
                       <li key={index}>{error}</li>
                     ))}
                   </ul>
@@ -82,7 +82,12 @@ const OnboardingWizard: React.FC = () => {
             )}
             
             {isStrategyGenerationStep ? (
-              <StrategyGenerationStep />
+              <StrategyGenerationStep 
+                formData={formData} 
+                updateFormData={updateFormData}
+                isGenerating={isGeneratingStrategy}
+                setFieldValue={(key, value) => updateFormData({ [key]: value })}
+              />
             ) : (
               <StepContent 
                 currentStep={currentStep}

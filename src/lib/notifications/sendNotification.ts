@@ -1,89 +1,129 @@
 
-import { supabase } from '@/lib/supabase';
-import { Notification } from '@/types/notifications';
-import { v4 as uuidv4 } from 'uuid';
-
-interface SendNotificationParams {
-  tenant_id: string;
-  user_id: string;
-  title: string;
-  description: string; // Changed from message to description to match DB schema
-  type?: 'info' | 'success' | 'warning' | 'error' | 'system';
-  action_url?: string;
-  action_label?: string;
-  is_read?: boolean;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { CreateNotificationInput } from '@/types/notifications';
+import { toast } from '@/components/ui/use-toast';
 
 /**
  * Send a notification to a specific user
- * @returns The newly created notification or undefined if there was an error
  */
-export async function sendNotification({
-  tenant_id,
-  user_id,
-  title,
-  description,
-  type = 'info',
-  action_url,
-  action_label,
-  is_read = false
-}: SendNotificationParams): Promise<Notification | undefined> {
+export async function sendNotification(
+  notification: CreateNotificationInput
+): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const notification = {
-      id: uuidv4(),
-      tenant_id,
-      user_id,
-      title,
-      description, // Directly using description for DB schema
-      type,
-      is_read,
-      action_url,
-      action_label
-    };
-
+    // Validate required fields
+    if (!notification.title) {
+      throw new Error('Notification title is required');
+    }
+    
+    if (!notification.tenant_id) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    if (!notification.user_id) {
+      throw new Error('User ID is required');
+    }
+    
+    // Insert notification into database
     const { data, error } = await supabase
       .from('notifications')
-      .insert(notification)
-      .select()
+      .insert({
+        title: notification.title,
+        description: notification.description,
+        type: notification.type || 'info',
+        tenant_id: notification.tenant_id,
+        user_id: notification.user_id,
+        action_url: notification.action_url,
+        action_label: notification.action_label,
+        metadata: notification.metadata || {}
+      })
+      .select('id, type')
       .single();
-
+    
     if (error) {
-      console.error('Error sending notification:', error);
-      return undefined;
+      throw error;
     }
-
-    return data as Notification;
-  } catch (error) {
-    console.error('Error in sendNotification:', error);
-    return undefined;
+    
+    return { 
+      success: true,
+      id: data.id
+    };
+  } catch (error: any) {
+    console.error('Error sending notification:', error);
+    
+    // Show error toast if in browser context
+    if (typeof window !== 'undefined') {
+      toast({
+        title: 'Notification Error',
+        description: `Failed to send notification: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+    
+    return { 
+      success: false,
+      error: error.message || 'Unknown error sending notification'
+    };
   }
 }
 
 /**
- * Send the same notification to multiple users
+ * Send a notification to all users in a tenant
  */
-export async function broadcastNotification({
-  tenant_id,
-  user_ids,
-  title,
-  description,
-  type = 'info',
-  action_url,
-  action_label
-}: Omit<SendNotificationParams, 'user_id'> & { user_ids: string[] }): Promise<(Notification | undefined)[]> {
-  const notifications = await Promise.all(
-    user_ids.map(user_id =>
-      sendNotification({
-        tenant_id,
-        user_id,
-        title,
-        description,
-        type,
-        action_url,
-        action_label
-      })
-    )
-  );
-
-  return notifications;
+export async function sendTenantNotification(
+  notification: Omit<CreateNotificationInput, 'user_id'>,
+  excludeUserId?: string
+): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    // Get all users in the tenant
+    const { data: tenantUsers, error: userError } = await supabase
+      .from('tenant_user_roles')
+      .select('user_id')
+      .eq('tenant_id', notification.tenant_id);
+    
+    if (userError) {
+      throw userError;
+    }
+    
+    if (!tenantUsers || tenantUsers.length === 0) {
+      return { success: true, count: 0 };
+    }
+    
+    // Filter out excluded user if specified
+    const userIds = tenantUsers
+      .map(u => u.user_id)
+      .filter(id => id !== excludeUserId);
+    
+    // Create notifications for each user
+    const notifications = userIds.map(userId => ({
+      title: notification.title,
+      description: notification.description,
+      type: notification.type || 'info',
+      tenant_id: notification.tenant_id,
+      user_id: userId,
+      action_url: notification.action_url,
+      action_label: notification.action_label,
+      metadata: notification.metadata || {}
+    }));
+    
+    const { error: insertError } = await supabase
+      .from('notifications')
+      .insert(notifications);
+    
+    if (insertError) {
+      throw insertError;
+    }
+    
+    return { 
+      success: true,
+      count: notifications.length
+    };
+  } catch (error: any) {
+    console.error('Error sending tenant notification:', error);
+    
+    return { 
+      success: false,
+      count: 0,
+      error: error.message || 'Unknown error sending tenant notification'
+    };
+  }
 }

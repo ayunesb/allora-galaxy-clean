@@ -10,7 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ children, className }: SidebarProps) {
-  const { collapsed, isHovering, setIsHovering } = useSidebar();
+  const { collapsed, setIsHovering } = useSidebar();
   
   return (
     <div

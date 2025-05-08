@@ -2,6 +2,7 @@
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { getAgentsForEvolution } from './getAgentsForEvolution';
 import { getAgentUsageStats } from './getAgentUsageStats';
+import { calculateAgentPerformance } from './calculatePerformance';
 import { checkAgentEvolutionNeeded } from './checkEvolutionNeeded';
 import { getAgentFeedbackComments } from './getFeedbackComments';
 import { createEvolvedAgent } from './createEvolvedAgent';
@@ -27,6 +28,14 @@ export async function autoEvolveAgents(tenantId: string) {
     let evolvedCount = 0;
     
     for (const agent of agentsToEvolve) {
+      // Calculate agent performance
+      const performance = calculateAgentPerformance(
+        agent.id,
+        agent.upvotes || 0,
+        agent.downvotes || 0,
+        usageStats
+      );
+      
       // Double-check if evolution is needed
       const needsEvolution = await checkAgentEvolutionNeeded(
         agent.id, 

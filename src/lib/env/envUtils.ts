@@ -27,22 +27,39 @@ export interface ENV {
 
 /**
  * Get an environment variable with a fallback
+ * This function safely handles different environments
  */
 export function getEnv(name: string, fallback: string = ''): string {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[name] || fallback;
-  } 
-  
-  if (typeof Deno !== 'undefined' && Deno.env) {
-    return Deno.env.get(name) || fallback;
+  try {
+    // Check for Node.js environment
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env[name] || fallback;
+    }
+    
+    // Check for Deno environment (edge functions)
+    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
+      const deno = (globalThis as any).Deno;
+      if (deno && deno.env && typeof deno.env.get === 'function') {
+        return deno.env.get(name) || fallback;
+      }
+    }
+    
+    // Check for Vite environment variables
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      return import.meta.env[name] || fallback;
+    }
+    
+    return fallback;
+  } catch (error) {
+    console.error(`Error accessing environment variable ${name}:`, error);
+    return fallback;
   }
-  
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[name] || fallback;
-  }
-  
-  return fallback;
 }
+
+/**
+ * Alias for getEnv to maintain backwards compatibility
+ */
+export const getEnvVar = getEnv;
 
 /**
  * Validate required environment variables
