@@ -7,8 +7,8 @@ export function useTenantId() {
   
   if (!context) {
     console.warn('useTenantId must be used within a WorkspaceProvider');
-    return null;
+    return { tenantId: null };
   }
   
-  return context.tenant?.id || null;
+  return { tenantId: context.tenant?.id || null };
 }

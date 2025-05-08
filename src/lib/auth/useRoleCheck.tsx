@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ import { UserRole, RoleCheckOptions, checkRolePermission } from './roleTypes';
 export const useRoleCheck = (options: RoleCheckOptions) => {
   const { requiredRole, redirectTo = '/unauthorized', silent = false } = options;
   const { user, loading: authLoading } = useAuth();
-  const { currentRole, loading: workspaceLoading } = useWorkspace();
+  const { currentRole, loading } = useWorkspace();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean>(false);
@@ -25,7 +25,7 @@ export const useRoleCheck = (options: RoleCheckOptions) => {
       setChecking(true);
 
       // Wait for auth and workspace data to load
-      if (authLoading || workspaceLoading) {
+      if (authLoading || loading) {
         return;
       }
 
@@ -80,7 +80,7 @@ export const useRoleCheck = (options: RoleCheckOptions) => {
     };
 
     checkAccess();
-  }, [user, currentRole, requiredRole, authLoading, workspaceLoading, redirectTo, silent, navigate, toast]);
+  }, [user, currentRole, requiredRole, authLoading, loading, redirectTo, silent, navigate, toast]);
 
   return { hasAccess, checking };
 };

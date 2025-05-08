@@ -1,15 +1,14 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Tenant } from '@/types/fixed';
 import { UserRole } from '@/lib/auth/roleTypes';
 
 export interface NavigationItem {
   id: string;
   label: string;
   path: string;
-  icon?: React.ReactNode;
+  icon?: string;
   children?: NavigationItem[];
 }
 
@@ -21,6 +20,13 @@ export interface WorkspaceContextType {
   navigationItems: NavigationItem[];
   currentRole: UserRole | null;
   refreshTenant: () => Promise<void>;
+}
+
+interface Tenant {
+  id: string;
+  name: string;
+  settings?: Record<string, any>;
+  role?: UserRole;
 }
 
 const defaultContext: WorkspaceContextType = {
@@ -35,7 +41,7 @@ const defaultContext: WorkspaceContextType = {
 
 const WorkspaceContext = createContext<WorkspaceContextType>(defaultContext);
 
-export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);

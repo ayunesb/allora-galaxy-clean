@@ -12,7 +12,7 @@ export interface KPITrend {
   isPositive: boolean;
 }
 
-// Vote types - align with fixed.ts VoteType enum
+// Vote types
 export type VoteType = 'up' | 'down' | 'neutral' | null;
 
 // Execution record types
@@ -32,13 +32,14 @@ export interface ExecutionRecordInput {
   error?: string;
   executionTime?: number;
   xpEarned?: number;
+  executedBy?: string;
 }
 
 // Notification types
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
 // System event types
-export type SystemEventModule = 'system' | 'agent' | 'strategy' | 'plugin' | 'user' | 'tenant';
+export type SystemEventModule = 'system' | 'agent' | 'strategy' | 'plugin' | 'user' | 'tenant' | 'onboarding';
 
 export type SystemEventType = 
   | 'agent_evolved'
@@ -50,7 +51,10 @@ export type SystemEventType =
   | 'user_invited'
   | 'user_joined'
   | 'tenant_created'
-  | 'error';
+  | 'error'
+  | 'onboarding_step_change'
+  | 'step_completed'
+  | 'agent_voted';
 
 // Sortable and filterable collection types
 export interface SortOption {

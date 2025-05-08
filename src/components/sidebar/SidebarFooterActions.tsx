@@ -5,19 +5,15 @@ import { useTranslation } from 'react-i18next';
 import { LogOut, Settings, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-// Import Sidebar components
-import { 
-  SidebarMenu,
-  SidebarMenuButton
-} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 
 const SidebarFooterActions: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   
   const handleLogout = async () => {
-    await logout();
+    await signOut?.();
     navigate('/auth/login');
   };
   
@@ -31,19 +27,39 @@ const SidebarFooterActions: React.FC = () => {
   };
   
   return (
-    <SidebarMenu>
-      <SidebarMenuButton icon={<Settings className="h-4 w-4" />} onClick={handleSettingsClick}>
-        {t('navigation.settings')}
-      </SidebarMenuButton>
-      
-      <SidebarMenuButton icon={<HelpCircle className="h-4 w-4" />} onClick={handleHelpClick}>
-        {t('navigation.help')}
-      </SidebarMenuButton>
-      
-      <SidebarMenuButton icon={<LogOut className="h-4 w-4" />} onClick={handleLogout}>
-        {t('auth.logout')}
-      </SidebarMenuButton>
-    </SidebarMenu>
+    <div className="border-t pt-4">
+      <div className="flex flex-col gap-2 px-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="justify-start"
+          onClick={handleSettingsClick}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          {t('navigation.settings')}
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          className="justify-start"
+          onClick={handleHelpClick}
+        >
+          <HelpCircle className="mr-2 h-4 w-4" />
+          {t('navigation.help')}
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          className="justify-start"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          {t('auth.logout')}
+        </Button>
+      </div>
+    </div>
   );
 };
 

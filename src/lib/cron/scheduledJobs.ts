@@ -1,5 +1,4 @@
 
-import { supabase } from '@/lib/supabase';
 import { autoEvolveAgents } from '@/lib/agents/evolution';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 

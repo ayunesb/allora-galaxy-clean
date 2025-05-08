@@ -1,6 +1,5 @@
 
-import { DEV } from 'vite/env';
-import { env } from './envUtils';
+import { ENV } from './envUtils';
 
 export function getEnv(key: string, defaultValue?: string): string | undefined {
   // Try from process.env for Node.js environments
@@ -9,20 +8,25 @@ export function getEnv(key: string, defaultValue?: string): string | undefined {
   }
   
   // Try from import.meta.env for Vite environments
-  // @ts-ignore - import.meta.env is available in Vite
-  if (import.meta && import.meta.env && import.meta.env[key]) {
-    // @ts-ignore
-    return import.meta.env[key];
+  try {
+    // @ts-ignore - import.meta.env is available in Vite
+    if (import.meta && import.meta.env && import.meta.env[key]) {
+      // @ts-ignore
+      return import.meta.env[key];
+    }
+  } catch (e) {
+    // Ignore errors when import.meta is not available (e.g. in edge functions)
   }
   
   // Try from env utility (which may connect to Deno.env)
-  const value = env(key);
+  const value = ENV(key);
   if (value !== undefined) {
     return value;
   }
   
   // Log missing env in development
-  if (DEV && defaultValue === undefined) {
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev && defaultValue === undefined) {
     console.warn(`Environment variable ${key} not found`);
   }
   

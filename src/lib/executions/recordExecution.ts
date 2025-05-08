@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecutionRecordInput } from '@/types/fixed';
+import { ExecutionRecordInput } from '@/types/shared';
 
 /**
  * Record an execution in the database
