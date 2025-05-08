@@ -1,7 +1,8 @@
-export * from './Plugin';
-export * from './AgentTypes';
-export * from './Webhook';
-export * from './Strategy';
-export * from './TaskTypes';
 
-export type RunPluginChainResult = { output: string; status: string };
+// Re-export necessary types from the main type system
+export * from '../plugin';
+export * from '../agent';
+export * from '../strategy';
+
+// Export RunPluginChainResult specifically as it's needed
+export type { RunPluginChainResult } from '../plugin';
