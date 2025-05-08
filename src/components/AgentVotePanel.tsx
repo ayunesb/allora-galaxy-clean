@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,7 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
   const { toast } = useToast();
-  const { tenantId } = useTenantId();
+  const tenantId = useTenantId();
   
   // Fetch the user's current vote when component mounts
   useEffect(() => {

@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SystemLog {
@@ -25,7 +25,7 @@ export const useSystemLogs = (tenantId: string | null) => {
   
   const { toast } = useToast();
   
-  const loadSystemLogs = async () => {
+  const loadSystemLogs = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -76,7 +76,7 @@ export const useSystemLogs = (tenantId: string | null) => {
       setLogs(data || []);
       
       // Extract unique modules and events for filters
-      if (data) {
+      if (data && data.length > 0) {
         const uniqueModules = [...new Set(data.map(log => log.module))];
         const uniqueEvents = [...new Set(data.map(log => log.event))];
         setModules(uniqueModules);
@@ -94,7 +94,7 @@ export const useSystemLogs = (tenantId: string | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm, toast]);
   
   const resetFilters = () => {
     setSelectedModule('');
@@ -107,7 +107,7 @@ export const useSystemLogs = (tenantId: string | null) => {
     if (tenantId) {
       loadSystemLogs();
     }
-  }, [tenantId, selectedModule, selectedEvent, selectedDate]);
+  }, [tenantId, selectedModule, selectedEvent, selectedDate, loadSystemLogs]);
   
   return {
     logs,
