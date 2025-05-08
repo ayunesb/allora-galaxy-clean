@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { snakeToCamel } from "@/types/fixed";
 import { UserVote } from "./types";
+import { VoteType } from "@/types/shared";
 
 /**
  * Check if user has already voted on an agent
@@ -20,11 +21,25 @@ export async function getUserVote(agentVersionId: string, userId: string): Promi
       
     if (error) throw error;
     
+    if (data) {
+      return {
+        hasVoted: true,
+        vote: snakeToCamel(data),
+        agentVersionId,
+        userId,
+        voteType: data.vote_type as VoteType,
+        id: data.id,
+        comment: data.comment,
+        createdAt: data.created_at
+      };
+    }
+    
     return {
-      hasVoted: !!data,
-      vote: data ? snakeToCamel(data) : null,
+      hasVoted: false,
+      vote: null,
       agentVersionId,
-      userId
+      userId,
+      voteType: 'neutral' as VoteType, // Default to neutral when no vote exists
     };
   } catch (error: any) {
     console.error('Error checking user vote:', error);
@@ -33,7 +48,8 @@ export async function getUserVote(agentVersionId: string, userId: string): Promi
       vote: null,
       agentVersionId,
       userId,
-      error: error.message
+      error: error.message,
+      voteType: 'neutral' as VoteType, // Default to neutral when error occurs
     };
   }
 }

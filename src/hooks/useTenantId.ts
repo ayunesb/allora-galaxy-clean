@@ -1,26 +1,17 @@
 
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useContext } from 'react';
+import { WorkspaceContext } from '@/context/WorkspaceContext';
 
-/**
- * Hook for getting the current tenant ID
- * To be used with all Supabase queries that need tenant-specific data
- */
-export const useTenantId = (): string | null => {
-  const { currentTenant } = useWorkspace();
-  return currentTenant?.id || null;
-};
-
-/**
- * Hook that returns both the tenant ID and a boolean indicating if it's available
- * Useful for conditional rendering based on tenant availability
- */
-export const useTenantAvailability = (): {
-  tenantId: string | null;
-  isAvailable: boolean;
-} => {
-  const tenantId = useTenantId();
-  return {
-    tenantId,
-    isAvailable: !!tenantId
+export function useTenantId() {
+  const context = useContext(WorkspaceContext);
+  
+  if (!context) {
+    console.warn('useTenantId must be used within a WorkspaceProvider');
+    return { tenantId: null, loading: false };
+  }
+  
+  return { 
+    tenantId: context.currentTenant?.id || null,
+    loading: context.loading 
   };
-};
+}

@@ -1,7 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { VoteType } from '@/types/shared';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { VoteType } from '@/types/shared';
 import { VoteResult } from '@/lib/agents/voting/types';
 import { castVote } from '@/lib/agents/voting/voteOnAgentVersion';
 
@@ -54,5 +53,9 @@ export async function voteOnAgentVersion(
   }
 }
 
-// Re-export the more specific voting functions
-export { upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting/voteOnAgentVersion';
+// Re-export the more specific voting functions with tenant ID wrapper for consistency
+export const upvoteAgentVersion = (agentVersionId: string, userId: string, tenantId: string, comment?: string) => 
+  voteOnAgentVersion(agentVersionId, 'up', userId, tenantId, comment);
+
+export const downvoteAgentVersion = (agentVersionId: string, userId: string, tenantId: string, comment?: string) => 
+  voteOnAgentVersion(agentVersionId, 'down', userId, tenantId, comment);

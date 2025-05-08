@@ -41,30 +41,23 @@ export interface UserVote {
 export type UserVoteInfo = UserVote;
 export type VoteStats = AgentVoteStats;
 
-// Export the type-safe vote function declaration
-export type VoteOnAgentVersionFn = (
-  agentVersionId: string, 
-  voteType: VoteType, 
+// Type declaration for the castVote function
+export type CastVoteFn = (
+  agentVersionId: string,
+  userId: string,
+  voteType: VoteType,
   comment?: string
 ) => Promise<VoteResult>;
 
-// Placeholder function with proper signature
-export const voteOnAgentVersion: VoteOnAgentVersionFn = async (
-  agentVersionId: string, 
-  voteType: VoteType, 
+// Type declarations for the upvote/downvote wrapper functions
+export type UpvoteAgentVersionFn = (
+  agentVersionId: string,
+  userId: string,
   comment?: string
-): Promise<VoteResult> => {
-  return {
-    success: false,
-    upvotes: 0,
-    downvotes: 0,
-    error: 'Function not implemented'
-  };
-};
+) => Promise<VoteResult>;
 
-// Wrapper functions with the correct types
-export const upvoteAgentVersion = (agentVersionId: string, comment?: string) => 
-  voteOnAgentVersion(agentVersionId, 'up' as VoteType, comment);
-
-export const downvoteAgentVersion = (agentVersionId: string, comment?: string) => 
-  voteOnAgentVersion(agentVersionId, 'down' as VoteType, comment);
+export type DownvoteAgentVersionFn = (
+  agentVersionId: string,
+  userId: string,
+  comment?: string
+) => Promise<VoteResult>;

@@ -1,20 +1,22 @@
 
 import { supabase } from '@/lib/supabase';
 import { VoteType } from '@/types/shared';
-import { VoteResult } from './types';
+import { VoteResult, CastVoteFn, UpvoteAgentVersionFn, DownvoteAgentVersionFn } from './types';
 
 /**
  * Cast a vote on an agent version
  * @param agentVersionId - ID of the agent version
+ * @param userId - ID of the user casting the vote
  * @param voteType - Type of vote ('up' or 'down')
  * @param comment - Optional comment with the vote
  * @returns Vote result with updated counts
  */
-export async function castVote(
+export const castVote: CastVoteFn = async (
   agentVersionId: string,
+  userId: string,
   voteType: VoteType,
   comment?: string
-): Promise<VoteResult> {
+): Promise<VoteResult> => {
   if (!agentVersionId) {
     return {
       success: false,
@@ -24,23 +26,22 @@ export async function castVote(
     };
   }
 
-  try {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) {
-      return {
-        success: false,
-        error: 'User must be authenticated to vote',
-        upvotes: 0,
-        downvotes: 0
-      };
-    }
+  if (!userId) {
+    return {
+      success: false,
+      error: 'User ID is required',
+      upvotes: 0,
+      downvotes: 0
+    };
+  }
 
+  try {
     // Check if user already voted
     const { data: existingVote } = await supabase
       .from('agent_votes')
       .select('id, vote_type')
       .eq('agent_version_id', agentVersionId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     let voteId;
@@ -78,7 +79,7 @@ export async function castVote(
         .from('agent_votes')
         .insert({
           agent_version_id: agentVersionId,
-          user_id: user.id,
+          user_id: userId,
           vote_type: voteType,
           comment: comment || null
         })
@@ -117,7 +118,7 @@ export async function castVote(
       downvotes: 0
     };
   }
-}
+};
 
 /**
  * Update the upvotes/downvotes count on an agent version
@@ -162,8 +163,8 @@ async function getVoteCounts(agentVersionId: string): Promise<{upvotes: number, 
 }
 
 // Export the wrapper functions for convenience
-export const upvoteAgentVersion = (agentVersionId: string, comment?: string) => 
-  castVote(agentVersionId, 'up', comment);
+export const upvoteAgentVersion: UpvoteAgentVersionFn = (agentVersionId: string, userId: string, comment?: string) => 
+  castVote(agentVersionId, userId, 'up', comment);
 
-export const downvoteAgentVersion = (agentVersionId: string, comment?: string) => 
-  castVote(agentVersionId, 'down', comment);
+export const downvoteAgentVersion: DownvoteAgentVersionFn = (agentVersionId: string, userId: string, comment?: string) => 
+  castVote(agentVersionId, userId, 'down', comment);

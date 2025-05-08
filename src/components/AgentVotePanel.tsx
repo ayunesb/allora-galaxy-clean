@@ -1,11 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { voteOnAgentVersion } from '@/lib/agents/vote';
+import { getUserVote } from '@/lib/agents/voting';
+import { VoteType } from '@/types/shared';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export interface AgentVotePanelProps {
   agentVersionId: string;
@@ -27,8 +31,30 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
   const { toast } = useToast();
+  const { tenantId } = useTenantId();
+  
+  // Fetch the user's current vote when component mounts
+  useEffect(() => {
+    const fetchUserVote = async () => {
+      try {
+        if (!userId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          
+          const voteInfo = await getUserVote(agentVersionId, user.id);
+          if (voteInfo.hasVoted && voteInfo.vote) {
+            setUserVote(voteInfo.vote.voteType as 'up' | 'down');
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user vote:", error);
+      }
+    };
+    
+    fetchUserVote();
+  }, [agentVersionId, userId]);
 
-  const handleVote = async (voteType: 'up' | 'down') => {
+  const handleVote = async (voteType: VoteType) => {
     try {
       setSubmitting(true);
       
@@ -47,67 +73,49 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
         voteUserId = user.id;
       }
 
-      // Check if user already voted
-      const { data: existingVote } = await supabase
-        .from('agent_votes')
-        .select('*')
-        .eq('agent_version_id', agentVersionId)
-        .eq('user_id', voteUserId)
-        .maybeSingle();
-
-      if (existingVote) {
-        // User already voted, update the vote
-        await supabase
-          .from('agent_votes')
-          .update({ 
-            vote_type: voteType,
-            comment: comment.trim() || null 
-          })
-          .eq('id', existingVote.id);
-
-        // Update vote counters based on changed vote
-        if (existingVote.vote_type !== voteType) {
-          if (voteType === 'up') {
-            setUpvotes(prev => prev + 1);
-            setDownvotes(prev => prev - 1);
-          } else {
-            setUpvotes(prev => prev - 1);
-            setDownvotes(prev => prev + 1);
-          }
-        }
-      } else {
-        // New vote
-        await supabase
-          .from('agent_votes')
-          .insert({
-            agent_version_id: agentVersionId,
-            user_id: voteUserId,
-            vote_type: voteType,
-            comment: comment.trim() || null
-          });
-
-        // Update vote counters
-        if (voteType === 'up') {
-          setUpvotes(prev => prev + 1);
-        } else {
-          setDownvotes(prev => prev + 1);
-        }
+      // Get tenant ID
+      if (!tenantId) {
+        toast({
+          title: "Error",
+          description: "Could not determine tenant ID",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // Update UI state
-      setUserVote(voteType);
-      setShowComment(false);
-      setComment('');
-      
-      toast({
-        title: "Vote submitted",
-        description: "Thank you for your feedback!",
-      });
-    } catch (error) {
+      // Submit the vote
+      const result = await voteOnAgentVersion(
+        agentVersionId, 
+        voteType, 
+        voteUserId, 
+        tenantId, 
+        comment
+      );
+
+      if (result.success) {
+        // Update vote counters
+        setUpvotes(result.upvotes);
+        setDownvotes(result.downvotes);
+        setUserVote(voteType);
+        setShowComment(false);
+        setComment('');
+        
+        toast({
+          title: "Vote submitted",
+          description: result.message || "Thank you for your feedback!",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to submit your vote",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       console.error("Error submitting vote:", error);
       toast({
         title: "Error",
-        description: "Failed to submit your vote. Please try again.",
+        description: error.message || "Failed to submit your vote. Please try again.",
         variant: "destructive"
       });
     } finally {
