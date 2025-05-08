@@ -13,7 +13,8 @@ export type SystemEventModule =
   | 'user'
   | 'tenant'
   | 'product'
-  | 'onboarding';
+  | 'onboarding'
+  | 'security';  // Added security module for audit logs
 
 export type SystemEventType =
   // Strategy events
@@ -59,6 +60,8 @@ export type SystemEventType =
   | 'system_error'
   | 'system_warning'
   | 'system_info'
+  | 'error'  // Generic error event
+  | 'audit'  // Security audit event
   
   // KPI events
   | 'kpi_updated'

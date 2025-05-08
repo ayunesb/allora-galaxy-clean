@@ -10,7 +10,10 @@ export {
   getEnv,
   getEnvVar,
   getEnvWithDefault,
-  corsHeaders
+  corsHeaders,
+  isProduction,
+  getBaseUrl,
+  getSafeEnv
 } from './envUtils';
 
 export {
@@ -21,5 +24,4 @@ export {
   ENV_NAMES
 } from './config';
 
-// Export environment manager for backward compatibility
-export * from './envManager';
+// No longer export old envManager functions - use the new utilities instead

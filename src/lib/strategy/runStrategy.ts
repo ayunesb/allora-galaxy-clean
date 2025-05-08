@@ -11,6 +11,7 @@ export interface RunStrategyInput {
     dryRun?: boolean;
     force?: boolean;
     timeout?: number;
+    retryCount?: number;
   };
 }
 
@@ -50,18 +51,30 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
       status: 'failed',
     };
   }
+  
+  // Limit retries to prevent infinite loops
+  const retryCount = options.retryCount || 0;
+  if (retryCount > 3) {
+    return {
+      success: false,
+      error: 'Maximum retry attempts exceeded',
+      strategy_id: strategyId,
+      status: 'failed',
+    };
+  }
 
   try {
     // Log start of strategy execution
     await logSystemEvent(
-      tenantId,
       'strategy',
       'execute_strategy_started',
       {
         strategy_id: strategyId,
         user_id: userId,
+        tenant_id: tenantId,
         options
-      }
+      },
+      tenantId
     ).catch(error => {
       console.warn('Failed to log strategy start event:', error);
       // Non-critical error, continue execution
@@ -79,15 +92,33 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
 
     // If there was an error calling the function
     if (error) {
+      // For temporary errors, retry with exponential backoff
+      if (error.message.includes('temporary') || error.message.includes('timeout')) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        
+        console.log(`Temporary error executing strategy, retrying in ${delay}ms...`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return runStrategy({
+          ...input,
+          options: {
+            ...options,
+            retryCount: retryCount + 1
+          }
+        });
+      }
+      
       await logSystemEvent(
-        tenantId,
         'strategy',
         'execute_strategy_error',
         {
           strategy_id: strategyId,
           error: error.message,
-          status: 'failed'
-        }
+          status: 'failed',
+          tenant_id: tenantId
+        },
+        tenantId
       ).catch(() => {/* Ignore logging errors */});
 
       return {
@@ -101,14 +132,15 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
     // If the function returned an error
     if (data && !data.success) {
       await logSystemEvent(
-        tenantId,
         'strategy',
         'execute_strategy_error',
         {
           strategy_id: strategyId,
           error: data.error || 'Unknown error',
-          status: 'failed'
-        }
+          status: 'failed',
+          tenant_id: tenantId
+        },
+        tenantId
       ).catch(() => {/* Ignore logging errors */});
 
       return {
@@ -122,15 +154,16 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
 
     // Log successful execution
     await logSystemEvent(
-      tenantId,
       'strategy',
       'execute_strategy_completed',
       {
         strategy_id: strategyId,
         execution_id: data.execution_id,
         status: 'completed',
-        execution_time: data.execution_time
-      }
+        execution_time: data.execution_time,
+        tenant_id: tenantId
+      },
+      tenantId
     ).catch(() => {/* Ignore logging errors */});
 
     // Return successful result
@@ -150,14 +183,15 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
 
     try {
       await logSystemEvent(
-        tenantId,
         'strategy',
         'execute_strategy_error',
         {
           strategy_id: strategyId,
           error: error.message || 'Unexpected error',
-          status: 'failed'
-        }
+          status: 'failed',
+          tenant_id: tenantId
+        },
+        tenantId
       );
     } catch (logError) {
       console.warn('Failed to log strategy error:', logError);

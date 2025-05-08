@@ -23,12 +23,15 @@ export async function logSystemEvent(
       return { success: false, error: 'Invalid module or event' };
     }
 
+    // Ensure tenant_id is set correctly
+    const effectiveTenantId = context.tenant_id || tenantId || 'system';
+
     const { error } = await supabase.from('system_logs').insert([
       {
         module,
         event,
         context,
-        tenant_id: context.tenant_id || tenantId
+        tenant_id: effectiveTenantId
       }
     ]);
 
@@ -52,9 +55,10 @@ export async function logSystemEvent(
 export function safeLogSystemEvent(
   module: SystemEventModule,
   event: SystemEventType,
-  context: Record<string, any> = {}
+  context: Record<string, any> = {},
+  tenantId: string = 'system'
 ) {
-  logSystemEvent(module, event, context).catch(err => {
+  logSystemEvent(module, event, context, tenantId).catch(err => {
     console.warn('Failed to log system event (safe):', err);
   });
 }
@@ -64,11 +68,13 @@ export function safeLogSystemEvent(
  * @param module The module where the error occurred
  * @param error The error object or message
  * @param additionalContext Additional context for the error
+ * @param tenantId Optional tenant ID (defaults to 'system' for system-wide errors)
  */
 export function logErrorEvent(
   module: SystemEventModule,
   error: Error | string,
-  additionalContext: Record<string, any> = {}
+  additionalContext: Record<string, any> = {},
+  tenantId: string = 'system'
 ) {
   const errorMessage = error instanceof Error ? error.message : error;
   const errorStack = error instanceof Error ? error.stack : undefined;
@@ -77,7 +83,7 @@ export function logErrorEvent(
     ...additionalContext,
     error: errorMessage,
     stack: errorStack
-  });
+  }, tenantId);
 }
 
 /**
@@ -87,13 +93,15 @@ export function logErrorEvent(
  * @param resourceType The type of resource being accessed
  * @param resourceId The ID of the resource being accessed
  * @param additionalContext Additional context for the audit
+ * @param tenantId Optional tenant ID (defaults to 'system' for system-wide audits)
  */
 export function logAuditEvent(
   action: string,
   userId: string,
   resourceType: string,
   resourceId: string,
-  additionalContext: Record<string, any> = {}
+  additionalContext: Record<string, any> = {},
+  tenantId: string = 'system'
 ) {
   safeLogSystemEvent('security', 'audit', {
     action,
@@ -101,5 +109,5 @@ export function logAuditEvent(
     resource_type: resourceType,
     resource_id: resourceId,
     ...additionalContext
-  });
+  }, tenantId);
 }

@@ -55,6 +55,37 @@ export function getEnvWithDefault(key: string, defaultValue: string): string {
   return value !== undefined ? value : defaultValue;
 }
 
+/**
+ * Check if we're in a production environment
+ */
+export function isProduction(): boolean {
+  const env = getEnv('NODE_ENV', '');
+  return env === 'production';
+}
+
+/**
+ * Get base URL for the current environment
+ */
+export function getBaseUrl(): string {
+  return getEnv('VITE_APP_URL', 'http://localhost:8080');
+}
+
+/**
+ * Safe environment variable getter that logs warnings for missing critical variables
+ * @param key The environment variable key
+ * @param defaultValue Default value if not found
+ * @param required Whether this variable is critical (will log warning if missing)
+ */
+export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
+  const value = getEnv(key, defaultValue);
+  
+  if (required && (value === defaultValue || value === "")) {
+    console.warn(`⚠️ Critical environment variable ${key} is missing!`);
+  }
+  
+  return value;
+}
+
 // CORS headers for edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
