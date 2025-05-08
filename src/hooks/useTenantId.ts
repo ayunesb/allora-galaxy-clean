@@ -1,6 +1,5 @@
 
-import { useContext } from 'react';
-import { WorkspaceContextType, useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 /**
  * Hook to get the current tenant ID

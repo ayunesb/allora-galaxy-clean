@@ -1,149 +1,135 @@
 
 import { useState, useEffect } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { supabase } from '@/integrations/supabase/client';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PluginLogItem } from '@/components/plugins/PluginLogItem';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
+import { Card } from '@/components/ui/card';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { PluginLog } from '@/types';
 
-export default function PluginLogs() {
+const PluginLogs = () => {
   const { tenant } = useWorkspace();
-  const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [showSuccessOnly, setShowSuccessOnly] = useState(false);
-
+  const [logs, setLogs] = useState<PluginLog[]>([]);
+  const [filter, setFilter] = useState('all');
+  const [sortBy] = useState('created_at');
+  const [sortOrder] = useState('desc');
+  
   useEffect(() => {
-    if (tenant?.id) {
-      fetchLogs();
-    }
-  }, [tenant?.id, statusFilter, showSuccessOnly, sortBy, sortOrder]);
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('plugin_logs')
-        .select('*')
-        .eq('tenant_id', tenant?.id)
-        .order(sortBy, { ascending: sortOrder === 'asc' });
-
-      if (statusFilter) {
-        query = query.eq('status', statusFilter);
-      }
-
-      if (showSuccessOnly) {
-        query = query.eq('status', 'success');
-      }
-
-      const { data, error } = await query.limit(100);
-
-      if (error) throw error;
-      setLogs(data || []);
-    } catch (error) {
-      console.error('Error fetching plugin logs:', error);
-    } finally {
+    // Simulate fetching data
+    const timer = setTimeout(() => {
+      // Mock data
+      setLogs([
+        {
+          id: 'log-1',
+          plugin_id: 'plugin-1',
+          strategy_id: 'strategy-1',
+          tenant_id: tenant?.id,
+          status: 'success',
+          input: { query: 'test query' },
+          output: { result: 'test result' },
+          created_at: new Date().toISOString(),
+          execution_time: 1.5,
+          xp_earned: 10
+        },
+        {
+          id: 'log-2',
+          plugin_id: 'plugin-2',
+          strategy_id: 'strategy-1',
+          tenant_id: tenant?.id,
+          status: 'error',
+          input: { query: 'another query' },
+          error: 'Failed to execute plugin',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          execution_time: 0.8,
+          xp_earned: 0
+        }
+      ]);
       setLoading(false);
-    }
-  };
-
-  const filteredLogs = logs.filter((log) => {
-    if (!filter) return true;
-    const filterLower = filter.toLowerCase();
-    return (
-      log.plugin_name?.toLowerCase().includes(filterLower) ||
-      log.plugin_id?.toLowerCase().includes(filterLower) ||
-      log.execution_id?.toLowerCase().includes(filterLower) ||
-      log.status?.toLowerCase().includes(filterLower)
-    );
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [tenant?.id]);
+  
+  const filteredLogs = logs.filter(log => {
+    if (filter === 'all') return true;
+    return log.status === filter;
   });
+  
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return 'Unknown';
+    return new Date(dateStr).toLocaleString();
+  };
+  
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <h1 className="text-3xl font-bold">Plugin Logs</h1>
+        <div className="animate-pulse space-y-4">
+          <div className="h-64 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto py-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Plugin Logs</h1>
-        <Button onClick={fetchLogs}>Refresh</Button>
+    <div className="container mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Plugin Logs</h1>
+      
+      <div className="flex justify-end">
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="success">Success</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+            <SelectItem value="running">Running</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Filter Options</CardTitle>
-            <Badge variant="outline">{filteredLogs.length} logs found</Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <Input
-                placeholder="Filter by name or ID..."
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              />
-            </div>
-            <div>
-              <Select value={statusFilter || ''} onValueChange={(value) => setStatusFilter(value || null)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
-                  <SelectItem value="success">Success</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="info">Info</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="success-only"
-                checked={showSuccessOnly}
-                onCheckedChange={(checked) => setShowSuccessOnly(checked === true)}
-              />
-              <label htmlFor="success-only" className="text-sm">
-                Show Success Only
-              </label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      <div className="space-y-4">
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : filteredLogs.length > 0 ? (
-          filteredLogs.map((log) => (
-            <PluginLogItem key={log.id} log={log} />
-          ))
-        ) : (
-          <Card>
-            <CardContent className="flex items-center justify-center h-32">
-              <p className="text-muted-foreground">No logs found matching your criteria.</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      
+      {filteredLogs.length > 0 ? (
+        <Card>
+          <Table>
+            <TableCaption>Plugin execution logs</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Plugin ID</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Execution Time (s)</TableHead>
+                <TableHead>XP Earned</TableHead>
+                <TableHead>Created At</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>{log.plugin_id || 'Unknown'}</TableCell>
+                  <TableCell>
+                    <span className={
+                      log.status === 'success' ? 'text-green-500' :
+                      log.status === 'error' ? 'text-red-500' :
+                      'text-yellow-500'
+                    }>
+                      {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+                    </span>
+                  </TableCell>
+                  <TableCell>{log.execution_time?.toFixed(2) || 'N/A'}</TableCell>
+                  <TableCell>{log.xp_earned || 0}</TableCell>
+                  <TableCell>{formatDate(log.created_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <Card className="p-6 text-center">
+          <p className="text-muted-foreground">No plugin logs found.</p>
+        </Card>
+      )}
     </div>
   );
-}
+};
+
+export default PluginLogs;

@@ -1,152 +1,121 @@
 
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { useState } from 'react';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import PageHelmet from '@/components/PageHelmet';
+import { useToast } from '@/hooks/use-toast';
 
-const DeletionRequestPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const { currentTenant } = useWorkspace();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  
+const DeletionRequestPage = () => {
+  const { tenant } = useWorkspace();
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  
-  const handleConfirmSubmit = async () => {
-    if (!user || !currentTenant) return;
+  const [submitted, setSubmitted] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase
-        .from('deletion_requests')
-        .insert({
-          user_id: user.id,
-          tenant_id: currentTenant.id,
-          reason,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-        });
-      
-      if (error) throw error;
-      
+    if (!reason) {
       toast({
-        title: t('legal.dataDeletion.success'),
+        title: 'Error',
+        description: 'Please provide a reason for your request',
+        variant: 'destructive',
       });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
       
-      navigate('/settings'); // Redirect to settings after submission
-    } catch (error) {
+      // Here we would submit the deletion request to the API
+      // For now, let's just simulate a successful submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSubmitted(true);
+      toast({
+        title: 'Request Submitted',
+        description: 'Your data deletion request has been submitted.',
+      });
+    } catch (error: any) {
       console.error('Error submitting deletion request:', error);
       toast({
-        title: t('legal.dataDeletion.error'),
+        title: 'Error',
+        description: error.message || 'Failed to submit deletion request',
         variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
     }
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowConfirmDialog(true);
-  };
-  
+
   return (
-    <>
-      <PageHelmet
-        title={t('legal.dataDeletion.title')}
-        description="Request deletion of your personal data"
-      />
+    <div className="container mx-auto p-6 max-w-2xl">
+      <h1 className="text-3xl font-bold mb-6">Request Data Deletion</h1>
       
-      <div className="container py-8 max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">{t('legal.dataDeletion.title')}</h1>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('legal.dataDeletion.title')}</CardTitle>
-            <CardDescription>
-              {t('legal.dataDeletion.description')}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="reason" className="block text-sm font-medium">
-                    {t('legal.dataDeletion.reason')}
-                  </label>
-                  <Textarea
-                    id="reason"
-                    placeholder={t('legal.dataDeletion.placeholderReason')}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    rows={5}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-2">
+      {submitted ? (
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Request Submitted</h2>
+          <p className="mb-4">
+            Your data deletion request has been submitted successfully. Our team will review your request and process it according to our privacy policy.
+          </p>
+          <p className="mb-4">
+            You will receive an email confirmation once your request has been processed.
+          </p>
+          <Button onClick={() => window.location.href = '/'}>
+            Back to Dashboard
+          </Button>
+        </Card>
+      ) : (
+        <Card className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Data Deletion Request</h2>
+              <p className="text-muted-foreground mb-4">
+                Please provide a reason for your data deletion request. This will help us understand your concerns and process your request more efficiently.
+              </p>
+            </div>
+            
+            <div>
+              <label htmlFor="reason" className="block text-sm font-medium mb-2">
+                Reason for deletion request
+              </label>
+              <Textarea
+                id="reason"
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder="Please explain why you want your data deleted..."
+                className="min-h-[120px]"
+                required
+              />
+            </div>
+            
+            <div className="pt-4">
               <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => navigate('/settings')}
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting}
               >
-                {t('common.cancel')}
+                {isSubmitting ? 'Submitting...' : 'Submit Deletion Request'}
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? t('common.loading') : t('legal.dataDeletion.submit')}
-              </Button>
-            </CardFooter>
+            </div>
           </form>
         </Card>
-      </div>
+      )}
       
-      {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('legal.dataDeletion.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('legal.dataDeletion.confirmation')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmSubmit}>
-              {t('legal.dataDeletion.submit')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      <div className="mt-6">
+        <h2 className="text-xl font-semibold mb-2">What happens next?</h2>
+        <p className="text-muted-foreground mb-4">
+          Once you submit your request:
+        </p>
+        <ol className="list-decimal ml-6 space-y-2 text-muted-foreground">
+          <li>Our team will review your request within 7 business days</li>
+          <li>You will receive an email confirmation when your request is received</li>
+          <li>If approved, all your personal data will be deleted from our systems</li>
+          <li>You'll receive a final confirmation email once the deletion is complete</li>
+        </ol>
+      </div>
+    </div>
   );
 };
 

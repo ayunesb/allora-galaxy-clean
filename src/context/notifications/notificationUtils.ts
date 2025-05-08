@@ -1,121 +1,89 @@
 
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/components/ui/use-toast';
-import { Notification } from './types';
+import { NotificationType } from '@/types/notifications';
 
-export const fetchUserNotifications = async (userId: string, tenantId: string): Promise<Notification[]> => {
+/**
+ * Send a notification to a user
+ */
+export interface SendNotificationProps {
+  tenant_id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  type: NotificationType;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Send a notification to a user
+ * @param props Notification properties
+ * @returns The created notification or undefined if creation failed
+ */
+export const sendNotification = async (props: SendNotificationProps) => {
   try {
     const { data, error } = await supabase
       .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .limit(50);
+      .insert({
+        tenant_id: props.tenant_id,
+        user_id: props.user_id,
+        title: props.title,
+        message: props.description,  // Map to 'message' field in the DB
+        type: props.type,
+        action_url: props.action_url,
+        action_label: props.action_label,
+        metadata: props.metadata || {},
+      })
+      .select()
+      .single();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error sending notification:', error);
+      return undefined;
+    }
     
-    return data || [];
+    return data;
   } catch (err: any) {
-    console.error('Error fetching notifications:', err.message);
-    toast({
-      title: 'Error loading notifications',
-      description: err.message,
-      variant: 'destructive',
-    });
-    return [];
+    console.error('Failed to send notification:', err);
+    return undefined;
   }
 };
 
-export const subscribeToNotifications = (userId: string, tenantId: string, 
-  onNew: (notification: Notification) => void, 
-  onUpdate: (notification: Notification, wasRead: boolean) => void) => {
-  
-  const channel = supabase
-    .channel('notifications-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload) => {
-        const newNotification = payload.new as Notification;
-        if (newNotification.tenant_id === tenantId) {
-          onNew(newNotification);
-        }
-      }
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload) => {
-        const updatedNotification = payload.new as Notification;
-        if (updatedNotification.tenant_id === tenantId) {
-          const wasRead = !payload.old.read_at && updatedNotification.read_at;
-          onUpdate(updatedNotification, wasRead);
-        }
-      }
-    )
-    .subscribe();
-    
-  return () => {
-    supabase.removeChannel(channel);
-  };
-};
-
-export const markNotificationAsRead = async (id: string, userId: string) => {
+/**
+ * Format a notification timestamp into a human-readable string
+ * @param timestamp ISO timestamp string
+ * @returns Formatted time string
+ */
+export const formatNotificationTime = (timestamp: string): string => {
   try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('user_id', userId);
-      
-    if (error) throw error;
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
     
-    return true;
-  } catch (err: any) {
-    console.error('Error marking notification as read:', err.message);
-    toast({
-      title: 'Error',
-      description: err.message,
-      variant: 'destructive',
-    });
-    return false;
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    // For older notifications, show the date
+    return date.toLocaleDateString();
+  } catch (error) {
+    console.error('Error formatting notification time:', error);
+    return 'Unknown time';
   }
 };
 
-export const markAllNotificationsAsRead = async (userId: string, tenantId: string) => {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('tenant_id', tenantId)
-      .is('read_at', null);
-      
-    if (error) throw error;
-    
-    toast({
-      title: 'All notifications marked as read',
-    });
-    
-    return true;
-  } catch (err: any) {
-    console.error('Error marking all notifications as read:', err.message);
-    toast({
-      title: 'Error',
-      description: err.message,
-      variant: 'destructive',
-    });
-    return false;
-  }
+/**
+ * Check if a notification has been read
+ * @param readAt The read_at timestamp from the notification
+ * @returns Boolean indicating if the notification has been read
+ */
+export const isNotificationRead = (readAt: string | null | false): boolean => {
+  return readAt !== null && readAt !== false;
 };

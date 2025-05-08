@@ -1,61 +1,62 @@
 
-/**
- * Interface for plugin objects
- */
+// Define types for plugin execution
+
 export interface Plugin {
   id: string;
   name: string;
-  description: string;
-  version: string;
-  status: 'active' | 'inactive' | 'deprecated';
-  type: 'action' | 'integration' | 'analytics' | 'other';
-  config?: Record<string, any>;
+  description?: string;
+  category?: string;
+  icon?: string;
+  xp: number;
+  roi: number;
+  tenant_id?: string;
+  status: string;
   created_at?: string;
   updated_at?: string;
-  tenant_id?: string;
-  created_by?: string;
-  xp?: number;
-  dependencies?: string[];
-  roi?: number;
+  metadata?: Record<string, any>;
 }
 
-/**
- * Plugin configuration interface
- */
 export interface PluginConfig {
-  enabled: boolean;
-  settings: Record<string, any>;
-  credentials?: Record<string, string>;
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  inputs: Record<string, any>;
+  outputs?: Record<string, any>;
+  options?: Record<string, any>;
 }
 
-/**
- * Plugin execution options
- */
 export interface PluginExecutionOptions {
+  dryRun?: boolean;
   timeout?: number;
-  retry?: boolean;
-  maxRetries?: number;
-  backoffStrategy?: 'linear' | 'exponential';
-  trackXp?: boolean;
+  retries?: number;
+  context?: Record<string, any>;
 }
 
-/**
- * Interface for plugin execution result
- */
 export interface PluginResult {
-  pluginId: string;
   success: boolean;
-  output?: any;
   error?: string;
+  data?: any;
+  logs?: string[];
   executionTime?: number;
-  xpEarned?: number;
+  status?: string; // Added status field
 }
 
-/**
- * Interface for plugin chain execution result
- */
+export interface ExecutePluginChainOptions {
+  plugins: PluginConfig[];
+  inputs: Record<string, any>;
+  tenant_id: string;
+  strategy_id?: string;
+  options?: PluginExecutionOptions;
+}
+
+export interface ExecutePluginResult extends PluginResult {
+  chainResults?: PluginResult[];
+}
+
 export interface RunPluginChainResult {
   success: boolean;
   results: PluginResult[];
+  executionTime: number;
   error?: string;
 }

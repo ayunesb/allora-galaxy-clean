@@ -1,157 +1,198 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { getFeedbackComments } from './getFeedbackComments';
 import { calculateAgentPerformance } from './calculatePerformance';
-import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateAgent } from './deactivateOldAgent';
+import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
+import { getFeedbackComments } from './getFeedbackComments';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { getAgentUsageStats } from './getAgentUsageStats';
 
-export interface AgentPerformanceMetrics {
-  needsEvolution: boolean;
-  evolutionReason?: string;
-  positiveVotes?: number;
-  negativeVotes?: number;
-  neutralVotes?: number;
-  totalExecutions?: number;
-  successRate?: number;
-  averageExecutionTime?: number;
-  xpEarned?: number;
-}
-
-/**
- * Main function to auto-evolve agents based on feedback and performance
- * @param options Configuration options for auto evolution
- * @returns Promise with result of evolution process
- */
-export async function autoEvolveAgents({
-  tenantId,
-  agentId = null,
-  threshold = 0.7,
-  requireFeedback = true,
-  dryRun = false,
-}: {
+interface EvolutionOptions {
   tenantId: string;
   agentId?: string | null;
   threshold?: number;
   requireFeedback?: boolean;
   dryRun?: boolean;
-}): Promise<{
-  evolved: number;
-  candidates: number;
-  errors: string[];
-}> {
-  const result = {
-    evolved: 0,
-    candidates: 0,
-    errors: [] as string[]
-  };
-  
-  console.log(`Starting auto evolution for ${tenantId}, agentId: ${agentId}, threshold: ${threshold}`);
-  
+}
+
+interface EvolutionResult {
+  agentId: string;
+  previousVersion: string;
+  newVersion: string;
+  success: boolean;
+  evolved: boolean; // Added as required by the code logic
+  error?: string;
+  performanceScore?: number;
+}
+
+/**
+ * Auto-evolve agents based on performance and feedback
+ */
+export async function autoEvolveAgents(options: EvolutionOptions): Promise<EvolutionResult[]> {
+  const {
+    tenantId,
+    agentId = null,
+    threshold = 0.3,
+    requireFeedback = true,
+    dryRun = false
+  } = options;
+
   try {
-    // Query for active agent versions that need evolution
-    const query = supabase
+    // Log the start of evolution process
+    await logSystemEvent(tenantId, 'agent', 'auto_evolve_started', {
+      agent_id: agentId,
+      threshold,
+      require_feedback: requireFeedback,
+      dry_run: dryRun
+    });
+
+    // Get all agent versions that need to be evaluated
+    let query = supabase
       .from('agent_versions')
-      .select(`
-        id,
-        agent_id,
-        version,
-        prompt,
-        created_at,
-        metadata,
-        agents!inner(
-          id,
-          name,
-          description,
-          tenant_id
-        )
-      `)
-      .eq('agents.tenant_id', tenantId)
-      .eq('is_active', true)
-      .eq('is_archived', false)
-      .order('created_at', { ascending: false });
+      .select('*')
+      .eq('status', 'active');
       
-    // Apply agent filter if provided
-    const { data: agentVersions, error } = agentId 
-      ? await query.eq('agent_id', agentId)
-      : await query;
-      
-    if (error) {
-      console.error('Error fetching agent versions:', error);
-      result.errors.push(`Failed to fetch agent versions: ${error.message}`);
-      return result;
+    if (agentId) {
+      query = query.eq('id', agentId);
     }
     
-    const candidates = [];
+    const { data: agents, error } = await query;
     
-    // Process each active agent version
-    for (const version of agentVersions || []) {
+    if (error) {
+      console.error('Error fetching agents for evolution:', error);
+      return [];
+    }
+    
+    if (!agents || agents.length === 0) {
+      return [];
+    }
+    
+    const results: EvolutionResult[] = [];
+    
+    // Process each agent
+    for (const agent of agents) {
       try {
-        console.log(`Processing agent ${version.agent_id}, version ${version.id}`);
+        // Get feedback for this agent
+        const feedbackData = await getFeedbackComments(agent.id);
         
-        // Get feedback for this agent version
-        const { data: feedbackData } = await supabase
-          .from('agent_feedback')
-          .select('*')
-          .eq('agent_version_id', version.id);
-          
-        // Get usage statistics for performance calculation
-        const usageStats = await getAgentUsageStats(version.id);
+        // Get usage stats
+        const usageStats = await getAgentUsageStats(agent.id);
         
-        // Calculate performance score based on feedback and usage
-        const performanceScore = calculateAgentPerformance(feedbackData || [], usageStats);
-        console.log(`Performance score: ${performanceScore}`);
-        
-        // Skip if performance is above threshold
-        if (performanceScore >= threshold) {
-          console.log(`Performance above threshold (${threshold}), skipping evolution`);
+        // Skip agents with no feedback if feedback is required
+        if (requireFeedback && (!feedbackData || feedbackData.length === 0)) {
           continue;
         }
         
-        result.candidates++;
-        candidates.push({
-          id: version.id,
-          agentId: version.agent_id,
-          score: performanceScore,
-          version: version.version
+        // Calculate performance score
+        const performanceScore = await calculateAgentPerformance(feedbackData, usageStats);
+        
+        // If performance is above threshold, no need to evolve
+        if (performanceScore >= threshold) {
+          continue;
+        }
+        
+        // Log that this agent needs evolution
+        await logSystemEvent(tenantId, 'agent', 'agent_evolution_needed', {
+          agent_id: agent.id,
+          performance_score: performanceScore,
+          threshold
         });
         
         if (!dryRun) {
-          // Get feedback comments for evolution
-          const comments = await getFeedbackComments(version.id);
+          // Evolve the agent prompt based on feedback
+          const newPrompt = await evolvePromptWithFeedback(
+            agent.prompt,
+            feedbackData
+          );
           
-          if (requireFeedback && (!comments || comments.length === 0)) {
-            console.log(`No feedback comments available, skipping evolution`);
+          // Create a new version of the agent
+          const version = `${parseFloat(agent.version) + 0.1}.0`;
+          
+          const { data: newAgent, error: createError } = await supabase
+            .from('agent_versions')
+            .insert({
+              plugin_id: agent.plugin_id,
+              version,
+              prompt: newPrompt,
+              status: 'active',
+              created_by: agent.created_by
+            })
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error('Error creating evolved agent:', createError);
+            results.push({
+              agentId: agent.id,
+              previousVersion: agent.version,
+              newVersion: version,
+              success: false,
+              evolved: false,
+              error: createError.message,
+              performanceScore
+            });
             continue;
           }
           
-          // Create evolved agent version with reason
-          const evolutionReason = `Auto-evolution triggered: performance score ${performanceScore} below threshold ${threshold}`;
+          // Deactivate the old agent version
+          await supabase
+            .from('agent_versions')
+            .update({ status: 'inactive' })
+            .eq('id', agent.id);
           
-          // Create evolved agent version
-          const result = await createEvolvedAgent(
-            version.id, 
-            tenantId,
-            evolutionReason
-          );
+          // Log successful evolution
+          await logSystemEvent(tenantId, 'agent', 'agent_evolved', {
+            agent_id: agent.id,
+            new_agent_id: newAgent.id,
+            performance_score: performanceScore,
+            old_version: agent.version,
+            new_version: version
+          });
           
-          if (result.success) {
-            // Deactivate old version
-            await deactivateAgent(version.id);
-            result.evolved++;
-          }
+          results.push({
+            agentId: agent.id,
+            previousVersion: agent.version,
+            newVersion: version,
+            success: true,
+            evolved: true,
+            performanceScore
+          });
+        } else {
+          // In dry run mode, just log what would happen
+          results.push({
+            agentId: agent.id,
+            previousVersion: agent.version,
+            newVersion: `${parseFloat(agent.version) + 0.1}.0`,
+            success: true,
+            evolved: false, // Not actually evolved in dry run
+            performanceScore
+          });
         }
-      } catch (err: any) {
-        console.error(`Error processing agent version ${version.id}:`, err);
-        result.errors.push(`Error evolving agent ${version.agent_id}: ${err.message}`);
+      } catch (agentError: any) {
+        console.error(`Error processing agent ${agent.id}:`, agentError);
+        results.push({
+          agentId: agent.id,
+          previousVersion: agent.version,
+          newVersion: '',
+          success: false,
+          evolved: false,
+          error: agentError.message
+        });
       }
     }
     
-    console.log(`Auto evolution complete. Candidates: ${result.candidates}, Evolved: ${result.evolved}`);
-    return result;
-  } catch (err: any) {
-    console.error('Error in autoEvolveAgents:', err);
-    result.errors.push(`General error: ${err.message}`);
-    return result;
+    // Log completion of evolution process
+    await logSystemEvent(tenantId, 'agent', 'auto_evolve_completed', {
+      processed_count: agents.length,
+      evolved_count: results.filter(r => r.evolved).length,
+      error_count: results.filter(r => !r.success).length
+    });
+    
+    return results;
+  } catch (error: any) {
+    console.error('Error in autoEvolveAgents:', error);
+    await logSystemEvent(tenantId, 'agent', 'auto_evolve_error', {
+      error: error.message
+    });
+    return [];
   }
 }
