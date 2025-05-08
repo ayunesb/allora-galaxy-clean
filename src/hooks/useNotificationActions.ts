@@ -7,7 +7,7 @@ export const useNotificationActions = () => {
     markAsRead: markNotificationAsRead, 
     markAllAsRead: markAllNotificationsAsRead, 
     deleteNotification: deleteOneNotification, 
-    deleteAll: deleteAllNotificationsFromDB 
+    deleteAllNotificationsFromDB
   } = useNotifications();
 
   const markAsRead = async (id: string) => {

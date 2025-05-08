@@ -1,189 +1,244 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { supabase } from '@/lib/supabase';
-import { Notification } from '@/types/notifications';
-import { useToast } from '@/hooks/use-toast';
+import { Notification, NotificationsContextType } from '@/types/notifications';
+import { checkNetworkStatus } from '@/lib/supabase';
 
-export const useNotifications = () => {
-  const { user } = useAuth();
-  const { currentTenant } = useWorkspace();
-  const { toast } = useToast();
+/**
+ * Hook for managing notifications
+ */
+export function useNotifications(): NotificationsContextType {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
+  const tenantId = useTenantId();
+  const { user } = useAuth();
+  
+  // Fetch notifications
   const fetchNotifications = useCallback(async () => {
-    if (!user?.id || !currentTenant?.id) return;
-    
+    if (!tenantId || !user?.id) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return { success: false, error: new Error('No tenant or user ID available') };
+    }
+
     setLoading(true);
+    setError(null);
+
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('notifications')
         .select('*')
-        .eq('tenant_id', currentTenant.id)
+        .eq('tenant_id', tenantId)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch notifications: ${fetchError.message}`);
+      }
+
+      const typedData = data as Notification[];
+      setNotifications(typedData);
+      setUnreadCount(typedData.filter(n => !n.is_read).length);
       
-      if (error) throw error;
-      
-      // Transform data to match our Notification type
-      const typedNotifications = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        message: item.description || '',
-        type: (item.type || 'info') as 'info' | 'success' | 'warning' | 'error',
-        created_at: item.created_at,
-        read_at: item.is_read ? item.updated_at : null,
-        tenant_id: item.tenant_id,
-        user_id: item.user_id,
-        action_url: item.action_url,
-        action_label: item.action_label
-      }));
-      
-      setNotifications(typedNotifications);
-      
-      // Calculate unread count
-      const unread = data.filter(notification => !notification.is_read).length;
-      setUnreadCount(unread);
+      return { success: true };
     } catch (err: any) {
-      console.error('Error fetching notifications:', err);
       setError(err);
+      return { success: false, error: err };
     } finally {
       setLoading(false);
     }
-  }, [user?.id, currentTenant?.id]);
+  }, [tenantId, user?.id]);
 
-  const markAsRead = useCallback(async (id: string) => {
+  // Mark notification as read
+  const markAsRead = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('notifications')
-        .update({ is_read: true, updated_at: new Date().toISOString() })
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      // Update local state
+        .update({ is_read: true })
+        .eq('id', id)
+        .eq('user_id', user?.id || '');
+
+      if (updateError) {
+        throw new Error(`Failed to mark notification as read: ${updateError.message}`);
+      }
+
+      // Update local state to avoid refetch
       setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === id 
-            ? { ...notification, read_at: new Date().toISOString() } 
-            : notification
-        )
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
       
       // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
       
       return { success: true };
-    } catch (error: any) {
-      console.error('Error marking notification as read:', error);
-      return { success: false, error };
+    } catch (err: any) {
+      return { success: false, error: err };
     }
-  }, []);
+  };
 
-  const markAllAsRead = useCallback(async () => {
-    if (!user?.id || !currentTenant?.id) return { success: false, error: new Error('No user or tenant') };
-    
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    if (!tenantId || !user?.id) {
+      return { success: false, error: new Error('No tenant or user ID available') };
+    }
+
     try {
-      const now = new Date().toISOString();
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('notifications')
-        .update({ is_read: true, updated_at: now })
-        .eq('tenant_id', currentTenant.id)
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-      
-      if (error) throw error;
-      
+        .update({ is_read: true })
+        .eq('tenant_id', tenantId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        throw new Error(`Failed to mark all notifications as read: ${updateError.message}`);
+      }
+
       // Update local state
-      setNotifications(prev => 
-        prev.map(notification => ({ ...notification, read_at: now }))
-      );
-      
-      // Reset unread count
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
       
-      toast({
-        title: 'All notifications marked as read',
-        description: 'Your notifications have been updated',
-      });
-      
       return { success: true };
-    } catch (error: any) {
-      console.error('Error marking all notifications as read:', error);
-      toast({
-        title: 'Failed to mark notifications as read',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return { success: false, error };
+    } catch (err: any) {
+      return { success: false, error: err };
     }
-  }, [user?.id, currentTenant?.id, toast]);
+  };
 
-  const deleteNotification = useCallback(async (id: string) => {
+  // Delete a notification
+  const deleteNotification = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from('notifications')
         .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
+        .eq('id', id)
+        .eq('user_id', user?.id || '');
+
+      if (deleteError) {
+        throw new Error(`Failed to delete notification: ${deleteError.message}`);
+      }
+
       // Update local state
-      const deleted = notifications.find(notification => notification.id === id);
-      setNotifications(prev => prev.filter(notification => notification.id !== id));
+      const deleted = notifications.find(n => n.id === id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
       
       // Update unread count if needed
-      if (deleted && !deleted.read_at) {
+      if (deleted && !deleted.is_read) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
       
-      toast({
-        title: 'Notification deleted',
-        description: 'The notification has been removed',
-      });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err };
+    }
+  };
+
+  // Delete all notifications with optional filter
+  const deleteAllNotificationsFromDB = async (filter: string | null, unreadOnly: boolean) => {
+    if (!tenantId || !user?.id) {
+      return { success: false, error: new Error('No tenant or user ID available') };
+    }
+
+    try {
+      let query = supabase
+        .from('notifications')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('user_id', user.id);
+      
+      // Apply unread filter if specified
+      if (unreadOnly) {
+        query = query.eq('is_read', false);
+      }
+      
+      // Apply type filter if specified
+      if (filter && filter !== 'all') {
+        query = query.eq('type', filter);
+      }
+
+      const { error: deleteError } = await query;
+
+      if (deleteError) {
+        throw new Error(`Failed to delete notifications: ${deleteError.message}`);
+      }
+
+      // Update local state based on filters
+      if (filter === 'all' && !unreadOnly) {
+        setNotifications([]);
+        setUnreadCount(0);
+      } else {
+        const newNotifications = notifications.filter(n => {
+          if (unreadOnly && n.is_read) return true; // Keep read notifications
+          if (filter && filter !== 'all' && n.type !== filter) return true; // Keep other types
+          return false; // Delete matching notifications
+        });
+        
+        setNotifications(newNotifications);
+        setUnreadCount(newNotifications.filter(n => !n.is_read).length);
+      }
       
       return { success: true };
-    } catch (error: any) {
-      console.error('Error deleting notification:', error);
-      toast({
-        title: 'Failed to delete notification',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return { success: false, error };
+    } catch (err: any) {
+      return { success: false, error: err };
     }
-  }, [notifications, toast]);
+  };
 
-  // Set up realtime subscription
+  // Initial fetch
   useEffect(() => {
-    if (!user?.id || !currentTenant?.id) return;
+    if (tenantId && user?.id) {
+      fetchNotifications();
+    }
+  }, [tenantId, user?.id, fetchNotifications]);
 
-    fetchNotifications();
+  // Set up real-time notifications if supported
+  useEffect(() => {
+    if (!tenantId || !user?.id || !checkNetworkStatus()) return;
     
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('notifications_changes')
+    // Set up real-time subscription for new notifications
+    const channel = supabase.channel('public:notifications')
       .on('postgres_changes', 
-        {
-          event: '*',
-          schema: 'public',
+        { 
+          event: '*', 
+          schema: 'public', 
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`
+          filter: `tenant_id=eq.${tenantId} AND user_id=eq.${user.id}`
         }, 
-        () => {
-          fetchNotifications();
+        (payload) => {
+          // Handle different event types
+          if (payload.eventType === 'INSERT') {
+            setNotifications(prev => [payload.new as Notification, ...prev]);
+            if (!(payload.new as Notification).is_read) {
+              setUnreadCount(prev => prev + 1);
+            }
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
+            );
+            // Recalculate unread count on updates
+            setNotifications(current => {
+              setUnreadCount(current.filter(n => !n.is_read).length);
+              return current;
+            });
+          }
+          else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as Notification;
+            setNotifications(prev => prev.filter(n => n.id !== deleted.id));
+            if (!deleted.is_read) {
+              setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+          }
         }
       )
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, currentTenant?.id, fetchNotifications]);
+  }, [tenantId, user?.id]);
 
   return {
     notifications,
@@ -193,6 +248,7 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    refreshNotifications: fetchNotifications,
+    deleteAllNotificationsFromDB,
+    refreshNotifications: fetchNotifications
   };
-};
+}

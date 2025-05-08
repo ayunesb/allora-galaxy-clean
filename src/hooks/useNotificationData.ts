@@ -1,28 +1,39 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
-import { NotificationContent } from '@/types/notifications';
+import { Notification } from '@/types/notifications';
 
-export const useNotificationData = (tabFilter: string, textFilter: string | null) => {
-  const [notifications, setNotifications] = useState<NotificationContent[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const { getNotifications } = useNotifications();
+export const useNotificationData = (tabFilter: string | null = null) => {
+  const { 
+    notifications, 
+    loading, 
+    error,
+    refreshNotifications 
+  } = useNotifications();
+  
+  const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
 
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getNotifications(tabFilter === 'unread', textFilter);
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
+  // Filter notifications based on tab selection
+  const filterNotifications = useCallback(() => {
+    if (!tabFilter || tabFilter === 'all') {
+      setFilteredNotifications(notifications);
+    } else if (tabFilter === 'unread') {
+      setFilteredNotifications(notifications.filter(n => !n.is_read));
+    } else {
+      // Filter by notification type
+      setFilteredNotifications(notifications.filter(n => n.type === tabFilter));
     }
-  }, [getNotifications, tabFilter, textFilter]);
+  }, [notifications, tabFilter]);
 
+  // Apply filters whenever notifications or tab filter changes
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    filterNotifications();
+  }, [notifications, tabFilter, filterNotifications]);
 
-  return { notifications, loading, fetchNotifications };
+  return {
+    notifications: filteredNotifications,
+    loading,
+    error,
+    refresh: refreshNotifications
+  };
 };

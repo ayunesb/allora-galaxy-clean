@@ -24,7 +24,7 @@ const dataStore: Record<string, any[]> = {
 // Create a mock function for Supabase client
 export const createMockSupabaseClient = () => {
   // Mock function to simulate responses for .from().select()
-  const mockSelect = vi.fn().mockImplementation((table: string, columns: string) => {
+  const mockSelect = vi.fn().mockImplementation((table: string) => {
     if (table === 'users') {
       return {
         data: mockUsers,
@@ -80,7 +80,7 @@ export const createMockSupabaseClient = () => {
   // Mock function for .from()
   const mockFrom = vi.fn().mockImplementation((table: string) => {
     return {
-      select: (columns?: string) => mockSelect(table, columns),
+      select: () => mockSelect(table),
       insert: (data: any) => mockInsert(table, data),
       update: (data: any) => mockUpdate(table, data),
       delete: () => mockDelete(),
@@ -90,11 +90,11 @@ export const createMockSupabaseClient = () => {
             data: dataStore[table]?.[0] || null,
             error: null,
           }),
-          select: () => mockSelect(table, '*'),
+          select: () => mockSelect(table),
           delete: () => mockDelete(),
           update: (data: any) => mockUpdate(table, data),
         }),
-        select: () => mockSelect(table, '*'),
+        select: () => mockSelect(table),
         single: () => ({
           data: dataStore[table]?.[0] || null,
           error: null,
@@ -134,10 +134,10 @@ export const createMockSupabaseClient = () => {
         // Insert mock execution log
         dataStore['executions'].push({
           id: `exec-${Math.random().toString(36)}`,
-          strategy_id: body.strategyId,
+          strategy_id: body.strategyId || body.strategy_id,
           status: 'success',
           created_at: new Date().toISOString(),
-          tenant_id: body.tenantId,
+          tenant_id: body.tenantId || body.tenant_id,
         });
         
         return {
