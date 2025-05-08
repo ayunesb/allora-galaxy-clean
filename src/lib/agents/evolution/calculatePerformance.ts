@@ -1,68 +1,86 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Calculate the performance metrics for an agent version
- * @param agentId The agent version ID
- * @returns Performance metrics object
+ * Calculate performance metrics for an agent to determine if it needs evolution
+ * 
+ * @param agentVersionId - ID of the agent version to check
+ * @returns Performance metrics and evolution recommendation
  */
-export async function calculateAgentPerformance(agentId: string): Promise<any> {
+export async function calculateAgentPerformance(agentVersionId: string) {
   try {
-    // Get execution logs for this agent
-    const { data: logs, error } = await supabase
-      .from('execution_logs')
-      .select('status, execution_time, xp_earned')
-      .eq('agent_version_id', agentId);
+    // Get agent data
+    const { data: agent, error: agentError } = await supabase
+      .from('agent_versions')
+      .select('upvotes, downvotes, xp')
+      .eq('id', agentVersionId)
+      .single();
       
-    if (error) {
-      console.error('Error fetching execution logs:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+    if (agentError || !agent) {
+      throw new Error(`Failed to fetch agent data: ${agentError?.message || 'Not found'}`);
+    }
+    
+    // Get execution metrics
+    const { data: executions, error: execError } = await supabase
+      .from('plugin_logs')
+      .select('status, count(*)')
+      .eq('agent_version_id', agentVersionId)
+      .group('status');
+      
+    if (execError) {
+      console.warn(`Could not fetch execution data: ${execError.message}`);
     }
     
     // Calculate metrics
-    const totalExecutions = logs?.length || 0;
-    const successfulExecutions = logs?.filter(log => log.status === 'success')?.length || 0;
-    const failedExecutions = logs?.filter(log => log.status === 'error')?.length || 0;
-    const totalExecutionTime = logs?.reduce((sum, log) => sum + (log.execution_time || 0), 0) || 0;
-    const totalXpEarned = logs?.reduce((sum, log) => sum + (log.xp_earned || 0), 0) || 0;
+    const upvotes = agent.upvotes || 0;
+    const downvotes = agent.downvotes || 0;
+    const totalVotes = upvotes + downvotes;
+    const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0.5;
     
-    // Get vote data
-    const { data: agent, error: agentError } = await supabase
-      .from('agent_versions')
-      .select('upvotes, downvotes')
-      .eq('id', agentId)
-      .single();
-      
-    if (agentError) {
-      console.error('Error fetching agent votes:', agentError);
+    const successCount = executions?.find(e => e.status === 'success')?.count || 0;
+    const failureCount = executions?.find(e => e.status === 'failure')?.count || 0;
+    const totalExecutions = Number(successCount) + Number(failureCount);
+    const successRate = totalExecutions > 0 ? Number(successCount) / totalExecutions : 0;
+    
+    // Decision logic
+    let shouldEvolve = false;
+    let evolveReason = null;
+    
+    // Enough votes and more downvotes than upvotes
+    if (totalVotes >= 5 && voteRatio < 0.4) {
+      shouldEvolve = true;
+      evolveReason = 'Negative user feedback';
+    }
+    // Many executions with high failure rate
+    else if (totalExecutions >= 10 && successRate < 0.7) {
+      shouldEvolve = true;
+      evolveReason = 'High failure rate';
+    }
+    // Combination of factors
+    else if (totalVotes >= 3 && totalExecutions >= 5 && voteRatio < 0.5 && successRate < 0.8) {
+      shouldEvolve = true;
+      evolveReason = 'Combined poor metrics';
     }
     
-    const upvotes = agent?.upvotes || 0;
-    const downvotes = agent?.downvotes || 0;
-    const totalVotes = upvotes + downvotes;
-    const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0;
-    
-    // Return performance data
     return {
-      success: true,
-      totalExecutions,
-      successfulExecutions,
-      failedExecutions,
-      successRate: totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0,
-      averageExecutionTime: totalExecutions > 0 ? totalExecutionTime / totalExecutions : 0,
-      totalXpEarned,
-      upvotes,
-      downvotes,
-      voteRatio
+      shouldEvolve,
+      evolveReason,
+      metrics: {
+        xp: agent.xp || 0,
+        upvotes,
+        downvotes,
+        totalVotes,
+        voteRatio,
+        totalExecutions,
+        successRate
+      }
     };
-  } catch (err: any) {
-    console.error('Error calculating agent performance:', err);
+  } catch (error: any) {
+    console.error('Error calculating agent performance:', error);
     return {
-      success: false,
-      error: err.message
+      shouldEvolve: false,
+      evolveReason: null,
+      metrics: { xp: 0, upvotes: 0, downvotes: 0 }
     };
   }
 }

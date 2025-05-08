@@ -2,9 +2,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
 import { getAgentsForEvolution } from '@/lib/agents/evolution/getAgentsForEvolution';
-import { calculatePerformance } from '@/lib/agents/evolution/calculatePerformance';
+import { calculateAgentPerformance } from '@/lib/agents/evolution/calculatePerformance';
 import { createEvolvedAgent } from '@/lib/agents/evolution/createEvolvedAgent';
-import { deactivateOldAgent } from '@/lib/agents/evolution/deactivateOldAgent';
+import { deactivateAgent } from '@/lib/agents/evolution/deactivateOldAgent';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 // Mock the imported functions
@@ -30,19 +30,19 @@ describe('autoEvolveAgents', () => {
     expect(result.errors).toBe(0);
     expect(result.message).toContain('No agents found that need evolution');
     expect(getAgentsForEvolution).toHaveBeenCalledTimes(1);
-    expect(calculatePerformance).not.toHaveBeenCalled();
+    expect(calculateAgentPerformance).not.toHaveBeenCalled();
     expect(createEvolvedAgent).not.toHaveBeenCalled();
-    expect(deactivateOldAgent).not.toHaveBeenCalled();
+    expect(deactivateAgent).not.toHaveBeenCalled();
     expect(logSystemEvent).not.toHaveBeenCalled();
   });
   
   it('should skip agents that do not need evolution', async () => {
     // Mock agent that doesn't need evolution
     vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
-      { id: 'agent1', pluginId: 'plugin1', version: '1.0' }
+      { id: 'agent1', plugin_id: 'plugin1', version: '1.0' }
     ]);
     
-    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+    vi.mocked(calculateAgentPerformance).mockResolvedValueOnce({
       shouldEvolve: false,
       evolveReason: null,
       metrics: { xp: 100, upvotes: 10, downvotes: 2 }
@@ -53,19 +53,19 @@ describe('autoEvolveAgents', () => {
     expect(result.evolved).toBe(0);
     expect(result.skipped).toBe(1);
     expect(result.errors).toBe(0);
-    expect(calculatePerformance).toHaveBeenCalledWith('agent1');
+    expect(calculateAgentPerformance).toHaveBeenCalledWith('agent1');
     expect(createEvolvedAgent).not.toHaveBeenCalled();
-    expect(deactivateOldAgent).not.toHaveBeenCalled();
+    expect(deactivateAgent).not.toHaveBeenCalled();
     expect(logSystemEvent).not.toHaveBeenCalled();
   });
   
   it('should evolve agents successfully', async () => {
     // Mock agent that needs evolution
     vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
-      { id: 'agent2', pluginId: 'plugin2', version: '1.0' }
+      { id: 'agent2', plugin_id: 'plugin2', version: '1.0' }
     ]);
     
-    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+    vi.mocked(calculateAgentPerformance).mockResolvedValueOnce({
       shouldEvolve: true,
       evolveReason: 'Poor performance',
       metrics: { xp: 50, upvotes: 2, downvotes: 8 }
@@ -81,7 +81,7 @@ describe('autoEvolveAgents', () => {
     expect(result.evolved).toBe(1);
     expect(result.skipped).toBe(0);
     expect(result.errors).toBe(0);
-    expect(calculatePerformance).toHaveBeenCalledWith('agent2');
+    expect(calculateAgentPerformance).toHaveBeenCalledWith('agent2');
     expect(createEvolvedAgent).toHaveBeenCalledWith(
       'agent2', 
       'plugin2', 
@@ -90,7 +90,7 @@ describe('autoEvolveAgents', () => {
         evolveReason: 'Poor performance'
       })
     );
-    expect(deactivateOldAgent).toHaveBeenCalledWith('agent2');
+    expect(deactivateAgent).toHaveBeenCalledWith('agent2');
     expect(logSystemEvent).toHaveBeenCalledWith(
       'system', 
       'agent', 
@@ -105,10 +105,10 @@ describe('autoEvolveAgents', () => {
   it('should handle errors during evolution', async () => {
     // Mock agent where evolution fails
     vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
-      { id: 'agent3', pluginId: 'plugin3', version: '1.0' }
+      { id: 'agent3', plugin_id: 'plugin3', version: '1.0' }
     ]);
     
-    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+    vi.mocked(calculateAgentPerformance).mockResolvedValueOnce({
       shouldEvolve: true,
       evolveReason: 'Poor performance',
       metrics: { xp: 50, upvotes: 2, downvotes: 8 }
@@ -123,34 +123,34 @@ describe('autoEvolveAgents', () => {
     expect(result.errors).toBe(1);
     expect(result.details[0].status).toBe('error');
     expect(result.details[0].reason).toContain('Failed to create evolved agent');
-    expect(deactivateOldAgent).not.toHaveBeenCalled();
+    expect(deactivateAgent).not.toHaveBeenCalled();
     expect(logSystemEvent).not.toHaveBeenCalled();
   });
   
   it('should handle multiple agents with mixed results', async () => {
     // Mock multiple agents with different outcomes
     vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
-      { id: 'agent4', pluginId: 'plugin4', version: '1.0' },
-      { id: 'agent5', pluginId: 'plugin5', version: '1.0' },
-      { id: 'agent6', pluginId: 'plugin6', version: '1.0' }
+      { id: 'agent4', plugin_id: 'plugin4', version: '1.0' },
+      { id: 'agent5', plugin_id: 'plugin5', version: '1.0' },
+      { id: 'agent6', plugin_id: 'plugin6', version: '1.0' }
     ]);
     
     // First agent should evolve
-    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+    vi.mocked(calculateAgentPerformance).mockResolvedValueOnce({
       shouldEvolve: true,
       evolveReason: 'Poor performance',
       metrics: { xp: 40, upvotes: 1, downvotes: 9 }
     });
     
     // Second agent should skip
-    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+    vi.mocked(calculateAgentPerformance).mockResolvedValueOnce({
       shouldEvolve: false,
       evolveReason: null,
       metrics: { xp: 90, upvotes: 9, downvotes: 1 }
     });
     
     // Third agent should error
-    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+    vi.mocked(calculateAgentPerformance).mockResolvedValueOnce({
       shouldEvolve: true,
       evolveReason: 'Low engagement',
       metrics: { xp: 30, upvotes: 2, downvotes: 6 }

@@ -1,9 +1,8 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { getAgentsForEvolution } from './getAgentsForEvolution';
-import { calculatePerformance } from './calculatePerformance';
+import { calculateAgentPerformance } from './calculatePerformance';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgent } from './deactivateOldAgent';
+import { deactivateAgent } from './deactivateOldAgent';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
@@ -16,7 +15,7 @@ export async function autoEvolveAgents() {
     errors: 0,
     skipped: 0,
     details: [] as Array<{
-      pluginId: string;
+      plugin_id: string;
       status: 'evolved' | 'skipped' | 'error';
       reason?: string;
       newAgentVersionId?: string;
@@ -38,12 +37,12 @@ export async function autoEvolveAgents() {
     for (const agent of agentsToEvolve) {
       try {
         // Calculate performance metrics
-        const performance = await calculatePerformance(agent.id);
+        const performance = await calculateAgentPerformance(agent.id);
         
         if (!performance.shouldEvolve) {
           results.skipped++;
           results.details.push({
-            pluginId: agent.pluginId,
+            plugin_id: agent.plugin_id,
             status: 'skipped',
             reason: 'Performance metrics do not suggest evolution is needed'
           });
@@ -51,12 +50,12 @@ export async function autoEvolveAgents() {
         }
         
         // Create evolved agent based on feedback
-        const evolvedAgent = await createEvolvedAgent(agent.id, agent.pluginId, performance);
+        const evolvedAgent = await createEvolvedAgent(agent.id, agent.plugin_id, performance);
         
         if (!evolvedAgent) {
           results.errors++;
           results.details.push({
-            pluginId: agent.pluginId,
+            plugin_id: agent.plugin_id,
             status: 'error',
             reason: 'Failed to create evolved agent'
           });
@@ -64,19 +63,19 @@ export async function autoEvolveAgents() {
         }
         
         // Deactivate old agent version
-        await deactivateOldAgent(agent.id);
+        await deactivateAgent(agent.id);
         
         // Log evolution event
         await logSystemEvent('system', 'agent', 'agent_evolved', {
           old_agent_id: agent.id,
           new_agent_id: evolvedAgent.id,
-          plugin_id: agent.pluginId,
+          plugin_id: agent.plugin_id,
           reason: performance.evolveReason
         });
         
         results.evolved++;
         results.details.push({
-          pluginId: agent.pluginId,
+          plugin_id: agent.plugin_id,
           status: 'evolved',
           newAgentVersionId: evolvedAgent.id
         });
@@ -85,7 +84,7 @@ export async function autoEvolveAgents() {
         console.error(`Error evolving agent ${agent.id}:`, err);
         results.errors++;
         results.details.push({
-          pluginId: agent.pluginId,
+          plugin_id: agent.plugin_id,
           status: 'error',
           reason: err.message || 'Unknown error'
         });

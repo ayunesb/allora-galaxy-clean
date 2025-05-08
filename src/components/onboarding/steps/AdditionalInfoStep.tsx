@@ -10,12 +10,23 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { type AdditionalInfoStepProps } from '../StepContent';
+import { OnboardingFormData } from '@/types/onboarding';
+
+export interface AdditionalInfoStepProps {
+  formData: OnboardingFormData;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+  setFieldValue: (key: string, value: any) => void;
+}
 
 const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({ 
   formData,
+  updateFormData,
   setFieldValue
 }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFieldValue('additionalInfo', e.target.value);
+  };
+
   return (
     <Card className="border-0 shadow-none">
       <CardHeader className="space-y-2 px-0">
@@ -33,7 +44,7 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
           <Textarea
             id="additionalInfo"
             value={formData.additionalInfo || ''}
-            onChange={(e) => setFieldValue('additionalInfo', e.target.value)}
+            onChange={handleChange}
             placeholder="Share any specific business challenges, goals, or context that might help with your strategy"
             rows={8}
           />

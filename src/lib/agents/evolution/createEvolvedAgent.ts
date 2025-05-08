@@ -40,10 +40,19 @@ export async function createEvolvedAgent(
     const versionParts = currentVersion.split('.');
     const newVersion = `${versionParts[0]}.${parseInt(versionParts[1] || '0') + 1}`;
     
+    // Add performance metrics to comments if available
+    let enhancedComments = [...comments];
+    if (performance.evolveReason) {
+      enhancedComments.push({
+        comment: `System suggested evolution: ${performance.evolveReason}`,
+        vote_type: 'system'
+      });
+    }
+    
     // Evolve the prompt based on feedback
     const evolvedPrompt = await evolvePromptWithFeedback(
       currentAgent.prompt,
-      comments
+      enhancedComments
     );
     
     // Create new agent version

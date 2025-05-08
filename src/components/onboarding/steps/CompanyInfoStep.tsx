@@ -42,12 +42,13 @@ const revenueRanges = [
   '$50M+'
 ];
 
-interface CompanyInfoStepProps {
+export interface CompanyInfoStepProps {
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
+  setFieldValue: (key: string, value: any) => void;
 }
 
-const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormData }) => {
+const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormData, setFieldValue }) => {
   // Handle form field changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

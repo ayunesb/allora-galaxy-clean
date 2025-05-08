@@ -1,28 +1,27 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Deactivate an agent version by marking it as deprecated
- * @param agentId The agent version ID to deactivate
+ * Deactivates an older version of an agent
+ * 
+ * @param agentVersionId - ID of the agent version to deactivate
+ * @returns Whether the deactivation was successful
  */
-export async function deactivateAgent(agentId: string): Promise<boolean> {
+export async function deactivateAgent(agentVersionId: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('agent_versions')
-      .update({ 
-        status: 'deprecated',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', agentId);
+      .update({ status: 'inactive' })
+      .eq('id', agentVersionId);
       
     if (error) {
-      console.error('Error deactivating agent:', error);
+      console.error('Error deactivating agent version:', error);
       return false;
     }
     
     return true;
-  } catch (err) {
-    console.error('Unexpected error deactivating agent:', err);
+  } catch (error) {
+    console.error('Error in deactivateAgent:', error);
     return false;
   }
 }

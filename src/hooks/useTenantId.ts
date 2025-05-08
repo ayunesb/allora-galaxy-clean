@@ -1,6 +1,6 @@
 
 import { useContext } from 'react';
-import { WorkspaceContext } from '@/contexts/WorkspaceContext';
+import WorkspaceContext from '@/contexts/WorkspaceContext';
 
 export function useTenantId() {
   const context = useContext(WorkspaceContext);
@@ -11,7 +11,7 @@ export function useTenantId() {
   }
   
   return { 
-    tenantId: context.currentTenant?.id || null,
-    loading: context.loading 
+    tenantId: context.tenant?.id || null,
+    loading: context.isLoading 
   };
 }
