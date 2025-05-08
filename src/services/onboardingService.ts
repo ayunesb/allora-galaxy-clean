@@ -1,195 +1,118 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { OnboardingFormData, OnboardingSubmissionResult } from '@/types/onboarding';
+import { OnboardingFormData, GenerateStrategyParams, GenerateStrategyResult } from '@/types/onboarding';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { generateSlug, ensureUniqueSlug } from '@/lib/utils/slugUtils';
+import { createTenantFromOnboarding } from '@/lib/onboarding/tenantUtils';
 
 /**
- * Validates onboarding form data
- * @param formData The form data to validate
- * @returns Validation result with error messages
+ * Generates initial strategies based on onboarding data
  */
-export const validateOnboardingData = (formData: OnboardingFormData) => {
-  const errors: Record<string, string> = {};
-  
-  // Company validation
-  if (!formData.companyName?.trim()) {
-    errors.companyName = 'Company name is required';
-  }
-  
-  if (!formData.industry?.trim()) {
-    errors.industry = 'Industry is required';
-  }
-  
-  if (!formData.companySize?.trim()) {
-    errors.companySize = 'Company size is required';
-  }
-  
-  if (!formData.revenueRange?.trim()) {
-    errors.revenueRange = 'Revenue range is required';
-  }
-  
-  // Persona validation
-  if (!formData.persona?.name?.trim()) {
-    errors.personaName = 'Persona name is required';
-  }
-  
-  if (!formData.persona?.tone?.trim()) {
-    errors.tone = 'Tone is required';
-  }
-  
-  // Handle goals validation for both string and array types
-  if (Array.isArray(formData.goals)) {
-    if (formData.goals.length === 0) {
-      errors.goals = 'Goals are required';
-    }
-  } else if (!formData.goals?.trim()) {
-    errors.goals = 'Goals are required';
-  }
-  
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors
-  };
-};
-
-/**
- * Generates a unique slug for a tenant
- * @param companyName Base name for the slug
- * @returns Promise resolving to a unique slug
- */
-export const generateUniqueSlug = async (companyName: string): Promise<string> => {
-  // Generate base slug from company name
-  const baseSlug = generateSlug(companyName);
-  
-  // Get existing slugs from DB
-  const { data: existingTenants } = await supabase
-    .from('tenants')
-    .select('slug');
-  
-  const existingSlugs = existingTenants?.map(tenant => tenant.slug) || [];
-  
-  // Ensure slug uniqueness
-  return ensureUniqueSlug(baseSlug, existingSlugs);
-};
-
-/**
- * Creates tenant, user role, company profile and persona profile
- * @param formData Validated onboarding form data
- * @param userId Current user ID
- */
-export const submitOnboardingData = async (
-  formData: OnboardingFormData, 
-  userId: string
-): Promise<OnboardingSubmissionResult> => {
+export async function generateInitialStrategy(
+  userId: string,
+  tenantId: string,
+  formData: OnboardingFormData
+): Promise<{ success: boolean; strategyId?: string; error?: string }> {
   try {
-    // Validate all form data before submission
-    const { isValid, errors } = validateOnboardingData(formData);
-    if (!isValid) {
-      const errorMessages = Object.values(errors).join(", ");
-      throw new Error(`Validation failed: ${errorMessages}`);
+    // Create initial strategy
+    const strategyTitle = `${formData.companyName} Initial Strategy`;
+    const strategyDescription = `Auto-generated strategy for ${formData.companyName} targeting ${formData.persona.name}`;
+    
+    // Process goals
+    const goals = Array.isArray(formData.goals) 
+      ? formData.goals 
+      : formData.goals.split(',').map(g => g.trim());
+    
+    // Create tags
+    const tags = ['initial', 'onboarding'];
+    if (formData.industry) {
+      tags.push(formData.industry.toLowerCase());
     }
 
-    // Generate unique slug from company name
-    const slug = await generateUniqueSlug(formData.companyName);
-    
-    // Create new tenant
-    const { data: newTenant, error: tenantError } = await supabase
-      .from('tenants')
+    // Insert the strategy
+    const { data: strategyData, error: strategyError } = await supabase
+      .from('strategies')
       .insert({
-        name: formData.companyName,
-        slug,
-        owner_id: userId,
-        metadata: {
-          industry: formData.industry,
-          size: formData.companySize,
-          revenue_range: formData.revenueRange
-        }
+        tenant_id: tenantId,
+        title: strategyTitle,
+        description: strategyDescription,
+        status: 'pending',
+        created_by: userId,
+        priority: 'high',
+        tags,
+        completion_percentage: 0
       })
-      .select()
+      .select('id')
       .single();
 
-    if (tenantError) throw tenantError;
-    if (!newTenant) throw new Error("Failed to create tenant: No data returned");
+    if (strategyError) {
+      console.error('Error creating strategy:', strategyError);
+      await logSystemEvent(
+        tenantId,
+        'onboarding', 
+        'initial_strategy_creation_failed',
+        { error: strategyError.message }
+      );
+      return { success: false, error: strategyError.message };
+    }
 
-    // Create tenant user role with owner permission
-    const { error: roleError } = await supabase
-      .from('tenant_user_roles')
-      .insert({
-        tenant_id: newTenant.id,
-        user_id: userId,
-        role: 'owner'
-      });
-
-    if (roleError) throw roleError;
-
-    // Create company profile
-    const { error: companyError } = await supabase
-      .from('company_profiles')
-      .insert({
-        tenant_id: newTenant.id,
-        name: formData.companyName,
-        industry: formData.industry,
-        size: formData.companySize,
-        revenue_range: formData.revenueRange,
-        website: formData.website,
-        description: formData.description,
-      });
-
-    if (companyError) throw companyError;
-
-    // Create persona profile with goals handling for both array and string types
-    const goalsArray = Array.isArray(formData.persona.goals) 
-      ? formData.persona.goals.filter(goal => goal.trim() !== '')
-      : formData.goals.toString().split('\n').filter(goal => goal.trim() !== '');
-
-    const { error: personaError } = await supabase
-      .from('persona_profiles')
-      .insert({
-        tenant_id: newTenant.id,
-        name: formData.persona.name,
-        tone: formData.persona.tone,
-        goals: goalsArray,
-      });
-
-    if (personaError) throw personaError;
-
-    // Log successful onboarding
+    // Log success
     await logSystemEvent(
-      newTenant.id,
+      tenantId,
       'onboarding',
-      'onboarding_complete',
-      {
-        user_id: userId,
-        company_name: formData.companyName,
-        industry: formData.industry
+      'initial_strategy_created',
+      { 
+        strategy_id: strategyData.id,
+        strategy_title: strategyTitle 
       }
     );
 
-    return {
-      success: true,
-      tenantId: newTenant.id
-    };
+    return { success: true, strategyId: strategyData.id };
   } catch (error: any) {
-    console.error('Onboarding error:', error);
+    console.error('Error generating strategy:', error);
+    await logSystemEvent(
+      tenantId,
+      'onboarding',
+      'strategy_generation_error',
+      { error: error.message }
+    );
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Complete onboarding process by creating tenant and initial strategy
+ */
+export async function completeOnboarding(
+  userId: string,
+  formData: OnboardingFormData
+): Promise<{ success: boolean; tenantId?: string; strategyId?: string; error?: string }> {
+  try {
+    // Create tenant and related data
+    const tenantResult = await createTenantFromOnboarding(userId, formData);
     
-    try {
-      await logSystemEvent(
-        'system',
-        'onboarding',
-        'onboarding_failed',
-        {
-          user_id: userId,
-          error: error.message
-        }
-      );
-    } catch (logError) {
-      console.error("Failed to log onboarding error:", logError);
+    if (!tenantResult.success || !tenantResult.tenantId) {
+      return { success: false, error: tenantResult.error || 'Failed to create tenant' };
     }
     
+    // Generate initial strategy
+    const strategyResult = await generateInitialStrategy(userId, tenantResult.tenantId, formData);
+    
+    if (!strategyResult.success) {
+      return { 
+        success: true, 
+        tenantId: tenantResult.tenantId, 
+        error: `Tenant created but strategy generation failed: ${strategyResult.error}` 
+      };
+    }
+    
+    // Return success with both IDs
     return {
-      success: false,
-      error: error.message || 'An unexpected error occurred during onboarding'
+      success: true,
+      tenantId: tenantResult.tenantId,
+      strategyId: strategyResult.strategyId
     };
+  } catch (error: any) {
+    console.error('Error completing onboarding:', error);
+    return { success: false, error: error.message || 'Unknown error during onboarding' };
   }
-};
+}

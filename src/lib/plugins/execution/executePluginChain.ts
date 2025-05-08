@@ -1,9 +1,31 @@
 
-import { Plugin, PluginResult, RunPluginChainInput, RunPluginChainResult } from '@/types/plugin';
-import { AgentVersion } from '@/types/agent';
-import { Strategy } from '@/types/strategy';
-import { ExecutionParams, LogStatus } from '@/types/shared';
+import { Plugin, PluginResult, RunPluginChainResult } from '@/types/plugin';
+import { ExecutionParams } from '@/types/shared';
 import { recordExecution } from '@/lib/executions/recordExecution';
+
+// Define missing types from plugin and agent
+interface AgentVersion {
+  id: string;
+  version: string;
+  plugin_id?: string;
+  prompt: string;
+  status: string;
+}
+
+interface Strategy {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+}
+
+interface RunPluginChainInput {
+  plugins: Plugin[];
+  agentVersions: AgentVersion[];
+  initialInput: any;
+  strategy?: Strategy;
+  params: ExecutionParams;
+}
 
 /**
  * Executes a plugin with optional execution context
@@ -24,7 +46,7 @@ async function executePlugin(
   const startTime = performance.now();
   let status: 'success' | 'failure' = 'success';
   let result: any = null;
-  let error: string | null = null;
+  let error: string | undefined = undefined;
   let xpEarned = 0;
   
   try {
@@ -55,7 +77,7 @@ async function executePlugin(
     output: result,
     executionTime,
     xpEarned,
-    error: error
+    error
   });
   
   return {
@@ -121,6 +143,6 @@ export async function executePluginChain(
   return {
     success,
     results,
-    finalOutput: results.length > 0 ? results[results.length - 1].output : null,
+    output: results.length > 0 ? results[results.length - 1].output : null,
   };
 }

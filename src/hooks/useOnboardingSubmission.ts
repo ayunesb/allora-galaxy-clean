@@ -1,11 +1,15 @@
 
 import { useState } from 'react';
-import { OnboardingFormData, GenerateStrategyResult } from '@/types/onboarding';
+import { OnboardingFormData } from '@/types/onboarding';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { sendNotification } from '@/lib/notifications/sendNotification';
+import { completeOnboarding } from '@/services/onboardingService';
 
-export function useOnboardingSubmission(generateStrategy: (data: OnboardingFormData) => Promise<GenerateStrategyResult>) {
+/**
+ * Hook for managing onboarding form submission
+ */
+export function useOnboardingSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -26,17 +30,17 @@ export function useOnboardingSubmission(generateStrategy: (data: OnboardingFormD
       setIsSubmitting(true);
       setError(null);
       
-      // Generate strategy
-      const result = await generateStrategy(formData);
+      // Complete the onboarding process
+      const result = await completeOnboarding(user.id, formData);
       
-      if (result.success) {
+      if (result.success && result.tenantId) {
         // Send notification
         await sendNotification({
           title: 'Welcome to Allora OS',
           description: 'Your workspace is ready! We\'ve created your initial strategy.',
           type: 'success',
-          tenant_id: result.tenantId || '',
-          user_id: user.id || '',
+          tenant_id: result.tenantId,
+          user_id: user.id,
           action_label: 'View Dashboard',
           action_url: '/dashboard'
         });

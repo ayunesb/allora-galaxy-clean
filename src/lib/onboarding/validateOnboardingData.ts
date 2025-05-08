@@ -3,59 +3,75 @@ import { OnboardingFormData, OnboardingStep, StepValidationResult } from '@/type
 
 /**
  * Validates onboarding data for a specific step
- * @param data The onboarding form data
- * @param step The step being validated
+ * @param formData The form data to validate
+ * @param step The current step being validated
  * @returns Validation result with any errors
  */
-export function validateOnboardingData(data: OnboardingFormData, step: OnboardingStep): StepValidationResult {
+export function validateOnboardingData(
+  formData: OnboardingFormData, 
+  step: OnboardingStep
+): StepValidationResult {
   const errors: Record<string, string> = {};
   
   switch (step) {
     case 'company-info':
-      if (!data.companyName?.trim()) {
+      // Validate company name
+      if (!formData.companyName?.trim()) {
         errors.companyName = 'Company name is required';
       }
       
-      if (!data.industry?.trim()) {
+      // Validate industry
+      if (!formData.industry?.trim()) {
         errors.industry = 'Industry is required';
       }
       
-      if (!data.companySize?.trim()) {
+      // Validate company size
+      if (!formData.companySize?.trim()) {
         errors.companySize = 'Company size is required';
       }
       
-      if (!data.description?.trim()) {
-        errors.description = 'Description is required';
+      // Validate description (required)
+      if (!formData.description?.trim()) {
+        errors.description = 'Company description is required';
+      } else if (formData.description.trim().length < 50) {
+        errors.description = 'Description should be at least 50 characters';
       }
       break;
       
     case 'persona':
-      if (!data.persona?.name?.trim()) {
+      // Validate persona name
+      if (!formData.persona?.name?.trim()) {
         errors['persona.name'] = 'Persona name is required';
       }
       
-      if (!data.persona?.goals || data.persona.goals.length === 0) {
+      // Validate goals (at least one)
+      if (!formData.persona?.goals || formData.persona.goals.length === 0) {
         errors['persona.goals'] = 'At least one persona goal is required';
       }
       
-      if (!data.persona?.tone?.trim()) {
-        errors['persona.tone'] = 'Persona tone is required';
+      // Validate tone
+      if (!formData.persona?.tone?.trim()) {
+        errors['persona.tone'] = 'Communication tone is required';
       }
       break;
       
     case 'additional-info':
-      if (!data.goals || (Array.isArray(data.goals) && data.goals.length === 0)) {
-        errors.goals = 'At least one goal is required';
+      // Validate company goals (at least one)
+      if (Array.isArray(formData.goals) && formData.goals.length === 0) {
+        errors.goals = 'At least one company goal is required';
+      } else if (!Array.isArray(formData.goals) && !formData.goals?.trim()) {
+        errors.goals = 'Company goals are required';
       }
+      
+      // Additional info is optional, no validation needed
       break;
       
     case 'strategy-generation':
-      // No validation needed for the final step
+      // No validation needed for the strategy preview step
       break;
       
     default:
-      // No validation for unknown steps
-      break;
+      console.warn(`Unknown step: ${step}`);
   }
   
   return {

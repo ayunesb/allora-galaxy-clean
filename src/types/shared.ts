@@ -29,7 +29,7 @@ export interface ExecutionParams {
 /**
  * Types used for KPI and analytics
  */
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
 
 export interface KPITrend {
   direction: TrendDirection;
@@ -48,7 +48,10 @@ export type SystemEventModule =
   | 'plugin' 
   | 'agent' 
   | 'execution' 
-  | 'onboarding';
+  | 'onboarding'
+  | 'error'
+  | 'admin'
+  | 'embeddings';
 
 export type SystemEventType = string;
 

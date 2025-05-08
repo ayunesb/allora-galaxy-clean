@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { recordExecution } from '@/lib/executions/recordExecution';
-import { LogStatus, ExecutionRecordInput } from '@/types/shared';
+import { ExecutionRecordInput } from '@/types/execution';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the Supabase client

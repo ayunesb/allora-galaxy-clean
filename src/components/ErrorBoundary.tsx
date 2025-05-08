@@ -1,4 +1,3 @@
-
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import ErrorFallback from '@/components/ErrorFallback';
@@ -60,7 +59,7 @@ class ErrorBoundary extends Component<Props, State> {
   private logErrorToSystem(error: Error, errorInfo: ErrorInfo) {
     logSystemEvent(
       this.props.tenant_id || 'system',
-      'error',
+      'system',
       'React error boundary caught error',
       {
         message: error.message,

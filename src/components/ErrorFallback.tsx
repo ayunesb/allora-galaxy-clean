@@ -27,7 +27,7 @@ export function ErrorFallback({
     // Log the error to our system
     logSystemEvent(
       tenant_id, // Without tenant context, use system as tenant
-      'error',
+      'system',
       'react_error_boundary',
       {
         message: error.message,

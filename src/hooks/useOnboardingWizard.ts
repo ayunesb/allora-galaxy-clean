@@ -1,20 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { OnboardingFormData } from '@/types/onboarding';
 import { useOnboardingForm } from './useOnboardingForm';
 import { useOnboardingSteps } from './useOnboardingSteps';
 import { useOnboardingTenants } from './useOnboardingTenants';
 import { useOnboardingSubmission } from './useOnboardingSubmission';
-import { useStrategyGeneration } from './useStrategyGeneration';
 
+/**
+ * Main hook for managing the onboarding wizard
+ */
 export function useOnboardingWizard() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const { isGenerating, generateStrategy } = useStrategyGeneration();
   const { formData, updateFormData, setFieldValue, validateStep } = useOnboardingForm();
   const { tenantsList, hasTenants } = useOnboardingTenants(currentUser);
+  const { isSubmitting, error, handleSubmit: submitForm, resetError } = useOnboardingSubmission();
   
   // Validate current step
   const validateCurrentStep = () => {
@@ -43,14 +44,6 @@ export function useOnboardingWizard() {
     handleStepClick
   } = useOnboardingSteps(validateCurrentStep);
   
-  // Initialize submission handling
-  const {
-    isSubmitting,
-    error,
-    handleSubmit: submitForm,
-    resetError
-  } = useOnboardingSubmission(generateStrategy);
-  
   // Check if current step is valid
   const isStepValid = () => {
     return validateStep(steps[currentStep].id).valid;
@@ -71,6 +64,7 @@ export function useOnboardingWizard() {
     }
   };
 
+  // Return all necessary values and functions
   return {
     step,
     currentStep,
@@ -89,7 +83,7 @@ export function useOnboardingWizard() {
     resetError,
     validateCurrentStep,
     setFieldValue,
-    isGeneratingStrategy: isGenerating,
+    isGeneratingStrategy: isSubmitting,
     hasTenants
   };
 }

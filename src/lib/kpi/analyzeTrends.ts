@@ -1,3 +1,4 @@
+
 import { KPI } from '@/types';
 import { KPITrend, TrendDirection } from '@/types/shared';
 
@@ -10,7 +11,7 @@ export function analyzeKpiTrend(kpi: KPI): KPITrend {
   // Default trend if there's no previous value
   if (kpi.previous_value === null || kpi.previous_value === undefined) {
     return {
-      direction: 'flat' as TrendDirection,
+      direction: 'neutral' as TrendDirection,
       percentage: 0,
       isPositive: false
     };
@@ -44,6 +45,8 @@ export function analyzeKpiTrend(kpi: KPI): KPITrend {
     direction = 'up';
   } else if (percentChange < -1) {
     direction = 'down';
+  } else {
+    direction = 'flat';
   }
   
   // Is this change positive?

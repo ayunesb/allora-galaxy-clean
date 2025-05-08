@@ -1,119 +1,79 @@
 
-import { sendNotification } from './sendNotification';
+import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { Notification } from '@/types/notifications';
 
-/**
- * Send a notification and log it as a system event
- * 
- * @param params Notification parameters
- * @returns The created notification or undefined if there was an error
- */
-export async function notifyAndLog({
-  tenant_id,
-  user_id,
-  title,
-  description,
-  type = 'info',
-  action_url,
-  action_label,
-  module = 'notifications',
-  is_read = false
-}: {
+interface NotifyParams {
+  title: string;
+  message: string;
   tenant_id: string;
   user_id: string;
-  title: string;
-  description: string;
   type?: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
-  module?: string;
-  is_read?: boolean;
-}): Promise<Notification | undefined> {
-  try {
-    // First, log the event
-    await logSystemEvent(tenant_id, module, `notification_sent:${type}`, {
-      title,
-      user_id,
-      action_url
-    });
-    
-    // Then, send the notification
-    const result = await sendNotification({
-      tenant_id,
-      user_id,
-      title,
-      description,
-      type,
-      action_url,
-      action_label,
-      is_read
-    });
-    
-    if (result.id) {
-      return {
-        id: result.id,
-        title,
-        description,
-        type,
-        tenant_id,
-        user_id,
-        is_read,
-        action_url,
-        action_label,
-        created_at: new Date().toISOString()
-      };
-    }
-    return undefined;
-  } catch (error) {
-    console.error('Error in notifyAndLog:', error);
-    return undefined;
-  }
+  metadata?: Record<string, any>;
 }
 
 /**
- * Send system notifications to all users in a tenant
+ * Creates a notification and logs the event to system logs
+ * @param params Notification parameters
+ * @returns Success status and data
  */
-export async function notifySystemEvent({
-  tenant_id,
-  user_ids,
-  title,
-  description,
-  event,
-  module = 'system',
-  action_url,
-  action_label
-}: {
-  tenant_id: string;
-  user_ids: string[];
-  title: string;
-  description: string;
-  event: string;
-  module?: string;
-  action_url?: string;
-  action_label?: string;
-}): Promise<(Notification | undefined)[]> {
-  // Log the system event first
-  await logSystemEvent(tenant_id, module, event, {
-    title,
-    affected_users: user_ids.length
-  });
-  
-  // Send notifications to all affected users
-  const notifications = await Promise.all(
-    user_ids.map(user_id =>
-      notifyAndLog({
-        tenant_id,
-        user_id,
-        title,
-        description,
-        type: 'system',
-        action_url,
-        action_label,
-        module
+export async function notifyAndLog(params: NotifyParams): Promise<{ success: boolean, data?: any, error?: string }> {
+  try {
+    // Create notification
+    const { data: notification, error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        title: params.title,
+        message: params.message,
+        tenant_id: params.tenant_id,
+        user_id: params.user_id,
+        type: params.type || 'info',
+        action_url: params.action_url,
+        action_label: params.action_label,
+        metadata: params.metadata || {}
       })
-    )
-  );
-  
-  return notifications;
+      .select()
+      .single();
+
+    // Log event to system logs
+    await logSystemEvent(
+      params.tenant_id,
+      'system', 
+      'notification_created',
+      {
+        notification_id: notification?.id,
+        title: params.title,
+        type: params.type,
+        user_id: params.user_id
+      }
+    );
+
+    // Handle notification creation error
+    if (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      return { success: false, error: notificationError.message };
+    }
+
+    return { success: true, data: notification };
+  } catch (err: any) {
+    console.error('Error in notifyAndLog:', err);
+    
+    try {
+      // Attempt to log the error
+      await logSystemEvent(
+        params.tenant_id || 'system',
+        'system',
+        'notification_creation_error',
+        {
+          title: params.title,
+          error: err.message
+        }
+      );
+    } catch (logErr) {
+      console.error('Failed to log notification error:', logErr);
+    }
+    
+    return { success: false, error: err.message || 'Unknown error in notification system' };
+  }
 }

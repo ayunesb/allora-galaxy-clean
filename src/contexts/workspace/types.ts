@@ -1,5 +1,4 @@
 
-import { ReactNode } from 'react';
 import { NavigationItem } from '@/types/navigation';
 import { UserRole } from '@/lib/auth/roleTypes';
 
