@@ -96,6 +96,16 @@ export default function StrategyBuilder() {
     }
   };
 
+  const getExecutionStatusIcon = () => {
+    if (!executionResult) return null;
+
+    if (executionResult.success) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    } else {
+      return <XCircle className="h-5 w-5 text-red-500" />;
+    }
+  };
+
   const handleExecuteStrategy = async () => {
     if (!id || !currentTenant?.id || !strategy) return;
 
@@ -108,7 +118,25 @@ export default function StrategyBuilder() {
         tenantId: currentTenant.id,
       });
 
-      setExecutionResult(result);
+      // Convert to the expected ExecuteStrategyResult type
+      const convertedResult = {
+        success: result.success,
+        error: result.error,
+        strategy_id: result.strategy_id,
+        execution_id: result.execution_id,
+        execution_time: result.execution_time,
+        outputs: result.outputs,
+        results: result.results,
+        logs: result.logs,
+        status: result.status as any,
+        message: result.message,
+        plugins_executed: result.plugins_executed,
+        successful_plugins: result.successful_plugins,
+        xp_earned: result.xp_earned,
+        data: result.data
+      };
+
+      setExecutionResult(convertedResult);
 
       if (result.success) {
         toast({
@@ -134,16 +162,6 @@ export default function StrategyBuilder() {
       });
     } finally {
       setIsExecuting(false);
-    }
-  };
-
-  const getExecutionStatusIcon = () => {
-    if (!executionResult) return null;
-
-    if (executionResult.success) {
-      return <CheckCircle className="h-5 w-5 text-green-500" />;
-    } else {
-      return <XCircle className="h-5 w-5 text-red-500" />;
     }
   };
 

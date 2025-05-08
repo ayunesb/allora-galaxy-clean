@@ -7,6 +7,7 @@ export interface VoteResult {
   error?: string;
   upvotes: number;
   downvotes: number;
+  message?: string; // Added missing property
 }
 
 export interface AgentVoteStats {
@@ -30,3 +31,7 @@ export interface UserVote {
   comment?: string;
   createdAt: string;
 }
+
+// Add missing interfaces required by other files
+export type UserVoteInfo = UserVote;
+export type VoteStats = AgentVoteStats;

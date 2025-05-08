@@ -1,47 +1,68 @@
 
-/**
- * Utility for creating text embeddings
- */
+// Remove unused parameter
+import { createClient } from '@supabase/supabase-js';
 
 /**
- * Generate an embedding vector for a text string
- * @param text Text to generate embedding for
- * @returns Promise that resolves to an embedding vector
+ * Calculate the similarity between two vectors using cosine similarity
  */
-export async function getEmbeddingForText(text: string): Promise<number[]> {
-  try {
-    // In a real implementation, this would call an embedding API like OpenAI
-    // For now, return a dummy vector
-    return Array.from({ length: 16 }, () => Math.random() - 0.5);
-  } catch (error) {
-    console.error('Error generating embedding:', error);
-    // Return a zero vector as fallback
-    return Array.from({ length: 16 }, () => 0);
-  }
-}
-
-/**
- * Calculate cosine similarity between two vectors
- * @param vectorA First vector
- * @param vectorB Second vector
- * @returns Similarity score (1 is identical, -1 is opposite, 0 is orthogonal)
- */
-export function calculateSimilarity(vectorA: number[], vectorB: number[]): number {
-  if (vectorA.length !== vectorB.length) {
-    throw new Error('Vectors must be of the same length');
+export function calculateSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error('Vectors must have the same length');
   }
   
-  // Calculate dot product
-  const dotProduct = vectorA.reduce((sum, a, i) => sum + a * vectorB[i], 0);
+  let dotProduct = 0;
+  let aMagnitude = 0;
+  let bMagnitude = 0;
   
-  // Calculate magnitudes
-  const magnitudeA = Math.sqrt(vectorA.reduce((sum, a) => sum + a * a, 0));
-  const magnitudeB = Math.sqrt(vectorB.reduce((sum, b) => sum + b * b, 0));
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    aMagnitude += a[i] * a[i];
+    bMagnitude += b[i] * b[i];
+  }
   
-  // Calculate cosine similarity
-  if (magnitudeA === 0 || magnitudeB === 0) {
+  aMagnitude = Math.sqrt(aMagnitude);
+  bMagnitude = Math.sqrt(bMagnitude);
+  
+  if (aMagnitude === 0 || bMagnitude === 0) {
     return 0;
   }
   
-  return dotProduct / (magnitudeA * magnitudeB);
+  return dotProduct / (aMagnitude * bMagnitude);
+}
+
+/**
+ * Generate embeddings for text using a model
+ * This is a placeholder function - in a real app, this would call an API
+ */
+export async function generateEmbeddings(model: string): Promise<number[]> {
+  // This is a placeholder implementation
+  // In a real app, you'd call an API like OpenAI to get embeddings
+  return Array.from({ length: 128 }, () => Math.random());
+}
+
+/**
+ * Search for documents in Supabase using vector similarity
+ */
+export async function searchVectorDocuments(
+  supabaseUrl: string,
+  supabaseKey: string,
+  query: number[],
+  tableName: string,
+  vectorColumnName: string,
+  limit: number = 5
+): Promise<any[]> {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // This is a placeholder for vector search using pgvector
+  // In a real implementation, you'd use the <-> operator for cosine distance
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .limit(limit);
+    
+  if (error) {
+    throw new Error(`Error searching documents: ${error.message}`);
+  }
+  
+  return data || [];
 }

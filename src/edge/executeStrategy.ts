@@ -1,68 +1,49 @@
 
+import { ExecuteStrategyInputSnakeCase, ExecuteStrategyResult } from '@/types/fixed';
 import { runStrategy } from '@/lib/strategy/runStrategy';
-import { ExecuteStrategyInput, ExecuteStrategyInputSnakeCase } from '@/types/fixed';
 
-interface ResponseData {
-  success: boolean;
-  execution_id?: string;
-  execution_time?: number;
-  error?: string;
-  data?: any;
-}
-
-export default async function executeStrategy(input: ExecuteStrategyInput | ExecuteStrategyInputSnakeCase): Promise<ResponseData> {
+// This is a wrapper around the runStrategy utility for the edge function
+export default async function executeStrategy(
+  input: ExecuteStrategyInputSnakeCase
+): Promise<ExecuteStrategyResult> {
+  const startTime = performance.now();
+  
   try {
-    // Start measuring time
-    const startTime = performance.now();
-
-    // Normalize input to camelCase for consistent handling
-    const normalizedInput: ExecuteStrategyInput = {
-      strategyId: (input as ExecuteStrategyInputSnakeCase).strategy_id || (input as ExecuteStrategyInput).strategyId,
-      tenantId: (input as ExecuteStrategyInputSnakeCase).tenant_id || (input as ExecuteStrategyInput).tenantId,
-      userId: (input as ExecuteStrategyInputSnakeCase).user_id || (input as ExecuteStrategyInput).userId,
-      options: input.options
-    };
-
-    // Validate required parameters
-    if (!normalizedInput?.strategyId) {
+    // Validate required inputs
+    if (!input.strategy_id) {
       return {
         success: false,
         error: 'Strategy ID is required',
-        execution_time: getMeasuredTime(startTime)
+        execution_time: (performance.now() - startTime) / 1000
       };
     }
 
-    if (!normalizedInput?.tenantId) {
+    if (!input.tenant_id) {
       return {
         success: false,
         error: 'Tenant ID is required',
-        execution_time: getMeasuredTime(startTime)
+        execution_time: (performance.now() - startTime) / 1000
       };
     }
 
-    // Execute the strategy
-    const result = await runStrategy(normalizedInput);
+    // Convert snake_case input to camelCase for the utility function
+    const result = await runStrategy({
+      strategyId: input.strategy_id,
+      tenantId: input.tenant_id,
+      userId: input.user_id,
+      options: input.options
+    });
 
-    // Return appropriate response
     return {
-      success: result.success,
-      error: result.error,
-      execution_id: result.execution_id,
-      execution_time: result.execution_time,
-      data: result.data
+      ...result,
+      execution_time: (performance.now() - startTime) / 1000
     };
-  } catch (error: any) {
-    // Handle unexpected errors
+  } catch (err: any) {
+    // Handle any unexpected errors
     return {
       success: false,
-      error: error.message || 'Unexpected error',
-      execution_time: 0
+      error: err.message || 'An unexpected error occurred',
+      execution_time: (performance.now() - startTime) / 1000
     };
   }
-}
-
-// Helper for measuring execution time
-function getMeasuredTime(startTime: number): number {
-  const endTime = performance.now();
-  return parseFloat(((endTime - startTime) / 1000).toFixed(3));
 }

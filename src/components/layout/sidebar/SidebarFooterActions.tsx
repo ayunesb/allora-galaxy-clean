@@ -26,8 +26,9 @@ export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isAc
   return (
     <div className="space-y-2 px-2">
       <SidebarMenuButton
-        active={isActive('/settings')}
-        tooltip="Settings"
+        // Removed 'active' prop and using className conditional instead
+        className={isActive('/settings') ? 'bg-primary/10' : ''}
+        label="Settings"
         onClick={() => handleNavigation('/settings')}
       >
         <Settings className="h-5 w-5" />

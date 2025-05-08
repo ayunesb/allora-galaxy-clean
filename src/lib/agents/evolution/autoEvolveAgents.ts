@@ -1,87 +1,87 @@
 
+// Remove unused variable 'performance'
+import { supabase } from '@/lib/supabase';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { getAgentsForEvolution } from './getAgentsForEvolution';
-import { getAgentUsageStats } from './getAgentUsageStats';
-import { calculateAgentPerformance } from './calculatePerformance';
-import { checkAgentEvolutionNeeded } from './checkEvolutionNeeded';
-import { getAgentFeedbackComments } from './getFeedbackComments';
+import { checkEvolutionNeeded } from './checkEvolutionNeeded';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgentVersion } from './deactivateOldAgent';
+import { deactivateOldAgent } from './deactivateOldAgent';
+import { calculatePerformance } from './calculatePerformance';
+import { getFeedbackComments } from './getFeedbackComments';
+import { getPluginsForOptimization } from './getPluginsForOptimization';
 
 /**
- * Auto-evolve all agents that need evolution
+ * Automatically evolves agents that meet criteria for evolution
+ * This is typically run on a schedule (e.g. daily)
  */
-export async function autoEvolveAgents(tenantId: string) {
+export async function autoEvolveAgents() {
   try {
-    // Get agents that need evolution
-    const agentsToEvolve = await getAgentsForEvolution();
+    // Get all agents that are candidates for evolution
+    const agents = await getAgentsForEvolution();
     
-    if (agentsToEvolve.length === 0) {
-      console.log('No agents need evolution');
-      return { evolved: 0, success: true };
+    if (!agents || agents.length === 0) {
+      console.log('No agents found that need evolution');
+      return {
+        success: true,
+        evolved: 0,
+        message: 'No agents found that need evolution'
+      };
     }
     
-    // Get usage stats for performance calculation
-    const usageStats = await getAgentUsageStats();
-    
-    // Process each agent
     let evolvedCount = 0;
     
-    for (const agent of agentsToEvolve) {
-      // Calculate agent performance
-      const performance = calculateAgentPerformance(
-        agent.id,
-        agent.upvotes || 0,
-        agent.downvotes || 0,
-        usageStats
-      );
+    // Process each agent
+    for (const agent of agents) {
+      // Check if this agent needs evolution based on various metrics
+      const needsEvolution = await checkEvolutionNeeded(agent.id);
       
-      // Double-check if evolution is needed
-      const needsEvolution = await checkAgentEvolutionNeeded(
-        agent.id, 
-        agent.upvotes || 0, 
-        agent.downvotes || 0
-      );
+      if (!needsEvolution) {
+        continue;
+      }
       
-      if (needsEvolution) {
-        // Get feedback comments
-        const comments = await getAgentFeedbackComments(agent.id);
-        
-        // Create evolved version
-        await createEvolvedAgent(
-          agent.plugin_id,
-          agent.prompt,
-          agent.version,
-          comments,
-          tenantId
-        );
-        
-        // Deactivate old version
-        await deactivateOldAgentVersion(agent.id);
-        
+      // Get the agent's usage stats and feedback
+      // Removed: const performance = await calculatePerformance(agent.id);
+      await calculatePerformance(agent.id); // Call but don't store the result since it's not used
+      const feedback = await getFeedbackComments(agent.id);
+      const relatedPlugins = await getPluginsForOptimization(agent.id);
+      
+      // Create a new evolved agent version
+      const newAgent = await createEvolvedAgent(agent.id, feedback, relatedPlugins);
+      
+      if (newAgent) {
+        // Deactivate the old agent version
+        await deactivateOldAgent(agent.id);
         evolvedCount++;
+        
+        // Log the evolution event
+        await logSystemEvent('agent', 'evolution', 'agent_evolved', {
+          old_agent_id: agent.id,
+          new_agent_id: newAgent.id,
+          plugin_id: agent.plugin_id,
+          feedback_count: feedback.length,
+          related_plugins: relatedPlugins.length
+        });
       }
     }
     
-    await logSystemEvent(
-      tenantId,
-      'system',
-      'auto_evolve_completed',
-      { evolved_count: evolvedCount, total_checked: agentsToEvolve.length }
-    );
-    
-    return { evolved: evolvedCount, success: true };
+    return {
+      success: true,
+      evolved: evolvedCount,
+      message: `Successfully evolved ${evolvedCount} agents`
+    };
   } catch (error: any) {
-    console.error('Error during auto-evolution:', error);
+    console.error('Error in autoEvolveAgents:', error);
     
     // Log the error
-    await logSystemEvent(
-      tenantId,
-      'system',
-      'auto_evolve_error',
-      { error: error.message || 'Unknown error' }
-    );
+    await logSystemEvent('agent', 'evolution', 'agent_evolution_error', {
+      error: error.message
+    });
     
-    return { evolved: 0, success: false, error: error.message };
+    return {
+      success: false,
+      evolved: 0,
+      error: error.message,
+      message: 'Failed to evolve agents'
+    };
   }
 }

@@ -1,340 +1,210 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useTenantId } from '@/hooks/useTenantId';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { CalendarIcon, Clock, FileText, Search } from 'lucide-react';
+import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { AdminGuard } from '@/components/guards/AdminGuard';
-import PromptDiffViewer from '@/components/PromptDiffViewer';
+import { Input } from '@/components/ui/input';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface AiDecision {
-  id: string;
-  strategy_id: string;
-  plugin_id: string;
-  agent_version_id: string;
-  decision_type: string;
-  prompt: string;
-  reasoning: string;
-  created_at: string;
-  executed_by?: string;
-  output?: any;
-}
-
-const AiDecisions: React.FC = () => {
-  const [decisions, setDecisions] = useState<AiDecision[]>([]);
-  const [activeTab, setActiveTab] = useState<string>('strategy');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedPlugin, setSelectedPlugin] = useState<string>('');
-  const [plugins, setPlugins] = useState<{id: string, name: string}[]>([]);
-  const [selectedPrompt, setSelectedPrompt] = useState<AiDecision | null>(null);
-  
-  const tenantId = useTenantId();
+export default function AiDecisions() {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Load plugins for the filter dropdown
-  const loadPlugins = async () => {
-    if (!tenantId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('plugins')
-        .select('id, name')
-        .eq('tenant_id', tenantId);
-      
-      if (error) throw error;
-      setPlugins(data || []);
-    } catch (err: any) {
-      console.error('Error loading plugins:', err);
+  const { currentTenant } = useWorkspace();
+  const [decisions, setDecisions] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState('all');
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  React.useEffect(() => {
+    if (currentTenant?.id) {
+      fetchDecisions();
     }
-  };
-  
-  const loadAiDecisions = async () => {
+  }, [currentTenant?.id, activeTab]);
+
+  const fetchDecisions = async () => {
     try {
       setLoading(true);
-      setError(null);
       
-      if (!tenantId) {
-        throw new Error('No tenant selected');
-      }
-      
-      // This is a placeholder - in a real implementation, there would be a dedicated
-      // ai_decisions table. For now, we're using executions with filters.
       let query = supabase
-        .from('executions')
-        .select(`
-          id,
-          strategy_id,
-          plugin_id,
-          agent_version_id,
-          type as decision_type,
-          input:input->prompt,
-          output:output->reasoning,
-          created_at,
-          executed_by,
-          output
-        `)
-        .eq('tenant_id', tenantId)
-        .eq('type', activeTab)
-        .order('created_at', { ascending: false });
-        
-      if (selectedPlugin) {
-        query = query.eq('plugin_id', selectedPlugin);
+        .from('ai_decisions')
+        .select('*')
+        .eq('tenant_id', currentTenant?.id);
+      
+      if (activeTab !== 'all') {
+        query = query.eq('category', activeTab);
       }
       
-      const { data, error: decisionsError } = await query.limit(50);
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(100);
       
-      if (decisionsError) throw decisionsError;
-      setDecisions(data as unknown as AiDecision[] || []);
+      if (error) throw error;
       
+      setDecisions(data || []);
     } catch (err: any) {
-      console.error('Error loading AI decisions:', err);
-      setError(err.message);
+      console.error('Error fetching AI decisions:', err);
       toast({
-        title: 'Error loading AI decisions',
-        description: err.message,
+        title: 'Error',
+        description: 'Failed to load AI decisions',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
-  
-  useEffect(() => {
-    if (tenantId) {
-      loadPlugins();
-      loadAiDecisions();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) {
+      fetchDecisions();
+      return;
     }
-  }, [tenantId, activeTab, selectedPlugin]);
-  
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    
+    const filteredDecisions = decisions.filter(
+      (decision) =>
+        decision.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        decision.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        decision.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    setDecisions(filteredDecisions);
   };
-  
-  const getDecisionTypeBadge = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'strategy':
-        return <Badge className="bg-blue-500">Strategy</Badge>;
-      case 'plugin':
-        return <Badge className="bg-purple-500">Plugin</Badge>;
-      case 'agent':
-        return <Badge className="bg-yellow-500">Agent</Badge>;
-      default:
-        return <Badge>{type}</Badge>;
-    }
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchQuery('');
   };
-  
-  const handlePromptClick = (decision: AiDecision) => {
-    setSelectedPrompt(decision);
+
+  const handleViewDecision = (id: string) => {
+    navigate(`/admin/ai-decisions/${id}`);
   };
-  
-  const clearPromptSelection = () => {
-    setSelectedPrompt(null);
+
+  const getCategoryBadge = (category: string) => {
+    const categories: Record<string, { color: string; label: string }> = {
+      strategy: { color: 'bg-blue-100 text-blue-800', label: 'Strategy' },
+      content: { color: 'bg-green-100 text-green-800', label: 'Content' },
+      marketing: { color: 'bg-purple-100 text-purple-800', label: 'Marketing' },
+      product: { color: 'bg-yellow-100 text-yellow-800', label: 'Product' },
+      support: { color: 'bg-red-100 text-red-800', label: 'Support' },
+    };
+
+    const categoryInfo = categories[category.toLowerCase()] || {
+      color: 'bg-gray-100 text-gray-800',
+      label: category,
+    };
+
+    return (
+      <Badge className={`${categoryInfo.color}`}>
+        {categoryInfo.label}
+      </Badge>
+    );
   };
-  
+
   return (
-    <AdminGuard>
-      <div className="container mx-auto py-8">
-        <Card className={selectedPrompt ? 'hidden md:block' : 'block'}>
-          <CardHeader>
-            <CardTitle>AI Decisions</CardTitle>
-            <CardDescription>
-              Review AI decision history, reasoning, and prompts used across the system.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-                <TabsList>
-                  <TabsTrigger value="strategy">Strategy Decisions</TabsTrigger>
-                  <TabsTrigger value="plugin">Plugin Decisions</TabsTrigger>
-                  <TabsTrigger value="agent">Agent Decisions</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="w-full sm:w-auto">
-                  <Select value={selectedPlugin} onValueChange={setSelectedPlugin}>
-                    <SelectTrigger className="w-full sm:w-[200px]">
-                      <SelectValue placeholder="Filter by plugin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All plugins</SelectItem>
-                      {plugins.map(plugin => (
-                        <SelectItem key={plugin.id} value={plugin.id}>
-                          {plugin.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button variant="outline" onClick={() => setSelectedPlugin('')}>
-                  Clear filter
-                </Button>
-                
-                <Button variant="outline" onClick={loadAiDecisions}>
-                  <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-                </Button>
-              </div>
-            </div>
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">AI Decisions</h1>
+        <Button onClick={() => navigate('/admin')}>Back to Admin</Button>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle>Filter Decisions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full md:w-auto">
+              <TabsList className="grid grid-cols-3 md:grid-cols-5">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="strategy">Strategy</TabsTrigger>
+                <TabsTrigger value="content">Content</TabsTrigger>
+                <TabsTrigger value="marketing">Marketing</TabsTrigger>
+                <TabsTrigger value="product">Product</TabsTrigger>
+              </TabsList>
+            </Tabs>
             
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Prompt</TableHead>
-                    <TableHead>Reasoning</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        <div className="flex justify-center">
-                          <RefreshCw className="h-6 w-6 animate-spin text-gray-500" />
-                        </div>
-                        <p className="mt-2 text-gray-500">Loading decisions...</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : decisions.length ? (
-                    decisions.map((decision) => (
-                      <TableRow key={decision.id}>
-                        <TableCell className="font-mono text-xs">
-                          {formatDate(decision.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          {getDecisionTypeBadge(decision.decision_type)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-h-20 overflow-y-auto text-xs">
-                            {decision.prompt ? (
-                              decision.prompt.substring(0, 100) + 
-                              (decision.prompt.length > 100 ? '...' : '')
-                            ) : (
-                              <span className="text-gray-500 italic">No prompt data</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-h-20 overflow-y-auto text-xs">
-                            {decision.reasoning ? (
-                              decision.reasoning.substring(0, 100) + 
-                              (decision.reasoning.length > 100 ? '...' : '')
-                            ) : (
-                              <span className="text-gray-500 italic">No reasoning data</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handlePromptClick(decision)}
-                          >
-                            View Details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        <p className="text-gray-500">No AI decisions found</p>
-                        <p className="text-sm text-gray-400 mt-1">
-                          Try changing filters or run AI operations to generate decisions
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <form onSubmit={handleSearch} className="flex w-full md:w-auto">
+              <Input
+                placeholder="Search decisions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="mr-2"
+              />
+              <Button type="submit" variant="secondary">
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
+
+      {loading ? (
+        <div className="space-y-4">
+          {Array(5)
+            .fill(0)
+            .map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+        </div>
+      ) : decisions.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium mb-2">No decisions found</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              {searchQuery
+                ? "No decisions match your search criteria. Try a different search term."
+                : "There are no AI decisions recorded for this category yet."}
+            </p>
           </CardContent>
         </Card>
-        
-        {selectedPrompt && (
-          <Card className="mt-6 md:mt-0">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Decision Details</CardTitle>
-                <CardDescription>
-                  AI decision information and prompt analysis
-                </CardDescription>
-              </div>
-              <Button variant="ghost" onClick={clearPromptSelection}>
-                Back to List
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-medium mb-2">Decision ID</h3>
-                  <p className="text-sm font-mono bg-gray-50 p-2 rounded">{selectedPrompt.id}</p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Prompt</h3>
-                  <div className="bg-gray-50 p-4 rounded max-h-60 overflow-y-auto">
-                    <pre className="text-xs whitespace-pre-wrap">{selectedPrompt.prompt}</pre>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Reasoning</h3>
-                  <div className="bg-gray-50 p-4 rounded max-h-60 overflow-y-auto">
-                    <pre className="text-xs whitespace-pre-wrap">{selectedPrompt.reasoning}</pre>
-                  </div>
-                </div>
-                
-                {selectedPrompt.output && (
+      ) : (
+        <div className="space-y-4">
+          {decisions.map((decision) => (
+            <Card key={decision.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium mb-2">Complete Output</h3>
-                    <div className="bg-gray-50 p-4 rounded max-h-60 overflow-y-auto">
-                      <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(selectedPrompt.output, null, 2)}</pre>
+                    <h3 className="text-lg font-medium mb-1">{decision.title}</h3>
+                    <p className="text-muted-foreground line-clamp-2 mb-3">
+                      {decision.description}
+                    </p>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        <span>
+                          {format(new Date(decision.created_at), 'MMM d, yyyy')}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <CalendarIcon className="h-4 w-4 mr-1" />
+                        <span>
+                          {format(new Date(decision.created_at), 'h:mm a')}
+                        </span>
+                      </div>
+                      {getCategoryBadge(decision.category)}
                     </div>
                   </div>
-                )}
-                
-                {/* Add PromptDiffViewer integration if there are two prompts to compare */}
-                {/* <PromptDiffViewer oldPrompt={...} newPrompt={...} /> */}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </AdminGuard>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewDecision(decision.id)}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
-};
-
-export default AiDecisions;
+}

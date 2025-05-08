@@ -1,106 +1,86 @@
 
-import { v4 as uuid } from 'uuid';
-import { PluginResult } from '@/types/fixed';
-import { supabase } from '@/integrations/supabase/client';
-
-export type PluginFunction = (input: any) => Promise<any>;
+// Remove unused imports and fix unused parameters
+import { supabase } from '@/lib/supabase';
+import { Plugin } from '@/types/plugin';
 
 /**
- * Validates a strategy exists and belongs to the tenant
- * @param strategyId The strategy ID to validate
- * @param tenantId The tenant ID for validation
- * @returns Validation result with strategy data or error
+ * Fetch plugins available to a tenant
  */
-export const validateStrategy = async (strategyId: string, tenantId: string) => {
+export async function fetchAvailablePlugins(tenantId: string): Promise<Plugin[]> {
   try {
-    const { data, error } = await supabase
-      .from('strategies')
-      .select('id, title, status')
-      .eq('id', strategyId)
-      .eq('tenant_id', tenantId)
-      .maybeSingle();
-    
-    if (error) {
-      return { valid: false, error: error.message, strategy: null };
-    }
-    
-    if (!data) {
-      return { valid: false, error: 'Strategy not found', strategy: null };
-    }
-    
-    return { valid: true, strategy: data, error: null };
-  } catch (error: any) {
-    return { valid: false, error: error.message, strategy: null };
-  }
-};
-
-/**
- * Fetches plugins associated with a strategy
- * @param strategyId The strategy ID
- * @returns Plugins array or error
- */
-export const fetchPluginsForStrategy = async (strategyId: string) => {
-  try {
-    // This is a simplified implementation
-    // In a real application, you would have a proper relationship between strategies and plugins
     const { data, error } = await supabase
       .from('plugins')
       .select('*')
-      .eq('status', 'active')
-      .limit(3);
+      .eq('tenant_id', tenantId)
+      .or('tenant_id.is.null')
+      .eq('status', 'active');
       
     if (error) {
-      return { plugins: null, error: error.message };
+      throw error;
     }
     
-    return { plugins: data, error: null };
-  } catch (error: any) {
-    return { plugins: null, error: error.message };
+    return data;
+  } catch (err) {
+    console.error('Error fetching plugins:', err);
+    return [];
   }
-};
+}
 
 /**
- * Executes a plugin function and returns a standardized result
- * @param pluginId Plugin identifier
- * @param pluginFn Plugin function to execute
- * @param input Input data for the plugin
- * @returns Plugin execution result
+ * Get the latest agent version for a plugin
  */
-export const executePlugin = async (
-  pluginId: string,
-  pluginFn: PluginFunction,
-  input: any,
-): Promise<PluginResult> => {
-  const startTime = Date.now();
+export async function getLatestAgentVersion(pluginId: string) {
   try {
-    const output = await pluginFn(input);
+    const { data, error } = await supabase
+      .from('agent_versions')
+      .select('*')
+      .eq('plugin_id', pluginId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (error) {
+      throw error;
+    }
     
-    return {
-      pluginId,
-      status: 'success',
-      output,
-      executionTime: (Date.now() - startTime) / 1000,
-      xpEarned: 10 // Default XP for successful execution
-    };
-  } catch (error: any) {
-    return {
-      pluginId,
-      status: 'failure',
-      error: error.message || 'Unknown error',
-      executionTime: (Date.now() - startTime) / 1000,
-      xpEarned: 0
-    };
+    return data;
+  } catch (err) {
+    console.error('Error fetching latest agent version:', err);
+    return null;
   }
-};
+}
 
 /**
- * Validates a plugin's basic properties
- * @param plugin Plugin to validate
- * @returns true if valid, throws error if invalid
+ * Calculate plugin execution success rate
  */
-export const validatePlugin = (plugin: any) => {
-  if (!plugin) throw new Error('Plugin not found');
-  if (!plugin.name) throw new Error('Plugin has no name');
-  if (plugin.status !== 'active') throw new Error('Plugin is not active');
-  return true;
-};
+export async function calculatePluginSuccessRate(pluginId: string, tenantId: string): Promise<number> {
+  try {
+    // Get total executions
+    const { data: totalData, error: totalError } = await supabase
+      .from('plugin_logs')
+      .select('count', { count: 'exact' })
+      .eq('plugin_id', pluginId)
+      .eq('tenant_id', tenantId);
+      
+    if (totalError) throw totalError;
+    
+    // Get successful executions
+    const { data: successData, error: successError } = await supabase
+      .from('plugin_logs')
+      .select('count', { count: 'exact' })
+      .eq('plugin_id', pluginId)
+      .eq('tenant_id', tenantId)
+      .eq('status', 'success');
+      
+    if (successError) throw successError;
+    
+    const total = totalData[0]?.count || 0;
+    const success = successData[0]?.count || 0;
+    
+    return total > 0 ? (success / total) * 100 : 0;
+  } catch (err) {
+    console.error('Error calculating plugin success rate:', err);
+    return 0;
+  }
+}

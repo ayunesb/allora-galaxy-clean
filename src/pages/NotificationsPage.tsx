@@ -1,126 +1,36 @@
 
 import React, { useState } from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
-import NotificationTabs from '@/components/notifications/NotificationTabs';
-import NotificationFilters, { NotificationType } from '@/components/notifications/NotificationFilters';
-import NotificationsPageHeader from '@/components/notifications/NotificationsPageHeader';
-import { Card } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
-import { useNotificationActions } from '@/hooks/useNotificationActions';
-import PageHelmet from '@/components/PageHelmet';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+// Replace the problematic import with the components directly
+import { NotificationsContainer } from '@/components/notifications/NotificationsContainer';
+import { NotificationsPageHeader } from '@/components/notifications/NotificationsPageHeader';
 
-const NotificationsPage: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState('all');
-  const [typeFilter, setTypeFilter] = useState<NotificationType>('all');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { notifications, loading } = useNotificationsContext();
-  const { markAllAsRead, deleteNotification, refreshNotifications } = useNotificationActions();
-  
-  // Filter notifications based on selected type
-  const filteredNotifications = React.useMemo(() => {
-    return notifications.filter(notification => {
-      if (typeFilter === 'all') return true;
-      return notification.type === typeFilter;
-    }).map(notification => ({
-      id: notification.id,
-      title: notification.title,
-      message: notification.description || '',
-      timestamp: notification.created_at,
-      read: notification.is_read || false,
-      type: notification.type,
-      action_url: notification.action_url,
-      action_label: notification.action_label
-    }));
-  }, [notifications, typeFilter]);
-  
-  const handleDeleteAll = async () => {
-    try {
-      setIsLoading(true);
-      
-      // In a real implementation, you would call a function to delete all notifications
-      // For now, we'll mock it with a toast
-      toast({
-        title: "Deleting notifications",
-        description: "Working on clearing your notifications..."
-      });
-      
-      // Delete each notification individually
-      for (const notification of filteredNotifications) {
-        await deleteNotification(notification.id);
-      }
-      
-      toast({
-        title: "Notifications cleared",
-        description: `Successfully cleared ${filteredNotifications.length} notifications.`,
-        variant: "default",
-        className: "border-green-600 bg-green-50 dark:bg-green-950/30"
-      });
+// Define internal type for notification filtering
+export type NotificationType = 'all' | 'unread' | 'system' | 'alerts';
 
-      // Refresh the list
-      await refreshNotifications();
-      
-    } catch (error) {
-      console.error('Error deleting notifications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete notifications",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleMarkAllAsRead = async () => {
-    try {
-      setIsLoading(true);
-      await markAllAsRead();
-      
-      toast({
-        title: "Notifications marked as read",
-        description: "All notifications have been marked as read.",
-        variant: "default",
-        className: "border-green-600 bg-green-50 dark:bg-green-950/30"
-      });
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-      toast({
-        title: "Error",
-        description: "Failed to mark notifications as read",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+export default function NotificationsPage() {
+  const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = useState<NotificationType>('all');
+
   return (
-    <div className="container py-6 space-y-6">
-      <PageHelmet 
-        title="Notifications" 
-        description="View and manage your notifications"
-      />
-      
-      <NotificationsPageHeader
-        filter={typeFilter}
-        setFilter={setTypeFilter}
-        onMarkAllAsRead={handleMarkAllAsRead}
-        onDeleteAll={handleDeleteAll}
-      />
-      
-      <Card className="overflow-hidden">
-        <NotificationTabs
-          selectedTab={selectedTab}
-          setSelectedTab={setSelectedTab}
-          notifications={filteredNotifications}
-          loading={loading || isLoading}
-          markAsRead={markAllAsRead}
-          onDelete={deleteNotification}
+    <div className="container mx-auto py-6 max-w-4xl">
+      <div className="flex items-center mb-6">
+        <Button variant="ghost" className="mr-2" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <h1 className="text-2xl font-bold">Notifications</h1>
+      </div>
+
+      <div className="bg-background rounded-lg border shadow-sm">
+        <NotificationsPageHeader 
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
         />
-      </Card>
+        <NotificationsContainer filter={activeFilter} />
+      </div>
     </div>
   );
-};
-
-export default NotificationsPage;
+}

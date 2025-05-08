@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Card, 
@@ -19,11 +18,13 @@ import { Label } from '@/components/ui/label';
 import { 
   type CompanyInfoStepProps 
 } from '../StepContent';
+import { FormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { OnboardingFormData } from '@/types/onboarding';
 
-const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ 
-  formData, 
-  updateFormData,
-  setFieldValue
+const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({
+  formData,
+  setFieldValue,
 }) => {
   const companySizes = [
     '1-10 employees',

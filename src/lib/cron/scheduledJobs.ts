@@ -1,287 +1,237 @@
 
-import { supabase } from '@/integrations/supabase/client';
+// Remove unused variable 'cronSyntax'
+import { supabase } from '@/lib/supabase';
+import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-interface JobDefinition {
-  id: string;
-  name: string;
-  description: string;
-  schedule: string; // cron syntax
-  enabled: boolean;
-  last_run?: string;
-  next_run?: string;
-  function_name: string;
-  tenant_id: string;
+/**
+ * Initialize all scheduled jobs
+ * This is typically called when the application starts
+ */
+export async function initializeScheduledJobs() {
+  try {
+    await setupKpiUpdateJob();
+    await setupMqlSyncJob();
+    await setupAutoEvolveJob();
+    await setupLogCleanupJob();
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error initializing scheduled jobs:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 /**
- * Register a new scheduled job in the system
+ * Setup the daily KPI update job
  */
-export async function registerScheduledJob(job: Omit<JobDefinition, 'id'>): Promise<string | null> {
+async function setupKpiUpdateJob() {
   try {
-    // Calculate next run time based on cron syntax (simplified)
-    const nextRun = calculateNextRunTime(job.schedule);
-    
-    const { data, error } = await supabase
-      .from('scheduled_jobs')
-      .insert({
-        ...job,
-        next_run: nextRun.toISOString()
-      })
-      .select()
+    // Check if job already exists
+    const { data: existingJob, error: checkError } = await supabase
+      .from('cron_jobs')
+      .select('id')
+      .eq('name', 'update_kpis_daily')
       .single();
       
-    if (error) {
-      console.error("Error registering scheduled job:", error);
-      
-      await logSystemEvent(
-        job.tenant_id,
-        'cron',
-        'job_registration_failed',
-        { name: job.name, error: error.message }
-      );
-      
-      return null;
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
     }
     
-    await logSystemEvent(
-      job.tenant_id,
-      'cron',
-      'job_registered',
-      { name: job.name, schedule: job.schedule, function: job.function_name }
-    );
-    
-    return data.id;
-  } catch (err: any) {
-    console.error("Unexpected error in registerScheduledJob:", err);
-    return null;
-  }
-}
-
-/**
- * Pause a scheduled job
- */
-export async function pauseScheduledJob(jobId: string, tenant_id: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('scheduled_jobs')
-      .update({ enabled: false })
-      .eq('id', jobId)
-      .eq('tenant_id', tenant_id);
-      
-    if (error) {
-      console.error("Error pausing scheduled job:", error);
-      
-      await logSystemEvent(
-        tenant_id,
-        'cron',
-        'job_pause_failed',
-        { job_id: jobId, error: error.message }
-      );
-      
-      return false;
+    if (existingJob) {
+      console.log('KPI update job already exists, skipping setup');
+      return;
     }
     
-    await logSystemEvent(
-      tenant_id,
-      'cron',
-      'job_paused',
-      { job_id: jobId }
-    );
-    
-    return true;
-  } catch (err: any) {
-    console.error("Unexpected error in pauseScheduledJob:", err);
-    return false;
-  }
-}
-
-/**
- * Resume a paused scheduled job
- */
-export async function resumeScheduledJob(jobId: string, tenant_id: string): Promise<boolean> {
-  try {
-    // Calculate next run time
-    const { data: job, error: fetchError } = await supabase
-      .from('scheduled_jobs')
-      .select('schedule')
-      .eq('id', jobId)
-      .single();
-      
-    if (fetchError) {
-      console.error("Error fetching job schedule:", fetchError);
-      return false;
-    }
-    
-    const nextRun = calculateNextRunTime(job.schedule);
-    
-    const { error } = await supabase
-      .from('scheduled_jobs')
-      .update({ 
-        enabled: true,
-        next_run: nextRun.toISOString()
-      })
-      .eq('id', jobId)
-      .eq('tenant_id', tenant_id);
-      
-    if (error) {
-      console.error("Error resuming scheduled job:", error);
-      
-      await logSystemEvent(
-        tenant_id,
-        'cron',
-        'job_resume_failed',
-        { job_id: jobId, error: error.message }
-      );
-      
-      return false;
-    }
-    
-    await logSystemEvent(
-      tenant_id,
-      'cron',
-      'job_resumed',
-      { job_id: jobId }
-    );
-    
-    return true;
-  } catch (err: any) {
-    console.error("Unexpected error in resumeScheduledJob:", err);
-    return false;
-  }
-}
-
-/**
- * Delete a scheduled job
- */
-export async function deleteScheduledJob(jobId: string, tenant_id: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('scheduled_jobs')
-      .delete()
-      .eq('id', jobId)
-      .eq('tenant_id', tenant_id);
-      
-    if (error) {
-      console.error("Error deleting scheduled job:", error);
-      
-      await logSystemEvent(
-        tenant_id,
-        'cron',
-        'job_deletion_failed',
-        { job_id: jobId, error: error.message }
-      );
-      
-      return false;
-    }
-    
-    await logSystemEvent(
-      tenant_id,
-      'cron',
-      'job_deleted',
-      { job_id: jobId }
-    );
-    
-    return true;
-  } catch (err: any) {
-    console.error("Unexpected error in deleteScheduledJob:", err);
-    return false;
-  }
-}
-
-/**
- * Trigger a job to run immediately
- */
-export async function triggerJobNow(jobId: string, tenant_id: string): Promise<boolean> {
-  try {
-    // Get the job details
-    const { data: job, error: fetchError } = await supabase
-      .from('scheduled_jobs')
-      .select('function_name')
-      .eq('id', jobId)
-      .eq('tenant_id', tenant_id)
-      .single();
-      
-    if (fetchError) {
-      console.error("Error fetching job details:", fetchError);
-      return false;
-    }
-    
-    // Call the edge function
-    const { error } = await supabase.functions.invoke(job.function_name, {
-      body: JSON.stringify({ 
-        tenant_id,
-        triggered_manually: true,
-        job_id: jobId
-      })
+    // Create the daily KPI update job (midnight UTC)
+    const { error } = await supabase.rpc('create_cron_job', {
+      job_name: 'update_kpis_daily',
+      schedule: '0 0 * * *',
+      function_name: 'updateKPIs',
+      parameters: {}
     });
     
-    if (error) {
-      console.error("Error triggering job function:", error);
-      
-      await logSystemEvent(
-        tenant_id,
-        'cron',
-        'job_manual_trigger_failed',
-        { job_id: jobId, error: String(error) }
-      );
-      
-      return false;
-    }
+    if (error) throw error;
     
-    // Update last_run time
-    await supabase
-      .from('scheduled_jobs')
-      .update({ last_run: new Date().toISOString() })
-      .eq('id', jobId);
-    
-    await logSystemEvent(
-      tenant_id,
-      'cron',
-      'job_manually_triggered',
-      { job_id: jobId }
-    );
-    
-    return true;
-  } catch (err: any) {
-    console.error("Unexpected error in triggerJobNow:", err);
-    return false;
+    await logSystemEvent('system', 'cron', 'kpi_update_job_created', {});
+  } catch (error) {
+    console.error('Error setting up KPI update job:', error);
+    throw error;
   }
 }
 
 /**
- * Calculate next run time based on cron syntax (simplified)
- * In a real implementation, use a proper cron parser library
+ * Setup the weekly MQL sync job
  */
-function calculateNextRunTime(cronSyntax: string): Date {
-  // This is a simplified placeholder implementation
-  // In a real system, you would use a proper cron parser
-  
-  // For now, just add 1 day to current time as placeholder
-  const nextRun = new Date();
-  nextRun.setDate(nextRun.getDate() + 1);
-  return nextRun;
+async function setupMqlSyncJob() {
+  try {
+    // Check if job already exists
+    const { data: existingJob, error: checkError } = await supabase
+      .from('cron_jobs')
+      .select('id')
+      .eq('name', 'sync_mqls_weekly')
+      .single();
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+    
+    if (existingJob) {
+      console.log('MQL sync job already exists, skipping setup');
+      return;
+    }
+    
+    // Create the weekly MQL sync job (Monday 6am UTC)
+    const { error } = await supabase.rpc('create_cron_job', {
+      job_name: 'sync_mqls_weekly',
+      schedule: '0 6 * * 1',
+      function_name: 'syncMQLs',
+      parameters: {}
+    });
+    
+    if (error) throw error;
+    
+    await logSystemEvent('system', 'cron', 'mql_sync_job_created', {});
+  } catch (error) {
+    console.error('Error setting up MQL sync job:', error);
+    throw error;
+  }
 }
 
 /**
- * List all scheduled jobs for a tenant
+ * Setup the daily agent auto-evolution job
  */
-export async function listScheduledJobs(tenant_id: string): Promise<JobDefinition[]> {
+async function setupAutoEvolveJob() {
   try {
-    const { data, error } = await supabase
-      .from('scheduled_jobs')
-      .select('*')
-      .eq('tenant_id', tenant_id)
-      .order('name');
+    // Check if job already exists
+    const { data: existingJob, error: checkError } = await supabase
+      .from('cron_jobs')
+      .select('id')
+      .eq('name', 'auto_evolve_agents_daily')
+      .single();
       
-    if (error) {
-      console.error("Error listing scheduled jobs:", error);
-      return [];
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
     }
     
-    return data || [];
-  } catch (err: any) {
-    console.error("Unexpected error in listScheduledJobs:", err);
-    return [];
+    if (existingJob) {
+      console.log('Agent evolution job already exists, skipping setup');
+      return;
+    }
+    
+    // Create the daily agent evolution job (3am UTC)
+    const { error } = await supabase.rpc('create_cron_job', {
+      job_name: 'auto_evolve_agents_daily',
+      schedule: '0 3 * * *',
+      function_name: 'autoEvolveAgents',
+      parameters: {}
+    });
+    
+    if (error) throw error;
+    
+    await logSystemEvent('system', 'cron', 'agent_evolution_job_created', {});
+  } catch (error) {
+    console.error('Error setting up agent evolution job:', error);
+    throw error;
+  }
+}
+
+/**
+ * Setup the weekly log cleanup job
+ */
+async function setupLogCleanupJob() {
+  try {
+    // Check if job already exists
+    const { data: existingJob, error: checkError } = await supabase
+      .from('cron_jobs')
+      .select('id')
+      .eq('name', 'cleanup_old_execution_logs')
+      .single();
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+    
+    if (existingJob) {
+      console.log('Log cleanup job already exists, skipping setup');
+      return;
+    }
+    
+    // Create the weekly log cleanup job (Sunday 2am UTC)
+    const { error } = await supabase.rpc('create_cron_job', {
+      job_name: 'cleanup_old_execution_logs',
+      schedule: '0 2 * * 0',
+      function_name: 'cleanupLogs',
+      parameters: { retention_days: 30 }
+    });
+    
+    if (error) throw error;
+    
+    await logSystemEvent('system', 'cron', 'log_cleanup_job_created', {});
+  } catch (error) {
+    console.error('Error setting up log cleanup job:', error);
+    throw error;
+  }
+}
+
+/**
+ * Setup a custom scheduled job
+ */
+export async function createScheduledJob(
+  name: string,
+  schedule: string,
+  functionName: string,
+  parameters: Record<string, any> = {}
+) {
+  try {
+    // Validate the job name
+    if (!name || name.trim() === '') {
+      throw new Error('Job name is required');
+    }
+    
+    // Validate the schedule (basic validation)
+    if (!schedule || schedule.trim() === '') {
+      throw new Error('Schedule is required');
+    }
+    
+    // Check if job already exists
+    const { data: existingJob, error: checkError } = await supabase
+      .from('cron_jobs')
+      .select('id')
+      .eq('name', name)
+      .single();
+      
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+    
+    if (existingJob) {
+      throw new Error(`Job with name "${name}" already exists`);
+    }
+    
+    // Create the scheduled job
+    const { error } = await supabase.rpc('create_cron_job', {
+      job_name: name,
+      schedule: schedule, // e.g., '0 0 * * *' for daily at midnight
+      function_name: functionName,
+      parameters: parameters
+    });
+    
+    if (error) throw error;
+    
+    await logSystemEvent('system', 'cron', 'custom_job_created', {
+      job_name: name,
+      schedule: schedule,
+      function: functionName
+    });
+    
+    return { success: true, name, schedule, functionName };
+  } catch (error: any) {
+    console.error('Error creating scheduled job:', error);
+    await logSystemEvent('system', 'cron', 'custom_job_creation_failed', {
+      job_name: name,
+      error: error.message
+    });
+    return { success: false, error: error.message };
   }
 }

@@ -1,10 +1,10 @@
 
 // Shared types used across the application
-export type VoteType = 'up' | 'down';
+export type VoteType = 'up' | 'down' | 'neutral';
 
-export type LogStatus = 'success' | 'failure' | 'partial' | 'pending';
+export type LogStatus = 'success' | 'failure' | 'partial' | 'pending' | 'running' | 'error' | 'warning';
 
-export type StrategyStatus = 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed';
+export type StrategyStatus = 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'draft';
 
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
@@ -31,3 +31,6 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
+
+// Add missing status type for StrategyBuilder
+export type StrategyExecutionStatus = 'pending' | 'running' | 'success' | 'failed' | 'partial';

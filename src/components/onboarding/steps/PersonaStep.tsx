@@ -1,173 +1,153 @@
-
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+import { FormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { OnboardingFormData } from '@/types/onboarding';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import { type PersonaStepProps } from '../StepContent';
+import { Plus, X } from 'lucide-react';
 
-const PersonaStep: React.FC<PersonaStepProps> = ({ 
+interface PersonaStepProps {
+  formData: OnboardingFormData;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+}
+
+const PersonaStep: React.FC<PersonaStepProps> = ({
   formData,
   updateFormData,
-  setFieldValue
 }) => {
   const [newGoal, setNewGoal] = React.useState('');
 
-  const toneOptions = [
-    'Professional',
-    'Casual',
-    'Friendly',
-    'Authoritative',
-    'Technical',
-    'Inspirational',
-    'Educational',
-    'Persuasive'
-  ];
-
-  // Add a new goal to the persona
-  const addGoal = () => {
-    if (!newGoal.trim()) return;
-    
-    const updatedGoals = [...(formData.persona?.goals || []), newGoal];
-    
-    updateFormData({
-      persona: {
-        ...formData.persona,
-        goals: updatedGoals
-      }
-    });
-    
-    setNewGoal('');
-  };
-
-  // Remove a goal from the persona
-  const removeGoal = (index: number) => {
-    const updatedGoals = [...(formData.persona?.goals || [])];
-    updatedGoals.splice(index, 1);
-    
-    updateFormData({
-      persona: {
-        ...formData.persona,
-        goals: updatedGoals
-      }
-    });
-  };
-
-  // Handle key press for adding goals
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addGoal();
+  const handleAddGoal = () => {
+    if (newGoal.trim() !== '') {
+      updateFormData({
+        persona: {
+          ...formData.persona,
+          goals: [...(formData.persona.goals || []), newGoal.trim()],
+        },
+      });
+      setNewGoal('');
     }
   };
 
+  const handleRemoveGoal = (goalToRemove: string) => {
+    updateFormData({
+      persona: {
+        ...formData.persona,
+        goals: (formData.persona.goals || []).filter((goal) => goal !== goalToRemove),
+      },
+    });
+  };
+
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader className="space-y-2 px-0">
-        <CardTitle className="text-2xl">Target Persona</CardTitle>
-        <CardDescription>
-          Define your ideal customer persona to tailor your marketing strategy
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 px-0">
-        <div className="space-y-2">
-          <Label htmlFor="personaName">Persona Name</Label>
+    <div className="space-y-4">
+      {/* Persona Name */}
+      <FormField
+        control={{ name: 'persona.name' }}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Target Persona Name</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g., Marketing Manager"
+                value={formData.persona.name || ''}
+                onChange={(e) => updateFormData({ persona: { ...formData.persona, name: e.target.value } })}
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              Who are you trying to reach?
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Persona Goals */}
+      <div>
+        <FormLabel>Target Persona Goals</FormLabel>
+        <div className="flex items-center space-x-2 mb-2">
           <Input
-            id="personaName"
-            value={formData.persona?.name || ''}
-            onChange={(e) => 
-              updateFormData({
-                persona: {
-                  ...formData.persona,
-                  name: e.target.value
-                }
-              })
-            }
-            placeholder="e.g., Marketing Director Mary"
+            type="text"
+            placeholder="Add a goal"
+            value={newGoal}
+            onChange={(e) => setNewGoal(e.target.value)}
           />
+          <Button type="button" size="sm" onClick={handleAddGoal}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Goal
+          </Button>
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="personaTone">Communication Tone</Label>
-          <Select
-            value={formData.persona?.tone || ''}
-            onValueChange={(value) => 
-              updateFormData({
-                persona: {
-                  ...formData.persona,
-                  tone: value
-                }
-              })
-            }
-          >
-            <SelectTrigger id="personaTone">
-              <SelectValue placeholder="Select communication tone" />
-            </SelectTrigger>
-            <SelectContent>
-              {toneOptions.map((tone) => (
-                <SelectItem key={tone} value={tone}>
-                  {tone}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap gap-2">
+          {(formData.persona.goals || []).map((goal) => (
+            <Badge key={goal} variant="secondary" className="flex items-center space-x-1">
+              <span>{goal}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemoveGoal(goal)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </Badge>
+          ))}
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="personaGoals">Persona Goals</Label>
-          <div className="flex space-x-2">
-            <Input
-              id="newGoal"
-              value={newGoal}
-              onChange={(e) => setNewGoal(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="e.g., Increase conversion rate"
-              className="flex-1"
-            />
-            <Button type="button" onClick={addGoal}>Add</Button>
-          </div>
-          
-          {/* Display added goals */}
-          {formData.persona?.goals && formData.persona.goals.length > 0 ? (
-            <div className="mt-3 space-y-2">
-              {formData.persona.goals.map((goal, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center justify-between px-3 py-1.5 bg-muted rounded-md"
-                >
-                  <span>{goal}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => removeGoal(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground mt-2">
-              No goals added yet. Add some goals to better tailor the strategy.
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Persona Tone */}
+      <FormField
+        control={{ name: 'persona.tone' }}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Communication Tone</FormLabel>
+            <Select
+              onValueChange={(value) => updateFormData({ persona: { ...formData.persona, tone: value } })}
+              defaultValue={formData.persona.tone || ''}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a tone" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="formal">Formal</SelectItem>
+                <SelectItem value="informal">Informal</SelectItem>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="friendly">Friendly</SelectItem>
+                <SelectItem value="technical">Technical</SelectItem>
+                <SelectItem value="persuasive">Persuasive</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription>
+              How should the communication sound?
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Additional Persona Details */}
+      <FormField
+        control={{ name: 'persona.details' }}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Additional Details</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="e.g., What are their pain points?"
+                value={formData.persona.details || ''}
+                onChange={(e) => updateFormData({ persona: { ...formData.persona, details: e.target.value } })}
+                className="resize-none"
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              Any other relevant information about your target persona?
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+    </div>
   );
 };
 

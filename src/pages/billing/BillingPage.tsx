@@ -1,28 +1,14 @@
-
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import {
-  CreditCard,
-  Calendar,
-  ChevronRight,
-  CheckCircle2,
-  ExternalLink,
-  AlertCircle,
-  Clock,
+  CreditCard, CheckCircle, Package, Clock, ArrowRight, Settings
 } from 'lucide-react';
+import { format } from 'date-fns';
 
 // Get current subscription for a tenant
 const fetchSubscription = async (tenantId: string) => {
@@ -60,7 +46,7 @@ const openCustomerPortal = async () => {
 const PlanFeature = ({ included, text }: { included: boolean; text: string }) => (
   <div className="flex items-center gap-2">
     {included ? (
-      <CheckCircle2 className="h-4 w-4 text-green-500" />
+      <CheckCircle className="h-4 w-4 text-green-500" />
     ) : (
       <AlertCircle className="h-4 w-4 text-gray-300" />
     )}

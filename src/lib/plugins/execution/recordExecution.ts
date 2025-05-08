@@ -13,7 +13,6 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
   try {
     // Convert camelCase to snake_case for database insertion
     const recordData = {
-      id: data.id,
       tenant_id: data.tenantId,
       status: data.status,
       type: data.type,
@@ -28,14 +27,12 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
       error: data.error
     };
 
-    // Insert or update the execution record
-    const operation = data.id 
-      ? supabase.from('execution_logs').update(recordData).eq('id', data.id)
-      : supabase.from('execution_logs').insert(recordData);
-    
-    const { data: result, error } = data.id 
-      ? await operation.select('id').single()
-      : await operation.select('id').single();
+    // Insert the execution record
+    const { data: result, error } = await supabase
+      .from('execution_logs')
+      .insert(recordData)
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Error recording execution:', error);

@@ -6,24 +6,6 @@ import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
 import OnboardingErrorDialog from './OnboardingErrorDialog';
 
-// Define prop interfaces to match the component usage
-interface OnboardingProgressProps {
-  currentStep: number;
-  onStepClick: (step: number) => void;
-  steps: Array<{id: string, label: string}>;
-}
-
-interface StepNavigationProps {
-  currentStep: number;
-  totalSteps: number;
-  isSubmitting: boolean;
-  isNextDisabled: boolean;
-  isGenerating: boolean;
-  onNext: () => void;
-  onPrev: () => void;
-  onSubmit: () => Promise<void>;
-}
-
 const OnboardingWizard: React.FC = () => {
   const {
     steps,
@@ -47,9 +29,9 @@ const OnboardingWizard: React.FC = () => {
     <div className="w-full max-w-4xl mx-auto flex flex-col h-full">
       {/* Progress indicators */}
       <OnboardingProgress 
-        steps={steps} 
         currentStep={currentStep} 
-        onStepClick={handleStepClick} 
+        onStepClick={handleStepClick}
+        steps={steps.map(s => ({ id: s.id, label: s.label }))}
       />
       
       {/* Form content */}
@@ -68,11 +50,11 @@ const OnboardingWizard: React.FC = () => {
         currentStep={currentStep} 
         totalSteps={steps.length}
         isSubmitting={isSubmitting}
-        isGenerating={isGeneratingStrategy}
         isNextDisabled={!isStepValid()}
         onNext={handleNextStep}
         onPrev={handlePrevStep}
         onSubmit={handleSubmit}
+        isGenerating={isGeneratingStrategy}
       />
       
       {/* Error dialog */}

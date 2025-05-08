@@ -1,240 +1,219 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { VoteType, camelToSnake } from "@/types/fixed";
-import { logSystemEvent } from "@/lib/system/logSystemEvent";
-import { VoteResult } from "./types";
+// Fix VoteResult message property
+import { supabase } from '@/lib/supabase';
+import { VoteType } from '@/types/fixed';
+import { VoteResult } from './types';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Vote on an agent version with feedback
- * @param agentVersionId Agent version ID to vote on
- * @param voteType Type of vote (up/down)
- * @param userId ID of the user voting
- * @param tenantId Tenant ID for logging
- * @param comment Optional feedback comment
- * @returns Result with updated vote counts
+ * Handle upvoting an agent version
+ * 
+ * @param agentVersionId The ID of the agent version
+ * @param userId The ID of the user casting the vote
+ * @param comment Optional comment with the vote
+ * @returns Vote result including updated counts
  */
-export async function voteOnAgentVersion(
-  agentVersionId: string, 
-  voteType: VoteType, 
+export async function upvoteAgentVersion(
+  agentVersionId: string,
   userId: string,
-  tenantId: string,
   comment?: string
 ): Promise<VoteResult> {
+  return castVote(agentVersionId, userId, 'up', comment);
+}
+
+/**
+ * Handle downvoting an agent version
+ * 
+ * @param agentVersionId The ID of the agent version
+ * @param userId The ID of the user casting the vote
+ * @param comment Optional comment with the vote
+ * @returns Vote result including updated counts
+ */
+export async function downvoteAgentVersion(
+  agentVersionId: string, 
+  userId: string,
+  comment?: string
+): Promise<VoteResult> {
+  return castVote(agentVersionId, userId, 'down', comment);
+}
+
+/**
+ * Cast a vote on an agent version
+ * 
+ * @param agentVersionId The ID of the agent version
+ * @param userId The ID of the user casting the vote
+ * @param voteType The type of vote ('up' or 'down')
+ * @param comment Optional comment with the vote
+ * @returns Vote result including updated counts
+ */
+export async function castVote(
+  agentVersionId: string,
+  userId: string,
+  voteType: VoteType,
+  comment?: string
+): Promise<VoteResult> {
+  if (!agentVersionId || !userId) {
+    return {
+      success: false,
+      error: 'Missing required parameters',
+      upvotes: 0,
+      downvotes: 0,
+    };
+  }
+
   try {
-    // Check if agent version exists
-    const { data: agentVersion, error: agentError } = await supabase
-      .from('agent_versions')
-      .select('id, plugin_id, version, upvotes, downvotes')
-      .eq('id', agentVersionId)
-      .single();
-      
-    if (agentError) {
-      throw new Error(`Agent version not found: ${agentError.message}`);
-    }
-    
-    // Check for existing votes from this user on this agent
-    const { data: existingVote, error: checkError } = await supabase
+    // Check if the user has already voted on this agent version
+    const { data: existingVote, error: existingVoteError } = await supabase
       .from('agent_votes')
       .select('id, vote_type')
       .eq('agent_version_id', agentVersionId)
       .eq('user_id', userId)
-      .maybeSingle();
-      
-    if (checkError) {
-      console.warn('Error checking for existing votes:', checkError);
-      // Continue despite error
-    }
-    
-    // Handle case where user is changing their vote
-    if (existingVote) {
-      return handleExistingVote(
-        existingVote, 
-        voteType, 
-        agentVersion, 
-        agentVersionId, 
-        comment, 
-        tenantId
-      );
-    }
-    
-    // Insert a new vote
-    return handleNewVote(
-      agentVersionId, 
-      userId, 
-      voteType, 
-      agentVersion, 
-      tenantId, 
-      comment
-    );
-  } catch (error: any) {
-    console.error("Error voting on agent version:", error);
-    
-    // Attempt to log the error
-    try {
-      await logSystemEvent(
-        tenantId,
-        'agent',
-        'agent_vote_error',
-        {
-          agent_version_id: agentVersionId,
-          vote_type: voteType,
-          error: error.message || 'Unknown error'
-        }
-      );
-    } catch (logError) {
-      console.warn('Failed to log vote error:', logError);
-    }
-    
-    return {
-      success: false,
-      upvotes: 0,
-      downvotes: 0,
-      error: error.message || 'Unknown error while voting'
-    };
-  }
-}
+      .single();
 
-/**
- * Handle updating an existing vote
- */
-async function handleExistingVote(
-  existingVote: any, 
-  voteType: VoteType, 
-  agentVersion: any, 
-  agentVersionId: string, 
-  comment?: string,
-  tenantId?: string
-): Promise<VoteResult> {
-  // If voting the same way again, do nothing
-  if (existingVote.vote_type === voteType) {
-    return {
-      success: true,
-      upvotes: agentVersion.upvotes || 0,
-      downvotes: agentVersion.downvotes || 0,
-      message: `Vote unchanged, already voted ${voteType}`,
-      voteId: existingVote.id
+    if (existingVoteError && existingVoteError.code !== 'PGRST116') {
+      throw existingVoteError;
+    }
+
+    // Start a transaction to ensure consistent vote counts
+    const transaction = async () => {
+      if (existingVote) {
+        // User has already voted, check if they're changing their vote
+        if (existingVote.vote_type === voteType) {
+          // User is voting the same way, treat as removing their vote
+          await supabase
+            .from('agent_votes')
+            .delete()
+            .eq('id', existingVote.id);
+
+          // Decrement the corresponding vote count
+          if (voteType === 'up') {
+            await supabase
+              .from('agent_versions')
+              .update({ upvotes: supabase.rpc('decrement', { x: 1 }) })
+              .eq('id', agentVersionId);
+          } else {
+            await supabase
+              .from('agent_versions')
+              .update({ downvotes: supabase.rpc('decrement', { x: 1 }) })
+              .eq('id', agentVersionId);
+          }
+
+          return {
+            success: true,
+            message: `${voteType === 'up' ? 'Upvote' : 'Downvote'} removed`,
+            voteId: null,
+          };
+        } else {
+          // User is changing their vote
+          await supabase
+            .from('agent_votes')
+            .update({
+              vote_type: voteType,
+              comment: comment,
+            })
+            .eq('id', existingVote.id);
+
+          // Update vote counts
+          if (voteType === 'up') {
+            // Switching from down to up
+            await supabase
+              .from('agent_versions')
+              .update({
+                upvotes: supabase.rpc('increment', { x: 1 }),
+                downvotes: supabase.rpc('decrement', { x: 1 }),
+              })
+              .eq('id', agentVersionId);
+          } else {
+            // Switching from up to down
+            await supabase
+              .from('agent_versions')
+              .update({
+                upvotes: supabase.rpc('decrement', { x: 1 }),
+                downvotes: supabase.rpc('increment', { x: 1 }),
+              })
+              .eq('id', agentVersionId);
+          }
+
+          return {
+            success: true,
+            message: `Changed vote to ${voteType === 'up' ? 'upvote' : 'downvote'}`,
+            voteId: existingVote.id,
+          };
+        }
+      } else {
+        // User hasn't voted yet, insert a new vote
+        const { data: newVote, error: newVoteError } = await supabase
+          .from('agent_votes')
+          .insert({
+            agent_version_id: agentVersionId,
+            user_id: userId,
+            vote_type: voteType,
+            comment: comment,
+          })
+          .select('id')
+          .single();
+
+        if (newVoteError) throw newVoteError;
+
+        // Increment the corresponding vote count
+        if (voteType === 'up') {
+          await supabase
+            .from('agent_versions')
+            .update({ upvotes: supabase.rpc('increment', { x: 1 }) })
+            .eq('id', agentVersionId);
+        } else {
+          await supabase
+            .from('agent_versions')
+            .update({ downvotes: supabase.rpc('increment', { x: 1 }) })
+            .eq('id', agentVersionId);
+        }
+
+        return {
+          success: true,
+          message: `${voteType === 'up' ? 'Upvoted' : 'Downvoted'} successfully`,
+          voteId: newVote.id,
+        };
+      }
     };
-  }
-  
-  // Update the existing vote
-  const { error: updateError } = await supabase
-    .from('agent_votes')
-    .update({
-      vote_type: voteType,
-      comment: comment || existingVote.comment
-    })
-    .eq('id', existingVote.id);
-    
-  if (updateError) {
-    throw new Error(`Failed to update vote: ${updateError.message}`);
-  }
-  
-  // Calculate new vote totals
-  const newUpvotes = Math.max(0, (agentVersion.upvotes || 0) + 
-    (existingVote.vote_type === 'up' ? -1 : 0) + 
-    (voteType === 'up' ? 1 : 0));
-    
-  const newDownvotes = Math.max(0, (agentVersion.downvotes || 0) + 
-    (existingVote.vote_type === 'down' ? -1 : 0) + 
-    (voteType === 'down' ? 1 : 0));
-  
-  // Update the agent version counters
-  const { error: counterError } = await supabase
-    .from('agent_versions')
-    .update({
-      upvotes: newUpvotes,
-      downvotes: newDownvotes
-    })
-    .eq('id', agentVersionId);
-    
-  if (counterError) {
-    throw new Error(`Failed to update vote counters: ${counterError.message}`);
-  }
-  
-  // Log the event
-  if (tenantId) {
+
+    // Execute transaction
+    const transactionResult = await transaction();
+
+    // Get updated vote counts
+    const { data: updatedAgent, error: updateError } = await supabase
+      .from('agent_versions')
+      .select('upvotes, downvotes')
+      .eq('id', agentVersionId)
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Log the vote action
     await logSystemEvent(
-      tenantId,
+      'system',
       'agent',
-      'agent_vote_changed',
+      `agent_version_${voteType}vote`,
       {
         agent_version_id: agentVersionId,
-        vote_type: voteType,
-        previous_vote: existingVote.vote_type,
-        has_feedback: !!comment
+        user_id: userId,
+        has_comment: !!comment
       }
-    ).catch(err => console.warn('Failed to log vote change:', err));
-  }
-  
-  return {
-    success: true,
-    upvotes: newUpvotes,
-    downvotes: newDownvotes,
-    message: `Vote updated from ${existingVote.vote_type} to ${voteType}`,
-    voteId: existingVote.id
-  };
-}
+    ).catch(err => console.error('Failed to log vote event:', err));
 
-/**
- * Handle creating a new vote
- */
-async function handleNewVote(
-  agentVersionId: string,
-  userId: string,
-  voteType: VoteType,
-  agentVersion: any,
-  tenantId: string,
-  comment?: string
-): Promise<VoteResult> {
-  // Insert a new vote
-  const { data: newVote, error } = await supabase
-    .from('agent_votes')
-    .insert(camelToSnake({
-      agentVersionId,
-      userId,
-      voteType,
-      comment: comment || null
-    }))
-    .select()
-    .single();
-    
-  if (error) {
-    throw error;
+    return {
+      success: transactionResult.success,
+      message: transactionResult.message,
+      voteId: transactionResult.voteId,
+      upvotes: updatedAgent.upvotes || 0,
+      downvotes: updatedAgent.downvotes || 0,
+    };
+  } catch (err: any) {
+    console.error('Error casting vote:', err);
+    return {
+      success: false,
+      error: err.message || 'Failed to cast vote',
+      upvotes: 0,
+      downvotes: 0,
+    };
   }
-  
-  // Update agent version vote counters
-  const newUpvotes = Math.max(0, (agentVersion.upvotes || 0) + (voteType === 'up' ? 1 : 0));
-  const newDownvotes = Math.max(0, (agentVersion.downvotes || 0) + (voteType === 'down' ? 1 : 0));
-  
-  const { error: counterError } = await supabase
-    .from('agent_versions')
-    .update({
-      upvotes: newUpvotes,
-      downvotes: newDownvotes
-    })
-    .eq('id', agentVersionId);
-    
-  if (counterError) {
-    throw new Error(`Failed to update vote counters: ${counterError.message}`);
-  }
-  
-  // Log the event
-  await logSystemEvent(
-    tenantId,
-    'agent',
-    'agent_vote_added',
-    {
-      agent_version_id: agentVersionId,
-      vote_type: voteType,
-      has_feedback: !!comment
-    }
-  ).catch(err => console.warn('Failed to log new vote:', err));
-  
-  return {
-    success: true,
-    upvotes: newUpvotes,
-    downvotes: newDownvotes,
-    message: `Vote recorded: ${voteType}`,
-    voteId: newVote.id
-  };
 }
