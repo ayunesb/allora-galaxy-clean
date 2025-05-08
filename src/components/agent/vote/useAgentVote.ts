@@ -1,28 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { voteOnAgentVersion } from '@/lib/agents/vote';
 import { getUserVote } from '@/lib/agents/voting';
 import { VoteType } from '@/types/shared';
 import { useTenantId } from '@/hooks/useTenantId';
+import { UseAgentVoteParams, UseAgentVoteReturn } from './types';
 
-export interface AgentVotePanelProps {
-  agentVersionId: string;
-  initialUpvotes: number;
-  initialDownvotes: number;
-  userId?: string; // Making this optional for backward compatibility
-}
-
-const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
+export function useAgentVote({
   agentVersionId,
   initialUpvotes = 0,
   initialDownvotes = 0,
   userId
-}) => {
+}: UseAgentVoteParams): UseAgentVoteReturn {
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
   const [showComment, setShowComment] = useState(false);
@@ -131,81 +122,25 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
     }
   };
 
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium">Agent Performance</h3>
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className={`flex items-center gap-1 ${userVote === 'up' ? 'bg-green-50 border-green-200' : ''}`}
-                onClick={() => handleVote('up')}
-                disabled={submitting}
-              >
-                <ThumbsUp className="h-4 w-4" />
-                <span>{upvotes}</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className={`flex items-center gap-1 ${userVote === 'down' ? 'bg-red-50 border-red-200' : ''}`}
-                onClick={() => handleVote('down')}
-                disabled={submitting}
-              >
-                <ThumbsDown className="h-4 w-4" />
-                <span>{downvotes}</span>
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowComment(!showComment)}
-              >
-                <MessageSquare className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          {showComment && (
-            <div className="space-y-2">
-              <Textarea 
-                placeholder="Add a comment about this agent's performance..." 
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowComment(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={() => {
-                    if (userVote) {
-                      handleVote(userVote);
-                    } else {
-                      // Default to upvote if no vote yet
-                      handleVote('up');
-                    }
-                  }}
-                  disabled={submitting}
-                >
-                  Submit
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+  const handleSubmitComment = () => {
+    if (userVote) {
+      handleVote(userVote);
+    } else {
+      // Default to upvote if no vote yet
+      handleVote('up');
+    }
+  };
 
-export default AgentVotePanel;
+  return {
+    upvotes,
+    downvotes,
+    userVote,
+    comment,
+    setComment,
+    showComment,
+    setShowComment,
+    submitting,
+    handleVote,
+    handleSubmitComment
+  };
+}
