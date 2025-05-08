@@ -31,11 +31,20 @@ export async function logSystemEvent(
     // Ensure tenant_id is set correctly
     const effectiveTenantId = context.tenant_id || tenantId || 'system';
 
+    // Ensure context is serializable
+    let safeContext = {};
+    try {
+      safeContext = JSON.parse(JSON.stringify(context));
+    } catch (err) {
+      console.warn('Context could not be serialized for logging:', err);
+      safeContext = { error: 'Context serialization failed', originalContext: String(context) };
+    }
+
     const { error } = await supabase.from('system_logs').insert([
       {
         module,
         event,
-        context,
+        context: safeContext,
         tenant_id: effectiveTenantId
       }
     ]);
@@ -49,7 +58,7 @@ export async function logSystemEvent(
   } catch (err: any) {
     // Don't let logging failures break the application
     console.error('Error logging system event:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: err.message || 'Unknown error' };
   }
 }
 

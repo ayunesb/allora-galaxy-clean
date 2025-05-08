@@ -21,4 +21,5 @@ export {
   isProduction,
   getBaseUrl,
   getSafeEnv
-} from '@/lib/env';
+} from '../env';
+

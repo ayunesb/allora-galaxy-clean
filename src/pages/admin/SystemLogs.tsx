@@ -3,16 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
-import SystemLogsTable, { SystemLog } from '@/components/admin/logs/SystemLogsTable';
+import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
+import SystemLogsPagination from '@/components/admin/logs/SystemLogsPagination';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 
 const LOGS_PER_PAGE = 25;
 
 const SystemLogsPage: React.FC = () => {
-  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [totalLogs, setTotalLogs] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -136,85 +136,11 @@ const SystemLogsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (
-        <Pagination className="mt-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              />
-            </PaginationItem>
-            
-            {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-              let pageNumber: number;
-              
-              // Logic to show pages around current page
-              if (totalPages <= 5) {
-                pageNumber = i + 1;
-              } else if (currentPage <= 3) {
-                pageNumber = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNumber = totalPages - 4 + i;
-              } else {
-                pageNumber = currentPage - 2 + i;
-              }
-              
-              // Show ellipsis for first page if needed
-              if (i === 0 && pageNumber > 1) {
-                return (
-                  <React.Fragment key="start">
-                    <PaginationItem>
-                      <PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
-                    </PaginationItem>
-                    {pageNumber > 2 && (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    )}
-                  </React.Fragment>
-                );
-              }
-              
-              // Show ellipsis for last page if needed
-              if (i === 4 && pageNumber < totalPages) {
-                return (
-                  <React.Fragment key="end">
-                    {pageNumber < totalPages - 1 && (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    )}
-                    <PaginationItem>
-                      <PaginationLink onClick={() => setCurrentPage(totalPages)}>
-                        {totalPages}
-                      </PaginationLink>
-                    </PaginationItem>
-                  </React.Fragment>
-                );
-              }
-              
-              return (
-                <PaginationItem key={pageNumber}>
-                  <PaginationLink
-                    isActive={pageNumber === currentPage}
-                    onClick={() => setCurrentPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
-            
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+      <SystemLogsPagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 };
