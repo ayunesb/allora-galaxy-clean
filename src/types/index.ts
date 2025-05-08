@@ -3,11 +3,11 @@
 // This file re-exports all types from the type system for easier imports
 
 // Re-export types from their respective domains
-export * from './plugin';
-export * from './strategy';
-export * from './agent';
-export * from './execution';
-export * from './tenant';
+export type * from './plugin';
+export type * from './strategy';
+export type * from './agent';
+export type * from './execution';
+export type * from './tenant';
 
 // Export shared types
 export {
@@ -27,8 +27,8 @@ export {
 export { NotificationType } from './notifications';
 
 // Re-export remaining types
-export * from './galaxy';
-export * from './onboarding';
+export type * from './galaxy';
+export type * from './onboarding';
 
 // Fixed exports to avoid ambiguity
 export type { 

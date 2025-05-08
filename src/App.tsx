@@ -3,21 +3,21 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
-import { WorkspaceProvider } from './context/WorkspaceContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import { Toaster } from './components/ui/toaster';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthRoutes from './routes/AuthRoutes';
 import OnboardingRoutes from './routes/OnboardingRoutes';
 import PublicRoutes from './routes/PublicRoutes';
-import { ProtectedRoute, MainRoute, AdminRoute } from './routes/ProtectedRoutes';
-import Dashboard from './pages/dashboard/Dashboard';
-import KpiDashboard from './pages/insights/KpiDashboard';
-import BillingPage from './pages/billing/BillingPage';
+import ProtectedRoutes from './routes/ProtectedRoutes';
 import LoadingScreen from './components/LoadingScreen';
 import './App.css';
 
 // Lazy loaded components
+const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'));
+const KpiDashboard = React.lazy(() => import('./pages/insights/KpiDashboard'));
+const BillingPage = React.lazy(() => import('./pages/billing/BillingPage'));
 const NotificationsPage = React.lazy(() => import('./pages/notifications/NotificationsPage'));
 const ProfileSettings = React.lazy(() => import('./pages/settings/ProfileSettings'));
 const PluginsPage = React.lazy(() => import('./pages/plugins/PluginsPage'));
@@ -54,92 +54,10 @@ function App() {
                   <Route path="/onboarding/*" element={<OnboardingRoutes />} />
                   
                   {/* Protected Routes */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route element={<MainRoute />}>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/insights/kpis" element={<KpiDashboard />} />
-                      <Route path="/billing" element={<BillingPage />} />
-                      <Route
-                        path="/notifications"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <NotificationsPage />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="/settings"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <ProfileSettings />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="/plugins/*"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <PluginsPage />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="/galaxy"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <GalaxyPage />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="/agents/performance"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <AgentPerformance />
-                          </React.Suspense>
-                        }
-                      />
-                    </Route>
-                    <Route path="/admin" element={<AdminRoute />}>
-                      <Route index element={<Navigate to="/admin/users" replace />} />
-                      <Route
-                        path="users"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <UserManagement />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="system-logs"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <SystemLogs />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="ai-decisions"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <AiDecisions />
-                          </React.Suspense>
-                        }
-                      />
-                      <Route
-                        path="plugin-logs"
-                        element={
-                          <React.Suspense fallback={<LoadingScreen />}>
-                            <PluginLogs />
-                          </React.Suspense>
-                        }
-                      />
-                    </Route>
-                  </Route>
+                  <Route path="/*" element={<ProtectedRoutes />} />
                   
-                  {/* Public Routes */}
-                  <Route path="/*" element={<PublicRoutes />} />
+                  {/* Public Routes - catch any remaining routes */}
+                  <Route path="*" element={<PublicRoutes />} />
                 </Routes>
                 <Toaster />
               </NotificationsProvider>

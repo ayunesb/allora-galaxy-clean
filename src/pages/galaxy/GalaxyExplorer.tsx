@@ -1,105 +1,128 @@
 
-import { useState, useEffect } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useGalaxyData } from '@/hooks/useGalaxyData';
+import { useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useGalaxyData } from '@/hooks/useGalaxyData';
+import { GraphNode, GraphData } from '@/types/galaxy';
 import ForceGraph from '@/components/galaxy/ForceGraph';
+import ZoomControls from '@/components/galaxy/ZoomControls';
+import GalaxyLoader from '@/components/galaxy/GalaxyLoader';
+import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
+import GalaxyControls from '@/components/galaxy/GalaxyControls';
 import InspectorSidebar from '@/components/galaxy/InspectorSidebar';
 import MobileInspector from '@/components/galaxy/MobileInspector';
-import GalaxyControls from '@/components/galaxy/GalaxyControls';
 import GraphLegend from '@/components/galaxy/GraphLegend';
-import GalaxyLoader from '@/components/galaxy/GalaxyLoader';
+import { useMobile } from '@/hooks/use-mobile';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import EmptyState from '@/components/galaxy/EmptyState';
-import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
-import ZoomControls from '@/components/galaxy/ZoomControls';
-import { GraphNode } from '@/types/galaxy';
-import { useMobileBreakpoint } from '@/hooks/use-mobile';
 
-const GalaxyExplorer = () => {
-  const { tenant } = useWorkspace();
-  const { data, isLoading: loading, error } = useGalaxyData();
+const GalaxyExplorer: React.FC = () => {
+  const { isLoading, graphData, error, refresh } = useGalaxyData();
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [viewMode, setViewMode] = useState('3d');
-  const [showInspector, setShowInspector] = useState(false);
-  const isMobile = useMobileBreakpoint();
+  const [viewMode, setViewMode] = useState<string>('all');
+  const isMobile = useMobile();
+  const fgRef = useRef<any>();
   
-  // Reset selected node when data changes
-  useEffect(() => {
-    setSelectedNode(null);
-  }, [data]);
-  
-  const handleNodeClick = (node: GraphNode) => {
+  const handleNodeClick = useCallback((node: GraphNode) => {
     setSelectedNode(node);
-    if (isMobile) {
-      setShowInspector(true);
+  }, []);
+
+  const handleZoomIn = () => {
+    if (fgRef.current) {
+      fgRef.current.zoom(fgRef.current.zoom() * 1.2);
     }
   };
-  
-  const handleInspectorClose = () => {
-    setShowInspector(false);
+
+  const handleZoomOut = () => {
+    if (fgRef.current) {
+      fgRef.current.zoom(fgRef.current.zoom() * 0.8);
+    }
+  };
+
+  const handleRefresh = () => {
+    refresh();
+    if (fgRef.current) {
+      fgRef.current.zoomToFit(400);
+    }
+  };
+
+  const handleCloseInspector = () => {
     setSelectedNode(null);
   };
-  
-  if (loading) {
-    return <GalaxyLoader />;
-  }
-  
-  if (error) {
+
+  if (isLoading) {
     return (
-      <Card className="m-6 p-6 text-center">
-        <h2 className="text-xl font-bold mb-2">Error Loading Galaxy</h2>
-        <p className="text-muted-foreground mb-4">{error.message}</p>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
-      </Card>
+      <GalaxyLoader 
+        viewMode={viewMode} 
+        fgRef={fgRef} 
+        onNodeClick={handleNodeClick} 
+      />
     );
   }
-  
-  if (!data || data.nodes.length === 0) {
-    return <EmptyState />;
+
+  if (error || !graphData || graphData.nodes.length === 0) {
+    return <EmptyState onRefresh={refresh} error={error} />;
   }
 
   return (
-    <div className="h-full w-full flex relative">
-      <div className="flex-1 h-full relative">
+    <div className="flex flex-col h-full relative">
+      <div className="flex-1 overflow-hidden">
+        {/* Main Graph */}
         <ForceGraph 
-          data={data} 
+          data={graphData as GraphData}
           onNodeClick={handleNodeClick}
           selectedNode={selectedNode}
-          is3d={viewMode === '3d'}
+          is3d={false}
         />
         
-        <div className="absolute top-4 right-4 z-10">
+        {/* Controls */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
           <ViewModeSelector
-            mode={viewMode}
+            viewMode={viewMode}
             onChange={setViewMode}
+          />
+          
+          <Card className="p-2">
+            <ZoomControls
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onRefresh={handleRefresh}
+            />
+          </Card>
+          
+          <GalaxyControls
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onRefresh={handleRefresh}
           />
         </div>
         
+        {/* Legend */}
         <div className="absolute bottom-4 left-4 z-10">
-          <GraphLegend />
-        </div>
-        
-        <div className="absolute bottom-4 right-4 z-10">
-          <ZoomControls />
-        </div>
-        
-        <div className="absolute top-4 left-4 z-10">
-          <GalaxyControls />
+          <GraphLegend
+            nodeTypes={[
+              { type: 'strategy', color: '#3B82F6', label: 'Strategy' },
+              { type: 'plugin', color: '#10B981', label: 'Plugin' },
+              { type: 'agent', color: '#F59E0B', label: 'Agent' }
+            ]}
+          />
         </div>
       </div>
       
+      {/* Inspector Sidebar */}
       {!isMobile && (
-        <InspectorSidebar 
-          node={selectedNode} 
-          onClose={() => setSelectedNode(null)} 
+        <InspectorSidebar
+          node={selectedNode}
+          onClose={handleCloseInspector}
         />
       )}
       
-      {isMobile && showInspector && (
-        <MobileInspector 
-          node={selectedNode} 
-          onClose={handleInspectorClose} 
+      {/* Mobile Inspector */}
+      {isMobile && selectedNode && (
+        <MobileInspector
+          node={selectedNode}
+          onClose={handleCloseInspector}
         />
       )}
     </div>

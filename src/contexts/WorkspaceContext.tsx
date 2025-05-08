@@ -1,109 +1,131 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { NavigationItem } from '@/types/navigation';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/lib/auth/roleTypes';
-import { Tenant, WorkspaceContextType } from './workspace/types';
-import { navigationItems } from './workspace/navigationItems';
 
-const defaultContext: WorkspaceContextType = {
-  tenant: null,
-  currentTenant: null,
-  setTenant: () => {},
-  loading: true,
-  isLoading: true,
-  navigationItems,
-  currentRole: null,
-  userRole: null,
-  refreshTenant: async () => {},
-  error: null
-};
+interface Tenant {
+  id: string;
+  name: string;
+  slug?: string;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+  metadata?: Record<string, any>;
+  role?: UserRole;
+}
 
-const WorkspaceContext = createContext<WorkspaceContextType>(defaultContext);
+interface WorkspaceContextType {
+  tenant: Tenant | null;
+  currentTenant: Tenant | null;
+  setTenant: (tenant: Tenant | null) => void;
+  loading: boolean;
+  isLoading: boolean;
+  navigationItems: NavigationItem[];
+  currentRole: UserRole | null;
+  userRole: UserRole | null;
+  refreshTenant: () => Promise<void>;
+  error: string | null;
+}
 
-export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+
+interface WorkspaceProviderProps {
+  children: ReactNode;
+}
+
+export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
-  // Fetch tenant and role data
-  const fetchTenantData = async () => {
-    if (!user || authLoading) {
-      setLoading(false);
+  // Default navigation items
+  const navigationItems: NavigationItem[] = [
+    { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
+    { name: 'Galaxy', href: '/galaxy', icon: 'galaxy' },
+    { name: 'Plugins', href: '/plugins', icon: 'plugin' },
+    { name: 'Insights', href: '/insights/kpis', icon: 'insights' },
+    { name: 'Settings', href: '/settings', icon: 'settings' }
+  ];
+
+  const fetchTenant = async () => {
+    if (!user) {
+      setIsLoading(false);
       return;
     }
 
     try {
+      setIsLoading(true);
       setError(null);
-      
-      const { data: roleData, error: roleError } = await supabase
+
+      // First get the tenant_id and role from tenant_user_roles
+      const { data: userTenant, error: userTenantError } = await supabase
         .from('tenant_user_roles')
         .select('tenant_id, role')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (roleError && roleError.code !== 'PGRST116') {
-        console.error('Error fetching user role:', roleError);
-        setLoading(false);
-        setError(roleError.message);
-        return;
-      }
+      if (userTenantError) throw userTenantError;
 
-      if (roleData?.tenant_id) {
+      // If tenant_id is found, get the tenant details
+      if (userTenant?.tenant_id) {
         const { data: tenantData, error: tenantError } = await supabase
           .from('tenants')
           .select('*')
-          .eq('id', roleData.tenant_id)
-          .single();
+          .eq('id', userTenant.tenant_id)
+          .maybeSingle();
 
-        if (tenantError) {
-          console.error('Error fetching tenant:', tenantError);
-          setError(tenantError.message);
-        } else if (tenantData) {
+        if (tenantError) throw tenantError;
+
+        if (tenantData) {
           const tenantWithRole = {
             ...tenantData,
-            role: roleData.role as UserRole
+            role: userTenant.role as UserRole
           };
           setTenant(tenantWithRole);
-          setCurrentRole(roleData.role as UserRole);
+          setCurrentRole(userTenant.role as UserRole);
+        } else {
+          setTenant(null);
+          setCurrentRole(null);
         }
+      } else {
+        setTenant(null);
+        setCurrentRole(null);
       }
     } catch (err: any) {
-      console.error('Failed to fetch workspace data:', err);
-      setError(err.message || 'An error occurred while fetching workspace data');
+      console.error('Error fetching workspace tenant:', err);
+      setError(err.message || 'Failed to load workspace');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const refreshTenant = async () => {
-    setLoading(true);
-    await fetchTenantData();
-  };
-
   useEffect(() => {
-    fetchTenantData();
-  }, [user, authLoading]);
+    fetchTenant();
+  }, [user]);
 
-  const contextValue: WorkspaceContextType = {
-    tenant,
-    currentTenant: tenant,
-    setTenant,
-    loading,
-    isLoading: loading,
-    navigationItems,
-    currentRole,
-    userRole: currentRole, // Ensure userRole is set to match currentRole
-    refreshTenant,
-    error
+  const refreshTenant = async () => {
+    await fetchTenant();
   };
 
   return (
-    <WorkspaceContext.Provider value={contextValue}>
+    <WorkspaceContext.Provider 
+      value={{ 
+        tenant, 
+        currentTenant: tenant, 
+        setTenant, 
+        loading: isLoading, 
+        isLoading, 
+        navigationItems,
+        currentRole,
+        userRole: currentRole,
+        refreshTenant,
+        error 
+      }}
+    >
       {children}
     </WorkspaceContext.Provider>
   );
@@ -112,12 +134,11 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
   
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useWorkspace must be used within a WorkspaceProvider');
   }
   
   return context;
 };
 
-export type { Tenant, WorkspaceContextType };
 export default WorkspaceContext;

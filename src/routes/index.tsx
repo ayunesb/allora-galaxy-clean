@@ -1,10 +1,28 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
 
-// This file is no longer used for routing.
-// Routes are now defined directly in App.tsx and routes.tsx.
-// Keeping minimal code for backwards compatibility
+import { RouteObject } from 'react-router-dom';
+import PublicRoutes from './PublicRoutes';
+import ProtectedRoutes from './ProtectedRoutes';
+import AuthRoutes from './AuthRoutes';
+import OnboardingRoutes from './OnboardingRoutes';
 
-const RedirectToDashboard = () => <Navigate to="/dashboard" replace />;
+const routes: RouteObject[] = [
+  {
+    path: '/',
+    element: <ProtectedRoutes />,
+    children: []
+  },
+  {
+    path: '/auth/*',
+    element: <AuthRoutes />
+  },
+  {
+    path: '/onboarding',
+    element: <OnboardingRoutes />
+  },
+  {
+    path: '*',
+    element: <PublicRoutes />
+  }
+];
 
-export default RedirectToDashboard;
+export default routes;

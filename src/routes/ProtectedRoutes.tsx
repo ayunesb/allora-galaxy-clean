@@ -1,13 +1,10 @@
 
-import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import NotFound from '@/pages/NotFound';
 import RequireAuth from '@/components/auth/ProtectedRoute';
-import AdminGuard from '@/components/guards/AdminGuard';
+import { AdminGuard } from '@/components/guards/AdminGuard';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { UserRole } from '@/lib/auth/roleTypes';
 
 // Import pages
 import Dashboard from '@/pages/dashboard/Dashboard';
@@ -50,8 +47,6 @@ const AdminLayout = () => {
 };
 
 const ProtectedRoutes = () => {
-  const { currentRole } = useWorkspace();
-
   return (
     <RequireAuth>
       <MainLayout>
@@ -109,3 +104,8 @@ const ProtectedRoutes = () => {
 };
 
 export default ProtectedRoutes;
+
+// Export auth route components
+export const RequireAuthRoute = RequireAuth;
+export const MainLayoutRoute = MainLayout;
+export const AdminGuardRoute = AdminGuard;

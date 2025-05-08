@@ -1,223 +1,152 @@
 
 import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertCircle, CheckCircle, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-
-// Import proper type
-import { LogStatus } from '@/types/shared';
-
-interface PluginLog {
-  id: string;
-  plugin_id: string;
-  status: 'success' | 'failure';
-  input: any;
-  output: any;
-  created_at: string;
-  error?: string;
-  execution_time: number;
-}
+import { Skeleton } from '@/components/ui/skeleton';
+import { PluginLog } from '@/types';
 
 const PluginLogs: React.FC = () => {
-  const { toast } = useToast();
   const [logs, setLogs] = useState<PluginLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [pluginIds, setPluginIds] = useState<string[]>([]);
-  const [selectedPlugins, setSelectedPlugins] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   
+  // Load plugin logs
   useEffect(() => {
     fetchLogs();
-    fetchPlugins();
-  }, []);
-  
-  const fetchPlugins = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('plugins')
-        .select('id, name')
-        .order('name');
-        
-      if (error) throw error;
-      
-      if (data) {
-        // Use non-null assertion for plugin IDs
-        const ids = data.map(plugin => plugin.id).filter(id => id !== null) as string[];
-        setPluginIds(ids);
-      }
-    } catch (error: any) {
-      console.error('Error fetching plugins:', error);
-      toast({
-        title: 'Error fetching plugins',
-        description: error.message,
-        variant: 'destructive'
-      });
-    }
-  };
-  
+  }, [statusFilter]);
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('plugin_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
         
-      if (error) throw error;
-      
-      if (data) {
-        setLogs(data as PluginLog[]);
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
       }
-    } catch (error: any) {
-      console.error('Error fetching logs:', error);
-      toast({
-        title: 'Error fetching logs',
-        description: error.message,
-        variant: 'destructive'
-      });
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching logs:', error);
+        return;
+      }
+      
+      setLogs(data as PluginLog[]);
+    } catch (err) {
+      console.error('Error fetching logs:', err);
     } finally {
       setLoading(false);
     }
   };
-  
-  const applyFilters = () => {
-    // In a real implementation, this would filter the logs based on the selected filters
-    toast({
-      title: 'Filters applied',
-      description: `Status: ${filterStatus}, Search: ${searchTerm}, Date range: ${startDate} - ${endDate}, Plugins: ${selectedPlugins.join(', ')}`,
-    });
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-100 text-green-800';
+      case 'failure':
+        return 'bg-red-100 text-red-800';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
-  
-  const handlePluginSelect = (pluginId: string) => {
-    setSelectedPlugins(prev => 
-      prev.includes(pluginId) 
-        ? prev.filter(id => id !== pluginId)
-        : [...prev, pluginId]
-    );
+
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return 'Unknown';
+    return new Date(dateString).toLocaleString();
   };
-  
-  const resetFilters = () => {
-    setFilterStatus('all');
-    setSearchTerm('');
-    setStartDate('');
-    setEndDate('');
-    setSelectedPlugins([]);
-  };
-  
+
   return (
-    <div className="container py-6">
-      <h1 className="text-2xl font-bold mb-6">Plugin Logs</h1>
-      
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="success">Success</SelectItem>
-                  <SelectItem value="failure">Failure</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Input 
-                placeholder="Search by plugin ID or error..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div>
-              <div className="flex gap-2">
-                <Input 
-                  type="date" 
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)} 
-                />
-                <Input 
-                  type="date" 
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)} 
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex gap-2">
-                <Button onClick={applyFilters} className="flex-1">Apply Filters</Button>
-                <Button onClick={resetFilters} variant="outline">Reset</Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Plugin Logs</h1>
+        
+        <div className="flex items-center gap-4">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="success">Success</SelectItem>
+              <SelectItem value="failure">Failure</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button onClick={fetchLogs} variant="outline">
+            Refresh
+          </Button>
+        </div>
+      </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Log Entries</CardTitle>
+          <CardTitle>Recent Logs</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading logs...</div>
-          ) : logs.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Plugin ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Execution Time</TableHead>
-                    <TableHead>Error</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map(log => (
-                    <TableRow key={log.id}>
-                      <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <span className="font-mono text-xs">{log.plugin_id}</span>
-                      </TableCell>
-                      <TableCell>
-                        {log.status === 'success' ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle className="h-3 w-3 mr-1" /> Success
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                            <AlertCircle className="h-3 w-3 mr-1" /> Failure
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{log.execution_time.toFixed(2)}s</TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground line-clamp-1">
-                          {log.error || 'None'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
             </div>
+          ) : logs.length === 0 ? (
+            <p>No logs found matching the selected filters.</p>
           ) : (
-            <div className="text-center py-8">No logs found.</div>
+            <div className="space-y-4">
+              {logs.map(log => (
+                <div key={log.id} className="border rounded-md p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <Badge className={getStatusColor(log.status)}>
+                        {log.status}
+                      </Badge>
+                      <span className="ml-2 text-sm text-gray-500">
+                        {formatDate(log.created_at)}
+                      </span>
+                    </div>
+                    {log.execution_time !== undefined && (
+                      <span className="text-sm">
+                        Execution time: {log.execution_time.toFixed(2)}s
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <h4 className="text-sm font-medium">Input:</h4>
+                      <pre className="text-xs bg-gray-50 p-2 rounded-md overflow-x-auto max-h-32">
+                        {JSON.stringify(log.input || {}, null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Output:</h4>
+                      <pre className="text-xs bg-gray-50 p-2 rounded-md overflow-x-auto max-h-32">
+                        {JSON.stringify(log.output || {}, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                  
+                  {log.error && (
+                    <div className="mt-2">
+                      <h4 className="text-sm font-medium text-red-600">Error:</h4>
+                      <pre className="text-xs bg-red-50 text-red-700 p-2 rounded-md overflow-x-auto max-h-32">
+                        {log.error}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

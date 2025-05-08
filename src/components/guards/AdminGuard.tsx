@@ -63,3 +63,5 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({
   // User has admin rights, render children
   return <>{children}</>;
 };
+
+export default AdminGuard;

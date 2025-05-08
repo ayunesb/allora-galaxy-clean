@@ -1,125 +1,60 @@
 
-import { useState } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const DeletionRequestPage = () => {
-  const { userRole } = useWorkspace();
-  const [reason, setReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+const DeletionRequestPage: React.FC = () => {
   const { toast } = useToast();
-  
-  const handleSubmit = async () => {
-    if (!reason) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for your account deletion request.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    // In a real implementation, this would submit to the backend
-    try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Request submitted",
-        description: "Your deletion request has been submitted and will be reviewed.",
-      });
-      
-      setReason('');
-      setIsConfirming(false);
-    } catch (error) {
-      console.error("Error submitting deletion request:", error);
-      toast({
-        title: "Submission error",
-        description: "There was an error submitting your request. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+
+  const handleRequestDeletion = () => {
+    // In a real application, this would submit a deletion request
+    toast({
+      title: 'Request Submitted',
+      description: 'Your deletion request has been submitted for review.',
+    });
   };
-  
+
   return (
-    <div className="container mx-auto max-w-2xl py-8 px-4">
+    <div className="container mx-auto py-8 max-w-3xl">
+      <h1 className="text-3xl font-bold mb-6">Account Deletion Request</h1>
+      
+      <Alert className="mb-6">
+        <AlertDescription>
+          Requesting account deletion will initiate the process of removing your account and all associated data.
+          This action cannot be undone once completed.
+        </AlertDescription>
+      </Alert>
+      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>What happens when you delete your account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="list-disc list-inside space-y-2">
+            <li>All your personal information will be permanently deleted</li>
+            <li>Your user account will be removed from our systems</li>
+            <li>All your projects and data will be permanently deleted</li>
+            <li>You will lose access to any paid services</li>
+            <li>This process may take up to 30 days to complete</li>
+          </ul>
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Request Account Deletion</CardTitle>
+          <CardTitle>Request Account Deletion</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {isConfirming ? (
-            <>
-              <div className="space-y-4">
-                <p>Are you sure you want to request account deletion? This action cannot be undone.</p>
-                <p className="text-destructive">All your data will be permanently removed from our system.</p>
-                
-                <div className="space-y-2">
-                  <p className="font-medium">Please confirm your reason for leaving:</p>
-                  <p className="bg-muted p-3 rounded-md">{reason}</p>
-                </div>
-                
-                <div className="flex space-x-4 pt-4">
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleSubmit} 
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Submitting..." : "Confirm Request"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsConfirming(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="space-y-4">
-                <p>
-                  We're sorry to see you go. Before proceeding with your deletion request, 
-                  please note that this will permanently remove all your account data, including:
-                </p>
-                
-                <ul className="list-disc list-inside space-y-1 pl-4">
-                  <li>Personal profile information</li>
-                  <li>Saved strategies and campaigns</li>
-                  <li>Historical performance metrics</li>
-                  <li>Plugin configurations and execution history</li>
-                </ul>
-                
-                <p className="font-medium pt-2">Please provide a reason for deleting your account:</p>
-                <Textarea
-                  placeholder="Please tell us why you're leaving..."
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={5}
-                />
-                
-                <div className="pt-4">
-                  <Button 
-                    variant="destructive" 
-                    onClick={() => setIsConfirming(true)}
-                    disabled={!reason.trim()}
-                  >
-                    Request Deletion
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+        <CardContent>
+          <p className="mb-6">
+            To proceed with account deletion, please click the button below.
+            A confirmation email will be sent to your registered email address.
+          </p>
+          
+          <Button onClick={handleRequestDeletion} variant="destructive">
+            Request Account Deletion
+          </Button>
         </CardContent>
       </Card>
     </div>

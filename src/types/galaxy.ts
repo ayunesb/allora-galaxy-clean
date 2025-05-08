@@ -1,19 +1,82 @@
 
+import { ForceGraphProps } from 'react-force-graph';
+
 export interface GraphNode {
   id: string;
   name: string;
-  type: 'strategy' | 'plugin' | 'agent';
-  realId?: string;
-  [key: string]: any;
+  type: string;
+  val?: number;
+  color?: string;
+  level?: number;
+  internalId?: string;
+  status?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface GraphLink {
-  source: string | GraphNode;
-  target: string | GraphNode;
-  type: string;
+  source: string;
+  target: string;
+  value?: number;
+  type?: string;
 }
 
 export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
+}
+
+export interface GalaxyLoaderProps {
+  viewMode: string;
+  fgRef: React.MutableRefObject<any>;
+  onNodeClick: (node: GraphNode) => void;
+}
+
+export interface ViewModeSelectorProps {
+  viewMode: string;
+  onChange: (mode: string) => void;
+}
+
+export interface ZoomControlsProps {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onRefresh: () => void;
+}
+
+export interface GalaxyControlsProps {
+  viewMode: string;
+  setViewMode: (mode: string) => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onRefresh: () => void;
+  onToggleLayout?: () => void;
+}
+
+export interface InspectorSidebarProps {
+  node: GraphNode | null;
+  onClose: () => void;
+}
+
+export interface MobileInspectorProps {
+  node: GraphNode | null;
+  onClose: () => void;
+}
+
+export interface ForceGraphExtendedProps extends ForceGraphProps {
+  data: GraphData;
+  onNodeClick: (node: GraphNode) => void;
+  selectedNode: GraphNode | null;
+  is3d?: boolean;
+}
+
+export interface GraphLegendProps {
+  nodeTypes: {
+    type: string;
+    color: string;
+    label: string;
+  }[];
+}
+
+export interface NodeUtilitiesProps {
+  nodeId: string;
+  nodeType: string;
 }

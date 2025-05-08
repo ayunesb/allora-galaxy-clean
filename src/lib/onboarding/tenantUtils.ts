@@ -19,12 +19,15 @@ export async function checkExistingTenants(userId: string): Promise<TenantWithRo
       throw error;
     }
 
-    return data?.map(item => ({
+    // Transform the data to match the TenantWithRole type
+    const tenants: TenantWithRole[] = data?.map(item => ({
       id: item.tenant_id,
       name: item.tenants?.name || 'Unknown Tenant',
       slug: item.tenants?.slug,
       role: item.role
     })) || [];
+
+    return tenants;
   } catch (error) {
     console.error('Error checking tenants:', error);
     return [];

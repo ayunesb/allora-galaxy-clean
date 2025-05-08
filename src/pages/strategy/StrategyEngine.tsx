@@ -1,107 +1,104 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { runStrategy } from '@/lib/strategy/runStrategy';
-
+import { Strategy } from '@/types';
 import StrategyHeader from '@/components/strategy/StrategyHeader';
-import StrategyActions from '@/components/strategy/StrategyActions';
 import StrategyDescription from '@/components/strategy/StrategyDescription';
+import StrategyActions from '@/components/strategy/StrategyActions';
 import StrategyMetadata from '@/components/strategy/StrategyMetadata';
 import StrategyTags from '@/components/strategy/StrategyTags';
+import { useTenantId } from '@/hooks/useTenantId';
+import { runStrategy } from '@/lib/strategy/runStrategy';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Strategy {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  completion_percentage: number;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  approved_by: string | null;
-  tenant_id: string;
-  tags: string[];
-  plugins: string[];
-}
-
-const StrategyEngine = () => {
+const StrategyEngine: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { tenant } = useWorkspace();
-  const [strategy, setStrategy] = useState<Strategy | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isExecuting, setIsExecuting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+  const { tenantId } = useTenantId();
+  const [strategy, setStrategy] = useState<Strategy | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [executing, setExecuting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
+
   useEffect(() => {
-    if (tenant?.id && id) {
-      fetchStrategyDetails();
+    if (id && tenantId) {
+      loadStrategy(id);
     }
-  }, [id, tenant?.id]);
-  
-  const fetchStrategyDetails = async () => {
-    setIsLoading(true);
+  }, [id, tenantId]);
+
+  const loadStrategy = async (strategyId: string) => {
     try {
+      setLoading(true);
+      setError(null);
+
       const { data, error } = await supabase
         .from('strategies')
         .select('*')
-        .eq('id', id)
-        .eq('tenant_id', tenant?.id)
+        .eq('id', strategyId)
+        .eq('tenant_id', tenantId)
         .single();
+
+      if (error) throw new Error(`Failed to load strategy: ${error.message}`);
       
-      if (error) throw error;
-      
-      setStrategy(data);
-    } catch (err) {
-      console.error('Error fetching strategy details:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load strategy details.',
-        variant: 'destructive',
-      });
+      if (!data) {
+        setError('Strategy not found');
+      } else {
+        setStrategy(data as Strategy);
+      }
+    } catch (err: any) {
+      console.error('Error loading strategy:', err);
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  
+
   const handleBack = () => {
-    navigate('/launch');
+    navigate('/dashboard');
   };
-  
-  const executeStrategy = async () => {
-    if (!strategy || !tenant?.id) return;
-    
-    setIsExecuting(true);
-    toast({
-      title: 'Executing Strategy',
-      description: 'The strategy execution has started...',
-    });
-    
+
+  const handleExecuteStrategy = async () => {
+    if (!strategy || !tenantId) return;
+
     try {
+      setExecuting(true);
+      
+      // Log that execution is starting
+      await logSystemEvent(
+        tenantId,
+        'strategy',
+        'strategy_execution_started',
+        { strategy_id: strategy.id }
+      );
+      
+      // Execute the strategy
       const result = await runStrategy({
         strategyId: strategy.id,
-        tenantId: tenant.id,
+        tenantId,
       });
       
       if (result.success) {
         toast({
-          title: 'Success',
-          description: 'Strategy executed successfully!',
-          variant: 'default',
+          title: 'Strategy Executed',
+          description: 'The strategy has been executed successfully.',
         });
         
-        // Refresh strategy details to show updated status
-        fetchStrategyDetails();
+        // Refresh the strategy data
+        loadStrategy(strategy.id);
       } else {
         toast({
           title: 'Execution Failed',
-          description: result.error || 'Strategy execution failed.',
+          description: result.error || 'An unknown error occurred',
           variant: 'destructive',
         });
       }
@@ -109,134 +106,178 @@ const StrategyEngine = () => {
       console.error('Error executing strategy:', err);
       toast({
         title: 'Execution Error',
-        description: err.message || 'An unexpected error occurred.',
+        description: err.message || 'An unexpected error occurred',
         variant: 'destructive',
       });
     } finally {
-      setIsExecuting(false);
+      setExecuting(false);
     }
   };
   
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!strategy) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center p-6">
-            <h2 className="text-xl font-semibold mb-2">Strategy Not Found</h2>
-            <p className="text-muted-foreground mb-4">The strategy you're looking for doesn't exist or you don't have access to it.</p>
-            <Button onClick={handleBack}>Back to Strategies</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  const status = (strategy?.status || 'pending') as "pending" | "completed" | "approved" | "rejected" | "in_progress" | "draft";
-  
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <StrategyHeader 
-        status={status} 
-        title={strategy.title} 
-        onBack={handleBack} 
-      />
+  const handleApprove = async () => {
+    try {
+      setLoading(true);
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <StrategyDescription description={strategy.description} />
-          
-          <Tabs defaultValue="plugins" className="w-full">
-            <TabsList>
-              <TabsTrigger value="plugins">Plugins</TabsTrigger>
-              <TabsTrigger value="execution">Execution History</TabsTrigger>
-              <TabsTrigger value="config">Configuration</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="plugins" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Strategy Plugins</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {strategy.plugins && strategy.plugins.length > 0 ? (
-                    <div className="space-y-4">
-                      <p>The strategy uses {strategy.plugins.length} plugins.</p>
-                      {/* Plugin list would go here */}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No plugins associated with this strategy.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="execution" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Execution History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Execution history will be displayed here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="config" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuration</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Strategy configuration options will be displayed here.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
+      const { error } = await supabase
+        .from('strategies')
+        .update({ status: 'approved' })
+        .eq('id', strategy?.id);
         
-        <div className="space-y-6">
-          <StrategyActions 
-            strategyId={id || ''} 
-            onExecute={executeStrategy} 
-            isExecuting={isExecuting}
-            status={status}
-          />
+      if (error) throw error;
+      
+      toast({
+        title: 'Strategy Approved',
+        description: 'The strategy has been approved successfully.',
+      });
+      
+      // Refresh the strategy data
+      loadStrategy(strategy!.id);
+    } catch (err: any) {
+      toast({
+        title: 'Approval Failed',
+        description: err.message || 'Failed to approve the strategy',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleReject = async () => {
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase
+        .from('strategies')
+        .update({ status: 'rejected' })
+        .eq('id', strategy?.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Strategy Rejected',
+        description: 'The strategy has been rejected.',
+      });
+      
+      // Refresh the strategy data
+      loadStrategy(strategy!.id);
+    } catch (err: any) {
+      toast({
+        title: 'Rejection Failed',
+        description: err.message || 'Failed to reject the strategy',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <Button 
+        variant="ghost" 
+        className="mb-6" 
+        onClick={handleBack}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Dashboard
+      </Button>
+      
+      {error ? (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : loading ? (
+        <>
+          <Skeleton className="h-12 w-full mb-4" />
+          <Skeleton className="h-48 w-full mb-4" />
+          <Skeleton className="h-12 w-32 mb-4" />
+        </>
+      ) : strategy ? (
+        <>
+          <div className="mb-6">
+            <StrategyHeader 
+              onBack={handleBack}
+              status={strategy.status}
+            />
+            <h1 className="text-3xl font-bold mt-4">{strategy.title}</h1>
+            {strategy.tags && strategy.tags.length > 0 && (
+              <div className="mt-2">
+                <StrategyTags tags={strategy.tags} />
+              </div>
+            )}
+          </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Metadata</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <StrategyMetadata
-                createdBy={strategy?.created_by || ''}
-                approvedBy={strategy?.approved_by || null}
-                createdAt={strategy?.created_at || ''}
-                updatedAt={strategy?.updated_at || ''}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                  <TabsTrigger value="plugins">Plugins</TabsTrigger>
+                  <TabsTrigger value="metrics">Metrics</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="overview">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <StrategyDescription description={strategy.description} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="timeline">
+                  <Card>
+                    <CardContent className="py-6">
+                      <p>Timeline content will be displayed here</p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="plugins">
+                  <Card>
+                    <CardContent className="py-6">
+                      <p>Plugins used in this strategy will be displayed here</p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="metrics">
+                  <Card>
+                    <CardContent className="py-6">
+                      <p>Metrics and KPIs will be displayed here</p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+            
+            <div>
+              <StrategyActions 
+                strategyId={strategy.id}
+                status={strategy.status}
+                onExecute={handleExecuteStrategy}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                isExecuting={executing}
               />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Tags</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <StrategyTags tags={strategy.tags || []} />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              
+              <Card className="mt-6">
+                <CardContent className="py-6">
+                  <StrategyMetadata 
+                    created={strategy.created_at || ''}
+                    updated={strategy.updated_at || ''}
+                    createdBy={strategy.created_by || ''}
+                    approvedBy={strategy.approved_by || null}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 };
