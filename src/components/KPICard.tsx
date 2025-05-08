@@ -2,13 +2,14 @@
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-react';
+import { TrendDirection } from '@/types/shared';
 
 export interface KPICardProps {
   title: string;
   value: string | number;
-  previousValue?: number; // Keeping for future implementation
+  previousValue?: number;
   trend?: number;
-  trendDirection?: 'up' | 'down' | 'neutral';
+  trendDirection?: TrendDirection;
   icon?: React.ReactNode;
   className?: string;
 }
