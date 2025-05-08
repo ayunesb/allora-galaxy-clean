@@ -1,5 +1,4 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { recordExecution } from '@/lib/plugins/execution/recordExecution';
 import { ExecuteStrategyResult } from '@/types/strategy';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -33,9 +32,9 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
     // 2. Record execution start
     await recordExecution({
       id: executionId,
-      tenant_id: input.tenantId,
-      strategy_id: input.strategyId,
-      executed_by: input.userId || null,
+      tenantId: input.tenantId,
+      strategyId: input.strategyId,
+      executedBy: input.userId || null,
       type: 'strategy',
       status: 'pending',
       input: input.options || {}
@@ -68,8 +67,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       id: executionId,
       status,
       output: { plugins: pluginResults },
-      execution_time: executionTime,
-      xp_earned: xpEarned
+      executionTime
     });
     
     // 7. Update strategy progress if execution was successful
@@ -104,7 +102,6 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       execution_id: executionId,
       status,
       message: `Strategy execution ${status}`,
-      executionTime,
       execution_time: executionTime,
       plugins_executed: plugins?.length || 0,
       successful_plugins: successfulPlugins,
@@ -120,7 +117,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       id: executionId,
       status: 'failure',
       error: error.message,
-      execution_time: (performance.now() - startTime) / 1000
+      executionTime: (performance.now() - startTime) / 1000
     }).catch(e => console.error("Error recording execution failure:", e));
     
     // Log system event for error
@@ -141,7 +138,6 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       strategy_id: input.strategyId,
       execution_id: executionId,
       error: error.message,
-      executionTime: (performance.now() - startTime) / 1000,
       execution_time: (performance.now() - startTime) / 1000
     };
   }

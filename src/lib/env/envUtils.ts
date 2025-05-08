@@ -43,8 +43,8 @@ export function getEnvVar(
   try {
     if (typeof globalThis !== 'undefined' && 
         'Deno' in globalThis && 
-        typeof (globalThis as any).Deno?.env?.get === 'function') {
-      value = (globalThis as any).Deno.env.get(name);
+        typeof globalThis.Deno?.env?.get === 'function') {
+      value = globalThis.Deno.env.get(name);
     }
   } catch (e) {
     // Deno.env might be restricted in some contexts
@@ -59,6 +59,18 @@ export function getEnvVar(
   // Fallback to import.meta.env for Vite
   if (!value && typeof import.meta !== 'undefined' && import.meta?.env) {
     value = (import.meta.env as any)[name];
+  }
+
+  // Provide hardcoded defaults for critical values in development 
+  // (this is a safety net to prevent blank screens)
+  if (!value && name === ENV.SUPABASE_URL) {
+    console.warn('VITE_SUPABASE_URL not found, using fallback for development');
+    return 'https://ijrnwpgsqsxzqdemtknz.supabase.co';
+  }
+  
+  if (!value && name === ENV.SUPABASE_ANON_KEY) {
+    console.warn('VITE_SUPABASE_ANON_KEY not found, using fallback for development');
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo';
   }
   
   return value || defaultValue;

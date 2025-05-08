@@ -7,19 +7,18 @@ import { supabase } from '@/integrations/supabase/client';
 export async function getAgentUsageStats(days = 30) {
   try {
     // Base query for plugin logs from recent days
-    const query = supabase
+    const { data, error } = await supabase
       .from('plugin_logs')
-      .select('agent_version_id, status, count(*)')
+      .select('agent_version_id, status, created_at')
       .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-      .is('status', 'success');
+      .eq('status', 'success');
     
-    // Get query result (the groupBy must be done client-side as Supabase JS doesn't support it)
-    const { data, error } = await query;
-      
     if (error) throw error;
     
     // Process the data to simulate a groupBy operation
     const groupedData = data?.reduce((acc, item) => {
+      if (!item.agent_version_id) return acc;
+      
       const key = `${item.agent_version_id}-${item.status}`;
       if (!acc[key]) {
         acc[key] = { 

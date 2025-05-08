@@ -4,14 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 import { toast } from "@/components/ui/use-toast";
 import { getEnvVar } from '@/lib/env/envUtils';
 
+// Get Supabase URL and key with fallbacks to prevent blank screens
 const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
+// Initialize the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Re-export correctly typed helpers
 export const from = supabase.from.bind(supabase);
-export const storage = supabase.storage.bind(supabase);
+export const storage = supabase.storage;
 export const channel = supabase.channel.bind(supabase);
 
 // Network connectivity tracking

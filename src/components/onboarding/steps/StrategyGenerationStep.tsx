@@ -55,7 +55,7 @@ const StrategyGenerationStep: React.FC = () => {
         setProgressMessage('Analyzing company and market data...');
         
         // Call the generateStrategy edge function
-        const { data: generationResult, error: functionError } = await supabase.functions.invoke('generateStrategy', {
+        const { error: functionError } = await supabase.functions.invoke('generateStrategy', {
           body: {
             tenant_id: currentTenant.id,
             company_profile: companyProfile,

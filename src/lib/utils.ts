@@ -57,8 +57,10 @@ export const corsHeaders = {
 export function getSafeEnv(key: string, fallback: string = ""): string {
   try {
     // Try Deno for edge functions
-    if (typeof Deno !== "undefined" && Deno.env) {
-      return Deno.env.get(key) ?? fallback;
+    if (typeof globalThis !== "undefined" && 
+        'Deno' in globalThis && 
+        typeof globalThis.Deno?.env?.get === 'function') {
+      return globalThis.Deno.env.get(key) ?? fallback;
     }
     // Fallback to process.env for node environments
     if (typeof process !== "undefined" && process.env) {

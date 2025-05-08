@@ -1,4 +1,3 @@
-
 /**
  * Helper function to safely get environment variables with fallbacks
  */
@@ -19,6 +18,66 @@ function getEnv(name: string, fallback: string = ""): string {
     console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
+}
+
+/**
+ * Safely access Deno environment in edge functions
+ */
+function safeGetDenoEnv(name: string): string | undefined {
+  try {
+    if (typeof globalThis !== 'undefined' && 
+        'Deno' in globalThis && 
+        typeof globalThis.Deno?.env?.get === 'function') {
+      return globalThis.Deno.env.get(name);
+    }
+  } catch (e) {
+    console.error(`Error accessing Deno env: ${e}`);
+  }
+  return undefined;
+}
+
+/**
+ * Validate strategy execution input
+ * @param input The input to validate
+ * @returns Validation result
+ */
+export function validateInput(input: any): ValidationResult {
+  const errors: string[] = [];
+  
+  if (!input) {
+    errors.push("Request body is required");
+    return { valid: false, errors };
+  }
+  
+  if (!input.strategy_id) {
+    errors.push("strategy_id is required");
+  }
+  
+  if (!input.tenant_id) {
+    errors.push("tenant_id is required");
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Create a Supabase admin client with service role
+ * @returns Supabase client instance or null if environment variables are missing
+ */
+export function createSupabaseAdmin() {
+  // Get environment variables from either Deno or process
+  const supabaseUrl = safeGetDenoEnv("SUPABASE_URL") || 
+                      (typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined);
+                      
+  const supabaseServiceKey = safeGetDenoEnv("SUPABASE_SERVICE_ROLE_KEY") || 
+                             (typeof process !== 'undefined' ? process.env.SUPABASE_SERVICE_ROLE_KEY : undefined);
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
+    return null;
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 /**
