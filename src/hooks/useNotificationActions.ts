@@ -1,49 +1,78 @@
 
-import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import NotificationList from './NotificationList';
-import { NotificationContent } from '@/types/notifications';
+import { useNotifications } from '@/lib/notifications/useNotifications';
+import { toast } from '@/components/ui/use-toast';
 
-interface NotificationTabsProps {
-  selectedTab: string;
-  setSelectedTab: (value: string) => void;
-  notifications: NotificationContent[];
-  loading: boolean;
-  filter: string | null;
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  onDelete: (id: string) => Promise<{ success: boolean; error?: Error }>;
-}
+export const useNotificationActions = () => {
+  const { markAsRead: markNotificationAsRead, markAllAsRead: markAllNotificationsAsRead, deleteNotification: deleteOneNotification, deleteAllNotifications: deleteAll } = useNotifications();
 
-const NotificationTabs: React.FC<NotificationTabsProps> = ({
-  selectedTab,
-  setSelectedTab,
-  notifications,
-  loading,
-  filter,
-  markAsRead,
-  onDelete
-}) => {
-  return (
-    <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
-      <TabsList className="mb-6">
-        <TabsTrigger value="all">All Notifications</TabsTrigger>
-        <TabsTrigger value="unread">Unread</TabsTrigger>
-      </TabsList>
-      
-      <Card>
-        <CardContent className="p-6">
-          <NotificationList 
-            notifications={notifications} 
-            loading={loading} 
-            filter={selectedTab}
-            markAsRead={markAsRead}
-            onDelete={onDelete}
-          />
-        </CardContent>
-      </Card>
-    </Tabs>
-  );
+  const markAsRead = async (id: string) => {
+    try {
+      await markNotificationAsRead(id);
+      return { success: true };
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read",
+        variant: "destructive"
+      });
+      return { success: false, error: error as Error };
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
+      return { success: true };
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read",
+        variant: "destructive"
+      });
+      return { success: false, error: error as Error };
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    try {
+      await deleteOneNotification(id);
+      return { success: true };
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive"
+      });
+      return { success: false, error: error as Error };
+    }
+  };
+
+  const deleteAllNotifications = async (filter: string | null, tab: string) => {
+    try {
+      await deleteAll(filter, tab === 'unread');
+      toast({
+        title: "Success",
+        description: "All notifications deleted",
+      });
+      return { success: true };
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete all notifications",
+        variant: "destructive"
+      });
+      return { success: false, error: error as Error };
+    }
+  };
+
+  return {
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications
+  };
 };
-
-export default NotificationTabs;
