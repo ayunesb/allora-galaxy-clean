@@ -2,7 +2,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
-import OnboardingLayout from '@/components/layout/OnboardingLayout';
+import OnboardingLayout from '@/layouts/OnboardingLayout';
 
 const OnboardingRoutes: React.FC = () => {
   return (
