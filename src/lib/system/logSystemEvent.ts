@@ -34,12 +34,14 @@ export async function logSystemEvent(
     // Ensure context is serializable
     let safeContext = {};
     try {
+      // First convert to string and back to ensure it's JSON serializable
       safeContext = JSON.parse(JSON.stringify(context));
     } catch (err) {
       console.warn('Context could not be serialized for logging:', err);
       safeContext = { error: 'Context serialization failed', originalContext: String(context) };
     }
 
+    // Insert the log entry
     const { error } = await supabase.from('system_logs').insert([
       {
         module,
