@@ -6,7 +6,7 @@ import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-react';
 export interface KPICardProps {
   title: string;
   value: string | number;
-  previousValue?: number;
+  previousValue?: number; // Keeping for future implementation
   trend?: number;
   trendDirection?: 'up' | 'down' | 'neutral';
   icon?: React.ReactNode;
@@ -15,8 +15,7 @@ export interface KPICardProps {
 
 const KPICard: React.FC<KPICardProps> = ({ 
   title, 
-  value, 
-  previousValue, 
+  value,
   trend, 
   trendDirection = 'neutral', 
   icon,

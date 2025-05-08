@@ -1,5 +1,4 @@
 
-import { corsHeaders, getSafeEnv } from '../lib/utils';
 import { runStrategy } from "../lib/strategy/runStrategy";
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '../types/strategy';
 

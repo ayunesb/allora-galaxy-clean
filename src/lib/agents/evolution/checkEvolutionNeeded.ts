@@ -3,7 +3,7 @@
  * Check if agent evolution is needed for a specific agent
  */
 export async function checkAgentEvolutionNeeded(
-  agentId: string, 
+  _agentId: string, 
   upvotes: number, 
   downvotes: number,
   threshold = 0.3

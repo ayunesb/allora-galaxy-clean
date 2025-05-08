@@ -1,6 +1,6 @@
 
 import React from "react";
-import { diffLines, Change } from "diff";
+import { diffLines } from "diff";
 
 interface PromptDiffViewerProps {
   oldPrompt: string;

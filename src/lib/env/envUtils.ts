@@ -43,8 +43,8 @@ export function getEnvVar(
   try {
     if (typeof globalThis !== 'undefined' && 
         'Deno' in globalThis && 
-        globalThis.Deno?.env) {
-      value = globalThis.Deno.env.get(name);
+        typeof (globalThis as any).Deno?.env?.get === 'function') {
+      value = (globalThis as any).Deno.env.get(name);
     }
   } catch (e) {
     // Deno.env might be restricted in some contexts

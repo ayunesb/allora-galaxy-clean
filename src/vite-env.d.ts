@@ -56,6 +56,11 @@ declare module 'react-force-graph' {
   export class ForceGraphAR extends Component<ForceGraphProps> {}
 }
 
+// Add declaration for uuid module
+declare module 'uuid' {
+  export function v4(): string;
+}
+
 // Extend Window interface for global variables
 interface Window {
   ENV?: Record<string, string>;

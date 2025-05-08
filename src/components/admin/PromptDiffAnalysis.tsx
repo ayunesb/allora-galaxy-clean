@@ -3,11 +3,9 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import PromptDiffViewer from '@/components/PromptDiffViewer';
-import { useTenantId } from '@/hooks/useTenantId';
 
 interface PromptDiffAnalysisProps {
   currentPrompt: string;
@@ -22,8 +20,6 @@ export const PromptDiffAnalysis: React.FC<PromptDiffAnalysisProps> = ({
   agentVersionId,
   pluginId
 }) => {
-  const tenantId = useTenantId();
-
   // Fetch or generate prompt analysis
   const { data: analysis, isLoading, error } = useQuery({
     queryKey: ['prompt-analysis', agentVersionId],

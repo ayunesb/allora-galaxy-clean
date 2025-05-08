@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -61,7 +60,7 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       // Call Supabase edge function to invite user
-      const { data, error } = await supabase.functions.invoke('send-invite-email', {
+      const { error } = await supabase.functions.invoke('send-invite-email', {
         body: {
           email: values.email,
           tenant_id: tenantId,
@@ -74,13 +73,15 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
         throw error;
       }
       
-      // Log the invitation
-      await logSystemEvent(
-        tenantId,
-        'admin',
-        'user_invited',
-        { email: values.email, role: values.role }
-      );
+      // Log the invitation - ensure tenant_id is a string for safety
+      if (tenantId) {
+        await logSystemEvent(
+          tenantId,
+          'admin',
+          'user_invited',
+          { email: values.email, role: values.role }
+        );
+      }
       
       toast({
         title: 'Invitation sent',

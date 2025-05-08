@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import CookiePreferenceItem from './CookiePreferenceItem';
 import CookiePreferenceFooter from './CookiePreferenceFooter';
-import { useCookiePreferences, CookiePreferences } from './useCookiePreferences';
+import { useCookiePreferences } from './useCookiePreferences';
 
 const CookieConsentDialog: React.FC = () => {
   const { t } = useTranslation();
