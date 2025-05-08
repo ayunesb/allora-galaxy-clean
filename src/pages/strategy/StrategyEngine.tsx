@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -75,7 +74,7 @@ const StrategyEngine = () => {
     navigate('/launch');
   };
   
-  const handleExecute = async () => {
+  const executeStrategy = async () => {
     if (!strategy || !tenant?.id) return;
     
     setIsExecuting(true);
@@ -143,10 +142,12 @@ const StrategyEngine = () => {
     );
   }
   
+  const status = (strategy?.status || 'pending') as "pending" | "completed" | "approved" | "rejected" | "in_progress" | "draft";
+  
   return (
     <div className="container mx-auto p-6 space-y-6">
       <StrategyHeader 
-        status={strategy.status} 
+        status={status} 
         title={strategy.title} 
         onBack={handleBack} 
       />
@@ -206,9 +207,10 @@ const StrategyEngine = () => {
         
         <div className="space-y-6">
           <StrategyActions 
-            strategyId={strategy.id}
-            onExecute={handleExecute} 
+            strategyId={id || ''} 
+            onExecute={executeStrategy} 
             isExecuting={isExecuting}
+            status={status}
           />
           
           <Card>
@@ -216,11 +218,11 @@ const StrategyEngine = () => {
               <CardTitle>Metadata</CardTitle>
             </CardHeader>
             <CardContent>
-              <StrategyMetadata 
-                createdAt={strategy.created_at} 
-                updatedAt={strategy.updated_at} 
-                createdBy={strategy.created_by} 
-                approvedBy={strategy.approved_by} 
+              <StrategyMetadata
+                createdBy={strategy?.created_by || ''}
+                approvedBy={strategy?.approved_by || null}
+                createdAt={strategy?.created_at || ''}
+                updatedAt={strategy?.updated_at || ''}
               />
             </CardContent>
           </Card>

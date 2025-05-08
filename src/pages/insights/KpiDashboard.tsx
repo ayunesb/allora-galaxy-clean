@@ -1,154 +1,224 @@
 
-import { useState, useEffect } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { fetchKpiTrends } from '@/lib/kpi/fetchKpiTrends';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import KPICard from '@/components/KPICard';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendDirection } from '@/types/shared';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { KPICardSkeleton } from '@/components/skeletons/KPICardSkeleton';
 
-const KpiDashboard = () => {
+interface KpiData {
+  name: string;
+  date: string;
+  value: number;
+  previousValue: number;
+  trend?: number;
+}
+
+const KpiDashboard: React.FC = () => {
+  const [kpis, setKpis] = useState<KpiData[]>([]);
+  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const { tenant } = useWorkspace();
-  const [kpiData, setKpiData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-  
+
   useEffect(() => {
     if (tenant?.id) {
-      fetchData();
+      fetchKpiData(tenant.id);
     }
-  }, [tenant?.id]);
-  
-  const fetchData = async () => {
-    setIsLoading(true);
+  }, [tenant]);
+
+  const fetchKpiData = async (tenantId: string) => {
     try {
-      // Fetch KPI data
-      const kpiTrends = await fetchKpiTrends(tenant?.id || '');
-      setKpiData(kpiTrends);
-    } catch (err) {
-      console.error('Error fetching KPI data:', err);
-      toast({
-        title: 'Error loading KPIs',
-        description: 'Failed to load KPI data. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Format trend data for KPI cards
-  const getKpiTrend = (name: string): { value: number; direction: TrendDirection; percentage: number } => {
-    const kpi = kpiData.find(k => k.name === name);
-    if (!kpi) {
-      return { value: 0, direction: 'neutral', percentage: 0 };
-    }
-    
-    const currentValue = kpi.value || 0;
-    const previousValue = kpi.previousValue || 0;
-    
-    if (previousValue === 0) {
-      return { value: currentValue, direction: 'neutral', percentage: 0 };
-    }
-    
-    const percentage = ((currentValue - previousValue) / previousValue) * 100;
-    const direction: TrendDirection = percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'neutral';
-    
-    return {
-      value: currentValue,
-      direction,
-      percentage: Math.abs(percentage)
-    };
-  };
-  
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Key Performance Indicators</h1>
+      setLoading(true);
+      setError(null);
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* KPI Cards */}
-        {isLoading ? (
+      // In a real app, this would fetch from Supabase
+      // For demo, use mock data
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock KPI data
+      const mockKpis: KpiData[] = [
+        {
+          name: 'mrr',
+          date: '2025-05-01',
+          value: 12500,
+          previousValue: 10000,
+          trend: 25
+        },
+        {
+          name: 'lead_conversion',
+          date: '2025-05-01',
+          value: 4.8,
+          previousValue: 3.5,
+          trend: 37.1
+        },
+        {
+          name: 'website_visitors',
+          date: '2025-05-01',
+          value: 25400,
+          previousValue: 18900,
+          trend: 34.4
+        },
+        {
+          name: 'social_engagement',
+          date: '2025-05-01',
+          value: 1250,
+          previousValue: 950,
+          trend: 31.6
+        }
+      ];
+      
+      // Mock historical data for chart
+      const mockHistoricalData = [
+        { month: 'Jan', mrr: 5000, visitors: 10000 },
+        { month: 'Feb', mrr: 6200, visitors: 12000 },
+        { month: 'Mar', mrr: 7500, visitors: 14500 },
+        { month: 'Apr', mrr: 10000, visitors: 18900 },
+        { month: 'May', mrr: 12500, visitors: 25400 }
+      ];
+      
+      setKpis(mockKpis);
+      setHistoricalData(mockHistoricalData);
+    } catch (err: any) {
+      console.error('Error fetching KPI data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper to determine trend direction from percentage
+  const getTrendDirection = (trendPercentage: number): TrendDirection => {
+    if (trendPercentage > 0) return 'up';
+    if (trendPercentage < 0) return 'down';
+    return 'flat';
+  };
+
+  if (error) {
+    return (
+      <div className="container py-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <div className="text-red-800">Error loading KPI data: {error}</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-6">
+      <h1 className="text-2xl font-bold mb-6">KPI Dashboard</h1>
+      
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {loading ? (
           <>
-            {[1, 2, 3, 4].map((index) => (
-              <Card key={index} className="animate-pulse">
-                <CardHeader className="pb-2">
-                  <div className="h-4 bg-muted rounded-full w-3/4"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-8 bg-muted rounded-full w-1/2 mb-2"></div>
-                  <div className="h-3 bg-muted rounded-full w-1/4"></div>
-                </CardContent>
-              </Card>
-            ))}
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+            <KPICardSkeleton />
           </>
         ) : (
           <>
             {/* MRR KPI Card */}
             <KPICard
               title="Monthly Recurring Revenue"
-              value={`$${getKpiTrend('mrr').value.toLocaleString()}`}
-              trend={getKpiTrend('mrr').percentage}
-              trendDirection={getKpiTrend('mrr').direction}
+              value={`$${kpis.find(k => k.name === 'mrr')?.value.toLocaleString() || 0}`}
+              trend={kpis.find(k => k.name === 'mrr')?.trend}
+              trendDirection={getTrendDirection(kpis.find(k => k.name === 'mrr')?.trend || 0)}
             />
             
             {/* Lead Conversion KPI Card */}
             <KPICard
               title="Lead Conversion"
-              value={`${getKpiTrend('lead_conversion').value.toFixed(1)}%`}
-              trend={getKpiTrend('lead_conversion').percentage}
-              trendDirection={getKpiTrend('lead_conversion').direction}
+              value={`${kpis.find(k => k.name === 'lead_conversion')?.value.toFixed(1) || 0}%`}
+              trend={kpis.find(k => k.name === 'lead_conversion')?.trend}
+              trendDirection={getTrendDirection(kpis.find(k => k.name === 'lead_conversion')?.trend || 0)}
             />
             
             {/* Website Visitors KPI Card */}
             <KPICard
               title="Website Visitors"
-              value={getKpiTrend('website_visitors').value.toLocaleString()}
-              trend={getKpiTrend('website_visitors').percentage}
-              trendDirection={getKpiTrend('website_visitors').direction}
+              value={(kpis.find(k => k.name === 'website_visitors')?.value || 0).toLocaleString()}
+              trend={kpis.find(k => k.name === 'website_visitors')?.trend}
+              trendDirection={getTrendDirection(kpis.find(k => k.name === 'website_visitors')?.trend || 0)}
             />
             
             {/* Social Engagement KPI Card */}
             <KPICard
               title="Social Engagement"
-              value={getKpiTrend('social_engagement').value.toLocaleString()}
-              trend={getKpiTrend('social_engagement').percentage}
-              trendDirection={getKpiTrend('social_engagement').direction}
+              value={(kpis.find(k => k.name === 'social_engagement')?.value || 0).toLocaleString()}
+              trend={kpis.find(k => k.name === 'social_engagement')?.trend}
+              trendDirection={getTrendDirection(kpis.find(k => k.name === 'social_engagement')?.trend || 0)}
             />
           </>
         )}
       </div>
       
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>KPI Analytics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Detailed KPI analytics will be displayed here. Coming soon.
-          </p>
-        </CardContent>
-      </Card>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Conversion Funnel</CardTitle>
+            <CardTitle>MRR Growth</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Conversion funnel visualization will be displayed here. Coming soon.
-            </p>
+          <CardContent className="h-80">
+            {loading ? (
+              <div className="h-full flex items-center justify-center bg-slate-50">
+                <div className="animate-pulse text-muted-foreground">Loading chart data...</div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis 
+                    tickFormatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                  <Tooltip formatter={(value) => `$${(value as number).toLocaleString()}`} />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="mrr" 
+                    stroke="#8884d8" 
+                    activeDot={{ r: 8 }} 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle>Campaign Performance</CardTitle>
+            <CardTitle>Website Traffic</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Campaign performance metrics will be displayed here. Coming soon.
-            </p>
+          <CardContent className="h-80">
+            {loading ? (
+              <div className="h-full flex items-center justify-center bg-slate-50">
+                <div className="animate-pulse text-muted-foreground">Loading chart data...</div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => (value as number).toLocaleString()} />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="visitors" 
+                    stroke="#82ca9d" 
+                    activeDot={{ r: 8 }} 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

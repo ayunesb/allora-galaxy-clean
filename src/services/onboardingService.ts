@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { OnboardingFormData, GenerateStrategyParams, GenerateStrategyResult } from '@/types/onboarding';
+import { OnboardingFormData } from '@/types/onboarding';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { createTenantFromOnboarding } from '@/lib/onboarding/tenantUtils';
 
@@ -62,7 +62,8 @@ export async function generateInitialStrategy(
       'initial_strategy_created',
       { 
         strategy_id: strategyData.id,
-        strategy_title: strategyTitle 
+        strategy_title: strategyTitle,
+        goals: goals.length // Log the number of goals
       }
     );
 

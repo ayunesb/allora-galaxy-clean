@@ -21,7 +21,7 @@ export interface WorkspaceContextType {
   isLoading: boolean;
   navigationItems: NavigationItem[];
   currentRole: UserRole | null;
-  userRole: UserRole | null; // Add for backward compatibility
+  userRole: UserRole | null; // Make sure this is explicitly included
   refreshTenant: () => Promise<void>;
   error: string | null;
 }

@@ -60,17 +60,4 @@ export type SystemEventType = string;
  */
 export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
 
-export interface ExecutionRecordInput {
-  tenantId: string;
-  status: string;
-  type: ExecutionType;
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  executedBy?: string;
-  input?: any;
-  output?: any;
-  executionTime?: number;
-  xpEarned?: number;
-  error?: string;
-}
+// We've moved ExecutionRecordInput to execution.ts to avoid duplication

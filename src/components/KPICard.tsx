@@ -10,7 +10,8 @@ interface KPICardProps {
   value: string | number;
   previousValue?: string | number;
   change?: number;
-  trend?: TrendDirection;
+  trendDirection?: TrendDirection;
+  trend?: number; // Percentage change
   isPositive?: boolean;
   className?: string;
   icon?: React.ReactNode;
@@ -25,18 +26,19 @@ const KPICard: React.FC<KPICardProps> = ({
   value,
   previousValue,
   change,
-  trend = 'flat',
+  trendDirection = 'flat',
+  trend,
   isPositive = true,
   className,
   icon,
   unit = ''
 }) => {
   const renderTrendIcon = () => {
-    if (trend === 'up') {
+    if (trendDirection === 'up') {
       return <ArrowUpIcon className={cn('h-4 w-4', isPositive ? 'text-green-500' : 'text-red-500')} />;
     }
     
-    if (trend === 'down') {
+    if (trendDirection === 'down') {
       return <ArrowDownIcon className={cn('h-4 w-4', isPositive ? 'text-green-500' : 'text-red-500')} />;
     }
     
@@ -55,25 +57,25 @@ const KPICard: React.FC<KPICardProps> = ({
           {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
         </div>
         
-        {(change !== undefined || previousValue !== undefined) && (
+        {(trend !== undefined || previousValue !== undefined) && (
           <div className="flex items-center space-x-1 pt-1">
             {renderTrendIcon()}
             <p className={cn(
               'text-xs',
               isPositive ? 'text-green-500' : 'text-red-500',
-              trend === 'flat' && 'text-gray-400'
+              trendDirection === 'flat' && 'text-gray-400'
             )}>
-              {change !== undefined && (
+              {trend !== undefined && (
                 <>
-                  {change > 0 && '+'}
-                  {change}%
+                  {trend > 0 && '+'}
+                  {trend}%
                 </>
               )}
-              {previousValue !== undefined && change === undefined && (
+              {previousValue !== undefined && trend === undefined && (
                 <>
-                  {trend === 'up' && 'Increased from '}
-                  {trend === 'down' && 'Decreased from '}
-                  {trend === 'flat' && 'No change from '}
+                  {trendDirection === 'up' && 'Increased from '}
+                  {trendDirection === 'down' && 'Decreased from '}
+                  {trendDirection === 'flat' && 'No change from '}
                   {previousValue}
                 </>
               )}

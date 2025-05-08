@@ -19,9 +19,7 @@ export async function executePlugin(
   strategyId: string
 ): Promise<PluginResult> {
   const startTime = performance.now();
-  let result: PluginResult = {
-    success: false
-  };
+  let result: PluginResult;
 
   try {
     // In a real implementation, we would execute the plugin's logic
@@ -69,7 +67,7 @@ export async function executePlugin(
         status: 'failure',
         type: 'plugin',
         input,
-        output: {},
+        output: {}, // Empty object as output for failed execution
         executionTime: (performance.now() - startTime) / 1000,
         xpEarned: 0,
         error: pluginError.message
@@ -80,6 +78,7 @@ export async function executePlugin(
 
     result = {
       success: false,
+      output: {}, // Empty object as output for failed execution
       error: pluginError.message
     };
   }

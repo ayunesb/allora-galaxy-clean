@@ -8,19 +8,32 @@ export * from './strategy';
 export * from './agent';
 export * from './execution';
 export * from './tenant';
-export * from './shared';
+
+// Export shared types
+export {
+  BaseEntity,
+  ExecutionParams,
+  ExecutionType,
+  KPITrend,
+  LogStatus,
+  SystemEventModule,
+  SystemEventType,
+  TenantFeature,
+  TrendDirection,
+  UserRole,
+  VoteType
+} from './shared';
+
+export { NotificationType } from './notifications';
+
+// Re-export remaining types
 export * from './galaxy';
-export * from './notifications';
-export * from './onboarding'; // Add onboarding types
+export * from './onboarding';
 
 // Fixed exports to avoid ambiguity
 export type { 
   RunPluginChainResult 
 } from './plugin';
-
-export type {
-  ExecutionRecordInput
-} from './shared';
 
 // Define Strategy type to avoid import errors
 export interface Strategy {

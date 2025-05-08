@@ -14,7 +14,7 @@ const defaultContext: WorkspaceContextType = {
   isLoading: true,
   navigationItems,
   currentRole: null,
-  userRole: null, // Add userRole to match the expected type
+  userRole: null,
   refreshTenant: async () => {},
   error: null
 };
@@ -97,7 +97,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     isLoading: loading,
     navigationItems,
     currentRole,
-    userRole: currentRole, // Set userRole to match currentRole for backwards compatibility
+    userRole: currentRole, // Ensure userRole is set to match currentRole
     refreshTenant,
     error
   };

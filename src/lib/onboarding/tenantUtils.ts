@@ -2,11 +2,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent } from "@/lib/system/logSystemEvent";
 import { OnboardingFormData } from "@/types/onboarding";
+import { TenantWithRole } from "@/types/tenant";
 
 /**
  * Check if user already has existing tenants
  */
-export async function checkExistingTenants(userId: string) {
+export async function checkExistingTenants(userId: string): Promise<TenantWithRole[]> {
   try {
     const { data, error } = await supabase
       .from('tenant_user_roles')

@@ -1,13 +1,11 @@
 
-import { ExecutionType } from './shared';
-
 /**
  * Record for execution logs
  */
 export interface ExecutionRecordInput {
   tenantId: string;
   status: string;
-  type: 'strategy' | 'plugin' | 'agent';
+  type: 'strategy' | 'plugin' | 'agent' | 'system';
   strategyId?: string;
   pluginId?: string;
   agentVersionId?: string;
