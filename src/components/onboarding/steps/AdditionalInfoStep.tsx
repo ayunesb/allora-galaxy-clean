@@ -1,46 +1,52 @@
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { type AdditionalInfoStepProps } from '../StepContent';
 
-interface AdditionalInfoStepProps {
-  website: string;
-  setWebsite: (value: string) => void;
-  description: string;
-  setDescription: (value: string) => void;
-}
-
-const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
-  website,
-  setWebsite,
-  description,
-  setDescription,
+const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({ 
+  formData,
+  setFieldValue
 }) => {
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="website">Website (optional)</Label>
-        <Input
-          id="website"
-          type="url"
-          placeholder="https://example.com"
-          value={website}
-          onChange={(e) => setWebsite(e.target.value)}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="description">Company Description</Label>
-        <Textarea
-          id="description"
-          placeholder="Tell us about your company..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={4}
-        />
-      </div>
-    </div>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="space-y-2 px-0">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-2xl">Additional Information</CardTitle>
+          <Badge variant="outline">Optional</Badge>
+        </div>
+        <CardDescription>
+          Provide any additional context that will help us create a more tailored strategy
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6 px-0">
+        <div className="space-y-2">
+          <Label htmlFor="additionalInfo">Additional Context</Label>
+          <Textarea
+            id="additionalInfo"
+            value={formData.additionalInfo || ''}
+            onChange={(e) => setFieldValue('additionalInfo', e.target.value)}
+            placeholder="Share any specific business challenges, goals, or context that might help with your strategy"
+            rows={8}
+          />
+        </div>
+        
+        <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+          <p>
+            <strong>Tips:</strong> You can mention specific challenges you're facing,
+            what sets your business apart, or particular metrics you want to improve.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

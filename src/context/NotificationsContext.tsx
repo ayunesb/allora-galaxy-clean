@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
-import { Notification, NotificationsContextType } from '@/types/notifications';
+import { type Notification, type NotificationsContextType } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
 // Create the context with default values

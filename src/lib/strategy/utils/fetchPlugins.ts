@@ -1,37 +1,43 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Plugin } from '@/types/plugin';
 
 /**
- * Fetch plugins to execute for a strategy
- * 
- * @param strategyId Strategy ID
- * @param tenantId Tenant ID
- * @returns Object with plugins array or error
+ * Fetches plugins associated with a strategy
+ * @param strategyId The ID of the strategy to fetch plugins for
+ * @param tenantId The tenant ID for RLS verification
+ * @returns An object containing plugins array and any error
  */
-export async function fetchPlugins(strategyId: string, tenantId: string): Promise<{ plugins?: Plugin[]; error?: string }> {
+export async function fetchPlugins(
+  strategyId: string, 
+  tenantId: string
+) {
   try {
-    // Fetch active plugins for the strategy
-    const { data, error } = await supabase
+    // Verify tenant access first
+    const { data: strategy, error: strategyError } = await supabase
+      .from('strategies')
+      .select('id')
+      .eq('id', strategyId)
+      .eq('tenant_id', tenantId)
+      .single();
+    
+    if (strategyError) {
+      return { plugins: null, error: `Strategy access denied: ${strategyError.message}` };
+    }
+    
+    // Fetch active plugins for the tenant
+    const { data: plugins, error: pluginsError } = await supabase
       .from('plugins')
       .select('*')
       .eq('tenant_id', tenantId)
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .order('created_at', { ascending: true });
     
-    if (error) {
-      throw error;
+    if (pluginsError) {
+      return { plugins: null, error: `Failed to fetch plugins: ${pluginsError.message}` };
     }
     
-    if (!data || data.length === 0) {
-      return {
-        plugins: [],
-        error: 'No active plugins found for the strategy'
-      };
-    }
-    
-    return { plugins: data as Plugin[] };
+    return { plugins, error: null };
   } catch (error: any) {
-    console.error('Error fetching plugins:', error);
-    return { error: error.message || 'Failed to fetch plugins' };
+    return { plugins: null, error: `Unexpected error fetching plugins: ${error.message}` };
   }
 }

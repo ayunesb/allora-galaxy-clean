@@ -1,21 +1,29 @@
 
-// Re-export the toast functionality from shadcn
-import { 
-  type ToastActionElement,
-  toast as shadcnToast
-} from "@/components/ui/toast";
+import { useCallback, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from './useTenantId';
 import { useNotificationsContext } from '@/context/NotificationsContext';
-import { useCallback } from "react";
+
+// Define the toast types
+export interface Toast {
+  id: string;
+  title: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  variant?: "default" | "destructive";
+  className?: string;
+  duration?: number;
+}
+
+export type ToastActionElement = React.ReactNode;
 
 // Create a custom hook for toast
 export const useToast = () => {
-  const [toasts, setToasts] = React.useState<any[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const toast = useCallback(
-    ({ ...props }) => {
+    (props: Omit<Toast, "id">) => {
       const id = uuidv4();
       const newToast = { id, ...props };
       setToasts((prevToasts) => [...prevToasts, newToast]);
@@ -35,7 +43,7 @@ export const useToast = () => {
   };
 };
 
-// Override the toast function to optionally persist to notifications
+// Export a standalone toast function to optionally persist to notifications
 export const toast = (props: {
   title: string;
   description?: string;
@@ -45,8 +53,11 @@ export const toast = (props: {
   duration?: number;
   persist?: boolean; // If true, also save to notifications system
 }) => {
-  // Always show the UI toast
-  shadcnToast(props);
+  // For standalone usage, create a temporary toast and use it
+  const id = uuidv4();
+  const toastInstance = document.createEvent('CustomEvent');
+  toastInstance.initCustomEvent('toast', true, true, { id, ...props });
+  document.dispatchEvent(toastInstance);
 
   // If persist is true, save to supabase
   if (props.persist) {
@@ -114,7 +125,7 @@ export const useNotify = () => {
       const variant = params.type === 'error' ? 'destructive' : 'default';
       const className = getClassNameByType(params.type);
       
-      shadcnToast({
+      toast({
         title: params.title,
         description: params.description,
         variant,
@@ -147,6 +158,3 @@ function getClassNameByType(type?: string): string | undefined {
       return undefined;
   }
 }
-
-// Import React at the top of the file
-import React from 'react';

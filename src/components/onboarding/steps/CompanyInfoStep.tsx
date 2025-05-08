@@ -1,121 +1,150 @@
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
+import { 
+  Card, 
+  CardContent,
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { 
+  type CompanyInfoStepProps 
+} from '../StepContent';
 
-const industries = [
-  'Technology',
-  'Finance',
-  'Healthcare',
-  'Education',
-  'Retail',
-  'Manufacturing',
-  'Media',
-  'Entertainment',
-  'Food & Beverage',
-  'Travel',
-  'Other',
-];
-
-const teamSizes = [
-  { value: 'solo', label: 'Solo (1 person)' },
-  { value: 'small', label: 'Small (2-10 people)' },
-  { value: 'medium', label: 'Medium (11-50 people)' },
-  { value: 'large', label: 'Large (51-500 people)' },
-  { value: 'enterprise', label: 'Enterprise (500+ people)' },
-];
-
-const revenueRanges = [
-  'Pre-revenue',
-  '$1 - $100k',
-  '$100k - $1M',
-  '$1M - $10M',
-  '$10M - $100M',
-  '$100M+',
-];
-
-interface CompanyInfoStepProps {
-  companyName: string;
-  setCompanyName: (value: string) => void;
-  industry: string;
-  setIndustry: (value: string) => void;
-  teamSize: string;
-  setTeamSize: (value: string) => void;
-  revenueRange: string;
-  setRevenueRange: (value: string) => void;
-}
-
-const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({
-  companyName,
-  setCompanyName,
-  industry,
-  setIndustry,
-  teamSize,
-  setTeamSize,
-  revenueRange,
-  setRevenueRange,
+const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ 
+  formData, 
+  updateFormData,
+  setFieldValue
 }) => {
+  const companySizes = [
+    '1-10 employees',
+    '11-50 employees',
+    '51-200 employees',
+    '201-500 employees',
+    '501-1000 employees',
+    '1000+ employees'
+  ];
+
+  const industries = [
+    'Software & IT',
+    'Healthcare',
+    'Finance',
+    'Education',
+    'E-commerce',
+    'Manufacturing',
+    'Marketing & Advertising',
+    'Consulting',
+    'Real Estate',
+    'Other'
+  ];
+
+  const revenueRanges = [
+    'Pre-revenue',
+    'Under $100K',
+    '$100K - $500K',
+    '$500K - $1M',
+    '$1M - $5M',
+    '$5M - $10M',
+    '$10M - $50M',
+    '$50M+'
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="company-name">Company Name</Label>
-        <Input
-          id="company-name"
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          required
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="industry">Industry</Label>
-        <Select value={industry} onValueChange={setIndustry}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select industry" />
-          </SelectTrigger>
-          <SelectContent>
-            {industries.map((ind) => (
-              <SelectItem key={ind} value={ind}>{ind}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="team-size">Team Size</Label>
-        <Select value={teamSize} onValueChange={setTeamSize}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select team size" />
-          </SelectTrigger>
-          <SelectContent>
-            {teamSizes.map((size) => (
-              <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="revenue">Revenue Range</Label>
-        <Select value={revenueRange} onValueChange={setRevenueRange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select revenue range" />
-          </SelectTrigger>
-          <SelectContent>
-            {revenueRanges.map((range) => (
-              <SelectItem key={range} value={range}>{range}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="space-y-2 px-0">
+        <CardTitle className="text-2xl">Company Information</CardTitle>
+        <CardDescription>
+          Tell us about your company so we can generate tailored strategies
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6 px-0">
+        <div className="space-y-2">
+          <Label htmlFor="companyName">Company Name</Label>
+          <Input
+            id="companyName"
+            value={formData.companyName}
+            onChange={(e) => setFieldValue('companyName', e.target.value)}
+            placeholder="Enter your company name"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="industry">Industry</Label>
+          <Select
+            value={formData.industry}
+            onValueChange={(value) => setFieldValue('industry', value)}
+          >
+            <SelectTrigger id="industry">
+              <SelectValue placeholder="Select your industry" />
+            </SelectTrigger>
+            <SelectContent>
+              {industries.map((industry) => (
+                <SelectItem key={industry} value={industry}>
+                  {industry}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="companySize">Company Size</Label>
+          <Select
+            value={formData.companySize}
+            onValueChange={(value) => setFieldValue('companySize', value)}
+          >
+            <SelectTrigger id="companySize">
+              <SelectValue placeholder="Select company size" />
+            </SelectTrigger>
+            <SelectContent>
+              {companySizes.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="revenueRange">Annual Revenue</Label>
+          <Select
+            value={formData.revenueRange}
+            onValueChange={(value) => setFieldValue('revenueRange', value)}
+          >
+            <SelectTrigger id="revenueRange">
+              <SelectValue placeholder="Select revenue range" />
+            </SelectTrigger>
+            <SelectContent>
+              {revenueRanges.map((range) => (
+                <SelectItem key={range} value={range}>
+                  {range}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="website">Website (Optional)</Label>
+          <Input
+            id="website"
+            value={formData.website || ''}
+            onChange={(e) => setFieldValue('website', e.target.value)}
+            placeholder="https://yourcompany.com"
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,34 +1,46 @@
 
-// Define onboarding types
+/**
+ * Defines the steps in the onboarding process
+ */
+export type OnboardingStep = 'company-info' | 'persona' | 'additional-info' | 'strategy-generation';
+
+/**
+ * Persona information for onboarding
+ */
+export interface PersonaInfo {
+  name: string;
+  goals: string[];
+  tone: string;
+}
+
+/**
+ * Data collected during the onboarding process
+ */
 export interface OnboardingFormData {
   companyName: string;
   industry: string;
-  teamSize: string;
-  revenueRange: string;
+  companySize: string;
   website?: string;
-  description?: string;
-  personaName: string;
-  tone: string;
-  goals: string; // Changed from string[] to string to match usage in components
+  revenueRange: string;
+  goals: string[];
+  persona: PersonaInfo;
   additionalInfo?: string;
 }
 
-export type OnboardingStep = 'company-info' | 'persona' | 'additional-info' | 'strategy-generation';
-
-export interface StepValidationResult {
+/**
+ * Result of validating onboarding data
+ */
+export interface OnboardingValidationResult {
   valid: boolean;
-  errors?: Record<string, string>;
+  errors?: string[];
 }
 
-export interface StepComponentProps {
-  formData: OnboardingFormData;
-  updateFormData: (data: Partial<OnboardingFormData>) => void;
-  setFieldValue: (key: string, value: any) => void;
-}
-
-export interface CompanyInfoStepProps extends StepComponentProps {}
-export interface PersonaStepProps extends StepComponentProps {}
-export interface AdditionalInfoStepProps extends StepComponentProps {}
-export interface StrategyGenerationStepProps extends StepComponentProps {
-  isGenerating?: boolean;
+/**
+ * Result of generating a strategy during onboarding
+ */
+export interface StrategyGenerationResult {
+  success: boolean;
+  tenantId?: string;
+  error?: string;
+  strategyId?: string;
 }

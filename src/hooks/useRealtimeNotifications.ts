@@ -1,6 +1,6 @@
 
 import { useEffect, useCallback } from 'react';
-import { supabase, channel } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Notification } from '@/types/notifications';
 
@@ -17,7 +17,7 @@ export function useRealtimeNotifications(onNotification: (payload: Notification)
     if (!user?.id) return null;
 
     // Create a channel for the notifications table
-    const notificationChannel = channel('notification_updates')
+    const notificationChannel = supabase.channel('notification_updates')
       .on(
         'postgres_changes',
         {
@@ -28,7 +28,7 @@ export function useRealtimeNotifications(onNotification: (payload: Notification)
         },
         (payload: { new: Notification }) => {
           // Call the callback with the payload
-          onNotification(payload.new as Notification);
+          onNotification(payload.new);
         }
       )
       .subscribe();

@@ -1,54 +1,53 @@
 
 import React from 'react';
-import { OnboardingFormData } from '@/types/onboarding';
+import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
 import CompanyInfoStep from './steps/CompanyInfoStep';
 import PersonaStep from './steps/PersonaStep';
 import AdditionalInfoStep from './steps/AdditionalInfoStep';
-
-// Export step titles and details for OnboardingWizard
-export const stepTitles = [
-  'Company Information',
-  'Target Persona',
-  'Additional Information',
-  'Strategy Generation',
-];
-
-export const stepDetails = [
-  {
-    title: 'Company Information',
-    description: 'Tell us about your company to customize your experience.',
-  },
-  {
-    title: 'Target Persona',
-    description: 'Define your target audience to optimize your strategies.',
-  },
-  {
-    title: 'Additional Information',
-    description: 'Help us tailor the AI to your specific needs.',
-  },
-  {
-    title: 'Generate Your Strategy',
-    description: 'We\'ll create a custom strategy based on your inputs.',
-  },
-];
+import StrategyGenerationStep from './steps/StrategyGenerationStep';
 
 export interface StepContentProps {
-  currentStep: number;
+  step: OnboardingStep;
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
-  setFieldValue?: (key: string, value: any) => void;
+  isGenerating?: boolean;
+  setFieldValue: (key: string, value: any) => void;
+}
+
+// Define props for each step component
+export interface CompanyInfoStepProps {
+  formData: OnboardingFormData;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+  setFieldValue: (key: string, value: any) => void;
+}
+
+export interface PersonaStepProps {
+  formData: OnboardingFormData;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+  setFieldValue: (key: string, value: any) => void;
+}
+
+export interface AdditionalInfoStepProps {
+  formData: OnboardingFormData;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+  setFieldValue: (key: string, value: any) => void;
+}
+
+export interface StrategyGenerationStepProps {
+  formData: OnboardingFormData;
   isGenerating?: boolean;
 }
 
 const StepContent: React.FC<StepContentProps> = ({ 
-  currentStep, 
-  formData, 
+  step, 
+  formData,
   updateFormData,
-  setFieldValue = (key, value) => updateFormData({ [key]: value })
+  isGenerating,
+  setFieldValue
 }) => {
-  // Render the appropriate step based on currentStep
-  switch (currentStep) {
-    case 0:
+  // Render the appropriate step content based on the current step
+  switch (step) {
+    case 'company-info':
       return (
         <CompanyInfoStep 
           formData={formData}
@@ -56,7 +55,8 @@ const StepContent: React.FC<StepContentProps> = ({
           setFieldValue={setFieldValue}
         />
       );
-    case 1:
+    
+    case 'persona':
       return (
         <PersonaStep 
           formData={formData}
@@ -64,7 +64,8 @@ const StepContent: React.FC<StepContentProps> = ({
           setFieldValue={setFieldValue}
         />
       );
-    case 2:
+    
+    case 'additional-info':
       return (
         <AdditionalInfoStep 
           formData={formData}
@@ -72,6 +73,15 @@ const StepContent: React.FC<StepContentProps> = ({
           setFieldValue={setFieldValue}
         />
       );
+    
+    case 'strategy-generation':
+      return (
+        <StrategyGenerationStep 
+          formData={formData}
+          isGenerating={isGenerating}
+        />
+      );
+    
     default:
       return <div>Unknown step</div>;
   }

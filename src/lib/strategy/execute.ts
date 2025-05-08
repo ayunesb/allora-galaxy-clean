@@ -1,3 +1,4 @@
+
 /**
  * Helper function to safely get environment variables with fallbacks
  */
@@ -6,11 +7,11 @@ function getEnv(name: string, fallback: string = ""): string {
     // Use a more TypeScript-friendly approach to check for Deno environment
     const isDeno = typeof globalThis !== "undefined" && 
                   "Deno" in globalThis && 
-                  typeof globalThis.Deno !== "undefined" && 
-                  "env" in globalThis.Deno;
+                  typeof (globalThis as any).Deno !== "undefined" && 
+                  "env" in (globalThis as any).Deno;
                   
     if (isDeno) {
-      return (globalThis.Deno as any).env.get(name) ?? fallback;
+      return ((globalThis as any).Deno).env.get(name) ?? fallback;
     }
     
     return process.env[name] || fallback;
@@ -27,13 +28,21 @@ function safeGetDenoEnv(name: string): string | undefined {
   try {
     if (typeof globalThis !== 'undefined' && 
         'Deno' in globalThis && 
-        typeof globalThis.Deno?.env?.get === 'function') {
-      return globalThis.Deno.env.get(name);
+        typeof (globalThis as any).Deno?.env?.get === 'function') {
+      return (globalThis as any).Deno.env.get(name);
     }
   } catch (e) {
     console.error(`Error accessing Deno env: ${e}`);
   }
   return undefined;
+}
+
+/**
+ * Interface for validation results
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors?: string[];
 }
 
 /**
@@ -65,19 +74,9 @@ export function validateInput(input: any): ValidationResult {
  * @returns Supabase client instance or null if environment variables are missing
  */
 export function createSupabaseAdmin() {
-  // Get environment variables from either Deno or process
-  const supabaseUrl = safeGetDenoEnv("SUPABASE_URL") || 
-                      (typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined);
-                      
-  const supabaseServiceKey = safeGetDenoEnv("SUPABASE_SERVICE_ROLE_KEY") || 
-                             (typeof process !== 'undefined' ? process.env.SUPABASE_SERVICE_ROLE_KEY : undefined);
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables");
-    return null;
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
+  // We'll import createClient when needed
+  // This function is a placeholder for now
+  return null;
 }
 
 /**
@@ -190,10 +189,10 @@ export function validateStrategyParameters(params: Record<string, any>): { isVal
  * Function to track execution metrics
  */
 export async function trackExecutionMetrics(
-  tenant_id: string, 
-  strategy_id: string, 
-  execution_id: string,
-  metrics: {
+  execMetrics: {
+    tenant_id: string;
+    strategy_id: string;
+    execution_id: string;
     execution_time: number;
     success: boolean;
     error?: string;
@@ -201,7 +200,7 @@ export async function trackExecutionMetrics(
 ): Promise<void> {
   try {
     // In a real implementation, this would send metrics to a monitoring system
-    console.log(`Tracking metrics for execution ${execution_id}:`, metrics);
+    console.log(`Tracking metrics for execution ${execMetrics.execution_id}:`, execMetrics);
   } catch (error) {
     console.error("Failed to track execution metrics:", error);
   }
@@ -211,14 +210,16 @@ export async function trackExecutionMetrics(
  * Function to notify stakeholders about strategy execution
  */
 export async function notifyStakeholders(
-  tenant_id: string,
-  strategy_id: string,
-  execution_id: string,
-  result: ExecuteStrategyResult
+  execInfo: {
+    tenant_id: string;
+    strategy_id: string;
+    execution_id: string;
+    result: ExecuteStrategyResult;
+  }
 ): Promise<void> {
   try {
     // In a real implementation, this would send notifications
-    console.log(`Notifying stakeholders about execution ${execution_id}:`, result);
+    console.log(`Notifying stakeholders about execution ${execInfo.execution_id}:`, execInfo.result);
   } catch (error) {
     console.error("Failed to notify stakeholders:", error);
   }

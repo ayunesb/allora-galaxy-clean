@@ -1,62 +1,54 @@
 
 import React from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { CheckIcon, FilterIcon } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { NotificationType } from '@/types/notifications';
 
-export type NotificationType = 'all' | 'system' | 'info' | 'success' | 'warning' | 'error' | 'milestone';
-
-interface FilterOption {
-  value: NotificationType;
+export interface FilterOption {
+  value: NotificationType | 'all';
   label: string;
 }
 
 interface NotificationFiltersProps {
-  selectedFilter: NotificationType;
-  onFilterChange: (filter: NotificationType) => void;
-  className?: string;
-  filterOptions?: FilterOption[];
+  selectedFilter: NotificationType | 'all';
+  onFilterChange: (filter: NotificationType | 'all') => void;
+  filterOptions: FilterOption[];
 }
-
-const defaultNotificationTypes: FilterOption[] = [
-  { value: 'all', label: 'All Notifications' },
-  { value: 'system', label: 'System' },
-  { value: 'info', label: 'Information' },
-  { value: 'success', label: 'Success' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'error', label: 'Error' },
-  { value: 'milestone', label: 'Milestones' },
-];
 
 const NotificationFilters: React.FC<NotificationFiltersProps> = ({
   selectedFilter,
   onFilterChange,
-  className = '',
-  filterOptions = defaultNotificationTypes,
+  filterOptions
 }) => {
+  // Find the selected filter label
+  const selectedLabel = filterOptions.find(option => option.value === selectedFilter)?.label || 'All Types';
+
   return (
-    <div className={`flex items-center justify-end ${className}`}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-1">
-            <FilterIcon className="h-4 w-4" />
-            <span>Filter</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {filterOptions.map((type) => (
-            <DropdownMenuItem
-              key={type.value}
-              onClick={() => onFilterChange(type.value)}
-              className="flex items-center justify-between"
-            >
-              <span>{type.label}</span>
-              {selectedFilter === type.value && <CheckIcon className="h-4 w-4" />}
-            </DropdownMenuItem>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="flex items-center gap-1">
+          <span>Filter: {selectedLabel}</span>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-48">
+        <DropdownMenuRadioGroup value={selectedFilter} onValueChange={(value) => onFilterChange(value as NotificationType | 'all')}>
+          {filterOptions.map(option => (
+            <DropdownMenuRadioItem key={option.value} value={option.value} className="flex items-center justify-between">
+              {option.label}
+              {selectedFilter === option.value && <Check className="h-4 w-4" />}
+            </DropdownMenuRadioItem>
           ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

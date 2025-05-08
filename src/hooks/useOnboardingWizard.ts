@@ -25,10 +25,12 @@ export function useOnboardingWizard() {
     companyName: '',
     industry: '',
     companySize: '',
-    goals: [],
+    website: '',
+    revenueRange: '',
+    goals: [] as string[],
     persona: { 
       name: '',
-      goals: [],
+      goals: [] as string[],
       tone: ''
     },
     additionalInfo: ''
@@ -55,7 +57,7 @@ export function useOnboardingWizard() {
       const { data } = await supabase
         .from('tenant_user_roles')
         .select('tenant_id')
-        .eq('user_id', currentUser?.id);
+        .eq('user_id', currentUser?.id || '');
       
       if (data && data.length > 0) {
         setTenantsList(data);
@@ -141,7 +143,7 @@ export function useOnboardingWizard() {
             title: 'Welcome to Allora OS',
             description: 'Your workspace is ready! We\'ve created your initial strategy.',
             type: 'success',
-            tenant_id: result.tenantId,
+            tenant_id: result.tenantId || '',
             user_id: currentUser?.id || '',
             action_label: 'View Dashboard',
             action_url: '/dashboard'

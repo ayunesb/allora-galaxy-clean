@@ -1,149 +1,88 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
+import { type StrategyGenerationStepProps } from '../StepContent';
 
-const StrategyGenerationStep: React.FC = () => {
-  const { currentTenant } = useWorkspace();
-  const { toast } = useToast();
-  const [progress, setProgress] = useState(0);
-  const [progressMessage, setProgressMessage] = useState('Initializing strategy generation...');
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const generateStrategy = async () => {
-      if (!currentTenant?.id) {
-        setError('No tenant information available. Please restart the onboarding process.');
-        return;
-      }
-
-      try {
-        setProgressMessage('Fetching company and persona profiles...');
-        setProgress(10);
-        
-        // Get company profile
-        const { data: companyProfile, error: companyError } = await supabase
-          .from('company_profiles')
-          .select('*')
-          .eq('tenant_id', currentTenant.id)
-          .single();
-          
-        if (companyError) {
-          throw new Error(`Failed to fetch company profile: ${companyError.message}`);
-        }
-        
-        setProgress(30);
-        setProgressMessage('Analyzing persona data...');
-        
-        // Get persona profile
-        const { data: personaProfile, error: personaError } = await supabase
-          .from('persona_profiles')
-          .select('*')
-          .eq('tenant_id', currentTenant.id)
-          .single();
-          
-        if (personaError) {
-          throw new Error(`Failed to fetch persona profile: ${personaError.message}`);
-        }
-        
-        setProgress(50);
-        setProgressMessage('Analyzing company and market data...');
-        
-        // Call the generateStrategy edge function
-        const { error: functionError } = await supabase.functions.invoke('generateStrategy', {
-          body: {
-            tenant_id: currentTenant.id,
-            company_profile: companyProfile,
-            persona_profile: personaProfile
-          }
-        });
-        
-        if (functionError) {
-          throw new Error(`Strategy generation failed: ${functionError.message}`);
-        }
-        
-        setProgress(90);
-        setProgressMessage('Strategy generated successfully!');
-        
-        toast({
-          title: "Strategy created",
-          description: "Your AI-powered strategy is ready to view in the dashboard.",
-        });
-        
-        // Wait a moment before proceeding to next step
-        setTimeout(() => {
-          setProgress(100);
-        }, 1000);
-        
-      } catch (error: any) {
-        console.error('Strategy generation error:', error);
-        setError(error.message || 'An unexpected error occurred');
-        
-        toast({
-          title: "Strategy generation failed",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-      }
-    };
-
-    if (currentTenant?.id) {
-      generateStrategy();
-    }
-  }, [currentTenant, toast]);
-
-  if (error) {
-    return (
-      <div className="py-12 flex flex-col items-center justify-center space-y-6">
-        <div className="text-center space-y-3">
-          <h3 className="text-xl font-semibold text-red-600">Generation Error</h3>
-          <p className="text-muted-foreground max-w-md">{error}</p>
-          <button 
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+const StrategyGenerationStep: React.FC<StrategyGenerationStepProps> = ({ 
+  formData,
+  isGenerating = false
+}) => {
   return (
-    <div className="py-12 flex flex-col items-center justify-center space-y-6">
-      <div className="relative">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-8 w-8 rounded-full bg-background"></div>
+    <Card className="border-0 shadow-none">
+      <CardHeader className="space-y-2 px-0">
+        <CardTitle className="text-2xl">Generate Your Strategy</CardTitle>
+        <CardDescription>
+          We're ready to create your business strategy based on the information you've provided
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6 px-0">
+        <div className="rounded-lg border bg-card px-6 py-4">
+          <h3 className="text-lg font-medium mb-2">Business Summary</h3>
+          
+          <div className="space-y-4 text-sm">
+            <div>
+              <div className="font-medium">Company</div>
+              <div>{formData.companyName || '(Not provided)'}</div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="font-medium">Industry</div>
+                <div>{formData.industry || '(Not provided)'}</div>
+              </div>
+              <div>
+                <div className="font-medium">Size</div>
+                <div>{formData.companySize || '(Not provided)'}</div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="font-medium">Target Persona</div>
+              <div>{formData.persona?.name || '(Not provided)'}</div>
+            </div>
+            
+            {formData.persona?.goals && formData.persona.goals.length > 0 && (
+              <div>
+                <div className="font-medium">Persona Goals</div>
+                <ul className="list-disc list-inside">
+                  {formData.persona.goals.map((goal, index) => (
+                    <li key={index}>{goal}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      
-      <div className="text-center space-y-3">
-        <h3 className="text-xl font-semibold">Generating Your Strategy</h3>
-        <p className="text-muted-foreground max-w-md">
-          {progressMessage}
-        </p>
-      </div>
-      
-      <div className="w-full max-w-md">
-        <Progress value={progress} className="h-2" />
-      </div>
-      
-      <div className="max-w-md">
-        <div className="bg-muted p-4 rounded-md text-sm space-y-2">
-          <p>We're taking into account:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Your company's industry and size</li>
-            <li>Your revenue targets and business goals</li>
-            <li>Your target audience persona and tone</li>
-            <li>Current market trends in your industry</li>
-          </ul>
+        
+        <div className="rounded-lg border border-dashed p-6 text-center">
+          {isGenerating ? (
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div>
+                <div className="text-lg font-medium mb-1">Creating your strategy</div>
+                <p className="text-sm text-muted-foreground">
+                  Our AI is analyzing your inputs and crafting your strategy. This may take a moment...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Ready to Generate</h3>
+              <p className="text-muted-foreground">
+                Click the "Create Strategy" button below to generate your custom business strategy
+              </p>
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
