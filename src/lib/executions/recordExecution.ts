@@ -1,126 +1,135 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { ExecutionRecordInput, LogStatus } from '@/types/fixed';
-import { camelToSnake } from '@/types/fixed';
+import { supabase } from '@/lib/supabase';
 
 /**
- * Record an execution in the database with retry logic
- * @param input - Execution record input
- * @returns The created execution record
+ * Record a new execution
  */
-export async function recordExecution(input: ExecutionRecordInput & { id?: string }) {
-  // Configuration
-  const MAX_RETRY_ATTEMPTS = 3;
-  const BASE_RETRY_DELAY = 500; // ms
-  
-  let attempt = 0;
-  let lastError: any = null;
-  
-  while (attempt < MAX_RETRY_ATTEMPTS) {
-    try {
-      // If input has an id, update existing record, otherwise insert new one
-      let data, error;
+export async function recordExecution(
+  input: ExecutionRecordInput,
+  retries = 3
+): Promise<{ id: string; }> {
+  try {
+    const { data, error } = await supabase
+      .from('executions')
+      .insert({
+        tenant_id: input.tenantId,
+        status: input.status,
+        type: input.type,
+        strategy_id: input.strategyId,
+        plugin_id: input.pluginId,
+        agent_version_id: input.agentVersionId,
+        executed_by: input.executedBy,
+        input: input.input || {},
+        output: input.output || {},
+        error: input.error
+      })
+      .select()
+      .single();
       
-      if (input.id) {
-        // Update existing record
-        const { id, ...updateData } = input; // Extract id from input data
-        ({ data, error } = await supabase
-          .from('executions')
-          .update(camelToSnake(updateData))
-          .eq('id', id)
-          .select()
-          .single());
-      } else {
-        // Create new record
-        ({ data, error } = await supabase
-          .from('executions')
-          .insert(camelToSnake(input))
-          .select()
-          .single());
-      }
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      lastError = error;
-      attempt++;
-      
-      // Log the retry attempt
-      console.warn(`Error recording execution (attempt ${attempt}/${MAX_RETRY_ATTEMPTS}):`, error);
-      
-      if (attempt < MAX_RETRY_ATTEMPTS) {
-        // Exponential backoff with jitter
-        const delay = BASE_RETRY_DELAY * Math.pow(2, attempt - 1) * (0.8 + Math.random() * 0.4);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+    if (error) {
+      throw new Error(`Failed to record execution: ${error.message}`);
     }
+    
+    return { id: data.id };
+    
+  } catch (error) {
+    if (retries > 0) {
+      // Add exponential backoff
+      const backoff = Math.pow(2, 4 - retries) * 100;
+      await new Promise(resolve => setTimeout(resolve, backoff));
+      return recordExecution(input, retries - 1);
+    }
+    throw error;
   }
-  
-  // All retries failed
-  console.error(`Failed to record execution after ${MAX_RETRY_ATTEMPTS} attempts:`, lastError);
-  throw lastError || new Error(`Failed to record execution after ${MAX_RETRY_ATTEMPTS} attempts`);
 }
 
 /**
- * Update an existing execution record with additional data
- * @param executionId - ID of the execution to update
- * @param updateData - Partial update data
- * @returns The updated execution record
+ * Update an existing execution
  */
-export async function updateExecution(executionId: string, updateData: Partial<ExecutionRecordInput>) {
-  return recordExecution({
-    id: executionId,
-    ...updateData as ExecutionRecordInput
-  });
+export async function updateExecution(
+  id: string,
+  updates: {
+    status?: LogStatus;
+    output?: any;
+    error?: string;
+    executionTime?: number;
+    xpEarned?: number;
+  }
+): Promise<{ id: string; status?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('executions')
+      .update({
+        status: updates.status,
+        output: updates.output,
+        error: updates.error,
+        execution_time: updates.executionTime,
+        xp_earned: updates.xpEarned,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      throw new Error(`Failed to update execution: ${error.message}`);
+    }
+    
+    return { 
+      id: data.id,
+      status: data.status
+    };
+    
+  } catch (error) {
+    console.error("Error updating execution:", error);
+    throw error;
+  }
 }
 
 /**
- * Get execution details by ID
- * @param executionId - ID of the execution to retrieve
- * @returns The execution record or null if not found
+ * Get an execution by ID
  */
-export async function getExecution(executionId: string) {
+export async function getExecution(id: string) {
   try {
     const { data, error } = await supabase
       .from('executions')
       .select('*')
-      .eq('id', executionId)
+      .eq('id', id)
       .single();
       
-    if (error) throw error;
+    if (error) {
+      throw new Error(`Failed to get execution: ${error.message}`);
+    }
+    
     return data;
+    
   } catch (error) {
-    console.error('Error getting execution:', error);
+    console.error("Error getting execution:", error);
     return null;
   }
 }
 
 /**
- * Get recent executions for a tenant, optionally filtered by type
- * @param tenantId - Tenant ID
- * @param type - Optional execution type filter
- * @param limit - Maximum number of records to return
- * @returns Array of execution records
+ * Get recent executions for a tenant
  */
-export async function getRecentExecutions(tenantId: string, type?: string, limit: number = 10) {
+export async function getRecentExecutions(tenantId: string, limit: number = 10) {
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from('executions')
       .select('*')
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(limit);
       
-    if (type) {
-      query = query.eq('type', type);
+    if (error) {
+      throw new Error(`Failed to get recent executions: ${error.message}`);
     }
     
-    const { data, error } = await query;
-    
-    if (error) throw error;
     return data || [];
+    
   } catch (error) {
-    console.error('Error getting recent executions:', error);
+    console.error("Error getting recent executions:", error);
     return [];
   }
 }

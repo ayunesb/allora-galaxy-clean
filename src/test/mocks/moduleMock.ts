@@ -1,4 +1,6 @@
 
+import { vi } from 'vitest';
+
 /**
  * This file provides mock implementations for modules used in tests
  * to help resolve TypeScript "Cannot find module" errors.
@@ -8,29 +10,47 @@
 export const mockModule = {
   default: {},
   // Add any specific exports that might be needed by tests
-  createClient: jest.fn(),
-  logSystemEvent: jest.fn(),
-  voteOnAgentVersion: jest.fn(),
-  runStrategy: jest.fn(),
+  createClient: vi.fn(),
+  logSystemEvent: vi.fn(),
+  voteOnAgentVersion: vi.fn(),
+  runStrategy: vi.fn(),
   supabase: {
-    from: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({})
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({})
       }),
-      insert: jest.fn().mockReturnValue({}),
-      update: jest.fn().mockReturnValue({})
+      insert: vi.fn().mockReturnValue({}),
+      update: vi.fn().mockReturnValue({})
     })
   }
 };
 
-// Auto-mock setup for Jest
-jest.mock('@/lib/agents/vote', () => mockModule);
-jest.mock('@/integrations/supabase/client', () => mockModule);
-jest.mock('@/lib/system/logSystemEvent', () => mockModule);
-jest.mock('@/lib/agents/autoEvolve', () => mockModule);
-jest.mock('@/lib/executions/recordExecution', () => mockModule);
-jest.mock('@/types/fixed', () => mockModule);
-jest.mock('@/edge/executeStrategy', () => mockModule);
-jest.mock('@/lib/strategy/runStrategy', () => mockModule);
+// Define mockData array globally
+export const mockData = [
+  { id: 'test-id-1', name: 'Test Item 1' },
+  { id: 'test-id-2', name: 'Test Item 2' }
+];
+
+// Auto-mock setup for Jest/Vitest
+vi.mock('@/lib/agents/vote', () => mockModule);
+vi.mock('@/integrations/supabase/client', () => mockModule);
+vi.mock('@/lib/system/logSystemEvent', () => mockModule);
+vi.mock('@/lib/agents/autoEvolve', () => mockModule);
+vi.mock('@/lib/executions/recordExecution', () => mockModule);
+vi.mock('@/types/fixed', () => mockModule);
+vi.mock('@/edge/executeStrategy', () => mockModule);
+vi.mock('@/lib/strategy/runStrategy', () => mockModule);
+vi.mock('@/context/AuthContext', () => mockModule);
+vi.mock('@/context/WorkspaceContext', () => mockModule);
+vi.mock('@/services/notificationService', () => mockModule);
+vi.mock('@/types/onboarding', () => mockModule);
+vi.mock('@/services/onboardingService', () => mockModule);
+vi.mock('@/hooks/useOnboardingSteps', () => mockModule);
+vi.mock('@/hooks/useOnboardingForm', () => mockModule);
+vi.mock('@/hooks/useOnboardingSubmission', () => mockModule);
+vi.mock('@/hooks/useOnboardingRedirect', () => mockModule);
+vi.mock('@/hooks/useStrategyGeneration', () => mockModule);
+vi.mock('@/lib/supabase', () => mockModule);
+vi.mock('@/types/galaxy', () => mockModule);
 
 // Add more mocks as needed for other modules

@@ -1,174 +1,128 @@
 
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 import { supabase } from '@/lib/supabase';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
  * Shared utility to execute a strategy
  * Used by both the edge function and the client-side implementation
  */
-export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
+export async function runStrategy(input: ExecuteStrategyInput | undefined): Promise<ExecuteStrategyResult> {
   const startTime = performance.now();
-  const executionId = crypto.randomUUID();
   
+  // Input validation
+  if (!input) {
+    return {
+      success: false,
+      error: 'Strategy ID is required',
+      executionTime: (performance.now() - startTime) / 1000
+    };
+  }
+
+  if (!input.strategyId) {
+    return {
+      success: false,
+      error: 'Strategy ID is required',
+      executionTime: (performance.now() - startTime) / 1000
+    };
+  }
+
+  if (!input.tenantId) {
+    return {
+      success: false,
+      error: 'Tenant ID is required',
+      executionTime: (performance.now() - startTime) / 1000
+    };
+  }
+
   try {
-    // Verify the strategy exists and belongs to the tenant
-    const { data: strategy, error: strategyError } = await supabase
-      .from('strategies')
-      .select('id, title, status')
-      .eq('id', input.strategyId)
-      .eq('tenant_id', input.tenantId)
-      .single();
-    
-    if (strategyError || !strategy) {
-      return {
-        success: false,
-        error: `Strategy not found or access denied: ${strategyError?.message || 'Unknown error'}`,
-        executionTime: (performance.now() - startTime) / 1000
-      };
-    }
-    
-    if (strategy.status !== 'approved' && strategy.status !== 'pending') {
-      return {
-        success: false,
-        error: `Strategy cannot be executed with status: ${strategy.status}`,
-        executionTime: (performance.now() - startTime) / 1000
-      };
-    }
-    
-    // Fetch plugins associated with this strategy
-    const { data: plugins, error: pluginsError } = await supabase
-      .from('plugins')
-      .select('*')
-      .eq('status', 'active')
-      .limit(3);
-      
-    if (pluginsError) {
-      return {
-        success: false,
-        error: `Failed to fetch plugins: ${pluginsError.message}`,
-        executionTime: (performance.now() - startTime) / 1000
-      };
-    }
-    
-    const pluginList = plugins || [];
-    let xpEarned = 0;
-    let successfulPlugins = 0;
-    const pluginResults = [];
-    
-    // Execute each plugin
-    for (const plugin of pluginList) {
-      try {
-        // Record plugin execution
-        const { data: logData, error: logError } = await supabase
-          .from('plugin_logs')
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: input.strategyId,
-            tenant_id: input.tenantId,
-            status: 'success',
-            input: input.options || {},
-            output: { message: "Plugin executed successfully" },
-            execution_time: 0.5,
-            xp_earned: 10
-          })
-          .select()
-          .single();
-        
-        if (logError) {
-          throw new Error(`Failed to record plugin execution: ${logError.message}`);
-        }
-        
-        pluginResults.push({
-          plugin_id: plugin.id,
-          success: true,
-          log_id: logData.id,
-          xp_earned: 10
-        });
-        
-        xpEarned += 10;
-        successfulPlugins++;
-      } catch (pluginError: any) {
-        console.error(`Error executing plugin ${plugin.id}:`, pluginError);
-        
-        // Record failed plugin execution
-        await supabase
-          .from('plugin_logs')
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: input.strategyId,
-            tenant_id: input.tenantId,
-            status: 'failure',
-            input: input.options || {},
-            error: pluginError.message,
-            execution_time: 0.3,
-            xp_earned: 0
-          });
-        
-        pluginResults.push({
-          plugin_id: plugin.id,
-          success: false,
-          error: pluginError.message,
-          xp_earned: 0
-        });
-      }
-    }
-    
-    const executionTime = (performance.now() - startTime) / 1000;
-    const status = successfulPlugins === pluginList.length ? 'success' : 
-                  (successfulPlugins > 0 ? 'partial' : 'failure');
-    
-    // Log to system_logs
-    await supabase
-      .from('system_logs')
-      .insert({
-        tenant_id: input.tenantId,
-        module: 'strategy',
-        event: 'strategy_executed',
-        context: {
+    // Log execution start
+    try {
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'execute_strategy_started',
+        {
           strategy_id: input.strategyId,
-          execution_id: executionId,
-          status,
-          plugins_executed: pluginList.length,
-          successful_plugins: successfulPlugins,
-          xp_earned: xpEarned
+          user_id: input.userId || 'system'
         }
-      });
+      );
+    } catch (logError) {
+      // Don't fail if logging fails
+      console.error("Logging failed but continuing execution:", logError);
+    }
     
+    // Call the edge function
+    const { data, error } = await supabase.functions.invoke('executeStrategy', {
+      body: {
+        strategy_id: input.strategyId,
+        tenant_id: input.tenantId,
+        user_id: input.userId,
+        options: input.options || {}
+      }
+    });
+    
+    if (error) {
+      throw new Error(`Error executing strategy: ${error.message}`);
+    }
+    
+    if (!data || !data.success) {
+      throw new Error(data?.error || 'Unknown error executing strategy');
+    }
+    
+    // Log successful execution
+    try {
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'execute_strategy_completed',
+        {
+          strategy_id: input.strategyId,
+          execution_id: data.execution_id,
+          execution_time: data.execution_time,
+          status: data.status
+        }
+      );
+    } catch (logError) {
+      // Don't fail if logging fails
+      console.error("Logging completion failed but continuing:", logError);
+    }
+    
+    // Return result
     return {
       success: true,
-      executionId,
+      executionId: data.execution_id,
       strategyId: input.strategyId,
-      status,
-      pluginsExecuted: pluginList.length,
-      successfulPlugins,
-      executionTime,
-      xpEarned
+      status: data.status,
+      executionTime: data.execution_time,
+      pluginsExecuted: data.plugins_executed,
+      successfulPlugins: data.successful_plugins,
+      xpEarned: data.xp_earned,
+      outputs: data.outputs || {}
     };
     
   } catch (error: any) {
-    console.error("Error executing strategy:", error);
+    console.error("Error in runStrategy:", error);
     
-    // Log system event for error
+    // Log error
     try {
-      await supabase
-        .from('system_logs')
-        .insert({
-          tenant_id: input.tenantId,
-          module: 'strategy',
-          event: 'strategy_execution_failed',
-          context: {
-            strategy_id: input.strategyId,
-            execution_id: executionId,
-            error: error.message
-          }
-        });
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'execute_strategy_error',
+        {
+          strategy_id: input.strategyId,
+          error: error.message,
+          user_id: input.userId || 'system'
+        }
+      );
     } catch (logError) {
-      console.error("Error logging system error event:", logError);
+      // Don't fail if logging fails
+      console.error("Logging error failed:", logError);
     }
     
     return {
       success: false,
-      executionId,
       error: error.message,
       executionTime: (performance.now() - startTime) / 1000
     };
