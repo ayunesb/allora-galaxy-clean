@@ -3,12 +3,39 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { NavigationItem } from '@/types/navigation';
-import * as LucideIcons from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Grid3x3, 
+  Rocket, 
+  Bot, 
+  Plug, 
+  BarChart, 
+  Settings, 
+  Users, 
+  Brain,
+  List, 
+  ClipboardList,
+  LucideIcon
+} from 'lucide-react';
 
 interface SidebarNavProps {
   items: NavigationItem[];
   className?: string;
 }
+
+const iconMap: Record<string, LucideIcon> = {
+  'layout-dashboard': LayoutDashboard,
+  'grid-3x3': Grid3x3,
+  'rocket': Rocket,
+  'bot': Bot,
+  'plug': Plug,
+  'bar-chart': BarChart,
+  'settings': Settings,
+  'users': Users,
+  'brain': Brain,
+  'list': List,
+  'clipboard-list': ClipboardList
+};
 
 const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
@@ -16,9 +43,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   // Helper function to render icons from icon names
   const renderIcon = (iconName?: string) => {
     if (!iconName) return null;
-    const IconComponent = (LucideIcons as Record<string, React.ComponentType>)[
-      iconName.charAt(0).toUpperCase() + iconName.slice(1)
-    ];
+    const IconComponent = iconMap[iconName];
     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
   };
 

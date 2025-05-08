@@ -5,11 +5,7 @@ import { LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 
-interface SidebarFooterActionsProps {
-  isActive: (path: string) => boolean;
-}
-
-export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isActive }) => {
+const SidebarFooterActions: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();

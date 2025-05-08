@@ -1,175 +1,144 @@
 
-import { getPluginsForOptimization } from './getPluginsForOptimization';
-import { calculateAgentPerformance } from './calculatePerformance';
+import { supabase } from '@/integrations/supabase/client';
 import { getFeedbackComments } from './getFeedbackComments';
+import { calculatePerformance } from './calculatePerformance';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
-import { checkEvolutionNeeded } from './checkEvolutionNeeded';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-
-export interface AgentPerformanceMetrics {
-  needsEvolution: boolean;
-  evolutionReason?: string;
-  positiveVotes: number;
-  negativeVotes: number;
-  neutralVotes: number;
-  totalExecutions: number;
-  successRate: number;
-  averageExecutionTime: number;
-  xpEarned: number;
-}
+import { deactivateOldAgent } from './deactivateOldAgent';
+import { getAgentUsageStats } from './getAgentUsageStats';
 
 /**
- * Auto-evolve agents based on performance and feedback
- * @param tenantId Optional tenant ID, defaults to 'system'
+ * Main function to auto-evolve agents based on feedback and performance
+ * @param options Configuration options for auto evolution
+ * @returns Promise with result of evolution process
  */
-export async function autoEvolveAgents(tenantId: string = 'system') {
-  console.log('Starting auto-evolve agents process...');
-  
+export async function autoEvolveAgents({
+  tenantId,
+  agentId = null,
+  threshold = 0.7,
+  requireFeedback = true,
+  dryRun = false,
+}: {
+  tenantId: string;
+  agentId?: string | null;
+  threshold?: number;
+  requireFeedback?: boolean;
+  dryRun?: boolean;
+}): Promise<{
+  evolved: number;
+  candidates: number;
+  errors: string[];
+}> {
   const result = {
-    message: 'Auto-evolve process completed',
     evolved: 0,
-    errors: 0,
-    skipped: 0,
-    success: true,
-    details: [] as Array<{
-      plugin_id: string;
-      status: 'evolved' | 'skipped' | 'error';
-      reason?: string;
-      newAgentVersionId?: string;
-    }>
+    candidates: 0,
+    errors: [] as string[]
   };
   
+  console.log(`Starting auto evolution for ${tenantId}, agentId: ${agentId}, threshold: ${threshold}`);
+  
   try {
-    // Get plugins eligible for evolution
-    const plugins = await getPluginsForOptimization();
-    
-    if (!plugins || plugins.length === 0) {
-      result.message = 'No plugins found for optimization';
+    // Query for active agent versions that need evolution
+    const query = supabase
+      .from('agent_versions')
+      .select(`
+        id,
+        agent_id,
+        version,
+        prompt,
+        created_at,
+        metadata,
+        agents!inner(
+          id,
+          name,
+          description,
+          tenant_id
+        )
+      `)
+      .eq('agents.tenant_id', tenantId)
+      .eq('is_active', true)
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false });
+      
+    // Apply agent filter if provided
+    const { data: agentVersions, error } = agentId 
+      ? await query.eq('agent_id', agentId)
+      : await query;
+      
+    if (error) {
+      console.error('Error fetching agent versions:', error);
+      result.errors.push(`Failed to fetch agent versions: ${error.message}`);
       return result;
     }
     
-    console.log(`Found ${plugins.length} plugins to check for agent evolution`);
+    const candidates = [];
     
-    // Process each plugin
-    for (const plugin of plugins) {
+    // Process each active agent version
+    for (const version of agentVersions || []) {
       try {
-        // Calculate agent performance metrics
-        const metrics = await calculateAgentPerformance(plugin.id);
+        console.log(`Processing agent ${version.agent_id}, version ${version.id}`);
         
-        // Check if evolution is needed
-        const needsEvolution = checkEvolutionNeeded(metrics);
+        // Get feedback for this agent version
+        const { data: feedbackData } = await supabase
+          .from('agent_feedback')
+          .select('*')
+          .eq('agent_version_id', version.id);
+          
+        // Get usage statistics for performance calculation
+        const usageStats = await getAgentUsageStats(version.id);
         
-        if (!needsEvolution) {
-          result.skipped++;
-          result.details.push({
-            plugin_id: plugin.id,
-            status: 'skipped',
-            reason: 'Performance metrics do not indicate evolution is needed'
-          });
+        // Calculate performance score based on feedback and usage
+        const performanceScore = calculatePerformance(feedbackData || [], usageStats);
+        console.log(`Performance score: ${performanceScore}`);
+        
+        // Skip if performance is above threshold
+        if (performanceScore >= threshold) {
+          console.log(`Performance above threshold (${threshold}), skipping evolution`);
           continue;
         }
         
-        // Get the active agent version for this plugin
-        const activeAgentResult = await getActiveAgentVersion(plugin.id);
-        if (!activeAgentResult.success) {
-          throw new Error(activeAgentResult.error || 'Failed to get active agent');
-        }
+        result.candidates++;
+        candidates.push({
+          id: version.id,
+          agentId: version.agent_id,
+          score: performanceScore,
+          version: version.version
+        });
         
-        const activeAgentId = activeAgentResult.agentVersionId;
-        
-        // Get feedback comments for the current active agent
-        const feedbackComments = await getFeedbackComments(activeAgentId);
-        
-        // Get the current prompt for the active agent
-        const promptResult = await getAgentPrompt(activeAgentId);
-        if (!promptResult.success) {
-          throw new Error(promptResult.error || 'Failed to get agent prompt');
-        }
-        
-        // Generate evolved prompt using feedback
-        const evolveReason = metrics.evolutionReason || 'Regular performance optimization';
-        
-        // Create new agent version
-        const newAgent = await createEvolvedAgent(
-          activeAgentId,
-          tenantId,
-          evolveReason
-        );
-        
-        if (!newAgent.success) {
-          throw new Error(newAgent.error || 'Failed to create evolved agent');
-        }
-        
-        // Log the evolution
-        await logSystemEvent(
-          tenantId,
-          'agent',
-          'agent_evolved',
-          {
-            plugin_id: plugin.id,
-            old_agent_id: activeAgentId,
-            new_agent_id: newAgent.newAgentVersionId,
-            reason: evolveReason
+        if (!dryRun) {
+          // Get feedback comments for evolution
+          const comments = await getFeedbackComments(version.id);
+          
+          if (requireFeedback && (!comments || comments.length === 0)) {
+            console.log(`No feedback comments available, skipping evolution`);
+            continue;
           }
-        );
-        
-        result.evolved++;
-        result.details.push({
-          plugin_id: plugin.id,
-          status: 'evolved',
-          reason: evolveReason,
-          newAgentVersionId: newAgent.newAgentVersionId
-        });
+          
+          // Create evolved agent version
+          const newVersion = await createEvolvedAgent(
+            version.id, 
+            version.agent_id, 
+            tenantId,
+            comments || [],
+            performanceScore
+          );
+          
+          if (newVersion) {
+            // Deactivate old version
+            await deactivateOldAgent(version.id);
+            result.evolved++;
+          }
+        }
       } catch (err: any) {
-        console.error(`Failed to evolve agent for plugin ${plugin.id}:`, err);
-        result.errors++;
-        result.details.push({
-          plugin_id: plugin.id,
-          status: 'error',
-          reason: err.message
-        });
+        console.error(`Error processing agent version ${version.id}:`, err);
+        result.errors.push(`Error evolving agent ${version.agent_id}: ${err.message}`);
       }
     }
     
+    console.log(`Auto evolution complete. Candidates: ${result.candidates}, Evolved: ${result.evolved}`);
+    return result;
   } catch (err: any) {
     console.error('Error in autoEvolveAgents:', err);
-    result.message = `Error in auto-evolve process: ${err.message}`;
-    result.success = false;
-  }
-  
-  console.log(`Auto-evolve complete: evolved=${result.evolved}, skipped=${result.skipped}, errors=${result.errors}`);
-  return result;
-}
-
-// Helper function to get the active agent version for a plugin
-async function getActiveAgentVersion(pluginId: string) {
-  try {
-    // This would typically use supabase, but we're mocking the implementation for this fix
-    return {
-      success: true,
-      agentVersionId: 'mock-agent-id-' + pluginId
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      error: `Failed to get active agent: ${err.message}`
-    };
-  }
-}
-
-// Helper function to get an agent's prompt
-async function getAgentPrompt(agentVersionId: string) {
-  try {
-    // This would typically use supabase, but we're mocking the implementation for this fix
-    return {
-      success: true,
-      prompt: 'Default prompt for ' + agentVersionId
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      error: `Failed to get agent prompt: ${err.message}`
-    };
+    result.errors.push(`General error: ${err.message}`);
+    return result;
   }
 }

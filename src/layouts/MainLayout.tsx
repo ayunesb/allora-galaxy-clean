@@ -3,7 +3,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import SidebarNav from '@/components/layout/SidebarNav';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import type { NavigationItem } from '@/types/navigation';
+import { NavigationItem } from '@/types/navigation';
 
 const MainLayout: React.FC = () => {
   const { navigationItems = [] } = useWorkspace();

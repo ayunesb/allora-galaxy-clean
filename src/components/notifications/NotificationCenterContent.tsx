@@ -5,21 +5,26 @@ import NotificationItem from './NotificationItem';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { Button } from '@/components/ui/button';
+import NotificationCenterTabs from './NotificationCenterTabs';
 
 export interface NotificationCenterContentProps {
   notifications: Notification[];
-  onMarkAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   loading?: boolean;
   onMarkAllAsRead?: () => Promise<void>;
+  activeFilter: string;
+  setActiveFilter: (filter: string) => void;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   notifications,
-  onMarkAsRead,
+  markAsRead,
   onDelete,
   loading = false,
   onMarkAllAsRead,
+  activeFilter,
+  setActiveFilter
 }) => {
   if (loading) {
     return <NotificationCenterLoading />;
@@ -29,9 +34,12 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
     return <NotificationCenterEmptyState />;
   }
 
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   return (
-    <div className="space-y-2 p-2">
-      {onMarkAllAsRead && notifications.some(n => !n.is_read) && (
+    <div className="space-y-2">
+      {onMarkAllAsRead && unreadCount > 0 && (
         <div className="flex justify-end p-2">
           <Button 
             variant="ghost" 
@@ -43,23 +51,23 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
         </div>
       )}
       
-      {notifications.map((notification) => (
-        <NotificationItem
-          key={notification.id}
-          notification={{
-            id: notification.id,
-            title: notification.title,
-            message: notification.description || '',
-            timestamp: notification.created_at,
-            read: notification.is_read || false,
-            type: notification.type || 'info',
-            action_url: notification.action_url,
-            action_label: notification.action_label,
-          }}
-          onMarkAsRead={onMarkAsRead}
-          onDelete={onDelete}
-        />
-      ))}
+      <NotificationCenterTabs 
+        selectedTab={activeFilter}
+        setSelectedTab={setActiveFilter}
+        notifications={notifications.map(notification => ({
+          id: notification.id,
+          title: notification.title,
+          message: notification.description || '',
+          timestamp: notification.created_at,
+          read: notification.is_read || false,
+          type: notification.type || 'info',
+          action_url: notification.action_url,
+          action_label: notification.action_label,
+        }))}
+        unreadCount={unreadCount}
+        markAsRead={markAsRead}
+        onDelete={onDelete}
+      />
     </div>
   );
 };

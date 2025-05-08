@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useMobileBreakpoint } from '@/hooks/use-mobile';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
@@ -36,7 +36,7 @@ const adminItems = [
 export const MobileNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentTenant } = useWorkspace();
+  const { tenant } = useWorkspace();
   const [open, setOpen] = React.useState(false);
   const isMobile = useMobileBreakpoint();
   
@@ -49,7 +49,7 @@ export const MobileNav: React.FC = () => {
     return (
       <div className="h-14 border-b px-4 flex items-center justify-between">
         <div className="font-semibold">
-          {currentTenant?.name || 'Allora OS'}
+          {tenant?.name || 'Allora OS'}
         </div>
         <SidebarTrigger />
       </div>
@@ -59,7 +59,7 @@ export const MobileNav: React.FC = () => {
   return (
     <div className="h-14 border-b px-4 flex items-center justify-between">
       <div className="font-semibold">
-        {currentTenant?.name || 'Allora OS'}
+        {tenant?.name || 'Allora OS'}
       </div>
 
       <Drawer open={open} onOpenChange={setOpen}>
@@ -73,7 +73,7 @@ export const MobileNav: React.FC = () => {
           <div className="mx-auto w-full max-w-sm">
             <DrawerHeader className="flex justify-between items-center">
               <DrawerTitle>
-                {currentTenant?.name || 'Navigation'}
+                {tenant?.name || 'Navigation'}
               </DrawerTitle>
               <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
                 <X className="h-4 w-4" />

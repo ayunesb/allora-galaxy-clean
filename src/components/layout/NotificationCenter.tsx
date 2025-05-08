@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const { 
     notifications, 
     unreadCount, 
@@ -44,10 +44,10 @@ const NotificationCenter: React.FC = () => {
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md p-0">
         <NotificationCenterContent 
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           notifications={notifications}
           markAsRead={markAsRead}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
         />
       </SheetContent>
     </Sheet>

@@ -2,9 +2,8 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import SidebarNav from '@/components/layout/SidebarNav';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import SidebarFooterActions from '../layout/sidebar/SidebarFooterActions';
-import { NavigationItem } from '@/types/navigation';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import SidebarFooterActions from '@/components/layout/sidebar/SidebarFooterActions';
 
 const MainLayout: React.FC = () => {
   const { navigationItems } = useWorkspace();
@@ -16,7 +15,7 @@ const MainLayout: React.FC = () => {
           <div className="flex flex-1 flex-col gap-4 p-4">
             <SidebarNav items={navigationItems} />
             <div className="mt-auto">
-              <SidebarFooterActions isActive={(path) => false} />
+              <SidebarFooterActions />
             </div>
           </div>
         </aside>

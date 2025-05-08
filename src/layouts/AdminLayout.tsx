@@ -2,41 +2,46 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import SidebarNav from '@/components/layout/SidebarNav';
-import { Users, Settings, AlertCircle, Database, Layers, BarChart } from 'lucide-react';
 import { NavigationItem } from '@/types/navigation';
 import { AdminGuard } from '@/components/guards/AdminGuard';
 
 const AdminLayout: React.FC = () => {
   const navigationItems: NavigationItem[] = [
     {
-      title: 'User Management',
-      href: '/admin/users',
-      icon: Users,
+      id: 'users',
+      label: 'User Management',
+      path: '/admin/users',
+      icon: 'users'
     },
     {
-      title: 'System Logs',
-      href: '/admin/system-logs',
-      icon: AlertCircle,
+      id: 'system-logs',
+      label: 'System Logs',
+      path: '/admin/system-logs',
+      icon: 'list'
     },
     {
-      title: 'Plugin Logs',
-      href: '/admin/plugin-logs',
-      icon: Database,
+      id: 'plugin-logs',
+      label: 'Plugin Logs',
+      path: '/admin/plugin-logs',
+      icon: 'clipboard-list'
     },
     {
-      title: 'AI Decisions',
-      href: '/admin/ai-decisions',
-      icon: Layers,
+      id: 'ai-decisions',
+      label: 'AI Decisions',
+      path: '/admin/ai-decisions',
+      icon: 'brain'
     },
     {
-      title: 'Billing',
-      href: '/admin/billing',
-      icon: BarChart,
+      id: 'billing',
+      label: 'Billing',
+      path: '/admin/billing',
+      icon: 'bar-chart'
     },
     {
-      title: 'Settings',
-      href: '/admin/settings',
-      icon: Settings,
+      id: 'settings',
+      label: 'Settings',
+      path: '/admin/settings',
+      icon: 'settings'
     },
   ];
 

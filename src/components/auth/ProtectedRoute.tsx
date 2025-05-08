@@ -2,11 +2,11 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const ProtectedRoute: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: workspaceLoading } = useWorkspace();
+  const { isLoading: workspaceLoading } = useWorkspace();
 
   // Show loading state while checking authentication
   if (authLoading || workspaceLoading) {

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 
 export interface SidebarProfileProps {
@@ -9,7 +9,7 @@ export interface SidebarProfileProps {
 }
 
 export const SidebarProfile: React.FC<SidebarProfileProps> = ({ className }) => {
-  const { currentTenant } = useWorkspace();
+  const { tenant } = useWorkspace();
   const { user } = useAuth();
 
   const getInitials = (name: string | null | undefined) => {
@@ -24,12 +24,12 @@ export const SidebarProfile: React.FC<SidebarProfileProps> = ({ className }) => 
   return (
     <div className={`flex items-center gap-2 px-4 py-2 ${className || ''}`}>
       <Avatar className="h-8 w-8">
-        <AvatarImage src={currentTenant?.metadata?.logo_url || ''} alt={currentTenant?.name || 'Tenant'} />
-        <AvatarFallback>{currentTenant?.name ? getInitials(currentTenant.name) : 'A'}</AvatarFallback>
+        <AvatarImage src={tenant?.metadata?.logo_url || ''} alt={tenant?.name || 'Tenant'} />
+        <AvatarFallback>{tenant?.name ? getInitials(tenant.name) : 'A'}</AvatarFallback>
       </Avatar>
       <div className="space-y-1">
         <h3 className="text-sm font-medium leading-none">
-          {currentTenant?.name || 'Allora OS'}
+          {tenant?.name || 'Allora OS'}
         </h3>
         <p className="text-xs text-muted-foreground">
           {user?.email?.split('@')[0] || 'User'}

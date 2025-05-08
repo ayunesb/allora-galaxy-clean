@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from "@/components/ui/use-toast";
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'pending';
@@ -153,6 +154,3 @@ export function withRequiredRole<T extends any[], R>(
     }
   };
 }
-
-// Import at the end to prevent circular dependencies
-import { useWorkspace } from '@/context/WorkspaceContext';

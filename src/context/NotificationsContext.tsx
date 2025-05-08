@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useWorkspace } from './WorkspaceContext';
-import { useAuth } from './AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 // Remove unused import: import { Notification } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ interface NotificationsContextValue {
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 export const NotificationsProvider = ({ children }: { children: React.ReactNode }) => {
-  const { currentTenant } = useWorkspace();
+  const { tenant } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -43,14 +43,14 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
 
   // Fetch notifications on mount and when tenant/user changes
   useEffect(() => {
-    if (currentTenant?.id && user?.id) {
+    if (tenant?.id && user?.id) {
       fetchNotifications();
       setupRealtimeSubscription();
     }
-  }, [currentTenant?.id, user?.id]);
+  }, [tenant?.id, user?.id]);
 
   const fetchNotifications = async () => {
-    if (!currentTenant?.id || !user?.id) return;
+    if (!tenant?.id || !user?.id) return;
     
     try {
       setLoading(true);
@@ -58,7 +58,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .eq('tenant_id', currentTenant.id)
+        .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false })
         .limit(50);
         
@@ -79,7 +79,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
   };
   
   const setupRealtimeSubscription = () => {
-    if (!currentTenant?.id || !user?.id) return;
+    if (!tenant?.id || !user?.id) return;
     
     const channel = supabase
       .channel('notifications-changes')
@@ -93,7 +93,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
         },
         (payload) => {
           const newNotification = payload.new as Notification;
-          if (newNotification.tenant_id === currentTenant.id) {
+          if (newNotification.tenant_id === tenant.id) {
             setNotifications(prev => [newNotification, ...prev]);
             setUnreadCount(prev => prev + 1);
             
@@ -114,7 +114,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
         },
         (payload) => {
           const updatedNotification = payload.new as Notification;
-          if (updatedNotification.tenant_id === currentTenant.id) {
+          if (updatedNotification.tenant_id === tenant.id) {
             setNotifications(prev => 
               prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
             );
@@ -158,14 +158,14 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
   };
   
   const markAllAsRead = async () => {
-    if (!currentTenant?.id || !user?.id) return;
+    if (!tenant?.id || !user?.id) return;
     
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read_at: new Date().toISOString() })
         .eq('user_id', user.id)
-        .eq('tenant_id', currentTenant.id)
+        .eq('tenant_id', tenant.id)
         .is('read_at', null);
         
       if (error) throw error;
