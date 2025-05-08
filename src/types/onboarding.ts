@@ -7,7 +7,7 @@ export interface OnboardingFormData {
   companySize: string;
   revenueRange: string;
   website: string;
-  description: string;
+  description: string;  // Required field
   goals: string[] | string;
   additionalInfo: string;
   persona: {
@@ -46,4 +46,5 @@ export interface GenerateStrategyResult {
     description: string;
     tags: string[];
   };
+  tenantId?: string;
 }

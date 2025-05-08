@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,13 +19,14 @@ export function useOnboardingWizard() {
   const { user: currentUser } = useAuth();
   const { isGenerating: isGeneratingStrategy, generateStrategy } = useStrategyGeneration();
   
-  // Initial form data
+  // Initial form data - ensure it matches OnboardingFormData interface
   const [formData, setFormData] = useState<OnboardingFormData>({
     companyName: '',
     industry: '',
     companySize: '',
     website: '',
     revenueRange: '',
+    description: '', // Required field
     goals: [] as string[],
     persona: { 
       name: '',

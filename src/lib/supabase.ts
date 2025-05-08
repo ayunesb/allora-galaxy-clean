@@ -2,5 +2,7 @@
 // Re-export supabase client from integrations
 export { supabase } from '@/integrations/supabase/client';
 
-// Export other useful Supabase utilities
-export { useNotificationsContext } from '@/context/NotificationsContext';
+// Export useful Supabase utilities
+export { notifyError } from '@/components/ui/BetterToast';
+export { useToast } from '@/hooks/use-toast';
+

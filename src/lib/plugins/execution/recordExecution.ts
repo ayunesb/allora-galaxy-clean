@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ExecutionRecordInput } from '@/types/fixed';
+import { camelToSnake } from '@/types/fixed';
 
 /**
  * Record an execution in the database with retry logic
@@ -15,6 +16,9 @@ export async function recordExecution(input: ExecutionRecordInput & { id?: strin
   let attempt = 0;
   let lastError: any = null;
 
+  // Convert input to snake case for Supabase
+  const snakeCaseInput = camelToSnake(input);
+
   while (attempt < MAX_RETRY_ATTEMPTS) {
     try {
       // If input has an id, update existing record, otherwise insert new one
@@ -22,7 +26,7 @@ export async function recordExecution(input: ExecutionRecordInput & { id?: strin
 
       if (input.id) {
         // Update existing record
-        const { id, ...updateData } = input; // Extract id from input data
+        const { id, ...updateData } = snakeCaseInput; // Extract id from input data
         ({ data, error } = await supabase
           .from('executions')
           .update(updateData)
@@ -33,7 +37,7 @@ export async function recordExecution(input: ExecutionRecordInput & { id?: strin
         // Create new record
         ({ data, error } = await supabase
           .from('executions')
-          .insert(input)
+          .insert(snakeCaseInput)
           .select()
           .single());
       }

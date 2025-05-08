@@ -1,5 +1,5 @@
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { runStrategy } from "@/lib/strategy/runStrategy";
 import { setupTests } from '../setup/testSetup';
 import { validStrategyInput, mockErrorResponse, mockSuccessResponse } from '../mocks/strategyMocks';

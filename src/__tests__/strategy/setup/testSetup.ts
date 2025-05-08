@@ -1,27 +1,24 @@
 
-import { vi, beforeEach, afterEach } from 'vitest';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { vi, beforeEach } from 'vitest';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    functions: {
-      invoke: vi.fn()
-    }
-  }
-}));
-
-vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn().mockResolvedValue(undefined)
-}));
-
-// Setup and teardown functions
+// Mock the logSystemEvent function
 export const setupTests = () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-  
-  afterEach(() => {
-    vi.restoreAllMocks();
+    // Mock supabase client
+    vi.mock('@/integrations/supabase/client', () => ({
+      supabase: {
+        functions: {
+          invoke: vi.fn().mockImplementation(() => Promise.resolve({
+            data: { success: true, execution_id: 'test-id' },
+            error: null
+          }))
+        }
+      }
+    }));
+    
+    // Mock system logging
+    vi.mock('@/lib/system/logSystemEvent', () => ({
+      logSystemEvent: vi.fn().mockImplementation(() => Promise.resolve())
+    }));
   });
 };

@@ -1,6 +1,7 @@
+
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
-import { ExecuteStrategyInput } from "@/types/strategy";
+import { ExecuteStrategyInput, ExecuteStrategyInputSnakeCase } from "@/types/fixed";
 import { runStrategy } from "@/lib/strategy/runStrategy";
 
 // Mock the runStrategy function
@@ -63,7 +64,7 @@ describe('executeStrategy Edge Function', () => {
 
   it('should successfully execute a strategy using the shared utility', async () => {
     // Arrange
-    const input: ExecuteStrategyInput = {
+    const input: ExecuteStrategyInputSnakeCase = {
       strategy_id: 'strategy-123',
       tenant_id: 'tenant-123',
       user_id: 'user-123'
@@ -83,7 +84,7 @@ describe('executeStrategy Edge Function', () => {
     const input = {
       tenant_id: 'tenant-123',
       user_id: 'user-123'
-    } as ExecuteStrategyInput;
+    } as ExecuteStrategyInputSnakeCase;
     
     // Act
     const result = await executeStrategy(input);
@@ -100,7 +101,7 @@ describe('executeStrategy Edge Function', () => {
     const input = {
       strategy_id: 'strategy-123',
       user_id: 'user-123'
-    } as ExecuteStrategyInput;
+    } as ExecuteStrategyInputSnakeCase;
     
     // Act
     const result = await executeStrategy(input);
@@ -114,7 +115,7 @@ describe('executeStrategy Edge Function', () => {
   
   it('should handle strategy execution failure', async () => {
     // Arrange
-    const input: ExecuteStrategyInput = {
+    const input: ExecuteStrategyInputSnakeCase = {
       strategy_id: 'fail-strategy',
       tenant_id: 'tenant-123',
       user_id: 'user-123'
@@ -131,7 +132,7 @@ describe('executeStrategy Edge Function', () => {
   
   it('should handle unexpected errors', async () => {
     // Arrange
-    const input: ExecuteStrategyInput = {
+    const input: ExecuteStrategyInputSnakeCase = {
       strategy_id: 'strategy-123',
       tenant_id: 'tenant-123',
       user_id: 'user-123'

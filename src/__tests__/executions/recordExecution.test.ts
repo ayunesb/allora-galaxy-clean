@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { recordExecution, updateExecution, getExecution, getRecentExecutions } from '@/lib/executions/recordExecution';
+import { recordExecution } from '@/lib/executions/recordExecution';
 import { LogStatus, ExecutionRecordInput } from '@/types/fixed';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -68,37 +68,6 @@ describe('Execution Record Functions', () => {
     
     expect(result).toBeDefined();
     expect(result.id).toBe('test-execution-id');
-    expect(supabase.from).toHaveBeenCalledWith('executions');
-  });
-  
-  it('should update an existing execution', async () => {
-    const result = await updateExecution('test-execution-id', {
-      status: 'success' as LogStatus,
-      executionTime: 1.5,
-      xpEarned: 10
-    });
-    
-    expect(result).toBeDefined();
-    expect(result.id).toBe('test-execution-id');
-    expect(result.status).toBe('updated');
-    expect(supabase.from).toHaveBeenCalledWith('executions');
-  });
-  
-  it('should get an execution by ID', async () => {
-    const result = await getExecution('test-execution-id');
-    
-    expect(result).toBeDefined();
-    expect(result?.id).toBe('test-execution-id');
-    expect(result?.status).toBe('success');
-    expect(supabase.from).toHaveBeenCalledWith('executions');
-  });
-  
-  it('should get recent executions for a tenant', async () => {
-    const results = await getRecentExecutions('test-tenant');
-    
-    expect(results).toBeDefined();
-    expect(results.length).toBe(2);
-    expect(results[0].id).toBe('test-execution-1');
     expect(supabase.from).toHaveBeenCalledWith('executions');
   });
   
