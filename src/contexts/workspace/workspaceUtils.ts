@@ -60,9 +60,9 @@ export const getUserTenants = async (userId: string): Promise<Tenant[] | null> =
 
     // Map the result to a more usable format
     return data.map(item => ({
-      id: item.tenants.id,
-      name: item.tenants.name,
-      slug: item.tenants.slug,
+      id: item.tenants?.id,
+      name: item.tenants?.name,
+      slug: item.tenants?.slug,
       role: item.role
     }));
   } catch (err) {

@@ -5,13 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, FileText, AlertCircle, Sparkle } from 'lucide-react';
 import PageHelmet from '@/components/PageHelmet';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { tenant } = useWorkspace();
-  const { toast } = useToast();
 
   const adminModules = [
     {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTenantId } from '@/hooks/useTenantId';
@@ -33,7 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { AlertCircle, RefreshCw, Filter } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { format } from 'date-fns';
-import { AdminGuard } from '@/components/guards/AdminGuard';
+import AdminGuard from '@/components/guards/AdminGuard';
 
 interface SystemLog {
   id: string;

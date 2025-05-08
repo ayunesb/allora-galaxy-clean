@@ -3,20 +3,6 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { NavigationItem } from '@/types/navigation';
-import { 
-  LayoutDashboard, 
-  Grid3x3, 
-  Rocket, 
-  Bot, 
-  Plug, 
-  BarChart, 
-  Settings, 
-  Users, 
-  Brain,
-  List, 
-  ClipboardList,
-  LucideIcon
-} from 'lucide-react';
 
 interface SidebarNavProps {
   items: NavigationItem[];

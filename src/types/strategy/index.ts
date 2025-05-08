@@ -30,3 +30,8 @@ export interface StrategyInput {
   tags?: string[];
   due_date?: string | null;
 }
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}

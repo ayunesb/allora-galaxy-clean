@@ -13,7 +13,7 @@ interface AdminGuardProps {
  * Only allows access if user has admin role
  */
 const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
-  const { tenant, isLoading, error } = useWorkspace();
+  const { tenant, isLoading } = useWorkspace();
   
   // Show loading while checking role
   if (isLoading) {
