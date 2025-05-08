@@ -15,8 +15,10 @@ describe('executeStrategy Edge Function', () => {
     
     // Default mock implementation
     vi.mocked(runStrategy).mockImplementation((input) => {
-      const convertedInput = typeof input === 'object' ? input : {};
-      const strategyId = (convertedInput as any).strategyId || (convertedInput as any).strategy_id;
+      // Handle input regardless of format
+      const strategyId = typeof input === 'object' && input ? 
+        ((input as any).strategyId || (input as any).strategy_id) : 
+        '';
       
       if (!strategyId || strategyId === 'fail-strategy') {
         return Promise.resolve({
@@ -48,13 +50,6 @@ describe('executeStrategy Edge Function', () => {
       user_id: 'user-123'
     };
     
-    // Convert input to match the expected format in the implementation
-    const convertedInput = {
-      strategyId: input.strategy_id,
-      tenantId: input.tenant_id,
-      userId: input.user_id
-    };
-    
     // Act
     // @ts-ignore - Ignoring type mismatch for testing purposes
     const result = await executeStrategy(input);
@@ -62,7 +57,7 @@ describe('executeStrategy Edge Function', () => {
     // Assert
     expect(runStrategy).toHaveBeenCalled();
     expect(result.success).toBe(true);
-    expect(result.executionTime).toBeDefined();
+    expect(result.execution_time).toBeDefined();
   });
   
   it('should handle missing strategyId', async () => {
@@ -139,6 +134,6 @@ describe('executeStrategy Edge Function', () => {
     // Assert
     expect(result.success).toBe(false);
     expect(result.error).toBe('Unexpected error');
-    expect(result.executionTime).toBeDefined();
+    expect(result.execution_time).toBeDefined();
   });
 });

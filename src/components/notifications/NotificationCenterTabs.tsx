@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Notification } from '@/types/notifications';
+import { Notification, NotificationContent } from '@/types/notifications';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import NotificationList from './NotificationList';
 
@@ -19,7 +19,6 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   loading,
   notifications,
   markAsRead,
-  markAllAsRead,
   onClose,
   unreadCount,
 }) => {
@@ -27,16 +26,16 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
 
   // Filter notifications based on the active tab
   const filteredNotifications = activeTab === 'unread'
-    ? notifications.filter(notification => !notification.read_at)
+    ? notifications.filter(notification => !notification.is_read)
     : notifications;
 
   // Convert Notification[] to NotificationContent[]
-  const transformedNotifications = filteredNotifications.map(notification => ({
+  const transformedNotifications: NotificationContent[] = filteredNotifications.map(notification => ({
     id: notification.id,
     title: notification.title,
-    message: notification.message,
+    message: notification.description || '',
     timestamp: notification.created_at,
-    read: !!notification.read_at,
+    read: notification.is_read,
     type: notification.type
   }));
 

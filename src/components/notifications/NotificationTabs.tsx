@@ -10,7 +10,7 @@ interface NotificationTabsProps {
   setSelectedTab: (value: string) => void;
   notifications: NotificationContent[];
   loading: boolean;
-  filter?: string | null; // Made optional since it wasn't used
+  filter?: string | null;
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   onDelete: (id: string) => Promise<{ success: boolean; error?: Error }>;
 }

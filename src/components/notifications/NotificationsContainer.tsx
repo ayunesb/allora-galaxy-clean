@@ -12,14 +12,14 @@ interface NotificationsContainerProps {
 
 const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter, setFilter }) => {
   const [selectedTab, setSelectedTab] = useState('all');
-  const { notifications, loading, fetchNotifications } = useNotificationData(selectedTab, filter);
+  const { notifications, loading, refresh } = useNotificationData(selectedTab);
   const { markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } = useNotificationActions();
 
   const handleMarkAsRead = async (id: string) => {
     const result = await markAsRead(id);
     if (result.success) {
       // Update local state
-      await fetchNotifications();
+      await refresh();
     }
     return result;
   };
@@ -28,7 +28,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
     const result = await deleteNotification(id);
     if (result.success) {
       // Refresh notifications
-      await fetchNotifications();
+      await refresh();
     }
     return result;
   };
@@ -36,13 +36,13 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
   const handleMarkAllAsRead = async () => {
     await markAllAsRead();
     // Refresh notifications
-    await fetchNotifications();
+    await refresh();
   };
 
   const handleDeleteAll = async () => {
     await deleteAllNotifications(filter, selectedTab);
     // Refresh notifications
-    await fetchNotifications();
+    await refresh();
   };
 
   return (

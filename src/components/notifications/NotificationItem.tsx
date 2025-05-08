@@ -1,149 +1,140 @@
 
 import React from 'react';
-import { format, formatDistanceToNow } from 'date-fns';
 import { 
-  Bell, 
-  CheckCircle, 
   Info, 
   AlertCircle, 
-  AlertTriangle,
+  CheckCircle2, 
+  AlertTriangle, 
+  Bell,
   Trash2,
-  Check,
-  ExternalLink
+  MailOpen
 } from 'lucide-react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { NotificationContent } from '@/types/notifications';
-
-export type NotificationItemType = NotificationContent;
+import { format, isToday, isYesterday } from 'date-fns';
 
 interface NotificationItemProps {
-  notification: NotificationItemType;
-  onMarkAsRead: (id: string) => void;
+  notification: NotificationContent;
+  onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ 
+const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
   onDelete
 }) => {
-  const handleMarkAsRead = () => onMarkAsRead(notification.id);
-  const handleDelete = () => onDelete && onDelete(notification.id);
-  
   const getIcon = () => {
     switch (notification.type) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case 'info':
+        return <Info className="h-4 w-4 text-blue-500" />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
+      case 'success':
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       case 'system':
-        return <Bell className="h-5 w-5 text-purple-500" />;
+        return <Bell className="h-4 w-4 text-purple-500" />;
       default:
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-4 w-4 text-blue-500" />;
     }
   };
   
-  const formattedDate = () => {
-    try {
-      const date = new Date(notification.timestamp);
-      const timeAgo = formatDistanceToNow(date, { addSuffix: true });
-      
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="text-xs text-muted-foreground cursor-help">
-              {timeAgo}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{format(date, 'PPpp')}</p>
-          </TooltipContent>
-        </Tooltip>
-      );
-    } catch (error) {
-      return <span className="text-xs text-muted-foreground">Unknown date</span>;
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isToday(date)) {
+      return `Today at ${format(date, 'p')}`;
+    } else if (isYesterday(date)) {
+      return `Yesterday at ${format(date, 'p')}`;
+    } else {
+      return format(date, 'MMM d, yyyy');
     }
   };
   
+  const handleMarkAsRead = async () => {
+    await onMarkAsRead(notification.id);
+  };
+  
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(notification.id);
+    }
+  };
+
   return (
-    <Card className={`border-l-4 ${
-      notification.type === 'success' ? 'border-l-green-500' :
-      notification.type === 'warning' ? 'border-l-amber-500' :
-      notification.type === 'error' ? 'border-l-red-500' :
-      notification.type === 'system' ? 'border-l-purple-500' :
-      'border-l-blue-500'
-    } ${notification.read ? 'bg-muted/30' : 'bg-background'}`}>
-      <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between space-y-0">
-        <div className="flex items-center space-x-2">
-          {getIcon()}
-          <CardTitle className="text-sm font-medium">{notification.title}</CardTitle>
+    <div 
+      className={cn(
+        "flex flex-col p-3 rounded-lg",
+        notification.read ? "bg-muted/50" : "bg-card border border-border"
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <div className="mt-0.5">{getIcon()}</div>
+          <h4 className="font-medium text-sm">{notification.title}</h4>
         </div>
-        <div className="flex space-x-1">
-          {!notification.read && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7" 
-                  onClick={handleMarkAsRead}
-                >
-                  <Check className="h-4 w-4" />
-                  <span className="sr-only">Mark as read</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Mark as read</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {onDelete && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7" 
-                  onClick={handleDelete}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Delete</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Delete notification</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <CardDescription className={`${notification.read ? 'text-muted-foreground' : ''}`}>
+        <span className="text-xs text-muted-foreground">
+          {formatDate(notification.timestamp)}
+        </span>
+      </div>
+      
+      {notification.message && (
+        <p className="mt-1 text-sm text-muted-foreground ml-6">
           {notification.message}
-        </CardDescription>
-      </CardContent>
-      <CardFooter className="p-4 pt-0 flex justify-between items-center">
-        {formattedDate()}
-        
-        {!notification.read && (
-          <Badge variant="outline" className="text-xs bg-blue-500/10">
-            New
-          </Badge>
-        )}
-      </CardFooter>
-    </Card>
+        </p>
+      )}
+      
+      {(notification.action_url && notification.action_label) && (
+        <a 
+          href={notification.action_url}
+          className="text-sm text-primary mt-2 ml-6 hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {notification.action_label}
+        </a>
+      )}
+      
+      {!notification.read && (
+        <div className="flex justify-end gap-2 mt-2">
+          {onDelete && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-7 px-2"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Delete</span>
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="h-7 px-2"
+            onClick={handleMarkAsRead}
+          >
+            <MailOpen className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">Mark as read</span>
+          </Button>
+        </div>
+      )}
+      {notification.read && onDelete && (
+        <div className="flex justify-end mt-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="h-7 px-2"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">Delete</span>
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 

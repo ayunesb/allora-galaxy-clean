@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
-import { Notification } from '@/types/notifications';
+import { Notification, NotificationContent } from '@/types/notifications';
 
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 
@@ -12,6 +12,18 @@ export const useNotificationData = (tabFilter: string | null = null) => {
   } = useNotifications();
   
   const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
+
+  // Transform Notification[] to NotificationContent[]
+  const transformedNotifications: NotificationContent[] = filteredNotifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.description || '',
+    timestamp: notification.created_at,
+    read: notification.is_read,
+    type: notification.type,
+    action_url: notification.action_url,
+    action_label: notification.action_label
+  }));
 
   // Filter notifications based on tab selection
   const filterNotifications = useCallback(() => {
@@ -31,7 +43,7 @@ export const useNotificationData = (tabFilter: string | null = null) => {
   }, [notifications, tabFilter, filterNotifications]);
 
   return {
-    notifications: filteredNotifications,
+    notifications: transformedNotifications,
     loading,
     error,
     refresh: refreshNotifications

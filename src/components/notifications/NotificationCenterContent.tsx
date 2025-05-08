@@ -12,7 +12,6 @@ interface NotificationCenterContentProps {
   filter: string;
   className?: string;
   markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
@@ -21,7 +20,6 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   filter,
   className,
   markAsRead,
-  markAllAsRead,
 }) => {
   // Filter notifications based on selected tab
   const filteredNotifications = React.useMemo(() => {

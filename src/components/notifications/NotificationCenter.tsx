@@ -7,7 +7,6 @@ import { useNotificationsContext } from '@/context/NotificationsContext';
 import { Badge } from '@/components/ui/badge';
 import NotificationCenterTabs from './NotificationCenterTabs';
 import NotificationCenterHeader from './NotificationCenterHeader';
-import { syncLocalEventsToSupabase, startPeriodicSync } from '@/lib/system/logSystemEvent';
 
 const NotificationCenter: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -19,16 +18,6 @@ const NotificationCenter: React.FC = () => {
     markAllAsRead,
     refreshNotifications,
   } = useNotificationsContext();
-
-  // Start periodic sync of system logs when component mounts
-  useEffect(() => {
-    // Try to sync any pending events when the notification center loads
-    syncLocalEventsToSupabase().catch(console.error);
-    
-    // Set up periodic sync every minute
-    const cleanup = startPeriodicSync(60000);
-    return cleanup;
-  }, []);
 
   const handleMarkAsRead = async (id: string) => {
     const result = await markAsRead(id);
