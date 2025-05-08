@@ -1,41 +1,8 @@
 
-// Fix VoteResult message property
 import { supabase } from '@/lib/supabase';
-import { VoteType } from '@/types/fixed';
+import { VoteType } from '@/types/shared';
 import { VoteResult } from './types';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-
-/**
- * Handle upvoting an agent version
- * 
- * @param agentVersionId The ID of the agent version
- * @param userId The ID of the user casting the vote
- * @param comment Optional comment with the vote
- * @returns Vote result including updated counts
- */
-export async function upvoteAgentVersion(
-  agentVersionId: string,
-  userId: string,
-  comment?: string
-): Promise<VoteResult> {
-  return castVote(agentVersionId, userId, 'up', comment);
-}
-
-/**
- * Handle downvoting an agent version
- * 
- * @param agentVersionId The ID of the agent version
- * @param userId The ID of the user casting the vote
- * @param comment Optional comment with the vote
- * @returns Vote result including updated counts
- */
-export async function downvoteAgentVersion(
-  agentVersionId: string, 
-  userId: string,
-  comment?: string
-): Promise<VoteResult> {
-  return castVote(agentVersionId, userId, 'down', comment);
-}
 
 /**
  * Cast a vote on an agent version
@@ -216,4 +183,36 @@ export async function castVote(
       downvotes: 0,
     };
   }
+}
+
+/**
+ * Handle upvoting an agent version
+ * 
+ * @param agentVersionId The ID of the agent version
+ * @param userId The ID of the user casting the vote
+ * @param comment Optional comment with the vote
+ * @returns Vote result including updated counts
+ */
+export function upvoteAgentVersion(
+  agentVersionId: string,
+  userId: string,
+  comment?: string
+): Promise<VoteResult> {
+  return castVote(agentVersionId, userId, 'up', comment);
+}
+
+/**
+ * Handle downvoting an agent version
+ * 
+ * @param agentVersionId The ID of the agent version
+ * @param userId The ID of the user casting the vote
+ * @param comment Optional comment with the vote
+ * @returns Vote result including updated counts
+ */
+export function downvoteAgentVersion(
+  agentVersionId: string, 
+  userId: string,
+  comment?: string
+): Promise<VoteResult> {
+  return castVote(agentVersionId, userId, 'down', comment);
 }

@@ -7,6 +7,12 @@ interface PromptDiffViewerProps {
   newPrompt: string;
 }
 
+interface DiffPart {
+  value: string;
+  added?: boolean;
+  removed?: boolean;
+}
+
 const PromptDiffViewer: React.FC<PromptDiffViewerProps> = ({
   oldPrompt,
   newPrompt,
@@ -15,7 +21,7 @@ const PromptDiffViewer: React.FC<PromptDiffViewerProps> = ({
 
   return (
     <div className="font-mono text-sm overflow-auto max-h-96 border rounded-md">
-      {diff.map((part, index) => {
+      {diff.map((part: DiffPart, index: number) => {
         const color = part.added
           ? "bg-green-100 text-green-800"
           : part.removed
@@ -29,7 +35,7 @@ const PromptDiffViewer: React.FC<PromptDiffViewerProps> = ({
             key={index}
             className={`p-1 whitespace-pre-wrap ${color}`}
           >
-            {part.value.split('\n').map((line, lineIndex, array) => {
+            {part.value.split('\n').map((line: string, lineIndex: number, array: string[]) => {
               // Skip empty lines at the end of the diff part
               if (lineIndex === array.length - 1 && line === '') {
                 return null;

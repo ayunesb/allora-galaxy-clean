@@ -1,20 +1,19 @@
 
 import React from 'react';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
 import CompanyInfoStep from './steps/CompanyInfoStep';
 import PersonaStep from './steps/PersonaStep';
 import AdditionalInfoStep from './steps/AdditionalInfoStep';
 import StrategyGenerationStep from './steps/StrategyGenerationStep';
+import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
 
 export interface StepContentProps {
   step: OnboardingStep;
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
-  isGenerating?: boolean;
   setFieldValue: (key: string, value: any) => void;
+  isGeneratingStrategy?: boolean;
 }
 
-// Define props for each step component
 export interface CompanyInfoStepProps {
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
@@ -30,7 +29,6 @@ export interface PersonaStepProps {
 export interface AdditionalInfoStepProps {
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
-  setFieldValue: (key: string, value: any) => void;
 }
 
 export interface StrategyGenerationStepProps {
@@ -40,50 +38,44 @@ export interface StrategyGenerationStepProps {
 
 const StepContent: React.FC<StepContentProps> = ({ 
   step, 
-  formData,
+  formData, 
   updateFormData,
-  isGenerating,
-  setFieldValue
+  setFieldValue,
+  isGeneratingStrategy 
 }) => {
-  // Render the appropriate step content based on the current step
   switch (step) {
     case 'company-info':
       return (
         <CompanyInfoStep 
-          formData={formData}
+          formData={formData} 
           updateFormData={updateFormData}
           setFieldValue={setFieldValue}
         />
       );
-    
     case 'persona':
       return (
         <PersonaStep 
-          formData={formData}
+          formData={formData} 
           updateFormData={updateFormData}
           setFieldValue={setFieldValue}
         />
       );
-    
     case 'additional-info':
       return (
         <AdditionalInfoStep 
-          formData={formData}
-          updateFormData={updateFormData}
-          setFieldValue={setFieldValue}
+          formData={formData} 
+          updateFormData={updateFormData} 
         />
       );
-    
     case 'strategy-generation':
       return (
         <StrategyGenerationStep 
-          formData={formData}
-          isGenerating={isGenerating}
+          formData={formData} 
+          isGenerating={isGeneratingStrategy} 
         />
       );
-    
     default:
-      return <div>Unknown step</div>;
+      return <div>Step not found</div>;
   }
 };
 

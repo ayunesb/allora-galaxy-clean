@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
 import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -12,15 +12,17 @@ interface NotificationCenterProps {
 
 export const NotificationCenter = ({ className }: NotificationCenterProps) => {
   const { 
-    isOpen, 
-    setIsOpen, 
     notifications, 
     loading, 
     unreadCount, 
     markAsRead, 
     markAllAsRead, 
-    deleteNotification 
+    deleteNotification,
+    refreshNotifications
   } = useNotifications();
+  
+  // Add local state for isOpen since it's missing from the context
+  const [isOpen, setIsOpen] = useState(false);
   
   // Close notification center when Escape key is pressed
   useEffect(() => {
@@ -34,7 +36,7 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
     return () => {
       window.removeEventListener('keydown', handleEscPress);
     };
-  }, [isOpen, setIsOpen]);
+  }, [isOpen]);
 
   const handleMarkAsRead = async (id: string): Promise<void> => {
     try {

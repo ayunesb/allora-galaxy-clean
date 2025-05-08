@@ -1,8 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { VoteType } from '@/types/fixed';
+import { VoteType } from '@/types/shared';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { VoteResult } from '@/lib/agents/voting/types';
+import { castVote } from '@/lib/agents/voting/voteOnAgentVersion';
 
 /**
  * Vote on an agent version (upvote or downvote)
@@ -21,83 +22,27 @@ export async function voteOnAgentVersion(
   comment?: string
 ): Promise<VoteResult> {
   try {
-    // Insert the vote record
-    const { data: voteData, error: voteError } = await supabase
-      .from('agent_votes')
-      .insert({
-        agent_version_id: agentVersionId,
-        user_id: userId,
-        vote_type: voteType,
-        comment
-      })
-      .select()
-      .single();
-
-    if (voteError) {
-      console.error('Error recording vote:', voteError);
-      return { 
-        success: false, 
-        error: `Failed to record vote: ${voteError.message}`,
-        upvotes: 0,
-        downvotes: 0
-      };
-    }
-
-    // Update the upvote/downvote count on the agent version
-    const updateField = voteType === VoteType.up ? 'upvotes' : 'downvotes';
+    // Call the castVote function and get the result
+    const voteResult = await castVote(agentVersionId, userId, voteType, comment);
     
-    const { error: updateError } = await supabase
-      .from('agent_versions')
-      .update({ 
-        [updateField]: supabase.rpc('increment', { 
-          value: 1
-        }),
-        xp: supabase.rpc('increment', { 
-          value: voteType === VoteType.up ? 10 : -5
-        })
-      })
-      .eq('id', agentVersionId);
-
-    if (updateError) {
-      console.error('Error updating agent version counts:', updateError);
-      return {
-        success: true,
-        voteId: voteData.id,
-        error: `Vote recorded but failed to update counts: ${updateError.message}`,
-        upvotes: 0,
-        downvotes: 0
-      };
+    // Log to the system log with tenant_id
+    if (voteResult.success) {
+      await logSystemEvent(
+        tenantId,
+        'agent',
+        'agent_voted',
+        {
+          agent_version_id: agentVersionId,
+          vote_type: voteType,
+          vote_id: voteResult.voteId,
+          has_comment: !!comment
+        }
+      ).catch(err => {
+        console.warn('Failed to log vote event:', err);
+      });
     }
-
-    // Log the event
-    await logSystemEvent(
-      tenantId,
-      'agent',
-      'agent_voted',
-      {
-        agent_version_id: agentVersionId,
-        vote_type: voteType,
-        vote_id: voteData.id,
-        has_comment: !!comment
-      }
-    ).catch(err => {
-      console.warn('Failed to log vote event:', err);
-      // Non-critical error, continue execution
-    });
-
-    // Fetch the updated counts
-    const { data: agentData } = await supabase
-      .from('agent_versions')
-      .select('upvotes, downvotes')
-      .eq('id', agentVersionId)
-      .single();
-
-    return {
-      success: true,
-      voteId: voteData.id,
-      upvotes: agentData?.upvotes || 0,
-      downvotes: agentData?.downvotes || 0
-    };
+    
+    return voteResult;
   } catch (err: any) {
     console.error('Unexpected error during voting:', err);
     return {
@@ -108,3 +53,6 @@ export async function voteOnAgentVersion(
     };
   }
 }
+
+// Re-export the more specific voting functions
+export { upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting/voteOnAgentVersion';

@@ -1,5 +1,5 @@
 
-import { VoteType } from '@/types/fixed';
+import { VoteType } from '@/types/shared';
 
 export interface VoteResult {
   success: boolean;
@@ -16,6 +16,8 @@ export interface AgentVoteStats {
   downvotes: number;
   xp: number;
   totalVotes: number;
+  ratio?: number;
+  recentComments?: any[];
   userVote?: {
     id: string;
     voteType: VoteType;
@@ -24,20 +26,34 @@ export interface AgentVoteStats {
 }
 
 export interface UserVote {
-  id: string;
-  agentVersionId: string;
-  userId: string;
-  voteType: VoteType;
+  id?: string;
+  agentVersionId?: string;
+  userId?: string;
+  voteType?: VoteType;
   comment?: string;
-  createdAt: string;
+  createdAt?: string;
+  success?: boolean;
+  hasVoted?: boolean;
+  vote?: any;
+  error?: string;
 }
 
 export type UserVoteInfo = UserVote;
 export type VoteStats = AgentVoteStats;
 
-// Update exported types to be compatible with existing code
-export const voteOnAgentVersion = async (agentVersionId: string, voteType: VoteType, comment?: string): Promise<VoteResult> => {
-  // This is a placeholder implementation that should be overridden by the actual implementation
+// Export the type-safe vote function declaration
+export type VoteOnAgentVersionFn = (
+  agentVersionId: string, 
+  voteType: VoteType, 
+  comment?: string
+) => Promise<VoteResult>;
+
+// Declare placeholder function with proper signature
+export const voteOnAgentVersion: VoteOnAgentVersionFn = async (
+  agentVersionId: string, 
+  voteType: VoteType, 
+  comment?: string
+): Promise<VoteResult> => {
   return {
     success: false,
     upvotes: 0,
@@ -46,9 +62,9 @@ export const voteOnAgentVersion = async (agentVersionId: string, voteType: VoteT
   };
 };
 
-// Expose wrapper functions for compatibility
+// Expose wrapper functions with the correct types
 export const upvoteAgentVersion = (agentVersionId: string, comment?: string) => 
-  voteOnAgentVersion(agentVersionId, 'up', comment);
+  voteOnAgentVersion(agentVersionId, 'up' as VoteType, comment);
 
 export const downvoteAgentVersion = (agentVersionId: string, comment?: string) => 
-  voteOnAgentVersion(agentVersionId, 'down', comment);
+  voteOnAgentVersion(agentVersionId, 'down' as VoteType, comment);

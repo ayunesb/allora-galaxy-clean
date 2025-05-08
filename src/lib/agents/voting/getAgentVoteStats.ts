@@ -1,13 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { VoteStats } from "./types";
+import { AgentVoteStats } from "./types";
 
 /**
  * Get vote statistics for an agent version
  * @param agentVersionId Agent version ID
  * @returns Vote statistics
  */
-export async function getAgentVoteStats(agentVersionId: string): Promise<VoteStats> {
+export async function getAgentVoteStats(agentVersionId: string): Promise<AgentVoteStats> {
   try {
     const { data: agent, error } = await supabase
       .from('agent_versions')
@@ -30,28 +30,28 @@ export async function getAgentVoteStats(agentVersionId: string): Promise<VoteSta
       console.warn('Error fetching vote comments:', commentsError);
     }
     
+    const upvotes = agent.upvotes || 0;
+    const downvotes = agent.downvotes || 0;
+    const totalVotes = upvotes + downvotes;
+    const ratio = totalVotes > 0 ? Math.round((upvotes / totalVotes) * 100) : 0;
+    
     return {
-      success: true,
-      upvotes: agent.upvotes || 0,
-      downvotes: agent.downvotes || 0,
+      agentVersionId,
+      upvotes,
+      downvotes,
       xp: agent.xp || 0,
-      totalVotes: (agent.upvotes || 0) + (agent.downvotes || 0),
-      ratio: agent.upvotes && (agent.upvotes + agent.downvotes) > 0 
-        ? Math.round((agent.upvotes / (agent.upvotes + agent.downvotes)) * 100)
-        : 0,
+      totalVotes,
+      ratio,
       recentComments: recentComments || []
     };
   } catch (error: any) {
     console.error('Error getting agent vote stats:', error);
     return {
-      success: false,
+      agentVersionId,
       upvotes: 0,
       downvotes: 0,
       xp: 0,
-      totalVotes: 0,
-      ratio: 0,
-      error: error.message,
-      recentComments: []
+      totalVotes: 0
     };
   }
 }

@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { snakeToCamel } from "@/types/fixed";
-import { UserVoteInfo } from "./types";
+import { UserVote } from "./types";
 
 /**
  * Check if user has already voted on an agent
@@ -9,7 +9,7 @@ import { UserVoteInfo } from "./types";
  * @param userId User ID
  * @returns User's existing vote if any
  */
-export async function getUserVote(agentVersionId: string, userId: string): Promise<UserVoteInfo> {
+export async function getUserVote(agentVersionId: string, userId: string): Promise<UserVote> {
   try {
     const { data, error } = await supabase
       .from('agent_votes')
@@ -21,16 +21,18 @@ export async function getUserVote(agentVersionId: string, userId: string): Promi
     if (error) throw error;
     
     return {
-      success: true,
       hasVoted: !!data,
-      vote: data ? snakeToCamel(data) : null
+      vote: data ? snakeToCamel(data) : null,
+      agentVersionId,
+      userId
     };
   } catch (error: any) {
     console.error('Error checking user vote:', error);
     return {
-      success: false,
       hasVoted: false,
       vote: null,
+      agentVersionId,
+      userId,
       error: error.message
     };
   }

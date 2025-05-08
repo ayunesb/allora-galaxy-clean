@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecutionRecordInput, LogStatus } from '@/types/fixed';
+import { LogStatus } from '@/types/shared';
 import { recordExecution } from '@/lib/plugins/execution/recordExecution';
 
 interface ExecutePluginChainOptions {
@@ -50,7 +50,7 @@ export async function executePluginChain(
       }
       
       // Record execution start
-      const executionData: ExecutionRecordInput = {
+      const executionData = {
         tenantId,
         strategyId,
         pluginId,
@@ -72,8 +72,6 @@ export async function executePluginChain(
       // Record execution completion
       await recordExecution({
         ...executionData,
-        id: execution?.id,
-        status: 'success' as LogStatus,
         executionTime,
         xpEarned,
         output: { success: true, result: `Plugin ${plugin.name} executed successfully` }

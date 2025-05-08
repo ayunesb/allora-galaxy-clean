@@ -1,42 +1,28 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 /**
- * Get comment feedback for an agent
+ * Get user feedback comments for an agent version
+ * @param agentId The agent version ID
+ * @returns Array of feedback comments
  */
-export async function getAgentFeedbackComments(agentId: string) {
+export async function getAgentFeedbackComments(agentId: string): Promise<any[]> {
   try {
     const { data, error } = await supabase
       .from('agent_votes')
-      .select('comment, vote_type')
+      .select('comment, vote_type, created_at, user_id')
       .eq('agent_version_id', agentId)
-      .not('comment', 'is', null);
+      .not('comment', 'is', null)
+      .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching feedback comments:', error);
+      return [];
+    }
     
-    // Filter out null/empty comments
-    return (data || [])
-      .filter(item => item.comment && item.comment.trim() !== '')
-      .map(item => `${item.vote_type === 'down' ? 'Issue' : 'Good'}: ${item.comment}`);
-  } catch (error) {
-    console.error('Error getting agent feedback comments:', error);
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error fetching feedback comments:', err);
     return [];
   }
-}
-
-/**
- * Evolve a prompt using feedback
- */
-export async function evolvePromptWithFeedback(originalPrompt: string, feedback: string[]): Promise<string> {
-  // In a real implementation, this would call an LLM to generate an improved prompt
-  // For now, just append the feedback to the original prompt
-  
-  if (feedback.length === 0) {
-    return originalPrompt;
-  }
-  
-  const feedbackStr = feedback.join('\n');
-  
-  // Simplified evolution - in a real system, we would use an LLM for this
-  return `${originalPrompt}\n\nFeedback incorporated from previous version:\n${feedbackStr}`;
 }

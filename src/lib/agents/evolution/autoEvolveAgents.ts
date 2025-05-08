@@ -1,13 +1,12 @@
 
-// Remove unused variable 'performance'
-import { supabase } from '@/lib/supabase';
+// Fix import statements and function calls
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { getAgentsForEvolution } from './getAgentsForEvolution';
-import { checkEvolutionNeeded } from './checkEvolutionNeeded';
+import { checkAgentEvolutionNeeded } from './checkEvolutionNeeded';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgent } from './deactivateOldAgent';
-import { calculatePerformance } from './calculatePerformance';
-import { getFeedbackComments } from './getFeedbackComments';
+import { deactivateAgent } from './deactivateOldAgent';
+import { calculateAgentPerformance } from './calculatePerformance';
+import { getAgentFeedbackComments } from './getFeedbackComments';
 import { getPluginsForOptimization } from './getPluginsForOptimization';
 
 /**
@@ -33,16 +32,15 @@ export async function autoEvolveAgents() {
     // Process each agent
     for (const agent of agents) {
       // Check if this agent needs evolution based on various metrics
-      const needsEvolution = await checkEvolutionNeeded(agent.id);
+      const needsEvolution = await checkAgentEvolutionNeeded(agent.id);
       
       if (!needsEvolution) {
         continue;
       }
       
       // Get the agent's usage stats and feedback
-      // Removed: const performance = await calculatePerformance(agent.id);
-      await calculatePerformance(agent.id); // Call but don't store the result since it's not used
-      const feedback = await getFeedbackComments(agent.id);
+      await calculateAgentPerformance(agent.id);
+      const feedback = await getAgentFeedbackComments(agent.id);
       const relatedPlugins = await getPluginsForOptimization(agent.id);
       
       // Create a new evolved agent version
@@ -50,7 +48,7 @@ export async function autoEvolveAgents() {
       
       if (newAgent) {
         // Deactivate the old agent version
-        await deactivateOldAgent(agent.id);
+        await deactivateAgent(agent.id);
         evolvedCount++;
         
         // Log the evolution event

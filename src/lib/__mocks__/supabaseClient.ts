@@ -1,8 +1,8 @@
 
-// Fix the unused variables in this mock file
+// Create a mock implementation of Supabase client for testing
 import { vi } from 'vitest';
 
-// Create a mock implementation of Supabase client for testing
+// Mock implementation of Supabase client
 const mockSupabaseClient = {
   auth: {
     onAuthStateChange: vi.fn(),
@@ -21,7 +21,7 @@ const mockSupabaseClient = {
     signInWithPassword: vi.fn(),
     signOut: vi.fn(),
   },
-  from: vi.fn().mockImplementation((tableName) => ({
+  from: vi.fn().mockImplementation(() => ({
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
