@@ -1,4 +1,3 @@
-
 // Central type exports file
 // This file re-exports all types from the type system for easier imports
 
@@ -31,4 +30,21 @@ export interface Strategy {
   completion_percentage?: number;
   due_date?: string;
   priority?: string;
+}
+
+// Add the KPI interface if it doesn't already exist
+export interface KPI {
+  id: string;
+  name: string;
+  value: number;
+  previous_value?: number | null;
+  unit: string;
+  target?: number | null;
+  category: string;
+  period: string;
+  source?: string;
+  created_at: string;
+  updated_at: string;
+  tenant_id: string;
+  metadata?: Record<string, any>;
 }

@@ -1,46 +1,39 @@
 
 /**
- * Input parameters for executing a strategy
+ * Strategy execution types
  */
-export interface ExecuteStrategyInput {
-  strategy_id: string;
-  tenant_id: string;
-  user_id?: string | null;
-  options?: Record<string, any>;
-}
 
-/**
- * Result of strategy execution
- */
-export interface ExecuteStrategyResult {
-  success: boolean;
-  strategy_id?: string;
-  message?: string;
-  error?: string;
-  data?: any;
-  execution_id?: string;
-  execution_time?: number;
-  plugins_executed?: number;
-  successful_plugins?: number;
-  xp_earned?: number;
-  status?: 'success' | 'partial' | 'failure' | 'pending';
-}
-
-/**
- * Result of input validation
- */
 export interface ValidationResult {
   valid: boolean;
   errors?: string[];
+  warnings?: string[];
 }
 
-/**
- * Plugin execution result
- */
-export interface PluginExecutionResult {
-  plugin_id: string;
+export interface ExecuteStrategyParams {
+  tenant_id: string;
+  strategy_id: string;
+  user_id?: string;
+  options?: {
+    dryRun?: boolean;
+    force?: boolean;
+    timeout?: number;
+  };
+}
+
+export type StrategyExecutionStatus = 
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'aborted';
+
+export interface StrategyExecutionResult {
   success: boolean;
-  log_id?: string;
-  xp_earned: number;
-  error?: string;
+  strategy_id: string;
+  execution_id?: string;
+  status: StrategyExecutionStatus;
+  message?: string;
+  errors?: string[];
+  warnings?: string[];
+  execution_time_ms?: number;
 }

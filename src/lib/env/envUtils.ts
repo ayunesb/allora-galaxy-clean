@@ -4,6 +4,23 @@
  * different environments (browser, Node, Deno)
  */
 
+export type EnvVariable = {
+  name: string;
+  required: boolean;
+  description?: string;
+  default?: string;
+};
+
+// Environment variable constants
+export const ENV = {
+  SUPABASE_URL: 'VITE_SUPABASE_URL',
+  SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
+  STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY',
+  OPENAI_API_KEY: 'VITE_OPENAI_API_KEY',
+  HUBSPOT_API_KEY: 'HUBSPOT_API_KEY',
+  GA_MEASUREMENT_ID: 'VITE_GA_MEASUREMENT_ID',
+};
+
 /**
  * Gets an environment variable with a fallback value
  * Works in browser, Node.js, and Deno environments
@@ -54,3 +71,33 @@ export function isBrowser(): boolean {
 export function isServer(): boolean {
   return !isBrowser();
 }
+
+/**
+ * Validate environment variables
+ */
+export function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  for (const envVar of envVars) {
+    if (envVar.required) {
+      const value = getEnvVar(envVar.name, envVar.default);
+      if (!value) {
+        missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
+      }
+    }
+  }
+  
+  return {
+    valid: missing.length === 0,
+    missing
+  };
+}
+
+/**
+ * CORS headers for edge functions
+ */
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};

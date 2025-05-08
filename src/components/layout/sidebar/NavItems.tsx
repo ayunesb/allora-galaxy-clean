@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   ArrowRight,
@@ -8,7 +7,6 @@ import {
   Users,
   LayoutGrid,
   BarChart,
-  Calendar,
   Shield,
   AlertCircle,
   Database,

@@ -7,7 +7,7 @@ interface SendNotificationParams {
   tenant_id: string;
   user_id: string;
   title: string;
-  message: string;
+  message: string; // Match the name in Notification type
   type?: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;
@@ -35,6 +35,7 @@ export async function sendNotification({
       user_id,
       title,
       description: message, // Map message to description for DB schema
+      message, // Keep message for type compatibility
       type,
       is_read,
       action_url,

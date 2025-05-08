@@ -2,5 +2,7 @@
 /**
  * Re-export environment utility functions from the unified environment system
  */
-export { getEnvVar, validateEnv, corsHeaders, ENV } from '@/lib/env/envUtils';
+import { getEnvVar, validateEnv, ENV, corsHeaders } from '@/lib/env/envUtils';
 export type { EnvVariable } from '@/lib/env/envUtils';
+
+export { getEnvVar, validateEnv, corsHeaders, ENV };

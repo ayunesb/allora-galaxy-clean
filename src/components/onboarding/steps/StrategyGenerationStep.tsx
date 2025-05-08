@@ -9,16 +9,14 @@ import { Progress } from '@/components/ui/progress';
 const StrategyGenerationStep: React.FC = () => {
   const { currentTenant } = useWorkspace();
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(true);
+  const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('Initializing strategy generation...');
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const generateStrategy = async () => {
       if (!currentTenant?.id) {
         setError('No tenant information available. Please restart the onboarding process.');
-        setIsGenerating(false);
         return;
       }
 
@@ -78,13 +76,11 @@ const StrategyGenerationStep: React.FC = () => {
         // Wait a moment before proceeding to next step
         setTimeout(() => {
           setProgress(100);
-          setIsGenerating(false);
         }, 1000);
         
       } catch (error: any) {
         console.error('Strategy generation error:', error);
         setError(`Failed to generate strategy: ${error.message}`);
-        setIsGenerating(false);
         
         toast({
           title: "Strategy generation failed",

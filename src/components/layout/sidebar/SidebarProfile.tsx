@@ -8,7 +8,7 @@ export interface SidebarProfileProps {
   className?: string;
 }
 
-export const SidebarProfile: React.FC<SidebarProfileProps> = ({ className }) => {
+export const SidebarProfile: React.FC<SidebarProfileProps> = () => {
   const { currentTenant } = useWorkspace();
   const { user } = useAuth();
 

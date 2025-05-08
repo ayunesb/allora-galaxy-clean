@@ -16,8 +16,10 @@ export interface Notification {
   id: string;
   title: string;
   description?: string;
+  message?: string; // Add message as an optional property to fix TS errors
   created_at: string;
   is_read?: boolean;
+  read_at?: string;
   type: 'info' | 'success' | 'warning' | 'error' | 'system';
   action_url?: string;
   action_label?: string;

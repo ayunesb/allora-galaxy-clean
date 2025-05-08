@@ -1,7 +1,6 @@
 
 import { useEffect } from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
-import { useToast } from '@/hooks/use-toast';
 import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -13,9 +12,11 @@ interface NotificationCenterProps {
 }
 
 export const NotificationCenter = ({ className }: NotificationCenterProps) => {
-  const { isOpen, setIsOpen, notifications, unreadCount, loading } = useNotificationsContext();
-  const { toast } = useToast();
+  const { isOpen, setIsOpen, notifications, loading } = useNotificationsContext();
   const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
+  
+  // Get unreadCount from notifications
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   // Close notification center when Escape key is pressed
   useEffect(() => {
@@ -58,7 +59,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
           notifications={notifications}
           onMarkAsRead={markAsRead}
           onDelete={deleteNotification}
-          onClose={handleClose}
           loading={loading}
           onMarkAllAsRead={markAllAsRead}
         />

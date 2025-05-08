@@ -4,8 +4,7 @@ import {
   CheckCircle, 
   XCircle, 
   AlertTriangle, 
-  Info, 
-  X 
+  Info,
 } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
 import { toast } from '@/hooks/use-toast';
@@ -77,8 +76,6 @@ export function BetterToast({
   variant = 'default',
   action,
 }: ToastProps) {
-  const icon = getIconForVariant(variant);
-  
   // Convert our internal variant to what toast component accepts
   let toastVariant: 'default' | 'destructive';
   if (variant === 'destructive') {
