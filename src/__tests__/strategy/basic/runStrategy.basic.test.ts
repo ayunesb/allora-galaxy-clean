@@ -1,20 +1,49 @@
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { runStrategy } from "@/lib/strategy/runStrategy";
-import { setupTests } from '../setup/testSetup';
-import { validStrategyInput, mockSuccessResponse } from '../mocks/strategyMocks';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
+// Mock the dependencies
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    functions: {
+      invoke: vi.fn().mockImplementation(() => Promise.resolve({
+        data: { 
+          success: true,
+          execution_id: 'exec-123',
+          execution_time: 1.5
+        },
+        error: null
+      }))
+    }
+  }
+}));
+
+vi.mock('@/lib/system/logSystemEvent', () => ({
+  logSystemEvent: vi.fn().mockResolvedValue(undefined)
+}));
+
 describe('runStrategy Basic Functionality', () => {
-  setupTests();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
   
   it('should execute a strategy successfully', async () => {
     // Arrange
+    const mockInput = {
+      strategyId: 'strategy-123',
+      tenantId: 'tenant-123',
+      userId: 'user-123'
+    };
+    
     const supabaseMock = await import('@/integrations/supabase/client');
-    vi.mocked(supabaseMock.supabase.functions.invoke).mockResolvedValueOnce(mockSuccessResponse);
     
     // Act
-    const result = await runStrategy(validStrategyInput);
+    const result = await runStrategy(mockInput);
     
     // Assert
     expect(result.success).toBe(true);
