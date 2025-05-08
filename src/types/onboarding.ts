@@ -1,46 +1,49 @@
 
-/**
- * Defines the steps in the onboarding process
- */
 export type OnboardingStep = 'company-info' | 'persona' | 'additional-info' | 'strategy-generation';
 
-/**
- * Persona information for onboarding
- */
-export interface PersonaInfo {
-  name: string;
-  goals: string[];
-  tone: string;
-}
-
-/**
- * Data collected during the onboarding process
- */
 export interface OnboardingFormData {
   companyName: string;
   industry: string;
   companySize: string;
-  website?: string;
   revenueRange: string;
+  website: string;
+  description: string;
+  goals: string[] | string;
+  additionalInfo: string;
+  persona: {
+    name: string;
+    goals: string[];
+    tone: string;
+  };
+}
+
+export interface StepValidationResult {
+  valid: boolean;
+  errors: Record<string, string>;
+}
+
+export interface GenerateStrategyParams {
+  tenant_id: string;
+  company: {
+    name: string;
+    industry: string;
+    size: string;
+  };
+  persona: {
+    name: string;
+    goals: string[];
+    tone: string;
+  };
   goals: string[];
-  persona: PersonaInfo;
   additionalInfo?: string;
 }
 
-/**
- * Result of validating onboarding data
- */
-export interface OnboardingValidationResult {
-  valid: boolean;
-  errors?: string[];
-}
-
-/**
- * Result of generating a strategy during onboarding
- */
-export interface StrategyGenerationResult {
+export interface GenerateStrategyResult {
   success: boolean;
-  tenantId?: string;
   error?: string;
-  strategyId?: string;
+  strategy?: {
+    title: string;
+    description: string;
+    tags: string[];
+  };
 }

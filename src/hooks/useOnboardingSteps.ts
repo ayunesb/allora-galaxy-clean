@@ -32,8 +32,8 @@ export const useOnboardingSteps = (formData: OnboardingFormData) => {
         if (!formData.industry?.trim()) {
           errors.industry = 'Industry is required';
         }
-        if (!formData.teamSize?.trim()) {
-          errors.teamSize = 'Team size is required';
+        if (!formData.companySize?.trim()) {
+          errors.companySize = 'Company size is required';
         }
         if (!formData.revenueRange?.trim()) {
           errors.revenueRange = 'Revenue range is required';
@@ -46,13 +46,13 @@ export const useOnboardingSteps = (formData: OnboardingFormData) => {
         
       case 2:
         // Persona validation
-        if (!formData.personaName?.trim()) {
+        if (!formData.persona?.name?.trim()) {
           errors.personaName = 'Persona name is required';
         }
-        if (!formData.tone?.trim()) {
+        if (!formData.persona?.tone?.trim()) {
           errors.tone = 'Tone is required';
         }
-        if (!formData.goals?.trim()) {
+        if (Array.isArray(formData.goals) ? formData.goals.length === 0 : !formData.goals?.trim()) {
           errors.goals = 'Goals are required';
         }
         break;

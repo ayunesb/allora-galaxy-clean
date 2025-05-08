@@ -1,59 +1,60 @@
 
-import { runStrategy } from "../lib/strategy/runStrategy";
-import { ExecuteStrategyInput, ExecuteStrategyResult } from '../types/strategy';
+import { runStrategy } from '@/lib/strategy/runStrategy';
+import { ExecuteStrategyInput } from '@/types/fixed';
 
-// Handler for strategy execution
-export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
-  const startTime = performance.now();
-  
+interface ResponseData {
+  success: boolean;
+  execution_id?: string;
+  execution_time?: number;
+  error?: string;
+  data?: any;
+}
+
+export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ResponseData> {
   try {
-    // Validate required fields
-    if (!input.strategy_id) {
+    // Start measuring time
+    const startTime = performance.now();
+
+    // Validate required parameters
+    if (!input?.strategyId) {
       return {
         success: false,
-        error: "Strategy ID is required",
-        execution_time: (performance.now() - startTime) / 1000
+        error: 'Strategy ID is required',
+        execution_time: getMeasuredTime(startTime)
       };
     }
-    
-    if (!input.tenant_id) {
+
+    if (!input?.tenantId) {
       return {
         success: false,
-        error: "Tenant ID is required",
-        execution_time: (performance.now() - startTime) / 1000
+        error: 'Tenant ID is required',
+        execution_time: getMeasuredTime(startTime)
       };
     }
-    
-    // Convert snake_case to camelCase for compatibility with utility function
-    const strategyInput = {
-      strategyId: input.strategy_id,
-      tenantId: input.tenant_id,
-      userId: input.user_id,
-      options: input.options
-    };
-    
-    // Execute the strategy using the shared utility
-    const result = await runStrategy(strategyInput);
-    
-    // Return the result directly as it already matches ExecuteStrategyResult format
+
+    // Execute the strategy
+    const result = await runStrategy(input);
+
+    // Return appropriate response
     return {
       success: result.success,
       error: result.error,
       execution_id: result.execution_id,
       execution_time: result.execution_time,
-      outputs: result.outputs,
-      results: result.results,
-      logs: result.logs
+      data: result.data
     };
-    
   } catch (error: any) {
-    console.error("Error executing strategy:", error);
-    
-    // Return standardized error response
+    // Handle unexpected errors
     return {
       success: false,
-      error: error.message || "Unexpected error executing strategy",
-      execution_time: (performance.now() - startTime) / 1000
+      error: error.message || 'Unexpected error',
+      execution_time: 0
     };
   }
+}
+
+// Helper for measuring execution time
+function getMeasuredTime(startTime: number): number {
+  const endTime = performance.now();
+  return parseFloat(((endTime - startTime) / 1000).toFixed(3));
 }
