@@ -1,157 +1,195 @@
 
-import { recordExecution } from '@/lib/plugins/execution/recordExecution';
-import { ExecuteStrategyResult } from '@/types/strategy';
+import { supabase } from '@/integrations/supabase/client';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { validateStrategyInput } from './utils/validateInput';
-import { verifyStrategy } from './utils/verifyStrategy';
-import { fetchPlugins } from './utils/fetchPlugins';
-import { executePlugins } from './utils/executePlugins';
-import { updateStrategyProgress } from './utils/updateStrategyProgress';
-
-interface StrategyRunInput {
-  strategyId: string;
-  tenantId: string;
-  userId?: string;
-  options?: Record<string, any>;
-}
 
 /**
- * Main function to run a strategy and execute its associated plugins
+ * Main function to run a strategy by calling the edge function
+ * @param input The strategy execution input
+ * @returns The strategy execution result
  */
-export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrategyResult> {
-  const startTime = performance.now();
-  const executionId = crypto.randomUUID();
-  
+export async function runStrategy(input?: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   try {
     // 1. Validate input
-    const validation = validateStrategyInput(input);
+    const validation = validateStrategyInput(input as any);
     if (!validation.valid) {
-      throw new Error(validation.error || "Invalid input");
+      return {
+        success: false,
+        error: validation.error || 'Invalid input'
+      };
     }
-    
-    // 2. Record execution start
-    await recordExecution({
-      id: executionId,
-      tenantId: input.tenantId,
-      strategyId: input.strategyId,
-      executedBy: input.userId || undefined,
-      type: 'strategy',
-      status: 'pending',
-      input: input.options || {}
-    });
-    
-    // 3. Verify strategy exists and belongs to tenant
-    const { strategy, error: strategyError } = await verifyStrategy(input.strategyId, input.tenantId);
-    if (strategyError) {
-      throw new Error(strategyError);
-    }
-    
-    // 4. Fetch plugins to execute
-    const { plugins, error: pluginsError } = await fetchPlugins(input.strategyId, input.tenantId);
-    if (pluginsError) {
-      throw new Error(pluginsError);
-    }
-    
-    // 5. Execute plugins
-    const { 
-      results: pluginResults, 
-      xpEarned, 
-      successfulPlugins,
-      status
-    } = await executePlugins(plugins || [], input.strategyId, input.tenantId, input.options);
-    
-    const executionTime = (performance.now() - startTime) / 1000;
-    
-    // 6. Record execution completion
-    await recordExecution({
-      id: executionId,
-      tenantId: input.tenantId,
-      type: 'strategy',
-      status: status as 'success' | 'failure' | 'pending',
-      output: { plugins: pluginResults },
-      executionTime
-    });
-    
-    // 7. Update strategy progress if execution was successful
-    if (status === 'success' || status === 'partial') {
-      await updateStrategyProgress(
-        input.strategyId, 
-        input.tenantId,
-        status,
-        strategy?.completion_percentage || 0
-      );
-    }
-    
-    // 8. Log system event
-    await logSystemEvent(
-      input.tenantId,
-      'strategy',
-      'strategy_executed',
-      {
-        strategy_id: input.strategyId,
-        execution_id: executionId,
-        status,
-        plugins_executed: plugins?.length || 0,
-        successful_plugins: successfulPlugins,
-        xp_earned: xpEarned
-      }
-    );
-    
-    // 9. Return result
-    return {
-      success: status !== 'failure',
-      strategy_id: input.strategyId,
-      execution_id: executionId,
-      status,
-      message: `Strategy execution ${status}`,
-      execution_time: executionTime,
-      plugins_executed: plugins?.length || 0,
-      successful_plugins: successfulPlugins,
-      xp_earned: xpEarned,
-      data: { plugins: pluginResults }
+
+    // Convert camelCase to snake_case for edge function
+    const edgeFunctionInput = {
+      strategy_id: input?.strategyId,
+      tenant_id: input?.tenantId,
+      user_id: input?.userId,
+      options: input?.options
     };
     
-  } catch (error: any) {
-    console.error("Strategy execution error:", error);
-    
-    // Record execution failure
-    try {
-      await recordExecution({
-        id: executionId,
-        tenantId: input.tenantId,
-        strategyId: input.strategyId,
-        type: 'strategy',
-        status: 'failure',
-        error: error.message,
-        executionTime: (performance.now() - startTime) / 1000
-      });
-    } catch (e) {
-      console.error("Error recording execution failure:", e);
-    }
-    
-    // Log system event for error
+    // 2. Log execution start
     try {
       await logSystemEvent(
-        input.tenantId,
+        input!.tenantId,
         'strategy',
-        'strategy_execution_failed',
+        'execute_strategy_started',
         {
-          strategy_id: input.strategyId,
-          execution_id: executionId,
-          error: error.message
+          strategy_id: input?.strategyId,
+          user_id: input?.userId,
+          options: input?.options
         }
       );
-    } catch (e) {
-      console.error("Error logging system event:", e);
+    } catch (logError) {
+      console.error('Error logging strategy start:', logError);
+      // Continue execution even if logging fails
+    }
+    
+    // 3. Call the edge function with retry logic
+    const MAX_RETRIES = 1;
+    const RETRY_DELAY = 1500;
+    
+    let retryCount = 0;
+    let response;
+    
+    while (retryCount <= MAX_RETRIES) {
+      try {
+        response = await supabase.functions.invoke(
+          'executeStrategy',
+          {
+            body: edgeFunctionInput
+          }
+        );
+        
+        // Break the loop if we got a successful response or a non-retryable error
+        if (response.data || (response.error && !isTemporaryError(response.error))) {
+          break;
+        }
+        
+        // If we have a temporary error and retries left, wait and try again
+        retryCount++;
+        if (retryCount <= MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        }
+        
+      } catch (invokeError) {
+        console.error('Error invoking strategy edge function:', invokeError);
+        
+        // Log the error and handle retry if applicable
+        retryCount++;
+        if (retryCount <= MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        } else {
+          // If we've exhausted retries, return error
+          return {
+            success: false,
+            strategy_id: input?.strategyId,
+            error: `Failed to invoke edge function: ${invokeError instanceof Error ? invokeError.message : String(invokeError)}`
+          };
+        }
+      }
+    }
+    
+    // 4. Process the response
+    if (response?.error) {
+      // Log execution error
+      try {
+        await logSystemEvent(
+          input!.tenantId,
+          'strategy',
+          'execute_strategy_error',
+          {
+            strategy_id: input?.strategyId,
+            error: response.error.message || String(response.error)
+          }
+        );
+      } catch (logError) {
+        console.error('Error logging strategy error:', logError);
+      }
+      
+      // Return error result
+      return {
+        success: false,
+        strategy_id: input?.strategyId,
+        error: `Error executing strategy: ${response.error.message || String(response.error)}`
+      };
+    }
+    
+    // 5. Log execution completed
+    try {
+      await logSystemEvent(
+        input!.tenantId,
+        'strategy',
+        'execute_strategy_completed',
+        {
+          strategy_id: input?.strategyId,
+          execution_id: response?.data?.execution_id,
+          execution_time: response?.data?.execution_time,
+          status: response?.data?.status
+        }
+      );
+    } catch (logError) {
+      console.error('Error logging strategy completion:', logError);
+    }
+    
+    // 6. Return success result
+    return {
+      success: true,
+      strategy_id: input?.strategyId,
+      execution_id: response?.data?.execution_id,
+      execution_time: response?.data?.execution_time,
+      status: response?.data?.status,
+      message: response?.data?.message,
+      plugins_executed: response?.data?.plugins_executed,
+      successful_plugins: response?.data?.successful_plugins,
+      xp_earned: response?.data?.xp_earned,
+      data: response?.data?.data
+    };
+    
+  } catch (error) {
+    console.error('Unexpected error in runStrategy:', error);
+    
+    // Attempt to log the error
+    try {
+      if (input?.tenantId) {
+        await logSystemEvent(
+          input.tenantId,
+          'strategy',
+          'execute_strategy_unexpected_error',
+          {
+            strategy_id: input.strategyId,
+            error: error instanceof Error ? error.message : String(error)
+          }
+        );
+      }
+    } catch (logError) {
+      console.error('Error logging unexpected error:', logError);
     }
     
     // Return error result
     return {
       success: false,
-      strategy_id: input.strategyId,
-      execution_id: executionId,
-      error: error.message,
-      execution_time: (performance.now() - startTime) / 1000
+      strategy_id: input?.strategyId,
+      error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
     };
   }
+}
+
+// Helper to determine if an error is temporary and can be retried
+function isTemporaryError(error: any): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error.message || String(error);
+  const temporaryErrorPatterns = [
+    /timeout/i,
+    /temporary/i,
+    /retry/i,
+    /try again/i,
+    /too many requests/i,
+    /rate limit/i,
+    /429/,
+    /503/
+  ];
+  
+  return temporaryErrorPatterns.some(pattern => pattern.test(errorMessage));
 }

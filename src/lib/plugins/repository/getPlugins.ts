@@ -1,26 +1,27 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Plugin } from '@/types/plugin';
 
 /**
- * Get all active plugins
- * @returns Array of active plugins
+ * Fetches active plugins for a tenant
+ * @param tenantId The tenant ID to fetch plugins for
+ * @returns An array of active plugins
  */
-export async function getActivePlugins(): Promise<Plugin[]> {
+export async function getActivePlugins(tenantId: string) {
   try {
-    const { data, error } = await supabase
+    const { data: plugins, error } = await supabase
       .from('plugins')
       .select('*')
-      .eq('status', 'active');
-
+      .eq('tenant_id', tenantId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: true });
+    
     if (error) {
-      console.error('Error getting active plugins:', error);
-      return [];
+      throw new Error(`Failed to fetch plugins: ${error.message}`);
     }
-
-    return data || [];
+    
+    return plugins || [];
   } catch (error) {
-    console.error('Error getting active plugins:', error);
+    console.error('Error fetching active plugins:', error);
     return [];
   }
 }
