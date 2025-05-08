@@ -1,48 +1,56 @@
 
+import { createClient } from '@supabase/supabase-js';
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 import { runStrategy } from '@/lib/strategy/runStrategy';
-import { formatErrorResponse, formatSuccessResponse } from '@/lib/edge/envManager';
+import { 
+  getEnvVar, 
+  formatErrorResponse,
+  formatSuccessResponse
+} from '@/lib/edge/envManager';
 
 /**
- * Execute strategy edge function
+ * Execute a strategy via edge function
+ * This function serves as the entry point for strategy execution
  */
-export default async function executeStrategy(
-  input: ExecuteStrategyInput
-): Promise<ExecuteStrategyResult> {
-  const startTime = performance.now();
+export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
+  const startTime = Date.now();
   
   try {
-    // Validate input
+    // Input validation
     if (!input.strategyId) {
       return {
         success: false,
         error: 'Strategy ID is required',
-        executionTime: (performance.now() - startTime) / 1000
+        executionTime: (Date.now() - startTime) / 1000
       };
     }
-    
+
     if (!input.tenantId) {
       return {
         success: false,
         error: 'Tenant ID is required',
-        executionTime: (performance.now() - startTime) / 1000
+        executionTime: (Date.now() - startTime) / 1000
       };
     }
     
-    // Execute strategy using shared utility
+    // Execute the strategy using the shared runStrategy utility
+    // This allows for easier testing and code reuse
     const result = await runStrategy(input);
     
-    return {
-      ...result,
-      executionTime: (performance.now() - startTime) / 1000
-    };
+    // Add execution time to the result if not already present
+    if (!result.executionTime) {
+      result.executionTime = (Date.now() - startTime) / 1000;
+    }
+    
+    return result;
   } catch (error: any) {
-    console.error("Error executing strategy:", error);
+    // Handle unexpected errors gracefully
+    console.error('Error executing strategy:', error);
     
     return {
       success: false,
-      error: error.message,
-      executionTime: (performance.now() - startTime) / 1000
+      error: error.message || 'Unexpected error',
+      executionTime: (Date.now() - startTime) / 1000
     };
   }
 }

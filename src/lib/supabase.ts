@@ -1,5 +1,35 @@
 
-/**
- * Re-export supabase client
- */
-export { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getEnvVar } from '@/lib/env/envUtils';
+
+// Get Supabase configuration with proper error handling
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+
+// Validate Supabase configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(`
+    Missing required Supabase configuration: 
+    - VITE_SUPABASE_URL: ${supabaseUrl ? 'Found' : 'Missing'}
+    - VITE_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'Found' : 'Missing'}
+    
+    Please check your environment variables.
+  `);
+}
+
+// Create Supabase client with fallback empty values to prevent crashes
+// The application will show appropriate errors if these values are missing
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || '',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true
+    }
+  }
+);
+
+// Ensure we export a singleton instance
+export default supabase;

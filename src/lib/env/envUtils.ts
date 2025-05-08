@@ -1,112 +1,95 @@
 
 /**
- * Environment variable utilities
- * Safe access to environment variables with fallbacks
+ * Environment variable utilities for accessing configuration in a safe and consistent way
  */
 
-// Node.js environments (server, build time, etc.)
-const isNode = typeof process !== 'undefined' && 
-  process.versions != null && 
-  process.versions.node != null;
-
-// Browser environments
-const isBrowser = typeof window !== 'undefined';
-
-// Common environment variable names used in the application
+/**
+ * Environment variable interface
+ */
 export interface EnvVariable {
-  key: string;
-  isRequired: boolean;
-  defaultValue?: string;
+  name: string;
+  required?: boolean;
+  description?: string;
+  default?: string;
 }
 
-// Centralized environment configuration
+/**
+ * Common environment variable names
+ * Add all environment variables that your application uses here
+ */
 export const ENV = {
-  SUPABASE_URL: { key: 'VITE_SUPABASE_URL', isRequired: true },
-  SUPABASE_ANON_KEY: { key: 'VITE_SUPABASE_ANON_KEY', isRequired: true },
-  API_URL: { key: 'VITE_API_URL', isRequired: false, defaultValue: '' },
-  DEBUG_MODE: { key: 'VITE_DEBUG_MODE', isRequired: false, defaultValue: 'false' },
+  SUPABASE_URL: 'VITE_SUPABASE_URL',
+  SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
+  OPENAI_API_KEY: 'VITE_OPENAI_API_KEY',
+  HUBSPOT_API_KEY: 'VITE_HUBSPOT_API_KEY',
+  STRIPE_SECRET_KEY: 'VITE_STRIPE_SECRET_KEY',
+  STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY'
 };
 
-// Validate that all required environment variables are present
-export function validateEnv(): Record<string, string | undefined> {
-  const missing: string[] = [];
-  const values: Record<string, string | undefined> = {};
-  
-  Object.entries(ENV).forEach(([name, config]) => {
-    const value = getEnvVar(config.key, config.defaultValue);
-    values[name] = value;
-    
-    if (config.isRequired && !value) {
-      missing.push(config.key);
-    }
-  });
-  
-  if (missing.length > 0) {
-    console.error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-  
-  return values;
-}
-
 /**
- * Get an environment variable value safely
+ * Get an environment variable in a safe way
  * 
- * @param key - Environment variable name
- * @param defaultValue - Optional fallback value
- * @returns The environment variable value or default
+ * @param name The name of the environment variable to get
+ * @param defaultValue A default value to return if the environment variable is not found
+ * @returns The value of the environment variable
  */
-export function getEnvVar(key: string, defaultValue: string = ""): string {
-  // For Deno/Edge environments
-  if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
+export function getEnvVar(
+  name: string,
+  defaultValue: string = ''
+): string {
+  let value: string | undefined;
+  
+  // Try to get from Deno.env if in Deno environment (edge functions)
+  try {
+    if (typeof globalThis !== 'undefined' && 
+        'Deno' in globalThis && 
+        globalThis.Deno?.env) {
+      value = globalThis.Deno.env.get(name);
+    }
+  } catch (e) {
+    // Deno.env might be restricted in some contexts
+    console.debug(`Could not access Deno.env for ${name}`);
+  }
+  
+  // Fallback to process.env if in Node environment
+  if (!value && typeof process !== 'undefined' && process?.env) {
+    value = process.env[name];
+  }
+  
+  // Fallback to import.meta.env for Vite
+  if (!value && typeof import.meta !== 'undefined' && import.meta?.env) {
+    value = (import.meta.env as any)[name];
+  }
+  
+  return value || defaultValue;
+}
+
+/**
+ * Validate that all required environment variables are set
+ * 
+ * @param requiredVars List of required environment variables
+ * @returns Object with valid flag and any missing variables
+ */
+export function validateEnv(requiredVars: EnvVariable[]): { valid: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  for (const envVar of requiredVars) {
     try {
-      // Try to get from Deno.env
-      const deno = (globalThis as any).Deno;
-      const value = deno?.env?.get?.(key);
-      if (value !== undefined) return value;
-    } catch (err) {
-      // Likely running in a restricted environment
-      console.warn(`Unable to access Deno.env for ${key}:`, err);
+      const value = getEnvVar(envVar.name);
+      if (!value && envVar.required) {
+        missing.push(envVar.name);
+      }
+    } catch (e) {
+      if (envVar.required) {
+        missing.push(envVar.name);
+      }
     }
   }
-
-  // For Node.js environments
-  if (isNode && process.env) {
-    const value = process.env[key];
-    if (value !== undefined) return value;
-  }
-
-  // For browser environments (Vite replaces these at build time)
-  if (isBrowser) {
-    // Import.meta.env is replaced by Vite at build time
-    const importMetaEnv = (import.meta as any).env;
-    
-    if (importMetaEnv && importMetaEnv[key] !== undefined) {
-      return importMetaEnv[key];
-    }
-  }
-
-  // Fall back to default value or empty string
-  return defaultValue || '';
-}
-
-/**
- * Assert that an environment variable exists,
- * throw an error if it doesn't
- */
-export function requireEnvVar(key: string): string {
-  const value = getEnvVar(key);
-  if (!value) {
-    throw new Error(`Required environment variable ${key} is missing`);
-  }
-  return value;
-}
-
-/**
- * Check if an environment variable is true
- */
-export function isEnvVarTrue(key: string): boolean {
-  const val = getEnvVar(key, 'false').toLowerCase();
-  return val === 'true' || val === '1' || val === 'yes';
+  
+  return {
+    valid: missing.length === 0,
+    missing
+  };
 }
 
 /**
@@ -114,6 +97,5 @@ export function isEnvVarTrue(key: string): boolean {
  */
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };

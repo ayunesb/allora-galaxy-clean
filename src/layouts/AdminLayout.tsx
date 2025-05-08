@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { SidebarNav } from '@/components/layout/SidebarNav';
+import SidebarNav from '@/components/layout/SidebarNav';
 import { Users, Settings, AlertCircle, Database, Layers, BarChart } from 'lucide-react';
 import { NavigationItem } from '@/types/navigation';
 import { AdminGuard } from '@/components/guards/AdminGuard';

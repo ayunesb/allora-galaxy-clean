@@ -14,26 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 // Mock dependencies
-vi.mock('@/integrations/supabase/client', () => {
-  return {
-    supabase: {
-      from: vi.fn(),
-      rpc: vi.fn()
-    }
-  };
-});
-
-vi.mock('@/lib/system/logSystemEvent', () => {
-  return {
-    logSystemEvent: vi.fn().mockResolvedValue(undefined)
-  }
-});
-
-vi.mock('@/lib/utils/embeddings', () => {
-  return {
-    getEmbeddingForText: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
-  }
-});
+vi.mock('@/integrations/supabase/client');
+vi.mock('@/lib/system/logSystemEvent');
+vi.mock('@/lib/utils/embeddings', () => ({
+  getEmbeddingForText: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+}));
 
 describe('Agent Auto-Evolution', () => {
   beforeEach(() => {
@@ -128,7 +113,7 @@ describe('Agent Auto-Evolution', () => {
 
   describe('calculateAgentPerformance', () => {
     it('should calculate performance score correctly', () => {
-      const usageStats: Array<{agent_version_id: string, status: string, count: number}> = [
+      const usageStats = [
         { agent_version_id: 'agent1', status: 'success', count: 80 },
         { agent_version_id: 'agent1', status: 'failure', count: 20 },
         { agent_version_id: 'agent2', status: 'success', count: 50 }
@@ -141,7 +126,7 @@ describe('Agent Auto-Evolution', () => {
     });
 
     it('should handle no usage data', () => {
-      const usageStats: Array<{agent_version_id: string, status: string, count: number}> = [];
+      const usageStats = [];
       const score = calculateAgentPerformance('agent1', 5, 5, usageStats);
       
       // Expected: (5/10)*0.7 + 0*0.3 = 0.35

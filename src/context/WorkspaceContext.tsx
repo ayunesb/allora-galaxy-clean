@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -11,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { notifyError } from '@/components/ui/BetterToast';
 import { Tenant, UserRole } from '@/types/fixed';
-import { snakeToCamel } from '@/lib/utils/caseConverters';
+import { snakeToCamel } from '@/types/fixed';
 import { NavigationItem } from '@/types/navigation';
 import {
   Home,

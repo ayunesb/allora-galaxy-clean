@@ -1,33 +1,82 @@
 
-// Types for edge functions and responses
-
-export type LogStatus = 'pending' | 'success' | 'failure' | 'partial';
+// Add necessary strategy types if not already defined
 
 export interface ExecuteStrategyInput {
   strategyId: string;
   tenantId: string;
   userId?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface ExecuteStrategyResult {
   success: boolean;
-  executionId?: string;
-  strategyId?: string;
-  status?: LogStatus;
-  pluginsExecuted?: number;
-  successfulPlugins?: number;
-  executionTime?: number;
-  xpEarned?: number;
   error?: string;
-  outputs?: Record<string, any>;
-  logs?: Array<any>;
+  execution_id?: string;
+  executionTime?: number;
+  message?: string;
+  status?: 'success' | 'partial' | 'failure';
+  plugins_executed?: number;
+  successful_plugins?: number;
 }
+
+export interface PluginResult {
+  pluginId: string;
+  status: LogStatus;
+  output?: any;
+  error?: string;
+  executionTime: number;
+  xpEarned: number;
+}
+
+export interface RunPluginChainResult {
+  success: boolean;
+  results: PluginResult[];
+  error?: string;
+}
+
+export type LogStatus = 'success' | 'failure' | 'pending';
+
+// Additional types needed based on build errors
+export interface Tenant {
+  id: string;
+  name: string;
+  slug?: string;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+  metadata?: Record<string, any>;
+  role?: UserRole; // Added for convenience when joining with tenant_user_roles
+}
+
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+export interface CompanyProfile {
+  id: string;
+  tenant_id: string;
+  name: string;
+  industry?: string;
+  size?: 'solo' | 'small' | 'medium' | 'large' | 'enterprise';
+  website?: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AgentVote {
+  id?: string;
+  agent_version_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  comment?: string;
+  created_at?: string;
+}
+
+export type VoteType = 'up' | 'down';
 
 export interface ExecutionRecordInput {
   tenantId: string;
+  type: 'plugin' | 'agent' | 'strategy';
   status: LogStatus;
-  type: 'strategy' | 'plugin' | 'agent';
   strategyId?: string;
   pluginId?: string;
   agentVersionId?: string;
@@ -35,90 +84,39 @@ export interface ExecutionRecordInput {
   input?: Record<string, any>;
   output?: Record<string, any>;
   error?: string;
+  executionTime?: number;
+  xpEarned?: number;
 }
 
-export interface KpiInput {
-  tenantId: string;
-  name: string;
-  value: number;
-  previousValue?: number;
-  date?: string;
-  category?: string;
-  source?: string;
+// Helper functions for snake_case <-> camelCase conversion
+export function camelToSnake(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  
+  if (typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => camelToSnake(item));
+  }
+  
+  return Object.keys(obj).reduce((acc, key) => {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    acc[snakeKey] = camelToSnake(obj[key]);
+    return acc;
+  }, {} as Record<string, any>);
 }
 
-export interface UserProfile {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  avatarUrl?: string;
-  onboardingCompleted?: boolean;
-}
-
-export interface TenantData {
-  id: string;
-  name: string;
-  slug: string;
-  metadata?: Record<string, any>;
-}
-
-export interface WorkspaceContextValue {
-  tenantId: string | null;
-  setTenantId: (id: string) => void;
-  tenantData: TenantData | null;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export interface OnboardingStep {
-  id: string;
-  title: string;
-  description?: string;
-  isComplete: boolean;
-  isActive: boolean;
-  component: React.ComponentType<any>;
-}
-
-export interface OnboardingData {
-  companyName: string;
-  industry: string;
-  size: string;
-  description?: string;
-  goals: string[];
-  persona?: {
-    name: string;
-    tone: string;
-    goals: string[];
-  };
-}
-
-export interface AgentVersion {
-  id: string;
-  plugin_id: string;
-  prompt: string;
-  status: string;
-  version: string;
-  downvotes: number;
-  upvotes: number;
-  created_at: string;
-  updated_at: string;
-  xp: number;
-}
-
-export interface VoteResult {
-  success: boolean;
-  voteId?: string;
-  error?: string;
-}
-
-export interface AgentEvolution {
-  id: string;
-  original_id: string;
-  plugin_id: string;
-  prompt: string;
-  status: string;
-  version: string;
-  created_at: string;
-  feedback_used: string[];
+export function snakeToCamel<T = any>(obj: any): T {
+  if (obj === null || obj === undefined) return obj;
+  
+  if (typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => snakeToCamel(item)) as unknown as T;
+  }
+  
+  return Object.keys(obj).reduce((acc, key) => {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    acc[camelKey] = snakeToCamel(obj[key]);
+    return acc;
+  }, {} as Record<string, any>) as T;
 }

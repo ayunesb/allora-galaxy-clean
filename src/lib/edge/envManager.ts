@@ -1,63 +1,106 @@
 
 /**
- * Utilities for managing environment in edge functions
+ * Interface for environment variable validation
  */
+import { getEnvVar, corsHeaders, EnvVariable, validateEnv as validateEnvironment } from '@/lib/env/envUtils';
+
+export { getEnvVar, corsHeaders };
+export type { EnvVariable };
 
 /**
- * Format a success response
- * @param data The data to return
- * @returns Formatted success response
+ * Validate environment variables
+ * @param envVars Array of environment variables to validate
+ * @returns Object containing validated environment variables
  */
-export function formatSuccessResponse(data: any) {
-  return {
-    success: true,
-    data
-  };
-}
-
-/**
- * Format an error response
- * @param error The error to return
- * @returns Formatted error response
- */
-export function formatErrorResponse(error: string | Error) {
-  const errorMessage = error instanceof Error ? error.message : error;
+export function validateEnv(envVars: EnvVariable[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  const validationResult = validateEnvironment(envVars);
   
-  return {
-    success: false,
-    error: errorMessage
-  };
+  // Add validation result to output for reference
+  result._valid = String(validationResult.valid);
+  result._missing = validationResult.missing.join(',');
+
+  // Add actual env var values to result
+  for (const envVar of envVars) {
+    const value = getEnvVar(envVar.name, envVar.default || '');
+    result[envVar.name] = value;
+  }
+
+  return result;
 }
 
 /**
- * Get an environment variable
- * @param key The environment variable name
- * @param defaultValue The default value if not found
- * @returns The environment variable value
+ * Format standard API error response
+ * @param status HTTP status code
+ * @param message Error message
+ * @param details Additional error details
+ * @param executionTime Execution time in seconds
+ * @returns Response object with error details
  */
-export function getEnvVar(key: string, defaultValue: string = "") {
+export function formatErrorResponse(
+  status: number,
+  message: string,
+  details?: string,
+  executionTime?: number
+): Response {
+  const body = {
+    success: false,
+    error: message,
+    details: details || null,
+    executionTime,
+    timestamp: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+/**
+ * Format standard API success response
+ * @param data Response data
+ * @param executionTime Execution time in seconds
+ * @returns Response object with success details
+ */
+export function formatSuccessResponse(
+  data: any,
+  executionTime?: number
+): Response {
+  const body = {
+    success: true,
+    ...data,
+    executionTime,
+    timestamp: new Date().toISOString()
+  };
+
+  return new Response(JSON.stringify(body), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+/**
+ * Handle edge function request with consistent error handling
+ * @param req Request object
+ * @param handler Request handler function
+ * @returns Response object
+ */
+export async function handleEdgeRequest(
+  req: Request,
+  handler: (req: Request) => Promise<Response>
+): Promise<Response> {
   try {
-    // For Deno/Edge environments
-    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
-      try {
-        const deno = (globalThis as any).Deno;
-        const value = deno?.env?.get?.(key);
-        if (value !== undefined) return value;
-      } catch (err) {
-        // Likely running in a restricted environment
-        console.warn(`Unable to access Deno.env for ${key}:`, err);
-      }
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
     }
-
-    // For Node.js environments
-    if (typeof process !== 'undefined' && process.env) {
-      const value = process.env[key];
-      if (value !== undefined) return value;
-    }
-
-    return defaultValue;
-  } catch (err) {
-    console.warn(`Error accessing env variable ${key}:`, err);
-    return defaultValue;
+    
+    return await handler(req);
+  } catch (error: any) {
+    console.error('Edge function error:', error);
+    return formatErrorResponse(
+      500,
+      error.message || 'An unexpected error occurred'
+    );
   }
 }
