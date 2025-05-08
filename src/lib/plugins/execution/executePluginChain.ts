@@ -1,148 +1,100 @@
 
 import { Plugin, PluginResult, RunPluginChainResult } from '@/types/plugin';
+import { executePlugin } from './executePlugin';
 import { ExecutionParams } from '@/types/shared';
-import { recordExecution } from '@/lib/executions/recordExecution';
-
-// Define missing types from plugin and agent
-interface AgentVersion {
-  id: string;
-  version: string;
-  plugin_id?: string;
-  prompt: string;
-  status: string;
-}
-
-interface Strategy {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-}
-
-interface RunPluginChainInput {
-  plugins: Plugin[];
-  agentVersions: AgentVersion[];
-  initialInput: any;
-  strategy?: Strategy;
-  params: ExecutionParams;
-}
 
 /**
- * Executes a plugin with optional execution context
- * @param plugin The plugin to execute
- * @param input Input data for the plugin
- * @param context Execution context
- * @returns Result of plugin execution
- */
-async function executePlugin(
-  plugin: Plugin,
-  agentVersion: AgentVersion,
-  input: any,
-  params: ExecutionParams,
-  strategy?: Strategy
-): Promise<PluginResult> {
-  console.log(`Executing plugin ${plugin.name} with version ${agentVersion.version}`);
-  
-  const startTime = performance.now();
-  let status: 'success' | 'failure' = 'success';
-  let result: any = null;
-  let error: string | undefined = undefined;
-  let xpEarned = 0;
-  
-  try {
-    // Mock plugin execution - in a real app this would call an API or edge function
-    result = {
-      output: `Executed ${plugin.name} with input: ${JSON.stringify(input)}`,
-      success: true
-    };
-    xpEarned = Math.floor(Math.random() * 50) + 10;
-  } catch (err: any) {
-    console.error(`Error executing plugin ${plugin.name}:`, err);
-    status = 'failure';
-    error = err.message || 'Unknown error during plugin execution';
-  }
-  
-  const executionTime = performance.now() - startTime;
-  
-  // Record the execution for tracking
-  await recordExecution({
-    tenantId: params.tenant_id,
-    status: status,
-    type: 'plugin',
-    pluginId: plugin.id,
-    agentVersionId: agentVersion.id,
-    strategyId: strategy?.id,
-    executedBy: params.user_id,
-    input,
-    output: result,
-    executionTime,
-    xpEarned,
-    error
-  });
-  
-  return {
-    success: status === 'success',
-    output: result,
-    error,
-    executionTime,
-    xpEarned
-  };
-}
-
-/**
- * Executes a chain of plugins in sequence, with output from one feeding into the next
- * @param input The input for the plugin chain execution
- * @returns Result of the plugin chain execution
+ * Execute a chain of plugins in sequence
+ * @param plugins - Array of plugins to execute
+ * @param agentVersions - Array of agent versions
+ * @param initialInput - Initial input data
+ * @param strategy - Strategy data
+ * @param params - Execution parameters
+ * @returns The execution results
  */
 export async function executePluginChain(
-  input: RunPluginChainInput
-): Promise<RunPluginChainResult> {
-  console.log('Starting plugin chain execution');
-  
-  const { 
-    plugins, 
-    agentVersions,
-    initialInput, 
-    strategy,
-    params
-  } = input;
-  
-  const results: PluginResult[] = [];
-  let currentInput = initialInput;
-  let success = true;
-  
-  // Execute each plugin in sequence
-  for (let i = 0; i < plugins.length; i++) {
-    const plugin = plugins[i];
-    const agentVersion = agentVersions[i];
-    
-    console.log(`Executing plugin ${i + 1} of ${plugins.length}: ${plugin.name}`);
-    
-    // Execute the current plugin
-    const result = await executePlugin(
-      plugin,
-      agentVersion,
-      currentInput,
-      params,
-      strategy
-    );
-    
-    results.push(result);
-    
-    // Stop the chain if a plugin fails
-    if (!result.success) {
-      console.error(`Plugin ${plugin.name} failed, stopping chain`);
-      success = false;
-      break;
-    }
-    
-    // Use the output as input to the next plugin
-    currentInput = result.output;
+  plugins: Plugin[],
+  agentVersions: any[],
+  initialInput: Record<string, any>,
+  strategy: any,
+  params: {
+    tenant_id: string;
+    user_id?: string;
+    dryRun?: boolean;
   }
-  
+): Promise<RunPluginChainResult> {
+  // Validate input
+  if (!plugins || plugins.length === 0) {
+    return {
+      success: false,
+      results: [],
+      error: 'No plugins provided'
+    };
+  }
+
+  if (!params.tenant_id) {
+    return {
+      success: false,
+      results: [],
+      error: 'Tenant ID is required'
+    };
+  }
+
+  // Initialize the results array and current input
+  const results: PluginResult[] = [];
+  let currentInput = { ...initialInput };
+  let allSuccess = true;
+
+  // Execute each plugin in sequence
+  for (const plugin of plugins) {
+    try {
+      console.log(`Executing plugin ${plugin.id} in chain`);
+      
+      // Execute the plugin
+      const result = await executePlugin(
+        plugin,
+        params.tenant_id,
+        params.user_id || 'system',
+        currentInput,
+        strategy?.id || 'unknown'
+      );
+      
+      // Add result to results array
+      results.push(result);
+      
+      // Update success flag
+      if (!result.success) {
+        allSuccess = false;
+      }
+      
+      // Update input for next plugin if this one was successful
+      if (result.success) {
+        currentInput = {
+          ...currentInput,
+          previousOutput: result.output
+        };
+      }
+    } catch (error: any) {
+      console.error(`Error executing plugin ${plugin.id} in chain:`, error);
+      
+      // Add error result to results array
+      results.push({
+        success: false,
+        output: {},
+        error: error.message,
+        executionTime: 0,
+        xpEarned: 0
+      });
+      
+      // Update success flag
+      allSuccess = false;
+    }
+  }
+
+  // Return the final result
   return {
-    success,
+    success: allSuccess,
     results,
-    output: results.length > 0 ? results[results.length - 1].output : null,
+    output: currentInput
   };
 }

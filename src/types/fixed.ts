@@ -1,4 +1,3 @@
-
 // Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
@@ -74,12 +73,8 @@ export interface PluginResult {
   xpEarned: number;
 }
 
-// Updated VoteType enum to match the expected string literals in tests
-export enum VoteType {
-  up = 'up',
-  down = 'down',
-  neutral = 'neutral'
-}
+// Using string literals to match the VoteType from shared.ts
+export type VoteType = 'up' | 'down' | 'neutral';
 
 // Utility functions for case conversion
 export function camelToSnake(obj: Record<string, any>): Record<string, any> {

@@ -12,7 +12,8 @@ export type SystemEventModule =
   | 'system'
   | 'user'
   | 'tenant'
-  | 'product';
+  | 'product'
+  | 'onboarding';
 
 export type SystemEventType =
   // Strategy events
@@ -68,3 +69,24 @@ export type SystemEventType =
 
 // Vote type for agent/content voting
 export type VoteType = 'up' | 'down';
+
+// Additional shared types needed for other components
+export interface BaseEntity {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type ExecutionType = 'strategy' | 'plugin' | 'agent';
+export type ExecutionParams = Record<string, any>;
+
+export interface KPITrend {
+  change: number;
+  direction: TrendDirection;
+  isPositive: boolean;
+}
+
+export type LogStatus = 'pending' | 'running' | 'success' | 'error' | 'warning';
+export type TrendDirection = 'up' | 'down' | 'flat';
+export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
+export type TenantFeature = 'ai_strategy' | 'analytics' | 'plugins' | 'multi_user';

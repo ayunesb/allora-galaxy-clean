@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { NavigationItem } from '@/types/navigation';
 import { LayoutGrid, Home, Plug, Sparkle } from 'lucide-react';
@@ -75,3 +74,13 @@ export const getUserTenants = async (userId: string): Promise<Tenant[] | null> =
 
 // Alias for backward compatibility
 export const fetchTenants = getUserTenants;
+
+export function formatTenantsforDropdown(tenants: any[]) {
+  if (!tenants || tenants.length === 0) return [];
+  
+  return tenants.map(tenant => ({
+    id: tenant.id,
+    name: tenant.name,
+    slug: tenant.slug
+  }));
+}

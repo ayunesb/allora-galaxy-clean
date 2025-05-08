@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,7 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
     if (error) {
       logSystemEvent(
         tenant_id,
-        'onboarding',
+        'system',
         'onboarding_error',
         { error }
       ).catch(err => console.error('Failed to log onboarding error:', err));
@@ -56,7 +55,7 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
       // Log the retry failure
       logSystemEvent(
         tenant_id,
-        'onboarding',
+        'system',
         'onboarding_retry_failed',
         { original_error: error, retry_error: retryError.message }
       ).catch(err => console.error('Failed to log retry error:', err));

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingFormData } from '@/types/onboarding';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -64,7 +63,7 @@ export async function createTenantFromOnboarding(
     }
 
     // Log onboarding completion
-    await logSystemEvent(tenantId, 'onboarding', 'onboarding_completed', {
+    await logSystemEvent(tenantId, 'system', 'onboarding_completed', {
       user_id: userId,
       company_name: data.companyName,
       industry: data.industry,

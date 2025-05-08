@@ -22,7 +22,11 @@ const StrategyEngine: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { tenantId } = useTenantId();
+  const tenantId = useTenantId();
+  if (!tenantId) {
+    // Handle case where tenantId is null
+    return <div>No tenant selected</div>;
+  }
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
