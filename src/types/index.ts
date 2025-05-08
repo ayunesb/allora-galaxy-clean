@@ -14,7 +14,6 @@ export * from './notifications';
 
 // Deprecated types - these should eventually be migrated to the domain-specific files
 export * from './fixed';
-export * from './functions';
 
 // Define Strategy type to avoid import errors
 export interface Strategy {

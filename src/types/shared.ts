@@ -1,91 +1,27 @@
 
 // Common shared types used across the application
 
-// KPI Trend Types
-export type TrendDirection = 'up' | 'down' | 'neutral' | 'stable';
+export type NotificationType = 'system' | 'info' | 'success' | 'warning' | 'error';
 
-export interface KPITrend {
-  value: number;
-  previousValue?: number;
-  percentChange?: number;
-  direction: TrendDirection;
-  isPositive: boolean;
+export type VoteType = 'up' | 'down' | 'neutral';
+
+export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
+
+export type TenantFeature = 'ai_decisions' | 'analytics' | 'plugins' | 'multi_user' | 'api_access';
+
+export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
+
+export interface BaseEntity {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-// Vote types
-export type VoteType = 'up' | 'down' | 'neutral' | null;
-
-// Execution record types
-export type ExecutionType = 'agent' | 'strategy' | 'plugin';
-
-export type LogStatus = 'success' | 'failure' | 'pending' | 'running' | 'warning' | 'error';
-
-export interface ExecutionRecordInput {
-  tenantId: string;
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  status: LogStatus;
-  type: ExecutionType;
-  input: any; // Make input required to match the type in tests
-  output?: any;
-  error?: string;
-  executionTime?: number;
-  xpEarned?: number;
-  executedBy?: string;
-}
-
-// Notification types
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
-
-// System event types
-export type SystemEventModule = 'system' | 'agent' | 'strategy' | 'plugin' | 'user' | 'tenant' | 'onboarding';
-
-export type SystemEventType = 
-  | 'agent_evolved'
-  | 'agent_created'
-  | 'strategy_executed'
-  | 'strategy_approved'
-  | 'strategy_rejected'
-  | 'plugin_executed'
-  | 'user_invited'
-  | 'user_joined'
-  | 'tenant_created'
-  | 'error'
-  | 'onboarding_step_change'
-  | 'step_completed'
-  | 'agent_voted';
-
-// Sortable and filterable collection types
-export interface SortOption {
-  label: string;
-  value: string;
-  direction: 'asc' | 'desc';
-}
-
-export interface FilterOption {
-  label: string;
-  value: string;
-}
-
-// Common pagination type
-export interface PaginationState {
-  pageIndex: number;
-  pageSize: number;
-  total: number;
-}
-
-// App-wide metadata types
-export interface MetaTag {
-  name: string;
-  content: string;
-}
-
-// KPI Trend point for charts
-export interface KpiTrendPoint {
-  date: string;
-  value: number;
-  previousValue?: number;
-  change?: number;
-  changePercentage?: number;
+/**
+ * Common parameters for executing operations
+ */
+export interface ExecutionParams {
+  tenant_id: string;
+  user_id?: string;
+  dryRun?: boolean;
 }

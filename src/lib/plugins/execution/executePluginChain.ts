@@ -1,112 +1,131 @@
 
-import { recordExecution } from '@/lib/plugins/execution/recordExecution';
-import { ExecutePluginChainOptions, ExecutePluginResult, PluginResult } from '@/types/plugin';
+import { executePlugin } from './executePlugin';
+import { Plugin, PluginResult } from '@/types/plugin';
+import { recordExecution } from './recordExecution';
 import { LogStatus } from '@/types/shared';
 
+export interface PluginChainOptions {
+  tenantId: string;
+  userId?: string;
+  strategyId?: string;
+  recordResults?: boolean;
+  context?: Record<string, any>;
+}
+
+export interface RunPluginChainResult {
+  success: boolean;
+  results: PluginResult[];
+  erroredAt?: number;
+  error?: string;
+}
+
 /**
- * Execute a chain of plugins in sequence
+ * Executes a chain of plugins in sequence
  * 
- * @param options Plugin chain execution options
- * @returns Results of the plugin chain execution
+ * @param plugins Array of plugins to execute
+ * @param initialInput Input data for the first plugin
+ * @param options Chain execution options
+ * @returns Result of the chain execution
  */
-export async function executePluginChain(options: ExecutePluginChainOptions): Promise<ExecutePluginResult> {
-  const { plugins, inputs, tenant_id, strategy_id } = options;
-  const startTime = Date.now();
+export async function executePluginChain(
+  plugins: Plugin[],
+  initialInput: any,
+  options: PluginChainOptions
+): Promise<RunPluginChainResult> {
   const results: PluginResult[] = [];
+  let currentInput = initialInput;
   
   try {
-    let currentInput = { ...inputs };
-    
-    // Execute each plugin in the chain
-    for (const plugin of plugins) {
-      console.log(`Executing plugin ${plugin.name} (${plugin.id})`);
+    for (let i = 0; i < plugins.length; i++) {
+      const plugin = plugins[i];
       
       try {
-        // Here we would execute the plugin
-        // For now, we'll mock a successful execution
-        const pluginResult: PluginResult = {
-          success: true,
-          data: { result: `${plugin.name} executed successfully` },
-          logs: [`${plugin.name} execution started`, `${plugin.name} execution completed`],
-          executionTime: 0.5,
-          status: 'completed'
-        };
-        
-        // Record the execution in the database
-        await recordExecution({
-          tenantId: tenant_id,
-          pluginId: plugin.id,
-          strategyId: strategy_id,
-          type: 'plugin',
-          status: pluginResult.success ? 'success' : 'error' as LogStatus,
-          input: currentInput,
-          output: pluginResult.data,
-          executionTime: pluginResult.executionTime,
-          xpEarned: 10
+        // Execute the current plugin
+        const result = await executePlugin(plugin, currentInput, {
+          tenantId: options.tenantId,
+          userId: options.userId,
+          context: { ...options.context, chainPosition: i }
         });
         
-        results.push(pluginResult);
+        // Record execution if requested
+        if (options.recordResults && options.tenantId) {
+          await recordExecution({
+            tenantId: options.tenantId,
+            status: result.success ? 'success' : 'failed',
+            type: 'plugin',
+            pluginId: plugin.id,
+            strategyId: options.strategyId,
+            executedBy: options.userId,
+            input: currentInput,
+            output: result.data,
+            executionTime: result.executionTime,
+            xpEarned: result.xpEarned,
+            error: result.success ? undefined : result.error
+          });
+        }
         
-        // Pass output of this plugin as input to the next one
-        if (pluginResult.data) {
-          currentInput = {
-            ...currentInput,
-            ...pluginResult.data
+        // Store result
+        results.push(result);
+        
+        // Use this plugin's output as input to the next plugin
+        if (result.success) {
+          currentInput = result.data;
+        } else {
+          // If any plugin fails, stop the chain
+          return {
+            success: false,
+            results,
+            erroredAt: i,
+            error: result.error
           };
         }
+      } catch (error: any) {
+        // Handle unexpected errors
+        const errorMessage = `Unexpected error in plugin ${plugin.name || plugin.id}: ${error.message}`;
         
-        // If plugin failed, stop the chain
-        if (!pluginResult.success) {
-          console.error(`Plugin ${plugin.name} failed, stopping chain`);
-          break;
+        // Record failure if requested
+        if (options.recordResults && options.tenantId) {
+          await recordExecution({
+            tenantId: options.tenantId,
+            status: 'error',
+            type: 'plugin',
+            pluginId: plugin.id,
+            strategyId: options.strategyId,
+            executedBy: options.userId,
+            input: currentInput,
+            error: errorMessage
+          });
         }
-      } catch (pluginError: any) {
-        console.error(`Error executing plugin ${plugin.name}:`, pluginError);
         
-        const errorResult: PluginResult = {
+        // Add failure result
+        results.push({
           success: false,
-          error: pluginError.message || 'Unknown plugin execution error',
-          executionTime: (Date.now() - startTime) / 1000,
-          status: 'failed'
-        };
-        
-        results.push(errorResult);
-        
-        // Record the failed execution
-        await recordExecution({
-          tenantId: tenant_id,
-          pluginId: plugin.id,
-          strategyId: strategy_id,
-          type: 'plugin',
-          status: 'error' as LogStatus,
-          input: currentInput,
-          error: errorResult.error,
-          executionTime: errorResult.executionTime
+          error: errorMessage,
+          executionTime: 0,
+          plugin: plugin
         });
         
-        break;
+        // Return chain failure
+        return {
+          success: false,
+          results,
+          erroredAt: i,
+          error: errorMessage
+        };
       }
     }
     
-    const executionTime = (Date.now() - startTime) / 1000;
-    const success = results.every(r => r.success);
-    
+    // If all plugins executed successfully
     return {
-      success,
-      data: currentInput,
-      executionTime,
-      chainResults: results,
-      status: success ? 'completed' : 'failed'
+      success: true,
+      results
     };
   } catch (error: any) {
-    console.error('Error executing plugin chain:', error);
-    
+    // Handle unexpected errors in the chain execution itself
     return {
       success: false,
-      error: error.message || 'Unknown error in plugin chain execution',
-      executionTime: (Date.now() - startTime) / 1000,
-      chainResults: results,
-      status: 'failed'
+      results,
+      error: `Chain execution error: ${error.message}`
     };
   }
 }

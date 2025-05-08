@@ -4,22 +4,34 @@ import { UserRole } from "./shared";
 export interface Tenant {
   id: string;
   name: string;
-  slug?: string;
+  slug: string;
+  owner_id?: string;
   created_at?: string;
   updated_at?: string;
-  owner_id?: string;
   metadata?: Record<string, any>;
-  role?: UserRole; // Added for convenience when joining with tenant_user_roles
 }
 
-export interface CompanyProfile {
+export interface TenantUserRole {
   id: string;
   tenant_id: string;
-  name: string;
-  industry?: string;
-  size?: 'solo' | 'small' | 'medium' | 'large' | 'enterprise';
-  website?: string;
-  description?: string;
+  user_id: string;
+  role: UserRole;
   created_at?: string;
-  updated_at?: string;
+}
+
+export interface TenantWithRole extends Tenant {
+  role: UserRole;
+}
+
+// Workspace context type definition
+export interface WorkspaceContextType {
+  tenant: Tenant | null;
+  tenantId: string | null;
+  userRole: UserRole | null;
+  tenantsList: TenantWithRole[];
+  loading: boolean;
+  error: Error | null;
+  setTenantId: (id: string) => void;
+  setUserRole: (role: UserRole) => void;
+  refreshTenant: () => void;
 }

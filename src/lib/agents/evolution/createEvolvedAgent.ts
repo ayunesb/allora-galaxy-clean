@@ -1,7 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { getFeedbackComments } from './getFeedbackComments';
-import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { deactivateAgent } from './deactivateOldAgent';
 

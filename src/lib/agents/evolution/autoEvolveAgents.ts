@@ -1,8 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { checkEvolutionNeeded } from './checkEvolutionNeeded';
-import { createEvolvedAgent, CreateEvolvedAgentOptions } from './createEvolvedAgent';
-import { deactivateAgentVersion } from './deactivateOldAgent';
+import { createEvolvedAgent } from './createEvolvedAgent';
 import { getFeedbackComments, evolvePromptWithFeedback } from './getFeedbackComments';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
@@ -53,7 +52,7 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
     // Get the active agent versions to check
     let query = supabase
       .from('agent_versions')
-      .select('id, name, agent_id, prompt, tenant_id')
+      .select('id, name, plugin_id, prompt, tenant_id')
       .eq('status', 'active')
       .order('updated_at', { ascending: true })
       .limit(batchSize);
@@ -99,19 +98,19 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
           // Create the evolved agent version
           const evolvedAgent = await createEvolvedAgent({
             originalVersionId: agentVersion.id,
-            agentId: agentVersion.agent_id,
+            agentId: agentVersion.plugin_id || '',
             prompt: evolvedPrompt,
             reason: evolutionCheck.reason || 'Performance optimization',
-            tenantId: agentVersion.tenant_id
+            tenantId: agentVersion.tenant_id || ''
           });
           
           // Log the evolution event
           await logSystemEvent(
-            agentVersion.tenant_id,
+            agentVersion.tenant_id || '',
             'agent',
             'agent_evolved',
             {
-              agent_id: agentVersion.agent_id,
+              agent_id: agentVersion.plugin_id,
               old_version_id: agentVersion.id,
               new_version_id: evolvedAgent.id || '',
               reason: evolutionCheck.reason

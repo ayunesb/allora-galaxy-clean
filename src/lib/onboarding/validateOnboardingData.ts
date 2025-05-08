@@ -1,72 +1,65 @@
 
-import { OnboardingFormData, OnboardingStep } from "@/types/onboarding";
+import { OnboardingFormData, OnboardingStep, StepValidationResult } from '@/types/onboarding';
 
 /**
- * Validates the onboarding data for a specific step
- * @param formData The onboarding form data
- * @param step The step to validate
- * @returns Validation result
+ * Validates onboarding data for a specific step
+ * @param data The onboarding form data
+ * @param step The step being validated
+ * @returns Validation result with any errors
  */
-export function validateOnboardingData(formData: OnboardingFormData, step: OnboardingStep) {
-  const errors: string[] = [];
-
+export function validateOnboardingData(data: OnboardingFormData, step: OnboardingStep): StepValidationResult {
+  const errors: Record<string, string> = {};
+  
   switch (step) {
     case 'company-info':
-      // Company name is required
-      if (!formData.companyName || formData.companyName.trim() === '') {
-        errors.push('Company name is required');
+      if (!data.companyName?.trim()) {
+        errors.companyName = 'Company name is required';
       }
       
-      // Industry is required
-      if (!formData.industry || formData.industry.trim() === '') {
-        errors.push('Industry is required');
+      if (!data.industry?.trim()) {
+        errors.industry = 'Industry is required';
       }
       
-      // Company size is required
-      if (!formData.companySize || formData.companySize.trim() === '') {
-        errors.push('Company size is required');
+      if (!data.companySize?.trim()) {
+        errors.companySize = 'Company size is required';
       }
       
-      // Revenue range should be selected
-      if (!formData.revenueRange || formData.revenueRange.trim() === '') {
-        errors.push('Revenue range is required');
+      if (!data.description?.trim()) {
+        errors.description = 'Description is required';
       }
-      
       break;
-    
+      
     case 'persona':
-      // Persona name is required
-      if (!formData.persona || !formData.persona.name || formData.persona.name.trim() === '') {
-        errors.push('Persona name is required');
+      if (!data.persona?.name?.trim()) {
+        errors['persona.name'] = 'Persona name is required';
       }
       
-      // Persona tone is required
-      if (!formData.persona || !formData.persona.tone || formData.persona.tone.trim() === '') {
-        errors.push('Persona tone is required');
+      if (!data.persona?.goals || data.persona.goals.length === 0) {
+        errors['persona.goals'] = 'At least one persona goal is required';
       }
       
-      // At least one goal is required
-      if (!formData.persona || !formData.persona.goals || formData.persona.goals.length === 0 ||
-          formData.persona.goals.every((goal) => goal.trim() === '')) {
-        errors.push('At least one persona goal is required');
+      if (!data.persona?.tone?.trim()) {
+        errors['persona.tone'] = 'Persona tone is required';
       }
-      
       break;
-    
+      
     case 'additional-info':
-      // No validations - this step is optional
+      if (!data.goals || (Array.isArray(data.goals) && data.goals.length === 0)) {
+        errors.goals = 'At least one goal is required';
+      }
       break;
-    
+      
     case 'strategy-generation':
-      // No validations - this step is just for showing strategy generation
+      // No validation needed for the final step
       break;
-    
+      
     default:
-      errors.push('Unknown step');
+      // No validation for unknown steps
+      break;
   }
-
+  
   return {
-    valid: errors.length === 0,
+    valid: Object.keys(errors).length === 0,
     errors
   };
 }
