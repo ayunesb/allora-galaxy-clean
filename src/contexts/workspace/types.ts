@@ -6,6 +6,7 @@ export interface Tenant {
   name: string;
   slug?: string;
   role?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface WorkspaceContextType {
@@ -14,4 +15,7 @@ export interface WorkspaceContextType {
   error: string | null;
   navigationItems: NavigationItem[];
   refreshTenant: () => Promise<void>;
+  currentRole?: string; // Add this property
+  loading?: boolean;    // Add this for backward compatibility
+  userRole?: string;    // Add this for backward compatibility
 }

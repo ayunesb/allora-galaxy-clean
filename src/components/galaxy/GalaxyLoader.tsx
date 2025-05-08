@@ -85,7 +85,6 @@ const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({
         <ForceGraph 
           graphData={graphData} 
           onNodeClick={onNodeClick}
-          ref={fgRef}
         />
       )}
     </Card>
@@ -93,4 +92,3 @@ const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({
 };
 
 export default GalaxyLoader;
-export { type GalaxyLoaderProps };

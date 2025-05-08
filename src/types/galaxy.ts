@@ -1,54 +1,50 @@
 
-/**
- * Types for the Galaxy Explorer
- */
+import { LucideIcon } from 'lucide-react';
 
-export interface NodeData {
+// Base node data interface
+export interface GraphNode {
   id: string;
   name: string;
-  type: 'strategy' | 'plugin' | 'agent';
-  status?: string;
-  metadata?: Record<string, any>;
+  type: 'strategy' | 'plugin' | 'agent' | string;
+  status?: 'active' | 'pending' | 'approved' | 'inactive' | string;
+  description?: string;
   color?: string;
   borderColor?: string;
-  description?: string;
-  version?: string;
-  plugin_id?: string;
+  icon?: LucideIcon;
+  tags?: string[];
+  xp?: number;
+  roi?: number;
+  performance?: number;
+  version?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any; // Allow for additional custom properties
 }
 
-export interface LinkData {
-  source: string;
-  target: string;
-  type?: string;
+// Link between nodes
+export interface GraphLink {
+  source: string | GraphNode;
+  target: string | GraphNode;
   value?: number;
+  label?: string;
+  color?: string;
+  type?: string;
+  [key: string]: any; // Allow for additional custom properties
 }
 
+// Graph data structure
 export interface GraphData {
-  nodes: NodeData[];
-  links: LinkData[];
+  nodes: GraphNode[];
+  links: GraphLink[];
 }
 
-export interface GraphOptions {
-  viewMode?: string;
-  filterStatus?: string[];
-  layout?: string;
-  highlightedNodeId?: string | null;
-}
-
-export interface ForceGraphRef {
-  graph: any;
-  centerGraph: () => void;
-  zoomIn: () => void;
-  zoomOut: () => void;
-}
-
-export type GraphNode = NodeData;
-
+// Props for the ForceGraph component
 export interface ForceGraphProps {
   graphData: GraphData;
   onNodeClick: (node: GraphNode) => void;
   onBackgroundClick?: () => void;
-  highlightedNodeId?: string | null;
-  selectedNodeId?: string | null;
+  highlightedNodeId?: string;
+  selectedNodeId?: string;
   className?: string;
+  ref?: React.RefObject<any>;
 }
