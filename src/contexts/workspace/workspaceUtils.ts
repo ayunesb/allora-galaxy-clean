@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { NavigationItem } from '@/types/navigation';
-import { LayoutGrid, Home, Plugin, Sparkle } from 'lucide-react';
+import { LayoutGrid, Home, Plug, Sparkle } from 'lucide-react';
 
 // Define app navigation items
 export const getDefaultNavigationItems = (): NavigationItem[] => [
@@ -21,7 +21,7 @@ export const getDefaultNavigationItems = (): NavigationItem[] => [
     id: 'plugins',
     label: 'Plugins',
     path: '/plugins',
-    icon: Plugin
+    icon: Plug
   },
   {
     id: 'agents',
@@ -69,3 +69,6 @@ export const getUserTenants = async (userId: string) => {
     return null;
   }
 };
+
+// Alias for backward compatibility
+export const fetchTenants = getUserTenants;

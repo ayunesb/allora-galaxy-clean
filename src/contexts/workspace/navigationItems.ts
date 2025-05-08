@@ -3,7 +3,7 @@ import { NavigationItem } from '@/types/navigation';
 import { 
   Home, 
   LayoutGrid, 
-  Plugin, 
+  Plug, 
   Sparkle, 
   BarChart3, 
   Rocket, 
@@ -11,8 +11,7 @@ import {
   ShieldAlert, 
   Users, 
   FileText, 
-  AlertCircle, 
-  Layers 
+  AlertCircle
 } from 'lucide-react';
 
 export const navigationItems: NavigationItem[] = [
@@ -32,7 +31,7 @@ export const navigationItems: NavigationItem[] = [
     id: 'plugins',
     label: 'Plugins',
     path: '/plugins',
-    icon: Plugin
+    icon: Plug
   },
   {
     id: 'agents',

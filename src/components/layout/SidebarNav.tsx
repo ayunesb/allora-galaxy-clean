@@ -23,6 +23,7 @@ interface SidebarNavProps {
   className?: string;
 }
 
+// Define icon mapping
 const iconMap: Record<string, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
   'grid-3x3': Grid3x3,
@@ -40,11 +41,11 @@ const iconMap: Record<string, LucideIcon> = {
 const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
-  // Helper function to render icons from icon names
-  const renderIcon = (iconName?: string) => {
-    if (!iconName) return null;
-    const IconComponent = iconMap[iconName];
-    return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+  // Function to render icon component
+  const renderIconComponent = (icon: React.ElementType | undefined) => {
+    if (!icon) return null;
+    const IconComponent = icon;
+    return <IconComponent className="h-4 w-4" />;
   };
 
   return (
@@ -63,7 +64,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
                 : "hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            {item.icon && <span className="h-4 w-4">{renderIcon(item.icon)}</span>}
+            {item.icon && <span className="h-4 w-4">{renderIconComponent(item.icon)}</span>}
             <span>{item.label}</span>
           </Link>
         );

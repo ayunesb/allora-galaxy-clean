@@ -1,104 +1,136 @@
-import React, { useState, useEffect } from 'react';
-import { KpiSection } from '@/components/dashboard/KpiSection';
+
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import KpiSection from '@/components/dashboard/KpiSection';
 import StrategyCard from '@/components/strategy/StrategyCard';
-import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchStrategies } from '@/services/strategyService';
 import PageHelmet from '@/components/PageHelmet';
-import { Strategy } from '@/types';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { StrategiesGrid } from '@/components/dashboard/StrategyGrid';
+import { CalendarIcon, BarChart, CheckCircle, Clock } from 'lucide-react';
+import { Strategy } from '@/types/strategy';
 
-const Dashboard: React.FC = () => {
-  const [kpiData, setKpiData] = useState<any[]>([]);
-  const [isLoadingKPIs, setIsLoadingKPIs] = useState<boolean>(true);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [isLoadingStrategies, setIsLoadingStrategies] = useState<boolean>(true);
-  const { user } = useAuth();
+interface DashboardProps {}
 
-  useEffect(() => {
-    const fetchKPIs = async () => {
-      if (!user) return;
+const Dashboard: React.FC<DashboardProps> = () => {
+  const [activeTab, setActiveTab] = React.useState('overview');
+  const { tenant } = useWorkspace();
 
-      setIsLoadingKPIs(true);
-      try {
-        const { data, error } = await supabase
-          .from('kpis')
-          .select('*')
-          .eq('tenant_id', user.id)
-          .limit(3);
+  // Fetch strategies
+  const { data: strategies = [], isLoading: isLoadingStrategies } = useQuery({
+    queryKey: ['strategies', tenant?.id],
+    queryFn: () => fetchStrategies(tenant?.id),
+    enabled: !!tenant?.id
+  });
 
-        if (error) {
-          console.error('Error fetching KPIs:', error);
-        }
+  // Filter strategies by status
+  const approvedStrategies = strategies.filter(s => s.status === 'approved');
+  const pendingStrategies = strategies.filter(s => s.status === 'pending');
+  const draftStrategies = strategies.filter(s => s.status === 'draft');
 
-        setKpiData(data || []);
-      } finally {
-        setIsLoadingKPIs(false);
-      }
-    };
-
-    const fetchStrategies = async () => {
-      if (!user) return;
-
-      setIsLoadingStrategies(true);
-      try {
-        const { data, error } = await supabase
-          .from('strategies')
-          .select('*')
-          .eq('tenant_id', user.id)
-          .limit(3);
-
-        if (error) {
-          console.error('Error fetching strategies:', error);
-        }
-
-        setStrategies(data || []);
-      } finally {
-        setIsLoadingStrategies(false);
-      }
-    };
-
-    fetchKPIs();
-    fetchStrategies();
-  }, [user]);
-  
   return (
     <>
       <PageHelmet 
-        title="Dashboard"
-        description="Overview of your Allora OS workspace"
+        title="Dashboard" 
+        description="Allora OS - Your AI-native business operating system" 
       />
       
-      <div className="container mx-auto px-4 py-4">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        
-        {/* KPI Overview Section */}
-        <div className="mt-8">
-          <KpiSection 
-            title="Key Performance Indicators"
-            kpiData={kpiData} 
-            isLoading={isLoadingKPIs} 
-          />
+      <div className="flex flex-col gap-8">
+        {/* Page header */}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your business operations and key metrics
+          </p>
         </div>
         
-        {/* Strategy Cards Section */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Your Strategies</h2>
-          {isLoadingStrategies ? (
-            <p>Loading strategies...</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {strategies.map(strategy => (
-                <StrategyCard key={strategy.id} strategy={strategy} />
-              ))}
-            </div>
-          )}
-        </div>
+        {/* KPI Section */}
+        <KpiSection />
         
-        {/* Recent Activity Section */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Recent Activity</h2>
-          <p>No recent activity to display.</p>
+        {/* Strategies Section */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">Strategies</h2>
+          </div>
+          
+          <Tabs defaultValue="approved" className="w-full">
+            <TabsList>
+              <TabsTrigger value="approved" className="flex gap-2">
+                <CheckCircle className="h-4 w-4" />
+                <span>Approved</span> 
+                <span className="ml-1 rounded-full bg-primary/10 px-2 text-xs">
+                  {approvedStrategies.length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="flex gap-2">
+                <Clock className="h-4 w-4" />
+                <span>Pending</span>
+                <span className="ml-1 rounded-full bg-primary/10 px-2 text-xs">
+                  {pendingStrategies.length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="draft" className="flex gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                <span>Draft</span>
+                <span className="ml-1 rounded-full bg-primary/10 px-2 text-xs">
+                  {draftStrategies.length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="approved">
+              <StrategiesGrid isLoading={isLoadingStrategies} strategies={approvedStrategies}>
+                {approvedStrategies.map((strategy) => (
+                  <StrategyCard 
+                    key={strategy.id}
+                    title={strategy.title}
+                    description={strategy.description}
+                    status={strategy.status as 'approved' | 'pending' | 'rejected'}
+                    createdAt={strategy.created_at}
+                    tags={strategy.tags}
+                    onView={() => {}}
+                    onLaunch={() => {}}
+                  />
+                ))}
+              </StrategiesGrid>
+            </TabsContent>
+            
+            <TabsContent value="pending">
+              <StrategiesGrid isLoading={isLoadingStrategies} strategies={pendingStrategies}>
+                {pendingStrategies.map((strategy) => (
+                  <StrategyCard 
+                    key={strategy.id}
+                    title={strategy.title}
+                    description={strategy.description}
+                    status={strategy.status as 'approved' | 'pending' | 'rejected'}
+                    createdAt={strategy.created_at}
+                    tags={strategy.tags}
+                    onView={() => {}}
+                  />
+                ))}
+              </StrategiesGrid>
+            </TabsContent>
+            
+            <TabsContent value="draft">
+              <StrategiesGrid isLoading={isLoadingStrategies} strategies={draftStrategies}>
+                {draftStrategies.map((strategy) => (
+                  <StrategyCard 
+                    key={strategy.id}
+                    title={strategy.title}
+                    description={strategy.description}
+                    status={strategy.status as 'approved' | 'pending' | 'rejected'}
+                    createdAt={strategy.created_at}
+                    tags={strategy.tags}
+                    onView={() => {}}
+                  />
+                ))}
+              </StrategiesGrid>
+            </TabsContent>
+          </Tabs>
         </div>
-        
       </div>
     </>
   );

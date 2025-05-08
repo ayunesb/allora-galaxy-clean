@@ -9,13 +9,11 @@ import { GraphData, GraphNode } from '@/types/galaxy';
 
 interface GalaxyLoaderProps {
   viewMode: string;
-  fgRef?: React.RefObject<any>;
   onNodeClick: (node: GraphNode) => void;
 }
 
 const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({ 
-  viewMode, 
-  fgRef, 
+  viewMode,
   onNodeClick 
 }) => {
   // Load data for the graph
