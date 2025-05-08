@@ -1,6 +1,10 @@
 
 import { ENV } from './envUtils';
 
+/**
+ * Get an environment variable with optional default value
+ * @deprecated Use ENV or getEnvWithDefault from '@/lib/env' instead
+ */
 export function getEnv(key: string, defaultValue?: string): string | undefined {
   // Try from process.env for Node.js environments
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
@@ -34,6 +38,10 @@ export function getEnv(key: string, defaultValue?: string): string | undefined {
   return defaultValue;
 }
 
+/**
+ * Get a required environment variable, throwing if not found
+ * @deprecated Use ENV from '@/lib/env' and handle errors at the call site
+ */
 export function ensureEnv(key: string, errorMessage?: string): string {
   const value = getEnv(key);
   

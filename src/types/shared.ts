@@ -1,63 +1,70 @@
 
-// Common shared types used across the application
-
-export type NotificationType = 'system' | 'info' | 'success' | 'warning' | 'error';
-
-export type VoteType = 'up' | 'down' | 'neutral';
-
-export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
-
-export type TenantFeature = 'ai_decisions' | 'analytics' | 'plugins' | 'multi_user' | 'api_access';
-
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
-
-export interface BaseEntity {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-/**
- * Common parameters for executing operations
- */
-export interface ExecutionParams {
-  tenant_id: string;
-  user_id?: string;
-  dryRun?: boolean;
-}
-
-/**
- * Types used for KPI and analytics
- */
-export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
-
-export interface KPITrend {
-  direction: TrendDirection;
-  percentage: number;
-  isPositive: boolean;
-}
-
-/**
- * System logging related types
- */
+// System event types
 export type SystemEventModule = 
-  | 'system' 
-  | 'auth' 
-  | 'tenant' 
-  | 'strategy' 
-  | 'plugin' 
-  | 'agent' 
-  | 'execution' 
-  | 'onboarding'
-  | 'error'
+  | 'auth'
+  | 'strategy'
+  | 'plugin'
+  | 'agent'
+  | 'execution'
+  | 'billing'
   | 'admin'
-  | 'embeddings';
+  | 'marketing'
+  | 'system'
+  | 'user'
+  | 'tenant'
+  | 'product';
 
-export type SystemEventType = string;
+export type SystemEventType =
+  // Strategy events
+  | 'execute_strategy_started'
+  | 'execute_strategy_completed'
+  | 'execute_strategy_error'
+  | 'strategy_created'
+  | 'strategy_updated'
+  | 'strategy_deleted'
+  | 'strategy_approved'
+  | 'strategy_rejected'
+  
+  // Plugin events
+  | 'plugin_executed'
+  | 'plugin_execution_failed'
+  | 'plugin_created'
+  | 'plugin_updated'
+  | 'plugin_deleted'
+  
+  // Agent events
+  | 'agent_created'
+  | 'agent_updated'
+  | 'agent_deleted'
+  | 'agent_evolved'
+  | 'agent_vote_recorded'
+  
+  // User events
+  | 'user_login'
+  | 'user_logout'
+  | 'user_registered'
+  | 'user_invited'
+  | 'password_reset'
+  
+  // Tenant events
+  | 'tenant_created'
+  | 'tenant_updated'
+  | 'tenant_deleted'
+  | 'member_added'
+  | 'member_removed'
+  | 'member_role_changed'
+  
+  // System events
+  | 'system_error'
+  | 'system_warning'
+  | 'system_info'
+  
+  // KPI events
+  | 'kpi_updated'
+  | 'kpi_update_failed'
+  
+  // Custom events (allow string literal)
+  | string;
 
-/**
- * Execution related types
- */
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
-
-// We've moved ExecutionRecordInput to execution.ts to avoid duplication
+// Vote type for agent/content voting
+export type VoteType = 'up' | 'down';

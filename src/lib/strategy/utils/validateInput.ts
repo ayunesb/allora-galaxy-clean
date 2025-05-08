@@ -1,44 +1,46 @@
 
-import { StrategyInput, ValidationResult } from '@/types/strategy';
+import { ExecuteStrategyParams, ValidationResult } from '../types';
 
 /**
- * Validate a strategy input to ensure it meets requirements before submission
- * @param input The strategy input to validate 
- * @returns Validation result with status and any errors
+ * Validates the input for strategy execution
+ * @param input The input to validate
+ * @returns An object indicating if the input is valid and any errors
  */
-export function validateStrategyInput(input: StrategyInput): ValidationResult {
-  const errorMessages: string[] = [];
+export function validateInput(input: ExecuteStrategyParams): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
   
-  // Check title
-  if (!input.title || input.title.trim().length < 3) {
-    return {
-      valid: false,
-      errors: ['Title must be at least 3 characters long']
-    };
+  // Check required fields
+  if (!input.strategy_id) {
+    errors.push('strategy_id is required');
   }
   
-  // Check description
-  if (!input.description || input.description.trim().length < 10) {
-    return {
-      valid: false,
-      errors: ['Description must be at least 10 characters long']
-    };
+  if (!input.tenant_id) {
+    errors.push('tenant_id is required');
   }
   
-  // Check due date if provided
-  if (input.due_date) {
-    const dueDate = new Date(input.due_date);
-    if (isNaN(dueDate.getTime())) {
-      return {
-        valid: false,
-        errors: ['Invalid due date format']
-      };
+  // Validate options if provided
+  if (input.options) {
+    if (typeof input.options.dryRun !== 'undefined' && typeof input.options.dryRun !== 'boolean') {
+      errors.push('options.dryRun must be a boolean');
+    }
+    
+    if (typeof input.options.force !== 'undefined' && typeof input.options.force !== 'boolean') {
+      errors.push('options.force must be a boolean');
+    }
+    
+    if (typeof input.options.timeout !== 'undefined') {
+      if (typeof input.options.timeout !== 'number') {
+        errors.push('options.timeout must be a number');
+      } else if (input.options.timeout <= 0) {
+        warnings.push('options.timeout should be a positive number');
+      }
     }
   }
   
-  // All checks passed
   return {
-    valid: true,
-    errors: []
+    valid: errors.length === 0,
+    errors,
+    warnings: warnings.length > 0 ? warnings : undefined
   };
 }

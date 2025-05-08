@@ -1,47 +1,62 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SystemLog {
   id: string;
-  tenant_id: string;
   module: string;
   event: string;
   created_at: string;
-  context: any;
+  context: Record<string, any>;
+  tenant_id: string;
 }
 
-export const useSystemLogs = (tenantId: string | null) => {
+interface UseSystemLogsReturn {
+  logs: SystemLog[];
+  loading: boolean;
+  error: string | null;
+  selectedModule: string | null;
+  setSelectedModule: (module: string | null) => void;
+  selectedEvent: string | null;
+  setSelectedEvent: (event: string | null) => void;
+  selectedDate: Date | null;
+  setSelectedDate: (date: Date | null) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  modules: string[];
+  events: string[];
+  resetFilters: () => void;
+  refreshLogs: () => void;
+}
+
+export function useSystemLogs(tenantId: string | null): UseSystemLogsReturn {
+  const { toast } = useToast();
   const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedModule, setSelectedModule] = useState<string>('');
-  const [selectedEvent, setSelectedEvent] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [modules, setModules] = useState<string[]>([]);
   const [events, setEvents] = useState<string[]>([]);
   
-  const { toast } = useToast();
-  
-  const loadSystemLogs = useCallback(async () => {
+  // Filters
+  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const fetchLogs = async () => {
+    if (!tenantId) return;
+    
     try {
       setLoading(true);
       setError(null);
       
-      if (!tenantId) {
-        throw new Error('No tenant selected');
-      }
-      
-      // Base query
       let query = supabase
         .from('system_logs')
         .select('*')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
       
-      // Apply filters
       if (selectedModule) {
         query = query.eq('module', selectedModule);
       }
@@ -51,40 +66,40 @@ export const useSystemLogs = (tenantId: string | null) => {
       }
       
       if (selectedDate) {
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
         
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
         
         query = query
-          .gte('created_at', startOfDay.toISOString())
-          .lte('created_at', endOfDay.toISOString());
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
       }
       
       if (searchTerm) {
-        query = query.textSearch('event', searchTerm);
+        // This assumes the 'context' column is stored as JSONB and can be converted to text for search
+        // For more specific search you might want to adjust this based on your data structure
+        query = query.textSearch('context', searchTerm, { config: 'english' });
       }
       
-      // Limited to 100 logs for now
-      query = query.limit(100);
+      const { data, error: fetchError } = await query;
       
-      const { data, error: logsError } = await query;
-      
-      if (logsError) throw logsError;
+      if (fetchError) {
+        throw new Error(`Error fetching system logs: ${fetchError.message}`);
+      }
       
       setLogs(data || []);
       
       // Extract unique modules and events for filters
-      if (data && data.length > 0) {
+      if (data) {
         const uniqueModules = [...new Set(data.map(log => log.module))];
         const uniqueEvents = [...new Set(data.map(log => log.event))];
+        
         setModules(uniqueModules);
         setEvents(uniqueEvents);
       }
-      
     } catch (err: any) {
-      console.error('Error loading system logs:', err);
       setError(err.message);
       toast({
         title: 'Error loading logs',
@@ -94,21 +109,23 @@ export const useSystemLogs = (tenantId: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm, toast]);
-  
+  };
+
   const resetFilters = () => {
-    setSelectedModule('');
-    setSelectedEvent('');
-    setSelectedDate(undefined);
+    setSelectedModule(null);
+    setSelectedEvent(null);
+    setSelectedDate(null);
     setSearchTerm('');
   };
-  
+
+  const refreshLogs = () => {
+    fetchLogs();
+  };
+
   useEffect(() => {
-    if (tenantId) {
-      loadSystemLogs();
-    }
-  }, [tenantId, selectedModule, selectedEvent, selectedDate, loadSystemLogs]);
-  
+    fetchLogs();
+  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm]);
+
   return {
     logs,
     loading,
@@ -124,6 +141,6 @@ export const useSystemLogs = (tenantId: string | null) => {
     modules,
     events,
     resetFilters,
-    refreshLogs: loadSystemLogs,
+    refreshLogs
   };
-};
+}

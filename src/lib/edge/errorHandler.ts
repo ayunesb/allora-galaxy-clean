@@ -1,7 +1,5 @@
-import { corsHeaders } from '@/lib/env/envUtils';
 
-// Re-export corsHeaders for use in edge functions
-export { corsHeaders };
+import { corsHeaders } from '@/lib/env';
 
 /**
  * Error handler for edge functions
@@ -15,9 +13,34 @@ export function errorHandler(err: any) {
   const status = err.status || 500;
   
   return new Response(
-    JSON.stringify({ error: message }),
+    JSON.stringify({ 
+      success: false,
+      error: message,
+      timestamp: new Date().toISOString()
+    }),
     { 
       status: status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
+}
+
+export { corsHeaders };
+
+/**
+ * Create a standardized success response for edge functions
+ */
+export function createSuccessResponse(data: Record<string, any>) {
+  return new Response(
+    JSON.stringify({
+      success: true,
+      ...data,
+      timestamp: new Date().toISOString()
+    }),
+    { 
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders

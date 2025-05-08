@@ -1,5 +1,10 @@
 
 /**
+ * Unified environment variable utilities for accessing environment variables
+ * across different environments (browser, edge functions, Node.js)
+ */
+
+/**
  * Get an environment variable
  * @param key The name of the environment variable
  * @returns The value of the environment variable or undefined

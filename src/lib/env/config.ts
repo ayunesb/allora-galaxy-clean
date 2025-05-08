@@ -10,7 +10,7 @@ interface EnvVariable {
 }
 
 // Environment variable constants
-const ENV_NAMES = {
+export const ENV_NAMES = {
   SUPABASE_URL: 'VITE_SUPABASE_URL',
   SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
   STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY',

@@ -1,8 +1,8 @@
 
-// Update this file to fix the unused variables error
+// Mock implementation of Supabase client for testing
 import { vi } from 'vitest';
 
-// Mock the supabase client
+// Create a comprehensive mock of the Supabase client
 export const supabase = {
   auth: {
     onAuthStateChange: vi.fn(),
@@ -20,6 +20,8 @@ export const supabase = {
     signUp: vi.fn(),
     signInWithPassword: vi.fn(),
     signOut: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
+    updateUser: vi.fn(),
   },
   from: vi.fn().mockImplementation(() => ({
     select: vi.fn().mockReturnThis(),
@@ -50,10 +52,12 @@ export const supabase = {
     single: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockReturnThis(),
     csv: vi.fn().mockReturnThis(),
+    throwOnError: vi.fn().mockReturnThis(),
   })),
   rpc: vi.fn().mockImplementation(() => ({
     select: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnThis(),
+    throwOnError: vi.fn().mockReturnThis(),
   })),
   storage: {
     from: vi.fn().mockImplementation(() => ({
@@ -61,7 +65,7 @@ export const supabase = {
       download: vi.fn(),
       remove: vi.fn(),
       list: vi.fn(),
-      getPublicUrl: vi.fn(),
+      getPublicUrl: vi.fn().mockImplementation(() => ({ data: { publicUrl: 'https://mock-url.com/image.png' } })),
     })),
   },
   channel: vi.fn().mockImplementation(() => ({
