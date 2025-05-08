@@ -5,7 +5,6 @@ import { useMobileBreakpoint } from '@/hooks/use-mobile';
 // Constants
 export const SIDEBAR_WIDTH = 240;
 export const SIDEBAR_WIDTH_COLLAPSED = 64;
-const SIDEBAR_WIDTH_MOBILE = SIDEBAR_WIDTH;
 
 // Context interface
 export interface SidebarContextType {

@@ -7,6 +7,7 @@ import { SidebarSeparator } from './SidebarSeparator';
 import { SidebarProvider, useSidebar } from './SidebarProvider';
 import { SidebarInput } from './SidebarInput';
 import { SidebarLayout } from './SidebarLayout';
+import { SidebarMenuButton } from './SidebarMenuButton';
 
 export {
   Sidebar,
@@ -18,4 +19,5 @@ export {
   useSidebar,
   SidebarInput,
   SidebarLayout,
+  SidebarMenuButton,
 };

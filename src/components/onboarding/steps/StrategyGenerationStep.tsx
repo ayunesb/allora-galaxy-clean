@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
@@ -80,7 +80,7 @@ const StrategyGenerationStep: React.FC = () => {
         
       } catch (error: any) {
         console.error('Strategy generation error:', error);
-        setError(`Failed to generate strategy: ${error.message}`);
+        setError(error.message || 'An unexpected error occurred');
         
         toast({
           title: "Strategy generation failed",

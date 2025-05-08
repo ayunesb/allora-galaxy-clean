@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -35,10 +36,10 @@ export function useOnboardingWizard() {
 
   // Define steps
   const steps = [
-    { id: 'company-info', label: 'Company Info' },
-    { id: 'persona', label: 'Target Persona' },
-    { id: 'additional-info', label: 'Additional Info' },
-    { id: 'strategy-generation', label: 'Strategy' },
+    { id: 'company-info' as OnboardingStep, label: 'Company Info' },
+    { id: 'persona' as OnboardingStep, label: 'Target Persona' },
+    { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
+    { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
   ];
 
   // Check if user already has tenants
@@ -71,7 +72,7 @@ export function useOnboardingWizard() {
 
   // Set a specific field value
   const setFieldValue = (key: string, value: any) => {
-    updateFormData({ [key]: value });
+    updateFormData({ [key as keyof OnboardingFormData]: value });
   };
 
   // Navigate to next step

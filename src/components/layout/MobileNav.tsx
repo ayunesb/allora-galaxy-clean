@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useMobileBreakpoint } from '@/hooks/use-mobile';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
 // Add your navigation items here
@@ -38,7 +38,7 @@ export const MobileNav: React.FC = () => {
   const location = useLocation();
   const { currentTenant } = useWorkspace();
   const [open, setOpen] = React.useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useMobileBreakpoint();
   
   const handleNavigate = (path: string) => {
     navigate(path);

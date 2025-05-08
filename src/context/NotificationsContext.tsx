@@ -11,9 +11,9 @@ const NotificationsContext = createContext<NotificationsContextType>({
   isOpen: false,
   setIsOpen: () => {},
   refreshNotifications: async () => {},
-  markAsRead: async () => ({ success: false }),
-  markAllAsRead: async () => ({ success: false }),
-  deleteNotification: async () => ({ success: false }),
+  markAsRead: async () => {},
+  markAllAsRead: async () => {},
+  deleteNotification: async () => {},
   unreadCount: 0,
 });
 
@@ -55,7 +55,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     await fetchNotifications();
   };
 
-  const markAsRead = async (id: string): Promise<{ success: boolean; error?: Error }> => {
+  const markAsRead = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -72,16 +72,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             : notification
         )
       );
-      
-      return { success: true };
     } catch (err) {
       console.error('Error marking notification as read:', err);
-      return { success: false, error: err as Error };
+      throw err;
     }
   };
 
-  const markAllAsRead = async (): Promise<{ success: boolean; error?: Error }> => {
-    if (!tenantId) return { success: false, error: new Error('No tenant ID available') };
+  const markAllAsRead = async (): Promise<void> => {
+    if (!tenantId) throw new Error('No tenant ID available');
     
     try {
       const { error } = await supabase
@@ -96,15 +94,13 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       setNotifications(prev => 
         prev.map(notification => ({ ...notification, is_read: true, read_at: new Date().toISOString() }))
       );
-      
-      return { success: true };
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
-      return { success: false, error: err as Error };
+      throw err;
     }
   };
 
-  const deleteNotification = async (id: string): Promise<{ success: boolean; error?: Error }> => {
+  const deleteNotification = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('notifications')
@@ -115,11 +111,9 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Update local state
       setNotifications(prev => prev.filter(notification => notification.id !== id));
-      
-      return { success: true };
     } catch (err) {
       console.error('Error deleting notification:', err);
-      return { success: false, error: err as Error };
+      throw err;
     }
   };
 

@@ -16,3 +16,10 @@ export function useMobileBreakpoint(): boolean {
   // Return false during SSR to avoid hydration mismatches
   return isClient ? isMobile : false;
 }
+
+/**
+ * Alias for consistency with other hooks
+ */
+export function useIsMobile(): boolean {
+  return useMobileBreakpoint();
+}

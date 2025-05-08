@@ -29,16 +29,29 @@ export interface CreateNotificationInput {
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
+  is_read?: boolean;
+}
+
+export interface NotificationContent {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: NotificationType | string;
+  action_url?: string;
+  action_label?: string;
 }
 
 export interface NotificationsContextType {
   notifications: Notification[];
-  unreadCount: number;
+  loading: boolean;
+  error: Error | null;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  refreshNotifications: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
-  loading: boolean;
-  refetch: () => void;
-  filterByType: (type: NotificationType | 'all') => void;
-  currentFilter: NotificationType | 'all';
+  unreadCount: number;
 }

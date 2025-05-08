@@ -10,6 +10,14 @@ import {
 } from '@/lib/agents/autoEvolve';
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { LogStatus } from '@/types/shared';
+
+// Interface needed for the tests
+interface UsageStat {
+  agent_version_id: string;
+  status: LogStatus;
+  count: number;
+}
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client');
@@ -90,8 +98,8 @@ describe('Agent Auto-Evolution', () => {
             is: vi.fn().mockReturnValue({
               groupBy: vi.fn().mockResolvedValue({
                 data: [
-                  { agent_version_id: 'agent1', status: 'success', count: 15 },
-                  { agent_version_id: 'agent2', status: 'success', count: 8 }
+                  { agent_version_id: 'agent1', status: 'success' as LogStatus, count: 15 },
+                  { agent_version_id: 'agent2', status: 'success' as LogStatus, count: 8 }
                 ],
                 error: null
               })
@@ -111,10 +119,10 @@ describe('Agent Auto-Evolution', () => {
 
   describe('calculateAgentPerformance', () => {
     it('should calculate performance score correctly', () => {
-      const usageStats: Array<{agent_version_id: string, status: string, count: number}> = [
-        { agent_version_id: 'agent1', status: 'success', count: 80 },
-        { agent_version_id: 'agent1', status: 'failure', count: 20 },
-        { agent_version_id: 'agent2', status: 'success', count: 50 }
+      const usageStats: UsageStat[] = [
+        { agent_version_id: 'agent1', status: 'success' as LogStatus, count: 80 },
+        { agent_version_id: 'agent1', status: 'failure' as LogStatus, count: 20 },
+        { agent_version_id: 'agent2', status: 'success' as LogStatus, count: 50 }
       ];
 
       const score = calculateAgentPerformance('agent1', 30, 10, usageStats);
@@ -124,7 +132,7 @@ describe('Agent Auto-Evolution', () => {
     });
 
     it('should handle no usage data', () => {
-      const usageStats: Array<{agent_version_id: string, status: string, count: number}> = [];
+      const usageStats: UsageStat[] = [];
       const score = calculateAgentPerformance('agent1', 5, 5, usageStats);
       
       // Expected: (5/10)*0.7 + 0*0.3 = 0.35
@@ -212,7 +220,7 @@ describe('Agent Auto-Evolution', () => {
               is: vi.fn().mockReturnValue({
                 groupBy: vi.fn().mockResolvedValue({
                   data: [
-                    { agent_version_id: 'agent1', status: 'success', count: 15 }
+                    { agent_version_id: 'agent1', status: 'success' as LogStatus, count: 15 }
                   ],
                   error: null
                 })

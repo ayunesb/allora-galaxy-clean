@@ -6,9 +6,9 @@ import { NotificationContent } from '@/types/notifications';
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 
     notifications, 
-    loading, 
+    loading,
     error,
-    refreshNotifications 
+    refreshNotifications
   } = useNotificationsContext();
   
   const [filteredNotifications, setFilteredNotifications] = useState<NotificationContent[]>([]);
