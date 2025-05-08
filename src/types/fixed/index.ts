@@ -3,9 +3,24 @@
 export * from '../plugin';
 export * from '../agent';
 export * from '../strategy';
-export * from '../shared';
 export * from '../execution';
-export * from '../tenant';
+
+// Export shared types without the Tenant to avoid ambiguity
+export type {
+  UserRole,
+  NavigationItem,
+  VoteType,
+  TrendDirection,
+  SystemEventModule,
+  SystemEventType,
+  OnboardingStep,
+  BaseEntity,
+  ExecutionParams,
+  ExecutionType,
+  KPITrend,
+  LogStatus,
+  TenantFeature
+} from '../shared';
 
 // Export RunPluginChainResult specifically as it's needed
 export type { RunPluginChainResult } from '../plugin';

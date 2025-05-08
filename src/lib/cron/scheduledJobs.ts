@@ -1,93 +1,67 @@
 
+import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { autoEvolveAgents, AutoEvolveResult } from '@/lib/agents/evolution/autoEvolveAgents';
+import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
 
-interface AutoEvolveConfig {
-  minimumExecutions: number;
-  failureRateThreshold: number;
-  staleDays: number;
-  batchSize: number;
-}
-
-/**
- * Execute the agent auto-evolution job
- */
-export async function executeAutoEvolveJob(tenantId: string, config?: Partial<AutoEvolveConfig>): Promise<void> {
-  try {
-    await logSystemEvent('agent', 'info', {
-      job_name: 'auto_evolve_agents',
-      tenant_id: tenantId,
-      started_at: new Date().toISOString()
-    }, tenantId);
-    
-    const result: AutoEvolveResult = await autoEvolveAgents(tenantId, config as any); // Temporary cast to fix type error
-    
-    await logSystemEvent('agent', 'info', {
-      job_name: 'auto_evolve_agents',
-      tenant_id: tenantId,
-      completed_at: new Date().toISOString(),
-      success: result.success,
-      agents_evolved: result.agentsEvolved || 0
-    }, tenantId);
-  } catch (error: any) {
-    await logSystemEvent('agent', 'error', {
-      job_name: 'auto_evolve_agents',
-      tenant_id: tenantId,
-      error: error.message
-    }, tenantId);
-  }
-}
+// Type for auto evolution result
+type AutoEvolveResult = {
+  success: boolean;
+  evolvedAgents: number;
+  errors?: string[];
+};
 
 /**
- * Execute the KPI update job
+ * Run scheduled intelligence jobs
  */
-export async function executeKpiUpdateJob(tenantId: string): Promise<void> {
+export async function runScheduledIntelligence() {
   try {
-    await logSystemEvent('billing', 'info', {
-      job_name: 'update_kpis',
-      tenant_id: tenantId,
-      started_at: new Date().toISOString()
-    }, tenantId);
-    
-    // Implementation would call the updateKPIs edge function
-    
-    await logSystemEvent('billing', 'kpi_updated', {
-      job_name: 'update_kpis',
-      tenant_id: tenantId,
-      completed_at: new Date().toISOString()
-    }, tenantId);
-  } catch (error: any) {
-    await logSystemEvent('billing', 'kpi_update_failed', {
-      job_name: 'update_kpis',
-      tenant_id: tenantId,
-      error: error.message
-    }, tenantId);
-  }
-}
+    // Get all tenants that have active automation
+    const { data: tenants, error: tenantsError } = await supabase
+      .from('tenants')
+      .select('id, name')
+      .eq('status', 'active');
 
-/**
- * Execute the MQL sync job
- */
-export async function executeMqlSyncJob(tenantId: string): Promise<void> {
-  try {
-    await logSystemEvent('marketing', 'info', {
-      job_name: 'sync_mqls',
-      tenant_id: tenantId,
-      started_at: new Date().toISOString()
-    }, tenantId);
-    
-    // Implementation would call the syncMQLs edge function
-    
-    await logSystemEvent('marketing', 'info', {
-      job_name: 'sync_mqls',
-      tenant_id: tenantId,
-      completed_at: new Date().toISOString()
-    }, tenantId);
+    if (tenantsError) {
+      throw new Error(`Failed to fetch tenants: ${tenantsError.message}`);
+    }
+
+    if (!tenants || tenants.length === 0) {
+      console.log('No active tenants found for scheduled intelligence');
+      return;
+    }
+
+    for (const tenant of tenants) {
+      try {
+        // Auto-evolve agents for the tenant
+        const result = await autoEvolveAgents(tenant.id);
+        
+        await logSystemEvent(
+          'system',
+          'info',
+          {
+            job: 'scheduledIntelligence',
+            action: 'autoEvolveAgents',
+            result: result
+          },
+          tenant.id
+        );
+        
+        // Run other scheduled tasks here...
+        
+      } catch (tenantError: any) {
+        await logSystemEvent(
+          'system',
+          'error',
+          {
+            job: 'scheduledIntelligence',
+            tenant_id: tenant.id,
+            error: tenantError.message
+          },
+          tenant.id
+        );
+      }
+    }
   } catch (error: any) {
-    await logSystemEvent('marketing', 'error', {
-      job_name: 'sync_mqls',
-      tenant_id: tenantId,
-      error: error.message
-    }, tenantId);
+    console.error('Error in scheduled intelligence:', error);
   }
 }

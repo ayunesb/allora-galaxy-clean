@@ -27,7 +27,7 @@ export function calculateTrend(current: number, previous: number | null | undefi
   
   // Determine direction with a small threshold to avoid noise
   const threshold = 0.5; // 0.5% change threshold for direction
-  let direction: TrendDirection = 'neutral';
+  let direction: TrendDirection = 'flat';
   
   if (Math.abs(percentage) >= threshold) {
     direction = raw_change > 0 ? 'up' : 'down';
@@ -47,7 +47,7 @@ export function calculateTrend(current: number, previous: number | null | undefi
  * @returns Formatted trend string
  */
 export function formatTrend(trend: KPITrend, includePlus: boolean = true): string {
-  if (trend.direction === 'neutral' || trend.percentage === 0) {
+  if (trend.direction === 'neutral' || trend.direction === 'flat' || trend.percentage === 0) {
     return '0%';
   }
   

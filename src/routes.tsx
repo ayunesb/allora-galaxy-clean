@@ -10,7 +10,6 @@ import OnboardingLayout from "@/layouts/OnboardingLayout";
 // Pages
 import Dashboard from "@/pages/dashboard/Dashboard";
 import NotFound from "@/pages/NotFound";
-import AuthPage from "@/pages/auth/AuthPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
@@ -25,7 +24,6 @@ import PluginEvolutionPage from "@/pages/plugins/PluginEvolutionPage";
 import AgentPerformance from "@/pages/agents/AgentPerformance";
 import EvolutionPage from "@/pages/evolution";
 import AlloraBrainPage from "@/pages/allora-brain/AlloraBrainPage";
-import AlloraBrainDocsPage from "@/pages/allora-brain/AlloraBrainDocsPage";
 import StandaloneAgentOSPage from "@/pages/standalone/StandaloneAgentOSPage";
 
 // Admin Pages
@@ -39,10 +37,13 @@ import ApiKeysPage from "@/pages/admin/ApiKeysPage";
 // Unauthorized
 import Unauthorized from "@/pages/unauthorized";
 
+// Import Outlet for nested routes
+import { Outlet } from "react-router-dom";
+
 export const routes: RouteObject[] = [
   {
     path: "/auth",
-    element: <AuthLayout />,
+    element: <AuthLayout><Outlet /></AuthLayout>,
     children: [
       {
         index: true,
@@ -68,7 +69,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: "/onboarding",
-    element: <OnboardingLayout />,
+    element: <OnboardingLayout><Outlet /></OnboardingLayout>,
     children: [
       {
         index: true,
@@ -174,6 +175,3 @@ export const routes: RouteObject[] = [
     element: <NotFound />
   }
 ];
-
-// Add missing import for the Outlet component
-import { Outlet } from "react-router-dom";

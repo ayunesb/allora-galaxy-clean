@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, PropsWithChildren } from 'react';
-import { TenantWithRole, WorkspaceContextType } from './workspace/types';
+import { WorkspaceContextType } from './workspace/types';
 import { useWorkspaceState } from './workspace/useWorkspaceState';
 
 // Create the context with a default value

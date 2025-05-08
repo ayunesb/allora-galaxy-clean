@@ -1,34 +1,44 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import LoadingScreen from '@/components/LoadingScreen';
 import { UserRole } from '@/types/shared';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface RequireRoleProps {
   children: React.ReactNode;
-  roles: UserRole[];
+  roles?: UserRole[];
   redirectTo?: string;
 }
 
-export const RequireRole: React.FC<RequireRoleProps> = ({ 
-  children, 
-  roles,
-  redirectTo = '/dashboard'
+export const RequireRole: React.FC<RequireRoleProps> = ({
+  children,
+  roles = ['member', 'admin', 'owner'],
+  redirectTo = '/unauthorized'
 }) => {
-  const { userRole, isLoading } = useWorkspace();
+  const { user, loading: authLoading } = useAuth();
+  const { userRole, loading: workspaceLoading } = useWorkspace();
   
-  // Show loading screen while we check roles
-  if (isLoading) {
-    return <LoadingScreen />;
+  // Show loading indicator while checking authentication and workspace
+  if (authLoading || workspaceLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
   
-  // If user doesn't have the required role, redirect
+  // Redirect if not authenticated
+  if (!user) {
+    return <Navigate to="/auth/login" replace />;
+  }
+  
+  // Redirect if not authorized
   if (!userRole || !roles.includes(userRole)) {
     return <Navigate to={redirectTo} replace />;
   }
   
-  // User has required role, render children
+  // Render children if authorized
   return <>{children}</>;
 };
 

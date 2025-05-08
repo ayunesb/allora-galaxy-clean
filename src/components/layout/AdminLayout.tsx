@@ -11,7 +11,7 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const { hasAccess, loading: checking } = useRoleCheck({ requiredRoles: ['admin', 'owner'] });
+  const { hasAccess, loading: checking } = useRoleCheck({ roles: ['admin', 'owner'] });
   const location = useLocation();
   const navigate = useNavigate();
   

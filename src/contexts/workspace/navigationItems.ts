@@ -1,63 +1,62 @@
 
-import { NavigationItem } from '@/types/shared';
 import {
-  Home,
-  RocketIcon,
-  GlobeIcon,
-  BadgePercentIcon,
-  PuzzleIcon,
-  Users,
+  LayoutDashboard,
+  Rocket,
+  Galaxy,
+  Zap,
   LineChart,
+  Settings,
+  Users,
+  Terminal,
   Brain,
-  Server
 } from 'lucide-react';
+import { NavigationItem } from '@/types/shared';
 
 export const navigationItems: NavigationItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
-    icon: Home,
+    icon: LayoutDashboard
   },
   {
     title: 'Launch',
     href: '/launch',
-    icon: RocketIcon,
+    icon: Rocket
   },
   {
     title: 'Galaxy',
     href: '/galaxy',
-    icon: GlobeIcon,
+    icon: Galaxy
   },
   {
     title: 'Plugins',
     href: '/plugins',
-    icon: PuzzleIcon,
+    icon: Zap
   },
   {
-    title: 'Agents',
+    title: 'Agent Performance',
     href: '/agents/performance',
-    icon: Users,
-  },
-  {
-    title: 'Insights',
-    href: '/insights/kpis',
-    icon: LineChart,
+    icon: Terminal
   },
   {
     title: 'Evolution',
     href: '/evolution',
-    icon: LineChart,
+    icon: Brain
+  },
+  {
+    title: 'KPI Insights',
+    href: '/insights/kpis',
+    icon: LineChart
+  },
+  {
+    title: 'Administration',
+    href: '/admin',
+    icon: Settings,
+    requiresRole: ['admin', 'owner']
   },
   {
     title: 'Allora Brain',
     href: '/allora-brain',
-    icon: Brain,
-    requiresRole: ['admin', 'owner']
-  },
-  {
-    title: 'Standalone Agent',
-    href: '/standalone',
-    icon: Server,
-    requiresRole: ['admin', 'owner']
-  },
+    icon: Brain
+  }
 ];

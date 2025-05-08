@@ -1,57 +1,90 @@
 
-import { Plugin, PluginResult } from '@/types/plugin';
 import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { recordLogExecution } from '../logging/recordLogExecution';
+import { getAgentVersion } from '@/lib/agents/agentManager';
+
+interface ExecutePluginParams {
+  pluginId: string;
+  input: any;
+  tenantId: string;
+  strategyId?: string;
+  userId?: string;
+  agentVersionId?: string;
+}
+
+interface ExecutePluginResult {
+  success: boolean;
+  output?: any;
+  error?: string;
+  executionTime: number;
+  xpEarned: number;
+}
 
 /**
- * Execute a plugin with the provided inputs
- * @param plugin - Plugin to execute
- * @param tenantId - Tenant identifier
- * @param userId - User identifier
- * @param input - Input data for plugin execution
- * @param strategyId - Optional strategy ID for logging
- * @returns The execution result
+ * Execute a plugin with the given input
+ * @param params Parameters for plugin execution
+ * @returns Result of plugin execution
  */
-export async function executePlugin(
-  plugin: Plugin,
-  tenantId: string,
-  userId: string,
-  input: Record<string, any>,
-  strategyId?: string
-): Promise<PluginResult> {
+export const executePlugin = async (params: ExecutePluginParams): Promise<ExecutePluginResult> => {
+  const { pluginId, input, tenantId, strategyId, userId, agentVersionId } = params;
+  const startTime = Date.now();
+  
   try {
-    // Log plugin execution start
-    await logSystemEvent('plugin', 'info', {
-      plugin_id: plugin.id,
-      plugin_name: plugin.name,
-      user_id: userId
-    }, tenantId);
+    // Fetch plugin details
+    const { data: plugin, error: pluginError } = await supabase
+      .from('plugins')
+      .select('*')
+      .eq('id', pluginId)
+      .single();
     
-    // Start measuring execution time
-    const startTime = Date.now();
+    if (pluginError) {
+      throw new Error(`Failed to fetch plugin: ${pluginError.message}`);
+    }
     
-    // Execute the plugin logic
-    console.log(`Executing plugin ${plugin.name} (${plugin.id})`);
+    if (!plugin) {
+      throw new Error(`Plugin not found with ID: ${pluginId}`);
+    }
     
-    // ... plugin execution logic would go here
-    // This is just a placeholder implementation
-    const output = { success: true, result: "Plugin execution successful" };
-    const xpEarned = 10;
+    // If an agent version is specified, use it to execute the plugin
+    let output: any;
+    let agentVersion = null;
     
-    // Calculate execution time
-    const executionTime = (Date.now() - startTime) / 1000;
+    if (agentVersionId) {
+      agentVersion = await getAgentVersion(agentVersionId);
+      if (!agentVersion) {
+        throw new Error(`Agent version not found with ID: ${agentVersionId}`);
+      }
+      
+      // TODO: Implement actual agent execution with prompt
+      output = { result: `Simulated agent execution for ${plugin.name}`, success: true };
+    } else {
+      // Execute plugin directly
+      // This is a simplified simulation - in a real implementation,
+      // we would call an actual function based on the plugin type/ID
+      output = { result: `Executed ${plugin.name} with input: ${JSON.stringify(input)}`, success: true };
+    }
     
-    // Log the execution to plugin_logs table
-    await supabase.from('plugin_logs').insert({
-      plugin_id: plugin.id,
-      tenant_id: tenantId,
-      strategy_id: strategyId,
+    const executionTime = (Date.now() - startTime) / 1000; // in seconds
+    const xpEarned = Math.floor(executionTime * 10); // Simple XP calculation
+    
+    // Record execution log
+    await recordLogExecution({
+      pluginId,
+      tenantId,
       status: 'success',
       input,
       output,
-      execution_time: executionTime,
-      xp_earned: xpEarned
+      executionTime,
+      xpEarned,
+      strategyId,
+      agentVersionId
     });
+    
+    // Update plugin XP
+    await supabase
+      .from('plugins')
+      .update({ xp: plugin.xp + xpEarned })
+      .eq('id', pluginId);
     
     return {
       success: true,
@@ -59,43 +92,29 @@ export async function executePlugin(
       executionTime,
       xpEarned
     };
-  } catch (error: any) {
-    console.error(`Error executing plugin ${plugin.name} (${plugin.id}):`, error);
     
-    // Log the error
-    try {
-      await logSystemEvent('plugin', 'error', {
-        plugin_id: plugin.id,
-        plugin_name: plugin.name,
-        error: error.message || 'Unknown error',
-        user_id: userId
-      }, tenantId);
-    } catch (err: Error) {
-      console.error('Error logging plugin failure:', err);
-    }
+  } catch (err: unknown) {
+    const executionTime = (Date.now() - startTime) / 1000;
+    const error = err instanceof Error ? err.message : String(err);
     
-    // Log the failed execution to plugin_logs table
-    try {
-      await supabase.from('plugin_logs').insert({
-        plugin_id: plugin.id,
-        tenant_id: tenantId,
-        strategy_id: strategyId,
-        status: 'error',
-        input,
-        error: error.message || 'Unknown error',
-        execution_time: 0,
-        xp_earned: 0
-      });
-    } catch (err: Error) {
-      console.error('Error logging plugin failure to database:', err);
-    }
+    // Record execution log with error
+    await recordLogExecution({
+      pluginId,
+      tenantId,
+      status: 'failure',
+      input,
+      error,
+      executionTime,
+      xpEarned: 0,
+      strategyId,
+      agentVersionId
+    });
     
     return {
       success: false,
-      output: {},
-      error: error.message || 'Unknown error',
-      executionTime: 0,
+      error,
+      executionTime,
       xpEarned: 0
     };
   }
-}
+};

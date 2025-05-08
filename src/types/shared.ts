@@ -1,4 +1,3 @@
-
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
 export type SystemEventModule = 'strategy' | 'plugin' | 'agent' | 'auth' | 'system' | 'security' | 'kpi' | 'onboarding' | 'billing' | 'marketing';
@@ -24,7 +23,7 @@ export interface Tenant {
 
 export type VoteType = 'upvote' | 'downvote' | 'neutral';
 
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
 
 export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'additional' | 'strategy';
 
@@ -49,3 +48,5 @@ export interface KPITrend {
 }
 
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
+
+export type TenantFeature = 'dark_mode' | 'analytics' | 'api_access' | 'advanced_reporting';

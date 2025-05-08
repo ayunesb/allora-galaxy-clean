@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 const SystemLogs: React.FC = () => {
   const tenantId = useTenantId();
@@ -70,6 +72,10 @@ const SystemLogs: React.FC = () => {
     setSelectedLog(log);
   };
   
+  const handleRefresh = () => {
+    refetch();
+  };
+  
   const getModuleBadgeColor = (module: string) => {
     switch (module.toLowerCase()) {
       case 'strategy': return 'bg-blue-100 text-blue-800';
@@ -83,7 +89,14 @@ const SystemLogs: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">System Logs</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">System Logs</h1>
+        <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+      
       <p className="text-muted-foreground mb-8">
         View detailed logs of all system activities and events.
       </p>

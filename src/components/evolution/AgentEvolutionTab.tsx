@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,11 +80,7 @@ export const AgentEvolutionTab = () => {
   };
 
   const getVersionNumber = (version: string) => {
-    // Parse version string (e.g., "1.0.0") into components
-    const parts = version.split('.');
-    const majorVersion = parseInt(parts[0], 10);
-    const minorVersion = parseInt(parts[1], 10);
-    
+    // Just return formatted version string
     return `v${version}`;
   };
 

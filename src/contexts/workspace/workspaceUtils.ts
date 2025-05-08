@@ -1,43 +1,59 @@
 
-import { TenantWithRole } from '@/types/tenant';
-import { Tenant } from '@/types/tenant';
+import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/shared';
 
-/**
- * Sorts tenants by role precedence (owner > admin > member > guest)
- */
-export function sortTenantsByRole(tenants: TenantWithRole[]): TenantWithRole[] {
-  const rolePrecedence: Record<string, number> = {
-    'owner': 0,
-    'admin': 1,
-    'member': 2,
-    'guest': 3
-  };
+export async function fetchUserRole(tenantId: string, userUid: string): Promise<UserRole | null> {
+  if (!tenantId || !userUid) return null;
   
-  return [...tenants].sort((a, b) => {
-    const roleDiff = (rolePrecedence[a.role] || 99) - (rolePrecedence[b.role] || 99);
-    
-    // If roles are equal, sort alphabetically
-    if (roleDiff === 0) {
-      return (a.name || '').localeCompare(b.name || '');
+  try {
+    const { data, error } = await supabase
+      .from('tenant_user_roles')
+      .select('role')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', userUid)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error fetching user role:', error);
+      return null;
     }
     
-    return roleDiff;
-  });
+    return (data?.role as UserRole) || null;
+  } catch (err) {
+    console.error('Exception fetching user role:', err);
+    return null;
+  }
 }
 
-/**
- * Format tenant display name with role
- */
-export function formatTenantWithRole(tenant: TenantWithRole): string {
-  if (!tenant) return '';
-  return `${tenant.name} (${tenant.role})`;
-}
-
-/**
- * Gets user's available tenants
- */
-export async function getUserTenants(userId: string): Promise<TenantWithRole[]> {
-  // Implementation would depend on your data fetching logic
-  // This is a placeholder implementation
-  return [];
+export async function fetchUserTenants(userUid: string) {
+  if (!userUid) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from('tenant_user_roles')
+      .select(`
+        tenant_id,
+        role,
+        tenants:tenant_id (
+          id,
+          name,
+          slug,
+          created_at
+        )
+      `)
+      .eq('user_id', userUid);
+      
+    if (error) {
+      console.error('Error fetching user tenants:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      ...item.tenants,
+      role: item.role
+    })) || [];
+  } catch (err) {
+    console.error('Exception fetching user tenants:', err);
+    return [];
+  }
 }

@@ -18,13 +18,13 @@ export type {
   SystemEventModule,
   SystemEventType,
   OnboardingStep,
-  // Now also export the previously missing types
   BaseEntity,
   ExecutionParams,
   ExecutionType,
   KPITrend,
   LogStatus,
-  TenantFeature
+  // Now includes TenantFeature
+  Tenant
 } from './shared';
 
 export type { NotificationType } from './notifications';
