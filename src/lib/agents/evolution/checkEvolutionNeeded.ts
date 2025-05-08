@@ -1,73 +1,121 @@
 
-import { getAgentUsageStats } from './getAgentUsageStats';
-import { getAgentVoteStats } from '../voting/getAgentVoteStats';
+import { supabase } from '@/integrations/supabase/client';
 
-export interface AgentPerformanceMetrics {
-  id: string;
-  usageCount: number;
-  failureRate: number;
-  downvoteRate: number;
-  averageExecutionTime: number;
-  lastEvolution: Date | null;
-  daysSinceLastEvolution: number;
-  score: number;
+interface EvolutionCheckResult {
+  needsEvolution: boolean;
+  reason?: string;
+  performance?: {
+    successRate: number;
+    failureRate: number;
+    averageExecutionTime: number;
+    totalExecutions: number;
+  };
 }
 
 /**
- * Check if an agent needs evolution based on performance metrics
- * 
- * @param agentId The agent version ID to check
- * @param tenantId The tenant ID
- * @returns Boolean indicating if evolution is needed
+ * Checks if an agent version needs evolution based on performance metrics
+ * @param agentVersionId Agent version ID to check
+ * @param options Additional options
+ * @returns Evolution check result
  */
 export async function checkEvolutionNeeded(
-  agentId: string,
-  tenantId: string
-): Promise<boolean> {
+  agentVersionId: string,
+  options?: { 
+    minimumExecutions: number; 
+    failureRateThreshold: number; 
+    staleDays: number; 
+  }
+): Promise<EvolutionCheckResult> {
   try {
-    // Get usage statistics
-    const usageStats = await getAgentUsageStats(agentId);
+    // Default options
+    const minimumExecutions = options?.minimumExecutions || 10;
+    const failureRateThreshold = options?.failureRateThreshold || 0.3; // 30%
+    const staleDays = options?.staleDays || 30;
     
-    // Get voting statistics
-    const voteStats = await getAgentVoteStats(agentId);
-    
-    // Define thresholds for evolution
-    const FAILURE_RATE_THRESHOLD = 0.1; // 10% failures
-    const DOWNVOTE_RATE_THRESHOLD = 0.15; // 15% downvotes
-    const MIN_USAGE_COUNT = 10; // Require at least 10 executions
-    const MIN_DAYS_SINCE_EVOLUTION = 7; // At least a week since last evolution
-    
-    // Calculate metrics
-    const failureRate = usageStats.failureCount / usageStats.totalExecutions;
-    const downvoteRate = voteStats.downvotes / (voteStats.upvotes + voteStats.downvotes);
-    
-    // Get last evolution date
-    const { data: versionData } = await supabase
-      .from('agent_versions')
-      .select('created_at, previous_version_id')
-      .eq('id', agentId)
+    // Get agent usage stats
+    const { data: stats, error } = await supabase
+      .rpc('get_agent_version_stats', { agent_version_id: agentVersionId })
       .single();
-      
-    let daysSinceLastEvolution = 30; // Default to 30 days if no previous version
     
-    if (versionData?.created_at) {
-      const createdDate = new Date(versionData.created_at);
-      const daysElapsed = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-      daysSinceLastEvolution = Math.floor(daysElapsed);
+    if (error) throw error;
+    
+    // Extract stats or use defaults
+    const successCount = stats?.success_count || 0;
+    const failureCount = stats?.failure_count || 0;
+    const totalExecutions = successCount + failureCount;
+    
+    // Check if there are enough executions to make a decision
+    if (totalExecutions < minimumExecutions) {
+      return { 
+        needsEvolution: false,
+        reason: `Not enough executions (${totalExecutions}/${minimumExecutions})`,
+        performance: {
+          successRate: successCount / (totalExecutions || 1),
+          failureRate: failureCount / (totalExecutions || 1),
+          averageExecutionTime: stats?.avg_execution_time || 0,
+          totalExecutions
+        }
+      };
     }
     
-    // Only evolve if:
-    // 1. Has enough usage
-    // 2. Has high failure rate OR high downvote rate
-    // 3. Has been at least MIN_DAYS_SINCE_EVOLUTION since last evolution
-    return usageStats.totalExecutions >= MIN_USAGE_COUNT &&
-           (failureRate >= FAILURE_RATE_THRESHOLD || downvoteRate >= DOWNVOTE_RATE_THRESHOLD) &&
-           daysSinceLastEvolution >= MIN_DAYS_SINCE_EVOLUTION;
-  } catch (err) {
-    console.error('Error checking if agent needs evolution:', err);
-    return false;
+    // Check failure rate threshold
+    const failureRate = failureCount / totalExecutions;
+    if (failureRate > failureRateThreshold) {
+      return {
+        needsEvolution: true,
+        reason: `Failure rate (${(failureRate * 100).toFixed(1)}%) exceeds threshold (${(failureRateThreshold * 100).toFixed(1)}%)`,
+        performance: {
+          successRate: 1 - failureRate,
+          failureRate,
+          averageExecutionTime: stats?.avg_execution_time || 0,
+          totalExecutions
+        }
+      };
+    }
+    
+    // Check if the agent is stale (hasn't been updated in a while)
+    const { data: agentVersion } = await supabase
+      .from('agent_versions')
+      .select('created_at')
+      .eq('id', agentVersionId)
+      .single();
+    
+    if (agentVersion) {
+      const createdAt = new Date(agentVersion.created_at);
+      const now = new Date();
+      const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceCreation > staleDays) {
+        return {
+          needsEvolution: true,
+          reason: `Agent version is stale (${daysSinceCreation} days old)`,
+          performance: {
+            successRate: 1 - failureRate,
+            failureRate,
+            averageExecutionTime: stats?.avg_execution_time || 0,
+            totalExecutions
+          }
+        };
+      }
+    }
+    
+    // If we got here, no evolution is needed yet
+    return {
+      needsEvolution: false,
+      reason: 'Performance within acceptable parameters',
+      performance: {
+        successRate: 1 - failureRate,
+        failureRate,
+        averageExecutionTime: stats?.avg_execution_time || 0,
+        totalExecutions
+      }
+    };
+    
+  } catch (error: any) {
+    console.error(`Error checking if agent ${agentVersionId} needs evolution:`, error);
+    return { 
+      needsEvolution: false,
+      reason: `Error checking evolution status: ${error.message}`
+    };
   }
 }
-
-// Importing supabase at the top would cause a circular dependency in some environments
-const { supabase } = require('@/integrations/supabase/client');

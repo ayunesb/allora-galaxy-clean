@@ -1,120 +1,127 @@
 
 import { useState } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 const DeletionRequestPage = () => {
-  const { tenant } = useWorkspace();
+  const { userRole } = useWorkspace();
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const { toast } = useToast();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  
+  const handleSubmit = async () => {
     if (!reason) {
       toast({
-        title: 'Error',
-        description: 'Please provide a reason for your request',
-        variant: 'destructive',
+        title: "Reason required",
+        description: "Please provide a reason for your account deletion request.",
+        variant: "destructive",
       });
       return;
     }
     
+    setIsSubmitting(true);
+    
+    // In a real implementation, this would submit to the backend
     try {
-      setIsSubmitting(true);
-      
-      // Here we would submit the deletion request to the API
-      // For now, let's just simulate a successful submission
+      // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setSubmitted(true);
       toast({
-        title: 'Request Submitted',
-        description: 'Your data deletion request has been submitted.',
+        title: "Request submitted",
+        description: "Your deletion request has been submitted and will be reviewed.",
       });
-    } catch (error: any) {
-      console.error('Error submitting deletion request:', error);
+      
+      setReason('');
+      setIsConfirming(false);
+    } catch (error) {
+      console.error("Error submitting deletion request:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to submit deletion request',
-        variant: 'destructive',
+        title: "Submission error",
+        description: "There was an error submitting your request. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6">Request Data Deletion</h1>
-      
-      {submitted ? (
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Request Submitted</h2>
-          <p className="mb-4">
-            Your data deletion request has been submitted successfully. Our team will review your request and process it according to our privacy policy.
-          </p>
-          <p className="mb-4">
-            You will receive an email confirmation once your request has been processed.
-          </p>
-          <Button onClick={() => window.location.href = '/'}>
-            Back to Dashboard
-          </Button>
-        </Card>
-      ) : (
-        <Card className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Data Deletion Request</h2>
-              <p className="text-muted-foreground mb-4">
-                Please provide a reason for your data deletion request. This will help us understand your concerns and process your request more efficiently.
-              </p>
-            </div>
-            
-            <div>
-              <label htmlFor="reason" className="block text-sm font-medium mb-2">
-                Reason for deletion request
-              </label>
-              <Textarea
-                id="reason"
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                placeholder="Please explain why you want your data deleted..."
-                className="min-h-[120px]"
-                required
-              />
-            </div>
-            
-            <div className="pt-4">
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Deletion Request'}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-      
-      <div className="mt-6">
-        <h2 className="text-xl font-semibold mb-2">What happens next?</h2>
-        <p className="text-muted-foreground mb-4">
-          Once you submit your request:
-        </p>
-        <ol className="list-decimal ml-6 space-y-2 text-muted-foreground">
-          <li>Our team will review your request within 7 business days</li>
-          <li>You will receive an email confirmation when your request is received</li>
-          <li>If approved, all your personal data will be deleted from our systems</li>
-          <li>You'll receive a final confirmation email once the deletion is complete</li>
-        </ol>
-      </div>
+    <div className="container mx-auto max-w-2xl py-8 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Request Account Deletion</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isConfirming ? (
+            <>
+              <div className="space-y-4">
+                <p>Are you sure you want to request account deletion? This action cannot be undone.</p>
+                <p className="text-destructive">All your data will be permanently removed from our system.</p>
+                
+                <div className="space-y-2">
+                  <p className="font-medium">Please confirm your reason for leaving:</p>
+                  <p className="bg-muted p-3 rounded-md">{reason}</p>
+                </div>
+                
+                <div className="flex space-x-4 pt-4">
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Confirm Request"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsConfirming(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <p>
+                  We're sorry to see you go. Before proceeding with your deletion request, 
+                  please note that this will permanently remove all your account data, including:
+                </p>
+                
+                <ul className="list-disc list-inside space-y-1 pl-4">
+                  <li>Personal profile information</li>
+                  <li>Saved strategies and campaigns</li>
+                  <li>Historical performance metrics</li>
+                  <li>Plugin configurations and execution history</li>
+                </ul>
+                
+                <p className="font-medium pt-2">Please provide a reason for deleting your account:</p>
+                <Textarea
+                  placeholder="Please tell us why you're leaving..."
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={5}
+                />
+                
+                <div className="pt-4">
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setIsConfirming(true)}
+                    disabled={!reason.trim()}
+                  >
+                    Request Deletion
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

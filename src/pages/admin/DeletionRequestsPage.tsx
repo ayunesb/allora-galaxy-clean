@@ -1,141 +1,150 @@
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface DeletionRequest {
   id: string;
-  userId: string;
-  email: string;
+  user_id: string;
+  user_email: string;
   reason: string;
-  requestedAt: string;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
 }
 
 const DeletionRequestsPage = () => {
-  const { tenant } = useWorkspace();
-  const [loading, setLoading] = useState(true);
+  // We're not using tenant directly, but it's kept for future implementation
+  const { userRole } = useWorkspace();
   const [requests, setRequests] = useState<DeletionRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Simulate fetching data
-    const timer = setTimeout(() => {
-      // Mock data
+    fetchDeletionRequests();
+  }, []);
+  
+  const fetchDeletionRequests = async () => {
+    setIsLoading(true);
+    
+    // Mock data for now - would be replaced with actual API call
+    setTimeout(() => {
       setRequests([
         {
           id: '1',
-          userId: 'user-1',
-          email: 'user1@example.com',
+          user_id: 'user-123',
+          user_email: 'user@example.com',
           reason: 'No longer using the service',
-          requestedAt: new Date().toISOString(),
-          status: 'pending'
+          status: 'pending',
+          created_at: '2025-04-15T14:30:00Z'
         },
         {
           id: '2',
-          userId: 'user-2',
-          email: 'user2@example.com',
+          user_id: 'user-456',
+          user_email: 'another@example.com',
           reason: 'Privacy concerns',
-          requestedAt: new Date(Date.now() - 86400000).toISOString(),
-          status: 'approved'
+          status: 'approved',
+          created_at: '2025-04-10T09:15:00Z'
         }
       ]);
-      setLoading(false);
+      setIsLoading(false);
     }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+  };
   
   const handleApprove = (id: string) => {
-    setRequests(prev => 
-      prev.map(req => 
-        req.id === id ? { ...req, status: 'approved' as const } : req
-      )
-    );
+    console.log(`Approving request ${id}`);
+    // Implementation would go here
   };
   
-  const handleDeny = (id: string) => {
-    setRequests(prev => 
-      prev.map(req => 
-        req.id === id ? { ...req, status: 'denied' as const } : req
-      )
-    );
+  const handleReject = (id: string) => {
+    console.log(`Rejecting request ${id}`);
+    // Implementation would go here
   };
   
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <h1 className="text-3xl font-bold">Data Deletion Requests</h1>
-        <div className="animate-pulse space-y-4">
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Data Deletion Requests</h1>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Data Deletion Requests</h1>
+        <Button onClick={() => fetchDeletionRequests()}>Refresh</Button>
+      </div>
       
-      {requests.length > 0 ? (
-        <Card>
-          <Table>
-            <TableCaption>List of data deletion requests</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Requested</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {requests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell>{request.email}</TableCell>
-                  <TableCell>{request.reason}</TableCell>
-                  <TableCell>{new Date(request.requestedAt).toLocaleString()}</TableCell>
-                  <TableCell>
-                    <span className={
-                      request.status === 'approved' ? 'text-green-500' :
-                      request.status === 'denied' ? 'text-red-500' :
-                      'text-yellow-500'
-                    }>
-                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {request.status === 'pending' && (
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleApprove(request.id)}
-                        >
-                          Approve
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive" 
-                          onClick={() => handleDeny(request.id)}
-                        >
-                          Deny
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Deletion Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center p-6">
+              <p>Loading requests...</p>
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="text-center p-6">
+              <p className="text-muted-foreground">No deletion requests found</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Requested</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      ) : (
-        <Card className="p-6 text-center">
-          <p className="text-muted-foreground">No deletion requests found.</p>
-        </Card>
-      )}
+              </TableHeader>
+              <TableBody>
+                {requests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>{request.user_email}</TableCell>
+                    <TableCell>{request.reason}</TableCell>
+                    <TableCell>{formatDate(request.created_at)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          request.status === 'pending' ? 'outline' :
+                          request.status === 'approved' ? 'success' : 'destructive'
+                        }
+                      >
+                        {request.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {request.status === 'pending' && (
+                        <div className="space-x-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(request.id)}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReject(request.id)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

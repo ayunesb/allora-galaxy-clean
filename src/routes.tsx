@@ -28,6 +28,7 @@ import NotFound from './pages/NotFound';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import AgentPerformance from './pages/agents/AgentPerformance';
 import StrategyEngine from './pages/strategy/StrategyEngine';
+import { Outlet } from 'react-router-dom';
 
 const router = createBrowserRouter([
   {
@@ -91,8 +92,5 @@ const router = createBrowserRouter([
     element: <NotFound />,
   },
 ]);
-
-// For compatibility with older code
-const Outlet = () => <React.Fragment />;
 
 export default router;

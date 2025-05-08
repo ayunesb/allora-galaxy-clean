@@ -2,7 +2,7 @@
 // Common shared types used across the application
 
 // KPI Trend Types
-export type TrendDirection = 'up' | 'down' | 'stable';
+export type TrendDirection = 'up' | 'down' | 'neutral' | 'stable';
 
 export interface KPITrend {
   value: number;

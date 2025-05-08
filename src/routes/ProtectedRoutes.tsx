@@ -1,65 +1,70 @@
 
-import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 import MainLayout from '@/components/layout/MainLayout';
 import AdminLayout from '@/components/layout/AdminLayout';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import LoadingScreen from '@/components/LoadingScreen';
-import { hasRequiredRole } from '@/lib/requireRole';
+import NotFound from '@/pages/NotFound';
 
-interface ProtectedRouteProps {
-  requiredRole?: 'owner' | 'admin' | 'member' | 'viewer' | Array<'owner' | 'admin' | 'member' | 'viewer'>;
-  redirectTo?: string;
-}
+/**
+ * Protected route component that checks if user is authenticated
+ * and redirects to login if not
+ */
+export const ProtectedRoute = () => {
+  const { user, isLoading } = useAuth();
+  const { tenant, isLoading: isTenantLoading } = useWorkspace();
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  requiredRole,
-  redirectTo = '/auth',
-}) => {
-  const { user, loading: authLoading } = useAuth();
-  const { loading: workspaceLoading } = useWorkspace();
-  
-  // Show loading screen while authentication is in progress
-  if (authLoading || workspaceLoading) {
+  if (isLoading || isTenantLoading) {
     return <LoadingScreen />;
   }
-  
-  // Redirect to login if user is not authenticated
+
   if (!user) {
-    return <Navigate to={redirectTo} replace />;
+    // Redirect to login page if user is not authenticated
+    return <Navigate to="/auth/login" replace />;
   }
-  
-  // If there's a required role, check if user has that role
-  if (requiredRole) {
-    const hasAccess = hasRequiredRole(requiredRole);
-    
-    if (!hasAccess) {
-      return <Navigate to="/dashboard" replace />;
-    }
+
+  if (!tenant && !isTenantLoading) {
+    // Redirect to onboarding if user has no workspace
+    return <Navigate to="/onboarding" replace />;
   }
-  
-  // If there's no required role, just render the children
+
+  // User is authenticated, render the protected content
   return <Outlet />;
 };
 
-export const MainRoute: React.FC = () => {
-  return <MainLayout />;
+/**
+ * Main application route with standard layout
+ */
+export const MainRoute = () => {
+  return (
+    <MainLayout>
+      <Outlet />
+    </MainLayout>
+  );
 };
 
-export const AdminRoute: React.FC = () => {
-  const { loading } = useWorkspace();
-  
-  if (loading) {
+/**
+ * Admin route component that checks if user has admin privileges
+ */
+export const AdminRoute = () => {
+  const { user } = useAuth();
+  const { tenant, userRole, isLoading } = useWorkspace();
+
+  if (isLoading) {
     return <LoadingScreen />;
   }
-  
-  // Check if the user has admin privileges
-  const hasAccess = hasRequiredRole(['owner', 'admin']);
-  
-  if (!hasAccess) {
-    return <Navigate to="/dashboard" replace />;
+
+  // Check if user has admin privileges
+  const isAdmin = userRole === 'admin' || userRole === 'owner';
+
+  if (!isAdmin) {
+    // Redirect to unauthorized page if not admin
+    return <NotFound />;
   }
-  
-  return <AdminLayout />;
+
+  // User is admin, render admin content
+  return (
+    <AdminLayout children={<Outlet />} />
+  );
 };

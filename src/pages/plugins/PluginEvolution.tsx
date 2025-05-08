@@ -1,265 +1,150 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ChevronRight, Brain, LineChart, Calendar } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useTenantId } from '@/hooks/useTenantId';
-
-interface AgentVersion {
-  id: string;
-  version: string;
-  created_at: string;
-  status: string;
-  upvotes: number;
-  downvotes: number;
-  xp: number;
-}
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 const PluginEvolution = () => {
-  const { id } = useParams();
-  const { tenant } = useWorkspace();
-  const { tenantId } = useTenantId();
-  const [loading, setLoading] = useState(true);
-  const [plugin, setPlugin] = useState<any>(null);
-  const [versions, setVersions] = useState<AgentVersion[]>([]);
+  const { id } = useParams<{ id: string }>();
+  const { userRole } = useWorkspace();
+  const isAdmin = userRole === 'admin' || userRole === 'owner';
   
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-      
-      try {
-        setLoading(true);
-        
-        // Here we would fetch the plugin and its versions from the API
-        // For now, let's mock the data
-        setPlugin({
-          id,
-          name: 'SEO Analyzer',
-          description: 'Analyzes and optimizes content for search engines',
-          category: 'marketing',
-          xp: 1250
-        });
-        
-        setVersions([
-          {
-            id: 'agent-1',
-            version: '2.0',
-            created_at: new Date().toISOString(),
-            status: 'active',
-            upvotes: 24,
-            downvotes: 2,
-            xp: 850
-          },
-          {
-            id: 'agent-2',
-            version: '1.5',
-            created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'inactive',
-            upvotes: 18,
-            downvotes: 7,
-            xp: 300
-          },
-          {
-            id: 'agent-3',
-            version: '1.0',
-            created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'inactive',
-            upvotes: 10,
-            downvotes: 8,
-            xp: 100
-          }
-        ]);
-      } catch (error) {
-        console.error('Error fetching plugin evolution data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [id]);
+  // Placeholder data for demonstration
+  const evolutionHistory = [
+    {
+      id: '1',
+      version: 'v1.0.0',
+      changedAt: '2025-01-15',
+      changedBy: 'AI Optimizer',
+      reason: 'Initial version',
+      xpImprovement: null,
+      performanceChange: null
+    },
+    {
+      id: '2',
+      version: 'v1.1.0',
+      changedAt: '2025-02-01',
+      changedBy: 'AI Optimizer',
+      reason: 'Performance optimization based on execution metrics',
+      xpImprovement: '+15%',
+      performanceChange: '+23%'
+    },
+    {
+      id: '3',
+      version: 'v1.2.0',
+      changedAt: '2025-03-10',
+      changedBy: 'John Smith',
+      reason: 'Manual adjustment to improve email open rates',
+      xpImprovement: '+8%',
+      performanceChange: '+12%'
+    },
+    {
+      id: '4',
+      version: 'v2.0.0',
+      changedAt: '2025-04-05',
+      changedBy: 'AI Optimizer',
+      reason: 'Major optimization based on user feedback',
+      xpImprovement: '+30%',
+      performanceChange: '+45%'
+    },
+  ];
   
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString();
+  // Placeholder function for demo
+  const handleCompareVersions = (id1: string, id2: string) => {
+    console.log(`Comparing versions: ${id1} and ${id2}`);
+    // Implementation would go here
   };
   
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="h-48 bg-muted rounded"></div>
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!plugin) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card className="p-6 text-center">
-          <h2 className="text-2xl font-bold mb-2">Plugin not found</h2>
-          <p className="text-muted-foreground mb-4">
-            The plugin you are looking for does not exist or has been deleted.
-          </p>
-          <Button onClick={() => window.history.back()}>Back to Plugins</Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <div className="flex items-center text-sm text-muted-foreground mb-2">
-          <Button variant="link" className="p-0 h-auto" onClick={() => window.history.back()}>
-            Plugins
-          </Button>
-          <ChevronRight className="h-4 w-4 mx-1" />
-          <span>{plugin.name}</span>
-          <ChevronRight className="h-4 w-4 mx-1" />
-          <span>Evolution</span>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Plugin Evolution History</h1>
+          <p className="text-muted-foreground">See how this plugin has evolved over time</p>
         </div>
-        <h1 className="text-3xl font-bold">{plugin.name} Evolution</h1>
-        <p className="text-muted-foreground">{plugin.description}</p>
+        
+        {isAdmin && (
+          <Button>Trigger Evolution</Button>
+        )}
       </div>
       
-      <Tabs defaultValue="timeline">
-        <TabsList>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="timeline" className="mt-6 space-y-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Calendar className="h-5 w-5 mr-2" />
-              Evolution Timeline
-            </h2>
-            
-            <div className="relative pl-8 border-l">
-              {versions.map((version, index) => (
-                <div key={version.id} className="mb-8 relative">
-                  <div className="absolute -left-10 w-5 h-5 rounded-full bg-primary"></div>
-                  <div className="mb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-lg font-semibold mr-2">Version {version.version}</span>
-                        {version.status === 'active' && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                            Active
-                          </span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Evolution Timeline</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">
+            {evolutionHistory.map((version, index) => (
+              <div key={version.id} className="relative">
+                {/* Timeline connector */}
+                {index < evolutionHistory.length - 1 && (
+                  <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-muted-foreground/20"></div>
+                )}
+                
+                <div className="flex items-start gap-4">
+                  {/* Version badge */}
+                  <div className="bg-primary text-primary-foreground rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 z-10">
+                    {index + 1}
+                  </div>
+                  
+                  {/* Version details */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{version.version}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {version.changedAt} by {version.changedBy}
+                        </p>
+                      </div>
+                      
+                      <Badge variant={version.changedBy === 'AI Optimizer' ? 'secondary' : 'outline'}>
+                        {version.changedBy === 'AI Optimizer' ? 'Auto' : 'Manual'}
+                      </Badge>
+                    </div>
+                    
+                    <p>{version.reason}</p>
+                    
+                    {(version.xpImprovement || version.performanceChange) && (
+                      <div className="flex gap-4 pt-2">
+                        {version.xpImprovement && (
+                          <div>
+                            <p className="text-sm font-medium">XP Improvement</p>
+                            <p className="text-green-600 font-medium">{version.xpImprovement}</p>
+                          </div>
+                        )}
+                        
+                        {version.performanceChange && (
+                          <div>
+                            <p className="text-sm font-medium">Performance Change</p>
+                            <p className="text-green-600 font-medium">{version.performanceChange}</p>
+                          </div>
                         )}
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(version.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <Card className="bg-muted/30 p-4">
-                    <div className="flex justify-between mb-2">
-                      <div className="space-y-1">
-                        <div className="text-sm text-muted-foreground">Agent XP</div>
-                        <div className="font-semibold">{version.xp} XP</div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-sm text-muted-foreground">Rating</div>
-                        <div className="font-semibold">
-                          👍 {version.upvotes} &nbsp; 👎 {version.downvotes}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {index < versions.length - 1 && (
-                      <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
-                        Changes from v{versions[index + 1].version}:
-                        <ul className="list-disc list-inside mt-2">
-                          <li>Improved response quality</li>
-                          <li>Reduced errors by 30%</li>
-                          <li>Added new capabilities</li>
-                        </ul>
-                      </div>
                     )}
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="performance" className="mt-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <LineChart className="h-5 w-5 mr-2" />
-              Performance Metrics
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Performance comparison across agent versions
-            </p>
-            <div className="h-64 flex items-center justify-center bg-muted/30 rounded-lg">
-              <p className="text-muted-foreground">Performance chart will be displayed here</p>
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="feedback" className="mt-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Brain className="h-5 w-5 mr-2" />
-              Evolution Feedback
-            </h2>
-            
-            <div className="space-y-6">
-              {versions.map((version) => (
-                <div key={`feedback-${version.id}`}>
-                  <h3 className="font-semibold mb-2">Version {version.version}</h3>
-                  <Separator className="mb-4" />
-                  
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <div className="flex justify-between mb-2">
-                        <span className="font-medium">User feedback</span>
-                        <span className="text-green-600">👍 Positive</span>
-                      </div>
-                      <p className="text-sm">
-                        "The results are much more accurate now. Great improvement!"
-                      </p>
-                    </div>
                     
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <div className="flex justify-between mb-2">
-                        <span className="font-medium">System analysis</span>
-                        <span>🧠 AI Analysis</span>
-                      </div>
-                      <p className="text-sm">
-                        "This version shows 35% improvement in accuracy and 28% reduction in processing time compared to the previous version."
-                      </p>
-                    </div>
-                    
-                    {version.status === 'active' && (
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <div className="flex justify-between mb-2">
-                          <span className="font-medium">Add your feedback</span>
-                        </div>
-                        <Button className="mt-2" size="sm">
-                          Rate this version
-                        </Button>
-                      </div>
+                    {index > 0 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleCompareVersions(version.id, evolutionHistory[index - 1].id)}
+                      >
+                        Compare to Previous
+                      </Button>
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                
+                {index < evolutionHistory.length - 1 && (
+                  <Separator className="my-6" />
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

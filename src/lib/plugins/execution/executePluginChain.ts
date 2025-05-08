@@ -1,6 +1,7 @@
 
 import { recordExecution } from '@/lib/plugins/execution/recordExecution';
 import { ExecutePluginChainOptions, ExecutePluginResult, PluginResult } from '@/types/plugin';
+import { LogStatus } from '@/types/shared';
 
 /**
  * Execute a chain of plugins in sequence
@@ -37,7 +38,7 @@ export async function executePluginChain(options: ExecutePluginChainOptions): Pr
           pluginId: plugin.id,
           strategyId: strategy_id,
           type: 'plugin',
-          status: pluginResult.success ? 'success' : 'failure',
+          status: pluginResult.success ? 'success' : 'error' as LogStatus,
           input: currentInput,
           output: pluginResult.data,
           executionTime: pluginResult.executionTime,
@@ -77,7 +78,7 @@ export async function executePluginChain(options: ExecutePluginChainOptions): Pr
           pluginId: plugin.id,
           strategyId: strategy_id,
           type: 'plugin',
-          status: 'error',
+          status: 'error' as LogStatus,
           input: currentInput,
           error: errorResult.error,
           executionTime: errorResult.executionTime

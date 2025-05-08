@@ -1,142 +1,106 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useTenantId } from '@/hooks/useTenantId';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
 const StrategyBuilder = () => {
-  const { tenant } = useWorkspace();
-  const { tenantId } = useTenantId();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { userRole } = useWorkspace();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title || !description) {
-      toast({
-        title: 'Error',
-        description: 'Please fill in all required fields',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    if (!tenantId) {
-      toast({
-        title: 'Error',
-        description: 'No active workspace found',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Here we would submit the strategy to the API
-      // For now, let's just simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Success',
-        description: 'Strategy created successfully',
-      });
-      
-      navigate('/launch');
-    } catch (error: any) {
-      console.error('Error creating strategy:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create strategy',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const [activeTab, setActiveTab] = useState('ai');
+  
+  const handleStartAiStrategy = () => {
+    console.log('Starting AI strategy');
+    // Placeholder: Would start AI strategy generation flow
   };
-
-  const handleBack = () => {
-    navigate('/launch');
+  
+  const handleStartManualStrategy = () => {
+    console.log('Starting manual strategy');
+    // Placeholder: Would navigate to manual strategy builder
   };
-
+  
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Create New Strategy</h1>
-          <p className="text-muted-foreground">Define a new strategy for execution</p>
-        </div>
-        <Button variant="outline" onClick={handleBack}>
-          Cancel
-        </Button>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Create New Strategy</h1>
+        <Button variant="outline" onClick={() => navigate('/launch')}>Back to Strategies</Button>
       </div>
       
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Strategy Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="Enter a descriptive title"
-                className="mt-1"
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Provide a detailed description of this strategy"
-                className="mt-1 min-h-[120px]"
-                required
-              />
-            </div>
-          </div>
-        </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+          <TabsTrigger value="ai">AI-Generated</TabsTrigger>
+          <TabsTrigger value="manual">Manual Creation</TabsTrigger>
+        </TabsList>
         
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Plugins</h2>
-          <p className="text-muted-foreground mb-4">
-            Select plugins to include in this strategy. Plugins will be executed in the order listed.
-          </p>
-          
-          <div className="py-4 text-center border-2 border-dashed rounded-lg">
-            <p className="text-muted-foreground">No plugins added yet</p>
-            <Button variant="outline" className="mt-2">
-              Add Plugin
-            </Button>
-          </div>
-        </Card>
+        <TabsContent value="ai" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Generate Strategy with AI</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Let our AI analyze your business goals and create a custom strategy aligned with your objectives.
+                The AI will generate step-by-step actions, resource requirements, and timeline estimates.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Marketing Campaign</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Generate a comprehensive marketing campaign strategy tailored to your target audience.
+                    </p>
+                    <Button onClick={handleStartAiStrategy}>Generate</Button>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Product Launch</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Create a detailed product launch strategy to maximize market impact and adoption.
+                    </p>
+                    <Button onClick={handleStartAiStrategy}>Generate</Button>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Growth Strategy</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Develop a growth strategy to expand your customer base and increase revenue.
+                    </p>
+                    <Button onClick={handleStartAiStrategy}>Generate</Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
         
-        <Separator />
-        
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" onClick={handleBack}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Create Strategy'}
-          </Button>
-        </div>
-      </form>
+        <TabsContent value="manual" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Strategy Manually</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Build your own custom strategy from scratch. Define goals, actions, timelines, and resources
+                according to your specific business needs.
+              </p>
+              <Button onClick={handleStartManualStrategy}>Start Building</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

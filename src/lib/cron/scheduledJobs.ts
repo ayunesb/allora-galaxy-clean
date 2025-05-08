@@ -1,87 +1,37 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
-import { EvolutionResult } from '@/lib/agents/evolution/createEvolvedAgent';
+import { autoEvolveAgents } from '../agents/evolution/autoEvolveAgents';
 
 /**
- * Run the agent auto-evolution process
- * This is typically scheduled to run daily or weekly
+ * Run the agent evolution job to automatically evolve under-performing agents
  */
-export async function runAutoEvolution() {
+export async function runAgentEvolutionJob() {
+  console.log('Running scheduled agent evolution job');
+  
   try {
-    console.log('Starting auto-evolution job...');
+    const result = await autoEvolveAgents({
+      minimumExecutions: 5,     // Require at least 5 executions
+      failureRateThreshold: 0.2, // 20% failure rate threshold
+      staleDays: 14,            // Consider agents stale after 14 days
+      batchSize: 20             // Process up to 20 agents per run
+    });
     
-    // Get all tenants
-    const { data: tenants, error: tenantError } = await supabase
-      .from('tenants')
-      .select('id, name')
-      .eq('status', 'active');
+    console.log(`Agent evolution job completed: ${result.agentsEvolved} agents evolved`);
     
-    if (tenantError) {
-      throw tenantError;
+    if (result.errors.length > 0) {
+      console.warn(`Agent evolution had ${result.errors.length} errors:`, result.errors[0]);
     }
     
-    if (!tenants || tenants.length === 0) {
-      console.log('No active tenants found');
-      return;
-    }
+    return result;
     
-    console.log(`Found ${tenants.length} active tenants`);
-    
-    // Process each tenant
-    for (const tenant of tenants) {
-      try {
-        console.log(`Processing tenant: ${tenant.name} (${tenant.id})`);
-        
-        const results = await autoEvolveAgents(tenant.id);
-        
-        // Count successful evolutions
-        const successCount = results.filter(result => result.success).length;
-        
-        console.log(`Auto-evolution completed for tenant ${tenant.name}: ${successCount} agents evolved`);
-        
-        // Log activity
-        await supabase
-          .from('system_logs')
-          .insert({
-            tenant_id: tenant.id,
-            module: 'agent',
-            event: 'auto_evolve_completed',
-            context: {
-              total_agents_checked: results.length,
-              successful_evolutions: successCount,
-              errors: results.filter(r => !r.success).map(r => r.error)
-            }
-          });
-      } catch (tenantError) {
-        console.error(`Error processing tenant ${tenant.id}:`, tenantError);
-      }
-    }
-    
-    console.log('Auto-evolution job completed');
-  } catch (error) {
-    console.error('Error running auto-evolution job:', error);
+  } catch (error: any) {
+    console.error('Error running agent evolution job:', error);
+    throw error;
   }
 }
 
 /**
- * Schedule database maintenance tasks
- * This is typically run weekly during off-hours
+ * Run the log cleanup job to purge old logs
  */
-export async function runDatabaseMaintenance() {
-  try {
-    console.log('Starting database maintenance job...');
-    
-    // Clean up old logs
-    const { data: cleanupResult, error: cleanupError } = await supabase
-      .rpc('cleanup_old_logs', { days_to_keep: 90 });
-    
-    if (cleanupError) {
-      throw cleanupError;
-    }
-    
-    console.log('Database maintenance job completed:', cleanupResult);
-  } catch (error) {
-    console.error('Error running database maintenance job:', error);
-  }
+export async function runLogCleanupJob() {
+  console.log('Running scheduled log cleanup job');
+  // Implementation for log cleanup
 }

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { TrendDirection } from '@/types/shared';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { tenant } = useWorkspace();
@@ -29,9 +29,7 @@ const Dashboard = () => {
     setIsLoading(true);
     try {
       // Fetch KPI data
-      const kpiTrends = await fetchKpiTrends(tenant?.id || '', {
-        period: 'monthly'
-      });
+      const kpiTrends = await fetchKpiTrends(tenant?.id || '');
       setKpiData(kpiTrends);
       
       // Fetch strategies
@@ -66,18 +64,18 @@ const Dashboard = () => {
   const getKpiTrend = (name: string): { value: number; direction: TrendDirection; percentage: number } => {
     const kpi = kpiData.find(k => k.name === name);
     if (!kpi) {
-      return { value: 0, direction: 'stable', percentage: 0 };
+      return { value: 0, direction: 'neutral', percentage: 0 };
     }
     
     const currentValue = kpi.value || 0;
     const previousValue = kpi.previousValue || 0;
     
     if (previousValue === 0) {
-      return { value: currentValue, direction: 'stable', percentage: 0 };
+      return { value: currentValue, direction: 'neutral', percentage: 0 };
     }
     
     const percentage = ((currentValue - previousValue) / previousValue) * 100;
-    const direction: TrendDirection = percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'stable';
+    const direction: TrendDirection = percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'neutral';
     
     return {
       value: currentValue,
@@ -142,7 +140,10 @@ const Dashboard = () => {
                   id={strategy.id}
                   title={strategy.title}
                   description={strategy.description}
-                  status={strategy.status === 'approved' ? 'active' : strategy.status === 'rejected' ? 'archived' : strategy.status}
+                  status={strategy.status === 'approved' ? 'active' : 
+                         strategy.status === 'in_progress' ? 'active' :
+                         strategy.status === 'rejected' ? 'archived' : 
+                         strategy.status === 'completed' ? 'completed' : 'pending'}
                   priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
                   completionPercentage={strategy.completion_percentage || 0}
                   createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
