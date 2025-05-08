@@ -2,7 +2,6 @@
 import React, { createContext, useContext } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { WorkspaceContextType } from './workspace/types';
-// Remove unused import
 import { useWorkspaceState, initialWorkspaceState } from './workspace/useWorkspaceState';
 
 // Create the workspace context

@@ -1,4 +1,3 @@
-
 import { UserRole } from "./shared";
 
 export interface Tenant {
@@ -9,6 +8,7 @@ export interface Tenant {
   created_at?: string;
   updated_at?: string;
   metadata?: Record<string, any>;
+  role?: UserRole; // Add this for easier access in components
 }
 
 export interface TenantUserRole {
@@ -23,15 +23,4 @@ export interface TenantWithRole extends Tenant {
   role: UserRole;
 }
 
-// Workspace context type definition
-export interface WorkspaceContextType {
-  tenant: Tenant | null;
-  tenantId: string | null;
-  userRole: UserRole | null;
-  tenantsList: TenantWithRole[];
-  loading: boolean;
-  error: Error | null;
-  setTenantId: (id: string) => void;
-  setUserRole: (role: UserRole) => void;
-  refreshTenant: () => void;
-}
+// Workspace context type definition moved to contexts/workspace/types.ts

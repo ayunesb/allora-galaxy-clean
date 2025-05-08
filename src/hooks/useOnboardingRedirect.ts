@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -8,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns Object with shouldRedirectToOnboarding and loading states
  */
 export const useOnboardingRedirect = () => {
-  const navigate = useNavigate();
   const [shouldRedirectToOnboarding, setShouldRedirectToOnboarding] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   

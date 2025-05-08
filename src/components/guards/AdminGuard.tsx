@@ -13,15 +13,15 @@ interface AdminGuardProps {
  * Only allows access if user has admin role
  */
 const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
-  const { tenant, isLoading } = useWorkspace();
+  const { userRole, loading } = useWorkspace();
   
   // Show loading while checking role
-  if (isLoading) {
+  if (loading) {
     return <LoadingScreen />;
   }
   
   // Redirect to unauthorized page if user doesn't have admin role
-  if (!tenant?.role || !['admin', 'owner'].includes(tenant.role)) {
+  if (!userRole || !['admin', 'owner'].includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
   

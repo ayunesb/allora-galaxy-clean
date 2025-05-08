@@ -1,33 +1,36 @@
 
-import { UserRole } from '@/lib/auth/roleTypes';
+import { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { UserRole } from '@/types/shared';
 
 /**
- * Check if the current user has the required role
- * @param requiredRole The role or roles required to access the feature
- * @returns Boolean indicating if the user has the required role
+ * Higher-order component to restrict access based on user role
+ * @param requiredRoles Array of allowed roles
+ * @param children React children
+ * @param fallbackPath Redirect path if role check fails
  */
-export function hasRequiredRole(requiredRole: UserRole | UserRole[]): boolean {
-  const { currentRole } = useWorkspace();
+export const requireRole = (
+  requiredRoles: UserRole[],
+  children: ReactNode,
+  fallbackPath: string = '/unauthorized'
+) => {
+  const { userRole, loading } = useWorkspace();
   
-  if (!currentRole) {
-    return false;
+  // Show loading while checking role
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+      </div>
+    );
   }
   
-  const roleHierarchy: Record<string, number> = {
-    'owner': 4,
-    'admin': 3,
-    'member': 2,
-    'viewer': 1
-  };
-  
-  const userRoleValue = roleHierarchy[currentRole] || 0;
-  
-  if (Array.isArray(requiredRole)) {
-    const requiredValues = requiredRole.map(role => roleHierarchy[role] || 0);
-    const minimumRequired = Math.min(...requiredValues);
-    return userRoleValue >= minimumRequired;
+  // Check if user has required role
+  if (!userRole || !requiredRoles.includes(userRole)) {
+    return <Navigate to={fallbackPath} replace />;
   }
   
-  return userRoleValue >= (roleHierarchy[requiredRole] || 0);
-}
+  // Return children if role check passes
+  return <>{children}</>;
+};

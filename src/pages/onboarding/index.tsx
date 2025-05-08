@@ -11,7 +11,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 const OnboardingPage: React.FC = () => {
   const { tenantId, isAvailable, isLoading: tenantLoading } = useTenantAvailability();
   const { user, loading: authLoading } = useAuth();
-  const { isLoading: workspaceLoading } = useWorkspace();
+  const { loading: workspaceLoading } = useWorkspace();
   const [showWelcome, setShowWelcome] = useState(true);
   
   // Show loading while authentication or workspace data is loading

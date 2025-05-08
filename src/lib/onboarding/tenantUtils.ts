@@ -1,111 +1,69 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Tenant } from '@/contexts/workspace/types';
+import { Tenant } from '@/types/tenant';
 
 /**
- * Check if the user has existing tenants
+ * Checks if a user has existing tenants
+ * @param userId User ID to check
+ * @returns Array of tenant data or empty array if none found
  */
-export async function checkExistingTenants(userId: string): Promise<Tenant[] | null> {
+export async function checkExistingTenants(userId: string): Promise<Tenant[]> {
   try {
-    // First get tenant_ids from tenant_user_roles
-    const { data: userTenants, error: userTenantsError } = await supabase
+    // Get tenant IDs the user is associated with
+    const { data: tenantRoles, error: rolesError } = await supabase
       .from('tenant_user_roles')
       .select('tenant_id, role')
       .eq('user_id', userId);
+      
+    if (rolesError) throw rolesError;
+    if (!tenantRoles || tenantRoles.length === 0) return [];
     
-    if (userTenantsError) {
-      console.error('Error checking tenants:', userTenantsError);
-      return null;
-    }
-    
-    if (!userTenants || userTenants.length === 0) {
-      return [];
-    }
-    
-    // Now fetch the tenant details without using RLS
-    // Create an array of tenant_ids
-    const tenantIds = userTenants.map(ut => ut.tenant_id);
-    
+    // Get tenant details
+    const tenantIds = tenantRoles.map(role => role.tenant_id);
     const { data: tenants, error: tenantsError } = await supabase
       .from('tenants')
-      .select('id, name, slug')
+      .select('*')
       .in('id', tenantIds);
+      
+    if (tenantsError) throw tenantsError;
+    if (!tenants || tenants.length === 0) return [];
     
-    if (tenantsError) {
-      console.error('Error checking tenants:', tenantsError);
-      return null;
-    }
-    
-    // Combine tenant details with roles
+    // Add roles to tenant data
     return tenants.map(tenant => {
-      const userTenant = userTenants.find(ut => ut.tenant_id === tenant.id);
+      const userRole = tenantRoles.find(role => role.tenant_id === tenant.id);
       return {
         ...tenant,
-        role: userTenant?.role
+        role: userRole?.role
       };
     });
   } catch (error) {
-    console.error('Error checking tenants:', error);
-    return null;
+    console.error('Error checking existing tenants:', error);
+    return [];
   }
 }
 
 /**
- * Create a new tenant for a user
+ * Check if a tenant name is available
+ * @param tenantName Tenant name to check
+ * @returns Boolean indicating if the name is available
  */
-export async function createTenant(
-  userId: string,
-  name: string,
-  metadata: Record<string, any> = {}
-): Promise<string | null> {
+export async function isTenantNameAvailable(tenantName: string): Promise<boolean> {
   try {
-    // Generate slug from name
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+    const slug = tenantName.toLowerCase().replace(/\s+/g, '-');
     
-    // Create tenant
-    const { data: tenant, error: tenantError } = await supabase
+    // Check if tenant with this name or slug already exists
+    const { data, error } = await supabase
       .from('tenants')
-      .insert({
-        name,
-        slug,
-        owner_id: userId,
-        metadata
-      })
       .select('id')
-      .single();
+      .or(`name.eq.${tenantName},slug.eq.${slug}`)
+      .maybeSingle();
+      
+    if (error) throw error;
     
-    if (tenantError) {
-      console.error('Error creating tenant:', tenantError);
-      return null;
-    }
-    
-    if (!tenant) {
-      console.error('No tenant created');
-      return null;
-    }
-    
-    // Connect user to tenant with owner role
-    const { error: roleError } = await supabase
-      .from('tenant_user_roles')
-      .insert({
-        tenant_id: tenant.id,
-        user_id: userId,
-        role: 'owner'
-      });
-    
-    if (roleError) {
-      console.error('Error assigning role:', roleError);
-      // Clean up tenant
-      await supabase.from('tenants').delete().eq('id', tenant.id);
-      return null;
-    }
-    
-    return tenant.id;
+    // If no tenant found, the name is available
+    return !data;
   } catch (error) {
-    console.error('Error creating tenant:', error);
-    return null;
+    console.error('Error checking tenant name availability:', error);
+    return false;
   }
 }

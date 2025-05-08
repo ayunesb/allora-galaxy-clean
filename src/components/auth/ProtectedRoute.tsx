@@ -6,7 +6,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const ProtectedRoute: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { isLoading: workspaceLoading } = useWorkspace();
+  const { loading: workspaceLoading } = useWorkspace();
 
   // Show loading state while checking authentication
   if (authLoading || workspaceLoading) {

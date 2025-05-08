@@ -2,7 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WorkspaceContextType } from './types';
 import { getUserTenants } from './workspaceUtils';
-import { Tenant, UserRole } from '@/types/tenant';
+import { Tenant } from '@/types/tenant';
+import { UserRole } from '@/types/shared';
+import { getNavigationItems } from './navigationItems';
 
 export const initialWorkspaceState: WorkspaceContextType = {
   tenant: null,
@@ -10,10 +12,12 @@ export const initialWorkspaceState: WorkspaceContextType = {
   userRole: null,
   tenantsList: [],
   loading: true,
+  isLoading: true, // Add isLoading property
   error: null,
   setTenantId: () => {},
   setUserRole: () => {},
-  refreshTenant: () => {}
+  refreshTenant: () => {},
+  navigationItems: [] // Initialize navigationItems
 };
 
 export const useWorkspaceState = (userId: string | undefined): WorkspaceContextType => {
@@ -66,8 +70,9 @@ export const useWorkspaceState = (userId: string | undefined): WorkspaceContextT
         setTenant({
           id: currentTenant.id,
           name: currentTenant.name,
-          slug: currentTenant.slug
-        });
+          slug: currentTenant.slug,
+          role: currentTenant.role // Include role in tenant object
+        } as Tenant);
         setUserRole(currentTenant.role as UserRole);
       } else {
         setTenant(null);
@@ -91,15 +96,20 @@ export const useWorkspaceState = (userId: string | undefined): WorkspaceContextT
     loadTenantData();
   }, [loadTenantData]);
 
+  // Generate navigation items based on user role
+  const navigationItems = userRole ? getNavigationItems(userRole) : [];
+
   return {
     tenant,
     tenantId,
     userRole,
     tenantsList,
     loading,
+    isLoading: loading, // Map loading to isLoading
     error,
     setTenantId,
     setUserRole,
-    refreshTenant
+    refreshTenant,
+    navigationItems
   };
 };

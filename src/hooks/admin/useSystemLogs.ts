@@ -87,26 +87,35 @@ export function useSystemLogs(tenantId: string | null) {
     if (!tenantId) return;
     
     try {
-      // Fetch distinct modules
+      // For modules, use a direct approach without distinct
       const { data: moduleData, error: moduleError } = await supabase
         .from('system_logs')
         .select('module')
-        .eq('tenant_id', tenantId)
-        .distinct();
+        .eq('tenant_id', tenantId);
       
       if (moduleError) throw moduleError;
       
-      // Fetch distinct events
+      // For events, use a direct approach without distinct
       const { data: eventData, error: eventError } = await supabase
         .from('system_logs')
         .select('event')
-        .eq('tenant_id', tenantId)
-        .distinct();
+        .eq('tenant_id', tenantId);
       
       if (eventError) throw eventError;
       
-      setModules(moduleData.map(item => item.module).filter(Boolean) as SystemEventModule[]);
-      setEvents(eventData.map(item => item.event).filter(Boolean) as SystemEventType[]);
+      // Use Set to get unique values
+      const uniqueModules = new Set<SystemEventModule>();
+      moduleData.forEach((item: { module: SystemEventModule }) => {
+        if (item.module) uniqueModules.add(item.module);
+      });
+      
+      const uniqueEvents = new Set<SystemEventType>();
+      eventData.forEach((item: { event: SystemEventType }) => {
+        if (item.event) uniqueEvents.add(item.event);
+      });
+      
+      setModules(Array.from(uniqueModules));
+      setEvents(Array.from(uniqueEvents));
     } catch (err: any) {
       console.error('Error fetching filters:', err);
     }

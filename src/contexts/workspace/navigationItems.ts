@@ -1,97 +1,106 @@
 
-import { NavigationItem } from '@/types/navigation';
 import { 
   Home, 
-  LayoutGrid, 
-  Plug, 
-  Sparkle, 
-  BarChart3, 
-  Rocket, 
+  Layout, 
   Settings, 
-  ShieldAlert, 
   Users, 
-  FileText, 
-  AlertCircle
+  Package, 
+  Activity, 
+  Rocket,
+  Database,
+  GitBranchPlus,
+  BarChart3,
+  FileText,
+  Bell,
+  Terminal
 } from 'lucide-react';
+import { NavigationItem } from '@/types/navigation';
+import { UserRole } from '@/types/shared';
 
-export const navigationItems: NavigationItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/dashboard',
-    icon: Home
-  },
-  {
-    id: 'galaxy',
-    label: 'Galaxy',
-    path: '/galaxy',
-    icon: LayoutGrid
-  },
-  {
-    id: 'plugins',
-    label: 'Plugins',
-    path: '/plugins',
-    icon: Plug
-  },
-  {
-    id: 'agents',
-    label: 'Agents',
-    path: '/agents/performance',
-    icon: Sparkle
-  },
-  {
-    id: 'insights',
-    label: 'Insights',
-    path: '/insights/kpis',
-    icon: BarChart3
-  },
-  {
-    id: 'launch',
-    label: 'Launch',
-    path: '/launch',
-    icon: Rocket
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    path: '/settings',
-    icon: Settings
-  },
-  {
-    id: 'admin',
-    label: 'Admin',
-    path: '/admin',
-    icon: ShieldAlert,
-    isAdmin: true,
-    children: [
-      {
-        id: 'admin-users',
-        label: 'Users',
-        path: '/admin/users',
-        icon: Users,
-        isAdmin: true
-      },
-      {
-        id: 'admin-plugin-logs',
-        label: 'Plugin Logs',
-        path: '/admin/plugin-logs',
-        icon: FileText,
-        isAdmin: true
-      },
-      {
-        id: 'admin-ai-decisions',
-        label: 'AI Decisions',
-        path: '/admin/ai-decisions',
-        icon: Sparkle,
-        isAdmin: true
-      },
-      {
-        id: 'admin-system-logs',
-        label: 'System Logs',
-        path: '/admin/system-logs',
-        icon: AlertCircle,
-        isAdmin: true
-      }
-    ]
+/**
+ * Get navigation items based on user role
+ * @param role User role
+ * @returns Array of navigation items
+ */
+export function getNavigationItems(role: UserRole): NavigationItem[] {
+  // Common items that all users can see
+  const commonItems: NavigationItem[] = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      path: '/dashboard',
+      icon: Home
+    },
+    {
+      id: 'galaxy',
+      label: 'Galaxy',
+      path: '/galaxy',
+      icon: GitBranchPlus
+    },
+    {
+      id: 'plugins',
+      label: 'Plugins',
+      path: '/plugins',
+      icon: Package
+    },
+    {
+      id: 'launch',
+      label: 'Launch',
+      path: '/launch',
+      icon: Rocket
+    },
+    {
+      id: 'insights',
+      label: 'Insights',
+      path: '/insights',
+      icon: BarChart3,
+      items: [
+        {
+          id: 'kpis',
+          label: 'KPIs',
+          path: '/insights/kpis'
+        },
+        {
+          id: 'reports',
+          label: 'Reports',
+          path: '/insights/reports'
+        }
+      ]
+    },
+  ];
+
+  // Admin-only items
+  const adminItems: NavigationItem[] = [
+    {
+      id: 'admin',
+      label: 'Admin',
+      path: '/admin',
+      icon: Layout,
+      adminOnly: true,
+      items: [
+        {
+          id: 'users',
+          label: 'Users',
+          path: '/admin/users'
+        },
+        {
+          id: 'logs',
+          label: 'System Logs',
+          path: '/admin/logs'
+        },
+        {
+          id: 'settings',
+          label: 'Settings',
+          path: '/admin/settings'
+        }
+      ]
+    }
+  ];
+
+  // Return different items based on role
+  if (role === 'admin' || role === 'owner') {
+    return [...commonItems, ...adminItems];
   }
-];
+  
+  return commonItems;
+}
