@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { getEnvVar } from '@/lib/env/envUtils'; // Ensure this path is correct or create the module
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -31,7 +32,8 @@ export const supabase: SupabaseClient = createClient(
 );
 
 // Export realtime channel functionality
-export const realtime = supabase.realtime;
+// This is needed for the NotificationsContainer component
+export const realtime = supabase.channel.bind(supabase);
 
 // Ensure we export a singleton instance
 export default supabase;
