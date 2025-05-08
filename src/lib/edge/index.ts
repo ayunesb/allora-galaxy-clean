@@ -22,4 +22,3 @@ export {
   getBaseUrl,
   getSafeEnv
 } from '../env';
-
