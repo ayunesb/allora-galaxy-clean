@@ -1,18 +1,12 @@
 
 import { useContext } from 'react';
-import { WorkspaceContext, WorkspaceContextType } from '@/contexts/WorkspaceContext';
+import { WorkspaceContextType, useWorkspace } from '@/contexts/WorkspaceContext';
 
 /**
  * Hook to get the current tenant ID
  * @returns An object containing the tenant ID or null
  */
 export function useTenantId(): { tenantId: string | null } {
-  const context = useContext<WorkspaceContextType>(WorkspaceContext);
-  
-  if (!context) {
-    console.warn('useTenantId must be used within a WorkspaceProvider');
-    return { tenantId: null };
-  }
-  
-  return { tenantId: context.tenant?.id || null };
+  const { tenant } = useWorkspace();
+  return { tenantId: tenant?.id || null };
 }

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Notification, NotificationType } from '@/types/notifications';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';

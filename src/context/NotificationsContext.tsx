@@ -3,32 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-// Remove unused import: import { Notification } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-
-// Define Notification type here to avoid import issues
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  user_id: string;
-  tenant_id: string;
-  created_at: string;
-  read_at: string | null;
-  type: string;
-  metadata?: Record<string, any>;
-  action_url?: string;
-  action_label?: string;
-}
-
-interface NotificationsContextValue {
-  notifications: Notification[];
-  unreadCount: number;
-  markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  loading: boolean;
-  error: Error | null;
-}
+import { Notification, NotificationsContextValue } from './notifications/types';
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
@@ -45,7 +21,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (tenant?.id && user?.id) {
       fetchNotifications();
-      setupRealtimeSubscription();
+      return setupRealtimeSubscription();
     }
   }, [tenant?.id, user?.id]);
 

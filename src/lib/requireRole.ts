@@ -1,9 +1,11 @@
 
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { UserRole } from '@/lib/auth/roleTypes';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 /**
  * Check if the current user has the required role
+ * @param requiredRole The role or roles required to access the feature
+ * @returns Boolean indicating if the user has the required role
  */
 export function hasRequiredRole(requiredRole: UserRole | UserRole[]): boolean {
   const { currentRole } = useWorkspace();

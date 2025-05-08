@@ -3,8 +3,8 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import MainLayout from '@/layouts/MainLayout';
-import AdminLayout from '@/layouts/AdminLayout';
+import MainLayout from '@/components/layout/MainLayout';
+import AdminLayout from '@/components/layout/AdminLayout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { hasRequiredRole } from '@/lib/requireRole';
 

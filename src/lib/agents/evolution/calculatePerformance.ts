@@ -1,10 +1,8 @@
 
-import { supabase } from '@/lib/supabase';
-import { AgentPerformanceMetrics } from './autoEvolveAgents';
-
 /**
  * Calculate performance metrics for an agent to determine if evolution is needed
- * @param pluginId The ID of the plugin
+ * @param feedbackData The feedback data for the agent
+ * @param usageStats Usage statistics for the agent
  * @returns Performance metrics object
  */
 export async function calculateAgentPerformance(feedbackData: any[], usageStats: any[]): Promise<number> {
