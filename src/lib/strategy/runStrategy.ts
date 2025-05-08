@@ -26,7 +26,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
     // 1. Validate input
     const validation = validateStrategyInput(input);
     if (!validation.valid) {
-      throw new Error(validation.error);
+      throw new Error(validation.error || "Invalid input");
     }
     
     // 2. Record execution start
@@ -34,7 +34,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       id: executionId,
       tenantId: input.tenantId,
       strategyId: input.strategyId,
-      executedBy: input.userId || undefined,
+      executedBy: input.userId,
       type: 'strategy',
       status: 'pending',
       input: input.options || {}
@@ -65,7 +65,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
     // 6. Record execution completion
     await recordExecution({
       id: executionId,
-      status: status as 'success' | 'failure' | 'partial' | 'pending',
+      status: status as 'success' | 'failure' | 'pending',
       output: { plugins: pluginResults },
       executionTime
     });
@@ -122,7 +122,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
         status: 'failure',
         error: error.message,
         executionTime: (performance.now() - startTime) / 1000
-      }).catch(e => console.error("Error recording execution failure:", e));
+      });
     } catch (e) {
       console.error("Error recording execution failure:", e);
     }
@@ -138,7 +138,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
           execution_id: executionId,
           error: error.message
         }
-      ).catch(e => console.error("Error logging system event:", e));
+      );
     } catch (e) {
       console.error("Error logging system event:", e);
     }

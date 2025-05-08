@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { NotificationContent } from '@/types/notifications';
 import NotificationList from './NotificationList';
@@ -7,7 +7,6 @@ import NotificationList from './NotificationList';
 interface NotificationCenterTabsProps {
   notifications: NotificationContent[];
   onMarkAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
   onClose: () => void;
   unreadCount: number;
 }
@@ -16,10 +15,9 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   notifications,
   onMarkAsRead,
   onClose,
-  unreadCount,
-  markAllAsRead
+  unreadCount
 }) => {
-  const [tabValue, setTabValue] = useState('all');
+  const [tabValue, setTabValue] = React.useState('all');
 
   return (
     <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">

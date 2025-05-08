@@ -17,7 +17,7 @@ import { format, isToday, isYesterday } from 'date-fns';
 interface NotificationItemProps {
   notification: NotificationContent;
   onMarkAsRead: (id: string) => Promise<void>;
-  onDelete?: (id: string) => void;
+  onDelete?: (id: string) => Promise<any>;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({

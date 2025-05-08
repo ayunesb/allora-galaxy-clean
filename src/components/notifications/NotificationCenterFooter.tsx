@@ -1,21 +1,28 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-react';
 
-const NotificationCenterFooter: React.FC = () => {
+interface NotificationCenterFooterProps {
+  onMarkAllAsRead: () => Promise<void>;
+}
+
+const NotificationCenterFooter: React.FC<NotificationCenterFooterProps> = ({ onMarkAllAsRead }) => {
   return (
-    <div className="p-3 flex justify-center">
+    <div className="border-t p-3 flex justify-between items-center">
       <Button 
-        variant="outline" 
-        size="sm" 
-        className="w-full" 
-        asChild
+        variant="ghost" 
+        size="sm"
+        onClick={() => onMarkAllAsRead()}
       >
-        <Link to="/notifications">
-          <LayoutDashboard className="h-4 w-4 mr-2" />
-          View All Notifications
+        Mark all as read
+      </Button>
+      
+      <Button variant="ghost" size="sm" asChild>
+        <Link to="/notifications" className="flex items-center">
+          <span>View all</span>
+          <ExternalLink className="ml-1 h-3 w-3" />
         </Link>
       </Button>
     </div>

@@ -2,10 +2,17 @@
 /**
  * Interface for environment variable validation
  */
-import { getEnvVar, corsHeaders, EnvVariable, validateEnv as validateEnvironment } from '@/lib/env/envUtils';
+import { getEnvVar, corsHeaders } from '@/lib/env/envUtils';
 
 export { getEnvVar, corsHeaders };
-export type { EnvVariable };
+
+// Define the EnvVariable interface here to avoid importing it
+export interface EnvVariable {
+  name: string;
+  required: boolean;
+  description?: string;
+  default?: string;
+}
 
 /**
  * Validate environment variables
@@ -14,17 +21,23 @@ export type { EnvVariable };
  */
 export function validateEnv(envVars: EnvVariable[]): Record<string, string> {
   const result: Record<string, string> = {};
-  const validationResult = validateEnvironment(envVars);
+  const missing: string[] = [];
   
-  // Add validation result to output for reference
-  result._valid = String(validationResult.valid);
-  result._missing = validationResult.missing.join(',');
-
-  // Add actual env var values to result
   for (const envVar of envVars) {
+    if (envVar.required) {
+      const value = getEnvVar(envVar.name, envVar.default);
+      if (!value) {
+        missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
+      }
+    }
+    
     const value = getEnvVar(envVar.name, envVar.default || '');
     result[envVar.name] = value;
   }
+
+  // Add validation result to output for reference
+  result._valid = String(missing.length === 0);
+  result._missing = missing.join(',');
 
   return result;
 }

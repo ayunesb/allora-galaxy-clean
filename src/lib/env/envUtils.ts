@@ -1,26 +1,52 @@
 
+// Types for environment variables
+export interface EnvVariable {
+  name: string;
+  required: boolean;
+  description?: string;
+  default?: string;
+}
+
+// Environment variable constants
+export const ENV = {
+  SUPABASE_URL: 'VITE_SUPABASE_URL',
+  SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
+  SUPABASE_SERVICE_KEY: 'SUPABASE_SERVICE_ROLE_KEY',
+  STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY',
+  OPENAI_API_KEY: 'VITE_OPENAI_API_KEY',
+  HUBSPOT_API_KEY: 'HUBSPOT_API_KEY',
+  GA_MEASUREMENT_ID: 'VITE_GA_MEASUREMENT_ID',
+};
+
 /**
  * Safely gets environment variables across different runtimes (Node.js, Deno, browser)
  */
 export function getEnvVar(key: string, defaultValue: string = ""): string {
   try {
     // Check for Deno environment
-    if (typeof globalThis !== "undefined" && 
-        "Deno" in globalThis && 
-        globalThis.Deno && 
-        "env" in globalThis.Deno && 
-        typeof globalThis.Deno.env?.get === "function") {
-      return globalThis.Deno.env.get(key) || defaultValue;
+    if (typeof globalThis !== "undefined" && "Deno" in globalThis) {
+      const deno = (globalThis as any).Deno;
+      if (deno && deno.env && typeof deno.env.get === "function") {
+        return deno.env.get(key) || defaultValue;
+      }
     }
     
     // Check for Node.js environment
-    if (typeof process !== "undefined" && process.env && key in process.env) {
+    if (typeof process !== "undefined" && process.env) {
       return process.env[key] || defaultValue;
     }
     
     // Check for browser environment with window.env
-    if (typeof window !== "undefined" && "env" in window && window.env && key in window.env) {
-      return (window.env as Record<string, string>)[key] || defaultValue;
+    if (typeof window !== "undefined" && window.env) {
+      const envObj = window.env as Record<string, string>;
+      if (key in envObj) {
+        return envObj[key] || defaultValue;
+      }
+    }
+    
+    // Special case for Vite env vars in browser
+    if (typeof import.meta !== "undefined" && import.meta.env) {
+      return (import.meta.env[key] as string) || defaultValue;
     }
     
     return defaultValue;
@@ -28,6 +54,27 @@ export function getEnvVar(key: string, defaultValue: string = ""): string {
     console.warn(`Error accessing environment variable ${key}:`, error);
     return defaultValue;
   }
+}
+
+/**
+ * Validate required environment variables
+ */
+export function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  for (const envVar of envVars) {
+    if (envVar.required) {
+      const value = getEnvVar(envVar.name, envVar.default);
+      if (!value) {
+        missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
+      }
+    }
+  }
+  
+  return {
+    valid: missing.length === 0,
+    missing
+  };
 }
 
 // CORS headers for Edge functions

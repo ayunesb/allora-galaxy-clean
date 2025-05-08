@@ -1,5 +1,23 @@
 
-import { EnvVariable, validateEnv, ENV, getEnvVar } from './envUtils';
+import { getEnvVar } from './envUtils';
+
+// Define types for our environment variables
+interface EnvVariable {
+  name: string;
+  required: boolean;
+  description?: string;
+  default?: string;
+}
+
+// Environment variable constants
+const ENV = {
+  SUPABASE_URL: 'VITE_SUPABASE_URL',
+  SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
+  STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY',
+  OPENAI_API_KEY: 'VITE_OPENAI_API_KEY',
+  HUBSPOT_API_KEY: 'HUBSPOT_API_KEY',
+  GA_MEASUREMENT_ID: 'VITE_GA_MEASUREMENT_ID',
+};
 
 /**
  * Core environment variables required by the application
@@ -78,5 +96,26 @@ export function getAllEnvValues(): Record<string, string> {
   return result;
 }
 
+/**
+ * Validate environment variables
+ */
+function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  for (const envVar of envVars) {
+    if (envVar.required) {
+      const value = getEnvVar(envVar.name, envVar.default);
+      if (!value) {
+        missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
+      }
+    }
+  }
+  
+  return {
+    valid: missing.length === 0,
+    missing
+  };
+}
+
 // Re-export getEnvVar for convenience
-export { getEnvVar } from './envUtils';
+export { getEnvVar };

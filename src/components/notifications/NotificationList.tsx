@@ -8,27 +8,35 @@ interface NotificationListProps {
   notifications: NotificationContent[];
   filter: string;
   onMarkAsRead: (id: string) => Promise<void>;
-  onClose: () => void;
+  onClose?: () => void;
+  loading?: boolean;
+  onDelete?: (id: string) => Promise<any>;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({ 
   notifications, 
   filter,
   onMarkAsRead,
-  onClose
+  onClose,
+  loading,
+  onDelete
 }) => {
+  if (loading) {
+    return <div className="p-4 text-center text-muted-foreground">Loading notifications...</div>;
+  }
+  
   if (notifications.length === 0) {
     return <NotificationEmptyState filter={filter} />;
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className="space-y-3 p-2">
       {notifications.map(notification => (
         <NotificationItem
           key={notification.id}
           notification={notification}
           onMarkAsRead={onMarkAsRead}
-          onClose={onClose}
+          onDelete={onDelete}
         />
       ))}
     </div>

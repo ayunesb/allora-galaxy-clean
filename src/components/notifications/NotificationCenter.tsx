@@ -32,21 +32,32 @@ const NotificationCenter: React.FC = () => {
     action_label: notification.action_label
   }));
 
-  const handleMarkAsRead = async (id: string) => {
-    const result = await markAsRead(id);
-    if (result.success) {
+  const handleMarkAsRead = async (id: string): Promise<void> => {
+    try {
+      const result = await markAsRead(id);
+      if (!result.success) {
+        throw result.error || new Error('Failed to mark notification as read');
+      }
       await refreshNotifications();
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
     }
-    return result;
   };
 
   const handleClose = () => {
     setOpen(false);
   };
 
-  const handleMarkAllAsRead = async () => {
-    const result = await markAllAsRead();
-    return result;
+  const handleMarkAllAsRead = async (): Promise<void> => {
+    try {
+      const result = await markAllAsRead();
+      if (!result.success) {
+        throw result.error || new Error('Failed to mark all notifications as read');
+      }
+      await refreshNotifications();
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
   };
 
   return (
@@ -77,12 +88,10 @@ const NotificationCenter: React.FC = () => {
           />
           
           <NotificationCenterTabs
-            loading={loading}
             notifications={transformedNotifications}
-            markAsRead={handleMarkAsRead}
+            onMarkAsRead={handleMarkAsRead}
             onClose={handleClose}
             unreadCount={unreadCount}
-            markAllAsRead={handleMarkAllAsRead}
           />
         </div>
       </PopoverContent>

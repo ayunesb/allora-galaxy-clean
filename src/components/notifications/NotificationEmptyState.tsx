@@ -1,37 +1,32 @@
 
 import React from 'react';
-import { Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Bell } from 'lucide-react';
 
 interface NotificationEmptyStateProps {
-  selectedTab: string;
-  filter: string | null;
-  className?: string;
+  filter: string;
 }
 
-const NotificationEmptyState: React.FC<NotificationEmptyStateProps> = ({ 
-  selectedTab,
-  filter,
-  className 
-}) => {
-  const getEmptyStateMessage = () => {
-    let message = 'No notifications to show';
-    
-    if (selectedTab === 'unread') {
-      message = 'You don\'t have any unread notifications';
-    } else if (selectedTab === 'all' && !filter) {
-      message = 'You don\'t have any notifications yet';
-    } else if (filter) {
-      message = `No ${filter} notifications`;
+const NotificationEmptyState: React.FC<NotificationEmptyStateProps> = ({ filter }) => {
+  const getMessage = () => {
+    switch (filter) {
+      case 'unread':
+        return "You have no unread notifications";
+      case 'system':
+        return "No system notifications";
+      default:
+        return "You don't have any notifications yet";
     }
-    
-    return message;
   };
 
   return (
-    <div className={cn("flex flex-col items-center justify-center h-[300px] text-center p-4", className)}>
-      <Info className="h-8 w-8 text-muted-foreground mb-2" />
-      <p className="text-muted-foreground">{getEmptyStateMessage()}</p>
+    <div className="flex flex-col items-center justify-center py-12 px-4">
+      <div className="bg-muted rounded-full p-3 mb-4">
+        <Bell className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="font-medium text-lg">{getMessage()}</h3>
+      <p className="text-muted-foreground text-center mt-2">
+        Notifications about your account and activity will appear here
+      </p>
     </div>
   );
 };

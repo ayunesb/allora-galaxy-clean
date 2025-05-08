@@ -23,6 +23,14 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   markAsRead,
   onDelete
 }) => {
+  const handleMarkAsRead = async (id: string): Promise<void> => {
+    await markAsRead(id);
+  };
+
+  const handleDelete = async (id: string): Promise<void> => {
+    await onDelete(id);
+  };
+
   return (
     <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
       <TabsList className="mb-6">
@@ -36,8 +44,8 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
             notifications={notifications} 
             loading={loading} 
             filter={selectedTab}
-            markAsRead={markAsRead}
-            onDelete={onDelete}
+            onMarkAsRead={handleMarkAsRead}
+            onDelete={handleDelete}
           />
         </CardContent>
       </Card>

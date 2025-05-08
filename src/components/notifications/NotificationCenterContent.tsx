@@ -59,7 +59,6 @@ export const NotificationCenterContent: React.FC<NotificationCenterContentProps>
             notifications={transformedNotifications} 
             onMarkAsRead={handleMarkAsRead}
             unreadCount={transformedNotifications.filter(n => !n.read).length}
-            markAllAsRead={onMarkAllAsRead}
             onClose={onClose}
           />
         )}
