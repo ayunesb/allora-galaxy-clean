@@ -1,70 +1,52 @@
 
 import React from 'react';
-import { useNotificationsContext } from '@/context/NotificationsContext';
-import NotificationCenterHeader from './NotificationCenterHeader';
-import NotificationCenterTabs from './NotificationCenterTabs';
-import NotificationCenterFooter from './NotificationCenterFooter';
+import { Notification } from '@/types/notifications';
+import NotificationItem from './NotificationItem';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
-import { NotificationContent } from '@/types/notifications';
 
-interface NotificationCenterContentProps {
-  onClose: () => void;
-  onMarkAllAsRead: () => Promise<void>;
+export interface NotificationCenterContentProps {
+  notifications: Notification[];
+  onMarkAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  onClose?: () => void;
+  loading?: boolean;
 }
 
-export const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
+const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
+  notifications,
+  onMarkAsRead,
+  onDelete,
   onClose,
-  onMarkAllAsRead
+  loading = false
 }) => {
-  const { notifications, loading, markAsRead } = useNotificationsContext();
+  if (loading) {
+    return <NotificationCenterLoading />;
+  }
 
-  const handleMarkAsRead = async (id: string): Promise<void> => {
-    try {
-      const result = await markAsRead(id);
-      if (!result.success) {
-        throw result.error || new Error('Failed to mark notification as read');
-      }
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
-    }
-  };
-
-  // Transform Notification[] to NotificationContent[]
-  const transformedNotifications: NotificationContent[] = notifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.message || notification.description || '',
-    timestamp: notification.created_at,
-    read: notification.is_read || false,
-    type: notification.type,
-    action_url: notification.action_url,
-    action_label: notification.action_label
-  }));
+  if (notifications.length === 0) {
+    return <NotificationCenterEmptyState />;
+  }
 
   return (
-    <div className="flex flex-col h-full">
-      <NotificationCenterHeader 
-        onClose={onClose} 
-        markAllAsRead={onMarkAllAsRead}
-      />
-      
-      <div className="flex-1 overflow-hidden">
-        {loading ? (
-          <NotificationCenterLoading />
-        ) : transformedNotifications.length === 0 ? (
-          <NotificationCenterEmptyState />
-        ) : (
-          <NotificationCenterTabs 
-            notifications={transformedNotifications} 
-            onMarkAsRead={handleMarkAsRead}
-            unreadCount={transformedNotifications.filter(n => !n.read).length}
-            onClose={onClose}
-          />
-        )}
-      </div>
-      
-      <NotificationCenterFooter onMarkAllAsRead={onMarkAllAsRead} />
+    <div className="space-y-2 p-2">
+      {notifications.map((notification) => (
+        <NotificationItem
+          key={notification.id}
+          notification={{
+            id: notification.id,
+            title: notification.title,
+            message: notification.description || '',
+            timestamp: notification.created_at,
+            read: notification.is_read || false,
+            type: notification.type || 'info',
+            action_url: notification.action_url,
+            action_label: notification.action_label,
+          }}
+          onMarkAsRead={onMarkAsRead}
+          onDelete={onDelete}
+        />
+      ))}
     </div>
   );
 };

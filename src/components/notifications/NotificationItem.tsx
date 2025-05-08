@@ -1,20 +1,14 @@
 
 import React from 'react';
-import { 
-  Info, 
-  AlertCircle, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Bell,
-  Trash2,
-  MailOpen
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
 import { NotificationContent } from '@/types/notifications';
-import { format, isToday, isYesterday } from 'date-fns';
+import { Card } from '@/components/ui/card';
+import { CheckCircle, Bell, AlertCircle, Info, X, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-interface NotificationItemProps {
+export interface NotificationItemProps {
   notification: NotificationContent;
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<any>;
@@ -27,114 +21,82 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
 }) => {
   const getIcon = () => {
     switch (notification.type) {
-      case 'info':
-        return <Info className="h-4 w-4 text-blue-500" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-destructive" />;
       case 'success':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case 'system':
-        return <Bell className="h-4 w-4 text-purple-500" />;
+        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      case 'error':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'info':
       default:
-        return <Info className="h-4 w-4 text-blue-500" />;
-    }
-  };
-  
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    if (isToday(date)) {
-      return `Today at ${format(date, 'p')}`;
-    } else if (isYesterday(date)) {
-      return `Yesterday at ${format(date, 'p')}`;
-    } else {
-      return format(date, 'MMM d, yyyy');
-    }
-  };
-  
-  const handleMarkAsRead = async () => {
-    await onMarkAsRead(notification.id);
-  };
-  
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(notification.id);
+        return <Info className="h-5 w-5 text-blue-500" />;
     }
   };
 
-  return (
-    <div 
-      className={cn(
-        "flex flex-col p-3 rounded-lg",
-        notification.read ? "bg-muted/50" : "bg-card border border-border"
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <div className="mt-0.5">{getIcon()}</div>
-          <h4 className="font-medium text-sm">{notification.title}</h4>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {formatDate(notification.timestamp)}
-        </span>
+  const formattedDate = notification.timestamp
+    ? format(new Date(notification.timestamp), 'MMM d, h:mm a')
+    : '';
+
+  const handleMarkAsRead = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await onMarkAsRead(notification.id);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      await onDelete(notification.id);
+    }
+  };
+
+  const cardContent = (
+    <div className="flex items-start gap-3 p-3">
+      <div className="flex-shrink-0 mt-1">{getIcon()}</div>
+      <div className="flex-grow min-w-0">
+        <h4 className="font-medium text-sm">{notification.title}</h4>
+        <p className="text-muted-foreground text-xs mt-1 line-clamp-2">{notification.message}</p>
+        <div className="text-xs text-muted-foreground mt-2">{formattedDate}</div>
       </div>
-      
-      {notification.message && (
-        <p className="mt-1 text-sm text-muted-foreground ml-6">
-          {notification.message}
-        </p>
-      )}
-      
-      {(notification.action_url && notification.action_label) && (
-        <a 
-          href={notification.action_url}
-          className="text-sm text-primary mt-2 ml-6 hover:underline"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {notification.action_label}
-        </a>
-      )}
-      
-      {!notification.read && (
-        <div className="flex justify-end gap-2 mt-2">
-          {onDelete && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="h-7 px-2"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              <span className="text-xs">Delete</span>
-            </Button>
-          )}
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="h-7 px-2"
-            onClick={handleMarkAsRead}
-          >
-            <MailOpen className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Mark as read</span>
-          </Button>
-        </div>
-      )}
-      {notification.read && onDelete && (
-        <div className="flex justify-end mt-2">
+      <div className="flex flex-shrink-0 gap-1">
+        {!notification.read && (
           <Button 
             variant="ghost" 
-            size="sm"
-            className="h-7 px-2"
-            onClick={handleDelete}
+            size="icon" 
+            className="h-7 w-7" 
+            onClick={handleMarkAsRead}
+            title="Mark as read"
           >
-            <Trash2 className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Delete</span>
+            <X className="h-4 w-4" />
           </Button>
-        </div>
-      )}
+        )}
+        {onDelete && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7 text-muted-foreground hover:text-destructive" 
+            onClick={handleDelete}
+            title="Delete notification"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
+  );
+
+  return (
+    <Card 
+      className={cn(
+        "transition-all hover:bg-muted/50 cursor-pointer",
+        !notification.read && "border-l-4 border-l-primary"
+      )}
+    >
+      {notification.action_url ? (
+        <Link to={notification.action_url}>{cardContent}</Link>
+      ) : (
+        cardContent
+      )}
+    </Card>
   );
 };
 

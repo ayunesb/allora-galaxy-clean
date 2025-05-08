@@ -27,7 +27,12 @@ interface KpiData {
  */
 function getEnv(name: string, fallback: string = ""): string {
   try {
-    return Deno.env.get(name) ?? fallback;
+    // Use type assertion here for Deno environment
+    const deno = (globalThis as any).Deno;
+    if (deno && typeof deno.env?.get === "function") {
+      return deno.env.get(name) ?? fallback;
+    }
+    return fallback;
   } catch (err) {
     console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;

@@ -1,6 +1,6 @@
 
 import { recordExecution } from '@/lib/plugins/execution/recordExecution';
-import { ExecuteStrategyResult, ValidationResult } from '@/types/strategy';
+import { ExecuteStrategyResult } from '@/types/strategy';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { validateStrategyInput } from './utils/validateInput';
 import { verifyStrategy } from './utils/verifyStrategy';
@@ -34,7 +34,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       id: executionId,
       tenantId: input.tenantId,
       strategyId: input.strategyId,
-      executedBy: input.userId,
+      executedBy: input.userId || undefined,
       type: 'strategy',
       status: 'pending',
       input: input.options || {}
@@ -65,6 +65,8 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
     // 6. Record execution completion
     await recordExecution({
       id: executionId,
+      tenantId: input.tenantId,
+      type: 'strategy',
       status: status as 'success' | 'failure' | 'pending',
       output: { plugins: pluginResults },
       executionTime

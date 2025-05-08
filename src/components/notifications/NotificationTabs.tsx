@@ -10,7 +10,6 @@ interface NotificationTabsProps {
   setSelectedTab: (value: string) => void;
   notifications: NotificationContent[];
   loading: boolean;
-  filter?: string | null;
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   onDelete: (id: string) => Promise<{ success: boolean; error?: Error }>;
 }
@@ -26,10 +25,13 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   const handleMarkAsRead = async (id: string): Promise<void> => {
     await markAsRead(id);
   };
-
-  const handleDelete = async (id: string): Promise<void> => {
-    await onDelete(id);
-  };
+  
+  const filteredNotifications = React.useMemo(() => {
+    if (selectedTab === 'unread') {
+      return notifications.filter(notification => !notification.read);
+    }
+    return notifications;
+  }, [notifications, selectedTab]);
 
   return (
     <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
@@ -41,11 +43,11 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
       <Card>
         <CardContent className="p-6">
           <NotificationList 
-            notifications={notifications} 
+            notifications={filteredNotifications} 
             loading={loading} 
             filter={selectedTab}
             onMarkAsRead={handleMarkAsRead}
-            onDelete={handleDelete}
+            onDelete={onDelete}
           />
         </CardContent>
       </Card>

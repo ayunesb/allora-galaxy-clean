@@ -25,6 +25,7 @@ export function getEnvVar(key: string, defaultValue: string = ""): string {
   try {
     // Check for Deno environment
     if (typeof globalThis !== "undefined" && "Deno" in globalThis) {
+      // Use type assertion to handle the Deno global
       const deno = (globalThis as any).Deno;
       if (deno && deno.env && typeof deno.env.get === "function") {
         return deno.env.get(key) || defaultValue;
@@ -36,9 +37,9 @@ export function getEnvVar(key: string, defaultValue: string = ""): string {
       return process.env[key] || defaultValue;
     }
     
-    // Check for browser environment with window.env
-    if (typeof window !== "undefined" && window.env) {
-      const envObj = window.env as Record<string, string>;
+    // Check for browser environment with custom env object
+    if (typeof window !== "undefined" && typeof (window as any).ENV === 'object') {
+      const envObj = (window as any).ENV as Record<string, string>;
       if (key in envObj) {
         return envObj[key] || defaultValue;
       }
