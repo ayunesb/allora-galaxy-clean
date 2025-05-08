@@ -1,206 +1,69 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData';
+import { OnboardingFormData } from '@/types/onboarding';
+import { useOnboardingForm } from './useOnboardingForm';
+import { useOnboardingSteps } from './useOnboardingSteps';
+import { useOnboardingTenants } from './useOnboardingTenants';
+import { useOnboardingSubmission } from './useOnboardingSubmission';
 import { useStrategyGeneration } from './useStrategyGeneration';
-import { sendNotification } from '@/lib/notifications/sendNotification';
 
 export function useOnboardingWizard() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [tenantsList, setTenantsList] = useState<any[]>([]);
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
-  const { isGenerating: isGeneratingStrategy, generateStrategy } = useStrategyGeneration();
+  const { toast } = useToast();
+  const { isGenerating, generateStrategy } = useStrategyGeneration();
+  const { formData, updateFormData, setFieldValue, validateStep } = useOnboardingForm();
+  const { tenantsList, hasTenants } = useOnboardingTenants(currentUser);
   
-  // Initial form data - ensure it matches OnboardingFormData interface
-  const [formData, setFormData] = useState<OnboardingFormData>({
-    companyName: '',
-    industry: '',
-    companySize: '',
-    website: '',
-    revenueRange: '',
-    description: '',
-    goals: [],
-    persona: { 
-      name: '',
-      goals: [],
-      tone: ''
-    },
-    additionalInfo: ''
-  });
-
-  // Define steps
-  const steps = [
-    { id: 'company-info' as OnboardingStep, label: 'Company Info' },
-    { id: 'persona' as OnboardingStep, label: 'Target Persona' },
-    { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
-    { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
-  ];
-
-  // Check if user already has tenants
-  useEffect(() => {
-    if (currentUser?.id) {
-      checkExistingTenants();
-    }
-  }, [currentUser]);
-
-  // Check if user already has tenants
-  const checkExistingTenants = async () => {
-    try {
-      if (!currentUser?.id) return;
-      
-      const { data, error } = await supabase
-        .from('tenant_user_roles')
-        .select('tenant_id')
-        .eq('user_id', currentUser.id);
-      
-      if (error) {
-        console.error('Error checking tenants:', error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        setTenantsList(data);
-      }
-    } catch (err) {
-      console.error('Error checking tenants:', err);
-    }
-  };
-
-  // Update form data
-  const updateFormData = (data: Partial<OnboardingFormData>) => {
-    setFormData(prev => ({ ...prev, ...data }));
-  };
-
-  // Set a specific field value
-  const setFieldValue = (key: string, value: any) => {
-    // Handle nested fields like persona.name
-    if (key.includes('.')) {
-      const [parent, child] = key.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...(prev[parent as keyof OnboardingFormData] as Record<string, any>),
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [key]: value }));
-    }
-  };
-
-  // Navigate to next step
-  const handleNextStep = () => {
-    if (currentStep < steps.length - 1) {
-      // Validate current step before proceeding
-      const validationResult = validateCurrentStep();
-      if (!validationResult.valid) {
-        // Show validation errors
-        toast({
-          title: "Validation Error",
-          description: Object.values(validationResult.errors).join(', '),
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setCurrentStep(currentStep + 1);
-      
-      // Log step completion
-      logSystemEvent('system', 'onboarding', 'step_completed', {
-        step: steps[currentStep].id,
-        next_step: steps[currentStep + 1].id
-      }).catch(err => console.error('Failed to log step:', err));
-    }
-  };
-
-  // Navigate to previous step
-  const handlePrevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  // Navigate to specific step
-  const handleStepClick = (step: number) => {
-    // Only allow clicking on steps that have been completed or the next available step
-    if (step <= currentStep || step === currentStep + 1) {
-      setCurrentStep(step);
-    }
-  };
-
   // Validate current step
   const validateCurrentStep = () => {
     const stepId = steps[currentStep].id;
-    return validateOnboardingData(formData, stepId);
+    const validation = validateStep(stepId);
+    
+    if (!validation.valid) {
+      // Show validation errors
+      toast({
+        title: "Validation Error",
+        description: Object.values(validation.errors).join(', '),
+        variant: "destructive"
+      });
+    }
+    
+    return validation;
   };
-
+  
+  // Initialize steps management
+  const {
+    steps,
+    currentStep,
+    step,
+    handleNextStep,
+    handlePrevStep,
+    handleStepClick
+  } = useOnboardingSteps(validateCurrentStep);
+  
+  // Initialize submission handling
+  const {
+    isSubmitting,
+    error,
+    handleSubmit: submitForm,
+    resetError
+  } = useOnboardingSubmission(generateStrategy);
+  
   // Check if current step is valid
   const isStepValid = () => {
-    return validateCurrentStep().valid;
+    return validateStep(steps[currentStep].id).valid;
   };
-
-  // Reset error
-  const resetError = () => {
-    setError(null);
-  };
-
-  // Submit form
+  
+  // Handle form submission
   const handleSubmit = async () => {
     // For the final step, we need to generate a strategy
     if (currentStep === steps.length - 1) {
-      try {
-        setIsSubmitting(true);
-        setError(null);
-        
-        // Generate strategy
-        const result = await generateStrategy(formData);
-        
-        if (result.success) {
-          // Send notification
-          await sendNotification({
-            title: 'Welcome to Allora OS',
-            description: 'Your workspace is ready! We\'ve created your initial strategy.',
-            type: 'success',
-            tenant_id: result.tenantId || '',
-            user_id: currentUser?.id || '',
-            action_label: 'View Dashboard',
-            action_url: '/dashboard'
-          });
-          
-          toast({
-            title: 'Welcome to Allora OS!',
-            description: 'Your workspace has been created successfully.',
-          });
-          
-          // Navigate to dashboard
-          navigate('/dashboard');
-        } else {
-          setError(result.error || 'Failed to create workspace');
-          toast({
-            title: 'Error',
-            description: result.error || 'Failed to create workspace',
-            variant: 'destructive',
-          });
-        }
-      } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred');
-        toast({
-          title: 'Error',
-          description: err.message || 'An unexpected error occurred',
-          variant: 'destructive',
-        });
-        console.error('Onboarding error:', err);
-      } finally {
-        setIsSubmitting(false);
+      const success = await submitForm(formData);
+      if (success) {
+        // Navigate to dashboard
+        navigate('/dashboard');
       }
     } else {
       // Otherwise, move to the next step
@@ -209,7 +72,7 @@ export function useOnboardingWizard() {
   };
 
   return {
-    step: steps[currentStep],
+    step,
     currentStep,
     formData,
     steps,
@@ -226,6 +89,7 @@ export function useOnboardingWizard() {
     resetError,
     validateCurrentStep,
     setFieldValue,
-    isGeneratingStrategy
+    isGeneratingStrategy: isGenerating,
+    hasTenants
   };
 }

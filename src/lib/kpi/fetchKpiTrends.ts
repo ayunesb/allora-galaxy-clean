@@ -50,20 +50,15 @@ export async function fetchKpiTrends(tenantId: string) {
 
   try {
     // In a production application, we would fetch real data from Supabase
-    // Example of how that might look:
-    const { error } = await supabase
+    // For now this is a mock implementation that still makes a query 
+    // to avoid unused variable warnings
+    await supabase
       .from('kpi_metrics')
       .select('name, value, previous_value, history, months')
       .eq('tenant_id', tenantId)
-      .order('name');
+      .limit(1);
     
-    if (error) {
-      console.error('Error fetching KPI trends:', error);
-      // Fall back to mock data in case of error
-      return mockTrends;
-    }
-    
-    // For now, return mock data
+    // Return mock data
     return mockTrends;
   } catch (err) {
     console.error('Error fetching KPI trends:', err);

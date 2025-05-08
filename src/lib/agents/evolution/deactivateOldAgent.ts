@@ -36,3 +36,6 @@ export async function deactivateAgentVersion(
 
 // For backward compatibility
 export const deactivateOldAgent = deactivateAgentVersion;
+
+// Export a common alias for consistency
+export { deactivateAgentVersion as deactivateAgent };

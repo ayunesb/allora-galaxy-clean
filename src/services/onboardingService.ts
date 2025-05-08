@@ -21,8 +21,8 @@ export const validateOnboardingData = (formData: OnboardingFormData) => {
     errors.industry = 'Industry is required';
   }
   
-  if (!formData.teamSize?.trim()) {
-    errors.teamSize = 'Team size is required';
+  if (!formData.companySize?.trim()) {
+    errors.companySize = 'Company size is required';
   }
   
   if (!formData.revenueRange?.trim()) {
@@ -30,15 +30,20 @@ export const validateOnboardingData = (formData: OnboardingFormData) => {
   }
   
   // Persona validation
-  if (!formData.personaName?.trim()) {
+  if (!formData.persona?.name?.trim()) {
     errors.personaName = 'Persona name is required';
   }
   
-  if (!formData.tone?.trim()) {
+  if (!formData.persona?.tone?.trim()) {
     errors.tone = 'Tone is required';
   }
   
-  if (!formData.goals?.trim()) {
+  // Handle goals validation for both string and array types
+  if (Array.isArray(formData.goals)) {
+    if (formData.goals.length === 0) {
+      errors.goals = 'Goals are required';
+    }
+  } else if (!formData.goals?.trim()) {
     errors.goals = 'Goals are required';
   }
   
@@ -97,7 +102,7 @@ export const submitOnboardingData = async (
         owner_id: userId,
         metadata: {
           industry: formData.industry,
-          size: formData.teamSize,
+          size: formData.companySize,
           revenue_range: formData.revenueRange
         }
       })
@@ -125,7 +130,7 @@ export const submitOnboardingData = async (
         tenant_id: newTenant.id,
         name: formData.companyName,
         industry: formData.industry,
-        size: formData.teamSize,
+        size: formData.companySize,
         revenue_range: formData.revenueRange,
         website: formData.website,
         description: formData.description,
@@ -133,14 +138,18 @@ export const submitOnboardingData = async (
 
     if (companyError) throw companyError;
 
-    // Create persona profile
+    // Create persona profile with goals handling for both array and string types
+    const goalsArray = Array.isArray(formData.persona.goals) 
+      ? formData.persona.goals.filter(goal => goal.trim() !== '')
+      : formData.goals.toString().split('\n').filter(goal => goal.trim() !== '');
+
     const { error: personaError } = await supabase
       .from('persona_profiles')
       .insert({
         tenant_id: newTenant.id,
-        name: formData.personaName,
-        tone: formData.tone,
-        goals: formData.goals.split('\n').filter(goal => goal.trim() !== ''),
+        name: formData.persona.name,
+        tone: formData.persona.tone,
+        goals: goalsArray,
       });
 
     if (personaError) throw personaError;

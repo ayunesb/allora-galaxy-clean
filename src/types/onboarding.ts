@@ -48,3 +48,10 @@ export interface GenerateStrategyResult {
   };
   tenantId?: string;
 }
+
+export interface OnboardingSubmissionResult {
+  success: boolean;
+  tenantId?: string;
+  strategyId?: string;
+  error?: string;
+}
