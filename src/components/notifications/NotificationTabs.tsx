@@ -10,7 +10,7 @@ interface NotificationTabsProps {
   notifications: NotificationContent[];
   loading?: boolean;
   markAsRead: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<any>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const NotificationTabs: React.FC<NotificationTabsProps> = ({

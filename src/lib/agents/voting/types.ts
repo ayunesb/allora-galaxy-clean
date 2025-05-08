@@ -27,9 +27,9 @@ export interface AgentVoteStats {
 
 export interface UserVote {
   id?: string;
-  agentVersionId?: string;
+  agentVersionId: string;
   userId?: string;
-  voteType?: VoteType;
+  voteType: VoteType;
   comment?: string;
   createdAt?: string;
   success?: boolean;
@@ -48,7 +48,7 @@ export type VoteOnAgentVersionFn = (
   comment?: string
 ) => Promise<VoteResult>;
 
-// Declare placeholder function with proper signature
+// Placeholder function with proper signature
 export const voteOnAgentVersion: VoteOnAgentVersionFn = async (
   agentVersionId: string, 
   voteType: VoteType, 
@@ -62,7 +62,7 @@ export const voteOnAgentVersion: VoteOnAgentVersionFn = async (
   };
 };
 
-// Expose wrapper functions with the correct types
+// Wrapper functions with the correct types
 export const upvoteAgentVersion = (agentVersionId: string, comment?: string) => 
   voteOnAgentVersion(agentVersionId, 'up' as VoteType, comment);
 

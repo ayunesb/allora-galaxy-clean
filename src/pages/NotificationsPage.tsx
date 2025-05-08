@@ -1,36 +1,31 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-// Replace the problematic import with the components directly
-import { NotificationsContainer } from '@/components/notifications/NotificationsContainer';
-import { NotificationsPageHeader } from '@/components/notifications/NotificationsPageHeader';
+import { useState } from 'react';
+import PageHelmet from '@/components/PageHelmet';
+import NotificationsContainer from '@/components/notifications/NotificationsContainer';
 
-// Define internal type for notification filtering
-export type NotificationType = 'all' | 'unread' | 'system' | 'alerts';
+// Define a type for notification filter values
+type NotificationType = 'all' | 'unread' | 'system';
 
-export default function NotificationsPage() {
-  const navigate = useNavigate();
-  const [activeFilter, setActiveFilter] = useState<NotificationType>('all');
+const NotificationsPage: React.FC = () => {
+  const [filter, setFilter] = useState<string | null>(null);
+
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+  };
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" className="mr-2" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">Notifications</h1>
-      </div>
-
-      <div className="bg-background rounded-lg border shadow-sm">
-        <NotificationsPageHeader 
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-        />
-        <NotificationsContainer filter={activeFilter} />
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <PageHelmet 
+        title="Notifications" 
+        description="View and manage your notifications"
+      />
+      
+      <NotificationsContainer 
+        filter={filter}
+        setFilter={handleFilterChange}
+      />
     </div>
   );
-}
+};
+
+export default NotificationsPage;

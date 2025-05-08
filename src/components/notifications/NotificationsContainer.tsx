@@ -4,7 +4,6 @@ import { useNotificationData } from '@/hooks/useNotificationData';
 import { useNotificationActions } from '@/hooks/useNotificationActions';
 import NotificationTabs from './NotificationTabs';
 import { NotificationsPageHeader } from './NotificationsPageHeader';
-import NotificationList from './NotificationList';
 import NotificationEmptyState from './NotificationEmptyState';
 
 interface NotificationsContainerProps {
@@ -30,6 +29,15 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Wrap refresh to match expected Promise<void> return type
+  const handleRefresh = async (): Promise<void> => {
+    try {
+      await refresh();
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+    }
+  };
+
   return (
     <div className="bg-background rounded-lg border shadow-sm">
       <NotificationsPageHeader
@@ -44,15 +52,18 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : notifications.length > 0 ? (
-        <NotificationList 
+        <NotificationTabs 
+          selectedTab={selectedTab}
+          setSelectedTab={handleTabChange}
           notifications={notifications} 
+          markAsRead={markAsRead}
           onDelete={deleteNotification}
-          onMarkAsRead={markAsRead}
+          loading={false}
         />
       ) : (
         <NotificationEmptyState 
           filter={selectedTab} 
-          onRefresh={refresh}
+          onRefresh={handleRefresh}
         />
       )}
     </div>
