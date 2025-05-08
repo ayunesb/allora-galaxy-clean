@@ -1,104 +1,76 @@
 
-import { 
-  Home, 
-  Layout, 
-  Settings, 
-  Users, 
-  Package, 
-  Activity, 
+import { UserRole, NavigationItem } from '@/types/shared';
+import {
+  Home,
   Rocket,
-  Database,
-  GitBranchPlus,
   BarChart3,
+  Settings,
+  Users,
+  LayoutDashboard,
+  Activity,
+  Globe,
+  Database,
+  Layers,
+  Puzzle,
   FileText,
   Bell,
   Terminal
 } from 'lucide-react';
-import { NavigationItem } from '@/types/navigation';
-import { UserRole } from '@/types/shared';
 
 /**
  * Get navigation items based on user role
- * @param role User role
+ * 
+ * @param userRole The user's role in the system
  * @returns Array of navigation items
  */
-export function getNavigationItems(role: UserRole): NavigationItem[] {
-  // Common items that all users can see
+export function getNavigationItems(userRole: UserRole | string): NavigationItem[] {
+  // Common navigation items for all authenticated users
   const commonItems: NavigationItem[] = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      path: '/dashboard',
-      icon: Home
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />
     },
     {
-      id: 'galaxy',
-      label: 'Galaxy',
-      path: '/galaxy',
-      icon: GitBranchPlus
+      title: 'Galaxy',
+      href: '/galaxy',
+      icon: <Globe className="h-5 w-5" />
     },
     {
-      id: 'plugins',
-      label: 'Plugins',
-      path: '/plugins',
-      icon: Package
+      title: 'Launch',
+      href: '/launch',
+      icon: <Rocket className="h-5 w-5" />
     },
     {
-      id: 'launch',
-      label: 'Launch',
-      path: '/launch',
-      icon: Rocket
+      title: 'Plugins',
+      href: '/plugins',
+      icon: <Puzzle className="h-5 w-5" />
     },
     {
-      id: 'insights',
-      label: 'Insights',
-      path: '/insights',
-      icon: BarChart3,
-      items: [
-        {
-          id: 'kpis',
-          label: 'KPIs',
-          path: '/insights/kpis'
-        },
-        {
-          id: 'reports',
-          label: 'Reports',
-          path: '/insights/reports'
-        }
-      ]
-    },
-  ];
-
-  // Admin-only items
-  const adminItems: NavigationItem[] = [
-    {
-      id: 'admin',
-      label: 'Admin',
-      path: '/admin',
-      icon: Layout,
-      adminOnly: true,
-      items: [
-        {
-          id: 'users',
-          label: 'Users',
-          path: '/admin/users'
-        },
-        {
-          id: 'logs',
-          label: 'System Logs',
-          path: '/admin/logs'
-        },
-        {
-          id: 'settings',
-          label: 'Settings',
-          path: '/admin/settings'
-        }
-      ]
+      title: 'Insights',
+      href: '/insights/kpis',
+      icon: <BarChart3 className="h-5 w-5" />
     }
   ];
-
-  // Return different items based on role
-  if (role === 'admin' || role === 'owner') {
+  
+  // Admin-only navigation items
+  const adminItems: NavigationItem[] = [
+    {
+      title: 'Admin',
+      href: '/admin',
+      icon: <Settings className="h-5 w-5" />,
+      adminOnly: true
+    },
+    {
+      title: 'System Logs',
+      href: '/admin/logs',
+      icon: <Layers className="h-5 w-5" />,
+      adminOnly: true
+    }
+  ];
+  
+  // Determine which items to show based on role
+  if (['owner', 'admin'].includes(userRole)) {
     return [...commonItems, ...adminItems];
   }
   

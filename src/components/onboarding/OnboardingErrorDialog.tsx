@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -29,10 +30,10 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
   React.useEffect(() => {
     if (error) {
       logSystemEvent(
-        tenant_id,
-        'system',
-        'onboarding_error',
-        { error }
+        'onboarding',
+        'error',
+        { error },
+        tenant_id
       ).catch(err => console.error('Failed to log onboarding error:', err));
     }
   }, [error, tenant_id]);
@@ -50,57 +51,51 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
       onClose();
     } catch (retryError: any) {
       setIsRetrying(false);
-      console.error('Retry failed:', retryError);
-      
-      // Log the retry failure
       logSystemEvent(
-        tenant_id,
-        'system',
-        'onboarding_retry_failed',
-        { original_error: error, retry_error: retryError.message }
+        'onboarding',
+        'error',
+        { 
+          error: retryError.message || 'Unknown retry error', 
+          original_error: error 
+        },
+        tenant_id
       ).catch(err => console.error('Failed to log retry error:', err));
       
-      notifyError(
-        'Retry Failed',
-        retryError.message || 'Failed to retry the operation. Please try again later.'
-      );
+      notifyError('Retry failed', retryError.message || 'Unable to retry operation');
     }
   };
 
   return (
-    <AlertDialog open={!!error} onOpenChange={onClose}>
-      <AlertDialogContent className="sm:max-w-md">
+    <AlertDialog open={!!error} onOpenChange={() => onClose()}>
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            Error During Onboarding
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-base">
+          <AlertCircle className="h-6 w-6 text-red-500 mb-2" />
+          <AlertDialogTitle>Error</AlertDialogTitle>
+          <AlertDialogDescription>
             {error}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="sm:justify-between">
-          <AlertDialogCancel>Close</AlertDialogCancel>
-          <AlertDialogAction asChild>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose}>Close</AlertDialogCancel>
+          {onRetry && (
             <Button 
-              variant="default" 
+              variant="destructive" 
               onClick={handleRetry}
               disabled={isRetrying}
-              className="gap-2"
             >
               {isRetrying ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Retrying...</span>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Retrying...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Retry</span>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
                 </>
               )}
             </Button>
-          </AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

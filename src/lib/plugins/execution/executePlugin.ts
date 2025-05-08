@@ -21,10 +21,11 @@ export async function executePlugin(
 ): Promise<PluginResult> {
   try {
     // Log plugin execution start
-    await logSystemEvent(tenantId, 'plugin', 'plugin_executed', {
+    await logSystemEvent('plugin', 'info', {
       plugin_id: plugin.id,
-      plugin_name: plugin.name
-    });
+      plugin_name: plugin.name,
+      user_id: userId
+    }, tenantId);
     
     // Start measuring execution time
     const startTime = Date.now();
@@ -41,7 +42,7 @@ export async function executePlugin(
     const executionTime = (Date.now() - startTime) / 1000;
     
     // Log the execution to plugin_logs table
-    const { error: logError } = await supabase.from('plugin_logs').insert({
+    await supabase.from('plugin_logs').insert({
       plugin_id: plugin.id,
       tenant_id: tenantId,
       strategy_id: strategyId,
@@ -51,10 +52,6 @@ export async function executePlugin(
       execution_time: executionTime,
       xp_earned: xpEarned
     });
-    
-    if (logError) {
-      console.error('Error logging plugin execution:', logError);
-    }
     
     return {
       success: true,
@@ -66,11 +63,12 @@ export async function executePlugin(
     console.error(`Error executing plugin ${plugin.name} (${plugin.id}):`, error);
     
     // Log the error
-    await logSystemEvent(tenantId, 'plugin', 'plugin_execution_failed', {
+    await logSystemEvent('plugin', 'error', {
       plugin_id: plugin.id,
       plugin_name: plugin.name,
-      error: error.message || 'Unknown error'
-    }).catch(err => {
+      error: error.message || 'Unknown error',
+      user_id: userId
+    }, tenantId).catch(err => {
       console.error('Error logging plugin failure:', err);
     });
     
@@ -84,7 +82,7 @@ export async function executePlugin(
       error: error.message || 'Unknown error',
       execution_time: 0,
       xp_earned: 0
-    }).catch(err => {
+    }).then(() => {}).catch(err => {
       console.error('Error logging plugin failure to database:', err);
     });
     

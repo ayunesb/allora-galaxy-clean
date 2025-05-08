@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { OnboardingStep } from '@/types/onboarding';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -30,7 +31,7 @@ export function useOnboardingSteps(validateCurrentStep: () => { valid: boolean, 
       setCurrentStep(currentStep + 1);
       
       // Log step completion
-      logSystemEvent('system', 'system', 'step_completed', {
+      logSystemEvent('onboarding', 'info', {
         step: steps[currentStep].id,
         next_step: steps[currentStep + 1].id
       }).catch(err => console.error('Failed to log step:', err));

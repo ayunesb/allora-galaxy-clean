@@ -3,76 +3,99 @@ import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Generates an embedding from text using the OpenAI API
- * @param text Text to create embedding for
- * @returns Array of embedding values
+ * Generate embeddings for text content
+ * 
+ * @param text The text to generate embeddings for
+ * @param options Additional options
+ * @returns Generated embeddings vector
  */
-export async function generateEmbedding(text: string): Promise<number[] | null> {
+export async function generateEmbeddings(
+  text: string, 
+  options: { 
+    model?: string,
+    tenantId?: string,
+    userId?: string
+  } = {}
+): Promise<number[] | null> {
+  const {
+    model = 'openai-text-embedding-ada-002',
+    tenantId = 'system',
+    userId
+  } = options;
+  
   try {
-    const { data, error } = await supabase.functions.invoke('create-embedding', {
-      body: { text }
+    // Call embeddings API through our edge function
+    const { data, error } = await supabase.functions.invoke('generate-embeddings', {
+      body: {
+        text,
+        model,
+        tenant_id: tenantId,
+        user_id: userId
+      }
     });
-
+    
     if (error) {
-      throw new Error(`Error generating embedding: ${error.message}`);
+      throw new Error(`Error generating embeddings: ${error.message}`);
     }
-
-    return data?.embedding || null;
+    
+    if (!data?.embeddings) {
+      throw new Error('No embeddings returned from API');
+    }
+    
+    return data.embeddings;
   } catch (error: any) {
-    console.error('Error generating embedding:', error);
+    // Log the error
+    logSystemEvent(
+      'system',
+      'error',
+      {
+        action: 'generate_embeddings',
+        error: error.message,
+        text_length: text.length,
+        model
+      },
+      tenantId
+    ).catch(err => {
+      console.error('Failed to log embeddings error:', err);
+    });
+    
+    console.error('Error generating embeddings:', error);
     return null;
   }
 }
 
 /**
- * Stores a document embedding in the database
- * @param docId Document ID
- * @param content Document content
- * @param metadata Additional metadata
- * @param tenantId Optional tenant ID
+ * Calculate similarity between two embedding vectors using cosine similarity
+ * 
+ * @param embeddingA First embedding vector
+ * @param embeddingB Second embedding vector
+ * @returns Similarity score between 0 and 1
  */
-export async function storeEmbedding(
-  docId: string, 
-  content: string, 
-  metadata: Record<string, any> = {}, 
-  tenantId?: string
-): Promise<boolean> {
+export function calculateSimilarity(embeddingA: number[], embeddingB: number[]): number {
   try {
-    const embedding = await generateEmbedding(content);
-    
-    if (!embedding) {
-      await logSystemEvent(
-        tenantId || 'system',
-        'system', 
-        'embedding_generation_failed',
-        { doc_id: docId, content_length: content.length }
-      );
-      return false;
+    if (embeddingA.length !== embeddingB.length) {
+      throw new Error(`Embedding dimensions don't match: ${embeddingA.length} vs ${embeddingB.length}`);
     }
     
-    const { error } = await supabase
-      .from('document_embeddings')
-      .insert({
-        id: docId,
-        content,
-        embedding,
-        metadata,
-        tenant_id: tenantId
-      });
-      
-    if (error) {
-      await logSystemEvent(
-        tenantId || 'system',
-        'system',
-        'embedding_storage_failed',
-        { doc_id: docId, error: error.message }
-      );
-      throw error;
-    }
+    // Calculate dot product
+    const dotProduct = embeddingA.reduce((sum, a, i) => sum + a * embeddingB[i], 0);
     
-    return true;
+    // Calculate magnitudes
+    const magnitudeA = Math.sqrt(embeddingA.reduce((sum, val) => sum + val * val, 0));
+    const magnitudeB = Math.sqrt(embeddingB.reduce((sum, val) => sum + val * val, 0));
+    
+    // Cosine similarity
+    return dotProduct / (magnitudeA * magnitudeB);
   } catch (error: any) {
-    console.error('Error storing embedding:', error);
-    return false;
+    logSystemEvent(
+      'system',
+      'error',
+      {
+        action: 'calculate_similarity',
+        error: error.message
+      }
+    ).catch(console.error);
+    
+    return 0;
   }
 }

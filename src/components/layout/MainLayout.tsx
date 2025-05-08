@@ -1,28 +1,36 @@
 
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import SidebarNav from '@/components/layout/SidebarNav';
+import Navbar from './Navbar';
+import Sidebar from './Sidebar';
+import Footer from './Footer';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import SidebarFooterActions from '@/components/layout/sidebar/SidebarFooterActions';
+import { getNavigationItems } from '@/contexts/workspace/navigationItems';
+import { NavigationItem } from '@/types/shared';
 
-const MainLayout: React.FC = () => {
-  const { navigationItems } = useWorkspace();
+interface MainLayoutProps {
+  children?: React.ReactNode;
+}
 
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const { userRole, tenant } = useWorkspace();
+  
+  // Get navigation items based on user role
+  const navigationItems: NavigationItem[] = getNavigationItems(userRole || 'guest');
+  
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      
       <div className="flex flex-1">
-        <aside className="hidden w-64 flex-col border-r bg-background md:flex">
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            <SidebarNav items={navigationItems} />
-            <div className="mt-auto">
-              <SidebarFooterActions />
-            </div>
-          </div>
-        </aside>
-        <main className="flex-1 p-6">
-          <Outlet />
+        <Sidebar navigationItems={navigationItems} />
+        
+        <main className="flex-1 p-6 overflow-auto">
+          {children || <Outlet />}
         </main>
       </div>
+      
+      <Footer />
     </div>
   );
 };

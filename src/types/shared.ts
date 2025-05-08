@@ -1,7 +1,23 @@
+
 // Define common system event modules and types if they don't exist
-export type SystemEventModule = 'security' | 'strategy' | 'plugin' | 'system' | 'tenant' | 'user' | 'agent' | 'execution';
-export type SystemEventType = 'error' | 'warning' | 'info' | 'success' | 'audit' | 'create' | 'update' | 'delete';
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
+export type SystemEventModule = 'security' | 'strategy' | 'plugin' | 'system' | 'tenant' | 'user' | 'agent' | 'execution' | 'onboarding' | 'admin';
+export type SystemEventType = 'error' | 'warning' | 'info' | 'success' | 'audit' | 'create' | 'update' | 'delete' | 
+  'execute_strategy_started' | 'execute_strategy_error' | 'execute_strategy_completed' | 'step_completed' | 'onboarding_step_change' | 
+  'onboarding_step_view' | 'onboarding_step_completed' | 'onboarding_completed' | 'onboarding_error' | 
+  'user_invited' | 'plugin_executed' | 'plugin_execution_failed' | 'react_error_boundary';
+
+// KPI and trend types
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+export interface KPITrend {
+  direction: TrendDirection;
+  percentage: number;
+  previousValue?: number;
+  isPositive: boolean;
+}
+
+// Vote type for agent voting
+export type VoteType = 'up' | 'down' | 'neutral';
 
 // User and authentication types
 export interface User {
@@ -57,6 +73,16 @@ export interface SelectOption {
   icon?: React.ReactNode;
   description?: string;
   disabled?: boolean;
+}
+
+// Navigation types
+export interface NavigationItem {
+  title: string;
+  href: string;
+  icon?: React.ReactNode;
+  disabled?: boolean;
+  external?: boolean;
+  adminOnly?: boolean;
 }
 
 // Notification types

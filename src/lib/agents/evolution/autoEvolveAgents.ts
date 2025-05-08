@@ -1,141 +1,125 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { checkEvolutionNeeded } from './checkEvolutionNeeded';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { getFeedbackComments, evolvePromptWithFeedback } from './getFeedbackComments';
+import { getAgentUsageStats } from './getAgentUsageStats';
+import { getFeedbackComments } from './getFeedbackComments';
+import { deactivateOldAgent } from './deactivateOldAgent';
+import { checkEvolutionNeeded } from './checkEvolutionNeeded';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-export interface EvolutionOptions {
-  minimumExecutions?: number;
-  failureRateThreshold?: number;
-  staleDays?: number;
-  batchSize?: number;
-  tenantId?: string;
-}
-
-export interface EvolutionResult {
+interface AutoEvolveResult {
   success: boolean;
-  agentsChecked: number;
-  agentsEvolved: number;
+  evolvedAgents: number;
   errors: string[];
-  evolvedAgents: {
-    id: string;
-    name: string;
-    reason: string;
-    oldVersionId: string;
-  }[];
 }
 
 /**
- * Automatically evolves agents based on performance metrics and feedback
- * @param options Evolution options
- * @returns Result of the evolution operation
+ * CRON-triggered function to automatically evolve agents based on feedback
  */
-export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<EvolutionResult> {
-  const {
-    minimumExecutions = 10,
-    failureRateThreshold = 0.3,
-    staleDays = 30,
-    batchSize = 10,
-    tenantId
-  } = options;
-  
-  const result: EvolutionResult = {
-    success: true,
-    agentsChecked: 0,
-    agentsEvolved: 0,
-    errors: [],
-    evolvedAgents: []
+export async function autoEvolveAgents(tenantId: string): Promise<AutoEvolveResult> {
+  const result: AutoEvolveResult = {
+    success: false,
+    evolvedAgents: 0,
+    errors: []
   };
   
   try {
-    // Get the active agent versions to check
-    let query = supabase
+    // Get all active agents that are candidates for evolution
+    const { data: agents, error: agentsError } = await supabase
       .from('agent_versions')
-      .select('id, name, plugin_id, prompt, tenant_id')
+      .select('id, plugin_id, version, prompt, upvotes, downvotes, created_at')
       .eq('status', 'active')
-      .order('updated_at', { ascending: true })
-      .limit(batchSize);
+      .gt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
     
-    // Filter by tenant if specified
-    if (tenantId) {
-      query = query.eq('tenant_id', tenantId);
+    if (agentsError) {
+      result.errors.push(`Failed to fetch agents: ${agentsError.message}`);
+      return result;
     }
     
-    const { data: agentVersions, error } = await query;
-    
-    if (error) {
-      throw error;
-    }
-    
-    result.agentsChecked = agentVersions?.length || 0;
-    
-    // Check each agent version for evolution
-    for (const agentVersion of agentVersions || []) {
+    // Check each agent for evolution
+    const evolutionPromises = agents.map(async (agent) => {
       try {
-        // Check if this agent needs evolution
-        const evolutionCheck = await checkEvolutionNeeded(
-          agentVersion.id,
-          { 
-            minimumExecutions, 
-            failureRateThreshold, 
-            staleDays 
-          }
-        );
+        // Check if evolution is needed
+        const usageStats = await getAgentUsageStats(agent.id);
         
-        // If evolution is needed, evolve the agent
-        if (evolutionCheck.needsEvolution) {
-          // Get feedback comments for the agent
-          const comments = await getFeedbackComments(agentVersion.id);
-          
-          // Evolve the prompt using feedback
-          const evolvedPrompt = await evolvePromptWithFeedback(
-            agentVersion.prompt,
-            comments,
-            evolutionCheck.reason || 'Performance optimization'
-          );
-          
-          // Create the evolved agent version
-          const evolvedAgent = await createEvolvedAgent({
-            originalVersionId: agentVersion.id,
-            agentId: agentVersion.plugin_id || '',
-            prompt: evolvedPrompt,
-            reason: evolutionCheck.reason || 'Performance optimization',
-            tenantId: agentVersion.tenant_id || ''
-          });
-          
-          // Log the evolution event
-          await logSystemEvent(
-            agentVersion.tenant_id || '',
-            'agent',
-            'agent_evolved',
-            {
-              agent_id: agentVersion.plugin_id,
-              old_version_id: agentVersion.id,
-              new_version_id: evolvedAgent.id || '',
-              reason: evolutionCheck.reason
-            }
-          );
-          
-          // Add to results
-          result.agentsEvolved++;
-          result.evolvedAgents.push({
-            id: evolvedAgent.id || '',
-            name: agentVersion.name || 'Unknown Agent',
-            reason: evolutionCheck.reason || 'Performance optimization',
-            oldVersionId: agentVersion.id
-          });
+        const evolutionNeeded = checkEvolutionNeeded({
+          agentId: agent.id,
+          upvotes: agent.upvotes,
+          downvotes: agent.downvotes,
+          executionCount: usageStats.executionCount,
+          errorRate: usageStats.errorRate,
+          daysSinceCreation: usageStats.daysSinceCreation
+        });
+        
+        if (!evolutionNeeded) {
+          return false;
         }
-      } catch (agentError: any) {
-        result.errors.push(`Error evolving agent ${agentVersion.id}: ${agentError.message}`);
+        
+        // Get feedback comments for the agent
+        const feedback = await getFeedbackComments(agent.id);
+        
+        // Generate evolved prompt using the feedback
+        const evolvedPrompt = await generateEvolvedPrompt(agent.prompt, feedback);
+        
+        // Create evolved agent
+        const evolutionResult = await createEvolvedAgent({
+          parentAgentVersionId: agent.id,
+          tenantId,
+          userId: 'system', // System-generated evolution
+          prompt: evolvedPrompt,
+          feedbackIncorporated: feedback.map(f => f.id)
+        });
+        
+        if (!evolutionResult.success) {
+          result.errors.push(`Failed to evolve agent ${agent.id}: ${evolutionResult.error}`);
+          return false;
+        }
+        
+        // Deactivate old agent
+        await deactivateOldAgent(agent.id, evolutionResult.agentVersionId!);
+        
+        // Log successful evolution
+        await logSystemEvent('agent', 'info', {
+          action: 'auto_evolve_agent',
+          old_agent_id: agent.id,
+          new_agent_id: evolutionResult.agentVersionId,
+          feedback_count: feedback.length
+        }, tenantId);
+        
+        return true;
+      } catch (error: any) {
+        result.errors.push(`Error evolving agent ${agent.id}: ${error.message}`);
+        return false;
       }
-    }
+    });
+    
+    // Wait for all evolution processes to complete
+    const evolutionResults = await Promise.all(evolutionPromises);
+    
+    // Count successful evolutions
+    result.evolvedAgents = evolutionResults.filter(Boolean).length;
+    result.success = result.evolvedAgents > 0 || agents.length === 0;
     
     return result;
-    
   } catch (error: any) {
-    result.success = false;
-    result.errors.push(`Auto evolution error: ${error.message}`);
+    result.errors.push(`Unexpected error during auto-evolution: ${error.message}`);
     return result;
   }
+}
+
+/**
+ * Generate an evolved prompt based on feedback
+ * This is a simple placeholder - in a real system, this would use an LLM
+ */
+async function generateEvolvedPrompt(
+  originalPrompt: string,
+  feedback: Array<{ comment: string; voteType: 'up' | 'down' }>
+): Promise<string> {
+  // Placeholder implementation
+  // In a real system, this would use an LLM to incorporate feedback
+  const feedbackSummary = feedback
+    .map(f => `${f.voteType === 'up' ? '👍' : '👎'} ${f.comment}`)
+    .join('\n');
+    
+  return `${originalPrompt}\n\n## Feedback incorporated in this version:\n${feedbackSummary}`;
 }

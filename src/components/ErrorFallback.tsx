@@ -26,14 +26,15 @@ export function ErrorFallback({
   useEffect(() => {
     // Log the error to our system
     logSystemEvent(
-      tenant_id, // Without tenant context, use system as tenant
       'system',
-      'react_error_boundary',
+      'error',
       {
         message: error.message,
         stack: error.stack,
-        componentStack: errorInfo?.componentStack
-      }
+        componentStack: errorInfo?.componentStack,
+        react_error_boundary: true
+      },
+      tenant_id
     ).catch(console.error);
   }, [error, errorInfo, tenant_id]);
 

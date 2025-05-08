@@ -41,9 +41,8 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
 
     // Log the execution event
     await logSystemEvent(
-      data.tenantId,
-      data.type,
-      `${data.type}_execution_${data.status}`,
+      data.type === 'strategy' ? 'strategy' : 'plugin',
+      'info',
       {
         strategy_id: data.strategyId,
         plugin_id: data.pluginId,
@@ -52,7 +51,8 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
         has_error: !!data.error,
         execution_time: data.executionTime,
         xp_earned: data.xpEarned
-      }
+      },
+      data.tenantId
     ).catch(err => {
       console.warn('Failed to log execution event:', err);
       // Non-critical error, continue execution

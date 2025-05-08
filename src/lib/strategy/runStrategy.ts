@@ -67,12 +67,13 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
     // Log start of strategy execution
     await logSystemEvent(
       'strategy',
-      'execute_strategy_started',
+      'info',
       {
         strategy_id: strategyId,
         user_id: userId,
         tenant_id: tenantId,
-        options
+        options,
+        event_name: 'execute_strategy_started'
       },
       tenantId
     ).catch(error => {
@@ -111,12 +112,13 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
       
       await logSystemEvent(
         'strategy',
-        'execute_strategy_error',
+        'error',
         {
           strategy_id: strategyId,
           error: error.message,
           status: 'failed',
-          tenant_id: tenantId
+          tenant_id: tenantId,
+          event_name: 'execute_strategy_error'
         },
         tenantId
       ).catch(() => {/* Ignore logging errors */});
@@ -133,12 +135,13 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
     if (data && !data.success) {
       await logSystemEvent(
         'strategy',
-        'execute_strategy_error',
+        'error',
         {
           strategy_id: strategyId,
           error: data.error || 'Unknown error',
           status: 'failed',
-          tenant_id: tenantId
+          tenant_id: tenantId,
+          event_name: 'execute_strategy_error'
         },
         tenantId
       ).catch(() => {/* Ignore logging errors */});
@@ -155,13 +158,14 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
     // Log successful execution
     await logSystemEvent(
       'strategy',
-      'execute_strategy_completed',
+      'success',
       {
         strategy_id: strategyId,
         execution_id: data.execution_id,
         status: 'completed',
         execution_time: data.execution_time,
-        tenant_id: tenantId
+        tenant_id: tenantId,
+        event_name: 'execute_strategy_completed'
       },
       tenantId
     ).catch(() => {/* Ignore logging errors */});
@@ -184,12 +188,13 @@ export async function runStrategy(input?: RunStrategyInput): Promise<StrategyExe
     try {
       await logSystemEvent(
         'strategy',
-        'execute_strategy_error',
+        'error',
         {
           strategy_id: strategyId,
           error: error.message || 'Unexpected error',
           status: 'failed',
-          tenant_id: tenantId
+          tenant_id: tenantId,
+          event_name: 'execute_strategy_error'
         },
         tenantId
       );

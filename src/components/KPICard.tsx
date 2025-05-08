@@ -1,86 +1,68 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { TrendDirection } from '@/types/shared';
 
 interface KPICardProps {
   title: string;
   value: string | number;
-  previousValue?: string | number;
+  description?: string;
   trendDirection?: TrendDirection;
-  trend?: number; // Percentage change
+  trendValue?: number | string;
   isPositive?: boolean;
-  className?: string;
-  icon?: React.ReactNode;
-  unit?: string;
+  category?: string;
+  footer?: React.ReactNode;
 }
 
-/**
- * A card component that displays a key performance indicator with trend
- */
 const KPICard: React.FC<KPICardProps> = ({
   title,
   value,
-  previousValue,
-  trendDirection = 'flat',
-  trend,
+  description,
+  trendDirection = 'neutral',
+  trendValue,
   isPositive = true,
-  className,
-  icon,
-  unit = ''
+  category,
+  footer
 }) => {
   const renderTrendIcon = () => {
-    if (trendDirection === 'up') {
-      return <ArrowUpIcon className={cn('h-4 w-4', isPositive ? 'text-green-500' : 'text-red-500')} />;
+    switch (trendDirection) {
+      case 'up':
+        return <TrendingUp className={`h-4 w-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />;
+      case 'down':
+        return <TrendingDown className={`h-4 w-4 ${isPositive ? 'text-red-500' : 'text-green-500'}`} />;
+      default:
+        return <Minus className="h-4 w-4 text-gray-500" />;
     }
-    
-    if (trendDirection === 'down') {
-      return <ArrowDownIcon className={cn('h-4 w-4', isPositive ? 'text-green-500' : 'text-red-500')} />;
-    }
-    
-    return <MinusIcon className="h-4 w-4 text-gray-400" />;
   };
-  
+
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg font-medium">{title}</CardTitle>
+          {category && (
+            <Badge variant="outline" className="text-xs font-normal">
+              {category}
+            </Badge>
+          )}
+        </div>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
-          {value}
-          {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
-        </div>
-        
-        {(trend !== undefined || previousValue !== undefined) && (
-          <div className="flex items-center space-x-1 pt-1">
+        <div className="text-3xl font-bold">{value}</div>
+        {(trendDirection || trendValue) && (
+          <div className="flex items-center mt-1 text-sm">
             {renderTrendIcon()}
-            <p className={cn(
-              'text-xs',
-              isPositive ? 'text-green-500' : 'text-red-500',
-              trendDirection === 'flat' && 'text-gray-400'
-            )}>
-              {trend !== undefined && (
-                <>
-                  {trend > 0 && '+'}
-                  {trend}%
-                </>
-              )}
-              {previousValue !== undefined && trend === undefined && (
-                <>
-                  {trendDirection === 'up' && 'Increased from '}
-                  {trendDirection === 'down' && 'Decreased from '}
-                  {trendDirection === 'flat' && 'No change from '}
-                  {previousValue}
-                </>
-              )}
-            </p>
+            <span className={`ml-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {trendValue && `${trendValue}%`}
+            </span>
+            <span className="text-muted-foreground ml-2">vs. previous period</span>
           </div>
         )}
       </CardContent>
+      {footer && <CardFooter className="pt-0">{footer}</CardFooter>}
     </Card>
   );
 };

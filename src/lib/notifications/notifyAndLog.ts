@@ -2,78 +2,128 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-interface NotifyParams {
+interface NotificationInput {
   title: string;
   message: string;
-  tenant_id: string;
-  user_id: string;
-  type?: 'info' | 'success' | 'warning' | 'error' | 'system';
-  action_url?: string;
-  action_label?: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  tenantId: string;
+  userId: string;
+  actionUrl?: string;
+  actionLabel?: string;
   metadata?: Record<string, any>;
 }
 
+interface NotificationResult {
+  success: boolean;
+  notificationId?: string;
+  error?: string;
+}
+
 /**
- * Creates a notification and logs the event to system logs
- * @param params Notification parameters
- * @returns Success status and data
+ * Send a notification to a user and log it
+ * 
+ * @param input Notification data
+ * @returns Result of the notification operation
  */
-export async function notifyAndLog(params: NotifyParams): Promise<{ success: boolean, data?: any, error?: string }> {
+export async function notifyAndLog(input: NotificationInput): Promise<NotificationResult> {
+  const {
+    title,
+    message,
+    type,
+    tenantId,
+    userId,
+    actionUrl,
+    actionLabel,
+    metadata = {}
+  } = input;
+  
   try {
-    // Create notification
-    const { data: notification, error: notificationError } = await supabase
+    // Insert notification into database
+    const { data, error } = await supabase
       .from('notifications')
       .insert({
-        title: params.title,
-        message: params.message,
-        tenant_id: params.tenant_id,
-        user_id: params.user_id,
-        type: params.type || 'info',
-        action_url: params.action_url,
-        action_label: params.action_label,
-        metadata: params.metadata || {}
+        title,
+        message,
+        type,
+        tenant_id: tenantId,
+        user_id: userId,
+        action_url: actionUrl,
+        action_label: actionLabel,
+        metadata
       })
-      .select()
+      .select('id')
       .single();
-
-    // Log event to system logs
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Log the notification event
     await logSystemEvent(
-      params.tenant_id,
-      'system', 
-      'notification_created',
+      'notification',
+      'info',
       {
-        notification_id: notification?.id,
-        title: params.title,
-        type: params.type,
-        user_id: params.user_id
-      }
+        notification_id: data.id,
+        title,
+        type,
+        user_id: userId
+      },
+      tenantId
     );
-
-    // Handle notification creation error
-    if (notificationError) {
-      console.error('Error creating notification:', notificationError);
-      return { success: false, error: notificationError.message };
-    }
-
-    return { success: true, data: notification };
-  } catch (err: any) {
-    console.error('Error in notifyAndLog:', err);
     
-    try {
-      // Attempt to log the error
-      await logSystemEvent(
-        params.tenant_id || 'system',
-        'system',
-        'notification_creation_error',
-        {
-          title: params.title,
-          error: err.message
-        }
-      );
-    } catch (logErr) {
-      console.error('Failed to log notification error:', logErr);
+    return {
+      success: true,
+      notificationId: data.id
+    };
+  } catch (error: any) {
+    console.error('Error creating notification:', error);
+    
+    // Log the error
+    logSystemEvent(
+      'notification',
+      'error',
+      {
+        error: error.message,
+        title,
+        type,
+        user_id: userId
+      },
+      tenantId
+    ).catch(err => {
+      console.warn('Failed to log notification error:', err);
+    });
+    
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Mark a notification as read
+ * 
+ * @param notificationId ID of the notification
+ * @param userId ID of the user
+ * @returns Whether the operation was successful
+ */
+export async function markNotificationRead(notificationId: string, userId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({
+        read_at: new Date().toISOString()
+      })
+      .eq('id', notificationId)
+      .eq('user_id', userId);
+    
+    if (error) {
+      throw error;
     }
     
-    return { success: false, error: err.message || 'Unknown error in notification system' };
+    return true;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return false;
   }
 }

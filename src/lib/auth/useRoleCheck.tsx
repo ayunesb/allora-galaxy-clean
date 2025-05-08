@@ -1,62 +1,64 @@
 
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { UserRole } from '@/types/shared';
-import { useState, useEffect } from 'react';
-import { checkRolePermission } from './roleTypes';
+import { toast } from '@/hooks/use-toast';
 
 interface UseRoleCheckOptions {
-  requiredRole?: UserRole | UserRole[];
-  silent?: boolean;
+  requiredRoles: UserRole[];
+  redirectPath?: string;
+  showToast?: boolean;
+  toastMessage?: string;
 }
 
 /**
- * Hook to check if user has required role
- * @param options Object containing requiredRole(s) and silent option
- * @returns Object with hasAccess, checking and error properties
+ * Hook to check if the user has the required role
+ * If not, redirects to the specified path
  */
-export const useRoleCheck = (options: UseRoleCheckOptions = {}) => {
+export function useRoleCheck({
+  requiredRoles,
+  redirectPath = '/unauthorized',
+  showToast = true,
+  toastMessage = 'You do not have permission to access this page'
+}: UseRoleCheckOptions) {
+  const { user } = useAuth();
   const { userRole, loading } = useWorkspace();
+  const navigate = useNavigate();
   const [hasAccess, setHasAccess] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    // Reset state when dependencies change
-    setError(null);
-    
-    if (!options.requiredRole) {
-      // No role requirement means everyone has access
-      setHasAccess(true);
-      return;
-    }
+  const [checkComplete, setCheckComplete] = useState<boolean>(false);
 
+  // Check if the user has the required role
+  useEffect(() => {
     if (!loading) {
-      if (!userRole) {
+      // Not logged in
+      if (!user) {
         setHasAccess(false);
-        if (!options.silent) {
-          setError('User role not available. Please log in to continue.');
-        }
+        setCheckComplete(true);
         return;
       }
-      
-      // Use the helper function from roleTypes to check permissions based on role hierarchy
-      const hasRequiredRole = checkRolePermission(userRole, options.requiredRole);
-      setHasAccess(hasRequiredRole);
-      
-      if (!hasRequiredRole && !options.silent) {
-        const requiredRoles = Array.isArray(options.requiredRole) 
-          ? options.requiredRole.join(' or ')
-          : options.requiredRole;
-          
-        setError(`Access denied. Required role: ${requiredRoles}`);
-      }
-    }
-  }, [options.requiredRole, userRole, loading, options.silent]);
-  
-  return { 
-    hasAccess, 
-    checking: loading, 
-    error 
-  };
-};
 
-export default useRoleCheck;
+      // Check if the user has the required role
+      if (userRole && requiredRoles.includes(userRole)) {
+        setHasAccess(true);
+      } else {
+        setHasAccess(false);
+        
+        if (showToast) {
+          toast({
+            title: 'Access denied',
+            description: toastMessage,
+            variant: 'destructive',
+          });
+        }
+        
+        navigate(redirectPath, { replace: true });
+      }
+      
+      setCheckComplete(true);
+    }
+  }, [user, userRole, loading, requiredRoles, redirectPath, navigate, showToast, toastMessage]);
+
+  return { hasAccess, loading: !checkComplete };
+}

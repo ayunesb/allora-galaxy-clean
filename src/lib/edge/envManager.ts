@@ -1,6 +1,4 @@
 
-import { getEnvWithDefault } from '@/lib/env/envUtils';
-
 /**
  * Universal environment variable getter that works in both Deno and Node environments
  * @param key The environment variable key to retrieve
@@ -10,8 +8,10 @@ import { getEnvWithDefault } from '@/lib/env/envUtils';
 export function getEnv(key: string, defaultValue: string = ""): string {
   try {
     // First try Deno environment
-    if (typeof Deno !== 'undefined' && Deno?.env?.get) {
-      const value = Deno.env.get(key);
+    // @ts-ignore - Deno may be available in edge functions
+    if (typeof globalThis !== 'undefined' && globalThis.Deno?.env?.get) {
+      // @ts-ignore
+      const value = globalThis.Deno.env.get(key);
       if (value !== undefined) return value;
     }
     
@@ -49,7 +49,7 @@ export const corsHeaders = {
 };
 
 // Re-export getEnvWithDefault for convenience
-export { getEnvWithDefault };
+export { getEnvWithDefault } from '@/lib/env';
 
 /**
  * Check if we're in a production environment

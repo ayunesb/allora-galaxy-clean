@@ -1,42 +1,78 @@
 
-import { safeLogSystemEvent } from '@/lib/system/logSystemEvent';
-import { OnboardingStep } from '@/types/onboarding';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
  * Track when a user views an onboarding step
+ * @param userId User ID
+ * @param stepId Step ID
+ * @param additionalData Additional data to log
  */
-export async function trackOnboardingStepView(userId: string, stepId: OnboardingStep) {
-  safeLogSystemEvent('onboarding', 'view_step', {
+export function trackOnboardingStepView(
+  userId: string,
+  stepId: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'info', {
+    event_type: 'step_view',
     user_id: userId,
-    step_id: stepId
+    step_id: stepId,
+    ...additionalData,
   });
 }
 
 /**
  * Track when a user completes an onboarding step
+ * @param userId User ID
+ * @param stepId Step ID
+ * @param additionalData Additional data to log
  */
-export async function trackOnboardingStepCompleted(userId: string, stepId: OnboardingStep) {
-  safeLogSystemEvent('onboarding', 'complete_step', {
+export function trackOnboardingStepCompleted(
+  userId: string,
+  stepId: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'info', {
+    event_type: 'step_completed',
     user_id: userId,
-    step_id: stepId
+    step_id: stepId,
+    ...additionalData,
   });
 }
 
 /**
- * Track when a user starts onboarding
+ * Track when onboarding is complete
+ * @param userId User ID
+ * @param tenantId Tenant ID
+ * @param additionalData Additional data to log
  */
-export async function trackOnboardingStarted(userId: string) {
-  safeLogSystemEvent('onboarding', 'started', {
-    user_id: userId
+export function trackOnboardingComplete(
+  userId: string,
+  tenantId: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'info', {
+    event_type: 'onboarding_completed',
+    user_id: userId,
+    tenant_id: tenantId,
+    ...additionalData,
   });
 }
 
 /**
- * Track when a user completes the entire onboarding process
+ * Track onboarding errors
+ * @param userId User ID
+ * @param errorMessage Error message
+ * @param additionalData Additional data to log
  */
-export async function trackOnboardingCompleted(userId: string, tenantId: string) {
-  safeLogSystemEvent('onboarding', 'completed', {
+export function trackOnboardingError(
+  userId: string,
+  errorMessage: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'error', {
+    event_type: 'onboarding_error',
     user_id: userId,
-    tenant_id: tenantId
+    error: errorMessage,
+    ...additionalData,
   });
 }

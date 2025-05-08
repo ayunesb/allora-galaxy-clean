@@ -1,55 +1,45 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { snakeToCamel } from "@/types/fixed";
-import { UserVote } from "./types";
-import { VoteType } from "@/types/shared";
+import { supabase } from '@/integrations/supabase/client';
+import { VoteType } from '@/types/shared';
 
 /**
- * Check if user has already voted on an agent
- * @param agentVersionId Agent version ID
- * @param userId User ID
- * @returns User's existing vote if any
+ * Get a user's vote on an agent version
+ * @param agentVersionId The agent version ID
+ * @param userId The user ID
+ * @returns Object containing vote information
  */
-export async function getUserVote(agentVersionId: string, userId: string): Promise<UserVote> {
+export async function getUserVote(agentVersionId: string, userId: string) {
   try {
     const { data, error } = await supabase
       .from('agent_votes')
-      .select('id, vote_type, comment, created_at')
+      .select('vote_type, comment')
       .eq('agent_version_id', agentVersionId)
       .eq('user_id', userId)
-      .maybeSingle();
-      
-    if (error) throw error;
+      .single();
     
-    if (data) {
-      return {
-        hasVoted: true,
-        vote: snakeToCamel(data),
-        agentVersionId,
-        userId,
-        voteType: data.vote_type as VoteType,
-        id: data.id,
-        comment: data.comment,
-        createdAt: data.created_at
-      };
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No vote found for this user
+        return { 
+          hasVoted: false, 
+          vote: null 
+        };
+      }
+      throw error;
     }
     
     return {
-      hasVoted: false,
-      vote: null,
-      agentVersionId,
-      userId,
-      voteType: 'neutral' as VoteType, // Default to neutral when no vote exists
+      hasVoted: true,
+      vote: {
+        voteType: data.vote_type as VoteType,
+        comment: data.comment
+      }
     };
-  } catch (error: any) {
-    console.error('Error checking user vote:', error);
+  } catch (error) {
+    console.error('Error fetching user vote:', error);
     return {
       hasVoted: false,
-      vote: null,
-      agentVersionId,
-      userId,
-      error: error.message,
-      voteType: 'neutral' as VoteType, // Default to neutral when error occurs
+      vote: null
     };
   }
 }

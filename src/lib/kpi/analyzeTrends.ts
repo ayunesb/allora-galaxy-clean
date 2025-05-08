@@ -1,55 +1,84 @@
 
+import { format, subDays, parseISO } from 'date-fns';
 import { KPITrend, TrendDirection } from '@/types/shared';
 
 /**
- * Analyzes KPI data to determine trends
+ * Calculate the trend for a KPI
  * 
- * @param currentValue The current KPI value
- * @param previousValue The previous KPI value
- * @returns KPI trend analysis with direction and percentage change
+ * @param currentValue Current value of the KPI
+ * @param previousValue Previous value of the KPI
+ * @param higherIsBetter Whether a higher value is considered positive
+ * @returns KPI trend analysis
  */
-export function analyzeTrend(currentValue: number, previousValue: number | null | undefined): KPITrend {
-  if (previousValue === null || previousValue === undefined) {
+export function calculateTrend(
+  currentValue: number,
+  previousValue: number,
+  higherIsBetter: boolean = true
+): KPITrend {
+  // If no previous value, no trend
+  if (previousValue === 0) {
     return {
-      change: 0,
-      direction: 'flat',
+      direction: 'neutral',
       percentage: 0,
+      previousValue,
       isPositive: false
     };
   }
-
-  if (previousValue === 0 && currentValue > 0) {
-    return {
-      change: currentValue,
-      direction: 'up',
-      percentage: 100,
-      isPositive: true
-    };
-  } else if (previousValue === 0 && currentValue < 0) {
-    return {
-      change: currentValue,
-      direction: 'down',
-      percentage: 100,
-      isPositive: false
-    };
-  } else if (previousValue === 0 && currentValue === 0) {
-    return {
-      change: 0,
-      direction: 'flat',
-      percentage: 0,
-      isPositive: true
-    };
+  
+  // Calculate change percentage
+  const difference = currentValue - previousValue;
+  const percentage = Math.round((difference / Math.abs(previousValue)) * 100);
+  
+  // Determine direction
+  let direction: TrendDirection = 'neutral';
+  if (percentage > 0) {
+    direction = 'up';
+  } else if (percentage < 0) {
+    direction = 'down';
   }
-
-  const change = currentValue - previousValue;
-  const percentage = Math.abs(Math.round((change / Math.abs(previousValue)) * 100));
-  const direction: TrendDirection = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
-  const isPositive = (direction === 'up' && previousValue >= 0) || (direction === 'down' && previousValue < 0);
-
+  
+  // Determine if positive based on direction and higherIsBetter
+  const isPositive = 
+    (direction === 'up' && higherIsBetter) || 
+    (direction === 'down' && !higherIsBetter);
+  
   return {
-    change,
     direction,
-    percentage,
+    percentage: Math.abs(percentage),
+    previousValue,
     isPositive
   };
+}
+
+/**
+ * Get formatted date range for KPI comparisons
+ * 
+ * @param days Number of days to look back
+ * @returns Object with formatted date strings
+ */
+export function getDateRange(days: number = 30) {
+  const today = new Date();
+  const startDate = subDays(today, days);
+  
+  return {
+    startDate: format(startDate, 'yyyy-MM-dd'),
+    endDate: format(today, 'yyyy-MM-dd'),
+    previousStartDate: format(subDays(startDate, days), 'yyyy-MM-dd'),
+    previousEndDate: format(subDays(today, 1), 'yyyy-MM-dd')
+  };
+}
+
+/**
+ * Convert a date string to a formatted date for display
+ * 
+ * @param dateStr Date string to format
+ * @param formatStr Format string for date-fns
+ * @returns Formatted date string
+ */
+export function formatDateStr(dateStr: string, formatStr: string = 'MMM d, yyyy'): string {
+  try {
+    return format(parseISO(dateStr), formatStr);
+  } catch (e) {
+    return dateStr;
+  }
 }

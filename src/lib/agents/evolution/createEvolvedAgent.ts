@@ -1,80 +1,81 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { deactivateAgent } from './deactivateOldAgent';
 
-export interface CreateEvolvedAgentOptions {
-  originalVersionId: string;
-  agentId: string;
-  prompt: string;
-  reason: string;
+export interface EvolutionInput {
+  parentAgentVersionId: string;
   tenantId: string;
+  userId: string;
+  prompt: string;
+  feedbackIncorporated?: string[];
 }
 
 export interface EvolutionResult {
   success: boolean;
-  id?: string;
-  newAgentVersionId?: string;
+  agentVersionId?: string;
   error?: string;
 }
 
 /**
- * Creates an evolved version of an agent based on feedback
- * 
- * @param options - Options for creating the evolved agent
- * @returns Evolution result with new agent version ID or error
+ * Create a new evolved agent version based on parent
  */
-export async function createEvolvedAgent(
-  options: CreateEvolvedAgentOptions
-): Promise<EvolutionResult> {
+export async function createEvolvedAgent(input: EvolutionInput): Promise<EvolutionResult> {
   try {
-    const { originalVersionId, agentId, prompt, reason, tenantId } = options;
+    const { parentAgentVersionId, tenantId, userId, prompt, feedbackIncorporated = [] } = input;
     
-    // Insert new agent version
-    const { data: newAgentVersion, error: insertError } = await supabase
+    // Get the parent agent version
+    const { data: parentAgent, error: parentError } = await supabase
       .from('agent_versions')
-      .insert({
-        plugin_id: agentId,
-        prompt: prompt,
-        created_by: 'system',
-        version: `evolved-${new Date().toISOString().split('T')[0]}`,
-        previous_version_id: originalVersionId,
-        status: 'active',
-        evolution_reason: reason,
-        tenant_id: tenantId
-      })
-      .select()
+      .select('plugin_id, version, prompt')
+      .eq('id', parentAgentVersionId)
       .single();
-    
-    if (insertError || !newAgentVersion) {
-      throw new Error(`Error creating evolved agent: ${insertError?.message || 'Unknown error'}`);
+      
+    if (parentError) {
+      throw new Error(`Failed to get parent agent: ${parentError.message}`);
     }
     
-    // Deactivate previous version
-    await deactivateAgent(originalVersionId, newAgentVersion.id);
+    // Generate new version number
+    const versionParts = parentAgent.version.split('.');
+    const newVersion = `${versionParts[0]}.${Number(versionParts[1]) + 1}.0`;
     
-    // Log the evolution event
-    await logSystemEvent(
-      tenantId,
-      'agent',
-      'agent_evolved',
-      {
-        previous_agent_id: originalVersionId,
-        new_agent_id: newAgentVersion.id,
-        reason: reason
-      }
-    );
+    // Create the new agent version
+    const { data: newAgent, error: insertError } = await supabase
+      .from('agent_versions')
+      .insert({
+        plugin_id: parentAgent.plugin_id,
+        version: newVersion,
+        prompt,
+        status: 'active',
+        created_by: userId,
+        upvotes: 0,
+        downvotes: 0,
+        xp: 0
+      })
+      .select('id')
+      .single();
+      
+    if (insertError) {
+      throw new Error(`Failed to create evolved agent: ${insertError.message}`);
+    }
+    
+    // Log the agent evolution
+    await logSystemEvent('agent', 'info', {
+      action: 'evolve',
+      parent_agent_id: parentAgentVersionId,
+      new_agent_id: newAgent.id,
+      user_id: userId,
+      feedback_count: feedbackIncorporated.length
+    }, tenantId);
     
     return {
       success: true,
-      id: newAgentVersion.id,
-      newAgentVersionId: newAgentVersion.id
+      agentVersionId: newAgent.id
     };
   } catch (error: any) {
-    console.error('Error in createEvolvedAgent:', error);
+    console.error('Error creating evolved agent:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create evolved agent'
+      error: error.message
     };
   }
 }

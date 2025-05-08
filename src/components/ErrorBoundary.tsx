@@ -58,16 +58,16 @@ class ErrorBoundary extends Component<Props, State> {
   
   private logErrorToSystem(error: Error, errorInfo: ErrorInfo) {
     logSystemEvent(
-      this.props.tenant_id || 'system',
       'system',
-      'React error boundary caught error',
+      'error',
       {
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
         location: window.location.href,
         timestamp: new Date().toISOString()
-      }
+      },
+      this.props.tenant_id || 'system'
     ).catch(logError => {
       console.error("Failed to log system event:", logError);
       // Try to show toast notification as a fallback
