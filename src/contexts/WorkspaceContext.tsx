@@ -3,14 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/lib/auth/roleTypes';
-
-export interface NavigationItem {
-  id: string;
-  label: string;
-  path: string;
-  icon?: string;
-  children?: NavigationItem[];
-}
+import { NavigationItem } from '@/types/navigation';
 
 export interface WorkspaceContextType {
   tenant: Tenant | null;
@@ -20,6 +13,8 @@ export interface WorkspaceContextType {
   navigationItems: NavigationItem[];
   currentRole: UserRole | null;
   refreshTenant: () => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
 }
 
 interface Tenant {
@@ -27,6 +22,8 @@ interface Tenant {
   name: string;
   settings?: Record<string, any>;
   role?: UserRole;
+  metadata?: Record<string, any>;
+  created_at?: string;
 }
 
 const defaultContext: WorkspaceContextType = {
@@ -37,6 +34,8 @@ const defaultContext: WorkspaceContextType = {
   navigationItems: [],
   currentRole: null,
   refreshTenant: async () => {},
+  isLoading: true,
+  error: null
 };
 
 const WorkspaceContext = createContext<WorkspaceContextType>(defaultContext);
@@ -45,6 +44,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
 
   // Define navigation items
@@ -127,6 +127,8 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     try {
+      setError(null);
+      
       const { data: roleData, error: roleError } = await supabase
         .from('tenant_user_roles')
         .select('tenant_id, role')
@@ -138,6 +140,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (roleError && roleError.code !== 'PGRST116') {
         console.error('Error fetching user role:', roleError);
         setLoading(false);
+        setError(roleError.message);
         return;
       }
 
@@ -150,6 +153,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
         if (tenantError) {
           console.error('Error fetching tenant:', tenantError);
+          setError(tenantError.message);
         } else if (tenantData) {
           const tenantWithRole = {
             ...tenantData,
@@ -159,8 +163,9 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
           setCurrentRole(roleData.role as UserRole);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch workspace data:', err);
+      setError(err.message || 'An error occurred while fetching workspace data');
     } finally {
       setLoading(false);
     }
@@ -182,7 +187,9 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     loading,
     navigationItems,
     currentRole,
-    refreshTenant
+    refreshTenant,
+    isLoading: loading,
+    error
   };
 
   return (

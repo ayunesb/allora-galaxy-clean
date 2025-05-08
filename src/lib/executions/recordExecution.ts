@@ -22,6 +22,10 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
       throw new Error('Status is required');
     }
     
+    if (data.input === undefined) {
+      data.input = {}; // Provide default empty object for input if not provided
+    }
+    
     // Insert execution record
     const { data: execution, error } = await supabase
       .from('executions')

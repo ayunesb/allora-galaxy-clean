@@ -27,7 +27,7 @@ export interface ExecutionRecordInput {
   agentVersionId?: string;
   status: LogStatus;
   type: ExecutionType;
-  input: any;
+  input: any; // Make input required to match the type in tests
   output?: any;
   error?: string;
   executionTime?: number;

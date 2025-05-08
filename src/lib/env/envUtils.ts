@@ -1,4 +1,3 @@
-
 /**
  * Get an environment variable
  * @param key The name of the environment variable
@@ -33,4 +32,25 @@ export function ENV(key: string): string | undefined {
   }
   
   return undefined;
+}
+
+// Alias getEnv for backward compatibility
+export const getEnv = ENV;
+export const getEnvVar = ENV;
+
+// CORS headers for edge functions
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+/**
+ * Get an environment variable with a fallback value
+ * @param key The name of the environment variable
+ * @param defaultValue Fallback value if the env var is not found
+ * @returns The value of the environment variable or the default value
+ */
+export function getEnvWithDefault(key: string, defaultValue: string): string {
+  const value = ENV(key);
+  return value !== undefined ? value : defaultValue;
 }

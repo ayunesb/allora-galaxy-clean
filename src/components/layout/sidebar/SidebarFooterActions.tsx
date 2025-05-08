@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { SidebarMenuButton } from '@/components/ui/sidebar';
 
 interface SidebarFooterActionsProps {
   isActive: (path: string) => boolean;
@@ -25,13 +24,14 @@ export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isAc
 
   return (
     <div className="space-y-2 px-2">
-      <SidebarMenuButton
-        className={isActive('/settings') ? 'bg-primary/10' : ''}
+      <Button
+        variant="ghost"
+        className={`w-full justify-start ${isActive('/settings') ? 'bg-primary/10' : ''}`}
         onClick={() => handleNavigation('/settings')}
       >
-        <Settings className="h-5 w-5" />
+        <Settings className="mr-2 h-4 w-4" />
         <span>Settings</span>
-      </SidebarMenuButton>
+      </Button>
       
       <Button
         variant="outline"
@@ -45,3 +45,5 @@ export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isAc
     </div>
   );
 };
+
+export default SidebarFooterActions;

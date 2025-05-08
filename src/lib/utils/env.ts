@@ -1,10 +1,10 @@
 
-import { getEnvVar } from '@/lib/env/envUtils';
+import { getEnv as getEnvUtil } from '@/lib/env/envUtils';
 
 /**
  * Universal environment variable getter 
- * @deprecated Use getEnvVar from '@/lib/env/envUtils' instead
+ * @deprecated Use getEnv from '@/lib/env/envUtils' instead
  */
 export function getEnv(key: string, defaultValue: string = ""): string {
-  return getEnvVar(key, defaultValue);
+  return getEnvUtil(key) || defaultValue;
 }

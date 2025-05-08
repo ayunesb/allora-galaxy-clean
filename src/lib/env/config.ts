@@ -1,5 +1,4 @@
-
-import { getEnv } from './envUtils';
+import { ENV, getEnvWithDefault } from './envUtils';
 
 // Define types for our environment variables
 interface EnvVariable {
@@ -118,4 +117,4 @@ function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[
 }
 
 // Re-export getEnv for convenience
-export { getEnv };
+export { ENV as getEnv };

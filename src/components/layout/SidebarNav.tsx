@@ -9,19 +9,18 @@ interface SidebarNavProps {
   className?: string;
 }
 
-export const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
+const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
       {items.map((item) => {
-        const Icon = item.icon;
-        const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+        const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
 
         return (
           <Link
-            key={item.href}
-            to={item.href}
+            key={item.id}
+            to={item.path}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
               isActive
@@ -29,8 +28,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
                 : "hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            {Icon && <Icon className="h-4 w-4" />}
-            <span>{item.title}</span>
+            {item.icon && <span className="h-4 w-4">{item.icon}</span>}
+            <span>{item.label}</span>
           </Link>
         );
       })}

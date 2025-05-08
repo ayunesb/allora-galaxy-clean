@@ -90,10 +90,10 @@ vi.mock('@/lib/agents/evolution/createEvolvedAgent', () => ({
 }));
 
 // Mock the getActiveAgentVersion and getAgentPrompt helper functions
-vi.mock('@/lib/agents/evolution/autoEvolveAgents', () => {
-  const actual = jest.requireActual('@/lib/agents/evolution/autoEvolveAgents');
+vi.mock('@/lib/agents/evolution/autoEvolveAgents', async () => {
+  const originalModule = await vi.importActual('@/lib/agents/evolution/autoEvolveAgents');
   return {
-    ...actual,
+    ...originalModule,
     getActiveAgentVersion: vi.fn(() => Promise.resolve({
       success: true,
       agentVersionId: 'mock-agent-id'

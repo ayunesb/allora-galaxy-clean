@@ -3,7 +3,6 @@ import { getPluginsForOptimization } from './getPluginsForOptimization';
 import { calculateAgentPerformance } from './calculatePerformance';
 import { getFeedbackComments } from './getFeedbackComments';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateAgent } from './deactivateOldAgent';
 import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
 import { checkEvolutionNeeded } from './checkEvolutionNeeded';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -31,6 +30,7 @@ export async function autoEvolveAgents(tenantId: string = 'system') {
     evolved: 0,
     errors: 0,
     skipped: 0,
+    success: true,
     details: [] as Array<{
       plugin_id: string;
       status: 'evolved' | 'skipped' | 'error';
@@ -87,17 +87,18 @@ export async function autoEvolveAgents(tenantId: string = 'system') {
         }
         
         // Generate evolved prompt using feedback
+        const evolveReason = metrics.evolutionReason || 'Regular performance optimization';
         const evolvedPrompt = await evolvePromptWithFeedback(
           promptResult.prompt,
           feedbackComments,
-          metrics.evolutionReason || 'Regular performance optimization'
+          evolveReason
         );
         
         // Create new agent version
         const newAgent = await createEvolvedAgent(
           activeAgentId,
           tenantId,
-          metrics.evolutionReason || 'Auto-evolution based on performance metrics'
+          evolveReason
         );
         
         if (!newAgent.success) {
@@ -113,7 +114,7 @@ export async function autoEvolveAgents(tenantId: string = 'system') {
             plugin_id: plugin.id,
             old_agent_id: activeAgentId,
             new_agent_id: newAgent.newAgentVersionId,
-            reason: metrics.evolutionReason
+            reason: evolveReason
           }
         );
         
@@ -121,7 +122,7 @@ export async function autoEvolveAgents(tenantId: string = 'system') {
         result.details.push({
           plugin_id: plugin.id,
           status: 'evolved',
-          reason: metrics.evolutionReason,
+          reason: evolveReason,
           newAgentVersionId: newAgent.newAgentVersionId
         });
       } catch (err: any) {
@@ -138,6 +139,7 @@ export async function autoEvolveAgents(tenantId: string = 'system') {
   } catch (err: any) {
     console.error('Error in autoEvolveAgents:', err);
     result.message = `Error in auto-evolve process: ${err.message}`;
+    result.success = false;
   }
   
   console.log(`Auto-evolve complete: evolved=${result.evolved}, skipped=${result.skipped}, errors=${result.errors}`);
