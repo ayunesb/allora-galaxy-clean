@@ -2,31 +2,24 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { NotificationContent } from '@/types/notifications';
-import NotificationCenterContent from './NotificationCenterContent';
+import NotificationList from './NotificationList';
 
 interface NotificationCenterTabsProps {
   notifications: NotificationContent[];
-  loading: boolean;
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
+  onMarkAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
   onClose: () => void;
   unreadCount: number;
 }
 
 const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   notifications,
-  loading,
-  markAsRead,
+  onMarkAsRead,
   onClose,
-  unreadCount
+  unreadCount,
+  markAllAsRead
 }) => {
   const [tabValue, setTabValue] = useState('all');
-
-  const handleNotificationClick = async (id: string) => {
-    await markAsRead(id);
-    onClose();
-    return { success: true };
-  };
 
   return (
     <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
@@ -41,29 +34,29 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
       </div>
       
       <TabsContent value="all" className="max-h-[300px] overflow-y-auto">
-        <NotificationCenterContent 
+        <NotificationList 
           notifications={notifications} 
-          loading={loading} 
           filter="all"
-          markAsRead={markAsRead}
+          onMarkAsRead={onMarkAsRead}
+          onClose={onClose}
         />
       </TabsContent>
       
       <TabsContent value="unread" className="max-h-[300px] overflow-y-auto">
-        <NotificationCenterContent 
-          notifications={notifications} 
-          loading={loading} 
+        <NotificationList 
+          notifications={notifications.filter(n => !n.read)} 
           filter="unread"
-          markAsRead={markAsRead}
+          onMarkAsRead={onMarkAsRead}
+          onClose={onClose}
         />
       </TabsContent>
       
       <TabsContent value="system" className="max-h-[300px] overflow-y-auto">
-        <NotificationCenterContent 
-          notifications={notifications} 
-          loading={loading} 
+        <NotificationList 
+          notifications={notifications.filter(n => n.type === 'system')} 
           filter="system"
-          markAsRead={markAsRead}
+          onMarkAsRead={onMarkAsRead}
+          onClose={onClose}
         />
       </TabsContent>
     </Tabs>

@@ -1,5 +1,4 @@
 
-import React from "react";
 import { StrategyInspector } from "./node-inspectors/StrategyInspector";
 import { PluginInspector } from "./node-inspectors/PluginInspector";
 import { AgentInspector } from "./node-inspectors/AgentInspector";

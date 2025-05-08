@@ -1,6 +1,6 @@
 
 import { recordExecution } from '@/lib/plugins/execution/recordExecution';
-import { ExecuteStrategyResult } from '@/types/strategy';
+import { ExecuteStrategyResult, ValidationResult } from '@/types/strategy';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { validateStrategyInput } from './utils/validateInput';
 import { verifyStrategy } from './utils/verifyStrategy';
@@ -11,7 +11,7 @@ import { updateStrategyProgress } from './utils/updateStrategyProgress';
 interface StrategyRunInput {
   strategyId: string;
   tenantId: string;
-  userId?: string | null;
+  userId?: string;
   options?: Record<string, any>;
 }
 
@@ -34,7 +34,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       id: executionId,
       tenantId: input.tenantId,
       strategyId: input.strategyId,
-      executedBy: input.userId || null,
+      executedBy: input.userId || undefined,
       type: 'strategy',
       status: 'pending',
       input: input.options || {}
@@ -65,7 +65,7 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
     // 6. Record execution completion
     await recordExecution({
       id: executionId,
-      status,
+      status: status as 'success' | 'failure' | 'partial' | 'pending',
       output: { plugins: pluginResults },
       executionTime
     });
@@ -113,24 +113,35 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
     console.error("Strategy execution error:", error);
     
     // Record execution failure
-    await recordExecution({
-      id: executionId,
-      status: 'failure',
-      error: error.message,
-      executionTime: (performance.now() - startTime) / 1000
-    }).catch(e => console.error("Error recording execution failure:", e));
+    try {
+      await recordExecution({
+        id: executionId,
+        tenantId: input.tenantId,
+        strategyId: input.strategyId,
+        type: 'strategy',
+        status: 'failure',
+        error: error.message,
+        executionTime: (performance.now() - startTime) / 1000
+      }).catch(e => console.error("Error recording execution failure:", e));
+    } catch (e) {
+      console.error("Error recording execution failure:", e);
+    }
     
     // Log system event for error
-    await logSystemEvent(
-      input.tenantId,
-      'strategy',
-      'strategy_execution_failed',
-      {
-        strategy_id: input.strategyId,
-        execution_id: executionId,
-        error: error.message
-      }
-    ).catch(e => console.error("Error logging system event:", e));
+    try {
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'strategy_execution_failed',
+        {
+          strategy_id: input.strategyId,
+          execution_id: executionId,
+          error: error.message
+        }
+      ).catch(e => console.error("Error logging system event:", e));
+    } catch (e) {
+      console.error("Error logging system event:", e);
+    }
     
     // Return error result
     return {

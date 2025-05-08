@@ -39,4 +39,11 @@ export interface StrategyStatusNotification extends Omit<Notification, 'id' | 'c
   is_read: boolean;
 }
 
+// Add ValidationResult interface required by strategy functions
+export interface ValidationResult {
+  valid: boolean;
+  error?: string;
+  errors?: string[];
+}
+
 export * from './fixed';

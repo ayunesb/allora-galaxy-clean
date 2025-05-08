@@ -23,8 +23,13 @@ const mockDeno = {
 
 // Assign mock to global object, but only if Deno is not already defined
 if (typeof globalThis.Deno === 'undefined') {
-  // Use type assertion to avoid the TypeScript error
-  (globalThis as any).Deno = mockDeno;
+  // Use defineProperty to avoid TypeScript errors with index signatures
+  Object.defineProperty(globalThis, 'Deno', {
+    value: mockDeno,
+    writable: true,
+    enumerable: true,
+    configurable: true
+  });
 }
 
 describe('executeStrategy Edge Function', () => {

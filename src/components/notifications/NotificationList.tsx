@@ -1,56 +1,34 @@
 
 import React from 'react';
-import NotificationItem from './NotificationItem';
 import { NotificationContent } from '@/types/notifications';
-import NotificationCenterEmptyState from './NotificationCenterEmptyState';
-import { Loader2 } from 'lucide-react';
+import NotificationItem from './NotificationItem';
+import NotificationEmptyState from './NotificationEmptyState';
 
 interface NotificationListProps {
   notifications: NotificationContent[];
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  onNotificationClick?: () => void;
-  onDelete?: (id: string) => void;
-  loading?: boolean;
-  filter?: string;
+  filter: string;
+  onMarkAsRead: (id: string) => Promise<void>;
+  onClose: () => void;
 }
 
-const NotificationList: React.FC<NotificationListProps> = ({
-  notifications,
-  markAsRead,
-  onNotificationClick,
-  onDelete,
-  loading = false,
-  filter = 'all'
+const NotificationList: React.FC<NotificationListProps> = ({ 
+  notifications, 
+  filter,
+  onMarkAsRead,
+  onClose
 }) => {
-  const handleMarkAsRead = async (id: string) => {
-    await markAsRead(id);
-    if (onNotificationClick) {
-      onNotificationClick();
-    }
-  };
-  
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  if (notifications.length === 0) {
+    return <NotificationEmptyState filter={filter} />;
   }
 
-  if (notifications.length === 0) {
-    return (
-      <NotificationCenterEmptyState filter={filter} />
-    );
-  }
-  
   return (
-    <div className="space-y-3">
-      {notifications.map((notification) => (
+    <div className="divide-y divide-border">
+      {notifications.map(notification => (
         <NotificationItem
           key={notification.id}
           notification={notification}
-          onMarkAsRead={handleMarkAsRead}
-          onDelete={onDelete}
+          onMarkAsRead={onMarkAsRead}
+          onClose={onClose}
         />
       ))}
     </div>

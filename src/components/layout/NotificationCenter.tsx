@@ -46,7 +46,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
         description: "All notifications marked as read",
         variant: "default",
       });
-      return;
     } catch (error) {
       console.error("Error marking notifications as read:", error);
       toast({
@@ -54,7 +53,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
         description: "Failed to mark notifications as read",
         variant: "destructive",
       });
-      return;
     }
   };
 

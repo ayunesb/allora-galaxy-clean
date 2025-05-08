@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
-import { Button } from '@/components/ui/button';
 import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterTabs from './NotificationCenterTabs';
 import NotificationCenterFooter from './NotificationCenterFooter';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
+import { NotificationContent } from '@/types/notifications';
 
 interface NotificationCenterContentProps {
   onClose: () => void;
@@ -17,7 +17,7 @@ export const NotificationCenterContent: React.FC<NotificationCenterContentProps>
   onClose,
   onMarkAllAsRead
 }) => {
-  const { notifications, loading, error, markAsRead } = useNotificationsContext();
+  const { notifications, loading, markAsRead } = useNotificationsContext();
 
   const handleMarkAsRead = async (id: string): Promise<void> => {
     try {
@@ -25,26 +25,42 @@ export const NotificationCenterContent: React.FC<NotificationCenterContentProps>
       if (!result.success) {
         throw result.error || new Error('Failed to mark notification as read');
       }
-      return;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return;
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
     }
   };
 
+  // Transform Notification[] to NotificationContent[]
+  const transformedNotifications: NotificationContent[] = notifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.message || notification.description || '',
+    timestamp: notification.created_at,
+    read: notification.is_read || false,
+    type: notification.type,
+    action_url: notification.action_url,
+    action_label: notification.action_label
+  }));
+
   return (
     <div className="flex flex-col h-full">
-      <NotificationCenterHeader onClose={onClose} />
+      <NotificationCenterHeader 
+        onClose={onClose} 
+        markAllAsRead={onMarkAllAsRead}
+      />
       
       <div className="flex-1 overflow-hidden">
         {loading ? (
           <NotificationCenterLoading />
-        ) : notifications.length === 0 ? (
+        ) : transformedNotifications.length === 0 ? (
           <NotificationCenterEmptyState />
         ) : (
           <NotificationCenterTabs 
-            notifications={notifications} 
+            notifications={transformedNotifications} 
             onMarkAsRead={handleMarkAsRead}
+            unreadCount={transformedNotifications.filter(n => !n.read).length}
+            markAllAsRead={onMarkAllAsRead}
+            onClose={onClose}
           />
         )}
       </div>

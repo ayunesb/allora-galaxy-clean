@@ -1,6 +1,4 @@
 
-import React from "react";
-
 export function getNodeTitle(node: any): string {
   if (!node) return 'Details';
   
