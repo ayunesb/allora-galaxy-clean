@@ -1,7 +1,6 @@
 
-import React from 'react';
-import { Notification } from '@/types/notifications';
-import NotificationItem from './NotificationItem';
+import React, { useState } from 'react';
+import { Notification, NotificationType } from '@/types/notifications';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,18 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   // Count unread notifications
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  // Map to UI-ready format
+  const notificationItems = notifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.description || '',
+    timestamp: notification.created_at,
+    read: notification.is_read || false,
+    type: notification.type as NotificationType,
+    action_url: notification.action_url,
+    action_label: notification.action_label,
+  }));
+
   return (
     <div className="space-y-2">
       {onMarkAllAsRead && unreadCount > 0 && (
@@ -52,20 +63,11 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
       )}
       
       <NotificationCenterTabs 
-        selectedTab={activeFilter}
-        setSelectedTab={setActiveFilter}
-        notifications={notifications.map(notification => ({
-          id: notification.id,
-          title: notification.title,
-          message: notification.description || '',
-          timestamp: notification.created_at,
-          read: notification.is_read || false,
-          type: notification.type || 'info',
-          action_url: notification.action_url,
-          action_label: notification.action_label,
-        }))}
+        value={activeFilter}
+        onValueChange={setActiveFilter}
+        notifications={notificationItems}
         unreadCount={unreadCount}
-        markAsRead={markAsRead}
+        onMarkAsRead={markAsRead}
         onDelete={onDelete}
       />
     </div>

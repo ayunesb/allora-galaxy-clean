@@ -20,6 +20,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
     deleteNotification,
   } = useNotifications();
   
+  const [activeFilter, setActiveFilter] = React.useState('all');
+  
   const handleMarkNotificationAsRead = useCallback(async (id: string): Promise<void> => {
     try {
       await markAsRead(id);
@@ -53,9 +55,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, 
       <ScrollArea className="flex-1 max-h-[500px] overflow-y-auto">
         <NotificationCenterContent 
           notifications={notifications}
-          onMarkAsRead={handleMarkNotificationAsRead}
+          markAsRead={handleMarkNotificationAsRead}
           onDelete={handleDeleteNotification}
           onMarkAllAsRead={handleMarkAllAsRead}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
         />
       </ScrollArea>
       

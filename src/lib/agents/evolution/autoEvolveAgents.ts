@@ -1,10 +1,22 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getFeedbackComments } from './getFeedbackComments';
-import { calculatePerformance } from './calculatePerformance';
+import { calculateAgentPerformance } from './calculatePerformance';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgent } from './deactivateOldAgent';
+import { deactivateAgent } from './deactivateOldAgent';
 import { getAgentUsageStats } from './getAgentUsageStats';
+
+export interface AgentPerformanceMetrics {
+  needsEvolution: boolean;
+  evolutionReason?: string;
+  positiveVotes?: number;
+  negativeVotes?: number;
+  neutralVotes?: number;
+  totalExecutions?: number;
+  successRate?: number;
+  averageExecutionTime?: number;
+  xpEarned?: number;
+}
 
 /**
  * Main function to auto-evolve agents based on feedback and performance
@@ -87,7 +99,7 @@ export async function autoEvolveAgents({
         const usageStats = await getAgentUsageStats(version.id);
         
         // Calculate performance score based on feedback and usage
-        const performanceScore = calculatePerformance(feedbackData || [], usageStats);
+        const performanceScore = calculateAgentPerformance(feedbackData || [], usageStats);
         console.log(`Performance score: ${performanceScore}`);
         
         // Skip if performance is above threshold
@@ -113,18 +125,19 @@ export async function autoEvolveAgents({
             continue;
           }
           
+          // Create evolved agent version with reason
+          const evolutionReason = `Auto-evolution triggered: performance score ${performanceScore} below threshold ${threshold}`;
+          
           // Create evolved agent version
-          const newVersion = await createEvolvedAgent(
+          const result = await createEvolvedAgent(
             version.id, 
-            version.agent_id, 
             tenantId,
-            comments || [],
-            performanceScore
+            evolutionReason
           );
           
-          if (newVersion) {
+          if (result.success) {
             // Deactivate old version
-            await deactivateOldAgent(version.id);
+            await deactivateAgent(version.id);
             result.evolved++;
           }
         }

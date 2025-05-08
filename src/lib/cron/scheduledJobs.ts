@@ -25,8 +25,10 @@ async function setupAutoEvolveAgentsJob() {
     // Run auto-evolve process once per day
     const CRON_SCHEDULE = '0 2 * * *'; // Run at 2 AM every day
     
-    // Call autoEvolveAgents directly
-    const result = await autoEvolveAgents();
+    // Call autoEvolveAgents directly with system tenant
+    const result = await autoEvolveAgents({
+      tenantId: 'system'
+    });
     
     // Log the result
     if (result.evolved > 0) {

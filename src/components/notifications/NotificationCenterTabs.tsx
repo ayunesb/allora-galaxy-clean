@@ -9,18 +9,26 @@ interface NotificationCenterTabsProps {
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   unreadCount: number;
+  value?: string;
+  onValueChange?: (value: string) => void;
 }
 
 const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   notifications,
   onMarkAsRead,
   onDelete,
-  unreadCount
+  unreadCount,
+  value = 'all',
+  onValueChange
 }) => {
-  const [tabValue, setTabValue] = React.useState('all');
+  const handleTabChange = (newValue: string) => {
+    if (onValueChange) {
+      onValueChange(newValue);
+    }
+  };
 
   return (
-    <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
+    <Tabs value={value} onValueChange={handleTabChange} className="w-full">
       <div className="px-4 py-2">
         <TabsList className="w-full">
           <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
