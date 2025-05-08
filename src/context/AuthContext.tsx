@@ -1,154 +1,140 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/hooks/use-toast";
-import i18n from '@/lib/i18n';
 
-type AuthContextType = {
-  session: Session | null;
+export interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  isLoading: boolean; // Add isLoading for backward compatibility
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null; user: User | null }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-};
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Check for authenticated session on mount
   useEffect(() => {
-    // First set up the auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // If user logs in, fetch their language preference
-      if (session?.user) {
-        setTimeout(() => {
-          fetchUserLanguagePreference(session.user.id);
-        }, 0);
+    const checkSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          throw error;
+        }
+        setUser(data.session?.user || null);
+      } catch (err: any) {
+        setError(err.message || 'Authentication error');
+        console.error('Auth session error:', err);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
 
-    // Then check for an existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // If user is already logged in, fetch their language preference
-      if (session?.user) {
-        fetchUserLanguagePreference(session.user.id);
-      }
-      
+    checkSession();
+
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
       setLoading(false);
     });
 
     return () => {
-      subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
   }, []);
 
-  const fetchUserLanguagePreference = async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('preferred_language')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (data?.preferred_language) {
-        i18n.changeLanguage(data.preferred_language);
-        localStorage.setItem('preferred_language', data.preferred_language);
-      }
-    } catch (error) {
-      console.error("Error fetching user language preference:", error);
-    }
-  };
-
+  // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Sign in failed",
-        description: error.message || "Please check your credentials and try again",
-        variant: "destructive",
-      });
-      return { error };
+    } catch (err: any) {
+      console.error('Sign in error:', err);
+      return { error: err.message || 'Failed to sign in' };
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Sign up with email and password
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-      
-      toast({
-        title: "Sign up successful",
-        description: "Check your email for the confirmation link",
-      });
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Sign up failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-      return { error };
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        throw error;
+      }
+      return { error: null, user: data.user };
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      return { error: err.message || 'Failed to sign up', user: null };
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Sign out
   const signOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Signed out successfully",
-    });
+    try {
+      setLoading(true);
+      await supabase.auth.signOut();
+    } catch (err: any) {
+      console.error('Sign out error:', err);
+      setError(err.message || 'Failed to sign out');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Reset password
   const resetPassword = async (email: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
-      if (error) throw error;
-      
-      toast({
-        title: "Password reset email sent",
-        description: "Check your email for the reset link",
-      });
+      if (error) {
+        throw error;
+      }
       return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Failed to reset password",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-      return { error };
+    } catch (err: any) {
+      console.error('Reset password error:', err);
+      return { error: err.message || 'Failed to send password reset email' };
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, resetPassword }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  const value: AuthContextType = {
+    user,
+    loading,
+    isLoading: loading, // Add isLoading for backward compatibility
+    error,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+  };
 
-export function useAuth() {
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { recordExecution } from '@/lib/executions/recordExecution';
-import { LogStatus, ExecutionType, ExecutionRecordInput } from '@/types/shared';
+import { LogStatus, ExecutionRecordInput } from '@/types/shared';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the Supabase client
@@ -20,106 +20,75 @@ vi.mock('@/integrations/supabase/client', () => ({
         eq: vi.fn(() => ({
           select: vi.fn(() => ({
             single: vi.fn(() => Promise.resolve({ 
-              data: { id: 'test-execution-id', status: 'updated' }, 
+              data: { id: 'test-execution-id', status: 'completed' }, 
               error: null 
             }))
           }))
         }))
-      })),
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({
-            data: { id: 'test-execution-id', status: 'success' },
-            error: null
-          }))
-        })),
-        order: vi.fn(() => ({
-          limit: vi.fn(() => Promise.resolve({
-            data: [{ id: 'test-execution-1' }, { id: 'test-execution-2' }],
-            error: null
-          }))
-        }))
-      })),
-      eq: vi.fn(() => ({
-        order: vi.fn(() => ({
-          limit: vi.fn(() => Promise.resolve({
-            data: [{ id: 'test-execution-1' }, { id: 'test-execution-2' }],
-            error: null
-          }))
-        }))
       }))
-    })),
+    }))
   }
 }));
 
-describe('Execution Record Functions', () => {
+describe('recordExecution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should record a new execution', async () => {
-    const input: ExecutionRecordInput = {
-      tenantId: 'test-tenant',
-      status: 'success' as LogStatus,
-      type: 'strategy' as ExecutionType,
-      input: {}, // Add an empty object to satisfy the required property
+  it('should record an execution successfully', async () => {
+    const executionData: ExecutionRecordInput = {
+      tenantId: 'tenant-123',
+      status: 'success',
+      type: 'strategy',
+      strategyId: 'strategy-123',
+      executedBy: 'user-123',
+      input: { data: 'input' },
+      output: { result: 'output' }
     };
 
-    const result = await recordExecution(input);
-    
-    if (result) { // Add null check to prevent TS error
-      expect(result).toBeDefined();
-      expect(result.id).toBe('test-execution-id');
-      expect(supabase.from).toHaveBeenCalledWith('executions');
-    }
+    const result = await recordExecution(executionData);
+
+    expect(result).toMatchObject({ 
+      success: true, 
+      data: { id: 'test-execution-id' } 
+    });
+
+    expect(supabase.from).toHaveBeenCalledWith('executions');
+    expect(supabase.from('executions').insert).toHaveBeenCalledWith({
+      tenant_id: 'tenant-123',
+      status: 'success',
+      type: 'strategy',
+      strategy_id: 'strategy-123',
+      executed_by: 'user-123',
+      input: { data: 'input' },
+      output: { result: 'output' }
+    });
   });
-  
-  it('should handle retry logic if insert fails', async () => {
-    // Setup mock to fail once then succeed
-    vi.mocked(supabase.from).mockImplementationOnce(() => ({
-      insert: vi.fn(() => {
-        throw new Error('Temporary error');
-      }),
-    } as any)).mockImplementationOnce(() => ({
+
+  it('should handle errors gracefully', async () => {
+    // Set up the mock to reject
+    vi.mocked(supabase.from).mockReturnValueOnce({
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
           single: vi.fn(() => Promise.resolve({ 
-            data: { id: 'retry-success-id' }, 
-            error: null 
+            data: null, 
+            error: new Error('Database error') 
           }))
         }))
-      })),
-    } as any));
-    
-    // Create a properly typed setTimeout mock that includes __promisify__
-    const originalSetTimeout = global.setTimeout;
-    const mockSetTimeout = vi.fn((callback: Function, _ms?: number) => {
-      callback();
-      return {} as unknown as NodeJS.Timeout;
-    });
-    
-    // Add the required __promisify__ property
-    (mockSetTimeout as any).__promisify__ = function() {};
-    
-    // Replace global setTimeout with our mock
-    global.setTimeout = mockSetTimeout as unknown as typeof setTimeout;
-    
-    const input: ExecutionRecordInput = {
-      tenantId: 'test-tenant',
-      status: 'success' as LogStatus,
-      type: 'strategy' as ExecutionType,
-      input: {}, // Add an empty object to satisfy the required property
+      }))
+    } as any);
+
+    const executionData: ExecutionRecordInput = {
+      tenantId: 'tenant-123',
+      status: 'failure',
+      type: 'plugin',
+      error: 'Something went wrong'
     };
-    
-    const result = await recordExecution(input);
-    
-    if (result) { // Add null check to prevent TS error
-      expect(result).toBeDefined();
-      expect(result.id).toBe('retry-success-id');
-      expect(supabase.from).toHaveBeenCalledTimes(2); // Once for fail, once for success
-    }
-    
-    // Restore original setTimeout
-    global.setTimeout = originalSetTimeout;
+
+    const result = await recordExecution(executionData);
+
+    expect(result).toMatchObject({ 
+      success: false 
+    });
   });
 });

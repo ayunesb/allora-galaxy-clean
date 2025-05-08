@@ -9,7 +9,7 @@ export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
 export type TenantFeature = 'ai_decisions' | 'analytics' | 'plugins' | 'multi_user' | 'api_access';
 
-export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
 
 export interface BaseEntity {
   id: string;
@@ -24,4 +24,50 @@ export interface ExecutionParams {
   tenant_id: string;
   user_id?: string;
   dryRun?: boolean;
+}
+
+/**
+ * Types used for KPI and analytics
+ */
+export type TrendDirection = 'up' | 'down' | 'flat';
+
+export interface KPITrend {
+  direction: TrendDirection;
+  percentage: number;
+  isPositive: boolean;
+}
+
+/**
+ * System logging related types
+ */
+export type SystemEventModule = 
+  | 'system' 
+  | 'auth' 
+  | 'tenant' 
+  | 'strategy' 
+  | 'plugin' 
+  | 'agent' 
+  | 'execution' 
+  | 'onboarding';
+
+export type SystemEventType = string;
+
+/**
+ * Execution related types
+ */
+export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
+
+export interface ExecutionRecordInput {
+  tenantId: string;
+  status: string;
+  type: ExecutionType;
+  strategyId?: string;
+  pluginId?: string;
+  agentVersionId?: string;
+  executedBy?: string;
+  input?: any;
+  output?: any;
+  executionTime?: number;
+  xpEarned?: number;
+  error?: string;
 }

@@ -11,9 +11,16 @@ export * from './tenant';
 export * from './shared';
 export * from './galaxy';
 export * from './notifications';
+export * from './onboarding'; // Add onboarding types
 
-// Deprecated types - these should eventually be migrated to the domain-specific files
-export * from './fixed';
+// Fixed exports to avoid ambiguity
+export type { 
+  RunPluginChainResult 
+} from './plugin';
+
+export type {
+  ExecutionRecordInput
+} from './shared';
 
 // Define Strategy type to avoid import errors
 export interface Strategy {

@@ -1,66 +1,86 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { TrendDirection } from '@/types/shared';
 
-export interface KPICardProps {
+interface KPICardProps {
   title: string;
   value: string | number;
-  previousValue?: number;
-  trend?: number;
-  trendDirection?: TrendDirection;
-  icon?: React.ReactNode;
+  previousValue?: string | number;
+  change?: number;
+  trend?: TrendDirection;
+  isPositive?: boolean;
   className?: string;
+  icon?: React.ReactNode;
+  unit?: string;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ 
-  title, 
+/**
+ * A card component that displays a key performance indicator with trend
+ */
+const KPICard: React.FC<KPICardProps> = ({
+  title,
   value,
-  trend, 
-  trendDirection = 'neutral', 
+  previousValue,
+  change,
+  trend = 'flat',
+  isPositive = true,
+  className,
   icon,
-  className = ''
+  unit = ''
 }) => {
-  const formatTrend = (trend: number) => {
-    const formatted = Math.abs(trend).toFixed(1);
-    return `${trend >= 0 ? '+' : '-'}${formatted}%`;
+  const renderTrendIcon = () => {
+    if (trend === 'up') {
+      return <ArrowUpIcon className={cn('h-4 w-4', isPositive ? 'text-green-500' : 'text-red-500')} />;
+    }
+    
+    if (trend === 'down') {
+      return <ArrowDownIcon className={cn('h-4 w-4', isPositive ? 'text-green-500' : 'text-red-500')} />;
+    }
+    
+    return <MinusIcon className="h-4 w-4 text-gray-400" />;
   };
-
-  const getTrendColor = () => {
-    if (trendDirection === 'up') return 'text-green-500';
-    if (trendDirection === 'down') return 'text-red-500';
-    return 'text-gray-500';
-  };
-
-  const getTrendIcon = () => {
-    if (trendDirection === 'up') return <ArrowUpIcon className="h-4 w-4 text-green-500" />;
-    if (trendDirection === 'down') return <ArrowDownIcon className="h-4 w-4 text-red-500" />;
-    return <MinusIcon className="h-4 w-4 text-gray-500" />;
-  };
-
+  
   return (
-    <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          {icon && <span>{icon}</span>}
-          {title}
-        </CardTitle>
+    <Card className={cn('overflow-hidden', className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-      </CardContent>
-      {trend !== undefined && (
-        <CardFooter className="pt-0">
-          <div className="flex items-center gap-1 text-xs font-medium">
-            {getTrendIcon()}
-            <span className={getTrendColor()}>
-              {formatTrend(trend)}
-            </span>
-            <span className="text-muted-foreground"> vs. previous</span>
+        <div className="text-2xl font-bold">
+          {value}
+          {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+        </div>
+        
+        {(change !== undefined || previousValue !== undefined) && (
+          <div className="flex items-center space-x-1 pt-1">
+            {renderTrendIcon()}
+            <p className={cn(
+              'text-xs',
+              isPositive ? 'text-green-500' : 'text-red-500',
+              trend === 'flat' && 'text-gray-400'
+            )}>
+              {change !== undefined && (
+                <>
+                  {change > 0 && '+'}
+                  {change}%
+                </>
+              )}
+              {previousValue !== undefined && change === undefined && (
+                <>
+                  {trend === 'up' && 'Increased from '}
+                  {trend === 'down' && 'Decreased from '}
+                  {trend === 'flat' && 'No change from '}
+                  {previousValue}
+                </>
+              )}
+            </p>
           </div>
-        </CardFooter>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 };

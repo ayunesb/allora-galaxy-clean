@@ -1,228 +1,309 @@
-
-import { useState, useEffect } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { AlertCircle, Filter, RefreshCw, Search, Tag, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useTenantId } from '@/hooks/useTenantId';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 import { LogStatus } from '@/types/shared';
+
+// Define internal status type that includes all possible values from the database
+type PluginLogStatus = 'success' | 'failure' | 'warning' | 'info' | 'error' | 'pending' | 'running';
 
 interface PluginLog {
   id: string;
-  plugin_id: string;
-  plugin_name?: string;
+  plugin_id?: string;
   strategy_id?: string;
-  strategy_name?: string;
-  status: LogStatus;
-  execution_time: number;
-  created_at: string;
-  xp_earned: number;
+  tenant_id?: string;
+  agent_version_id?: string;
+  status: PluginLogStatus;
+  input?: any;
+  output?: any;
+  error?: string;
+  created_at?: string;
+  execution_time?: number;
+  xp_earned?: number;
+  plugin_name?: string;
+  strategy_title?: string;
 }
 
-const PluginLogs = () => {
-  const { tenant } = useWorkspace();
+const getStatusBadge = (status: PluginLogStatus) => {
+  switch (status) {
+    case 'success':
+      return <Badge variant="success">Success</Badge>;
+    case 'failure':
+      return <Badge variant="destructive">Failure</Badge>;
+    case 'error':
+      return <Badge variant="destructive">Error</Badge>;
+    case 'pending':
+      return <Badge variant="outline">Pending</Badge>;
+    case 'running':
+      return <Badge variant="outline">Running</Badge>;
+    case 'warning':
+      return <Badge variant="secondary">Warning</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
+const PluginLogs: React.FC = () => {
   const [logs, setLogs] = useState<PluginLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  
-  // We'll implement sorting later
-  // const [sortBy, setSortBy] = useState<string>('created_at');
-  // const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
-  const logsPerPage = 10;
-  
-  useEffect(() => {
-    if (tenant?.id) {
-      fetchLogs();
-    }
-  }, [tenant?.id, currentPage, filterStatus]);
-  
-  const fetchLogs = async () => {
-    setIsLoading(true);
-    
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PluginLogStatus | ''>('');
+  const [pluginFilter, setPluginFilter] = useState('');
+  const [strategyFilter, setStrategyFilter] = useState('');
+  const [availablePlugins, setAvailablePlugins] = useState<string[]>([]);
+  const [availableStrategies, setAvailableStrategies] = useState<string[]>([]);
+  const { toast } = useToast();
+  const { tenantId } = useTenantId();
+
+  const loadLogs = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
+      if (!tenantId) {
+        throw new Error('No tenant selected');
+      }
+
       let query = supabase
         .from('plugin_logs')
-        .select('id, plugin_id, strategy_id, status, execution_time, created_at, xp_earned, plugins(name), strategies(title)')
-        .eq('tenant_id', tenant?.id)
-        .order('created_at', { ascending: false })
-        .range((currentPage - 1) * logsPerPage, currentPage * logsPerPage - 1);
-      
-      if (filterStatus) {
-        query = query.eq('status', filterStatus);
+        .select(
+          `
+          id, plugin_id, strategy_id, tenant_id, agent_version_id, status, input, output, error, created_at, execution_time, xp_earned,
+          plugins (name),
+          strategies (title)
+        `
+        )
+        .eq('tenant_id', tenantId);
+
+      if (statusFilter) {
+        query = query.eq('status', statusFilter);
       }
-      
+
       const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Format the data
-      const formattedLogs = data.map(log => ({
+
+      if (error) throw error;
+
+      const pluginLogs: PluginLog[] = data.map((log: any) => ({
         id: log.id,
         plugin_id: log.plugin_id,
-        plugin_name: log.plugins?.name,
         strategy_id: log.strategy_id,
-        strategy_name: log.strategies?.title,
-        status: log.status as LogStatus,
-        execution_time: log.execution_time,
+        tenant_id: log.tenant_id,
+        agent_version_id: log.agent_version_id,
+        status: log.status,
+        input: log.input,
+        output: log.output,
+        error: log.error,
         created_at: log.created_at,
-        xp_earned: log.xp_earned
+        execution_time: log.execution_time,
+        xp_earned: log.xp_earned,
+        plugin_name: log.plugins?.name,
+        strategy_title: log.strategies?.title,
       }));
-      
-      setLogs(formattedLogs);
-      
-      // Get total count for pagination
-      const { count } = await supabase
-        .from('plugin_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', tenant?.id);
-      
-      setTotalPages(Math.ceil((count || 0) / logsPerPage));
-      
-    } catch (err) {
-      console.error('Error fetching plugin logs:', err);
+
+      setLogs(pluginLogs);
+
+      // Extract available plugins and strategies
+      const plugins = [...new Set(pluginLogs.map((log) => log.plugin_name).filter(Boolean))];
+      const strategies = [...new Set(pluginLogs.map((log) => log.strategy_title).filter(Boolean))];
+
+      setAvailablePlugins(plugins);
+      setAvailableStrategies(strategies);
+    } catch (err: any) {
+      console.error('Error loading plugin logs:', err);
+      setError(err.message);
+      toast({
+        title: 'Error loading plugin logs',
+        description: err.message,
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
-  
-  const handleFilterChange = (status: string | null) => {
-    setFilterStatus(status);
-    setCurrentPage(1);
-  };
-  
+
+  useEffect(() => {
+    if (tenantId) {
+      loadLogs();
+    }
+  }, [tenantId, statusFilter]);
+
+  const filteredLogs = logs.filter((log) => {
+    const searchMatch =
+      (log.plugin_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (log.strategy_title?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+    const pluginMatch = !pluginFilter || log.plugin_name === pluginFilter;
+    const strategyMatch = !strategyFilter || log.strategy_title === strategyFilter;
+
+    return searchMatch && pluginMatch && strategyMatch;
+  });
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    return dateString ? format(new Date(dateString), 'MMM dd, yyyy HH:mm') : 'N/A';
   };
-  
-  const formatExecutionTime = (time: number) => {
-    return `${time.toFixed(2)} sec`;
-  };
-  
-  const getStatusBadge = (status: LogStatus) => {
-    switch (status) {
-      case 'success':
-        return <Badge variant="success">Success</Badge>;
-      case 'failure':
-      case 'error':
-        return <Badge variant="destructive">Failure</Badge>;
-      case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'running':
-        return <Badge variant="secondary">Running</Badge>;
-      case 'warning':
-        return <Badge variant="warning">Warning</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-  
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Plugin Execution Logs</h1>
-        <Button onClick={() => fetchLogs()}>Refresh</Button>
-      </div>
-      
-      <div className="flex gap-2">
-        <Button 
-          variant={filterStatus === null ? "default" : "outline"}
-          onClick={() => handleFilterChange(null)}
-        >
-          All
-        </Button>
-        <Button 
-          variant={filterStatus === 'success' ? "default" : "outline"}
-          onClick={() => handleFilterChange('success')}
-        >
-          Success
-        </Button>
-        <Button 
-          variant={filterStatus === 'failure' ? "default" : "outline"}
-          onClick={() => handleFilterChange('failure')}
-        >
-          Failure
-        </Button>
-        <Button 
-          variant={filterStatus === 'pending' ? "default" : "outline"}
-          onClick={() => handleFilterChange('pending')}
-        >
-          Pending
-        </Button>
-      </div>
-      
+    <div className="container mx-auto py-8">
       <Card>
-        <CardHeader>
-          <CardTitle>Plugin Execution History</CardTitle>
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+          <CardTitle>Plugin Logs</CardTitle>
         </CardHeader>
+
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center p-6">
-              <p>Loading logs...</p>
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center p-6">
-              <p className="text-muted-foreground">No plugin execution logs found</p>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Plugin</TableHead>
-                    <TableHead>Strategy</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>XP</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>{log.plugin_name || log.plugin_id}</TableCell>
-                      <TableCell>{log.strategy_name || log.strategy_id || '-'}</TableCell>
-                      <TableCell>{getStatusBadge(log.status)}</TableCell>
-                      <TableCell>{formatExecutionTime(log.execution_time)}</TableCell>
-                      <TableCell>{log.xp_earned}</TableCell>
-                      <TableCell>{formatDate(log.created_at)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              <div className="flex justify-between items-center mt-4">
-                <div>
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <div className="w-full sm:w-auto flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search by plugin or strategy..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Button variant="outline" size="sm" onClick={() => {}}>
+                  Filters
+                </Button>
+              </div>
+            </div>
+
+            <Button variant="outline" onClick={loadLogs}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <div className="w-full sm:w-auto">
+              <select
+                className="w-full sm:w-[180px] px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as PluginLogStatus)}
+              >
+                <option value="">All Statuses</option>
+                <option value="success">Success</option>
+                <option value="failure">Failure</option>
+                <option value="error">Error</option>
+                <option value="pending">Pending</option>
+                <option value="running">Running</option>
+                <option value="warning">Warning</option>
+              </select>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <select
+                className="w-full sm:w-[180px] px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                value={pluginFilter}
+                onChange={(e) => setPluginFilter(e.target.value)}
+              >
+                <option value="">All Plugins</option>
+                {availablePlugins.map((plugin) => (
+                  <option key={plugin} value={plugin}>
+                    {plugin}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <select
+                className="w-full sm:w-[180px] px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                value={strategyFilter}
+                onChange={(e) => setStrategyFilter(e.target.value)}
+              >
+                <option value="">All Strategies</option>
+                {availableStrategies.map((strategy) => (
+                  <option key={strategy} value={strategy}>
+                    {strategy}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('');
+                setPluginFilter('');
+                setStrategyFilter('');
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+
+          {error && (
+            <div className="rounded-md bg-red-100 p-4 text-red-500 mb-6">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4" />
+                <p>{error}</p>
+              </div>
+            </div>
           )}
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plugin</TableHead>
+                  <TableHead>Strategy</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead className="text-right">Execution Time</TableHead>
+                  <TableHead className="text-right">XP Earned</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="flex justify-center">
+                        <RefreshCw className="h-6 w-6 animate-spin text-gray-500" />
+                      </div>
+                      <p className="mt-2 text-gray-500">Loading logs...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredLogs.length ? (
+                  filteredLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Tag className="h-4 w-4 text-muted-foreground" />
+                          <span>{log.plugin_name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{log.strategy_title || 'N/A'}</TableCell>
+                      <TableCell>{getStatusBadge(log.status)}</TableCell>
+                      <TableCell>{formatDate(log.created_at || '')}</TableCell>
+                      <TableCell className="text-right">{log.execution_time?.toFixed(2) || 'N/A'}s</TableCell>
+                      <TableCell className="text-right">{log.xp_earned || 0}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <p className="text-gray-500">No logs found</p>
+                      {(searchTerm || statusFilter || pluginFilter || strategyFilter) && (
+                        <p className="text-sm text-gray-400 mt-1">Try clearing your filters</p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
