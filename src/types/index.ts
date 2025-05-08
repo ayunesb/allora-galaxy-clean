@@ -21,7 +21,7 @@ export interface Strategy {
   id: string;
   title: string;
   description: string;
-  status: "pending" | "approved" | "rejected" | "in_progress" | "completed";
+  status: "pending" | "approved" | "rejected" | "in_progress" | "completed" | "draft";
   created_at?: string;
   updated_at?: string;
   tags?: string[];
@@ -49,4 +49,20 @@ export interface KPI {
   tenant_id: string;
   metadata?: Record<string, any>;
   date: string;
+}
+
+// Define PluginLog interface needed for StrategyBuilder.tsx
+export interface PluginLog {
+  id: string;
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  tenant_id?: string;
+  status: string;
+  input?: any;
+  output?: any;
+  error?: string;
+  created_at?: string;
+  execution_time?: number;
+  xp_earned?: number;
 }

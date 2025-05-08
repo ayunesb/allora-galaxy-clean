@@ -6,24 +6,6 @@ import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
 import OnboardingErrorDialog from './OnboardingErrorDialog';
 
-// Define props interfaces for child components
-interface OnboardingProgressProps {
-  currentStep: number;
-  onStepClick: (step: number) => void;
-  steps: Array<{ id: string; label: string }>;
-}
-
-interface StepNavigationProps {
-  currentStep: number;
-  totalSteps: number;
-  isSubmitting: boolean;
-  isNextDisabled: boolean;
-  isGenerating: boolean;
-  onNext: () => void;
-  onPrev: () => void;
-  onSubmit: () => Promise<void>;
-}
-
 const OnboardingWizard: React.FC = () => {
   const {
     steps,

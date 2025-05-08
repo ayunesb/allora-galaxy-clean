@@ -74,10 +74,11 @@ export interface PluginResult {
   xpEarned: number;
 }
 
+// Updated VoteType enum to match the expected string literals in tests
 export enum VoteType {
-  Upvote = 'upvote',
-  Downvote = 'downvote',
-  Neutral = 'neutral'
+  up = 'up',
+  down = 'down',
+  neutral = 'neutral'
 }
 
 // Utility functions for case conversion

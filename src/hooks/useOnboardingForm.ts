@@ -10,18 +10,21 @@ export const useOnboardingForm = () => {
   const [formData, setFormData] = useState<OnboardingFormData>({
     companyName: '',
     industry: '',
-    teamSize: '',
+    companySize: '',
     revenueRange: '',
     website: '',
     description: '',
-    personaName: '',
-    tone: '',
-    goals: '', // This should be a string based on the component usage
+    goals: [] as string[],
     additionalInfo: '',
+    persona: {
+      name: '',
+      goals: [] as string[],
+      tone: ''
+    }
   });
 
   // Update form data
-  const updateFormData = (key: keyof OnboardingFormData, value: string) => {
+  const updateFormData = (key: keyof OnboardingFormData, value: string | string[] | any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 

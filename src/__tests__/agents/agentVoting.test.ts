@@ -2,7 +2,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { voteOnAgentVersion } from '@/lib/agents/vote';
 import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent'; 
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { VoteType } from '@/types/fixed';
 
 // Mock supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -41,7 +42,7 @@ describe('Agent Voting System', () => {
       agentVersionId: 'test-agent-id',
       userId: 'test-user-id',
       tenantId: 'test-tenant-id',
-      voteType: 'up' as const,
+      voteType: VoteType.up,
       comment: 'Great performance!'
     };
     
@@ -73,7 +74,7 @@ describe('Agent Voting System', () => {
       agentVersionId: 'test-agent-id',
       userId: 'test-user-id',
       tenantId: 'test-tenant-id',
-      voteType: 'down' as const,
+      voteType: VoteType.down,
       comment: 'Could be improved'
     };
     
@@ -108,7 +109,7 @@ describe('Agent Voting System', () => {
       agentVersionId: 'test-agent-id',
       userId: 'test-user-id',
       tenantId: 'test-tenant-id',
-      voteType: 'up' as const
+      voteType: VoteType.up
     };
     
     const result = await voteOnAgentVersion(
