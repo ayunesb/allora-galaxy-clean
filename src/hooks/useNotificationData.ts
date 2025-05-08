@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
 import { NotificationContent } from '@/types/notifications';
 
@@ -8,7 +8,7 @@ export const useNotificationData = (tabFilter: string, textFilter: string | null
   const [loading, setLoading] = useState<boolean>(true);
   const { getNotifications } = useNotifications();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getNotifications(tabFilter === 'unread', textFilter);
@@ -18,11 +18,11 @@ export const useNotificationData = (tabFilter: string, textFilter: string | null
     } finally {
       setLoading(false);
     }
-  };
+  }, [getNotifications, tabFilter, textFilter]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [tabFilter, textFilter]);
+  }, [fetchNotifications]);
 
   return { notifications, loading, fetchNotifications };
 };

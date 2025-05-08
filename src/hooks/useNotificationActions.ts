@@ -3,7 +3,12 @@ import { useNotifications } from '@/lib/notifications/useNotifications';
 import { toast } from '@/components/ui/use-toast';
 
 export const useNotificationActions = () => {
-  const { markAsRead: markNotificationAsRead, markAllAsRead: markAllNotificationsAsRead, deleteNotification: deleteOneNotification, deleteAllNotifications: deleteAll } = useNotifications();
+  const { 
+    markAsRead: markNotificationAsRead, 
+    markAllAsRead: markAllNotificationsAsRead, 
+    deleteNotification: deleteOneNotification, 
+    deleteAll: deleteAllNotifications 
+  } = useNotifications();
 
   const markAsRead = async (id: string) => {
     try {
@@ -53,7 +58,7 @@ export const useNotificationActions = () => {
 
   const deleteAllNotifications = async (filter: string | null, tab: string) => {
     try {
-      await deleteAll(filter, tab === 'unread');
+      await deleteAllNotifications(filter, tab === 'unread');
       toast({
         title: "Success",
         description: "All notifications deleted",

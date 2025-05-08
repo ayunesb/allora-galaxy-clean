@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -19,7 +18,7 @@ const GalaxyLoader: React.FC<GalaxyLoaderProps> = ({
   onNodeClick 
 }) => {
   // Load data for the graph
-  const { data: graphDataQuery, isLoading, refetch } = useGalaxyData();
+  const { data: graphDataQuery, isLoading } = useGalaxyData();
   const [graphData, setGraphData] = React.useState<GraphData>({ nodes: [], links: [] });
   
   // Update graph data when API data changes or view mode changes

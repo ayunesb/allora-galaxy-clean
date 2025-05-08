@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import NotificationList from './NotificationList';
 import { NotificationContent } from '@/types/notifications';
@@ -10,7 +10,7 @@ interface NotificationTabsProps {
   setSelectedTab: (value: string) => void;
   notifications: NotificationContent[];
   loading: boolean;
-  filter: string | null;
+  filter?: string | null; // Made optional since it wasn't used
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   onDelete: (id: string) => Promise<{ success: boolean; error?: Error }>;
 }
@@ -20,7 +20,6 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   setSelectedTab,
   notifications,
   loading,
-  filter,
   markAsRead,
   onDelete
 }) => {

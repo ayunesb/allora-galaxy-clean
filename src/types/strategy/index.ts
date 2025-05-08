@@ -24,6 +24,10 @@ export interface ExecuteStrategyResult {
   successful_plugins?: number;
   xp_earned?: number;
   status?: 'success' | 'partial' | 'failure' | 'pending';
+  // Below fields for test compatibility
+  executionTime?: number;
+  outputs?: Record<string, any>;
+  logs?: any[];
 }
 
 /**

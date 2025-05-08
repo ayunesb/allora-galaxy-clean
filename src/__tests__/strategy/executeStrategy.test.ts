@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
-import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/types/fixed";
+import { ExecuteStrategyInput, ExecuteStrategyResult } from "@/types";
 import { runStrategy } from "@/lib/strategy/runStrategy";
 
 // Mock the runStrategy function
@@ -20,16 +20,16 @@ describe('executeStrategy Edge Function', () => {
           success: false,
           error: 'Strategy execution failed',
           executionTime: 0.5
-        });
+        } as ExecuteStrategyResult);
       }
       
       return Promise.resolve({
         success: true,
-        error: null,
+        error: undefined,
         executionTime: 1.5,
         outputs: { result: 'success' },
         logs: []
-      });
+      } as ExecuteStrategyResult);
     });
   });
   
@@ -40,9 +40,9 @@ describe('executeStrategy Edge Function', () => {
   it('should successfully execute a strategy using the shared utility', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategyId: 'strategy-123',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
+      strategy_id: 'strategy-123',
+      tenant_id: 'tenant-123',
+      user_id: 'user-123'
     };
     
     // Act
@@ -57,8 +57,8 @@ describe('executeStrategy Edge Function', () => {
   it('should handle missing strategyId', async () => {
     // Arrange
     const input = {
-      tenantId: 'tenant-123',
-      userId: 'user-123'
+      tenant_id: 'tenant-123',
+      user_id: 'user-123'
     } as ExecuteStrategyInput;
     
     // Act
@@ -74,8 +74,8 @@ describe('executeStrategy Edge Function', () => {
   it('should handle missing tenantId', async () => {
     // Arrange
     const input = {
-      strategyId: 'strategy-123',
-      userId: 'user-123'
+      strategy_id: 'strategy-123',
+      user_id: 'user-123'
     } as ExecuteStrategyInput;
     
     // Act
@@ -91,9 +91,9 @@ describe('executeStrategy Edge Function', () => {
   it('should handle strategy execution failure', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategyId: 'fail-strategy',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
+      strategy_id: 'fail-strategy',
+      tenant_id: 'tenant-123',
+      user_id: 'user-123'
     };
     
     // Act
@@ -108,9 +108,9 @@ describe('executeStrategy Edge Function', () => {
   it('should handle unexpected errors', async () => {
     // Arrange
     const input: ExecuteStrategyInput = {
-      strategyId: 'strategy-123',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
+      strategy_id: 'strategy-123',
+      tenant_id: 'tenant-123',
+      user_id: 'user-123'
     };
     
     // Force runStrategy to throw an error

@@ -17,11 +17,18 @@ interface ForceGraphProps {
 }
 
 const ForceGraph: React.FC<ForceGraphProps> = ({ graphData, fgRef, onNodeClick }) => {
-  const getNodeColor = (node: GraphNode) => {
-    if (node.type === 'strategy') return '#3498db';
-    if (node.type === 'plugin') return '#9b59b6';
-    if (node.type === 'agent') return '#2ecc71';
+  // Type-safe node color accessor
+  const getNodeColor = (node: any) => {
+    const typedNode = node as GraphNode;
+    if (typedNode.type === 'strategy') return '#3498db';
+    if (typedNode.type === 'plugin') return '#9b59b6';
+    if (typedNode.type === 'agent') return '#2ecc71';
     return '#ccc';
+  };
+
+  // Type-safe node click handler
+  const handleNodeClick = (node: any, event: MouseEvent) => {
+    onNodeClick(node as GraphNode);
   };
 
   return (
@@ -41,7 +48,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ graphData, fgRef, onNodeClick }
           linkDirectionalArrowRelPos={1}
           linkCurvature={0.25}
           nodeRelSize={6}
-          onNodeClick={onNodeClick}
+          onNodeClick={handleNodeClick}
         />
       </Suspense>
     </div>
