@@ -45,7 +45,7 @@ interface InviteUserDialogProps {
 
 export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserDialogProps) {
   const { toast } = useToast();
-  const { tenantId } = useTenantId();
+  const tenantId = useTenantId();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
