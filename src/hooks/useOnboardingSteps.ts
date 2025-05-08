@@ -14,7 +14,7 @@ export const useOnboardingSteps = (formData: OnboardingFormData) => {
    */
   const isStepValid = (): boolean => {
     const validationResult = validateCurrentStep();
-    return validationResult.isValid;
+    return validationResult.valid;
   };
 
   /**
@@ -64,7 +64,7 @@ export const useOnboardingSteps = (formData: OnboardingFormData) => {
     }
     
     return {
-      isValid: Object.keys(errors).length === 0,
+      valid: Object.keys(errors).length === 0,
       errors
     };
   };

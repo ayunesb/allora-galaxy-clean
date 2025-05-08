@@ -10,9 +10,10 @@ interface NotificationFiltersProps {
   selectedFilter: NotificationType;
   onFilterChange: (filter: NotificationType) => void;
   className?: string;
+  filterOptions?: Array<{ value: NotificationType | null; label: string }>;
 }
 
-const notificationTypes: { value: NotificationType; label: string }[] = [
+const defaultNotificationTypes: { value: NotificationType; label: string }[] = [
   { value: 'all', label: 'All Notifications' },
   { value: 'system', label: 'System' },
   { value: 'info', label: 'Information' },
@@ -26,6 +27,7 @@ const NotificationFilters: React.FC<NotificationFiltersProps> = ({
   selectedFilter,
   onFilterChange,
   className = '',
+  filterOptions = defaultNotificationTypes,
 }) => {
   return (
     <div className={`flex items-center justify-end ${className}`}>
@@ -37,10 +39,10 @@ const NotificationFilters: React.FC<NotificationFiltersProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {notificationTypes.map((type) => (
+          {filterOptions.map((type) => (
             <DropdownMenuItem
-              key={type.value}
-              onClick={() => onFilterChange(type.value)}
+              key={type.value?.toString() || 'all'}
+              onClick={() => onFilterChange(type.value as NotificationType)}
               className="flex items-center justify-between"
             >
               <span>{type.label}</span>

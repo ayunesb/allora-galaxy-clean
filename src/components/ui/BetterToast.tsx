@@ -130,7 +130,7 @@ export const notifyInfo = (title: string, description?: string) => {
   toast({
     title,
     description,
-    variant: "info",
+    variant: "default", // Changed from "info" to "default" to match allowed variants
   });
 };
 

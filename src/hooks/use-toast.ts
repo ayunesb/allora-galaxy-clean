@@ -1,6 +1,6 @@
 
 // Re-export the original toast functionality from the shadcn package
-import { useToast as useShadcnToast, toast as shadcnToast } from "@/components/ui/use-toast";
+import { useToast as useShadcnToast, toast as shadcnToast } from "@/components/ui/toast";
 import { ToastActionElement } from "@/components/ui/toast";
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +26,8 @@ export const toast = (props: {
   if (props.persist) {
     const notificationType = props.variant || "info";
     const tenant_id = localStorage.getItem('currentTenantId');
-    const user_id = supabase.auth.getUser().then(({ data }) => {
+    
+    supabase.auth.getUser().then(({ data }) => {
       if (data?.user?.id && tenant_id) {
         supabase.from('notifications').insert({
           id: uuidv4(),

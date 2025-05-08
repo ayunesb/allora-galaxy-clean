@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { useNotifications } from '@/lib/notifications/useNotifications';
-import { Notification, NotificationsContextType } from '@/types/notifications';
+import { NotificationsContextType } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
 // Create the context with default values
@@ -11,10 +11,10 @@ const NotificationsContext = createContext<NotificationsContextType>({
   error: null,
   isOpen: false,
   setIsOpen: () => {},
-  refreshNotifications: async () => {},
-  markAsRead: async () => {},
-  markAllAsRead: async () => {},
-  deleteNotification: async () => {},
+  refreshNotifications: async () => { return Promise.resolve(); },
+  markAsRead: async () => { return Promise.resolve(); },
+  markAllAsRead: async () => { return Promise.resolve(); },
+  deleteNotification: async () => { return Promise.resolve(); },
   unreadCount: 0,
 });
 
@@ -31,11 +31,28 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     unreadCount,
     loading,
     error,
-    refreshNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
+    refreshNotifications: originalRefreshNotifications,
+    markAsRead: originalMarkAsRead,
+    markAllAsRead: originalMarkAllAsRead,
+    deleteNotification: originalDeleteNotification,
   } = useNotifications();
+  
+  // Wrap the original functions to ensure they return Promise<void>
+  const refreshNotifications = async (): Promise<void> => {
+    await originalRefreshNotifications();
+  };
+  
+  const markAsRead = async (id: string): Promise<void> => {
+    await originalMarkAsRead(id);
+  };
+  
+  const markAllAsRead = async (): Promise<void> => {
+    await originalMarkAllAsRead();
+  };
+  
+  const deleteNotification = async (id: string): Promise<void> => {
+    await originalDeleteNotification(id);
+  };
   
   // Set up polling for new notifications
   React.useEffect(() => {
@@ -53,7 +70,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     return () => {
       clearInterval(pollingInterval);
     };
-  }, [tenantId, refreshNotifications]);
+  }, [tenantId]);
   
   const contextValue: NotificationsContextType = {
     notifications,

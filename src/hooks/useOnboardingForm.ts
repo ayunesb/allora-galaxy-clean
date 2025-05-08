@@ -16,7 +16,8 @@ export const useOnboardingForm = () => {
     description: '',
     personaName: '',
     tone: '',
-    goals: '',
+    goals: '', // This should be a string based on the component usage
+    additionalInfo: '',
   });
 
   // Update form data

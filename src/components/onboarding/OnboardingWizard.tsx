@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
+import { OnboardingFormData } from '@/types/onboarding';
 
 // UI Components
 import OnboardingProgress from './OnboardingProgress';
@@ -30,6 +30,7 @@ const OnboardingWizard: React.FC = () => {
     isStepValid,
     resetError,
     validateCurrentStep,
+    setFieldValue,
     isGeneratingStrategy
   } = useOnboardingWizard();
 
@@ -86,13 +87,14 @@ const OnboardingWizard: React.FC = () => {
                 formData={formData} 
                 updateFormData={updateFormData}
                 isGenerating={isGeneratingStrategy}
-                setFieldValue={(key, value) => updateFormData({ [key]: value })}
+                setFieldValue={(key: string, value: any) => setFieldValue(key, value)}
               />
             ) : (
               <StepContent 
                 currentStep={currentStep}
                 formData={formData}
                 updateFormData={updateFormData}
+                setFieldValue={(key: string, value: any) => setFieldValue(key, value)}
               />
             )}
             

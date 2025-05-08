@@ -2,11 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MailOpen, Trash2 } from 'lucide-react';
-import NotificationFilters from './NotificationFilters';
+import NotificationFilters, { NotificationType } from './NotificationFilters';
 
 interface NotificationsPageHeaderProps {
-  filter: string | null;
-  setFilter: (filter: string | null) => void;
+  filter: NotificationType;
+  setFilter: (filter: NotificationType) => void;
   onMarkAllAsRead: () => void;
   onDeleteAll: () => void;
 }
@@ -18,12 +18,13 @@ const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
   onDeleteAll
 }) => {
   const filterOptions = [
-    { value: null, label: 'All Types' },
-    { value: 'strategy', label: 'Strategy' },
-    { value: 'agent', label: 'Agent' },
-    { value: 'plugin', label: 'Plugin' },
-    { value: 'billing', label: 'Billing' },
-    { value: 'system', label: 'System' },
+    { value: 'all' as NotificationType, label: 'All Types' },
+    { value: 'system' as NotificationType, label: 'System' },
+    { value: 'info' as NotificationType, label: 'Information' },
+    { value: 'success' as NotificationType, label: 'Success' },
+    { value: 'warning' as NotificationType, label: 'Warning' },
+    { value: 'error' as NotificationType, label: 'Error' },
+    { value: 'milestone' as NotificationType, label: 'Milestone' },
   ];
 
   return (
@@ -34,8 +35,8 @@ const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
       </div>
       <div className="flex gap-2">
         <NotificationFilters 
-          filter={filter} 
-          setFilter={setFilter} 
+          selectedFilter={filter} 
+          onFilterChange={setFilter} 
           filterOptions={filterOptions} 
         />
         

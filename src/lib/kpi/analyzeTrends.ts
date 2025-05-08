@@ -38,3 +38,27 @@ export function analyzeTrends(
     };
   });
 }
+
+/**
+ * Get trend direction for KPI data
+ */
+export function getTrendDirection(kpiData: { 
+  value: number; 
+  previous_value?: number | null;
+}): 'positive' | 'negative' | 'neutral' {
+  const previousValue = kpiData.previous_value !== undefined ? kpiData.previous_value : null;
+  
+  if (previousValue === null || previousValue === kpiData.value) {
+    return 'neutral';
+  }
+  
+  return kpiData.value > previousValue ? 'positive' : 'negative';
+}
+
+/**
+ * Format trend percentage for display
+ */
+export function formatTrendPercentage(change: number): string {
+  const absChange = Math.abs(change);
+  return `${change >= 0 ? '+' : '-'}${absChange.toFixed(1)}%`;
+}
