@@ -23,6 +23,12 @@ export async function logSystemEvent(
       return;
     }
 
+    // Ensure the tenant_id is always a valid UUID
+    if (typeof tenant_id !== 'string' || tenant_id.trim() === '') {
+      console.warn(`Invalid tenant_id provided for system event (${module}:${event})`);
+      return;
+    }
+
     const { error } = await supabase.from('system_logs').insert({
       tenant_id,
       module,
@@ -55,6 +61,12 @@ function storeEventLocally(
   context: Record<string, any>
 ): void {
   try {
+    // Make sure we're in a browser environment before using localStorage
+    if (typeof window === 'undefined' || !window.localStorage) {
+      console.warn('Cannot store events locally outside of browser environment');
+      return;
+    }
+    
     // Get existing events from local storage
     const localEventsStr = localStorage.getItem('pendingSystemLogs');
     const localEvents = localEventsStr ? JSON.parse(localEventsStr) : [];
@@ -86,6 +98,12 @@ export async function syncLocalEventsToSupabase(): Promise<{
   remainingCount: number;
 }> {
   try {
+    // Make sure we're in a browser environment before using localStorage
+    if (typeof window === 'undefined' || !window.localStorage) {
+      console.warn('Cannot sync events outside of browser environment');
+      return { success: true, syncedCount: 0, remainingCount: 0 };
+    }
+    
     // Get local events
     const localEventsStr = localStorage.getItem('pendingSystemLogs');
     if (!localEventsStr) {
@@ -133,4 +151,30 @@ export async function syncLocalEventsToSupabase(): Promise<{
       remainingCount: -1 // Signal an error occurred
     };
   }
+}
+
+/**
+ * Periodically sync local events to Supabase
+ * @param intervalMs Interval in milliseconds to check for pending events
+ * @returns Cleanup function to stop periodic sync
+ */
+export function startPeriodicSync(intervalMs = 60000): () => void {
+  // Make sure we're in a browser environment
+  if (typeof window === 'undefined') {
+    console.warn('Cannot start periodic sync outside of browser environment');
+    return () => {};
+  }
+  
+  const intervalId = setInterval(async () => {
+    try {
+      const result = await syncLocalEventsToSupabase();
+      if (result.syncedCount > 0) {
+        console.log(`Synced ${result.syncedCount} system logs, ${result.remainingCount} remaining.`);
+      }
+    } catch (e) {
+      console.error('Error during periodic sync:', e);
+    }
+  }, intervalMs);
+  
+  return () => clearInterval(intervalId);
 }

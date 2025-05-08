@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, realtime } from '@/lib/supabase';
+import { supabase, channel } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import NotificationsPageHeader from './NotificationsPageHeader';
@@ -25,8 +25,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
       fetchNotifications();
 
       // Set up real-time subscription for new notifications
-      const channel = realtime
-        .channel('notifications_changes')
+      const supabaseChannel = channel('notifications_changes')
         .on('postgres_changes', 
           {
             event: '*',
@@ -41,8 +40,8 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
         .subscribe();
       
       return () => {
-        if (channel) {
-          realtime.removeChannel(channel);
+        if (supabaseChannel) {
+          supabase.removeChannel(supabaseChannel);
         }
       };
     }

@@ -6,8 +6,11 @@ export { supabase, supabaseClient } from '@/integrations/supabase/client';
 export {
   from,
   storage,
-  channel, 
+  channel,
   checkNetworkStatus,
   startReconnectionCheck,
   stopReconnectionCheck
 } from '@/integrations/supabase/client';
+
+// Add new utilities for notifications
+export { useNotificationsContext } from '@/context/NotificationsContext';
