@@ -1,28 +1,12 @@
 
-import { ExecuteStrategyInput } from "@/types/fixed";
-
-export const validStrategyInput: ExecuteStrategyInput = {
+export const validStrategyInput = {
   strategyId: 'strategy-123',
   tenantId: 'tenant-123',
   userId: 'user-123'
 };
 
-export const invalidInputs = {
-  missingStrategyId: {
-    tenantId: 'tenant-123',
-    userId: 'user-123'
-  } as ExecuteStrategyInput,
-  
-  missingTenantId: {
-    strategyId: 'strategy-123',
-    userId: 'user-123'
-  } as ExecuteStrategyInput,
-
-  empty: undefined
-};
-
 export const mockSuccessResponse = {
-  data: {
+  data: { 
     success: true,
     execution_id: 'exec-123',
     execution_time: 1.5
@@ -41,10 +25,21 @@ export const mockTemporaryErrorResponse = {
 };
 
 export const mockRetrySuccessResponse = {
-  data: {
+  data: { 
     success: true,
     execution_id: 'exec-123-retry',
     execution_time: 2.5
+  },
+  error: null
+};
+
+export const mockPartialSuccessResponse = {
+  data: { 
+    success: true,
+    execution_id: 'exec-123',
+    execution_time: 1.5,
+    successful_plugins: 2,
+    plugins_executed: 3
   },
   error: null
 };

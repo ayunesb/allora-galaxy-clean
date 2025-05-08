@@ -3,10 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiSection } from '@/components/dashboard/KpiSection';
 
-interface KpiSectionProps {
-  title: string;
-}
-
 const KpiDashboard: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">

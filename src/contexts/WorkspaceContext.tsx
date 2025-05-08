@@ -3,12 +3,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { NavigationItem, WorkspaceContextType, WorkspaceData } from './workspace/types';
-import { defaultNavigationItems } from './workspace/navigationItems';
+import { navigationItems } from './workspace/navigationItems';
 import { toast } from '@/hooks/use-toast';
 
 // Create the workspace context
 const WorkspaceContext = createContext<WorkspaceContextType>({
-  navigationItems: defaultNavigationItems,
+  navigationItems: navigationItems,
   currentTenant: null,
   tenants: [],
   currentUrl: '',
@@ -19,7 +19,7 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
 
 // Define initial workspace data
 const initialWorkspaceData: WorkspaceData = {
-  navigationItems: defaultNavigationItems,
+  navigationItems: navigationItems,
   currentTenant: null,
   tenants: [],
   isLoading: true,
@@ -167,7 +167,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (tenants.length === 0) {
           // No tenants, reset to default state
           setWorkspaceData({
-            navigationItems: defaultNavigationItems,
+            navigationItems: navigationItems,
             currentTenant: null,
             tenants: [],
             isLoading: false,

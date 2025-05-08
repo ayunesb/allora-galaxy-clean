@@ -33,3 +33,5 @@ export const ViewModeSelector: React.FC<ViewModeSelectorProps> = ({
     </div>
   );
 };
+
+export default ViewModeSelector;

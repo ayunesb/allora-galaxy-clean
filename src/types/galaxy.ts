@@ -1,90 +1,36 @@
 
-import { ForceGraphMethods } from 'react-force-graph';
+import { ForceGraphInstance } from 'react-force-graph';
 
-export interface GraphNode {
+export interface NodeData {
   id: string;
-  name: string;
-  type: string;
-  val?: number;
-  color?: string;
-  level?: number;
-  internalId?: string;
+  name?: string;
+  type: 'strategy' | 'plugin' | 'agent';
   status?: string;
   metadata?: Record<string, any>;
-  title?: string;
-  realId?: string;
-  description?: string;
-  plugin_id?: string;
-  version?: string;
-  borderColor?: string;
 }
 
-export interface GraphLink {
+export interface LinkData {
   source: string;
   target: string;
-  value?: number;
   type?: string;
+  value?: number;
 }
 
 export interface GraphData {
-  nodes: GraphNode[];
-  links: GraphLink[];
+  nodes: NodeData[];
+  links: LinkData[];
 }
 
-export interface GalaxyLoaderProps {
-  viewMode: string;
-  fgRef: React.MutableRefObject<any>;
-  onNodeClick: (node: GraphNode) => void;
+export interface GraphOptions {
+  viewMode?: string;
+  filterStatus?: string[];
+  layout?: string;
+  highlightedNodeId?: string | null;
 }
 
-export interface ViewModeSelectorProps {
-  viewMode: string;
-  onModeChange: (mode: string) => void;
-}
-
-export interface ZoomControlsProps {
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onRefresh: () => void;
-}
-
-export interface GalaxyControlsProps {
-  viewMode: string;
-  setViewMode: (mode: string) => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onRefresh: () => void;
-  onToggleLayout?: () => void;
-  onCenter?: () => void;
-}
-
-export interface InspectorSidebarProps {
-  node: GraphNode | null;
-  onClose: () => void;
-}
-
-export interface MobileInspectorProps {
-  node: GraphNode | null;
-  onClose: () => void;
-}
-
-// Extend the ForceGraphProps with our own properties
-export interface ForceGraphExtendedProps {
-  data: GraphData;
-  onNodeClick: (node: GraphNode) => void;
-  selectedNode: GraphNode | null;
-  is3d?: boolean;
-}
-
-export interface GraphLegendProps {
-  items: {
-    type: string;
-    color: string;
-    label: string;
-  }[];
-}
-
-export interface NodeUtilitiesProps {
-  nodeId: string;
-  nodeType: string;
+export interface ForceGraphRef {
+  graph: ForceGraphInstance;
+  centerGraph: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 }

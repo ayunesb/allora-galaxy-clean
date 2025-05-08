@@ -10,7 +10,7 @@ export type * from './execution';
 export type * from './tenant';
 
 // Export shared types
-export {
+export type {
   BaseEntity,
   ExecutionParams,
   ExecutionType,
@@ -24,7 +24,7 @@ export {
   VoteType
 } from './shared';
 
-export { NotificationType } from './notifications';
+export type { NotificationType } from './notifications';
 
 // Re-export remaining types
 export type * from './galaxy';

@@ -14,8 +14,6 @@ const OnboardingWizard: React.FC = () => {
     formData,
     error,
     isSubmitting,
-    tenantsList,
-    currentUser,
     updateFormData,
     handleStepClick,
     handleNextStep,

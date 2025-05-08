@@ -14,14 +14,18 @@ export interface Tenant {
 }
 
 export interface WorkspaceContextType {
-  tenant: Tenant | null;
-  currentTenant: Tenant | null;
-  setTenant: (tenant: Tenant | null) => void;
-  loading: boolean;
-  isLoading: boolean;
   navigationItems: NavigationItem[];
-  currentRole: UserRole | null;
-  userRole: UserRole | null; // Make sure this is explicitly included
-  refreshTenant: () => Promise<void>;
-  error: string | null;
+  currentTenant: Tenant | null;
+  tenants: Tenant[];
+  currentUrl: string;
+  isLoading: boolean;
+  setCurrentUrl: (url: string) => void;
+  switchTenant: (tenantId: string) => Promise<boolean>;
+}
+
+export interface WorkspaceData {
+  navigationItems: NavigationItem[];
+  currentTenant: Tenant | null;
+  tenants: Tenant[];
+  isLoading: boolean;
 }
