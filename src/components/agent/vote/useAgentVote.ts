@@ -33,8 +33,10 @@ export function useAgentVote({
           
           const voteInfo = await getUserVote(agentVersionId, user.id);
           if (voteInfo.hasVoted && voteInfo.vote) {
-            if (voteInfo.vote.voteType === 'up' || voteInfo.vote.voteType === 'down') {
-              setUserVote(voteInfo.vote.voteType);
+            if (voteInfo.vote.voteType === 'upvote') {
+              setUserVote('up');
+            } else if (voteInfo.vote.voteType === 'downvote') {
+              setUserVote('down');
             }
           }
         }
@@ -75,10 +77,14 @@ export function useAgentVote({
         return;
       }
 
+      // Convert UI vote type to API vote type
+      const apiVoteType = voteType === 'upvote' ? 'upvote' : 
+                          voteType === 'downvote' ? 'downvote' : 'neutral';
+
       // Submit the vote
       const result = await voteOnAgentVersion(
         agentVersionId, 
-        voteType, 
+        apiVoteType, 
         voteUserId, 
         tenantId, 
         comment
@@ -89,9 +95,11 @@ export function useAgentVote({
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
         
-        // Only set userVote if it's up or down, not neutral
-        if (voteType === 'up' || voteType === 'down') {
-          setUserVote(voteType);
+        // Only set userVote if it's upvote or downvote, not neutral
+        if (apiVoteType === 'upvote') {
+          setUserVote('up');
+        } else if (apiVoteType === 'downvote') {
+          setUserVote('down');
         } else {
           setUserVote(null);
         }
@@ -124,10 +132,11 @@ export function useAgentVote({
 
   const handleSubmitComment = () => {
     if (userVote) {
-      handleVote(userVote);
+      const voteType = userVote === 'up' ? 'upvote' : 'downvote';
+      handleVote(voteType);
     } else {
       // Default to upvote if no vote yet
-      handleVote('up');
+      handleVote('upvote');
     }
   };
 

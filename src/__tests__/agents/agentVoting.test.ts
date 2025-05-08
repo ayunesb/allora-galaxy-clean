@@ -1,5 +1,5 @@
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock, type Procedure } from 'vitest';
 import { voteOnAgentVersion } from '@/lib/agents/vote';
 
 // Mock the supabase client
@@ -15,10 +15,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       match: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
-      then: vi.fn().mockImplementation(callback => callback({ data: [], error: null })),
-      url: '',
-      headers: {},
-      upsert: vi.fn(),
+      then: vi.fn().mockImplementation(callback => callback({ data: [], error: null }))
     })
   }
 }));
@@ -37,23 +34,19 @@ describe('Agent Voting', () => {
     // Mock the supabase client for this test
     const mockSupabase = await import('@/integrations/supabase/client');
     
-    // Mock vote insertion
-    const mockInsertResponse = { data: { id: 'vote123' }, error: null };
-    vi.mocked(mockSupabase.supabase.from).mockImplementation((table) => {
+    // Create a typed mock function
+    const mockFromFn = vi.fn().mockImplementation((table: string) => {
       if (table === 'agent_votes') {
         return {
           select: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockResolvedValue(mockInsertResponse),
+          insert: vi.fn().mockResolvedValue({ data: { id: 'vote123' }, error: null }),
           update: vi.fn().mockReturnThis(),
           delete: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
           match: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
           limit: vi.fn().mockReturnThis(),
-          then: vi.fn().mockImplementation(callback => callback({ data: [], error: null })),
-          url: '',
-          headers: {},
           upsert: vi.fn(),
         };
       }
@@ -69,9 +62,6 @@ describe('Agent Voting', () => {
           order: vi.fn().mockReturnThis(),
           limit: vi.fn().mockReturnThis(),
           insert: vi.fn().mockReturnThis(),
-          then: vi.fn().mockImplementation(callback => callback({ data: [], error: null })),
-          url: '',
-          headers: {},
           upsert: vi.fn(),
         };
       }
@@ -86,17 +76,17 @@ describe('Agent Voting', () => {
         match: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation(callback => callback({ data: [], error: null })),
-        url: '',
-        headers: {},
         upsert: vi.fn(),
       };
     });
     
+    // Replace the mockSupabase.supabase.from with our mock implementation
+    vi.spyOn(mockSupabase.supabase, 'from').mockImplementation(mockFromFn as unknown as any);
+    
     // Act
     const result = await voteOnAgentVersion(
       'agent123',
-      'up',
+      'upvote',
       'user123',
       'tenant123',
       'Great job!'
@@ -113,8 +103,8 @@ describe('Agent Voting', () => {
     // Mock the supabase client for this test
     const mockSupabase = await import('@/integrations/supabase/client');
     
-    // Mock error response
-    vi.mocked(mockSupabase.supabase.from).mockImplementation(() => {
+    // Create a mock function that simulates error
+    const mockFromWithError = vi.fn().mockImplementation(() => {
       return {
         select: vi.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } }),
         insert: vi.fn().mockResolvedValue({ data: null, error: { message: 'Database error' } }),
@@ -125,17 +115,17 @@ describe('Agent Voting', () => {
         match: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation(callback => callback({ data: [], error: null })),
-        url: '',
-        headers: {},
         upsert: vi.fn(),
       };
     });
     
+    // Replace the mockSupabase.supabase.from with our error mock implementation
+    vi.spyOn(mockSupabase.supabase, 'from').mockImplementation(mockFromWithError as unknown as any);
+    
     // Act
     const result = await voteOnAgentVersion(
       'agent123',
-      'up',
+      'upvote',
       'user123',
       'tenant123'
     );

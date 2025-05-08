@@ -13,6 +13,9 @@ export interface NavigationItem {
 // Vote types for agent evaluations
 export type VoteType = 'upvote' | 'downvote' | 'neutral';
 
+// Trend direction for KPIs
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
 // System event modules
 export type SystemEventModule = 
   | 'auth' 
@@ -22,7 +25,9 @@ export type SystemEventModule =
   | 'plugin' 
   | 'system' 
   | 'marketing'
-  | 'product';
+  | 'product'
+  | 'admin'
+  | 'onboarding';
 
 // System event types
 export type SystemEventType = 

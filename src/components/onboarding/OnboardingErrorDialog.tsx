@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -30,9 +30,9 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
   React.useEffect(() => {
     if (error) {
       logSystemEvent(
-        'onboarding',
+        'system',
         'error',
-        { error },
+        { error, context: 'onboarding' },
         tenant_id
       ).catch(err => console.error('Failed to log onboarding error:', err));
     }
@@ -52,11 +52,12 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
     } catch (retryError: any) {
       setIsRetrying(false);
       logSystemEvent(
-        'onboarding',
+        'system',
         'error',
         { 
           error: retryError.message || 'Unknown retry error', 
-          original_error: error 
+          original_error: error,
+          context: 'onboarding_retry'
         },
         tenant_id
       ).catch(err => console.error('Failed to log retry error:', err));

@@ -13,7 +13,7 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const { userRole, tenant } = useWorkspace();
+  const { userRole } = useWorkspace();
   
   // Get navigation items based on user role
   const navigationItems: NavigationItem[] = getNavigationItems(userRole || 'guest');

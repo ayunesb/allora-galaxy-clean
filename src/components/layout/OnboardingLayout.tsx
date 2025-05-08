@@ -40,9 +40,9 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
     // Log step change when tenant ID is available
     if (tenantId) {
       logSystemEvent(
-        'onboarding',
+        'system',
         'info',
-        { step: currentStep, total_steps: totalSteps },
+        { step: currentStep, total_steps: totalSteps, context: 'onboarding' },
         tenantId
       ).catch(err => console.error('Failed to log step change:', err));
     }

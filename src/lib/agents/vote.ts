@@ -7,7 +7,7 @@ import { VoteType } from '@/types/shared';
  * Submit a vote for an agent version
  * 
  * @param agentVersionId The ID of the agent version to vote on
- * @param voteType The type of vote (up, down, neutral)
+ * @param voteType The type of vote (upvote, downvote, neutral)
  * @param userId The ID of the user voting
  * @param tenantId The ID of the tenant
  * @param comment Optional comment with the vote
@@ -31,7 +31,7 @@ export async function voteOnAgentVersion(
     }, tenantId);
 
     // Check if user has already voted on this agent
-    const { data: existingVote, error: queryError } = await supabase
+    const { data: existingVote } = await supabase
       .from('agent_votes')
       .select('vote_type')
       .eq('agent_version_id', agentVersionId)
@@ -45,7 +45,7 @@ export async function voteOnAgentVersion(
         .from('agent_votes')
         .update({
           vote_type: voteType,
-          comment: comment || existingVote.comment
+          comment: comment || null
         })
         .eq('agent_version_id', agentVersionId)
         .eq('user_id', userId);
@@ -81,13 +81,13 @@ export async function voteOnAgentVersion(
     // Adjust vote counters based on previous and current vote
     if (existingVote) {
       // Undo previous vote
-      if (existingVote.vote_type === 'up') upvotes = Math.max(0, upvotes - 1);
-      if (existingVote.vote_type === 'down') downvotes = Math.max(0, downvotes - 1);
+      if (existingVote.vote_type === 'upvote') upvotes = Math.max(0, upvotes - 1);
+      if (existingVote.vote_type === 'downvote') downvotes = Math.max(0, downvotes - 1);
     }
 
     // Apply new vote
-    if (voteType === 'up') upvotes += 1;
-    if (voteType === 'down') downvotes += 1;
+    if (voteType === 'upvote') upvotes += 1;
+    if (voteType === 'downvote') downvotes += 1;
 
     // Update agent version vote counts
     const { error: updateError } = await supabase

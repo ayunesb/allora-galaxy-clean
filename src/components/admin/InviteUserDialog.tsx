@@ -79,10 +79,14 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
       
       // Log the invitation
       await logSystemEvent(
-        tenantId,
-        'admin',
-        'user_invited',
-        { email: values.email, role: values.role }
+        'system',
+        'info',
+        { 
+          email: values.email, 
+          role: values.role, 
+          context: 'user_invitation' 
+        },
+        tenantId
       );
       
       toast({

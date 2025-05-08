@@ -1,20 +1,12 @@
 
 import { UserRole, NavigationItem } from '@/types/shared';
 import {
-  Home,
   Rocket,
   BarChart3,
   Settings,
-  Users,
   LayoutDashboard,
-  Activity,
   Globe,
-  Database,
-  Layers,
-  Puzzle,
-  FileText,
-  Bell,
-  Terminal
+  Puzzle
 } from 'lucide-react';
 import React from 'react';
 
@@ -65,7 +57,7 @@ export function getNavigationItems(userRole: UserRole | string): NavigationItem[
     {
       title: 'System Logs',
       href: '/admin/logs',
-      icon: React.createElement(Layers, { className: "h-5 w-5" }),
+      icon: React.createElement(Settings, { className: "h-5 w-5" }),
       adminOnly: true
     }
   ];
