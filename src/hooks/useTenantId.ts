@@ -2,7 +2,11 @@
 import { useContext } from 'react';
 import WorkspaceContext from '@/contexts/WorkspaceContext';
 
-export function useTenantId() {
+/**
+ * Hook to get the current tenant ID
+ * @returns An object containing the tenant ID or null
+ */
+export function useTenantId(): { tenantId: string | null } {
   const context = useContext(WorkspaceContext);
   
   if (!context) {

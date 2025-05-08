@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -11,7 +11,13 @@ interface SidebarFooterActionsProps {
 
 export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isActive }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signOut } = useAuth();
+
+  // Determine if a path is active based on current location
+  const checkIsActive = (path: string): boolean => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -26,7 +32,7 @@ export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isAc
     <div className="space-y-2 px-2">
       <Button
         variant="ghost"
-        className={`w-full justify-start ${isActive('/settings') ? 'bg-primary/10' : ''}`}
+        className={`w-full justify-start ${checkIsActive('/settings') ? 'bg-primary/10' : ''}`}
         onClick={() => handleNavigation('/settings')}
       >
         <Settings className="mr-2 h-4 w-4" />

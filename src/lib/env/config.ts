@@ -1,4 +1,5 @@
-import { ENV, getEnvWithDefault } from './envUtils';
+
+import { ENV } from './envUtils';
 
 // Define types for our environment variables
 interface EnvVariable {
@@ -9,7 +10,7 @@ interface EnvVariable {
 }
 
 // Environment variable constants
-const ENV = {
+const ENV_NAMES = {
   SUPABASE_URL: 'VITE_SUPABASE_URL',
   SUPABASE_ANON_KEY: 'VITE_SUPABASE_ANON_KEY',
   STRIPE_PUBLISHABLE_KEY: 'VITE_STRIPE_PUBLISHABLE_KEY',
@@ -23,12 +24,12 @@ const ENV = {
  */
 export const coreEnvVars: EnvVariable[] = [
   {
-    name: ENV.SUPABASE_URL,
+    name: ENV_NAMES.SUPABASE_URL,
     required: true,
     description: 'Supabase project URL',
   },
   {
-    name: ENV.SUPABASE_ANON_KEY,
+    name: ENV_NAMES.SUPABASE_ANON_KEY,
     required: true,
     description: 'Supabase anonymous key',
   }
@@ -39,17 +40,17 @@ export const coreEnvVars: EnvVariable[] = [
  */
 export const integrationEnvVars: EnvVariable[] = [
   {
-    name: ENV.STRIPE_PUBLISHABLE_KEY,
+    name: ENV_NAMES.STRIPE_PUBLISHABLE_KEY,
     required: false,
     description: 'Stripe publishable key for billing',
   },
   {
-    name: ENV.OPENAI_API_KEY,
+    name: ENV_NAMES.OPENAI_API_KEY,
     required: false,
     description: 'OpenAI API key',
   },
   {
-    name: ENV.HUBSPOT_API_KEY,
+    name: ENV_NAMES.HUBSPOT_API_KEY,
     required: false,
     description: 'HubSpot API key',
   }
@@ -76,7 +77,7 @@ export function getCoreEnvValues(): Record<string, string> {
   const result: Record<string, string> = {};
   
   for (const envVar of coreEnvVars) {
-    result[envVar.name] = getEnv(envVar.name, envVar.default || '');
+    result[envVar.name] = ENV(envVar.name) || envVar.default || '';
   }
   
   return result;
@@ -89,7 +90,7 @@ export function getAllEnvValues(): Record<string, string> {
   const result: Record<string, string> = {};
   
   for (const envVar of [...coreEnvVars, ...integrationEnvVars]) {
-    result[envVar.name] = getEnv(envVar.name, envVar.default || '');
+    result[envVar.name] = ENV(envVar.name) || envVar.default || '';
   }
   
   return result;
@@ -103,8 +104,8 @@ function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[
   
   for (const envVar of envVars) {
     if (envVar.required) {
-      const value = getEnv(envVar.name, envVar.default);
-      if (!value) {
+      const value = ENV(envVar.name);
+      if (!value && !envVar.default) {
         missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
       }
     }
@@ -115,6 +116,3 @@ function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[
     missing
   };
 }
-
-// Re-export getEnv for convenience
-export { ENV as getEnv };

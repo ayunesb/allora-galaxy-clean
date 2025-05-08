@@ -5,11 +5,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/context/WorkspaceContext';
 
 const ProtectedRoute: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { loading: workspaceLoading } = useWorkspace();
 
   // Show loading state while checking authentication
-  if (loading || workspaceLoading) {
+  if (authLoading || workspaceLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

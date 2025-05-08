@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecutionRecordInput } from '@/types/shared';
+import { ExecutionRecordInput } from '@/types/execution';
 
 /**
  * Record an execution in the database
@@ -20,10 +20,6 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
     
     if (!data.status) {
       throw new Error('Status is required');
-    }
-    
-    if (data.input === undefined) {
-      data.input = {}; // Provide default empty object for input if not provided
     }
     
     // Insert execution record

@@ -1,95 +1,57 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
-
-// Store logs locally if network is down
-const localLogQueue: any[] = [];
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 /**
- * Log a system event to Supabase
- * Falls back to storing logs locally if network is down
- * 
- * @param tenantId The tenant ID
- * @param module The system module (e.g., 'strategy', 'plugin')
- * @param event The event name
- * @param context Optional context data
- * @returns Promise with success status
+ * Log a system event
+ * @param tenantId ID of the tenant
+ * @param module System module generating the event
+ * @param event Event type 
+ * @param context Additional context for the event
+ * @returns Promise resolving to object containing success flag and optional error message
  */
 export async function logSystemEvent(
-  tenantId: string, 
-  module: string, 
-  event: string, 
-  context: Record<string, any> = {}
-): Promise<{ success: boolean; error?: Error }> {
-  const logEntry = {
-    tenant_id: tenantId,
-    module,
-    event,
-    context,
-    created_at: new Date().toISOString()
-  };
-
+  tenantId: string | { tenantId: string | null },
+  module: SystemEventModule | string,
+  event: SystemEventType | string,
+  context?: Record<string, any>
+): Promise<{ success: boolean; error?: string }> {
   try {
-    // Try to insert the log directly
+    // Handle both string tenantId and object with tenantId property
+    const actualTenantId = typeof tenantId === 'string' 
+      ? tenantId 
+      : (tenantId.tenantId || 'system');
+
+    if (!actualTenantId) {
+      return { 
+        success: false, 
+        error: 'Tenant ID is required' 
+      };
+    }
+    
     const { error } = await supabase
       .from('system_logs')
-      .insert(logEntry);
-
-    if (error) {
-      console.error('Error logging system event to Supabase:', error);
-      
-      // Store locally if Supabase insert fails
-      localLogQueue.push({
-        ...logEntry,
-        id: uuidv4(),
-        local_created_at: new Date().toISOString()
+      .insert({
+        tenant_id: actualTenantId,
+        module,
+        event,
+        context
       });
-      
-      return { success: false, error };
+    
+    if (error) {
+      console.error('Error logging system event:', error);
+      return { 
+        success: false, 
+        error: error.message 
+      };
     }
-
+    
     return { success: true };
-  } catch (error: any) {
-    console.error('Exception logging system event:', error);
-    
-    // Store locally if there's a network error
-    localLogQueue.push({
-      ...logEntry,
-      id: uuidv4(),
-      local_created_at: new Date().toISOString()
-    });
-    
-    return { success: false, error };
+  } catch (err: any) {
+    console.error('Failed to log system event:', err);
+    return { 
+      success: false, 
+      error: err.message || 'An unknown error occurred' 
+    };
   }
-}
-
-/**
- * Get the number of pending local logs
- */
-export function getPendingLogsCount(): number {
-  return localLogQueue.length;
-}
-
-/**
- * Export local log queue for testing purposes
- */
-export function getLocalLogQueue(): any[] {
-  return [...localLogQueue];
-}
-
-/**
- * Clear the local log queue
- */
-export function clearLocalLogQueue(): void {
-  localLogQueue.length = 0;
-}
-
-/**
- * Check if system has network connectivity
- */
-export function checkNetworkStatus(): boolean {
-  if (typeof navigator !== 'undefined') {
-    return navigator.onLine;
-  }
-  return true; // Default to true for server-side rendering
 }

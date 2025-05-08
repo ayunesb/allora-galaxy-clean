@@ -30,11 +30,11 @@ export const useCookiePreferences = () => {
     try {
       return useWorkspace();
     } catch (e) {
-      return { currentTenant: null };
+      return { tenant: null };
     }
   })();
   
-  const { currentTenant } = workspaceContext;
+  const { tenant } = workspaceContext;
 
   // Only check preferences if both user and tenant are available
   useEffect(() => {
@@ -52,12 +52,12 @@ export const useCookiePreferences = () => {
           .maybeSingle();
 
         // If using a tenant, filter by tenant
-        if (currentTenant) {
+        if (tenant) {
           const { data: tenantData, error: tenantError } = await supabase
             .from('cookie_preferences')
             .select('*')
             .eq('user_id', user.id)
-            .eq('tenant_id', currentTenant.id)
+            .eq('tenant_id', tenant.id)
             .maybeSingle();
             
           if (!tenantError && tenantData) {
@@ -93,7 +93,7 @@ export const useCookiePreferences = () => {
     };
 
     checkPreferences();
-  }, [user, currentTenant]);
+  }, [user, tenant]);
 
   // Listen for external triggers to open the dialog
   useEffect(() => {
@@ -120,8 +120,8 @@ export const useCookiePreferences = () => {
       };
       
       // Include tenant_id if available
-      if (currentTenant) {
-        preferenceData.tenant_id = currentTenant.id;
+      if (tenant) {
+        preferenceData.tenant_id = tenant.id;
       }
       
       const { error } = await supabase

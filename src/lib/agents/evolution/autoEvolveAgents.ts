@@ -21,6 +21,7 @@ export interface AgentPerformanceMetrics {
 
 /**
  * Auto-evolve agents based on performance and feedback
+ * @param tenantId Optional tenant ID, defaults to 'system'
  */
 export async function autoEvolveAgents(tenantId: string = 'system') {
   console.log('Starting auto-evolve agents process...');
@@ -88,11 +89,6 @@ export async function autoEvolveAgents(tenantId: string = 'system') {
         
         // Generate evolved prompt using feedback
         const evolveReason = metrics.evolutionReason || 'Regular performance optimization';
-        const evolvedPrompt = await evolvePromptWithFeedback(
-          promptResult.prompt,
-          feedbackComments,
-          evolveReason
-        );
         
         // Create new agent version
         const newAgent = await createEvolvedAgent(

@@ -27,11 +27,11 @@ export function useOnboardingWizard() {
     companySize: '',
     website: '',
     revenueRange: '',
-    description: '', // Required field
-    goals: [] as string[],
+    description: '',
+    goals: [],
     persona: { 
       name: '',
-      goals: [] as string[],
+      goals: [],
       tone: ''
     },
     additionalInfo: ''
@@ -85,14 +85,15 @@ export function useOnboardingWizard() {
     // Handle nested fields like persona.name
     if (key.includes('.')) {
       const [parent, child] = key.split('.');
-      updateFormData({
+      setFormData(prev => ({
+        ...prev,
         [parent]: {
-          ...formData[parent as keyof OnboardingFormData],
+          ...(prev[parent as keyof OnboardingFormData] as Record<string, any>),
           [child]: value
         }
-      });
+      }));
     } else {
-      updateFormData({ [key as keyof OnboardingFormData]: value });
+      setFormData(prev => ({ ...prev, [key]: value }));
     }
   };
 
@@ -117,7 +118,7 @@ export function useOnboardingWizard() {
       logSystemEvent('system', 'onboarding', 'step_completed', {
         step: steps[currentStep].id,
         next_step: steps[currentStep + 1].id
-      });
+      }).catch(err => console.error('Failed to log step:', err));
     }
   };
 

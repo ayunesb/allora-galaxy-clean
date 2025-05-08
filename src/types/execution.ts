@@ -1,6 +1,9 @@
 
 import { LogStatus } from "./shared";
 
+/**
+ * Input data for recording an execution
+ */
 export interface ExecutionRecordInput {
   tenantId: string;
   type: 'plugin' | 'agent' | 'strategy';
@@ -9,13 +12,16 @@ export interface ExecutionRecordInput {
   pluginId?: string;
   agentVersionId?: string;
   executedBy?: string;
-  input?: Record<string, any>;
+  input: Record<string, any>;
   output?: Record<string, any>;
   error?: string;
   executionTime?: number;
   xpEarned?: number;
 }
 
+/**
+ * Execution record as stored in the database
+ */
 export interface Execution {
   id: string;
   tenant_id: string;

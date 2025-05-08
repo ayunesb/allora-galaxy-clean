@@ -45,7 +45,7 @@ interface InviteUserDialogProps {
 
 export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserDialogProps) {
   const { toast } = useToast();
-  const tenantId = useTenantId();
+  const { tenantId } = useTenantId();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,6 +59,10 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
   
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      if (!tenantId) {
+        throw new Error('No tenant selected');
+      }
+      
       // Call Supabase edge function to invite user
       const { error } = await supabase.functions.invoke('send-invite-email', {
         body: {
@@ -73,15 +77,13 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
         throw error;
       }
       
-      // Log the invitation - ensure tenant_id is a string for safety
-      if (tenantId) {
-        await logSystemEvent(
-          tenantId,
-          'admin',
-          'user_invited',
-          { email: values.email, role: values.role }
-        );
-      }
+      // Log the invitation
+      await logSystemEvent(
+        tenantId,
+        'admin',
+        'user_invited',
+        { email: values.email, role: values.role }
+      );
       
       toast({
         title: 'Invitation sent',

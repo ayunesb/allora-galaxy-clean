@@ -7,17 +7,17 @@ import { NavigationItem } from '@/types/navigation';
 
 export interface WorkspaceContextType {
   tenant: Tenant | null;
-  currentTenant: Tenant | null;
+  currentTenant: Tenant | null; // Alias for compatibility
   setTenant: (tenant: Tenant | null) => void;
   loading: boolean;
+  isLoading: boolean; // Alias for compatibility
   navigationItems: NavigationItem[];
   currentRole: UserRole | null;
   refreshTenant: () => Promise<void>;
-  isLoading: boolean;
   error: string | null;
 }
 
-interface Tenant {
+export interface Tenant {
   id: string;
   name: string;
   settings?: Record<string, any>;
@@ -31,10 +31,10 @@ const defaultContext: WorkspaceContextType = {
   currentTenant: null,
   setTenant: () => {},
   loading: true,
+  isLoading: true,
   navigationItems: [],
   currentRole: null,
   refreshTenant: async () => {},
-  isLoading: true,
   error: null
 };
 
@@ -182,13 +182,13 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const contextValue: WorkspaceContextType = {
     tenant,
-    currentTenant: tenant, // Alias for compatibility
+    currentTenant: tenant,
     setTenant,
     loading,
+    isLoading: loading,
     navigationItems,
     currentRole,
     refreshTenant,
-    isLoading: loading,
     error
   };
 
