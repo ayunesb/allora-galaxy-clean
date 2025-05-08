@@ -1,29 +1,32 @@
 
-import { VoteType } from "@/types/fixed";
+import { VoteType } from '@/types/fixed';
 
 export interface VoteResult {
   success: boolean;
+  voteId?: string;
+  error?: string;
   upvotes: number;
   downvotes: number;
-  message?: string;
-  error?: string;
-  voteId?: string;
 }
 
-export interface VoteStats {
-  success: boolean;
+export interface AgentVoteStats {
+  agentVersionId: string;
   upvotes: number;
   downvotes: number;
   xp: number;
   totalVotes: number;
-  ratio: number;
-  recentComments: any[];
-  error?: string;
+  userVote?: {
+    id: string;
+    voteType: VoteType;
+    comment?: string;
+  };
 }
 
-export interface UserVoteInfo {
-  success: boolean;
-  hasVoted: boolean;
-  vote: any | null;
-  error?: string;
+export interface UserVote {
+  id: string;
+  agentVersionId: string;
+  userId: string;
+  voteType: VoteType;
+  comment?: string;
+  createdAt: string;
 }

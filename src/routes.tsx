@@ -1,11 +1,10 @@
 
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import AuthLayout from '@/components/layout/AuthLayout';
 import RequireAuth from '@/components/auth/ProtectedRoute';
 import OnboardingLayout from '@/components/layout/OnboardingLayout';
-import AdminGuard from '@/components/guards/AdminGuard';
+import { AdminGuard } from '@/components/guards/AdminGuard';
 import AdminLayout from '@/components/layout/AdminLayout';
 import NotificationsPage from '@/pages/NotificationsPage';
 

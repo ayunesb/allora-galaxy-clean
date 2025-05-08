@@ -10,7 +10,6 @@ import {
   Database,
   Plug,
 } from 'lucide-react';
-import { SidebarMenu } from '@/components/ui/sidebar';
 
 interface NavItem {
   title: string;

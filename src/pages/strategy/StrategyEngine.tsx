@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,14 @@ interface Strategy {
   created_at: string;
   completion_percentage: number;
 }
+
+// Helper function to safely handle tenant access
+export const getRequiredTenantId = (tenant: any | null): string => {
+  if (!tenant || !tenant.id) {
+    throw new Error('No active workspace selected');
+  }
+  return tenant.id;
+};
 
 const StrategyEngine: React.FC = () => {
   const navigate = useNavigate();

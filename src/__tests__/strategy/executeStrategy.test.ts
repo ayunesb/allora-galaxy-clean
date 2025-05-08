@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
-import { ExecuteStrategyInput, ExecuteStrategyInputSnakeCase } from "@/types/fixed";
+import { ExecuteStrategyInputSnakeCase } from "@/types/fixed";
 import { runStrategy } from "@/lib/strategy/runStrategy";
 
 // Mock the runStrategy function
@@ -44,6 +44,8 @@ describe('executeStrategy Edge Function', () => {
         return Promise.resolve({
           success: false,
           error: 'Strategy execution failed',
+          strategy_id: strategyId || '',
+          status: 'failed',
           execution_time: 0.5
         });
       }
@@ -51,6 +53,8 @@ describe('executeStrategy Edge Function', () => {
       return Promise.resolve({
         success: true,
         error: undefined,
+        strategy_id: strategyId || '',
+        status: 'completed',
         execution_time: 1.5,
         outputs: { result: 'success' },
         logs: []

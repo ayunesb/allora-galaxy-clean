@@ -1,65 +1,69 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ExecutionRecordInput } from '@/types/fixed';
-import { camelToSnake } from '@/types/fixed';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Record an execution in the database with retry logic
- * @param input - Execution record input
- * @returns The created execution record
+ * Records a plugin or strategy execution in the database
+ * 
+ * @param data Execution data to record
+ * @returns The created execution record or undefined if creation failed
  */
-export async function recordExecution(input: ExecutionRecordInput & { id?: string }) {
-  // Configuration
-  const MAX_RETRY_ATTEMPTS = 3;
-  const BASE_RETRY_DELAY = 500; // ms
+export async function recordExecution(data: ExecutionRecordInput): Promise<{ id: string } | undefined> {
+  try {
+    // Convert camelCase to snake_case for database insertion
+    const recordData = {
+      id: data.id,
+      tenant_id: data.tenantId,
+      status: data.status,
+      type: data.type,
+      strategy_id: data.strategyId,
+      plugin_id: data.pluginId,
+      agent_version_id: data.agentVersionId,
+      executed_by: data.executedBy,
+      input: data.input,
+      output: data.output,
+      execution_time: data.executionTime,
+      xp_earned: data.xpEarned,
+      error: data.error
+    };
 
-  let attempt = 0;
-  let lastError: any = null;
+    // Insert or update the execution record
+    const operation = data.id 
+      ? supabase.from('execution_logs').update(recordData).eq('id', data.id)
+      : supabase.from('execution_logs').insert(recordData);
+    
+    const { data: result, error } = data.id 
+      ? await operation.select('id').single()
+      : await operation.select('id').single();
 
-  // Convert input to snake case for Supabase
-  const snakeCaseInput = camelToSnake(input);
-
-  while (attempt < MAX_RETRY_ATTEMPTS) {
-    try {
-      // If input has an id, update existing record, otherwise insert new one
-      let data, error;
-
-      if (input.id) {
-        // Update existing record
-        const { id, ...updateData } = snakeCaseInput; // Extract id from input data
-        ({ data, error } = await supabase
-          .from('executions')
-          .update(updateData)
-          .eq('id', id)
-          .select()
-          .single());
-      } else {
-        // Create new record
-        ({ data, error } = await supabase
-          .from('executions')
-          .insert(snakeCaseInput)
-          .select()
-          .single());
-      }
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      lastError = error;
-      attempt++;
-
-      // Log the retry attempt
-      console.warn(`Error recording execution (attempt ${attempt}/${MAX_RETRY_ATTEMPTS}):`, error);
-
-      if (attempt < MAX_RETRY_ATTEMPTS) {
-        // Exponential backoff with jitter
-        const delay = BASE_RETRY_DELAY * Math.pow(2, attempt - 1) * (0.8 + Math.random() * 0.4);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+    if (error) {
+      console.error('Error recording execution:', error);
+      return undefined;
     }
-  }
 
-  // All retries failed
-  console.error(`Failed to record execution after ${MAX_RETRY_ATTEMPTS} attempts:`, lastError);
-  throw lastError || new Error(`Failed to record execution after ${MAX_RETRY_ATTEMPTS} attempts`);
+    // Log the execution event
+    await logSystemEvent(
+      data.tenantId,
+      data.type,
+      `${data.type}_execution_${data.status}`,
+      {
+        strategy_id: data.strategyId,
+        plugin_id: data.pluginId,
+        agent_version_id: data.agentVersionId,
+        status: data.status,
+        has_error: !!data.error,
+        execution_time: data.executionTime,
+        xp_earned: data.xpEarned
+      }
+    ).catch(err => {
+      console.warn('Failed to log execution event:', err);
+      // Non-critical error, continue execution
+    });
+
+    return result;
+  } catch (err) {
+    console.error('Unexpected error recording execution:', err);
+    return undefined;
+  }
 }

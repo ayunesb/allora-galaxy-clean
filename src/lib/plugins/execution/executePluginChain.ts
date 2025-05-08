@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ExecutionRecordInput, LogStatus } from '@/types/fixed';
-import { recordExecution } from '@/lib/plugins/execution/recordLogExecution';
+import { recordExecution } from '@/lib/plugins/execution/recordExecution';
 
 interface ExecutePluginChainOptions {
   tenantId: string;
@@ -87,9 +87,10 @@ export async function executePluginChain(
         executionTime
       });
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Error executing plugin ${pluginId}:`, error);
-      errors.push(error.message || `Error executing plugin ${pluginId}`);
+      errors.push(errorMessage || `Error executing plugin ${pluginId}`);
       
       // Record execution failure
       await recordExecution({
@@ -98,8 +99,8 @@ export async function executePluginChain(
         pluginId,
         type: 'plugin',
         status: 'error' as LogStatus,
-        error: error.message
-      }).catch(e => console.error('Failed to record execution error:', e));
+        error: errorMessage
+      }).catch((e: unknown) => console.error('Failed to record execution error:', e));
     }
   }
 

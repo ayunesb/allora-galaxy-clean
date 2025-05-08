@@ -26,7 +26,7 @@ export const SidebarFooterActions: React.FC<SidebarFooterActionsProps> = ({ isAc
   return (
     <div className="space-y-2 px-2">
       <SidebarMenuButton
-        isActive={isActive('/settings')}
+        active={isActive('/settings')}
         tooltip="Settings"
         onClick={() => handleNavigation('/settings')}
       >
