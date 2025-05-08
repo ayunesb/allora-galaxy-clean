@@ -3,9 +3,6 @@ import { useState } from 'react';
 import PageHelmet from '@/components/PageHelmet';
 import NotificationsContainer from '@/components/notifications/NotificationsContainer';
 
-// Define a type for notification filter values
-type NotificationType = 'all' | 'unread' | 'system';
-
 const NotificationsPage: React.FC = () => {
   const [filter, setFilter] = useState<string | null>(null);
 

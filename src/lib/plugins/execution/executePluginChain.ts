@@ -1,113 +1,141 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { LogStatus } from '@/types/shared';
-import { recordExecution } from '@/lib/plugins/execution/recordExecution';
+import { recordExecution } from './recordExecution';
+import { LogStatus, ExecutionRecordInput } from '@/types/fixed';
+import { PluginResult } from '@/types/fixed';
 
-interface ExecutePluginChainOptions {
+interface PluginChainOptions {
   tenantId: string;
   strategyId: string;
-  pluginIds: string[];
-  inputs?: Record<string, any>;
+  plugins: Array<{
+    id: string;
+    name: string;
+    agentVersionId?: string;
+    input?: any;
+  }>;
+  context?: Record<string, any>;
+  maxFailures?: number;
 }
 
-interface ExecutePluginChainResult {
+export async function executePluginChain(options: PluginChainOptions): Promise<{
   success: boolean;
-  executedPlugins: number;
-  successfulPlugins: number;
-  totalXpEarned: number;
-  errors?: string[];
-  outputs?: Record<string, any>[];
-}
-
-export async function executePluginChain(
-  options: ExecutePluginChainOptions
-): Promise<ExecutePluginChainResult> {
-  const { tenantId, strategyId, pluginIds, inputs = {} } = options;
-  const outputs: Record<string, any>[] = [];
-  const errors: string[] = [];
-  let totalXpEarned = 0;
+  results: PluginResult[];
+  failedPlugins: number;
+  executionTime: number;
+  totalXp: number;
+}> {
+  const { tenantId, strategyId, plugins, context = {}, maxFailures = 3 } = options;
+  
+  const results: PluginResult[] = [];
+  let failureCount = 0;
+  let totalExecutionTime = 0;
+  let totalXp = 0;
   
   // Execute each plugin in sequence
-  for (const pluginId of pluginIds) {
+  for (const plugin of plugins) {
+    const startTime = Date.now();
+    let executionTime = 0;
+    let xpEarned = 0;
+    let status: LogStatus = 'pending';
+    let error = null;
+    
     try {
-      // Fetch the plugin and its agent version
-      const { data: plugin, error: pluginError } = await supabase
-        .from('plugins')
-        .select('*, agent_versions(*)')
-        .eq('id', pluginId)
-        .single();
-        
-      if (pluginError || !plugin) {
-        errors.push(`Plugin ${pluginId} not found`);
-        continue;
+      console.log(`Executing plugin: ${plugin.name} (${plugin.id})`);
+      
+      // Check if we should stop the chain due to too many failures
+      if (failureCount >= maxFailures) {
+        throw new Error(`Chain execution stopped: Maximum failures (${maxFailures}) reached`);
       }
       
-      const agentVersionId = plugin.agent_versions?.[0]?.id;
-      
-      if (!agentVersionId) {
-        errors.push(`No agent version found for plugin ${plugin.name}`);
-        continue;
-      }
-      
-      // Record execution start
-      const executionData = {
-        tenantId,
-        strategyId,
-        pluginId,
-        agentVersionId,
-        status: 'running' as LogStatus,
-        type: 'plugin',
-        input: inputs[pluginId] || { strategy_id: strategyId }
+      // Prepare input data for the plugin
+      const inputData = {
+        ...plugin.input,
+        context,
+        results: results.map(r => r.output) // Allow access to previous results
       };
       
-      const execution = await recordExecution(executionData);
-      
-      // Execute plugin logic here (simulated)
-      const startTime = Date.now();
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulated execution
-      const executionTime = (Date.now() - startTime) / 1000;
-      const xpEarned = Math.floor(Math.random() * 20) + 5;
-      totalXpEarned += xpEarned;
-      
-      // Record execution completion
-      await recordExecution({
-        ...executionData,
-        executionTime,
-        xpEarned,
-        output: { success: true, result: `Plugin ${plugin.name} executed successfully` }
-      });
-      
-      outputs.push({ 
-        pluginId, 
-        name: plugin.name,
-        success: true,
-        xpEarned,
-        executionTime
-      });
-      
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Error executing plugin ${pluginId}:`, error);
-      errors.push(errorMessage || `Error executing plugin ${pluginId}`);
-      
-      // Record execution failure
+      // Record the execution start
       await recordExecution({
         tenantId,
         strategyId,
-        pluginId,
+        pluginId: plugin.id,
+        agentVersionId: plugin.agentVersionId,
+        status: 'running' as LogStatus,
         type: 'plugin',
-        status: 'error' as LogStatus,
-        error: errorMessage
-      }).catch((e: unknown) => console.error('Failed to record execution error:', e));
+        input: inputData
+      });
+      
+      // Execute the plugin (simplified for demo)
+      // In a real implementation, this would call the plugin's execution code
+      const pluginResult = { success: true, result: `Executed ${plugin.name}` };
+      
+      executionTime = Date.now() - startTime;
+      xpEarned = Math.floor(executionTime / 100) + 10; // Simple XP calculation
+      
+      // Add successful result
+      results.push({
+        pluginId: plugin.id,
+        status: 'success',
+        output: pluginResult,
+        executionTime,
+        xpEarned
+      });
+      
+      status = 'success' as LogStatus;
+      totalExecutionTime += executionTime;
+      totalXp += xpEarned;
+      
+      // Record the execution result
+      await recordExecution({
+        executionTime,
+        xpEarned,
+        output: pluginResult,
+        tenantId,
+        strategyId,
+        pluginId: plugin.id,
+        agentVersionId: plugin.agentVersionId,
+        status,
+        type: 'plugin',
+        input: inputData
+      });
+    } catch (err: any) {
+      failureCount++;
+      executionTime = Date.now() - startTime;
+      status = 'error' as LogStatus;
+      error = err.message || 'Unknown plugin execution error';
+      
+      // Add failed result
+      results.push({
+        pluginId: plugin.id,
+        status: 'failure',
+        error,
+        executionTime,
+        xpEarned: 0
+      });
+      
+      // Record the failed execution
+      await recordExecution({
+        executionTime,
+        xpEarned: 0,
+        error,
+        tenantId,
+        strategyId,
+        pluginId: plugin.id,
+        agentVersionId: plugin.agentVersionId,
+        status,
+        type: 'plugin',
+        input: plugin.input
+      });
+      
+      console.error(`Plugin execution failed: ${plugin.name}`, err);
     }
   }
-
+  
   return {
-    success: errors.length === 0,
-    executedPlugins: pluginIds.length,
-    successfulPlugins: outputs.length,
-    totalXpEarned,
-    errors: errors.length > 0 ? errors : undefined,
-    outputs: outputs.length > 0 ? outputs : undefined
+    success: failureCount === 0,
+    results,
+    failedPlugins: failureCount,
+    executionTime: totalExecutionTime,
+    totalXp
   };
 }

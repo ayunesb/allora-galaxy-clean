@@ -12,13 +12,13 @@ export interface KPITrend {
   isPositive: boolean;
 }
 
-// Vote types
-export type VoteType = 'up' | 'down' | null;
+// Vote types - align with fixed.ts VoteType enum
+export type VoteType = 'up' | 'down' | 'neutral' | null;
 
 // Execution record types
 export type ExecutionType = 'agent' | 'strategy' | 'plugin';
 
-export type LogStatus = 'success' | 'failure' | 'pending';
+export type LogStatus = 'success' | 'failure' | 'pending' | 'running' | 'warning' | 'error';
 
 export interface ExecutionRecordInput {
   tenantId: string;

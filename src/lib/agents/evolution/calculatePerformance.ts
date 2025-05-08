@@ -1,89 +1,87 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
-interface AgentPerformanceMetrics {
-  xp: number;
-  upvotes: number;
-  downvotes: number;
-  totalVotes: number;
-  voteRatio: number;
-  totalExecutions: number;
-  successRate: number;
-}
+import { supabase } from '@/lib/supabase';
+import { AgentPerformanceMetrics } from './autoEvolveAgents';
 
 /**
- * Calculate the performance metrics for an agent version
- * 
- * @param agentVersionId - ID of the agent version
- * @returns Performance metrics
+ * Calculate performance metrics for an agent to determine if evolution is needed
+ * @param pluginId The ID of the plugin
+ * @returns Performance metrics object
  */
-export async function calculateAgentPerformance(agentVersionId: string): Promise<AgentPerformanceMetrics> {
+export async function calculateAgentPerformance(pluginId: string): Promise<AgentPerformanceMetrics> {
   try {
-    // Get vote statistics
-    const voteStatsQuery = await supabase
+    // Get the active agent version for this plugin
+    const { data: agentData, error: agentError } = await supabase
+      .from('agent_versions')
+      .select('id')
+      .eq('plugin_id', pluginId)
+      .eq('status', 'active')
+      .single();
+    
+    if (agentError) throw new Error(`No active agent found for plugin ${pluginId}`);
+    
+    const agentVersionId = agentData.id;
+    
+    // Get execution stats
+    const { data: executions, error: executionsError } = await supabase
+      .from('executions')
+      .select('id, status, execution_time, xp_earned')
+      .eq('agent_version_id', agentVersionId);
+    
+    if (executionsError) throw executionsError;
+    
+    // Get vote stats
+    const { data: votes, error: votesError } = await supabase
       .from('agent_votes')
-      .select('vote_type, count')
-      .eq('agent_version_id', agentVersionId)
-      .then(response => {
-        const { data, error } = response;
-        return { data, error };
-      });
-
-    // Get execution statistics
-    const executionStatsQuery = await supabase
-      .from('plugin_logs')
-      .select('status, count')
-      .eq('agent_version_id', agentVersionId)
-      .is('deleted_at', null)
-      .then(response => {
-        const { data, error } = response;
-        return { data, error };
-      });
-
-    // Get XP earned
-    const xpQuery = await supabase
-      .from('plugin_logs')
-      .select('xp_earned')
-      .eq('agent_version_id', agentVersionId)
-      .is('deleted_at', null)
-      .then(response => {
-        const { data, error } = response;
-        return { data, error };
-      });
-
+      .select('vote_type')
+      .eq('agent_version_id', agentVersionId);
+    
+    if (votesError) throw votesError;
+    
     // Calculate metrics
-    const upvotes = voteStatsQuery.data?.find((e: { vote_type: string }) => e.vote_type === 'up')?.count || 0;
-    const downvotes = voteStatsQuery.data?.find((e: { vote_type: string }) => e.vote_type === 'down')?.count || 0;
-    const totalVotes = upvotes + downvotes;
-    const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0.5; // Default to neutral if no votes
+    const totalExecutions = executions?.length || 0;
+    const successfulExecutions = executions?.filter(e => e.status === 'success').length || 0;
+    const successRate = totalExecutions > 0 ? successfulExecutions / totalExecutions : 0;
     
-    const successCount = executionStatsQuery.data?.find((e: { status: string }) => e.status === 'success')?.count || 0;
-    const failureCount = executionStatsQuery.data?.find((e: { status: string }) => e.status === 'failure')?.count || 0;
-    const totalExecutions = successCount + failureCount;
-    const successRate = totalExecutions > 0 ? successCount / totalExecutions : 0;
+    const averageExecutionTime = totalExecutions > 0
+      ? executions?.reduce((sum, e) => sum + (e.execution_time || 0), 0) / totalExecutions
+      : 0;
     
-    const totalXp = xpQuery.data?.reduce((sum: number, record: { xp_earned: number }) => 
-      sum + (record.xp_earned || 0), 0) || 0;
-
+    const xpEarned = executions?.reduce((sum, e) => sum + (e.xp_earned || 0), 0) || 0;
+    
+    const positiveVotes = votes?.filter(v => v.vote_type === 'up').length || 0;
+    const negativeVotes = votes?.filter(v => v.vote_type === 'down').length || 0;
+    const neutralVotes = votes?.filter(v => v.vote_type === 'neutral').length || 0;
+    
+    // Determine if evolution is needed and why
+    let needsEvolution = false;
+    let evolutionReason: string | undefined;
+    
+    // Poor success rate or many negative votes indicate need for evolution
+    if (totalExecutions >= 10 && successRate < 0.8) {
+      needsEvolution = true;
+      evolutionReason = `Low success rate (${(successRate * 100).toFixed(1)}%)`;
+    } else if (negativeVotes > 5 && negativeVotes > positiveVotes) {
+      needsEvolution = true;
+      evolutionReason = `Negative feedback (${negativeVotes} downvotes)`;
+    } else if (totalExecutions >= 50) {
+      // Regular evolution after sufficient volume
+      needsEvolution = true;
+      evolutionReason = `Regular improvement after ${totalExecutions} executions`;
+    }
+    
     return {
-      xp: totalXp,
-      upvotes,
-      downvotes,
-      totalVotes,
-      voteRatio,
+      needsEvolution,
+      evolutionReason,
+      positiveVotes,
+      negativeVotes,
+      neutralVotes,
       totalExecutions,
-      successRate
+      successRate,
+      averageExecutionTime,
+      xpEarned
     };
-  } catch (error) {
-    console.error('Error calculating agent performance:', error);
-    return {
-      xp: 0,
-      upvotes: 0,
-      downvotes: 0,
-      totalVotes: 0,
-      voteRatio: 0.5,
-      totalExecutions: 0,
-      successRate: 0
-    };
+  } catch (error: any) {
+    console.error(`Error calculating agent performance for plugin ${pluginId}:`, error);
+    throw error;
   }
 }

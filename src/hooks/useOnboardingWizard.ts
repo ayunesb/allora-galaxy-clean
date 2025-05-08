@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -54,10 +55,17 @@ export function useOnboardingWizard() {
   // Check if user already has tenants
   const checkExistingTenants = async () => {
     try {
-      const { data } = await supabase
+      if (!currentUser?.id) return;
+      
+      const { data, error } = await supabase
         .from('tenant_user_roles')
         .select('tenant_id')
-        .eq('user_id', currentUser?.id || '');
+        .eq('user_id', currentUser.id);
+      
+      if (error) {
+        console.error('Error checking tenants:', error);
+        return;
+      }
       
       if (data && data.length > 0) {
         setTenantsList(data);
@@ -74,7 +82,18 @@ export function useOnboardingWizard() {
 
   // Set a specific field value
   const setFieldValue = (key: string, value: any) => {
-    updateFormData({ [key as keyof OnboardingFormData]: value });
+    // Handle nested fields like persona.name
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      updateFormData({
+        [parent]: {
+          ...formData[parent as keyof OnboardingFormData],
+          [child]: value
+        }
+      });
+    } else {
+      updateFormData({ [key as keyof OnboardingFormData]: value });
+    }
   };
 
   // Navigate to next step
@@ -83,6 +102,12 @@ export function useOnboardingWizard() {
       // Validate current step before proceeding
       const validationResult = validateCurrentStep();
       if (!validationResult.valid) {
+        // Show validation errors
+        toast({
+          title: "Validation Error",
+          description: Object.values(validationResult.errors).join(', '),
+          variant: "destructive"
+        });
         return;
       }
       
@@ -133,6 +158,7 @@ export function useOnboardingWizard() {
     if (currentStep === steps.length - 1) {
       try {
         setIsSubmitting(true);
+        setError(null);
         
         // Generate strategy
         const result = await generateStrategy(formData);
@@ -158,9 +184,19 @@ export function useOnboardingWizard() {
           navigate('/dashboard');
         } else {
           setError(result.error || 'Failed to create workspace');
+          toast({
+            title: 'Error',
+            description: result.error || 'Failed to create workspace',
+            variant: 'destructive',
+          });
         }
       } catch (err: any) {
         setError(err.message || 'An unexpected error occurred');
+        toast({
+          title: 'Error',
+          description: err.message || 'An unexpected error occurred',
+          variant: 'destructive',
+        });
         console.error('Onboarding error:', err);
       } finally {
         setIsSubmitting(false);

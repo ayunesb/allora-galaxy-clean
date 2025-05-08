@@ -1,57 +1,41 @@
 
-// Environment variable manager for consistent access across the application
-import { createClient } from '@supabase/supabase-js';
-import { getEnv, validateEnv, corsHeaders } from './envUtils';
-import type { EnvVariable } from './envUtils';
+import { DEV } from 'vite/env';
+import { env } from './envUtils';
 
-/**
- * Environment configuration with safe fallbacks
- */
-export const envConfig = {
-  supabaseUrl: getEnv('SUPABASE_URL', ''),
-  supabaseAnonKey: getEnv('SUPABASE_ANON_KEY', ''),
-  supabaseServiceRoleKey: getEnv('SUPABASE_SERVICE_ROLE_KEY', ''),
-};
-
-/**
- * Get Supabase client with optional auth override
- */
-export function getSupabaseClient(authToken?: string) {
-  const supabaseUrl = envConfig.supabaseUrl;
-  const supabaseKey = envConfig.supabaseAnonKey;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase credentials not available');
+export function getEnv(key: string, defaultValue?: string): string | undefined {
+  // Try from process.env for Node.js environments
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
   }
   
-  return createClient(supabaseUrl, supabaseKey, {
-    global: {
-      headers: {
-        Authorization: authToken ? `Bearer ${authToken}` : '',
-      },
-    },
-  });
-}
-
-/**
- * Validate required environment variables for edge functions
- */
-export function validateEdgeFunctionEnv(requiredVars: string[]): { valid: boolean; errors: string[] } {
-  const result = validateEnv(requiredVars);
-  
-  if (!result.valid) {
-    return {
-      valid: false,
-      errors: result.missing.map(name => `Missing required environment variable: ${name}`),
-    };
+  // Try from import.meta.env for Vite environments
+  // @ts-ignore - import.meta.env is available in Vite
+  if (import.meta && import.meta.env && import.meta.env[key]) {
+    // @ts-ignore
+    return import.meta.env[key];
   }
   
-  return { valid: true, errors: [] };
+  // Try from env utility (which may connect to Deno.env)
+  const value = env(key);
+  if (value !== undefined) {
+    return value;
+  }
+  
+  // Log missing env in development
+  if (DEV && defaultValue === undefined) {
+    console.warn(`Environment variable ${key} not found`);
+  }
+  
+  // Return default value if provided
+  return defaultValue;
 }
 
-/**
- * Safe access to environment variables with typing
- */
-export function safeGetEnv(name: string): EnvVariable {
-  return getEnv(name);
+export function ensureEnv(key: string, errorMessage?: string): string {
+  const value = getEnv(key);
+  
+  if (!value) {
+    throw new Error(errorMessage || `Required environment variable ${key} is missing`);
+  }
+  
+  return value;
 }

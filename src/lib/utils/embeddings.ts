@@ -1,68 +1,63 @@
 
-// Remove unused parameter
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { getEnv } from '@/lib/env/envManager';
 
 /**
- * Calculate the similarity between two vectors using cosine similarity
+ * Generate embeddings for text using OpenAI API
+ * @param text The text to generate embeddings for
+ * @returns The embedding vector
  */
-export function calculateSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vectors must have the same length');
-  }
-  
-  let dotProduct = 0;
-  let aMagnitude = 0;
-  let bMagnitude = 0;
-  
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    aMagnitude += a[i] * a[i];
-    bMagnitude += b[i] * b[i];
-  }
-  
-  aMagnitude = Math.sqrt(aMagnitude);
-  bMagnitude = Math.sqrt(bMagnitude);
-  
-  if (aMagnitude === 0 || bMagnitude === 0) {
-    return 0;
-  }
-  
-  return dotProduct / (aMagnitude * bMagnitude);
-}
-
-/**
- * Generate embeddings for text using a model
- * This is a placeholder function - in a real app, this would call an API
- */
-export async function generateEmbeddings(model: string): Promise<number[]> {
-  // This is a placeholder implementation
-  // In a real app, you'd call an API like OpenAI to get embeddings
-  return Array.from({ length: 128 }, () => Math.random());
-}
-
-/**
- * Search for documents in Supabase using vector similarity
- */
-export async function searchVectorDocuments(
-  supabaseUrl: string,
-  supabaseKey: string,
-  query: number[],
-  tableName: string,
-  vectorColumnName: string,
-  limit: number = 5
-): Promise<any[]> {
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  
-  // This is a placeholder for vector search using pgvector
-  // In a real implementation, you'd use the <-> operator for cosine distance
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .limit(limit);
+export async function generateEmbedding(text: string): Promise<number[]> {
+  try {
+    const openaiApiKey = getEnv('OPENAI_API_KEY');
     
-  if (error) {
-    throw new Error(`Error searching documents: ${error.message}`);
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is not set');
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        input: text,
+        model: 'text-embedding-3-small'
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+    }
+    
+    const data = await response.json();
+    return data.data[0].embedding;
+  } catch (error: any) {
+    console.error('Error generating embedding:', error);
+    throw error;
   }
-  
-  return data || [];
+}
+
+/**
+ * Get semantically similar documents using vector similarity search
+ */
+export async function getSimilarDocuments(
+  embedding: number[],
+  table: string,
+  matchThreshold: number = 0.8,
+  maxResults: number = 5
+): Promise<any[]> {
+  try {
+    // This is a placeholder for how semantic search would be implemented
+    // In a real implementation, we would use Supabase's pgvector extension
+    console.log(`Searching ${table} for similar documents (threshold: ${matchThreshold}, max: ${maxResults})`);
+    
+    // Return empty results for now
+    return [];
+  } catch (error: any) {
+    console.error('Error in semantic search:', error);
+    return [];
+  }
 }

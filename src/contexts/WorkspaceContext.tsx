@@ -1,170 +1,191 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { Tenant } from '@/types/fixed';
+import { UserRole } from '@/lib/auth/roleTypes';
 
-interface Tenant {
+export interface NavigationItem {
   id: string;
-  name: string;
-  created_at: string;
-  metadata?: Record<string, any>;
+  label: string;
+  path: string;
+  icon?: React.ReactNode;
+  children?: NavigationItem[];
 }
 
-interface User {
-  id: string;
-  email: string;
-  role: 'owner' | 'admin' | 'member' | 'viewer';
-}
-
-interface WorkspaceContextType {
+export interface WorkspaceContextType {
   tenant: Tenant | null;
-  user: User | null;
-  isLoading: boolean;
-  error: string | null;
+  currentTenant: Tenant | null;
   setTenant: (tenant: Tenant | null) => void;
+  loading: boolean;
+  navigationItems: NavigationItem[];
+  currentRole: UserRole | null;
   refreshTenant: () => Promise<void>;
-  switchTenant: (tenantId: string) => Promise<void>;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+const defaultContext: WorkspaceContextType = {
+  tenant: null,
+  currentTenant: null,
+  setTenant: () => {},
+  loading: true,
+  navigationItems: [],
+  currentRole: null,
+  refreshTenant: async () => {},
+};
 
-export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+const WorkspaceContext = createContext<WorkspaceContextType>(defaultContext);
+
+export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const { user, loading: authLoading } = useAuth();
 
-  // Load initial tenant and user data
-  useEffect(() => {
-    const loadWorkspaceData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Get current user
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-
-        if (!authUser) {
-          setIsLoading(false);
-          return;
+  // Define navigation items
+  const navigationItems: NavigationItem[] = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      path: '/dashboard',
+      icon: 'layout-dashboard'
+    },
+    {
+      id: 'galaxy',
+      label: 'Galaxy',
+      path: '/galaxy',
+      icon: 'grid-3x3'
+    },
+    {
+      id: 'launch',
+      label: 'Launch',
+      path: '/launch',
+      icon: 'rocket'
+    },
+    {
+      id: 'agents',
+      label: 'Agents',
+      path: '/agents/performance',
+      icon: 'bot'
+    },
+    {
+      id: 'plugins',
+      label: 'Plugins',
+      path: '/plugins',
+      icon: 'plug'
+    },
+    {
+      id: 'insights',
+      label: 'Insights',
+      path: '/insights/kpis',
+      icon: 'bar-chart'
+    },
+    {
+      id: 'admin',
+      label: 'Admin',
+      path: '/admin',
+      icon: 'settings',
+      children: [
+        {
+          id: 'users',
+          label: 'Users',
+          path: '/admin/users',
+          icon: 'users'
+        },
+        {
+          id: 'ai-decisions',
+          label: 'AI Decisions',
+          path: '/admin/ai-decisions',
+          icon: 'brain'
+        },
+        {
+          id: 'system-logs',
+          label: 'System Logs',
+          path: '/admin/system-logs',
+          icon: 'list'
+        },
+        {
+          id: 'plugin-logs',
+          label: 'Plugin Logs',
+          path: '/admin/plugin-logs',
+          icon: 'clipboard-list'
         }
+      ]
+    }
+  ];
 
-        // Get user's tenants and roles
-        const { data: userTenants, error: tenantsError } = await supabase
-          .from('tenant_user_roles')
-          .select('tenant_id, role, tenants:tenant_id(id, name, created_at, metadata)')
-          .eq('user_id', authUser.id);
+  // Fetch tenant and role data
+  const fetchTenantData = async () => {
+    if (!user || authLoading) {
+      setLoading(false);
+      return;
+    }
 
-        if (tenantsError) {
-          throw new Error(`Failed to load tenants: ${tenantsError.message}`);
-        }
+    try {
+      const { data: roleData, error: roleError } = await supabase
+        .from('tenant_user_roles')
+        .select('tenant_id, role')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-        if (userTenants && userTenants.length > 0) {
-          // Set the first tenant as active
-          const firstTenant = userTenants[0].tenants as unknown as Tenant;
-          setTenant(firstTenant);
-          
-          // Set user with role
-          setUser({
-            id: authUser.id,
-            email: authUser.email || '',
-            role: userTenants[0].role as 'owner' | 'admin' | 'member' | 'viewer'
-          });
-        }
-
-      } catch (err: any) {
-        console.error('Error loading workspace data:', err);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
+      if (roleError && roleError.code !== 'PGRST116') {
+        console.error('Error fetching user role:', roleError);
+        setLoading(false);
+        return;
       }
-    };
 
-    loadWorkspaceData();
-  }, []);
+      if (roleData?.tenant_id) {
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('id', roleData.tenant_id)
+          .single();
+
+        if (tenantError) {
+          console.error('Error fetching tenant:', tenantError);
+        } else if (tenantData) {
+          const tenantWithRole = {
+            ...tenantData,
+            role: roleData.role as UserRole
+          };
+          setTenant(tenantWithRole);
+          setCurrentRole(roleData.role as UserRole);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch workspace data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const refreshTenant = async () => {
-    if (!tenant) return;
-    
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('id', tenant.id)
-        .single();
-
-      if (error) throw error;
-      if (data) setTenant(data);
-    } catch (err: any) {
-      console.error('Error refreshing tenant:', err);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+    setLoading(true);
+    await fetchTenantData();
   };
 
-  const switchTenant = async (tenantId: string) => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('id', tenantId)
-        .single();
+  useEffect(() => {
+    fetchTenantData();
+  }, [user, authLoading]);
 
-      if (error) throw error;
-      
-      if (data) {
-        setTenant(data);
-        
-        // Update user role for this tenant
-        const { data: userData, error: userError } = await supabase
-          .from('tenant_user_roles')
-          .select('role')
-          .eq('tenant_id', tenantId)
-          .single();
-          
-        if (userError) throw userError;
-        
-        if (userData && user) {
-          setUser({
-            ...user,
-            role: userData.role as 'owner' | 'admin' | 'member' | 'viewer'
-          });
-        }
-      }
-    } catch (err: any) {
-      console.error('Error switching tenant:', err);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const value = {
+  const contextValue: WorkspaceContextType = {
     tenant,
-    user,
-    isLoading,
-    error,
+    currentTenant: tenant, // Alias for compatibility
     setTenant,
-    refreshTenant,
-    switchTenant
+    loading,
+    navigationItems,
+    currentRole,
+    refreshTenant
   };
 
   return (
-    <WorkspaceContext.Provider value={value}>
+    <WorkspaceContext.Provider value={contextValue}>
       {children}
     </WorkspaceContext.Provider>
   );
 };
 
-export const useWorkspace = (): WorkspaceContextType => {
-  const context = useContext(WorkspaceContext);
-  if (context === undefined) {
-    throw new Error('useWorkspace must be used within a WorkspaceProvider');
-  }
-  return context;
-};
+export const useWorkspace = () => useContext(WorkspaceContext);
 
 export default WorkspaceContext;
