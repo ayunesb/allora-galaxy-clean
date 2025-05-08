@@ -8,8 +8,8 @@ interface NotificationListProps {
   notifications: NotificationContent[];
   filter: string;
   onMarkAsRead: (id: string) => Promise<void>;
-  loading?: boolean;
   onDelete?: (id: string) => Promise<any>;
+  loading?: boolean;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({ 

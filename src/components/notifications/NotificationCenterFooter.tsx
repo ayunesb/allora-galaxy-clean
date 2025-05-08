@@ -1,29 +1,41 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface NotificationCenterFooterProps {
-  onMarkAllAsRead: () => Promise<void>;
+  onMarkAllAsRead?: () => Promise<void>;
 }
 
-const NotificationCenterFooter: React.FC<NotificationCenterFooterProps> = ({ onMarkAllAsRead }) => {
+const NotificationCenterFooter: React.FC<NotificationCenterFooterProps> = ({ 
+  onMarkAllAsRead 
+}) => {
+  const navigate = useNavigate();
+
+  const handleViewAll = () => {
+    navigate('/notifications');
+  };
+
   return (
-    <div className="border-t p-3 flex justify-between items-center">
+    <div className="p-3 border-t flex justify-between">
+      {onMarkAllAsRead && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onMarkAllAsRead}
+          className="text-sm"
+        >
+          Mark all as read
+        </Button>
+      )}
+      
       <Button 
         variant="ghost" 
-        size="sm"
-        onClick={() => onMarkAllAsRead()}
+        size="sm" 
+        onClick={handleViewAll}
+        className="text-sm ml-auto"
       >
-        Mark all as read
-      </Button>
-      
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/notifications" className="flex items-center">
-          <span>View all</span>
-          <ExternalLink className="ml-1 h-3 w-3" />
-        </Link>
+        View all
       </Button>
     </div>
   );

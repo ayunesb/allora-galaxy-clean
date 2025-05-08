@@ -1,19 +1,5 @@
 
-export interface Notification {
-  id: string;
-  title: string;
-  message?: string;
-  description?: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'system';
-  created_at: string;
-  read_at?: string | null;
-  is_read?: boolean;
-  action_url?: string;
-  action_label?: string;
-  tenant_id: string;
-  user_id: string;
-}
-
+// Base notification content interface for frontend use
 export interface NotificationContent {
   id: string;
   title: string;
@@ -25,13 +11,31 @@ export interface NotificationContent {
   action_label?: string;
 }
 
+// Database notification structure
+export interface Notification {
+  id: string;
+  title: string;
+  description?: string;
+  created_at: string;
+  is_read?: boolean;
+  type: 'info' | 'success' | 'warning' | 'error' | 'system';
+  action_url?: string;
+  action_label?: string;
+  tenant_id?: string;
+  user_id?: string;
+  metadata?: Record<string, any>;
+}
+
+// Context for notifications management
 export interface NotificationsContextType {
   notifications: Notification[];
   unreadCount: number;
   loading: boolean;
   error: Error | null;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  refreshNotifications: () => Promise<void>;
   markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
   markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
   deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  refreshNotifications: () => Promise<{ success: boolean; error?: Error }>;
 }

@@ -1,17 +1,16 @@
 
-import React from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import NotificationList from './NotificationList';
+import React, { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { NotificationContent } from '@/types/notifications';
+import NotificationList from './NotificationList';
 
 interface NotificationTabsProps {
   selectedTab: string;
-  setSelectedTab: (value: string) => void;
+  setSelectedTab: (tab: string) => void;
   notifications: NotificationContent[];
-  loading: boolean;
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  onDelete: (id: string) => Promise<{ success: boolean; error?: Error }>;
+  loading?: boolean;
+  markAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<any>;
 }
 
 const NotificationTabs: React.FC<NotificationTabsProps> = ({
@@ -22,35 +21,54 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   markAsRead,
   onDelete
 }) => {
-  const handleMarkAsRead = async (id: string): Promise<void> => {
-    await markAsRead(id);
-  };
-  
-  const filteredNotifications = React.useMemo(() => {
-    if (selectedTab === 'unread') {
-      return notifications.filter(notification => !notification.read);
-    }
-    return notifications;
-  }, [notifications, selectedTab]);
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.read).length;
+  // Count system notifications
+  const systemCount = notifications.filter(n => n.type === 'system').length;
 
   return (
-    <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
-      <TabsList className="mb-6">
-        <TabsTrigger value="all">All Notifications</TabsTrigger>
-        <TabsTrigger value="unread">Unread</TabsTrigger>
-      </TabsList>
+    <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+      <div className="border-b px-4 py-2">
+        <TabsList className="w-full">
+          <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
+          <TabsTrigger value="unread" className="flex-1">
+            Unread {unreadCount > 0 && `(${unreadCount})`}
+          </TabsTrigger>
+          <TabsTrigger value="system" className="flex-1">
+            System {systemCount > 0 && `(${systemCount})`}
+          </TabsTrigger>
+        </TabsList>
+      </div>
       
-      <Card>
-        <CardContent className="p-6">
-          <NotificationList 
-            notifications={filteredNotifications} 
-            loading={loading} 
-            filter={selectedTab}
-            onMarkAsRead={handleMarkAsRead}
-            onDelete={onDelete}
-          />
-        </CardContent>
-      </Card>
+      <TabsContent value="all" className="max-h-[500px] overflow-y-auto">
+        <NotificationList 
+          notifications={notifications} 
+          filter="all"
+          onMarkAsRead={markAsRead}
+          onDelete={onDelete}
+          loading={loading}
+        />
+      </TabsContent>
+      
+      <TabsContent value="unread" className="max-h-[500px] overflow-y-auto">
+        <NotificationList 
+          notifications={notifications.filter(n => !n.read)} 
+          filter="unread"
+          onMarkAsRead={markAsRead}
+          onDelete={onDelete}
+          loading={loading}
+        />
+      </TabsContent>
+      
+      <TabsContent value="system" className="max-h-[500px] overflow-y-auto">
+        <NotificationList 
+          notifications={notifications.filter(n => n.type === 'system')} 
+          filter="system"
+          onMarkAsRead={markAsRead}
+          onDelete={onDelete}
+          loading={loading}
+        />
+      </TabsContent>
     </Tabs>
   );
 };

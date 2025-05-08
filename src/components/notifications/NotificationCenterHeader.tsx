@@ -1,38 +1,32 @@
 
 import React from 'react';
-import { X, BellOff } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NotificationCenterHeaderProps {
-  markAllAsRead: () => Promise<void>;
   onClose: () => void;
-  unreadCount?: number;
+  markAllAsRead: () => Promise<void>;
 }
 
 const NotificationCenterHeader: React.FC<NotificationCenterHeaderProps> = ({ 
-  markAllAsRead, 
   onClose,
-  unreadCount 
+  markAllAsRead
 }) => {
   return (
-    <div className="flex items-center justify-between px-4 py-2">
-      <h2 className="text-sm font-medium">Notifications {unreadCount ? `(${unreadCount})` : ''}</h2>
-      <div className="flex space-x-1">
+    <div className="flex items-center justify-between px-4 py-3 border-b">
+      <h2 className="font-semibold text-lg">Notifications</h2>
+      
+      <div className="flex items-center gap-2">
         <Button 
           variant="ghost" 
           size="sm" 
-          className="text-xs h-8"
           onClick={markAllAsRead}
+          className="text-xs h-8"
         >
-          <BellOff className="h-3.5 w-3.5 mr-1.5" />
-          Mark all read
+          Mark all as read
         </Button>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8" 
-          onClick={onClose}
-        >
+        
+        <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </Button>

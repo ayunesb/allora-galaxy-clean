@@ -1,12 +1,15 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { NotificationContent } from '@/types/notifications';
-import { Card } from '@/components/ui/card';
-import { CheckCircle, Bell, AlertCircle, Info, X, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { MoreHorizontal, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { NotificationContent } from '@/types/notifications';
 
 export interface NotificationItemProps {
   notification: NotificationContent;
@@ -17,29 +20,13 @@ export interface NotificationItemProps {
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
-  onDelete
+  onDelete,
 }) => {
-  const getIcon = () => {
-    switch (notification.type) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning':
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      case 'info':
-      default:
-        return <Info className="h-5 w-5 text-blue-500" />;
-    }
-  };
-
-  const formattedDate = notification.timestamp
-    ? format(new Date(notification.timestamp), 'MMM d, h:mm a')
-    : '';
-
   const handleMarkAsRead = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await onMarkAsRead(notification.id);
+    if (!notification.read) {
+      await onMarkAsRead(notification.id);
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -49,54 +36,72 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  const cardContent = (
-    <div className="flex items-start gap-3 p-3">
-      <div className="flex-shrink-0 mt-1">{getIcon()}</div>
-      <div className="flex-grow min-w-0">
-        <h4 className="font-medium text-sm">{notification.title}</h4>
-        <p className="text-muted-foreground text-xs mt-1 line-clamp-2">{notification.message}</p>
-        <div className="text-xs text-muted-foreground mt-2">{formattedDate}</div>
-      </div>
-      <div className="flex flex-shrink-0 gap-1">
-        {!notification.read && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7" 
-            onClick={handleMarkAsRead}
-            title="Mark as read"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-        {onDelete && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 text-muted-foreground hover:text-destructive" 
-            onClick={handleDelete}
-            title="Delete notification"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
+  // Format the timestamp
+  const formattedTime = notification.timestamp
+    ? format(new Date(notification.timestamp), 'MMM d, h:mm a')
+    : '';
 
   return (
-    <Card 
-      className={cn(
-        "transition-all hover:bg-muted/50 cursor-pointer",
-        !notification.read && "border-l-4 border-l-primary"
-      )}
+    <div
+      className={`rounded-lg border p-4 transition-all hover:bg-accent/50 ${
+        !notification.read ? 'bg-accent/30' : ''
+      }`}
+      onClick={handleMarkAsRead}
     >
-      {notification.action_url ? (
-        <Link to={notification.action_url}>{cardContent}</Link>
-      ) : (
-        cardContent
-      )}
-    </Card>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="font-medium flex items-center gap-2">
+            {notification.title}
+            {!notification.read && (
+              <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-xs text-muted-foreground">{formattedTime}</span>
+            {notification.action_url && notification.action_label && (
+              <a
+                href={notification.action_url}
+                className="text-xs font-medium text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {notification.action_label}
+              </a>
+            )}
+          </div>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {!notification.read && (
+              <DropdownMenuItem onClick={handleMarkAsRead}>
+                <Check className="mr-2 h-4 w-4" />
+                Mark as read
+              </DropdownMenuItem>
+            )}
+            {onDelete && (
+              <DropdownMenuItem 
+                onClick={handleDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 };
 

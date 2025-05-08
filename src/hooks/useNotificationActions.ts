@@ -1,43 +1,66 @@
 
 import { useCallback } from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
+import { toast } from '@/hooks/use-toast';
 
 export const useNotificationActions = () => {
   const {
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
+    markAsRead: contextMarkAsRead,
+    markAllAsRead: contextMarkAllAsRead,
+    deleteNotification: contextDeleteNotification,
   } = useNotificationsContext();
 
-  const handleMarkAsRead = useCallback(async (id: string) => {
+  const handleMarkAsRead = useCallback(async (id: string): Promise<void> => {
     try {
-      const result = await markAsRead(id);
-      return result;
+      const result = await contextMarkAsRead(id);
+      if (!result.success) {
+        throw result.error || new Error('Failed to mark notification as read');
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      return { success: false, error: error as Error };
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read",
+        variant: "destructive",
+      });
     }
-  }, [markAsRead]);
+  }, [contextMarkAsRead]);
 
-  const handleMarkAllAsRead = useCallback(async () => {
+  const handleMarkAllAsRead = useCallback(async (): Promise<void> => {
     try {
-      const result = await markAllAsRead();
-      return result;
+      const result = await contextMarkAllAsRead();
+      if (!result.success) {
+        throw result.error || new Error('Failed to mark all notifications as read');
+      }
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      return { success: false, error: error as Error };
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read",
+        variant: "destructive",
+      });
     }
-  }, [markAllAsRead]);
+  }, [contextMarkAllAsRead]);
 
-  const handleDeleteNotification = useCallback(async (id: string) => {
+  const handleDeleteNotification = useCallback(async (id: string): Promise<void> => {
     try {
-      const result = await deleteNotification(id);
-      return result;
+      const result = await contextDeleteNotification(id);
+      if (!result.success) {
+        throw result.error || new Error('Failed to delete notification');
+      }
     } catch (error) {
       console.error('Error deleting notification:', error);
-      return { success: false, error: error as Error };
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive",
+      });
     }
-  }, [deleteNotification]);
+  }, [contextDeleteNotification]);
 
   return {
     markAsRead: handleMarkAsRead,

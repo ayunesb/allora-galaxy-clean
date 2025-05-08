@@ -1,38 +1,18 @@
 
 import React from 'react';
-import { Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { BellOff } from 'lucide-react';
 
-interface NotificationCenterEmptyStateProps {
-  filter?: string;
-  message?: string;
-  className?: string;
-}
-
-const NotificationCenterEmptyState: React.FC<NotificationCenterEmptyStateProps> = ({ 
-  filter = 'all',
-  message,
-  className 
-}) => {
-  const getEmptyStateMessage = () => {
-    if (message) return message;
-    
-    switch (filter) {
-      case 'all':
-        return 'You don\'t have any notifications yet';
-      case 'unread':
-        return 'You don\'t have any unread notifications';
-      case 'system':
-        return 'No system notifications';
-      default:
-        return 'No notifications to show';
-    }
-  };
-
+const NotificationCenterEmptyState: React.FC = () => {
   return (
-    <div className={cn("flex flex-col items-center justify-center h-[300px] text-center p-4", className)}>
-      <Info className="h-8 w-8 text-muted-foreground mb-2" />
-      <p className="text-muted-foreground">{getEmptyStateMessage()}</p>
+    <div className="flex flex-col items-center justify-center p-12 text-center">
+      <div className="rounded-full bg-muted p-3 mb-4">
+        <BellOff className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="font-medium">No notifications</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-[250px]">
+        You don't have any notifications at the moment.
+        New notifications will appear here.
+      </p>
     </div>
   );
 };

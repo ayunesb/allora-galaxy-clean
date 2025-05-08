@@ -11,6 +11,7 @@ export interface NotificationCenterContentProps {
   onDelete?: (id: string) => Promise<void>;
   onClose?: () => void;
   loading?: boolean;
+  onMarkAllAsRead?: () => Promise<void>;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
@@ -18,7 +19,8 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   onMarkAsRead,
   onDelete,
   onClose,
-  loading = false
+  loading = false,
+  onMarkAllAsRead
 }) => {
   if (loading) {
     return <NotificationCenterLoading />;

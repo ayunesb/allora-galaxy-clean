@@ -2,18 +2,20 @@
 import { useEffect } from 'react';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useToast } from '@/hooks/use-toast';
-import { NotificationCenterContent } from '@/components/notifications/NotificationCenterContent';
+import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
 
 interface NotificationCenterProps {
   className?: string;
 }
 
 export const NotificationCenter = ({ className }: NotificationCenterProps) => {
-  const { isOpen, setIsOpen, unreadCount, markAllAsRead } = useNotificationsContext();
+  const { isOpen, setIsOpen, notifications, unreadCount, loading } = useNotificationsContext();
   const { toast } = useToast();
+  const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
 
   // Close notification center when Escape key is pressed
   useEffect(() => {
@@ -32,28 +34,6 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
   // Close the notification center
   const handleClose = () => {
     setIsOpen(false);
-  };
-
-  // Mark all notifications as read
-  const handleMarkAllAsRead = async (): Promise<void> => {
-    try {
-      const result = await markAllAsRead();
-      if (!result.success) {
-        throw result.error || new Error('Failed to mark notifications as read');
-      }
-      toast({
-        title: "Success",
-        description: "All notifications marked as read",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Error marking notifications as read:", error);
-      toast({
-        title: "Error",
-        description: "Failed to mark notifications as read",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -75,8 +55,12 @@ export const NotificationCenter = ({ className }: NotificationCenterProps) => {
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md p-0">
         <NotificationCenterContent 
+          notifications={notifications}
+          onMarkAsRead={markAsRead}
+          onDelete={deleteNotification}
           onClose={handleClose}
-          onMarkAllAsRead={handleMarkAllAsRead}
+          loading={loading}
+          onMarkAllAsRead={markAllAsRead}
         />
       </SheetContent>
     </Sheet>

@@ -1,4 +1,3 @@
-
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import executeStrategy from "@/edge/executeStrategy";
 import { ExecuteStrategyInput } from "@/types/strategy";
@@ -22,14 +21,11 @@ const mockDeno = {
 };
 
 // Assign mock to global object, but only if Deno is not already defined
-if (typeof globalThis.Deno === 'undefined') {
-  // Use defineProperty to avoid TypeScript errors with index signatures
-  Object.defineProperty(globalThis, 'Deno', {
-    value: mockDeno,
-    writable: true,
-    enumerable: true,
-    configurable: true
-  });
+if (typeof globalThis !== 'undefined') {
+  // Use type assertion to handle TypeScript complaint about index signature
+  if (!('Deno' in globalThis)) {
+    (globalThis as any).Deno = mockDeno;
+  }
 }
 
 describe('executeStrategy Edge Function', () => {
