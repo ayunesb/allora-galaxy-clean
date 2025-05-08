@@ -2,9 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { checkEvolutionNeeded } from './checkEvolutionNeeded';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgent } from './deactivateOldAgent';
-import { getFeedbackComments } from './getFeedbackComments';
-import { evolvePromptWithFeedback } from './getFeedbackComments';
+import { deactivateAgentVersion } from './deactivateOldAgent';
+import { getFeedbackComments, evolvePromptWithFeedback } from './getFeedbackComments';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export interface EvolutionOptions {
@@ -106,7 +105,7 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
           });
           
           // Deactivate the old agent version
-          await deactivateOldAgent(agentVersion.id, evolvedAgent.id);
+          await deactivateAgentVersion(agentVersion.id, evolvedAgent.id);
           
           // Log the evolution event
           await logSystemEvent(

@@ -2,7 +2,7 @@
 import React from 'react';
 import KPICard from '@/components/KPICard';
 import { TrendDirection } from '@/types/shared';
-import { KpiCardSkeleton } from '@/components/skeletons/KPICardSkeleton';
+import { KPICardSkeleton } from '@/components/skeletons/KPICardSkeleton';
 
 interface KpiData {
   name: string;
@@ -45,7 +45,7 @@ export const KpiSection: React.FC<KpiSectionProps> = ({ kpiData, isLoading }) =>
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map(index => <KpiCardSkeleton key={index} />)}
+        {[1, 2, 3, 4].map(index => <KPICardSkeleton key={index} />)}
       </div>
     );
   }

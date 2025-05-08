@@ -12,6 +12,12 @@ interface EvolutionCheckResult {
   };
 }
 
+interface AgentVersionStats {
+  success_count: number;
+  failure_count: number;
+  avg_execution_time: number;
+}
+
 /**
  * Checks if an agent version needs evolution based on performance metrics
  * @param agentVersionId Agent version ID to check
@@ -40,8 +46,9 @@ export async function checkEvolutionNeeded(
     if (error) throw error;
     
     // Extract stats or use defaults
-    const successCount = stats?.success_count || 0;
-    const failureCount = stats?.failure_count || 0;
+    const statsObj = stats as AgentVersionStats || { success_count: 0, failure_count: 0, avg_execution_time: 0 };
+    const successCount = statsObj.success_count || 0;
+    const failureCount = statsObj.failure_count || 0;
     const totalExecutions = successCount + failureCount;
     
     // Check if there are enough executions to make a decision
@@ -52,7 +59,7 @@ export async function checkEvolutionNeeded(
         performance: {
           successRate: successCount / (totalExecutions || 1),
           failureRate: failureCount / (totalExecutions || 1),
-          averageExecutionTime: stats?.avg_execution_time || 0,
+          averageExecutionTime: statsObj.avg_execution_time || 0,
           totalExecutions
         }
       };
@@ -67,7 +74,7 @@ export async function checkEvolutionNeeded(
         performance: {
           successRate: 1 - failureRate,
           failureRate,
-          averageExecutionTime: stats?.avg_execution_time || 0,
+          averageExecutionTime: statsObj.avg_execution_time || 0,
           totalExecutions
         }
       };
@@ -92,7 +99,7 @@ export async function checkEvolutionNeeded(
           performance: {
             successRate: 1 - failureRate,
             failureRate,
-            averageExecutionTime: stats?.avg_execution_time || 0,
+            averageExecutionTime: statsObj.avg_execution_time || 0,
             totalExecutions
           }
         };
@@ -106,7 +113,7 @@ export async function checkEvolutionNeeded(
       performance: {
         successRate: 1 - failureRate,
         failureRate,
-        averageExecutionTime: stats?.avg_execution_time || 0,
+        averageExecutionTime: statsObj.avg_execution_time || 0,
         totalExecutions
       }
     };
