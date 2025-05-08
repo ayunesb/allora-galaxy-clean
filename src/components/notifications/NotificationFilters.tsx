@@ -1,50 +1,55 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Filter } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { CheckIcon, FilterIcon } from 'lucide-react';
 
-interface FilterOption {
-  value: string | null;
-  label: string;
-}
+export type NotificationType = 'all' | 'system' | 'info' | 'success' | 'warning' | 'error' | 'milestone';
 
 interface NotificationFiltersProps {
-  filter: string | null;
-  setFilter: (filter: string | null) => void;
-  filterOptions: FilterOption[];
+  selectedFilter: NotificationType;
+  onFilterChange: (filter: NotificationType) => void;
+  className?: string;
 }
 
-const NotificationFilters: React.FC<NotificationFiltersProps> = ({ 
-  filter, 
-  setFilter,
-  filterOptions 
+const notificationTypes: { value: NotificationType; label: string }[] = [
+  { value: 'all', label: 'All Notifications' },
+  { value: 'system', label: 'System' },
+  { value: 'info', label: 'Information' },
+  { value: 'success', label: 'Success' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'error', label: 'Error' },
+  { value: 'milestone', label: 'Milestones' },
+];
+
+const NotificationFilters: React.FC<NotificationFiltersProps> = ({
+  selectedFilter,
+  onFilterChange,
+  className = '',
 }) => {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Filter className="h-4 w-4" />
-          {filter ? `Filter: ${filter}` : 'Filter'}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {filterOptions.map((option) => (
-          <DropdownMenuItem 
-            key={option.value || 'none'} 
-            onClick={() => setFilter(option.value)}
-            className={filter === option.value ? 'bg-accent' : ''}
-          >
-            {option.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className={`flex items-center justify-end ${className}`}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-1">
+            <FilterIcon className="h-4 w-4" />
+            <span>Filter</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {notificationTypes.map((type) => (
+            <DropdownMenuItem
+              key={type.value}
+              onClick={() => onFilterChange(type.value)}
+              className="flex items-center justify-between"
+            >
+              <span>{type.label}</span>
+              {selectedFilter === type.value && <CheckIcon className="h-4 w-4" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 };
 
