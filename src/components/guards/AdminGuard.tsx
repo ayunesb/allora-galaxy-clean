@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import LoadingScreen from '@/components/LoadingScreen';
 
 interface AdminGuardProps {
   children: React.ReactNode;
@@ -9,15 +10,16 @@ interface AdminGuardProps {
 
 export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
   const { userRole, isLoading } = useWorkspace();
-
+  
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return <LoadingScreen />;
   }
-
-  // Check if user has admin role
+  
   if (userRole !== 'admin' && userRole !== 'owner') {
     return <Navigate to="/dashboard" replace />;
   }
-
+  
   return <>{children}</>;
 };
+
+export default AdminGuard;

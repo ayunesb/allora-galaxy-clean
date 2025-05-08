@@ -1,72 +1,23 @@
 
-export type VoteType = 'upvote' | 'downvote';
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
-export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
+export type SystemEventModule = 'strategy' | 'plugin' | 'agent' | 'auth' | 'system' | 'security' | 'kpi';
 
-export type SystemEventModule = 
-  | 'strategy' 
-  | 'plugin' 
-  | 'agent' 
-  | 'auth' 
-  | 'billing' 
-  | 'marketing'
-  | 'onboarding'
-  | 'system'
-  | 'security';
-
-export type SystemEventType = 'info' | 'warning' | 'error' | 'success';
-
-export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
+export type SystemEventType = 'info' | 'warning' | 'error' | 'success' | 'kpi_updated' | 'kpi_update_failed' | 'onboarding_completed';
 
 export interface NavigationItem {
-  name: string;
+  title: string;
   href: string;
   icon?: React.ComponentType<{ className?: string }>;
-  roles?: UserRole[];
-  children?: NavigationItem[];
-  badges?: {
-    label: string;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
-  }[];
+  requiresRole?: UserRole[];
+  isActive?: (pathname: string) => boolean;
 }
 
-export type OnboardingStep = 
-  | 'welcome'
-  | 'company-info'
-  | 'persona'
-  | 'additional-info'
-  | 'strategy-generation';
-
-export interface BaseEntity {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface ExecutionParams {
-  tenantId: string;
-  userId?: string;
-  options?: Record<string, any>;
-}
-
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
-
-export interface KPITrend {
-  direction: TrendDirection;
-  percentage: number;
-  isPositive: boolean;
-}
-
-export type LogStatus = 'success' | 'failure' | 'warning' | 'info' | 'error' | 'pending' | 'running';
-
-export interface TenantFeature {
+export interface Tenant {
   id: string;
   name: string;
-  description: string;
-  enabled: boolean;
-  config?: Record<string, any>;
-}
-
-export interface UseRoleCheckOptions {
-  redirectTo?: string;
+  slug?: string;
+  created_at?: string;
+  owner_id?: string;
+  metadata?: Record<string, any>;
 }

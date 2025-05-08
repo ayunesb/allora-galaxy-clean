@@ -1,148 +1,171 @@
 
-import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { withRoleCheck } from '@/lib/auth/withRoleCheck';
+import { useTenantId } from '@/hooks/useTenantId';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
-import SystemLogsPagination from '@/components/admin/logs/SystemLogsPagination';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
+import { format } from 'date-fns';
 
-const LOGS_PER_PAGE = 25;
-
-const SystemLogsPage: React.FC = () => {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<LogFilterState>({ searchTerm: '' });
-  const { toast } = useToast();
-
-  const fetchLogs = async () => {
-    setIsLoading(true);
-    try {
+const SystemLogs: React.FC = () => {
+  const tenantId = useTenantId();
+  const [moduleFilter, setModuleFilter] = useState('');
+  const [eventFilter, setEventFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  
+  // Fetch system logs
+  const { data: logs, isLoading, refetch } = useQuery({
+    queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
       let query = supabase
         .from('system_logs')
-        .select('*', { count: 'exact' })
+        .select('*')
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
-        .range((currentPage - 1) * LOGS_PER_PAGE, currentPage * LOGS_PER_PAGE - 1);
-
-      // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-
-      if (filters.tenantId) {
-        query = query.eq('tenant_id', filters.tenantId);
-      }
-
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
-      }
-
-      if (filters.startDate) {
-        const startDateIso = filters.startDate.toISOString();
-        query = query.gte('created_at', startDateIso);
+        .limit(100);
+      
+      if (moduleFilter) {
+        query = query.eq('module', moduleFilter);
       }
       
-      if (filters.endDate) {
-        // Add a day to include the end date fully
-        const endDate = new Date(filters.endDate);
-        endDate.setDate(endDate.getDate() + 1);
-        const endDateIso = endDate.toISOString();
-        query = query.lt('created_at', endDateIso);
+      if (eventFilter) {
+        query = query.eq('event', eventFilter);
       }
-
-      const { data, count, error } = await query;
-
-      if (error) throw error;
-
-      setLogs(data || []);
-      setTotalLogs(count || 0);
-    } catch (error: any) {
-      console.error('Error fetching logs:', error);
-      toast({
-        title: 'Error fetching logs',
-        description: error.message || 'An unexpected error occurred',
-        variant: 'destructive',
-      });
-      setLogs([]);
-    } finally {
-      setIsLoading(false);
+      
+      if (searchQuery) {
+        query = query.or(`context.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching system logs:', error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    enabled: !!tenantId
+  });
+  
+  const resetFilters = () => {
+    setModuleFilter('');
+    setEventFilter('');
+    setSearchQuery('');
+  };
+  
+  const handleFilterChange = (newFilters: LogFilterState) => {
+    setModuleFilter(newFilters.moduleFilter);
+    setEventFilter(newFilters.eventFilter);
+    setSearchQuery(newFilters.searchQuery);
+  };
+  
+  const handleViewDetails = (log: any) => {
+    setSelectedLog(log);
+  };
+  
+  const getModuleBadgeColor = (module: string) => {
+    switch (module.toLowerCase()) {
+      case 'strategy': return 'bg-blue-100 text-blue-800';
+      case 'plugin': return 'bg-purple-100 text-purple-800';
+      case 'agent': return 'bg-green-100 text-green-800';
+      case 'auth': return 'bg-yellow-100 text-yellow-800';
+      case 'system': return 'bg-slate-100 text-slate-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Fetch logs when page or filters change
-  useEffect(() => {
-    fetchLogs();
-  }, [currentPage, filters]);
-
-  const totalPages = Math.ceil(totalLogs / LOGS_PER_PAGE);
-
-  const handleFilterChange = (newFilters: LogFilterState) => {
-    setCurrentPage(1); // Reset to page 1 when filters change
-    setFilters(newFilters);
-  };
-
-  const handleRefresh = () => {
-    fetchLogs();
-  };
-
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">System Logs</h1>
-          <p className="text-muted-foreground">
-            Monitor and analyze system activity across all modules
-          </p>
-        </div>
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          <RefreshCcw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">System Logs</h1>
+      <p className="text-muted-foreground mb-8">
+        View detailed logs of all system activities and events.
+      </p>
+      
       <Card>
         <CardHeader>
-          <CardTitle>Log Filters</CardTitle>
+          <CardTitle>System Audit Log</CardTitle>
           <CardDescription>
-            Filter logs by module, event type, date range, or search terms
+            SOC2-style traceability for AI strategy evolution and execution
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SystemLogFilters onFilterChange={handleFilterChange} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>System Log Entries</CardTitle>
-          <CardDescription>
-            Showing {logs.length} of {totalLogs} logs
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
+          <div className="mb-6">
+            <SystemLogFilters
+              moduleFilter={moduleFilter}
+              setModuleFilter={setModuleFilter}
+              eventFilter={eventFilter}
+              setEventFilter={setEventFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onReset={resetFilters}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+          
           <SystemLogsTable 
-            logs={logs} 
-            isLoading={isLoading}
-            emptyMessage={isLoading ? 'Loading...' : 'No logs match the current filters'} 
+            logs={logs || []} 
+            isLoading={isLoading} 
+            onViewDetails={handleViewDetails}
+            emptyMessage="No logs found matching your criteria."
           />
         </CardContent>
       </Card>
-
-      <SystemLogsPagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      
+      <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Log Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedLog && (
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Timestamp</div>
+                  <div className="font-mono">
+                    {format(new Date(selectedLog.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Module</div>
+                  <div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getModuleBadgeColor(selectedLog.module)}`}>
+                      {selectedLog.module}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">Event</div>
+                <div>{selectedLog.event}</div>
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium text-muted-foreground mb-1">Context</div>
+                <div className="bg-muted rounded-md p-4 overflow-auto max-h-96">
+                  {selectedLog.context ? (
+                    <pre className="text-xs font-mono whitespace-pre-wrap">
+                      {JSON.stringify(selectedLog.context, null, 2)}
+                    </pre>
+                  ) : (
+                    <div className="text-muted-foreground">No context available</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default SystemLogsPage;
+export default withRoleCheck(SystemLogs, { roles: ['admin', 'owner'] });

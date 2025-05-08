@@ -1,112 +1,63 @@
 
-import { NavigationItem, UserRole } from '@/types/shared';
-import { 
-  LayoutDashboard, 
-  Network, 
-  Rocket, 
-  PuzzlePiece, 
-  BarChart, 
-  ScrollText, 
-  Users, 
-  Settings, 
-  CreditCard,
+import { NavigationItem } from '@/types/shared';
+import {
+  Home,
+  RocketIcon,
+  GlobeIcon,
+  BadgePercentIcon,
+  PuzzleIcon,
+  Users,
+  LineChart,
   Brain,
-  GitMerge
+  Server
 } from 'lucide-react';
 
-export const getNavigationItems = (): NavigationItem[] => [
+export const navigationItems: NavigationItem[] = [
   {
-    name: 'Dashboard',
+    title: 'Dashboard',
     href: '/dashboard',
-    icon: LayoutDashboard
+    icon: Home,
   },
   {
-    name: 'Galaxy',
-    href: '/galaxy',
-    icon: Network
-  },
-  {
-    name: 'Launch',
+    title: 'Launch',
     href: '/launch',
-    icon: Rocket
+    icon: RocketIcon,
   },
   {
-    name: 'Plugins',
+    title: 'Galaxy',
+    href: '/galaxy',
+    icon: GlobeIcon,
+  },
+  {
+    title: 'Plugins',
     href: '/plugins',
-    icon: PuzzlePiece
+    icon: PuzzleIcon,
   },
   {
-    name: 'Evolution',
-    href: '/evolution',
-    icon: GitMerge
-  },
-  {
-    name: 'Insights',
-    href: '/insights',
-    icon: BarChart,
-    children: [
-      {
-        name: 'KPIs',
-        href: '/insights/kpis',
-        badges: [
-          {
-            label: 'New',
-            variant: 'default'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    name: 'Agents',
+    title: 'Agents',
     href: '/agents/performance',
-    icon: Brain
+    icon: Users,
   },
   {
-    name: 'Strategy',
-    href: '/strategy',
-    icon: ScrollText
+    title: 'Insights',
+    href: '/insights/kpis',
+    icon: LineChart,
   },
   {
-    name: 'Allora Brain',
+    title: 'Evolution',
+    href: '/evolution',
+    icon: LineChart,
+  },
+  {
+    title: 'Allora Brain',
     href: '/allora-brain',
     icon: Brain,
-    badges: [
-      {
-        label: 'New',
-        variant: 'default'
-      }
-    ]
+    requiresRole: ['admin', 'owner']
   },
   {
-    name: 'Admin',
-    href: '/admin',
-    icon: Users,
-    roles: ['admin', 'owner'],
-    children: [
-      {
-        name: 'System Logs',
-        href: '/admin/logs'
-      },
-      {
-        name: 'Users',
-        href: '/admin/users'
-      },
-      {
-        name: 'API Keys',
-        href: '/admin/api-keys'
-      }
-    ]
+    title: 'Standalone Agent',
+    href: '/standalone',
+    icon: Server,
+    requiresRole: ['admin', 'owner']
   },
-  {
-    name: 'Billing',
-    href: '/billing',
-    icon: CreditCard,
-    roles: ['owner', 'admin']
-  },
-  {
-    name: 'Settings',
-    href: '/settings',
-    icon: Settings
-  }
 ];

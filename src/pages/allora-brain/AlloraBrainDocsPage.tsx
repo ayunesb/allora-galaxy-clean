@@ -1,311 +1,124 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
 import { withRoleCheck } from '@/lib/auth/withRoleCheck';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, File, FileJson, FileText } from 'lucide-react';
 
 const AlloraBrainDocsPage: React.FC = () => {
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" asChild>
           <Link to="/allora-brain">
-            <ChevronLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Allora-as-a-Brain API Documentation</h1>
+          <h1 className="text-3xl font-bold">API Documentation</h1>
           <p className="text-muted-foreground">
-            Technical documentation and reference for the Allora-as-a-Brain API
+            Comprehensive documentation for the Allora-as-a-Brain API
           </p>
         </div>
       </div>
-
-      <Tabs defaultValue="reference">
-        <TabsList>
-          <TabsTrigger value="reference">API Reference</TabsTrigger>
-          <TabsTrigger value="authentication">Authentication</TabsTrigger>
-          <TabsTrigger value="errors">Errors</TabsTrigger>
-          <TabsTrigger value="limits">Rate Limits</TabsTrigger>
+      
+      <Tabs defaultValue="overview">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="endpoints">Endpoints</TabsTrigger>
+          <TabsTrigger value="models">Models</TabsTrigger>
+          <TabsTrigger value="examples">Examples</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="reference" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Badge variant="outline" className="mr-2">POST</Badge>
-                /allora-brain
-              </CardTitle>
+              <CardTitle>Allora-as-a-Brain API</CardTitle>
+              <CardDescription>
+                Access Allora's strategic intelligence directly from any application
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="prose max-w-none">
+                <p>
+                  The Allora-as-a-Brain API gives you programmatic access to all of Allora's 
+                  strategic capabilities. With a simple REST interface, you can query the API 
+                  with natural language and receive actionable business insights and 
+                  execution plans in return.
+                </p>
+                
+                <h3 className="text-lg font-bold mt-6 mb-2">Base URL</h3>
+                <pre className="bg-muted p-4 rounded-lg">https://api.allora.com/v1</pre>
+                
+                <h3 className="text-lg font-bold mt-6 mb-2">Authentication</h3>
+                <p>
+                  All API requests require an API key to be sent in the Authorization header:
+                </p>
+                <pre className="bg-muted p-4 rounded-lg">
+                  Authorization: Bearer YOUR_API_KEY
+                </pre>
+                
+                <p className="mt-2">
+                  You can manage your API keys in the <Link to="/admin/api-keys" className="text-primary">API Keys section</Link> of 
+                  your Allora dashboard.
+                </p>
+                
+                <h3 className="text-lg font-bold mt-6 mb-2">Response Format</h3>
+                <p>
+                  All responses are returned as JSON objects. Successful responses include a <code>success</code> field 
+                  set to <code>true</code>, while error responses include an <code>error</code> field with details.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Start</CardTitle>
+              <CardDescription>
+                Get up and running with the Allora-as-a-Brain API in minutes
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div>
-                  <h3 className="font-medium mb-2">Description</h3>
-                  <p>
-                    Execute a query against Allora's brain to get strategic insights and execute plugins.
-                    This endpoint accepts natural language queries and returns structured results.
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">1. Get your API key</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create an API key in the <Link to="/admin/api-keys" className="text-primary">API Keys section</Link> of your dashboard.
                   </p>
                 </div>
                 
-                <div>
-                  <h3 className="font-medium mb-2">Request Headers</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-4">Header</th>
-                          <th className="text-left py-2 px-4">Required</th>
-                          <th className="text-left py-2 px-4">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">Content-Type</td>
-                          <td className="py-2 px-4">Yes</td>
-                          <td className="py-2 px-4">application/json</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">x-api-key</td>
-                          <td className="py-2 px-4">Yes</td>
-                          <td className="py-2 px-4">Your API key</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <Separator />
                 
-                <div>
-                  <h3 className="font-medium mb-2">Request Body</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-4">Parameter</th>
-                          <th className="text-left py-2 px-4">Type</th>
-                          <th className="text-left py-2 px-4">Required</th>
-                          <th className="text-left py-2 px-4">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">query</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">Yes</td>
-                          <td className="py-2 px-4">The natural language query to process</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">tenantId</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">No</td>
-                          <td className="py-2 px-4">Optional tenant ID (must match the API key's tenant)</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">strategy</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">No</td>
-                          <td className="py-2 px-4">Optional strategy ID to use (instead of creating one)</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">plugin</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">No</td>
-                          <td className="py-2 px-4">Optional specific plugin ID to execute</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">context</td>
-                          <td className="py-2 px-4">object</td>
-                          <td className="py-2 px-4">No</td>
-                          <td className="py-2 px-4">Optional context data to provide to the plugins</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Example Request</h3>
-                  <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                    {`POST /functions/v1/allora-brain HTTP/1.1
-Host: ijrnwpgsqsxzqdemtknz.supabase.co
-Content-Type: application/json
-x-api-key: your-api-key-here
-
-{
-  "query": "How can I improve my conversion rate on my Shopify store?",
-  "context": {
-    "storeUrl": "mystore.myshopify.com",
-    "currentConversionRate": "2.1%"
-  }
-}`}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">2. Make your first request</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use the following curl command to make your first request to the Allora Brain:
+                  </p>
+                  <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm">
+                    curl -X POST https://api.allora.com/v1/brain/query \<br />
+                    &nbsp;&nbsp;-H "Content-Type: application/json" \<br />
+                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_API_KEY" \<br />
+                    &nbsp;&nbsp;-d '&#123;<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;"query": "How do I reduce customer churn?",<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;"options": &#123;<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"max_tokens": 500,<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"format": "json"<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&#125;<br />
+                    &nbsp;&nbsp;&#125;'
                   </pre>
                 </div>
                 
-                <div>
-                  <h3 className="font-medium mb-2">Response</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-4">Field</th>
-                          <th className="text-left py-2 px-4">Type</th>
-                          <th className="text-left py-2 px-4">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">success</td>
-                          <td className="py-2 px-4">boolean</td>
-                          <td className="py-2 px-4">Whether the request was successful</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">strategy_id</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">ID of the strategy that was executed</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">execution_id</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">ID of the execution</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">status</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">Status of the execution (success, partial, failure)</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">plugins_executed</td>
-                          <td className="py-2 px-4">number</td>
-                          <td className="py-2 px-4">Number of plugins executed</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">successful_plugins</td>
-                          <td className="py-2 px-4">number</td>
-                          <td className="py-2 px-4">Number of plugins that executed successfully</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">xp_earned</td>
-                          <td className="py-2 px-4">number</td>
-                          <td className="py-2 px-4">XP earned from this execution</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">results</td>
-                          <td className="py-2 px-4">array</td>
-                          <td className="py-2 px-4">Array of plugin execution results</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="py-2 px-4 font-mono text-sm">error</td>
-                          <td className="py-2 px-4">string</td>
-                          <td className="py-2 px-4">Error message if request failed</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <Separator />
                 
-                <div>
-                  <h3 className="font-medium mb-2">Example Response</h3>
-                  <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                    {`{
-  "success": true,
-  "strategy_id": "550e8400-e29b-41d4-a716-446655440000",
-  "execution_id": "b5f8d4e3-9c62-4b5f-a574-292dd0a03918",
-  "status": "success",
-  "plugins_executed": 3,
-  "successful_plugins": 3,
-  "xp_earned": 30,
-  "results": [
-    {
-      "plugin_id": "plugin-123",
-      "plugin_name": "Shopify Analytics",
-      "success": true,
-      "output": {
-        "result": "Based on your current conversion rate of 2.1%, here are recommendations to improve it...",
-        "context": {
-          "storeUrl": "mystore.myshopify.com",
-          "currentConversionRate": "2.1%"
-        },
-        "timestamp": "2023-09-15T14:23:45.123Z"
-      },
-      "xp_earned": 10
-    },
-    {
-      "plugin_id": "plugin-456",
-      "plugin_name": "CRO Optimizer",
-      "success": true,
-      "output": {
-        "result": "Analyzing your checkout flow shows these potential improvements...",
-        "context": {
-          "storeUrl": "mystore.myshopify.com",
-          "currentConversionRate": "2.1%"
-        },
-        "timestamp": "2023-09-15T14:23:46.456Z"
-      },
-      "xp_earned": 10
-    },
-    {
-      "plugin_id": "plugin-789",
-      "plugin_name": "Content Recommender",
-      "success": true,
-      "output": {
-        "result": "To improve engagement, consider these content updates...",
-        "context": {
-          "storeUrl": "mystore.myshopify.com",
-          "currentConversionRate": "2.1%"
-        },
-        "timestamp": "2023-09-15T14:23:47.789Z"
-      },
-      "xp_earned": 10
-    }
-  ]
-}`}
-                  </pre>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="authentication" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Authentication</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p>
-                  The Allora-as-a-Brain API uses API keys for authentication. Each request must include
-                  your API key in the <code>x-api-key</code> header.
-                </p>
-                
-                <h3 className="font-medium text-lg">API Key Management</h3>
-                <p>
-                  You can manage your API keys in the 
-                  <Link to="/admin/api-keys" className="text-primary mx-1">API Keys</Link>
-                  section of the admin dashboard. API keys are tenant-specific and have the following properties:
-                </p>
-                
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Each API key belongs to a specific tenant</li>
-                  <li>API keys expire after 1 year by default</li>
-                  <li>Keys can be revoked at any time</li>
-                  <li>Usage is tracked and logged in the system</li>
-                </ul>
-                
-                <h3 className="font-medium text-lg">API Key Security</h3>
-                <p>
-                  Keep your API keys secure and never expose them in client-side code. 
-                  If an API key is compromised, revoke it immediately and create a new one.
-                </p>
-                
-                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-md">
-                  <h4 className="font-medium text-amber-800 dark:text-amber-300">Security Warning</h4>
-                  <p className="text-amber-700 dark:text-amber-400">
-                    Your API key has full access to execute strategies and plugins on your tenant.
-                    Keep it secure and never include it in client-side code or public repositories.
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">3. Integrate into your application</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Check out the <Link to="/allora-brain?tab=integration" className="text-primary">Integration examples</Link> for 
+                    code snippets in various programming languages.
                   </p>
                 </div>
               </div>
@@ -313,208 +126,375 @@ x-api-key: your-api-key-here
           </Card>
         </TabsContent>
         
-        <TabsContent value="errors" className="space-y-6">
+        <TabsContent value="endpoints" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Error Codes & Handling</CardTitle>
+              <CardTitle>API Endpoints</CardTitle>
+              <CardDescription>
+                All available endpoints of the Allora-as-a-Brain API
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p>
-                  The Allora-as-a-Brain API returns standard HTTP status codes to indicate
-                  the success or failure of API requests. In addition to the status code,
-                  error responses include a JSON body with more details.
-                </p>
-                
-                <h3 className="font-medium text-lg">HTTP Status Codes</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-4">Status Code</th>
-                        <th className="text-left py-2 px-4">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">200 OK</td>
-                        <td className="py-2 px-4">The request was successful</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">400 Bad Request</td>
-                        <td className="py-2 px-4">The request was malformed or missing required parameters</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">401 Unauthorized</td>
-                        <td className="py-2 px-4">Authentication failed (invalid or missing API key)</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">403 Forbidden</td>
-                        <td className="py-2 px-4">The API key does not have permission for this action</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">404 Not Found</td>
-                        <td className="py-2 px-4">The requested resource was not found</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">429 Too Many Requests</td>
-                        <td className="py-2 px-4">Rate limit exceeded</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">500 Internal Server Error</td>
-                        <td className="py-2 px-4">An error occurred on the server</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="space-y-8">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-green-100 text-green-800 px-2 py-0.5 rounded-md text-xs font-medium">POST</div>
+                    <h3 className="font-medium">/brain/query</h3>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-1 mb-3">
+                    Ask a question to the Allora Brain and get strategic insights as response.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm">Request Body</h4>
+                      <div className="flex gap-4 mt-2">
+                        <div className="flex-1">
+                          <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                            &#123;<br />
+                            &nbsp;&nbsp;"query": "How do I reduce customer churn?",<br />
+                            &nbsp;&nbsp;"options": &#123;<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"max_tokens": 500,<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"format": "json",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"plugins": ["analytics", "crm"]<br />
+                            &nbsp;&nbsp;&#125;<br />
+                            &#125;
+                          </pre>
+                        </div>
+                        <div className="flex-1">
+                          <div className="space-y-2">
+                            <p className="text-xs"><span className="font-mono font-medium">query</span> <span className="text-muted-foreground">(string, required)</span></p>
+                            <p className="text-xs text-muted-foreground">The natural language query to send to Allora Brain</p>
+                            
+                            <p className="text-xs"><span className="font-mono font-medium">options.max_tokens</span> <span className="text-muted-foreground">(integer, optional)</span></p>
+                            <p className="text-xs text-muted-foreground">Maximum length of response in tokens</p>
+                            
+                            <p className="text-xs"><span className="font-mono font-medium">options.format</span> <span className="text-muted-foreground">(string, optional)</span></p>
+                            <p className="text-xs text-muted-foreground">Response format: "json" or "text"</p>
+                            
+                            <p className="text-xs"><span className="font-mono font-medium">options.plugins</span> <span className="text-muted-foreground">(array, optional)</span></p>
+                            <p className="text-xs text-muted-foreground">List of plugin IDs to use for the query</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium text-sm">Response</h4>
+                      <div className="flex gap-4 mt-2">
+                        <div className="flex-1">
+                          <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                            &#123;<br />
+                            &nbsp;&nbsp;"success": true,<br />
+                            &nbsp;&nbsp;"strategy": "To reduce customer churn...",<br />
+                            &nbsp;&nbsp;"recommendations": [<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"Implement an early warning system",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"Create a customer success program",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"Analyze churn patterns by segment"<br />
+                            &nbsp;&nbsp;],<br />
+                            &nbsp;&nbsp;"metrics": &#123;<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"current_churn_rate": 5.2,<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"industry_average": 3.8<br />
+                            &nbsp;&nbsp;&#125;,<br />
+                            &nbsp;&nbsp;"execution_id": "exec-123456"<br />
+                            &#125;
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <h3 className="font-medium text-lg">Error Response Format</h3>
-                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                  {`{
-  "success": false,
-  "error": "Detailed error message"
-}`}
-                </pre>
+                <Separator />
                 
-                <h3 className="font-medium text-lg">Common Errors</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-4">Error Message</th>
-                        <th className="text-left py-2 px-4">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">API key is required</td>
-                        <td className="py-2 px-4">The x-api-key header is missing</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">Invalid or expired API key</td>
-                        <td className="py-2 px-4">The provided API key is not valid</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">Query is required</td>
-                        <td className="py-2 px-4">The query parameter is missing in the request body</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">Strategy not found or access denied</td>
-                        <td className="py-2 px-4">The specified strategy ID doesn't exist or belongs to another tenant</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">Plugin not found or not active</td>
-                        <td className="py-2 px-4">The specified plugin ID doesn't exist or is not active</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md text-xs font-medium">GET</div>
+                    <h3 className="font-medium">/brain/execution/:id</h3>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-1 mb-3">
+                    Retrieve details about a previous execution.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm">Path Parameters</h4>
+                      <p className="text-xs mt-2"><span className="font-mono font-medium">id</span> <span className="text-muted-foreground">(string, required)</span></p>
+                      <p className="text-xs text-muted-foreground">The execution ID</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium text-sm">Response</h4>
+                      <div className="mt-2">
+                        <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                            &#123;<br />
+                            &nbsp;&nbsp;"success": true,<br />
+                            &nbsp;&nbsp;"execution": &#123;<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"id": "exec-123456",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"created_at": "2025-05-01T12:34:56Z",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"query": "How do I reduce customer churn?",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"status": "completed",<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"plugins_used": ["analytics", "crm"],<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;"execution_time": 1.25<br />
+                            &nbsp;&nbsp;&#125;<br />
+                            &#125;
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <h3 className="font-medium text-lg">Error Handling Best Practices</h3>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Always check the success flag in the response</li>
-                  <li>Implement retry logic with backoff for 429 and 5xx errors</li>
-                  <li>Log detailed error messages for debugging</li>
-                  <li>Display user-friendly error messages in your application</li>
-                </ul>
+                <Separator />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md text-xs font-medium">GET</div>
+                      <h3 className="font-medium">/brain/plugins</h3>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-1 mb-1">
+                      List all available plugins for your tenant.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-md text-xs font-medium">PATCH</div>
+                      <h3 className="font-medium">/brain/settings</h3>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-1 mb-1">
+                      Update brain settings for your tenant.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="limits" className="space-y-6">
+        <TabsContent value="models" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Rate Limits</CardTitle>
+              <CardTitle>Data Models</CardTitle>
+              <CardDescription>
+                Reference for all data models used in the Allora-as-a-Brain API
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p>
-                  To ensure fair usage and system stability, the Allora-as-a-Brain API
-                  enforces rate limits on API requests. These limits help prevent abuse
-                  and ensure optimal performance for all users.
-                </p>
-                
-                <h3 className="font-medium text-lg">Default Rate Limits</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-4">Plan</th>
-                        <th className="text-left py-2 px-4">Requests per Minute</th>
-                        <th className="text-left py-2 px-4">Requests per Day</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">Standard</td>
-                        <td className="py-2 px-4">60</td>
-                        <td className="py-2 px-4">10,000</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4">Enterprise</td>
-                        <td className="py-2 px-4">300</td>
-                        <td className="py-2 px-4">50,000</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-md">Query</CardTitle>
+                        <FileJson className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-mono font-medium">query</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">options</span> <span className="text-muted-foreground">(object)</span></p>
+                        <p><span className="font-mono font-medium">options.max_tokens</span> <span className="text-muted-foreground">(integer)</span></p>
+                        <p><span className="font-mono font-medium">options.format</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">options.plugins</span> <span className="text-muted-foreground">(array)</span></p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-md">Response</CardTitle>
+                        <FileJson className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-mono font-medium">success</span> <span className="text-muted-foreground">(boolean)</span></p>
+                        <p><span className="font-mono font-medium">strategy</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">recommendations</span> <span className="text-muted-foreground">(array)</span></p>
+                        <p><span className="font-mono font-medium">metrics</span> <span className="text-muted-foreground">(object)</span></p>
+                        <p><span className="font-mono font-medium">execution_id</span> <span className="text-muted-foreground">(string)</span></p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-md">Execution</CardTitle>
+                        <FileJson className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-mono font-medium">id</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">created_at</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">query</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">status</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">plugins_used</span> <span className="text-muted-foreground">(array)</span></p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-md">Plugin</CardTitle>
+                        <FileJson className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-mono font-medium">id</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">name</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">description</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">category</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">status</span> <span className="text-muted-foreground">(string)</span></p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-md">Error</CardTitle>
+                        <FileJson className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-mono font-medium">success</span> <span className="text-muted-foreground">(boolean)</span></p>
+                        <p><span className="font-mono font-medium">error</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">code</span> <span className="text-muted-foreground">(string)</span></p>
+                        <p><span className="font-mono font-medium">details</span> <span className="text-muted-foreground">(object)</span></p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-md">Settings</CardTitle>
+                        <FileJson className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-mono font-medium">default_plugins</span> <span className="text-muted-foreground">(array)</span></p>
+                        <p><span className="font-mono font-medium">max_tokens</span> <span className="text-muted-foreground">(integer)</span></p>
+                        <p><span className="font-mono font-medium">default_format</span> <span className="text-muted-foreground">(string)</span></p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
                 
-                <h3 className="font-medium text-lg">Rate Limit Headers</h3>
-                <p>
-                  The API includes rate limit information in the response headers:
-                </p>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-4">Header</th>
-                        <th className="text-left py-2 px-4">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="py-2 px-4 font-mono text-sm">X-RateLimit-Limit</td>
-                        <td className="py-2 px-4">Maximum number of requests allowed in the current time window</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4 font-mono text-sm">X-RateLimit-Remaining</td>
-                        <td className="py-2 px-4">Number of requests remaining in the current time window</td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="py-2 px-4 font-mono text-sm">X-RateLimit-Reset</td>
-                        <td className="py-2 px-4">Time in seconds until the rate limit resets</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Schema Documentation</h3>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    OpenAPI Specification
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="examples" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Example Requests</CardTitle>
+              <CardDescription>
+                Sample requests and responses to get started quickly
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-8">
+                <div>
+                  <h3 className="font-medium text-lg mb-4">Basic Query</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                        <File className="h-4 w-4 text-primary" /> Request
+                      </h4>
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                        POST /v1/brain/query<br /><br />
+                        &#123;<br />
+                        &nbsp;&nbsp;"query": "How do I reduce customer churn?"<br />
+                        &#125;
+                      </pre>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                        <File className="h-4 w-4 text-green-600" /> Response
+                      </h4>
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                        &#123;<br />
+                        &nbsp;&nbsp;"success": true,<br />
+                        &nbsp;&nbsp;"strategy": "To reduce customer churn, focus on improving customer satisfaction...",<br />
+                        &nbsp;&nbsp;"recommendations": [<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Implement an early warning system",<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Create a customer success program",<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Analyze churn patterns by segment"<br />
+                        &nbsp;&nbsp;],<br />
+                        &nbsp;&nbsp;"execution_id": "exec-123456"<br />
+                        &#125;
+                      </pre>
+                    </div>
+                  </div>
                 </div>
                 
-                <h3 className="font-medium text-lg">Handling Rate Limits</h3>
-                <p>
-                  When you exceed the rate limit, the API will return a 429 Too Many Requests
-                  response with information about when you can retry:
-                </p>
-                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                  {`HTTP/1.1 429 Too Many Requests
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 30
-Retry-After: 30
-
-{
-  "success": false,
-  "error": "Rate limit exceeded. Please retry after 30 seconds."
-}`}
-                </pre>
+                <Separator />
                 
-                <h3 className="font-medium text-lg">Best Practices</h3>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Implement exponential backoff for retries</li>
-                  <li>Monitor your usage and adjust your application accordingly</li>
-                  <li>Cache responses when possible to reduce API calls</li>
-                  <li>Batch requests together when possible</li>
-                  <li>Contact support if you need higher rate limits</li>
-                </ul>
+                <div>
+                  <h3 className="font-medium text-lg mb-4">Advanced Options</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                        <File className="h-4 w-4 text-primary" /> Request
+                      </h4>
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                        POST /v1/brain/query<br /><br />
+                        &#123;<br />
+                        &nbsp;&nbsp;"query": "Analyze our MRR growth and suggest improvements",<br />
+                        &nbsp;&nbsp;"options": &#123;<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"max_tokens": 1000,<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"format": "json",<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"plugins": ["analytics", "crm", "stripe"]<br />
+                        &nbsp;&nbsp;&#125;<br />
+                        &#125;
+                      </pre>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
+                        <File className="h-4 w-4 text-green-600" /> Response
+                      </h4>
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+                        &#123;<br />
+                        &nbsp;&nbsp;"success": true,<br />
+                        &nbsp;&nbsp;"strategy": "Your MRR growth has slowed from 8% to 3% MoM...",<br />
+                        &nbsp;&nbsp;"analysis": &#123;<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"current_mrr": 52000,<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"growth_rate": 0.03,<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"churn_impact": -4500,<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"expansion_revenue": 2200<br />
+                        &nbsp;&nbsp;&#125;,<br />
+                        &nbsp;&nbsp;"recommendations": [<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Focus on expansion revenue with mid-tier customers",<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Address the churn spike in enterprise segment",<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;"Optimize onboarding for faster time-to-value"<br />
+                        &nbsp;&nbsp;],<br />
+                        &nbsp;&nbsp;"execution_id": "exec-789012"<br />
+                        &#125;
+                      </pre>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -524,4 +504,4 @@ Retry-After: 30
   );
 };
 
-export default withRoleCheck(AlloraBrainDocsPage, { roles: ['owner', 'admin'] });
+export default withRoleCheck(AlloraBrainDocsPage, { roles: ['admin', 'owner'] });

@@ -1,112 +1,95 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const CodeExamples: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('javascript');
+const CodeExamples = () => {
+  const [copied, setCopied] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleCopyCode = (code: string) => {
+  const handleCopy = (code: string, language: string) => {
     navigator.clipboard.writeText(code);
+    setCopied(language);
+    
     toast({
-      title: 'Code Copied',
-      description: 'The code example has been copied to your clipboard',
+      title: "Code copied",
+      description: `${language} code snippet copied to clipboard.`,
     });
+    
+    setTimeout(() => setCopied(null), 2000);
   };
 
-  const javascriptCode = `// Example: Using Allora Brain with JavaScript (Node.js or browser)
-const fetchAlloraBrain = async (query, context = {}) => {
-  const response = await fetch('https://ijrnwpgsqsxzqdemtknz.supabase.co/functions/v1/allora-brain', {
+  const examples = {
+    javascript: `
+// Using Fetch API
+async function queryAlloraBrain(question) {
+  const response = await fetch('https://api.allora.com/v1/brain/query', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': 'your-api-key-here'
+      'Authorization': 'Bearer YOUR_API_KEY'
     },
     body: JSON.stringify({
-      query,
-      context
+      query: question,
+      options: {
+        max_tokens: 500,
+        format: 'json'
+      }
     })
   });
   
   return response.json();
-};
+}
 
 // Example usage
-const result = await fetchAlloraBrain(
-  'How can I improve my website conversion rate?',
-  { currentRate: '2.3%', industry: 'ecommerce' }
-);
-
-if (result.success) {
-  console.log('Strategy executed successfully!');
-  
-  // Process plugin results
-  result.results.forEach(plugin => {
-    if (plugin.success) {
-      console.log(\`\${plugin.plugin_name}: \${plugin.output.result}\`);
-    }
-  });
-} else {
-  console.error('Error:', result.error);
-}`;
-
-  const reactCode = `// Example: Using Allora Brain with React
+queryAlloraBrain("How do I reduce customer churn?")
+  .then(result => {
+    console.log(result.strategy);
+    console.log(result.recommendations);
+  })
+  .catch(error => console.error('Error:', error));
+`,
+    react: `
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 
-// Allora Brain Hook
-const useAlloraBrain = (apiKey) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  const executeQuery = async (query, context = {}) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch('https://ijrnwpgsqsxzqdemtknz.supabase.co/functions/v1/allora-brain', {
+// Allora Brain React Hook
+function useAlloraBrain() {
+  const mutation = useMutation({
+    mutationFn: async ({ query, options = {} }) => {
+      const response = await fetch('https://api.allora.com/v1/brain/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey
+          'Authorization': 'Bearer YOUR_API_KEY'
         },
-        body: JSON.stringify({
-          query,
-          context
-        })
+        body: JSON.stringify({ query, options })
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to execute query');
+        throw new Error('Failed to query Allora Brain');
       }
       
-      return data;
-    } catch (err) {
-      setError(err.message);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
+      return response.json();
     }
-  };
+  });
   
-  return { executeQuery, loading, error };
-};
+  return mutation;
+}
 
-// Example Component
-const BusinessAdvisor = () => {
+// Example component usage
+function AlloraBrainChat() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState(null);
-  const { executeQuery, loading, error } = useAlloraBrain('your-api-key-here');
+  const [response, setResponse] = useState(null);
+  const alloraBrain = useAlloraBrain();
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await executeQuery(query);
-    setResults(result);
+    const result = await alloraBrain.mutateAsync({ query });
+    setResponse(result);
   };
   
   return (
@@ -115,308 +98,161 @@ const BusinessAdvisor = () => {
         <input 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask a business question..."
+          placeholder="Ask Allora Brain..."
         />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Processing...' : 'Get Advice'}
+        <button type="submit" disabled={alloraBrain.isPending}>
+          {alloraBrain.isPending ? 'Thinking...' : 'Ask'}
         </button>
       </form>
       
-      {error && <div className="error">{error}</div>}
-      
-      {results?.success && (
-        <div className="results">
-          {results.results.map((plugin, i) => (
-            <div key={i} className="plugin-result">
-              <h3>{plugin.plugin_name}</h3>
-              {plugin.success ? (
-                <p>{plugin.output.result}</p>
-              ) : (
-                <p className="error">{plugin.error}</p>
-              )}
-            </div>
-          ))}
+      {response && (
+        <div>
+          <h3>Strategy</h3>
+          <p>{response.strategy}</p>
+          
+          <h3>Recommendations</h3>
+          <ul>
+            {response.recommendations.map((rec, i) => (
+              <li key={i}>{rec}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
   );
-};`;
-
-  const pythonCode = `# Example: Using Allora Brain with Python
+}
+`,
+    python: `
 import requests
 import json
 
-def query_allora_brain(query, context=None, api_key=None):
-    """
-    Query the Allora Brain API.
+def query_allora_brain(question, api_key):
+    url = "https://api.allora.com/v1/brain/query"
     
-    Args:
-        query (str): The natural language query to process
-        context (dict, optional): Additional context data
-        api_key (str): Your API key
-        
-    Returns:
-        dict: The API response
-    """
-    if not api_key:
-        raise ValueError("API key is required")
-        
     headers = {
         "Content-Type": "application/json",
-        "x-api-key": api_key
+        "Authorization": f"Bearer {api_key}"
     }
     
     payload = {
-        "query": query
+        "query": question,
+        "options": {
+            "max_tokens": 500,
+            "format": "json"
+        }
     }
     
-    if context:
-        payload["context"] = context
-        
-    response = requests.post(
-        "https://ijrnwpgsqsxzqdemtknz.supabase.co/functions/v1/allora-brain",
-        headers=headers,
-        json=payload
-    )
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
     
-    return response.json()
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Error {response.status_code}: {response.text}")
 
 # Example usage
 if __name__ == "__main__":
-    API_KEY = "your-api-key-here"
+    API_KEY = "your_api_key_here"
+    question = "How do I reduce customer churn?"
     
-    # Simple query
-    result = query_allora_brain(
-        "How can we reduce customer churn?",
-        {"current_churn_rate": "5.2%", "industry": "SaaS"},
-        API_KEY
-    )
-    
-    if result.get("success"):
-        print(f"Strategy executed: {result['strategy_id']}")
-        print(f"Status: {result['status']}")
-        print(f"Plugins executed: {result['plugins_executed']}")
-        
-        for plugin_result in result.get("results", []):
-            print(f"\n--- {plugin_result['plugin_name']} ---")
-            if plugin_result['success']:
-                print(f"Result: {plugin_result['output']['result']}")
-            else:
-                print(f"Error: {plugin_result.get('error', 'Unknown error')}")
-    else:
-        print(f"Error: {result.get('error', 'Unknown error')}")`;
-
-  const slackCode = `// Example: Integrating Allora Brain with a Slack Bot (Node.js)
-const { App } = require('@slack/bolt');
-const fetch = require('node-fetch');
-
-// Initialize Slack app
-const app = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-  socketMode: true,
-  appToken: process.env.SLACK_APP_TOKEN
-});
-
-// Function to query Allora Brain
-async function queryAlloraBrain(query, context = {}) {
-  const response = await fetch('https://ijrnwpgsqsxzqdemtknz.supabase.co/functions/v1/allora-brain', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ALLORA_API_KEY
-    },
-    body: JSON.stringify({
-      query,
-      context
-    })
-  });
-  
-  return response.json();
-}
-
-// Listen for messages mentioning the bot
-app.event('app_mention', async ({ event, say }) => {
-  try {
-    // Extract query from message text (remove the bot mention)
-    const query = event.text.replace(/<@[A-Z0-9]+>/, '').trim();
-    
-    if (!query) {
-      await say("👋 Hello! Please ask me a business question.");
-      return;
+    try:
+        result = query_allora_brain(question, API_KEY)
+        print("Strategy:", result["strategy"])
+        print("Recommendations:", result["recommendations"])
+    except Exception as e:
+        print(f"An error occurred: {e}")
+`,
+    curl: `
+curl -X POST https://api.allora.com/v1/brain/query \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{
+    "query": "How do I reduce customer churn?",
+    "options": {
+      "max_tokens": 500,
+      "format": "json"
     }
-    
-    await say(\`Processing your query: "\${query}"...\`);
-    
-    // Call Allora Brain API
-    const result = await queryAlloraBrain(query);
-    
-    if (!result.success) {
-      await say(\`❌ Error: \${result.error || 'Failed to process your query'}\`);
-      return;
-    }
-    
-    // Format and send successful results
-    let responseText = "🧠 *Allora Brain Results*\\n\\n";
-    
-    for (const plugin of result.results) {
-      responseText += \`*\${plugin.plugin_name}*\\n\`;
-      
-      if (plugin.success) {
-        responseText += \`\${plugin.output.result}\\n\\n\`;
-      } else {
-        responseText += \`❌ This plugin encountered an error: \${plugin.error}\\n\\n\`;
-      }
-    }
-    
-    await say(responseText);
-  } catch (error) {
-    console.error(error);
-    await say("❌ Sorry, something went wrong while processing your request.");
-  }
-});
-
-// Start the app
-(async () => {
-  await app.start();
-  console.log('⚡️ Allora Slack Bot is running!');
-})();`;
+  }'
+`
+  };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Integration Examples</CardTitle>
+          <CardDescription>
+            Sample code to integrate Allora Brain into your applications
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-4">
+          <Tabs defaultValue="javascript">
+            <TabsList className="grid grid-cols-4">
               <TabsTrigger value="javascript">JavaScript</TabsTrigger>
               <TabsTrigger value="react">React</TabsTrigger>
               <TabsTrigger value="python">Python</TabsTrigger>
-              <TabsTrigger value="slack">Slack Integration</TabsTrigger>
+              <TabsTrigger value="curl">cURL</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="javascript">
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopyCode(javascriptCode)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                  <code className="language-javascript">{javascriptCode}</code>
-                </pre>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="react">
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopyCode(reactCode)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                  <code className="language-jsx">{reactCode}</code>
-                </pre>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="python">
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopyCode(pythonCode)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                  <code className="language-python">{pythonCode}</code>
-                </pre>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="slack">
-              <div className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopyCode(slackCode)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-                  <code className="language-javascript">{slackCode}</code>
-                </pre>
-              </div>
-            </TabsContent>
+            {Object.entries(examples).map(([language, code]) => (
+              <TabsContent key={language} value={language}>
+                <div className="relative">
+                  <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm max-h-96">
+                    <code>{code}</code>
+                  </pre>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="absolute top-2 right-2" 
+                    onClick={() => handleCopy(code, language)}
+                  >
+                    {copied === language ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+            ))}
           </Tabs>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>Common Integration Patterns</CardTitle>
+          <CardTitle>API Usage Notes</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Slack Command Bot</h3>
-              <p className="text-muted-foreground mb-2">
-                Create a Slack app that responds to slash commands like <code>/allora</code> with AI-powered business insights.
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Process user queries in natural language</li>
-                <li>Present results directly in Slack threads</li>
-                <li>Enable team-wide access to Allora's capabilities</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Business Dashboard Integration</h3>
-              <p className="text-muted-foreground mb-2">
-                Embed Allora's insights directly in your internal dashboards with easy API calls.
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Analyze KPI data in real-time</li>
-                <li>Provide AI-powered recommendations</li>
-                <li>Generate strategic insights automatically</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Shopify App</h3>
-              <p className="text-muted-foreground mb-2">
-                Build a Shopify app that provides AI-powered recommendations for store optimization.
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Analyze store performance metrics</li>
-                <li>Generate personalized marketing strategies</li>
-                <li>Provide actionable insights to merchants</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Scheduled Intelligence</h3>
-              <p className="text-muted-foreground mb-2">
-                Set up automated agents that run on a schedule and report findings to your team.
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Monitor business metrics automatically</li>
-                <li>Generate weekly/monthly strategic reports</li>
-                <li>Send alerts when key thresholds are crossed</li>
-              </ul>
-            </div>
+        <CardContent className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium mb-1">Authentication</h3>
+            <p className="text-sm text-muted-foreground">
+              All API requests require an API key passed in the Authorization header.
+              API keys can be managed in the Admin panel under API Keys.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium mb-1">Rate Limiting</h3>
+            <p className="text-sm text-muted-foreground">
+              API requests are rate-limited based on your plan. Enterprise plans have higher limits.
+              Rate limit information is returned in response headers.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium mb-1">Response Format</h3>
+            <p className="text-sm text-muted-foreground">
+              Responses are returned as JSON objects containing strategy recommendations,
+              possible actions, and relevant metrics from your tenant.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium mb-1">SDK Status</h3>
+            <p className="text-sm text-muted-foreground">
+              Official client libraries for JavaScript, Python, and Ruby are coming soon.
+              Subscribe to our developer newsletter for updates.
+            </p>
           </div>
         </CardContent>
       </Card>

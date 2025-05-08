@@ -1,281 +1,419 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { CalendarIcon, Clock, Diff, Eye, FileText, History, Tag } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { ArrowUpRight, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const StrategyEvolutionTab = () => {
   const { currentTenant } = useWorkspace();
-  const tenantId = currentTenant?.id;
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null);
-  
-  // Fetch strategies
-  const { data: strategies, isLoading } = useQuery({
-    queryKey: ['strategies', tenantId],
+  const [selectedStrategy, setSelectedStrategy] = useState<string>("");
+  const [selectedExecution, setSelectedExecution] = useState<any>(null);
+  const [strategyDetails, setStrategyDetails] = useState<any>(null);
+
+  // Fetch strategies for dropdown
+  const { data: strategies } = useQuery({
+    queryKey: ['strategies', currentTenant?.id],
     queryFn: async () => {
-      if (!tenantId) return [];
-      
+      const { data, error } = await supabase
+        .from('strategies')
+        .select('id, title')
+        .eq('tenant_id', currentTenant?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentTenant?.id
+  });
+
+  // Fetch strategy executions
+  const { data: executions, isLoading: loadingExecutions } = useQuery({
+    queryKey: ['strategyExecutions', currentTenant?.id, selectedStrategy],
+    queryFn: async () => {
+      if (!selectedStrategy) return [];
+
+      const { data, error } = await supabase
+        .from('executions')
+        .select(`
+          id, 
+          status, 
+          created_at, 
+          execution_time, 
+          xp_earned,
+          profiles:executed_by (id, first_name, last_name)
+        `)
+        .eq('tenant_id', currentTenant?.id)
+        .eq('strategy_id', selectedStrategy)
+        .eq('type', 'strategy')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentTenant?.id && !!selectedStrategy
+  });
+
+  // Fetch selected strategy details
+  const { data: strategy } = useQuery({
+    queryKey: ['strategyDetails', selectedStrategy],
+    queryFn: async () => {
+      if (!selectedStrategy) return null;
+
       const { data, error } = await supabase
         .from('strategies')
         .select(`
-          id,
-          title,
-          description,
-          status,
+          id, 
+          title, 
+          description, 
+          status, 
+          priority,
           created_at,
           updated_at,
+          completion_percentage,
           tags,
-          completion_percentage
+          profiles:created_by (id, first_name, last_name)
         `)
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching strategies:', error);
-        throw error;
-      }
-      
-      return data || [];
+        .eq('id', selectedStrategy)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
-    enabled: !!tenantId
+    enabled: !!selectedStrategy
   });
-  
-  // Fetch strategy executions for the selected strategy
-  const { data: executions, isLoading: isExecutionsLoading } = useQuery({
-    queryKey: ['strategyExecutions', selectedStrategyId],
-    queryFn: async () => {
-      if (!selectedStrategyId) return [];
-      
-      const { data, error } = await supabase
-        .from('executions')
-        .select('*')
-        .eq('strategy_id', selectedStrategyId)
-        .eq('type', 'strategy')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (error) {
-        console.error('Error fetching strategy executions:', error);
-        throw error;
-      }
-      
-      return data || [];
-    },
-    enabled: !!selectedStrategyId
-  });
-  
+
+  const handleViewDetails = (execution: any) => {
+    setSelectedExecution(execution);
+  };
+
+  const handleViewStrategy = (strategy: any) => {
+    setStrategyDetails(strategy);
+  };
+
+  // Status badge colors
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'completed':
+      case 'success':
+        return 'bg-green-100 text-green-800';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      case 'draft':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+      case 'failure':
+        return 'bg-red-100 text-red-800';
       default:
-        return '';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Strategy Evolution</CardTitle>
-            <CardDescription>
-              Track how strategies evolve over time
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[500px] overflow-y-auto">
-            {strategies && strategies.length > 0 ? (
-              <div className="space-y-4">
-                {strategies.map((strategy) => (
-                  <div key={strategy.id} className="border rounded-md">
-                    <div 
-                      className={`p-4 ${selectedStrategyId === strategy.id ? 'bg-muted/50' : ''}`} 
-                      onClick={() => setSelectedStrategyId(strategy.id === selectedStrategyId ? null : strategy.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{strategy.title}</h3>
-                            <Badge 
-                              variant="outline" 
-                              className={getStatusColor(strategy.status)}
-                            >
-                              {strategy.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                            {strategy.description}
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="icon">
-                          <ArrowUpRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 mt-3 text-sm">
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span className="font-medium">{strategy.completion_percentage || 0}%</span>
-                          <span className="text-muted-foreground ml-1">complete</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span className="font-medium">
-                            {format(new Date(strategy.updated_at || strategy.created_at), 'MMM d, yyyy')}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {strategy.tags && strategy.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {strategy.tags.map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Strategy Evolution History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Select Strategy</label>
+              <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a strategy to view its history" />
+                </SelectTrigger>
+                <SelectContent>
+                  {strategies?.map((strategy) => (
+                    <SelectItem key={strategy.id} value={strategy.id}>
+                      {strategy.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedStrategy && strategy && (
+              <div className="p-4 border rounded-lg bg-muted/50 mb-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-lg">{strategy.title}</h3>
+                    <p className="text-sm text-muted-foreground">{strategy.description}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No strategies found</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>
-              {selectedStrategyId 
-                ? strategies?.find(s => s.id === selectedStrategyId)?.title || 'Strategy Details'
-                : 'Strategy Details'}
-            </CardTitle>
-            <CardDescription>
-              {selectedStrategyId 
-                ? 'Execution history and metrics'
-                : 'Select a strategy to view details'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {selectedStrategyId ? (
-              <div>
-                <h3 className="font-medium mb-2">Execution History</h3>
-                <div className="max-h-[400px] overflow-y-auto">
-                  {isExecutionsLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-16 w-full" />
-                      <Skeleton className="h-16 w-full" />
-                      <Skeleton className="h-16 w-full" />
-                    </div>
-                  ) : executions && executions.length > 0 ? (
-                    <div className="space-y-3">
-                      {executions.map((execution) => (
-                        <div key={execution.id} className="border p-3 rounded-md">
-                          <div className="flex justify-between">
-                            <div className="flex items-center gap-2">
-                              {execution.status === 'success' ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              ) : execution.status === 'partial' ? (
-                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
-                                  Partial
-                                </Badge>
-                              ) : (
-                                <XCircle className="h-4 w-4 text-red-600" />
-                              )}
-                              <span className="text-sm font-medium">
-                                {execution.status === 'success' 
-                                  ? 'Successful execution'
-                                  : execution.status === 'partial'
-                                  ? 'Partial success'
-                                  : 'Failed execution'}
-                              </span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(execution.created_at), 'MMM d, yyyy HH:mm')}
-                            </span>
-                          </div>
-                          
-                          <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <div className="font-medium">Execution time</div>
-                              <div>{execution.execution_time}s</div>
-                            </div>
-                            <div>
-                              <div className="font-medium">XP earned</div>
-                              <div>{execution.xp_earned || 0}</div>
-                            </div>
-                            <div>
-                              <div className="font-medium">Plugins</div>
-                              <div>
-                                {execution.output?.plugins_executed || 0} executed, 
-                                {execution.output?.successful_plugins || 0} successful
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {execution.error && (
-                            <div className="mt-2 text-xs text-red-500">
-                              <div className="font-medium">Error</div>
-                              <div>{execution.error}</div>
-                            </div>
-                          )}
-                        </div>
+                  <Button variant="outline" size="sm" onClick={() => handleViewStrategy(strategy)}>
+                    <Eye className="h-4 w-4 mr-1" /> View Details
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3 items-center text-sm">
+                  <div className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(strategy.status)}`}>
+                    {strategy.status}
+                  </div>
+                  {strategy.priority && (
+                    <Badge variant="outline" className="font-normal">
+                      {strategy.priority}
+                    </Badge>
+                  )}
+                  <div className="flex items-center text-muted-foreground">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                    <span>{format(new Date(strategy.created_at), 'MMM d, yyyy')}</span>
+                  </div>
+                  {strategy.tags && strategy.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 items-center">
+                      <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                      {strategy.tags.map((tag: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="font-normal text-xs">
+                          {tag}
+                        </Badge>
                       ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 border rounded-md">
-                      <p className="text-muted-foreground">No execution history found</p>
                     </div>
                   )}
                 </div>
               </div>
+            )}
+
+            {selectedStrategy ? (
+              loadingExecutions ? (
+                <div className="py-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-sm text-muted-foreground">Loading execution history...</p>
+                </div>
+              ) : executions && executions.length > 0 ? (
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Execution Time</TableHead>
+                        <TableHead>XP Earned</TableHead>
+                        <TableHead>Executed By</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {executions.map((execution) => (
+                        <TableRow key={execution.id}>
+                          <TableCell className="font-mono text-xs">
+                            {format(new Date(execution.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(execution.status)}`}>
+                              {execution.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {execution.execution_time ? `${execution.execution_time.toFixed(2)}s` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {execution.xp_earned || 0} XP
+                          </TableCell>
+                          <TableCell>
+                            {execution.profiles ? (
+                              `${execution.profiles.first_name || ''} ${execution.profiles.last_name || ''}`.trim() || 'Unknown'
+                            ) : (
+                              'System'
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleViewDetails(execution)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="py-8 text-center border rounded-md">
+                  <History className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No executions found for this strategy.</p>
+                </div>
+              )
             ) : (
-              <div className="flex flex-col items-center justify-center h-[400px] border rounded-md p-6 text-center">
-                <ArrowUpRight className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No strategy selected</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Select a strategy from the list to see details
-                </p>
+              <div className="py-8 text-center border rounded-md">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">Select a strategy to view its execution history.</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Execution Details Dialog */}
+      <Dialog open={!!selectedExecution} onOpenChange={(open) => !open && setSelectedExecution(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Execution Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedExecution && (
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Date</div>
+                  <div className="font-mono text-sm">
+                    {format(new Date(selectedExecution.created_at), 'yyyy-MM-dd HH:mm:ss')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Status</div>
+                  <div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(selectedExecution.status)}`}>
+                      {selectedExecution.status}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Duration</div>
+                  <div className="flex items-center">
+                    <Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    {selectedExecution.execution_time ? `${selectedExecution.execution_time.toFixed(2)}s` : 'N/A'}
+                  </div>
+                </div>
+              </div>
+              
+              <Tabs defaultValue="output">
+                <TabsList className="grid grid-cols-3">
+                  <TabsTrigger value="output">Output</TabsTrigger>
+                  <TabsTrigger value="input">Input</TabsTrigger>
+                  <TabsTrigger value="logs">Logs</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="output">
+                  <Card>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm">Execution Result</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-80">
+                        <pre className="text-xs font-mono whitespace-pre-wrap">
+                          {JSON.stringify(selectedExecution.output || {}, null, 2)}
+                        </pre>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="input">
+                  <Card>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm">Execution Input</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-80">
+                        <pre className="text-xs font-mono whitespace-pre-wrap">
+                          {JSON.stringify(selectedExecution.input || {}, null, 2)}
+                        </pre>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="logs">
+                  <Card>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm">Execution Logs</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-80">
+                        <div className="text-muted-foreground text-center p-4">
+                          Detailed logs coming soon.
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Strategy Details Dialog */}
+      <Dialog open={!!strategyDetails} onOpenChange={(open) => !open && setStrategyDetails(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Strategy Details</DialogTitle>
+          </DialogHeader>
+          
+          {strategyDetails && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <h3 className="text-lg font-bold">{strategyDetails.title}</h3>
+                <p className="text-muted-foreground mt-1">{strategyDetails.description}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Status</div>
+                  <div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(strategyDetails.status)}`}>
+                      {strategyDetails.status}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Created</div>
+                  <div className="flex items-center">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    {format(new Date(strategyDetails.created_at), 'MMM d, yyyy')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Completion</div>
+                  <div>{strategyDetails.completion_percentage || 0}%</div>
+                </div>
+              </div>
+              
+              {strategyDetails.tags && strategyDetails.tags.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Tags</div>
+                  <div className="flex flex-wrap gap-1">
+                    {strategyDetails.tags.map((tag: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div>
+                <div className="text-sm font-medium text-muted-foreground mb-2">Evolution History</div>
+                <div className="text-center text-muted-foreground py-4">
+                  <Diff className="h-8 w-8 mx-auto mb-2" />
+                  <p>Version history coming soon.</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

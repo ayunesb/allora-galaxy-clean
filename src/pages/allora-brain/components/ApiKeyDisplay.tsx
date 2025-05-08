@@ -1,103 +1,121 @@
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Key } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Eye, EyeOff, Copy, KeyRound, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
+import { useTenantId } from '@/hooks/useTenantId';
+
+interface ApiKey {
+  id: string;
+  name: string;
+  key: string;
+  created_at: string;
+  status: 'active' | 'revoked';
+}
 
 const ApiKeyDisplay: React.FC = () => {
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [apiKey, setApiKey] = useState<ApiKey | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showKey, setShowKey] = useState(false);
   const { toast } = useToast();
+  const tenantId = useTenantId();
 
   useEffect(() => {
     const fetchApiKey = async () => {
+      if (!tenantId) return;
+      
+      setIsLoading(true);
       try {
-        // Get current user session
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData?.session?.user) return;
-        
-        // Get tenant ID for this user
-        const { data: tenantData } = await supabase
-          .from('tenant_user_roles')
-          .select('tenant_id')
-          .eq('user_id', sessionData.session.user.id)
-          .eq('role', 'owner')
-          .maybeSingle();
-          
-        if (!tenantData?.tenant_id) return;
-        
-        // Get the most recent active API key
-        const { data: keyData } = await supabase
+        const { data, error } = await supabase
           .from('api_keys')
-          .select('key')
-          .eq('tenant_id', tenantData.tenant_id)
+          .select('*')
+          .eq('tenant_id', tenantId)
           .eq('status', 'active')
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
           
-        if (keyData?.key) {
-          setApiKey(keyData.key);
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setApiKey(data[0]);
         }
       } catch (error) {
         console.error('Error fetching API key:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
     fetchApiKey();
-  }, []);
+  }, [tenantId]);
 
-  const handleCopyApiKey = () => {
+  const handleCopyKey = () => {
     if (apiKey) {
-      navigator.clipboard.writeText(apiKey);
+      navigator.clipboard.writeText(apiKey.key);
       toast({
-        title: "API Key Copied",
-        description: "The API key has been copied to your clipboard."
+        title: 'API Key copied to clipboard',
+        description: 'The key has been copied to your clipboard',
       });
     }
   };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Your API Key</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <CardContent className="p-6">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <KeyRound className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-medium">API Key</h3>
+              <p className="text-sm text-muted-foreground">
+                {apiKey ? 'Your API key for Allora Brain' : 'No API key found'}
+              </p>
+            </div>
           </div>
-        ) : apiKey ? (
-          <div className="bg-muted p-4 rounded-md flex items-center gap-3">
-            <Key className="h-5 w-5 text-primary" />
-            <code className="font-mono text-sm flex-1 break-all">
-              {`${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 8)}`}
-            </code>
-            <Button size="sm" onClick={handleCopyApiKey}>
-              Copy
+          
+          {isLoading ? (
+            <div className="animate-pulse rounded-md bg-muted h-10 w-64"></div>
+          ) : apiKey ? (
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-grow">
+                <Input
+                  value={showKey ? apiKey.key : '•'.repeat(Math.min(24, apiKey.key.length))}
+                  readOnly
+                  className="font-mono text-sm pr-20"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-10 top-0 h-full"
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={handleCopyKey}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button asChild>
+              <Link to="/admin/api-keys">
+                <Plus className="mr-2 h-4 w-4" /> Create API Key
+              </Link>
             </Button>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-muted-foreground">No API keys found.</p>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
-      <CardFooter className="justify-between">
-        <p className="text-sm text-muted-foreground">
-          Use this key to authenticate API requests.
-        </p>
-        <Button asChild>
-          <Link to="/admin/api-keys">
-            Manage API Keys
-          </Link>
-        </Button>
-      </CardFooter>
     </Card>
   );
 };

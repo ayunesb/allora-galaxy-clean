@@ -4,18 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Select, 
-  SelectContent, 
-  SelectGroup, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
+import { format } from 'date-fns';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 
 export const AuditLog = () => {
@@ -28,7 +20,7 @@ export const AuditLog = () => {
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   
   // Fetch system logs
-  const { data: logs, isLoading, refetch } = useQuery({
+  const { data: logs, isLoading } = useQuery({
     queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery],
     queryFn: async () => {
       if (!tenantId) return [];
@@ -79,13 +71,6 @@ export const AuditLog = () => {
       case 'system': return 'bg-slate-100 text-slate-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
-  
-  const formatContextValue = (value: any): string => {
-    if (typeof value === 'object' && value !== null) {
-      return JSON.stringify(value, null, 2);
-    }
-    return String(value);
   };
 
   return (

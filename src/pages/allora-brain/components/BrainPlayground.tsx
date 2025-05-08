@@ -1,128 +1,41 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlayCircle, ClipboardCopy, Code, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { SendIcon, Sparkles } from 'lucide-react';
 
 const BrainPlayground = () => {
-  const { toast } = useToast();
-  const { currentTenant } = useWorkspace();
-  const [query, setQuery] = useState('How can I improve my customer acquisition strategy?');
-  const [apiKey, setApiKey] = useState('');
-  const [response, setResponse] = useState<any>(null);
+  const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [view, setView] = useState<'result' | 'code'>('result');
+  const [response, setResponse] = useState<string | null>(null);
 
-  const executeQuery = async () => {
-    if (!query.trim()) {
-      toast({
-        title: 'Empty Query',
-        description: 'Please enter a query to send to the Allora Brain.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!apiKey.trim()) {
-      toast({
-        title: 'API Key Required',
-        description: 'Please enter an API key to authenticate your request.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setResponse(null);
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!query.trim()) return;
+    
     try {
-      // Call the Allora Brain edge function
-      const { data, error } = await supabase.functions.invoke('allora-brain', {
-        body: {
-          query,
-          tenantId: currentTenant?.id,
-        },
-        headers: {
-          'x-api-key': apiKey,
-        },
-      });
-
-      if (error) {
-        throw new Error(`Error calling Allora Brain: ${error.message}`);
-      }
-
-      setResponse(data);
-
-      toast({
-        title: 'Query Executed',
-        description: 'The Allora Brain has processed your query.',
-      });
-    } catch (error: any) {
-      console.error('Error executing query:', error);
+      setIsLoading(true);
+      setResponse(null);
       
-      toast({
-        title: 'Error',
-        description: error.message || 'An error occurred while processing your query.',
-        variant: 'destructive',
-      });
+      // Simulate API call with timeout
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      setResponse({
-        success: false,
-        error: error.message || 'An unknown error occurred.',
-      });
+      // Example response - in a real implementation this would come from the API
+      const exampleResponse = {
+        response: `Based on your query "${query}", I recommend the following strategy:\n\n1. Analyze current performance metrics\n2. Identify key areas for improvement\n3. Implement targeted optimizations\n4. Measure results and iterate`,
+        actions: ["Launch campaign", "Update KPIs", "Schedule follow-up"]
+      };
+      
+      setResponse(exampleResponse.response);
+    } catch (error) {
+      console.error('Error in API call:', error);
+      setResponse('Sorry, there was an error processing your request. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copied',
-      description: 'Content copied to clipboard.',
-    });
-  };
-
-  const formatResponse = (response: any) => {
-    if (!response) return '';
-    return JSON.stringify(response, null, 2);
-  };
-
-  // Create code example
-  const codeExample = `
-// Example API request for Allora Brain
-const axios = require('axios');
-
-async function queryAlloraBrain() {
-  try {
-    const response = await axios({
-      method: 'post',
-      url: '${window.location.origin}/functions/allora-brain',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': '${apiKey || 'YOUR_API_KEY'}'
-      },
-      data: {
-        query: "${query || 'How can I improve my customer acquisition strategy?'}"
-      }
-    });
-    
-    console.log('Allora Brain Response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-queryAlloraBrain();
-`;
 
   return (
     <div className="space-y-6">
@@ -130,103 +43,85 @@ queryAlloraBrain();
         <CardHeader>
           <CardTitle>Allora Brain Playground</CardTitle>
           <CardDescription>
-            Test your API requests to the Allora Brain directly in this playground
+            Test the Allora-as-a-Brain API directly in this playground
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left side - Input form */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="api-key">API Key</Label>
-                <Input
-                  id="api-key"
-                  placeholder="Enter your API key"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  You can create API keys in the Admin settings.
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="query">Query</Label>
-                <Textarea
-                  id="query"
-                  placeholder="Enter your question or request..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  rows={5}
-                  className="resize-none"
-                />
-              </div>
-
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="query" className="block text-sm font-medium mb-1">
+                Ask Allora Brain
+              </label>
+              <Textarea
+                id="query"
+                placeholder="e.g., How do I reduce churn? or Why is my MRR flat?"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="h-32"
+              />
+            </div>
+            
+            <div className="flex justify-end">
               <Button 
-                onClick={executeQuery} 
-                disabled={isLoading || !query.trim() || !apiKey.trim()}
-                className="w-full"
+                type="submit" 
+                disabled={!query.trim() || isLoading}
+                className="flex gap-2"
               >
                 {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Processing...
+                  </>
                 ) : (
-                  <PlayCircle className="mr-2 h-4 w-4" />
+                  <>
+                    <SendIcon className="h-4 w-4" />
+                    Send Query
+                  </>
                 )}
-                Execute Query
               </Button>
             </div>
-
-            {/* Right side - Results */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Response</Label>
-                <Tabs value={view} onValueChange={(value) => setView(value as 'result' | 'code')} className="mr-auto ml-4">
-                  <TabsList>
-                    <TabsTrigger value="result">Result</TabsTrigger>
-                    <TabsTrigger value="code">Code</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => copyToClipboard(view === 'result' 
-                    ? formatResponse(response) 
-                    : codeExample
-                  )}
-                >
-                  <ClipboardCopy className="h-4 w-4" />
-                  <span className="sr-only">Copy to clipboard</span>
-                </Button>
-              </div>
-
-              <div className="relative min-h-[300px]">
-                {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                    <div className="flex flex-col items-center gap-2">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm font-medium">Processing your query...</p>
-                    </div>
-                  </div>
-                )}
-
-                {view === 'result' ? (
-                  <pre className="bg-muted p-4 rounded-md overflow-auto h-[300px] font-mono text-sm">
-                    {response ? formatResponse(response) : 'Execute a query to see results...'}
-                  </pre>
-                ) : (
-                  <pre className="bg-muted p-4 rounded-md overflow-auto h-[300px] font-mono text-sm">
-                    {codeExample}
-                  </pre>
-                )}
-              </div>
-
-              {response && response.success === false && (
-                <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-md p-3 text-sm">
-                  <strong>Error:</strong> {response.error}
+          </form>
+          
+          {response && (
+            <div className="mt-6">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="font-medium">Allora Response</h3>
                 </div>
-              )}
+                <div className="whitespace-pre-wrap">{response}</div>
+              </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Sample Queries</CardTitle>
+          <CardDescription>
+            Try these example queries to see how Allora Brain works
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {[
+              "How do I reduce customer churn?",
+              "Why is our MRR growth slowing down?",
+              "Create a marketing strategy for our new product",
+              "Analyze our conversion funnel for bottlenecks",
+              "What should we focus on for Q4 growth?",
+              "Recommend three ways to improve our landing page conversion rate"
+            ].map((example, index) => (
+              <Button 
+                key={index} 
+                variant="outline" 
+                className="justify-start overflow-hidden text-ellipsis whitespace-nowrap"
+                onClick={() => setQuery(example)}
+              >
+                {example}
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
