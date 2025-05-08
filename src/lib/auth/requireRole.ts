@@ -34,3 +34,5 @@ export const requireRole = (
   // Return children if role check passes
   return <>{children}</>;
 };
+
+export default requireRole;
