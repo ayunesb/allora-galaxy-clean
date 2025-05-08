@@ -1,151 +1,221 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Strategy } from '@/types';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { fetchKpiTrends } from '@/lib/kpi/fetchKpiTrends';
-import { KPICard } from '@/components/KPICard';
+import KPICard from '@/components/KPICard';
 import { StrategyCard } from '@/components/dashboard/StrategyCard';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { mockStrategies } from '@/lib/__mocks__/mockStrategies';
-import { type KpiTrendPoint } from '@/types/shared';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { TrendDirection } from '@/types/shared';
+import { supabase } from '@/lib/supabase';
 
 const Dashboard = () => {
-  const { tenant, loading } = useWorkspace();
-  const [kpiTrends, setKpiTrends] = useState<KpiTrendPoint[]>([]);
-  const [strategies, setStrategies] = useState(mockStrategies);
-  const [loadingKpis, setLoadingKpis] = useState(true);
-  const navigate = useNavigate();
-
+  const { tenant } = useWorkspace();
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [kpiData, setKpiData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  
   useEffect(() => {
-    const loadKpis = async () => {
-      if (tenant?.id) {
-        try {
-          setLoadingKpis(true);
-          const data = await fetchKpiTrends(tenant.id);
-          setKpiTrends(data);
-        } catch (error) {
-          console.error('Error loading KPIs:', error);
-        } finally {
-          setLoadingKpis(false);
-        }
-      }
-    };
-
-    loadKpis();
+    if (tenant?.id) {
+      fetchData();
+    }
   }, [tenant?.id]);
-
-  const handleLaunchStrategy = async (id: string) => {
+  
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
-      // Navigate to launch page with selected strategy
-      navigate(`/launch?strategy=${id}`);
-    } catch (error) {
-      console.error('Error launching strategy:', error);
+      // Fetch KPI data
+      const kpiTrends = await fetchKpiTrends(tenant?.id || '', {
+        period: 'monthly'
+      });
+      setKpiData(kpiTrends);
+      
+      // Fetch strategies
+      if (tenant?.id) {
+        const { data, error } = await supabase
+          .from('strategies')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .order('created_at', { ascending: false })
+          .limit(4);
+          
+        if (error) {
+          console.error('Error fetching strategies:', error);
+          throw error;
+        }
+        
+        setStrategies(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      toast({
+        title: 'Error loading dashboard',
+        description: 'Failed to load dashboard data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  // Filter strategies to show only pending ones
-  const pendingStrategies = strategies.filter(s => s.status === 'pending');
-
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse space-y-8">
-          <div className="h-8 w-1/3 bg-muted rounded"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-32 bg-muted rounded-lg"></div>
-            ))}
-          </div>
-          <div className="h-64 bg-muted rounded-lg"></div>
-        </div>
-      </div>
-    );
-  }
-
-  const renderKpiCards = () => {
-    if (loadingKpis) {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-32 bg-muted rounded-lg animate-pulse"></div>
-          ))}
-        </div>
-      );
+  
+  // Format trend data for KPI cards
+  const getKpiTrend = (name: string): { value: number; direction: TrendDirection; percentage: number } => {
+    const kpi = kpiData.find(k => k.name === name);
+    if (!kpi) {
+      return { value: 0, direction: 'stable', percentage: 0 };
     }
-
-    if (kpiTrends.length === 0) {
-      return (
-        <Card className="p-6 text-center">
-          <p className="text-muted-foreground">No KPI data available.</p>
-        </Card>
-      );
+    
+    const currentValue = kpi.value || 0;
+    const previousValue = kpi.previousValue || 0;
+    
+    if (previousValue === 0) {
+      return { value: currentValue, direction: 'stable', percentage: 0 };
     }
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiTrends.map((kpi) => (
-          <KPICard 
-            key={kpi.id} 
-            id={kpi.id}
-            name={kpi.name}
-            value={kpi.value}
-            previousValue={kpi.previousValue}
-            percentChange={kpi.percentChange}
-            trend={kpi.direction}
-            positive={kpi.isPositive}
-            unit={kpi.unit}
-            category={kpi.category}
-          />
-        ))}
-      </div>
-    );
+    
+    const percentage = ((currentValue - previousValue) / previousValue) * 100;
+    const direction: TrendDirection = percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'stable';
+    
+    return {
+      value: currentValue,
+      direction,
+      percentage: Math.abs(percentage)
+    };
   };
-
+  
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-6 space-y-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
-      <h2 className="text-xl font-semibold">Key Performance Indicators</h2>
-      {renderKpiCards()}
       
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Strategies Pending Approval</h2>
-        <Button onClick={() => navigate('/launch')}>
-          <Plus className="h-4 w-4 mr-2" /> Create Strategy
-        </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* MRR KPI Card */}
+        <KPICard
+          title="Monthly Recurring Revenue"
+          value={`$${getKpiTrend('mrr').value.toLocaleString()}`}
+          trend={getKpiTrend('mrr').percentage}
+          trendDirection={getKpiTrend('mrr').direction}
+        />
+        
+        {/* Lead Conversion KPI Card */}
+        <KPICard
+          title="Lead Conversion"
+          value={`${getKpiTrend('lead_conversion').value.toFixed(1)}%`}
+          trend={getKpiTrend('lead_conversion').percentage}
+          trendDirection={getKpiTrend('lead_conversion').direction}
+        />
+        
+        {/* Website Visitors KPI Card */}
+        <KPICard
+          title="Website Visitors"
+          value={getKpiTrend('website_visitors').value.toLocaleString()}
+          trend={getKpiTrend('website_visitors').percentage}
+          trendDirection={getKpiTrend('website_visitors').direction}
+        />
+        
+        {/* Social Engagement KPI Card */}
+        <KPICard
+          title="Social Engagement"
+          value={getKpiTrend('social_engagement').value.toLocaleString()}
+          trend={getKpiTrend('social_engagement').percentage}
+          trendDirection={getKpiTrend('social_engagement').direction}
+        />
       </div>
       
-      {pendingStrategies.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {pendingStrategies.map((strategy) => (
-            <StrategyCard
-              key={strategy.id}
-              id={strategy.id}
-              title={strategy.title}
-              description={strategy.description}
-              status={strategy.status}
-              priority={strategy.priority}
-              tags={strategy.tags}
-              dueDate={strategy.due_date}
-              createdBy={strategy.created_by || null}
-              completionPercentage={strategy.completion_percentage}
-              onLaunch={handleLaunchStrategy}
-            />
-          ))}
-        </div>
-      ) : (
-        <Card className="p-6 text-center">
-          <p className="text-muted-foreground">No strategies pending approval.</p>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/launch')} 
-            className="mt-4"
-          >
-            <Plus className="h-4 w-4 mr-2" /> Create your first strategy
-          </Button>
-        </Card>
-      )}
+      <Tabs defaultValue="all" className="mt-8">
+        <TabsList>
+          <TabsTrigger value="all">All Strategies</TabsTrigger>
+          <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="active">Active</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {isLoading ? (
+              <p>Loading strategies...</p>
+            ) : strategies.length > 0 ? (
+              strategies.map((strategy) => (
+                <StrategyCard
+                  key={strategy.id}
+                  id={strategy.id}
+                  title={strategy.title}
+                  description={strategy.description}
+                  status={strategy.status === 'approved' ? 'active' : strategy.status === 'rejected' ? 'archived' : strategy.status}
+                  priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
+                  completionPercentage={strategy.completion_percentage || 0}
+                  createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
+                  tags={strategy.tags || []}
+                />
+              ))
+            ) : (
+              <Card className="p-6 text-center col-span-full">
+                <p className="text-muted-foreground mb-4">No strategies found</p>
+                <Button asChild>
+                  <a href="/launch">Create Strategy</a>
+                </Button>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="pending" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {isLoading ? (
+              <p>Loading strategies...</p>
+            ) : strategies.filter(s => s.status === 'pending').length > 0 ? (
+              strategies
+                .filter(s => s.status === 'pending')
+                .map((strategy) => (
+                  <StrategyCard
+                    key={strategy.id}
+                    id={strategy.id}
+                    title={strategy.title}
+                    description={strategy.description}
+                    status="pending"
+                    priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
+                    completionPercentage={strategy.completion_percentage || 0}
+                    createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
+                    tags={strategy.tags || []}
+                  />
+                ))
+            ) : (
+              <Card className="p-6 text-center col-span-full">
+                <p className="text-muted-foreground">No pending strategies</p>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="active" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {isLoading ? (
+              <p>Loading strategies...</p>
+            ) : strategies.filter(s => s.status === 'approved' || s.status === 'in_progress').length > 0 ? (
+              strategies
+                .filter(s => s.status === 'approved' || s.status === 'in_progress')
+                .map((strategy) => (
+                  <StrategyCard
+                    key={strategy.id}
+                    id={strategy.id}
+                    title={strategy.title}
+                    description={strategy.description}
+                    status="active"
+                    priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
+                    completionPercentage={strategy.completion_percentage || 0}
+                    createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
+                    tags={strategy.tags || []}
+                  />
+                ))
+            ) : (
+              <Card className="p-6 text-center col-span-full">
+                <p className="text-muted-foreground">No active strategies</p>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

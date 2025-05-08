@@ -2,10 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const AiDecisions = () => {
-  const { tenant } = useWorkspace();
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {

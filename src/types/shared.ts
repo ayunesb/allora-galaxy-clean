@@ -80,3 +80,12 @@ export interface MetaTag {
   name: string;
   content: string;
 }
+
+// KPI Trend point for charts
+export interface KpiTrendPoint {
+  date: string;
+  value: number;
+  previousValue?: number;
+  change?: number;
+  changePercentage?: number;
+}

@@ -4,21 +4,21 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useGalaxyData } from '@/hooks/useGalaxyData';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ForceGraph } from '@/components/galaxy/ForceGraph';
-import { InspectorSidebar } from '@/components/galaxy/InspectorSidebar';
-import { MobileInspector } from '@/components/galaxy/MobileInspector';
-import { GalaxyControls } from '@/components/galaxy/GalaxyControls';
-import { GraphLegend } from '@/components/galaxy/GraphLegend';
-import { GalaxyLoader } from '@/components/galaxy/GalaxyLoader';
-import { EmptyState } from '@/components/galaxy/EmptyState';
-import { ViewModeSelector } from '@/components/galaxy/ViewModeSelector';
-import { ZoomControls } from '@/components/galaxy/ZoomControls';
+import ForceGraph from '@/components/galaxy/ForceGraph';
+import InspectorSidebar from '@/components/galaxy/InspectorSidebar';
+import MobileInspector from '@/components/galaxy/MobileInspector';
+import GalaxyControls from '@/components/galaxy/GalaxyControls';
+import GraphLegend from '@/components/galaxy/GraphLegend';
+import GalaxyLoader from '@/components/galaxy/GalaxyLoader';
+import EmptyState from '@/components/galaxy/EmptyState';
+import ViewModeSelector from '@/components/galaxy/ViewModeSelector';
+import ZoomControls from '@/components/galaxy/ZoomControls';
 import { GraphNode } from '@/types/galaxy';
 import { useMobileBreakpoint } from '@/hooks/use-mobile';
 
 const GalaxyExplorer = () => {
   const { tenant } = useWorkspace();
-  const { data, loading, error } = useGalaxyData(tenant?.id);
+  const { data, isLoading: loading, error } = useGalaxyData();
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [viewMode, setViewMode] = useState('3d');
   const [showInspector, setShowInspector] = useState(false);
@@ -49,7 +49,7 @@ const GalaxyExplorer = () => {
     return (
       <Card className="m-6 p-6 text-center">
         <h2 className="text-xl font-bold mb-2">Error Loading Galaxy</h2>
-        <p className="text-muted-foreground mb-4">{error}</p>
+        <p className="text-muted-foreground mb-4">{error.message}</p>
         <Button onClick={() => window.location.reload()}>Retry</Button>
       </Card>
     );

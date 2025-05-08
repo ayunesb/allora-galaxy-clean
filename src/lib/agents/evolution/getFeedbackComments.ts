@@ -31,7 +31,7 @@ export async function getFeedbackComments(agentVersionId: string) {
  */
 export async function evolvePromptWithFeedback(
   originalPrompt: string, 
-  comments: Array<{ comment: string; vote_type: string }>
+  comments: Array<{ comment: string; vote_type: string; created_at: string }>
 ): Promise<string> {
   // If no comments, return original prompt
   if (!comments || comments.length === 0) {

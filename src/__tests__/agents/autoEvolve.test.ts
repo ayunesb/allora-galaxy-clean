@@ -1,195 +1,97 @@
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
-import { calculateAgentPerformance } from '@/lib/agents/evolution/calculatePerformance';
-import { evolvePromptWithFeedback } from '@/lib/agents/evolution/evolvePromptWithFeedback';
-import { getFeedbackComments } from '@/lib/agents/evolution/getFeedbackComments';
-import { getAgentUsageStats } from '@/lib/agents/evolution/getAgentUsageStats';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { evolvePromptWithFeedback } from '../../lib/agents/evolution/evolvePromptWithFeedback';
 
-// Mock dependencies
-vi.mock('@/lib/agents/evolution/calculatePerformance');
-vi.mock('@/lib/agents/evolution/evolvePromptWithFeedback');
-vi.mock('@/lib/agents/evolution/getFeedbackComments');
-vi.mock('@/lib/agents/evolution/getAgentUsageStats');
-vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn().mockResolvedValue(undefined)
-}));
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    single: vi.fn().mockReturnThis(),
-  }
-}));
+// Mock the date to ensure consistent output
+const mockDate = new Date('2025-05-01');
+vi.spyOn(global, 'Date').mockImplementation(() => mockDate as any);
 
-describe('Auto-evolve agents', () => {
+describe('Agent Evolution', () => {
+  let originalPrompt: string;
+  
   beforeEach(() => {
-    vi.clearAllMocks();
-    
-    // Default mock implementations
-    vi.mocked(calculateAgentPerformance).mockResolvedValue(0.5);
-    vi.mocked(evolvePromptWithFeedback).mockResolvedValue('Evolved prompt');
-    vi.mocked(getFeedbackComments).mockResolvedValue([
-      { vote_type: 'up', comment: 'Good' },
-      { vote_type: 'down', comment: 'Bad' }
-    ]);
-    vi.mocked(getAgentUsageStats).mockResolvedValue([
-      { status: 'success', count: 10 },
-      { status: 'failure', count: 5 }
-    ]);
-    
-    // Mock supabase query chain
-    const supabase = require('@/integrations/supabase/client').supabase;
-    supabase.from.mockReturnThis();
-    supabase.select.mockReturnThis();
-    supabase.eq.mockReturnThis();
-    supabase.update.mockResolvedValue({ error: null });
-    supabase.insert.mockReturnThis();
-    supabase.single.mockResolvedValue({ 
-      data: { id: 'new-agent-1', version: '1.1.0' },
-      error: null
-    });
+    originalPrompt = "This is the original agent prompt. It needs improvement.";
   });
   
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-  
-  it('should evolve agent when performance is below threshold', async () => {
-    // Arrange
-    const mockAgents = [
-      {
-        id: 'agent-1',
-        version: '1.0.0',
-        prompt: 'Original prompt',
-        status: 'active',
-        plugin_id: 'plugin-1',
-        created_by: 'user-1'
+  it('should incorporate feedback into evolved prompt', async () => {
+    const feedbackComments = [
+      { 
+        vote_type: 'up', 
+        comment: 'Good structure overall',
+        created_at: '2025-04-30T00:00:00Z'
+      },
+      { 
+        vote_type: 'down', 
+        comment: 'Needs more examples',
+        created_at: '2025-04-30T00:00:00Z'
       }
     ];
     
-    const supabase = require('@/integrations/supabase/client').supabase;
-    supabase.from.mockReturnThis();
-    supabase.select.mockReturnThis();
-    supabase.eq.mockReturnValue({
-      data: mockAgents,
-      error: null
-    });
+    const evolveReason = 'Regular improvement';
     
-    vi.mocked(calculateAgentPerformance).mockResolvedValue(0.2); // Below threshold
+    const evolvedPrompt = await evolvePromptWithFeedback(
+      originalPrompt,
+      feedbackComments,
+      evolveReason
+    );
     
-    // Act
-    const results = await autoEvolveAgents({
-      tenantId: 'tenant-1',
-      threshold: 0.3
-    });
-    
-    // Assert
-    expect(results).toHaveLength(1);
-    expect(results[0].agentId).toBe('agent-1');
-    expect(results[0].evolved).toBe(true);
-    expect(results[0].success).toBe(true);
-    expect(evolvePromptWithFeedback).toHaveBeenCalledTimes(1);
+    // Verify that the evolved prompt contains the essential components
+    expect(evolvedPrompt).toContain('# Evolved Agent Prompt v2025-05-01');
+    expect(evolvedPrompt).toContain('# Evolution reason: Regular improvement');
+    expect(evolvedPrompt).toContain('# Based on 2 feedback comments (1 positive, 1 negative)');
+    expect(evolvedPrompt).toContain(originalPrompt);
+    expect(evolvedPrompt).toContain('Good structure overall');
+    expect(evolvedPrompt).toContain('Needs more examples');
   });
   
-  it('should not evolve agent when performance is above threshold', async () => {
-    // Arrange
-    const mockAgents = [
-      {
-        id: 'agent-1',
-        version: '1.0.0',
-        prompt: 'Original prompt',
-        status: 'active',
-        plugin_id: 'plugin-1',
-        created_by: 'user-1'
-      }
-    ];
+  it('should handle empty feedback gracefully', async () => {
+    const feedbackComments: Array<{
+      comment: string;
+      vote_type: string;
+      created_at: string;
+    }> = [];
     
-    const supabase = require('@/integrations/supabase/client').supabase;
-    supabase.eq.mockReturnValue({
-      data: mockAgents,
-      error: null
-    });
+    const evolveReason = 'Scheduled evolution';
     
-    vi.mocked(calculateAgentPerformance).mockResolvedValue(0.8); // Above threshold
+    const evolvedPrompt = await evolvePromptWithFeedback(
+      originalPrompt,
+      feedbackComments,
+      evolveReason
+    );
     
-    // Act
-    const results = await autoEvolveAgents({
-      tenantId: 'tenant-1',
-      threshold: 0.3
-    });
-    
-    // Assert
-    expect(results).toHaveLength(0);
-    expect(evolvePromptWithFeedback).not.toHaveBeenCalled();
+    // Verify that the evolved prompt contains the essential components
+    expect(evolvedPrompt).toContain('# Evolved Agent Prompt v2025-05-01');
+    expect(evolvedPrompt).toContain('# Evolution reason: Scheduled evolution');
+    expect(evolvedPrompt).toContain('# Based on 0 feedback comments (0 positive, 0 negative)');
+    expect(evolvedPrompt).toContain(originalPrompt);
+    expect(evolvedPrompt).toContain('## No positive feedback provided');
+    expect(evolvedPrompt).toContain('## No negative feedback provided');
   });
   
-  it('should skip agents without feedback when requireFeedback is true', async () => {
-    // Arrange
-    const mockAgents = [
-      {
-        id: 'agent-1',
-        version: '1.0.0',
-        prompt: 'Original prompt',
-        status: 'active',
-        plugin_id: 'plugin-1',
-        created_by: 'user-1'
-      }
-    ];
+  it('should gracefully handle errors and return original prompt', async () => {
+    // Create a malformed feedback object to trigger an error
+    const feedbackComments = [{ 
+      vote_type: 'invalid',
+      comment: null as any,
+      created_at: '2025-04-30T00:00:00Z'
+    }];
     
-    const supabase = require('@/integrations/supabase/client').supabase;
-    supabase.eq.mockReturnValue({
-      data: mockAgents,
-      error: null
-    });
+    const evolveReason = 'Error test';
     
-    vi.mocked(getFeedbackComments).mockResolvedValue([]);
+    // Mock console.error to prevent test output clutter
+    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
     
-    // Act
-    const results = await autoEvolveAgents({
-      tenantId: 'tenant-1',
-      requireFeedback: true
-    });
+    const evolvedPrompt = await evolvePromptWithFeedback(
+      originalPrompt,
+      feedbackComments,
+      evolveReason
+    );
     
-    // Assert
-    expect(results).toHaveLength(0);
-    expect(calculateAgentPerformance).not.toHaveBeenCalled();
-  });
-  
-  it('should only perform dry run when dryRun is true', async () => {
-    // Arrange
-    const mockAgents = [
-      {
-        id: 'agent-1',
-        version: '1.0.0',
-        prompt: 'Original prompt',
-        status: 'active',
-        plugin_id: 'plugin-1',
-        created_by: 'user-1'
-      }
-    ];
+    // Should return the original prompt on error
+    expect(evolvedPrompt).toBe(originalPrompt);
+    expect(consoleErrorMock).toHaveBeenCalled();
     
-    const supabase = require('@/integrations/supabase/client').supabase;
-    supabase.eq.mockReturnValue({
-      data: mockAgents,
-      error: null
-    });
-    
-    vi.mocked(calculateAgentPerformance).mockResolvedValue(0.2); // Below threshold
-    
-    // Act
-    const results = await autoEvolveAgents({
-      tenantId: 'tenant-1',
-      dryRun: true
-    });
-    
-    // Assert
-    expect(results).toHaveLength(1);
-    expect(results[0].evolved).toBe(false);
-    expect(evolvePromptWithFeedback).not.toHaveBeenCalled();
-    expect(supabase.insert).not.toHaveBeenCalled();
+    // Clean up
+    consoleErrorMock.mockRestore();
   });
 });

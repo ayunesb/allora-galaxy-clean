@@ -20,7 +20,6 @@ export async function executePlugin(
 ): Promise<PluginResult> {
   const startTime = performance.now();
   let result: PluginResult = {
-    pluginId: plugin.id,
     success: false
   };
 
@@ -50,7 +49,6 @@ export async function executePlugin(
     });
 
     result = {
-      pluginId: plugin.id,
       success: true,
       output: logData,
       executionTime,
@@ -81,7 +79,6 @@ export async function executePlugin(
     }
 
     result = {
-      pluginId: plugin.id,
       success: false,
       error: pluginError.message
     };

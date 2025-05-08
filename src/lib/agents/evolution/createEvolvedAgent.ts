@@ -42,11 +42,7 @@ export async function createEvolvedAgent(
     // Evolve the prompt based on feedback
     const newPrompt = await evolvePromptWithFeedback(
       agentVersion.prompt,
-      comments.map(c => ({ 
-        comment: c.comment, 
-        vote_type: c.vote_type,
-        created_at: c.created_at || new Date().toISOString() 
-      })),
+      comments,
       evolveReason
     );
     

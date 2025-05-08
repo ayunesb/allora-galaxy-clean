@@ -9,7 +9,7 @@ import { ExecutePluginChainOptions, ExecutePluginResult, PluginResult } from '@/
  * @returns Results of the plugin chain execution
  */
 export async function executePluginChain(options: ExecutePluginChainOptions): Promise<ExecutePluginResult> {
-  const { plugins, inputs, tenant_id, strategy_id, options: executionOptions } = options;
+  const { plugins, inputs, tenant_id, strategy_id } = options;
   const startTime = Date.now();
   const results: PluginResult[] = [];
   

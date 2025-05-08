@@ -39,7 +39,9 @@ export interface PluginResult {
   data?: any;
   logs?: string[];
   executionTime?: number;
-  status?: string; // Added status field
+  status?: string;
+  xpEarned?: number;
+  output?: any;
 }
 
 export interface ExecutePluginChainOptions {

@@ -1,67 +1,87 @@
 
-import { autoEvolveAgents } from '@/lib/agents/evolution';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { supabase } from '@/integrations/supabase/client';
+import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
+import { EvolutionResult } from '@/lib/agents/evolution/createEvolvedAgent';
 
 /**
- * Schedule all cron jobs needed for the application
+ * Run the agent auto-evolution process
+ * This is typically scheduled to run daily or weekly
  */
-export async function initializeScheduledJobs() {
+export async function runAutoEvolution() {
   try {
-    // Add jobs to the scheduler
-    await setupAutoEvolveAgentsJob();
-    await setupKpiUpdateJob();
+    console.log('Starting auto-evolution job...');
     
-    console.log('All scheduled jobs initialized');
-  } catch (error) {
-    console.error('Failed to initialize scheduled jobs:', error);
-  }
-}
-
-/**
- * Set up the auto-evolve agents job to run daily
- */
-async function setupAutoEvolveAgentsJob() {
-  try {
-    // Run auto-evolve process once per day
-    const CRON_SCHEDULE = '0 2 * * *'; // Run at 2 AM every day
+    // Get all tenants
+    const { data: tenants, error: tenantError } = await supabase
+      .from('tenants')
+      .select('id, name')
+      .eq('status', 'active');
     
-    // Call autoEvolveAgents directly with system tenant
-    const result = await autoEvolveAgents({
-      tenantId: 'system'
-    });
-    
-    // Log the result
-    if (result.evolved > 0) {
-      await logSystemEvent(
-        'system', 
-        'agent', 
-        'agents_evolved', 
-        { count: result.evolved }
-      );
+    if (tenantError) {
+      throw tenantError;
     }
     
-    console.log(`Auto evolve agents job scheduled: ${CRON_SCHEDULE}`);
+    if (!tenants || tenants.length === 0) {
+      console.log('No active tenants found');
+      return;
+    }
     
-    return { success: true, message: 'Auto evolve agents job scheduled' };
-  } catch (error: any) {
-    console.error('Failed to schedule auto evolve agents job:', error);
-    return { success: false, error: error.message };
+    console.log(`Found ${tenants.length} active tenants`);
+    
+    // Process each tenant
+    for (const tenant of tenants) {
+      try {
+        console.log(`Processing tenant: ${tenant.name} (${tenant.id})`);
+        
+        const results = await autoEvolveAgents(tenant.id);
+        
+        // Count successful evolutions
+        const successCount = results.filter(result => result.success).length;
+        
+        console.log(`Auto-evolution completed for tenant ${tenant.name}: ${successCount} agents evolved`);
+        
+        // Log activity
+        await supabase
+          .from('system_logs')
+          .insert({
+            tenant_id: tenant.id,
+            module: 'agent',
+            event: 'auto_evolve_completed',
+            context: {
+              total_agents_checked: results.length,
+              successful_evolutions: successCount,
+              errors: results.filter(r => !r.success).map(r => r.error)
+            }
+          });
+      } catch (tenantError) {
+        console.error(`Error processing tenant ${tenant.id}:`, tenantError);
+      }
+    }
+    
+    console.log('Auto-evolution job completed');
+  } catch (error) {
+    console.error('Error running auto-evolution job:', error);
   }
 }
 
 /**
- * Set up the KPI update job to run daily
+ * Schedule database maintenance tasks
+ * This is typically run weekly during off-hours
  */
-async function setupKpiUpdateJob() {
+export async function runDatabaseMaintenance() {
   try {
-    // Run KPI update once per day
-    const CRON_SCHEDULE = '0 1 * * *'; // Run at 1 AM every day
+    console.log('Starting database maintenance job...');
     
-    console.log(`KPI update job scheduled: ${CRON_SCHEDULE}`);
+    // Clean up old logs
+    const { data: cleanupResult, error: cleanupError } = await supabase
+      .rpc('cleanup_old_logs', { days_to_keep: 90 });
     
-    return { success: true, message: 'KPI update job scheduled' };
-  } catch (error: any) {
-    console.error('Failed to schedule KPI update job:', error);
-    return { success: false, error: error.message };
+    if (cleanupError) {
+      throw cleanupError;
+    }
+    
+    console.log('Database maintenance job completed:', cleanupResult);
+  } catch (error) {
+    console.error('Error running database maintenance job:', error);
   }
 }
