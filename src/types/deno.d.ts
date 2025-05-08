@@ -1,44 +1,49 @@
 
 /**
- * Type definitions for Deno API
- * This helps with TypeScript errors when using Deno in edge functions
+ * TypeScript definitions for Deno APIs
+ * Used in edge functions
  */
 
 declare namespace Deno {
-  export interface Env {
-    get(key: string): string | undefined;
-    set(key: string, value: string): void;
-    toObject(): Record<string, string>;
-  }
-
-  export const env: Env;
-
   export interface ConnInfo {
-    localAddr: Addr;
-    remoteAddr: Addr;
+    readonly localAddr: Addr;
+    readonly remoteAddr: Addr;
   }
 
   export interface Addr {
-    transport: 'tcp' | 'udp';
+    transport: "tcp" | "udp";
     hostname: string;
     port: number;
   }
 
-  export function serve(handler: (req: Request) => Response | Promise<Response>): void;
-  export function serveHttp(conn: any): Promise<any>;
+  export interface ServeOptions {
+    port?: number;
+    hostname?: string;
+  }
 
-  export function upgradeWebSocket(req: Request, options?: any): { socket: WebSocket, response: Response };
-}
+  export interface ServeInit extends ServeOptions {
+    onListen?: (params: { hostname: string; port: number }) => void;
+  }
 
-declare module 'https://deno.land/std@0.168.0/http/server.ts' {
-  export { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-}
+  export interface RequestEvent {
+    request: Request;
+    respondWith(response: Response | Promise<Response>): Promise<void>;
+  }
 
-declare module 'https://esm.sh/@supabase/supabase-js@2' {
-  export * from '@supabase/supabase-js';
-}
+  export function serve(
+    handler: (request: Request, connInfo: ConnInfo) => Response | Promise<Response>,
+    options?: ServeInit,
+  ): void;
 
-declare module 'https://esm.sh/stripe@12.0.0?target=deno' {
-  import Stripe from 'stripe';
-  export default Stripe;
+  export interface Env {
+    get(key: string): string | undefined;
+    set(key: string, value: string): void;
+    delete(key: string): boolean;
+    has(key: string): boolean;
+    toObject(): { [key: string]: string };
+  }
+
+  export const env: Env;
+
+  export function exit(code?: number): never;
 }

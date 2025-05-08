@@ -1,7 +1,7 @@
 
-import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 import { supabase } from '@/lib/supabase';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
 
 /**
  * Shared utility to execute a strategy
@@ -128,3 +128,5 @@ export async function runStrategy(input: ExecuteStrategyInput | undefined): Prom
     };
   }
 }
+
+export default runStrategy;
