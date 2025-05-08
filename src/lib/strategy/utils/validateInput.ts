@@ -7,7 +7,7 @@ import { StrategyInput, ValidationResult } from '@/types/strategy';
  * @returns Validation result with status and any errors
  */
 export function validateStrategyInput(input: StrategyInput): ValidationResult {
-  const validationErrors: string[] = [];
+  const errors: string[] = [];
   
   // Check title
   if (!input.title || input.title.trim().length < 3) {

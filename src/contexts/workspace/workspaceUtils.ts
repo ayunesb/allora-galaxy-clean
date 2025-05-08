@@ -59,6 +59,8 @@ export const getUserTenants = async (userId: string): Promise<Tenant[] | null> =
     }
 
     // Map the result to a more usable format
+    if (!data || data.length === 0) return [];
+    
     return data.map(item => ({
       id: item.tenants?.id,
       name: item.tenants?.name,

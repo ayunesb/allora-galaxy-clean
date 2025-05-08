@@ -2,10 +2,10 @@
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 /**
- * Hook to get the current tenant ID
- * @returns An object containing the tenant ID or null
+ * Hook to easily access the current tenant ID
+ * @returns The current tenant ID or null if no tenant is selected
  */
-export function useTenantId(): { tenantId: string | null } {
+export function useTenantId(): string | null {
   const { tenant } = useWorkspace();
-  return { tenantId: tenant?.id || null };
+  return tenant?.id || null;
 }
