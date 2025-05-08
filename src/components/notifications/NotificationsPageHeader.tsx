@@ -2,11 +2,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MailOpen, Trash2 } from 'lucide-react';
-import NotificationFilters, { NotificationType } from './NotificationFilters';
+import NotificationFilters, { FilterOption } from './NotificationFilters';
+import { NotificationType } from '@/types/notifications';
 
 interface NotificationsPageHeaderProps {
-  filter: NotificationType;
-  setFilter: (filter: NotificationType) => void;
+  filter: NotificationType | 'all';
+  setFilter: (filter: NotificationType | 'all') => void;
   onMarkAllAsRead: () => void;
   onDeleteAll: () => void;
 }
@@ -17,7 +18,7 @@ const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
   onMarkAllAsRead,
   onDeleteAll
 }) => {
-  const filterOptions = [
+  const filterOptions: FilterOption[] = [
     { value: 'all', label: 'All Types' },
     { value: 'system', label: 'System' },
     { value: 'info', label: 'Information' },

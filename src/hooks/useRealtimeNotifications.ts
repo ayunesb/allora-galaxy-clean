@@ -26,7 +26,7 @@ export function useRealtimeNotifications(onNotification: (payload: Notification)
           table: 'notifications',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
+        (payload: { new: Notification }) => {
           // Call the callback with the payload
           onNotification(payload.new as Notification);
         }

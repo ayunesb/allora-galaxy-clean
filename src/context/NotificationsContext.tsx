@@ -11,10 +11,10 @@ const NotificationsContext = createContext<NotificationsContextType>({
   error: null,
   isOpen: false,
   setIsOpen: () => {},
-  refreshNotifications: async () => { return Promise.resolve(); },
-  markAsRead: async () => { return Promise.resolve(); },
-  markAllAsRead: async () => { return Promise.resolve(); },
-  deleteNotification: async () => { return Promise.resolve(); },
+  refreshNotifications: async () => { return Promise.resolve() },
+  markAsRead: async () => { return Promise.resolve() },
+  markAllAsRead: async () => { return Promise.resolve() },
+  deleteNotification: async () => { return Promise.resolve() },
   unreadCount: 0,
 });
 
@@ -31,11 +31,28 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     unreadCount,
     loading,
     error,
-    refreshNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
+    refreshNotifications: refresh,
+    markAsRead: mark,
+    markAllAsRead: markAll,
+    deleteNotification: deleteNotif,
   } = useNotifications();
+
+  // Wrap the functions to conform to the expected return type
+  const refreshNotifications = async () => {
+    await refresh();
+  };
+  
+  const markAsRead = async (id: string) => {
+    await mark(id);
+  };
+  
+  const markAllAsRead = async () => {
+    await markAll();
+  };
+  
+  const deleteNotification = async (id: string) => {
+    await deleteNotif(id);
+  };
   
   // Set up polling for new notifications
   React.useEffect(() => {
@@ -53,7 +70,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     return () => {
       clearInterval(pollingInterval);
     };
-  }, [tenantId, refreshNotifications]);
+  }, [tenantId]);
   
   const contextValue: NotificationsContextType = {
     notifications,

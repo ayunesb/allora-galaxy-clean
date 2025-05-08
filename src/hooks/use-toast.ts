@@ -1,7 +1,6 @@
 
 // Re-export the toast functionality from shadcn
 import { 
-  type ToastProps,
   type ToastActionElement,
   toast as shadcnToast
 } from "@/components/ui/toast";
@@ -11,10 +10,30 @@ import { useTenantId } from './useTenantId';
 import { useNotificationsContext } from '@/context/NotificationsContext';
 import { useCallback } from "react";
 
-// Get the useToast function from shadcn's toaster
-import { useToast as useShadcnToast } from "@/components/ui/toaster";
+// Create a custom hook for toast
+export const useToast = () => {
+  const [toasts, setToasts] = React.useState<any[]>([]);
 
-export const useToast = useShadcnToast;
+  const toast = useCallback(
+    ({ ...props }) => {
+      const id = uuidv4();
+      const newToast = { id, ...props };
+      setToasts((prevToasts) => [...prevToasts, newToast]);
+      return id;
+    },
+    [setToasts]
+  );
+
+  const dismiss = useCallback((toastId?: string) => {
+    setToasts((prevToasts) => prevToasts.filter(({ id }) => id !== toastId));
+  }, [setToasts]);
+
+  return {
+    toast,
+    dismiss,
+    toasts,
+  };
+};
 
 // Override the toast function to optionally persist to notifications
 export const toast = (props: {
@@ -72,7 +91,7 @@ export const useNotify = () => {
       
       if (!userId || !tenantId) {
         console.error('Cannot send notification: Missing user ID or tenant ID');
-        return false;
+        return { success: false, error: new Error('Missing user ID or tenant ID') };
       }
       
       const { error } = await supabase.from('notifications').insert({
@@ -88,7 +107,7 @@ export const useNotify = () => {
       
       if (error) {
         console.error('Error sending notification:', error);
-        return false;
+        return { success: false, error };
       }
       
       // Also show as a toast
@@ -105,10 +124,10 @@ export const useNotify = () => {
       // Refresh notifications
       await refreshNotifications();
       
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Failed to send notification:', err);
-      return false;
+      return { success: false, error: err as Error };
     }
   }, [tenantId, refreshNotifications]);
   
@@ -128,3 +147,6 @@ function getClassNameByType(type?: string): string | undefined {
       return undefined;
   }
 }
+
+// Import React at the top of the file
+import React from 'react';

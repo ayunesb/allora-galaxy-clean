@@ -114,7 +114,8 @@ export const notifySuccess = (title: string, description?: string) => {
   toast({
     title,
     description,
-    variant: "success",
+    variant: "default",
+    className: "border-green-600 bg-green-50 dark:bg-green-950/30"
   });
 };
 
@@ -130,7 +131,7 @@ export const notifyInfo = (title: string, description?: string) => {
   toast({
     title,
     description,
-    variant: "default", // Changed from "info" to "default" to match allowed variants
+    variant: "default",
   });
 };
 
@@ -138,7 +139,8 @@ export const notifyWarning = (title: string, description?: string) => {
   toast({
     title,
     description,
-    variant: "warning",
+    variant: "default",
+    className: "border-yellow-600 bg-yellow-50 dark:bg-yellow-950/30"
   });
 };
 
