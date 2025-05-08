@@ -1,6 +1,6 @@
 
 import { useContext } from 'react';
-import { WorkspaceContext } from '@/context/WorkspaceContext';
+import { WorkspaceContext } from '@/contexts/WorkspaceContext';
 
 export function useTenantId() {
   const context = useContext(WorkspaceContext);

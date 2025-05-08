@@ -1,300 +1,191 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
-  getAgentsForEvolution,
-  getAgentUsageStats,
-  calculateAgentPerformance,
-  checkAgentEvolutionNeeded,
-  createEvolvedAgent,
-  autoEvolveAgents
-} from '@/lib/agents/autoEvolve';
-import { supabase } from '@/integrations/supabase/client';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
+import { getAgentsForEvolution } from '@/lib/agents/evolution/getAgentsForEvolution';
+import { calculatePerformance } from '@/lib/agents/evolution/calculatePerformance';
+import { createEvolvedAgent } from '@/lib/agents/evolution/createEvolvedAgent';
+import { deactivateOldAgent } from '@/lib/agents/evolution/deactivateOldAgent';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { LogStatus } from '@/types/shared';
 
-// Interface needed for the tests
-interface UsageStat {
-  agent_version_id: string;
-  status: LogStatus;
-  count: number;
-}
-
-// Mock dependencies
-vi.mock('@/integrations/supabase/client');
+// Mock the imported functions
+vi.mock('@/lib/agents/evolution/getAgentsForEvolution');
+vi.mock('@/lib/agents/evolution/calculatePerformance');
+vi.mock('@/lib/agents/evolution/createEvolvedAgent');
+vi.mock('@/lib/agents/evolution/deactivateOldAgent');
 vi.mock('@/lib/system/logSystemEvent');
-vi.mock('@/lib/utils/embeddings', () => ({
-  getEmbeddingForText: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
-}));
 
-describe('Agent Auto-Evolution', () => {
+describe('autoEvolveAgents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('getAgentsForEvolution', () => {
-    it('should get agents that need evolution', async () => {
-      // Mock the supabase response
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          lt: vi.fn().mockReturnValue({
-            gt: vi.fn().mockReturnValue({
-              is: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: [
-                    { id: 'agent1', plugin_id: 'plugin1', downvotes: 10, upvotes: 2 },
-                    { id: 'agent2', plugin_id: 'plugin2', downvotes: 8, upvotes: 1 }
-                  ],
-                  error: null
-                })
-              })
-            })
-          })
-        })
-      } as any);
-
-      vi.mocked(supabase.rpc).mockReturnValueOnce('downvotes * 0.3' as any);
-
-      const result = await getAgentsForEvolution();
-      
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('agent1');
-      expect(supabase.from).toHaveBeenCalledWith('agent_versions');
-    });
-
-    it('should handle errors gracefully', async () => {
-      // Mock error response
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          lt: vi.fn().mockReturnValue({
-            gt: vi.fn().mockReturnValue({
-              is: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: new Error('Database error')
-                })
-              })
-            })
-          })
-        })
-      } as any);
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      const result = await getAgentsForEvolution();
-      
-      expect(result).toEqual([]);
-      expect(consoleSpy).toHaveBeenCalled();
-      
-      consoleSpy.mockRestore();
-    });
+  it('should return early if no agents need evolution', async () => {
+    // Mock getAgentsForEvolution to return an empty array
+    vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([]);
+    
+    const result = await autoEvolveAgents();
+    
+    expect(result.evolved).toBe(0);
+    expect(result.skipped).toBe(0);
+    expect(result.errors).toBe(0);
+    expect(result.message).toContain('No agents found that need evolution');
+    expect(getAgentsForEvolution).toHaveBeenCalledTimes(1);
+    expect(calculatePerformance).not.toHaveBeenCalled();
+    expect(createEvolvedAgent).not.toHaveBeenCalled();
+    expect(deactivateOldAgent).not.toHaveBeenCalled();
+    expect(logSystemEvent).not.toHaveBeenCalled();
   });
-
-  describe('getAgentUsageStats', () => {
-    it('should get agent usage statistics', async () => {
-      // Mock the supabase response
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          gte: vi.fn().mockReturnValue({
-            is: vi.fn().mockReturnValue({
-              groupBy: vi.fn().mockResolvedValue({
-                data: [
-                  { agent_version_id: 'agent1', status: 'success' as LogStatus, count: 15 },
-                  { agent_version_id: 'agent2', status: 'success' as LogStatus, count: 8 }
-                ],
-                error: null
-              })
-            })
-          })
-        })
-      } as any);
-
-      const result = await getAgentUsageStats(30);
-      
-      expect(result).toHaveLength(2);
-      expect(result[0].agent_version_id).toBe('agent1');
-      expect(result[0].count).toBe(15);
-      expect(supabase.from).toHaveBeenCalledWith('plugin_logs');
+  
+  it('should skip agents that do not need evolution', async () => {
+    // Mock agent that doesn't need evolution
+    vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
+      { id: 'agent1', pluginId: 'plugin1', version: '1.0' }
+    ]);
+    
+    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+      shouldEvolve: false,
+      evolveReason: null,
+      metrics: { xp: 100, upvotes: 10, downvotes: 2 }
     });
+    
+    const result = await autoEvolveAgents();
+    
+    expect(result.evolved).toBe(0);
+    expect(result.skipped).toBe(1);
+    expect(result.errors).toBe(0);
+    expect(calculatePerformance).toHaveBeenCalledWith('agent1');
+    expect(createEvolvedAgent).not.toHaveBeenCalled();
+    expect(deactivateOldAgent).not.toHaveBeenCalled();
+    expect(logSystemEvent).not.toHaveBeenCalled();
   });
-
-  describe('calculateAgentPerformance', () => {
-    it('should calculate performance score correctly', () => {
-      const usageStats: UsageStat[] = [
-        { agent_version_id: 'agent1', status: 'success' as LogStatus, count: 80 },
-        { agent_version_id: 'agent1', status: 'failure' as LogStatus, count: 20 },
-        { agent_version_id: 'agent2', status: 'success' as LogStatus, count: 50 }
-      ];
-
-      const score = calculateAgentPerformance('agent1', 30, 10, usageStats);
-      
-      // Expected calculation: (30/40)*0.7 + (80/100)*0.3 = 0.525 + 0.24 = 0.765
-      expect(score).toBeCloseTo(0.765);
+  
+  it('should evolve agents successfully', async () => {
+    // Mock agent that needs evolution
+    vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
+      { id: 'agent2', pluginId: 'plugin2', version: '1.0' }
+    ]);
+    
+    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+      shouldEvolve: true,
+      evolveReason: 'Poor performance',
+      metrics: { xp: 50, upvotes: 2, downvotes: 8 }
     });
-
-    it('should handle no usage data', () => {
-      const usageStats: UsageStat[] = [];
-      const score = calculateAgentPerformance('agent1', 5, 5, usageStats);
-      
-      // Expected: (5/10)*0.7 + 0*0.3 = 0.35
-      expect(score).toBeCloseTo(0.35);
+    
+    vi.mocked(createEvolvedAgent).mockResolvedValueOnce({
+      id: 'evolved-agent-id',
+      version: '1.1'
     });
+    
+    const result = await autoEvolveAgents();
+    
+    expect(result.evolved).toBe(1);
+    expect(result.skipped).toBe(0);
+    expect(result.errors).toBe(0);
+    expect(calculatePerformance).toHaveBeenCalledWith('agent2');
+    expect(createEvolvedAgent).toHaveBeenCalledWith(
+      'agent2', 
+      'plugin2', 
+      expect.objectContaining({ 
+        shouldEvolve: true, 
+        evolveReason: 'Poor performance'
+      })
+    );
+    expect(deactivateOldAgent).toHaveBeenCalledWith('agent2');
+    expect(logSystemEvent).toHaveBeenCalledWith(
+      'system', 
+      'agent', 
+      'agent_evolved', 
+      expect.objectContaining({
+        old_agent_id: 'agent2',
+        new_agent_id: 'evolved-agent-id'
+      })
+    );
   });
-
-  describe('checkAgentEvolutionNeeded', () => {
-    it('should return true when evolution is needed', async () => {
-      const result = await checkAgentEvolutionNeeded('agent1', 2, 10, 0.3);
-      expect(result).toBe(true);
+  
+  it('should handle errors during evolution', async () => {
+    // Mock agent where evolution fails
+    vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
+      { id: 'agent3', pluginId: 'plugin3', version: '1.0' }
+    ]);
+    
+    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+      shouldEvolve: true,
+      evolveReason: 'Poor performance',
+      metrics: { xp: 50, upvotes: 2, downvotes: 8 }
     });
-
-    it('should return false when evolution is not needed', async () => {
-      const result = await checkAgentEvolutionNeeded('agent1', 8, 2, 0.3);
-      expect(result).toBe(false);
-    });
-
-    it('should return false when there are not enough votes', async () => {
-      const result = await checkAgentEvolutionNeeded('agent1', 1, 1, 0.3);
-      expect(result).toBe(false);
-    });
+    
+    vi.mocked(createEvolvedAgent).mockResolvedValueOnce(null);
+    
+    const result = await autoEvolveAgents();
+    
+    expect(result.evolved).toBe(0);
+    expect(result.skipped).toBe(0);
+    expect(result.errors).toBe(1);
+    expect(result.details[0].status).toBe('error');
+    expect(result.details[0].reason).toContain('Failed to create evolved agent');
+    expect(deactivateOldAgent).not.toHaveBeenCalled();
+    expect(logSystemEvent).not.toHaveBeenCalled();
   });
-
-  describe('createEvolvedAgent', () => {
-    it('should create a new evolved agent version', async () => {
-      // Mock the supabase insert response
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { id: 'new-agent-id', version: 'v2' },
-              error: null
-            })
-          })
-        })
-      } as any);
-
-      const result = await createEvolvedAgent(
-        'plugin1',
-        'Original prompt',
-        'v1',
-        ['Feedback 1', 'Feedback 2'],
-        'tenant1'
-      );
-      
-      expect(result.id).toBe('new-agent-id');
-      expect(result.version).toBe('v2');
-      expect(vi.mocked(logSystemEvent)).toHaveBeenCalled();
+  
+  it('should handle multiple agents with mixed results', async () => {
+    // Mock multiple agents with different outcomes
+    vi.mocked(getAgentsForEvolution).mockResolvedValueOnce([
+      { id: 'agent4', pluginId: 'plugin4', version: '1.0' },
+      { id: 'agent5', pluginId: 'plugin5', version: '1.0' },
+      { id: 'agent6', pluginId: 'plugin6', version: '1.0' }
+    ]);
+    
+    // First agent should evolve
+    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+      shouldEvolve: true,
+      evolveReason: 'Poor performance',
+      metrics: { xp: 40, upvotes: 1, downvotes: 9 }
     });
+    
+    // Second agent should skip
+    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+      shouldEvolve: false,
+      evolveReason: null,
+      metrics: { xp: 90, upvotes: 9, downvotes: 1 }
+    });
+    
+    // Third agent should error
+    vi.mocked(calculatePerformance).mockResolvedValueOnce({
+      shouldEvolve: true,
+      evolveReason: 'Low engagement',
+      metrics: { xp: 30, upvotes: 2, downvotes: 6 }
+    });
+    
+    // First agent evolution succeeds
+    vi.mocked(createEvolvedAgent).mockResolvedValueOnce({
+      id: 'evolved-agent4',
+      version: '1.1'
+    });
+    
+    // Third agent evolution fails
+    vi.mocked(createEvolvedAgent).mockResolvedValueOnce(null);
+    
+    const result = await autoEvolveAgents();
+    
+    expect(result.evolved).toBe(1);
+    expect(result.skipped).toBe(1);
+    expect(result.errors).toBe(1);
+    expect(result.details).toHaveLength(3);
+    expect(result.details[0].status).toBe('evolved');
+    expect(result.details[1].status).toBe('skipped');
+    expect(result.details[2].status).toBe('error');
   });
-
-  describe('autoEvolveAgents', () => {
-    it('should auto-evolve agents that need evolution', async () => {
-      // Mock getAgentsForEvolution
-      vi.mocked(supabase.from)
-        // For getAgentsForEvolution
-        .mockReturnValueOnce({
-          select: vi.fn().mockReturnValue({
-            lt: vi.fn().mockReturnValue({
-              gt: vi.fn().mockReturnValue({
-                is: vi.fn().mockReturnValue({
-                  order: vi.fn().mockResolvedValue({
-                    data: [
-                      { 
-                        id: 'agent1', 
-                        plugin_id: 'plugin1', 
-                        prompt: 'Original prompt',
-                        version: 'v1',
-                        downvotes: 10, 
-                        upvotes: 2 
-                      }
-                    ],
-                    error: null
-                  })
-                })
-              })
-            })
-          })
-        } as any)
-        // For getAgentUsageStats
-        .mockReturnValueOnce({
-          select: vi.fn().mockReturnValue({
-            gte: vi.fn().mockReturnValue({
-              is: vi.fn().mockReturnValue({
-                groupBy: vi.fn().mockResolvedValue({
-                  data: [
-                    { agent_version_id: 'agent1', status: 'success' as LogStatus, count: 15 }
-                  ],
-                  error: null
-                })
-              })
-            })
-          })
-        } as any)
-        // For getAgentFeedbackComments
-        .mockReturnValueOnce({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              not: vi.fn().mockResolvedValue({
-                data: [
-                  { comment: 'Feedback 1', vote_type: 'down' },
-                  { comment: 'Feedback 2', vote_type: 'up' }
-                ],
-                error: null
-              })
-            })
-          })
-        } as any)
-        // For createEvolvedAgent
-        .mockReturnValueOnce({
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: { id: 'new-agent-id', version: 'v2' },
-                error: null
-              })
-            })
-          })
-        } as any)
-        // For deactivateOldAgentVersion
-        .mockReturnValueOnce({
-          update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({
-              data: null,
-              error: null
-            })
-          })
-        } as any);
-
-      vi.mocked(supabase.rpc).mockReturnValueOnce('downvotes * 0.3' as any);
-
-      const result = await autoEvolveAgents('tenant1');
-      
-      expect(result.evolved).toBe(1);
-      expect(result.success).toBe(true);
-      expect(vi.mocked(logSystemEvent)).toHaveBeenCalledTimes(2);
-    });
-
-    it('should handle no agents needing evolution', async () => {
-      // Mock empty response
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          lt: vi.fn().mockReturnValue({
-            gt: vi.fn().mockReturnValue({
-              is: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: [],
-                  error: null
-                })
-              })
-            })
-          })
-        })
-      } as any);
-
-      vi.mocked(supabase.rpc).mockReturnValueOnce('downvotes * 0.3' as any);
-
-      const result = await autoEvolveAgents('tenant1');
-      
-      expect(result.evolved).toBe(0);
-      expect(result.success).toBe(true);
-    });
+  
+  it('should handle unexpected errors', async () => {
+    // Mock a function that throws an error
+    vi.mocked(getAgentsForEvolution).mockRejectedValueOnce(new Error('Database connection failed'));
+    
+    const result = await autoEvolveAgents();
+    
+    expect(result.message).toContain('Failed to complete evolution process');
+    expect(result.message).toContain('Database connection failed');
+    expect(result.evolved).toBe(0);
+    expect(result.errors).toBe(0);
+    expect(result.skipped).toBe(0);
   });
 });

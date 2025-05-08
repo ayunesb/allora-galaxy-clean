@@ -1,85 +1,108 @@
 
-// Fix import statements and function calls
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { supabase } from '@/integrations/supabase/client';
 import { getAgentsForEvolution } from './getAgentsForEvolution';
-import { checkAgentEvolutionNeeded } from './checkEvolutionNeeded';
+import { calculatePerformance } from './calculatePerformance';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateAgent } from './deactivateOldAgent';
-import { calculateAgentPerformance } from './calculatePerformance';
-import { getAgentFeedbackComments } from './getFeedbackComments';
-import { getPluginsForOptimization } from './getPluginsForOptimization';
+import { deactivateOldAgent } from './deactivateOldAgent';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Automatically evolves agents that meet criteria for evolution
- * This is typically run on a schedule (e.g. daily)
+ * Auto-evolve agents based on performance and feedback
+ * @returns A summary of the evolution process
  */
 export async function autoEvolveAgents() {
+  const results = {
+    evolved: 0,
+    errors: 0,
+    skipped: 0,
+    details: [] as Array<{
+      pluginId: string;
+      status: 'evolved' | 'skipped' | 'error';
+      reason?: string;
+      newAgentVersionId?: string;
+    }>
+  };
+
   try {
-    // Get all agents that are candidates for evolution
-    const agents = await getAgentsForEvolution();
-    
-    if (!agents || agents.length === 0) {
-      console.log('No agents found that need evolution');
+    // Get agents that need evolution
+    const agentsToEvolve = await getAgentsForEvolution();
+
+    if (!agentsToEvolve.length) {
       return {
-        success: true,
-        evolved: 0,
+        ...results,
         message: 'No agents found that need evolution'
       };
     }
-    
-    let evolvedCount = 0;
-    
+
     // Process each agent
-    for (const agent of agents) {
-      // Check if this agent needs evolution based on various metrics
-      const needsEvolution = await checkAgentEvolutionNeeded(agent.id);
-      
-      if (!needsEvolution) {
-        continue;
-      }
-      
-      // Get the agent's usage stats and feedback
-      await calculateAgentPerformance(agent.id);
-      const feedback = await getAgentFeedbackComments(agent.id);
-      const relatedPlugins = await getPluginsForOptimization(agent.id);
-      
-      // Create a new evolved agent version
-      const newAgent = await createEvolvedAgent(agent.id, feedback, relatedPlugins);
-      
-      if (newAgent) {
-        // Deactivate the old agent version
-        await deactivateAgent(agent.id);
-        evolvedCount++;
+    for (const agent of agentsToEvolve) {
+      try {
+        // Calculate performance metrics
+        const performance = await calculatePerformance(agent.id);
         
-        // Log the evolution event
-        await logSystemEvent('agent', 'evolution', 'agent_evolved', {
+        if (!performance.shouldEvolve) {
+          results.skipped++;
+          results.details.push({
+            pluginId: agent.pluginId,
+            status: 'skipped',
+            reason: 'Performance metrics do not suggest evolution is needed'
+          });
+          continue;
+        }
+        
+        // Create evolved agent based on feedback
+        const evolvedAgent = await createEvolvedAgent(agent.id, agent.pluginId, performance);
+        
+        if (!evolvedAgent) {
+          results.errors++;
+          results.details.push({
+            pluginId: agent.pluginId,
+            status: 'error',
+            reason: 'Failed to create evolved agent'
+          });
+          continue;
+        }
+        
+        // Deactivate old agent version
+        await deactivateOldAgent(agent.id);
+        
+        // Log evolution event
+        await logSystemEvent('system', 'agent', 'agent_evolved', {
           old_agent_id: agent.id,
-          new_agent_id: newAgent.id,
-          plugin_id: agent.plugin_id,
-          feedback_count: feedback.length,
-          related_plugins: relatedPlugins.length
+          new_agent_id: evolvedAgent.id,
+          plugin_id: agent.pluginId,
+          reason: performance.evolveReason
+        });
+        
+        results.evolved++;
+        results.details.push({
+          pluginId: agent.pluginId,
+          status: 'evolved',
+          newAgentVersionId: evolvedAgent.id
+        });
+        
+      } catch (err: any) {
+        console.error(`Error evolving agent ${agent.id}:`, err);
+        results.errors++;
+        results.details.push({
+          pluginId: agent.pluginId,
+          status: 'error',
+          reason: err.message || 'Unknown error'
         });
       }
     }
     
     return {
-      success: true,
-      evolved: evolvedCount,
-      message: `Successfully evolved ${evolvedCount} agents`
+      ...results,
+      message: `Evolution process complete. Evolved: ${results.evolved}, Skipped: ${results.skipped}, Errors: ${results.errors}`
     };
+    
   } catch (error: any) {
     console.error('Error in autoEvolveAgents:', error);
-    
-    // Log the error
-    await logSystemEvent('agent', 'evolution', 'agent_evolution_error', {
-      error: error.message
-    });
-    
     return {
-      success: false,
-      evolved: 0,
-      error: error.message,
-      message: 'Failed to evolve agents'
+      ...results,
+      message: `Failed to complete evolution process: ${error.message}`,
+      error: error.message
     };
   }
 }

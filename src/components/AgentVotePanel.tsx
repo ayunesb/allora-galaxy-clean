@@ -43,7 +43,9 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
           
           const voteInfo = await getUserVote(agentVersionId, user.id);
           if (voteInfo.hasVoted && voteInfo.vote) {
-            setUserVote(voteInfo.vote.voteType as 'up' | 'down');
+            if (voteInfo.vote.voteType === 'up' || voteInfo.vote.voteType === 'down') {
+              setUserVote(voteInfo.vote.voteType);
+            }
           }
         }
       } catch (error) {
@@ -96,7 +98,14 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
         // Update vote counters
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
-        setUserVote(voteType);
+        
+        // Only set userVote if it's up or down, not neutral
+        if (voteType === 'up' || voteType === 'down') {
+          setUserVote(voteType);
+        } else {
+          setUserVote(null);
+        }
+        
         setShowComment(false);
         setComment('');
         
