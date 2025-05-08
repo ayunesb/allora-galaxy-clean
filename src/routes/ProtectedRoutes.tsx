@@ -146,13 +146,13 @@ const ProtectedRoutes: React.FC = () => {
       </Route>
       
       {/* Admin routes wrapped in AdminLayout */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route path="*" element={
+      <Route path="/admin" element={
+        <AdminLayout>
           <Suspense fallback={<LoadingScreen />}>
             <AdminRoutes />
           </Suspense>
-        } />
-      </Route>
+        </AdminLayout>
+      } />
       
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

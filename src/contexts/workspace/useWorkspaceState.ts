@@ -1,73 +1,105 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { WorkspaceContextType } from './types';
-import { fetchTenants, getDefaultNavigationItems } from './workspaceUtils';
-import { navigationItems } from './navigationItems';
+import { getUserTenants } from './workspaceUtils';
+import { Tenant, UserRole } from '@/types/tenant';
 
-// Initial state for the workspace context
 export const initialWorkspaceState: WorkspaceContextType = {
   tenant: null,
-  isLoading: true,
+  tenantId: null,
+  userRole: null,
+  tenantsList: [],
+  loading: true,
   error: null,
-  navigationItems: getDefaultNavigationItems(),
-  refreshTenant: async () => {}
+  setTenantId: () => {},
+  setUserRole: () => {},
+  refreshTenant: () => {}
 };
 
-/**
- * Hook to manage workspace state
- * @param userId Current user ID
- */
-export const useWorkspaceState = (userId?: string): WorkspaceContextType => {
-  const [workspace, setWorkspace] = useState<WorkspaceContextType>(initialWorkspaceState);
-  
-  // Load workspace data when user ID changes
-  useEffect(() => {
-    if (userId) {
-      loadWorkspaceData();
-    } else {
-      setWorkspace({
-        ...initialWorkspaceState,
-        isLoading: false
-      });
+export const useWorkspaceState = (userId: string | undefined): WorkspaceContextType => {
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [tenantsList, setTenantsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const loadTenantData = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
     }
-  }, [userId]);
-  
-  // Load tenants and other workspace data
-  const loadWorkspaceData = async () => {
+
     try {
-      setWorkspace(prev => ({ ...prev, isLoading: true, error: null }));
+      setLoading(true);
+      setError(null);
+
+      // Fetch user's tenants
+      const tenants = await getUserTenants(userId);
       
-      // Fetch tenants for user
-      if (!userId) {
-        throw new Error('User ID is required to load workspace data');
+      if (!tenants || tenants.length === 0) {
+        // User has no tenants
+        setTenant(null);
+        setTenantId(null);
+        setUserRole(null);
+        setTenantsList([]);
+        setLoading(false);
+        return;
       }
       
-      const tenants = await fetchTenants(userId);
-      const primaryTenant = tenants && tenants.length > 0 ? tenants[0] : null;
+      // Set the tenants list
+      setTenantsList(tenants);
       
-      // Get navigation items - use the more comprehensive list from navigationItems.ts
-      setWorkspace({
-        tenant: primaryTenant,
-        navigationItems: navigationItems,
-        isLoading: false,
-        error: null,
-        refreshTenant: loadWorkspaceData
-      });
-    } catch (err: any) {
+      // Use the currently selected tenant or default to the first one
+      let selectedTenantId = tenantId;
+      
+      // If no tenant is selected or the selected tenant is not in the list, use the first one
+      if (!selectedTenantId || !tenants.find(t => t.id === selectedTenantId)) {
+        selectedTenantId = tenants[0].id;
+        setTenantId(selectedTenantId);
+      }
+      
+      // Find the current tenant and role
+      const currentTenant = tenants.find(t => t.id === selectedTenantId);
+      
+      if (currentTenant) {
+        setTenant({
+          id: currentTenant.id,
+          name: currentTenant.name,
+          slug: currentTenant.slug
+        });
+        setUserRole(currentTenant.role as UserRole);
+      } else {
+        setTenant(null);
+        setUserRole(null);
+      }
+    } catch (err) {
       console.error('Error loading workspace data:', err);
-      
-      setWorkspace({
-        tenant: null,
-        navigationItems: getDefaultNavigationItems(),
-        isLoading: false,
-        error: err.message || 'Failed to load workspace data',
-        refreshTenant: loadWorkspaceData
-      });
+      setError(err instanceof Error ? err : new Error('Failed to load workspace data'));
+    } finally {
+      setLoading(false);
     }
-  };
-  
+  }, [userId, tenantId]);
+
+  // Initial load and when userId changes
+  useEffect(() => {
+    loadTenantData();
+  }, [loadTenantData]);
+
+  // Refresh tenant data
+  const refreshTenant = useCallback(() => {
+    loadTenantData();
+  }, [loadTenantData]);
+
   return {
-    ...workspace,
-    refreshTenant: loadWorkspaceData
+    tenant,
+    tenantId,
+    userRole,
+    tenantsList,
+    loading,
+    error,
+    setTenantId,
+    setUserRole,
+    refreshTenant
   };
 };

@@ -47,7 +47,7 @@ export const useOnboardingRedirect = () => {
     };
     
     checkOnboardingStatus();
-  }, [navigate]);
+  }, []);
   
   return { shouldRedirectToOnboarding, loading };
 };

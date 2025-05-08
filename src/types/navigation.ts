@@ -5,7 +5,7 @@ export interface NavigationItem {
   id: string;
   label: string;
   path: string;
-  icon: LucideIcon;
-  children?: NavigationItem[];
-  isAdmin?: boolean;
+  icon?: LucideIcon;
+  items?: NavigationItem[];
+  disabled?: boolean;
 }

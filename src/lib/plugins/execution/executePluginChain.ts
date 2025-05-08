@@ -5,7 +5,6 @@ import { executePlugin } from './executePlugin';
 /**
  * Execute a chain of plugins in sequence
  * @param plugins - Array of plugins to execute
- * @param agentVersions - Array of agent versions
  * @param initialInput - Initial input data
  * @param strategy - Strategy data
  * @param params - Execution parameters
@@ -13,7 +12,6 @@ import { executePlugin } from './executePlugin';
  */
 export async function executePluginChain(
   plugins: Plugin[],
-  agentVersions: any[],
   initialInput: Record<string, any>,
   strategy: any,
   params: {

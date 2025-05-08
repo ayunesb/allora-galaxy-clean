@@ -48,6 +48,8 @@ describe('Agent voting functionality', () => {
   });
 
   it('should cast an upvote on an agent version', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     const result = await voteOnAgentVersion(
       'agent-123',
       'up',
@@ -62,6 +64,8 @@ describe('Agent voting functionality', () => {
   });
 
   it('should cast a downvote on an agent version', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     const result = await voteOnAgentVersion(
       'agent-123',
       'down',
@@ -77,6 +81,8 @@ describe('Agent voting functionality', () => {
 
   it('should handle errors when voting fails', async () => {
     // Mock an error response
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     vi.mocked(supabase.from).mockReturnValueOnce({
       insert: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -103,6 +109,8 @@ describe('Agent voting functionality', () => {
   });
 
   it('should retrieve user votes', async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     const result = await getUserVote('agent-123', 'user-123');
 
     expect(result.hasVoted).toBe(true);

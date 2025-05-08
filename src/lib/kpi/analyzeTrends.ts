@@ -1,62 +1,55 @@
 
-import { KPI } from '@/types';
 import { KPITrend, TrendDirection } from '@/types/shared';
 
 /**
- * Analyzes KPI trends by comparing current and previous values
- * @param kpi The KPI to analyze
- * @returns The trend analysis
+ * Analyzes KPI data to determine trends
+ * 
+ * @param currentValue The current KPI value
+ * @param previousValue The previous KPI value
+ * @returns KPI trend analysis with direction and percentage change
  */
-export function analyzeKpiTrend(kpi: KPI): KPITrend {
-  // Default trend if there's no previous value
-  if (kpi.previous_value === null || kpi.previous_value === undefined) {
+export function analyzeTrend(currentValue: number, previousValue: number | null | undefined): KPITrend {
+  if (previousValue === null || previousValue === undefined) {
     return {
-      direction: 'neutral' as TrendDirection,
+      change: 0,
+      direction: 'flat',
       percentage: 0,
       isPositive: false
     };
   }
 
-  // Handle division by zero
-  if (kpi.previous_value === 0) {
-    // If current value is also 0, it's flat
-    if (kpi.value === 0) {
-      return {
-        direction: 'flat' as TrendDirection,
-        percentage: 0,
-        isPositive: false
-      };
-    }
-    
-    // Otherwise it's an increase
+  if (previousValue === 0 && currentValue > 0) {
     return {
-      direction: 'up' as TrendDirection,
+      change: currentValue,
+      direction: 'up',
       percentage: 100,
-      isPositive: kpi.category !== 'cost' // For cost KPIs, going up is generally negative
+      isPositive: true
+    };
+  } else if (previousValue === 0 && currentValue < 0) {
+    return {
+      change: currentValue,
+      direction: 'down',
+      percentage: 100,
+      isPositive: false
+    };
+  } else if (previousValue === 0 && currentValue === 0) {
+    return {
+      change: 0,
+      direction: 'flat',
+      percentage: 0,
+      isPositive: true
     };
   }
 
-  // Calculate percentage change
-  const percentChange = ((kpi.value - kpi.previous_value) / Math.abs(kpi.previous_value)) * 100;
-  
-  // Determine direction
-  let direction: TrendDirection = 'flat';
-  if (percentChange > 1) {
-    direction = 'up';
-  } else if (percentChange < -1) {
-    direction = 'down';
-  } else {
-    direction = 'flat';
-  }
-  
-  // Is this change positive?
-  // For cost metrics, a decrease is positive
-  // For most other metrics, an increase is positive
-  const isPositive = kpi.category === 'cost' ? direction === 'down' : direction === 'up';
-  
+  const change = currentValue - previousValue;
+  const percentage = Math.abs(Math.round((change / Math.abs(previousValue)) * 100));
+  const direction: TrendDirection = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+  const isPositive = (direction === 'up' && previousValue >= 0) || (direction === 'down' && previousValue < 0);
+
   return {
+    change,
     direction,
-    percentage: Math.abs(Math.round(percentChange)),
+    percentage,
     isPositive
   };
 }

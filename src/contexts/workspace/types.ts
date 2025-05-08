@@ -1,21 +1,18 @@
 
-import { NavigationItem } from '@/types/navigation';
+import { Tenant, UserRole } from '@/types/tenant';
 
-export interface Tenant {
-  id: string;
-  name: string;
-  slug?: string;
-  role?: string;
-  metadata?: Record<string, any>;
+export interface TenantWithRole extends Tenant {
+  role: UserRole;
 }
 
 export interface WorkspaceContextType {
   tenant: Tenant | null;
-  isLoading: boolean;
-  error: string | null;
-  navigationItems: NavigationItem[];
-  refreshTenant: () => Promise<void>;
-  currentRole?: string; // Add this property
-  loading?: boolean;    // Add this for backward compatibility
-  userRole?: string;    // Add this for backward compatibility
+  tenantId: string | null;
+  userRole: UserRole | null;
+  tenantsList: TenantWithRole[];
+  loading: boolean;
+  error: Error | null;
+  setTenantId: (id: string) => void;
+  setUserRole: (role: UserRole) => void;
+  refreshTenant: () => void;
 }

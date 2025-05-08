@@ -14,6 +14,7 @@ import AdminGuard from '@/components/guards/AdminGuard';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import { useSystemLogs } from '@/hooks/admin/useSystemLogs';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 const SystemLogs: React.FC = () => {
   const tenantId = useTenantId();
@@ -47,14 +48,14 @@ const SystemLogs: React.FC = () => {
           </CardHeader>
           <CardContent>
             <SystemLogFilters
-              modules={modules}
-              events={events}
-              selectedModule={selectedModule}
-              selectedEvent={selectedEvent}
+              modules={modules as SystemEventModule[]}
+              events={events as SystemEventType[]}
+              selectedModule={selectedModule as SystemEventModule | ""}
+              selectedEvent={selectedEvent as SystemEventType | ""}
               selectedDate={selectedDate}
-              searchTerm={searchTerm}
-              setSelectedModule={setSelectedModule}
-              setSelectedEvent={setSelectedEvent}
+              searchTerm={searchTerm || ""}
+              setSelectedModule={(module) => setSelectedModule(module)}
+              setSelectedEvent={(event) => setSelectedEvent(event)}
               setSelectedDate={setSelectedDate}
               setSearchTerm={setSearchTerm}
               resetFilters={resetFilters}

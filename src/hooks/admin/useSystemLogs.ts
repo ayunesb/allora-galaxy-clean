@@ -1,50 +1,33 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
-interface SystemLog {
+interface Log {
   id: string;
-  module: string;
-  event: string;
+  module: SystemEventModule;
+  event: SystemEventType;
   created_at: string;
-  context: Record<string, any>;
-  tenant_id: string;
+  context?: Record<string, any>;
+  tenant_id?: string;
 }
 
-interface UseSystemLogsReturn {
-  logs: SystemLog[];
-  loading: boolean;
-  error: string | null;
-  selectedModule: string | null;
-  setSelectedModule: (module: string | null) => void;
-  selectedEvent: string | null;
-  setSelectedEvent: (event: string | null) => void;
-  selectedDate: Date | null;
-  setSelectedDate: (date: Date | null) => void;
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  modules: string[];
-  events: string[];
-  resetFilters: () => void;
-  refreshLogs: () => void;
-}
-
-export function useSystemLogs(tenantId: string | null): UseSystemLogsReturn {
-  const { toast } = useToast();
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+export function useSystemLogs(tenantId: string | null) {
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [modules, setModules] = useState<string[]>([]);
-  const [events, setEvents] = useState<string[]>([]);
   
   // Filters
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<SystemEventModule | ''>('');
+  const [selectedEvent, setSelectedEvent] = useState<SystemEventType | ''>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Metadata
+  const [modules, setModules] = useState<SystemEventModule[]>([]);
+  const [events, setEvents] = useState<SystemEventType[]>([]);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (!tenantId) return;
     
     try {
@@ -57,6 +40,7 @@ export function useSystemLogs(tenantId: string | null): UseSystemLogsReturn {
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
       
+      // Apply filters
       if (selectedModule) {
         query = query.eq('module', selectedModule);
       }
@@ -78,54 +62,75 @@ export function useSystemLogs(tenantId: string | null): UseSystemLogsReturn {
       }
       
       if (searchTerm) {
-        // This assumes the 'context' column is stored as JSONB and can be converted to text for search
-        // For more specific search you might want to adjust this based on your data structure
-        query = query.textSearch('context', searchTerm, { config: 'english' });
+        query = query.or(
+          `event.ilike.%${searchTerm}%,module.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`
+        );
       }
       
-      const { data, error: fetchError } = await query;
+      const { data, error: fetchError } = await query.limit(100);
       
       if (fetchError) {
-        throw new Error(`Error fetching system logs: ${fetchError.message}`);
+        throw fetchError;
       }
       
       setLogs(data || []);
-      
-      // Extract unique modules and events for filters
-      if (data) {
-        const uniqueModules = [...new Set(data.map(log => log.module))];
-        const uniqueEvents = [...new Set(data.map(log => log.event))];
-        
-        setModules(uniqueModules);
-        setEvents(uniqueEvents);
-      }
     } catch (err: any) {
-      setError(err.message);
-      toast({
-        title: 'Error loading logs',
-        description: err.message,
-        variant: 'destructive',
-      });
+      console.error('Error fetching system logs:', err);
+      setError(err.message || 'Failed to load system logs');
+      setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const resetFilters = () => {
-    setSelectedModule(null);
-    setSelectedEvent(null);
-    setSelectedDate(null);
-    setSearchTerm('');
-  };
-
-  const refreshLogs = () => {
-    fetchLogs();
-  };
-
+  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm]);
+  
+  const fetchModulesAndEvents = useCallback(async () => {
+    if (!tenantId) return;
+    
+    try {
+      // Fetch distinct modules
+      const { data: moduleData, error: moduleError } = await supabase
+        .from('system_logs')
+        .select('module')
+        .eq('tenant_id', tenantId)
+        .distinct();
+      
+      if (moduleError) throw moduleError;
+      
+      // Fetch distinct events
+      const { data: eventData, error: eventError } = await supabase
+        .from('system_logs')
+        .select('event')
+        .eq('tenant_id', tenantId)
+        .distinct();
+      
+      if (eventError) throw eventError;
+      
+      setModules(moduleData.map(item => item.module).filter(Boolean) as SystemEventModule[]);
+      setEvents(eventData.map(item => item.event).filter(Boolean) as SystemEventType[]);
+    } catch (err: any) {
+      console.error('Error fetching filters:', err);
+    }
+  }, [tenantId]);
+  
   useEffect(() => {
     fetchLogs();
-  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm]);
-
+  }, [fetchLogs]);
+  
+  useEffect(() => {
+    fetchModulesAndEvents();
+  }, [fetchModulesAndEvents]);
+  
+  const resetFilters = useCallback(() => {
+    setSelectedModule('');
+    setSelectedEvent('');
+    setSelectedDate(null);
+    setSearchTerm('');
+  }, []);
+  
+  const refreshLogs = useCallback(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+  
   return {
     logs,
     loading,
