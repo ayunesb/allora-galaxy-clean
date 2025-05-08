@@ -1,22 +1,7 @@
 
-import { corsHeaders } from '../lib/utils';
-import { supabase } from '../integrations/supabase/client';
+import { corsHeaders, getSafeEnv } from '../lib/utils';
 import { runStrategy } from "../lib/strategy/runStrategy";
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '../types/strategy';
-
-// Helper function to safely get environment variables with fallbacks
-function getEnv(name: string, fallback: string = ""): string {
-  try {
-    if (typeof Deno !== "undefined" && Deno.env) {
-      return Deno.env.get(name) ?? fallback;
-    }
-    // Fallback to process.env for non-Deno environments
-    return process.env[name as keyof typeof process.env] || fallback;
-  } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
-    return fallback;
-  }
-}
 
 // Handler for strategy execution
 export default async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
@@ -51,18 +36,15 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
     // Execute the strategy using the shared utility
     const result = await runStrategy(strategyInput);
     
-    // Convert camelCase back to snake_case for the API response
+    // Return the result directly as it already matches ExecuteStrategyResult format
     return {
       success: result.success,
-      strategy_id: input.strategy_id,
-      execution_id: result.executionId,
       error: result.error,
-      execution_time: result.executionTime,
-      data: result.data,
-      plugins_executed: result.pluginsExecuted,
-      successful_plugins: result.successfulPlugins,
-      xp_earned: result.xpEarned,
-      status: result.status
+      execution_id: result.execution_id,
+      execution_time: result.execution_time,
+      outputs: result.outputs,
+      results: result.results,
+      logs: result.logs
     };
     
   } catch (error: any) {
@@ -71,7 +53,6 @@ export default async function executeStrategy(input: ExecuteStrategyInput): Prom
     // Return standardized error response
     return {
       success: false,
-      strategy_id: input.strategy_id,
       error: error.message || "Unexpected error executing strategy",
       execution_time: (performance.now() - startTime) / 1000
     };

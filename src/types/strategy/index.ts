@@ -15,9 +15,16 @@ export interface ExecuteStrategyResult {
   error?: string;
   execution_id?: string;
   execution_time?: number;
+  message?: string;
+  status?: 'success' | 'partial' | 'failure' | 'pending';
+  plugins_executed?: number;
+  successful_plugins?: number;
+  xp_earned?: number;
   outputs?: Record<string, any>;
   results?: Record<string, any>;
   logs?: Array<any>;
+  data?: any;
+  strategy_id?: string;
 }
 
 // Define a notification type for strategy status notifications

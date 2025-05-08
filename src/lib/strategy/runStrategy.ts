@@ -3,6 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { recordExecution } from '@/lib/plugins/execution/recordExecution';
 import { ExecuteStrategyResult } from '@/types/strategy';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { validateStrategyInput } from './utils/validateInput';
+import { verifyStrategy } from './utils/verifyStrategy';
+import { fetchPlugins } from './utils/fetchPlugins';
+import { executePlugins } from './utils/executePlugins';
+import { updateStrategyProgress } from './utils/updateStrategyProgress';
 
 interface StrategyRunInput {
   strategyId: string;
@@ -19,7 +24,13 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
   const executionId = crypto.randomUUID();
   
   try {
-    // 1. Record execution start
+    // 1. Validate input
+    const validation = validateStrategyInput(input);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+    
+    // 2. Record execution start
     await recordExecution({
       id: executionId,
       tenant_id: input.tenantId,
@@ -30,108 +41,29 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       input: input.options || {}
     });
     
-    // 2. Verify strategy exists and belongs to tenant
-    const { data: strategy, error: strategyError } = await supabase
-      .from('strategies')
-      .select('id, title, status')
-      .eq('id', input.strategyId)
-      .eq('tenant_id', input.tenantId)
-      .single();
-    
-    if (strategyError || !strategy) {
-      throw new Error(`Strategy not found or access denied: ${strategyError?.message || 'Unknown error'}`);
-    }
-    
-    // 3. Check if strategy can be executed
-    if (!['approved', 'pending'].includes(strategy.status)) {
-      throw new Error(`Strategy cannot be executed with status: ${strategy.status}`);
+    // 3. Verify strategy exists and belongs to tenant
+    const { strategy, error: strategyError } = await verifyStrategy(input.strategyId, input.tenantId);
+    if (strategyError) {
+      throw new Error(strategyError);
     }
     
     // 4. Fetch plugins to execute
-    const { data: plugins, error: pluginsError } = await supabase
-      .from('plugins')
-      .select('*')
-      .eq('status', 'active')
-      .limit(10);
-      
+    const { plugins, error: pluginsError } = await fetchPlugins(input.strategyId, input.tenantId);
     if (pluginsError) {
-      throw new Error(`Failed to fetch plugins: ${pluginsError.message}`);
+      throw new Error(pluginsError);
     }
     
     // 5. Execute plugins
-    const pluginResults = [];
-    let xpEarned = 0;
-    let successfulPlugins = 0;
-    
-    for (const plugin of plugins || []) {
-      try {
-        // Plugin execution logic would go here
-        console.log(`Executing plugin ${plugin.id} for strategy ${input.strategyId}`);
-        
-        // Record plugin execution
-        const { data: logData, error: logError } = await supabase
-          .from('plugin_logs')
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: input.strategyId,
-            tenant_id: input.tenantId,
-            status: 'success',
-            input: input.options || {},
-            output: { message: "Plugin executed successfully" },
-            execution_time: 0.5,
-            xp_earned: 10
-          })
-          .select()
-          .single();
-        
-        if (logError) {
-          throw new Error(`Failed to record plugin execution: ${logError.message}`);
-        }
-        
-        pluginResults.push({
-          plugin_id: plugin.id,
-          success: true,
-          log_id: logData.id,
-          xp_earned: 10
-        });
-        
-        xpEarned += 10;
-        successfulPlugins++;
-        
-      } catch (pluginError: any) {
-        console.error(`Error executing plugin ${plugin.id}:`, pluginError);
-        
-        // Record failed plugin execution
-        await supabase
-          .from('plugin_logs')
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: input.strategyId,
-            tenant_id: input.tenantId,
-            status: 'failure',
-            input: input.options || {},
-            error: pluginError.message,
-            execution_time: 0.3,
-            xp_earned: 0
-          });
-        
-        pluginResults.push({
-          plugin_id: plugin.id,
-          success: false,
-          error: pluginError.message,
-          xp_earned: 0
-        });
-      }
-    }
-    
-    // 6. Determine overall status
-    const status = !plugins?.length ? 'failure' : 
-                   (successfulPlugins === plugins.length) ? 'success' : 
-                   (successfulPlugins > 0) ? 'partial' : 'failure';
+    const { 
+      results: pluginResults, 
+      xpEarned, 
+      successfulPlugins,
+      status
+    } = await executePlugins(plugins || [], input.strategyId, input.tenantId, input.options);
     
     const executionTime = (performance.now() - startTime) / 1000;
     
-    // 7. Record execution completion
+    // 6. Record execution completion
     await recordExecution({
       id: executionId,
       status,
@@ -140,18 +72,17 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       xp_earned: xpEarned
     });
     
-    // 8. Update strategy progress if execution was successful
+    // 7. Update strategy progress if execution was successful
     if (status === 'success' || status === 'partial') {
-      await supabase
-        .from('strategies')
-        .update({
-          completion_percentage: Math.min(100, ((strategy.completion_percentage || 0) + 25))
-        })
-        .eq('id', input.strategyId)
-        .eq('tenant_id', input.tenantId);
+      await updateStrategyProgress(
+        input.strategyId, 
+        input.tenantId,
+        status,
+        strategy?.completion_percentage || 0
+      );
     }
     
-    // 9. Log system event
+    // 8. Log system event
     await logSystemEvent(
       input.tenantId,
       'strategy',
@@ -166,14 +97,14 @@ export async function runStrategy(input: StrategyRunInput): Promise<ExecuteStrat
       }
     );
     
-    // 10. Return result
+    // 9. Return result
     return {
       success: status !== 'failure',
       strategy_id: input.strategyId,
       execution_id: executionId,
-      status: status,
+      status,
       message: `Strategy execution ${status}`,
-      executionTime: executionTime,
+      executionTime,
       execution_time: executionTime,
       plugins_executed: plugins?.length || 0,
       successful_plugins: successfulPlugins,

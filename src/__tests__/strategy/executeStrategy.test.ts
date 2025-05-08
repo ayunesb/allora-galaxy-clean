@@ -21,9 +21,9 @@ const mockDeno = {
   }
 };
 
-// Assign mock to global
-if (typeof global.Deno === 'undefined') {
-  (global as any).Deno = mockDeno;
+// Assign mock to global object, but only if Deno is not already defined
+if (typeof globalThis.Deno === 'undefined') {
+  (globalThis as any).Deno = mockDeno;
 }
 
 describe('executeStrategy Edge Function', () => {
@@ -41,14 +41,14 @@ describe('executeStrategy Edge Function', () => {
         return Promise.resolve({
           success: false,
           error: 'Strategy execution failed',
-          executionTime: 0.5
+          execution_time: 0.5
         });
       }
       
       return Promise.resolve({
         success: true,
         error: undefined,
-        executionTime: 1.5,
+        execution_time: 1.5,
         outputs: { result: 'success' },
         logs: []
       });

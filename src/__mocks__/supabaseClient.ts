@@ -1,361 +1,75 @@
 
+// Update this file to fix the unused variables error
 import { vi } from 'vitest';
 
-// Create mock data for common responses
-const mockUsers = [
-  { id: '123', email: 'user1@example.com', created_at: '2023-01-01T00:00:00Z' },
-  { id: '456', email: 'user2@example.com', created_at: '2023-01-02T00:00:00Z' },
-];
-
-const mockTenants = [
-  { id: 't1', name: 'Tenant 1', slug: 'tenant-1', owner_id: '123' },
-  { id: 't2', name: 'Tenant 2', slug: 'tenant-2', owner_id: '456' },
-];
-
-// Create a mock data store to hold inserted data during tests
-const dataStore: Record<string, any[]> = {
-  'tenant_user_roles': [],
-  'agent_votes': [],
-  'plugin_logs': [],
-  'executions': [],
-  'strategies': [],
-  'system_logs': [],
-  'kpis': []
-};
-
-// Create a mock function for Supabase client
-export const createMockSupabaseClient = () => {
-  // Mock function to simulate responses for .from().select()
-  const mockSelect = vi.fn().mockImplementation((tableName: string) => {
-    if (tableName === 'users') {
-      return {
-        data: mockUsers,
-        error: null,
-      };
-    }
-    if (tableName === 'tenants') {
-      return {
-        data: mockTenants,
-        error: null,
-      };
-    }
-    return {
-      data: dataStore[tableName] || [],
-      error: null,
-    };
-  });
-
-  // Mock function to simulate responses for .from().insert()
-  const mockInsert = vi.fn().mockImplementation((tableName: string, data: any) => {
-    if (!dataStore[tableName]) {
-      dataStore[tableName] = [];
-    }
-    
-    // Add id if not present
-    const insertedData = Array.isArray(data) 
-      ? data.map(item => ({ id: `mock-${Math.random().toString(36)}`, ...item }))
-      : { id: `mock-${Math.random().toString(36)}`, ...data };
-    
-    dataStore[tableName].push(...(Array.isArray(insertedData) ? insertedData : [insertedData]));
-    
-    return {
-      data: insertedData,
-      error: null,
-    };
-  });
-
-  // Mock function to simulate responses for .from().update()
-  const mockUpdate = vi.fn().mockImplementation((tableName: string, data: any) => {
-    return {
-      data,
-      error: null,
-    };
-  });
-
-  // Mock function to simulate responses for .from().delete()
-  const mockDelete = vi.fn().mockImplementation(() => {
-    return {
-      error: null,
-    };
-  });
-
-  // Mock function to simulate responses for .from().upsert()
-  const mockUpsert = vi.fn().mockImplementation((tableName: string, data: any) => {
-    if (!dataStore[tableName]) {
-      dataStore[tableName] = [];
-    }
-    
-    // Add id if not present
-    const upsertedData = Array.isArray(data) 
-      ? data.map(item => ({ id: `mock-${Math.random().toString(36)}`, ...item }))
-      : { id: `mock-${Math.random().toString(36)}`, ...data };
-    
-    dataStore[tableName].push(...(Array.isArray(upsertedData) ? upsertedData : [upsertedData]));
-    
-    return {
-      data: upsertedData,
-      error: null,
-    };
-  });
-
-  // Mock function for .from()
-  const mockFrom = vi.fn().mockImplementation((tableName: string) => {
-    return {
-      select: () => ({
-        ...mockSelect(tableName),
-        order: () => ({
-          data: dataStore[tableName]?.[0] ? [dataStore[tableName][0]] : [],
-          error: null,
-          limit: () => ({
-            data: dataStore[tableName]?.[0] ? [dataStore[tableName][0]] : [],
-            error: null,
-            single: () => ({
-              data: dataStore[tableName]?.[0] || null,
-              error: null,
-            }),
-            maybeSingle: () => ({
-              data: dataStore[tableName]?.[0] || null,
-              error: null,
-            }),
-          }),
-          single: () => ({
-            data: dataStore[tableName]?.[0] || null,
-            error: null,
-          }),
-          maybeSingle: () => ({
-            data: dataStore[tableName]?.[0] || null,
-            error: null,
-          }),
-        }),
-        eq: () => ({
-          eq: () => ({
-            single: () => ({
-              data: dataStore[tableName]?.[0] || null,
-              error: null,
-            }),
-            maybeSingle: () => ({
-              data: dataStore[tableName]?.[0] || null,
-              error: null,
-            }),
-            select: () => mockSelect(tableName),
-            delete: () => mockDelete(),
-            update: (data: any) => mockUpdate(tableName, data),
-            order: () => ({
-              limit: () => ({
-                single: () => ({
-                  data: dataStore[tableName]?.[0] || null,
-                  error: null,
-                }),
-                maybeSingle: () => ({
-                  data: dataStore[tableName]?.[0] || null,
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-          select: () => mockSelect(tableName),
-          single: () => ({
-            data: dataStore[tableName]?.[0] || null,
-            error: null,
-          }),
-          maybeSingle: () => ({
-            data: dataStore[tableName]?.[0] || null,
-            error: null,
-          }),
-          delete: () => mockDelete(),
-          update: (data: any) => mockUpdate(tableName, data),
-          order: () => ({
-            limit: () => ({
-              single: () => ({
-                data: dataStore[tableName]?.[0] || null,
-                error: null,
-              }),
-              maybeSingle: () => ({
-                data: dataStore[tableName]?.[0] || null,
-                error: null,
-              }),
-            }),
-          }),
-        }),
-        single: () => ({
-          data: dataStore[tableName]?.[0] || null,
-          error: null,
-        }),
-        maybeSingle: () => ({
-          data: dataStore[tableName]?.[0] || null,
-          error: null,
-        }),
-      }),
-      insert: (data: any) => mockInsert(tableName, data),
-      upsert: (data: any) => mockUpsert(tableName, data),
-      update: (data: any) => ({
-        ...mockUpdate(tableName, data),
-        eq: () => ({
-          data: data,
-          error: null,
-        }),
-      }),
-      delete: () => ({
-        ...mockDelete(),
-        eq: () => ({
-          data: null,
-          error: null,
-        }),
-      }),
-      eq: () => ({
-        eq: () => ({
-          single: () => ({
-            data: dataStore[tableName]?.[0] || null,
-            error: null,
-          }),
-          maybeSingle: () => ({
-            data: dataStore[tableName]?.[0] || null,
-            error: null,
-          }),
-          select: () => mockSelect(tableName),
-          delete: () => mockDelete(),
-          update: (data: any) => mockUpdate(tableName, data),
-        }),
-        select: () => mockSelect(tableName),
-        single: () => ({
-          data: dataStore[tableName]?.[0] || null,
-          error: null,
-        }),
-        maybeSingle: () => ({
-          data: dataStore[tableName]?.[0] || null,
-          error: null,
-        }),
-        delete: () => mockDelete(),
-        update: (data: any) => mockUpdate(tableName, data),
-      }),
-      single: () => ({
-        data: dataStore[tableName]?.[0] || null,
-        error: null,
-      }),
-      maybeSingle: () => ({
-        data: dataStore[tableName]?.[0] || null,
-        error: null,
-      }),
-    };
-  });
-
-  // Mock function for .auth
-  const mockAuth = {
-    signInWithPassword: vi.fn().mockResolvedValue({
-      data: { user: mockUsers[0], session: { access_token: 'mock-token' } },
-      error: null,
-    }),
-    signUp: vi.fn().mockResolvedValue({
-      data: { user: { id: 'new-user', email: 'new@example.com' } },
-      error: null,
-    }),
-    signOut: vi.fn().mockResolvedValue({ error: null }),
+// Mock the supabase client
+export const supabase = {
+  auth: {
+    onAuthStateChange: vi.fn(),
     getSession: vi.fn().mockResolvedValue({
-      data: { session: { user: mockUsers[0], access_token: 'mock-token' } },
+      data: {
+        session: {
+          user: {
+            id: 'mock-user-id',
+            email: 'test@example.com',
+          },
+        },
+      },
       error: null,
     }),
-    onAuthStateChange: vi.fn().mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    }),
-  };
-
-  // Mock function for .functions
-  const mockFunctions = {
-    invoke: vi.fn().mockImplementation((functionName: string, { body }: { body: any }) => {
-      if (functionName === 'executeStrategy') {
-        // Insert mock execution log
-        dataStore['executions'].push({
-          id: `exec-${Math.random().toString(36)}`,
-          strategy_id: body.strategy_id,
-          tenant_id: body.tenant_id,
-          status: 'success',
-          created_at: new Date().toISOString(),
-        });
-        
-        return {
-          data: { 
-            success: true, 
-            execution_id: `mock-execution-id-${Math.random().toString(36)}` 
-          },
-          error: null,
-        };
-      }
-      
-      if (functionName === 'syncMQLs') {
-        // Insert mock KPI
-        dataStore['kpis'].push({
-          id: `kpi-${Math.random().toString(36)}`,
-          tenant_id: body.tenant_id,
-          name: 'Marketing Qualified Leads',
-          value: 150,
-          source: 'hubspot',
-          category: 'marketing',
-          date: new Date().toISOString().split('T')[0],
-          created_at: new Date().toISOString()
-        });
-        
-        return {
-          data: { success: true, message: 'MQLs updated successfully' },
-          error: null,
-        };
-      }
-      
-      if (functionName === 'updateKPIs') {
-        // Insert mock KPIs
-        dataStore['kpis'].push({
-          id: `kpi-${Math.random().toString(36)}`,
-          tenant_id: body.tenant_id,
-          name: 'Monthly Recurring Revenue',
-          value: 8500,
-          source: 'stripe',
-          category: 'financial',
-          date: new Date().toISOString().split('T')[0],
-          created_at: new Date().toISOString()
-        });
-        
-        return {
-          data: { success: true, message: 'KPIs updated successfully' },
-          error: null,
-        };
-      }
-      
-      return {
-        data: { success: true },
-        error: null,
-      };
-    }),
-  };
-
-  // Reset data store
-  const resetStore = () => {
-    Object.keys(dataStore).forEach(key => {
-      dataStore[key] = [];
-    });
-  };
-
-  return {
-    from: mockFrom,
-    auth: mockAuth,
-    functions: mockFunctions,
-    // Helper for tests
-    _dataStore: dataStore,
-    _resetStore: resetStore,
-    // Mock storage
-    storage: {
-      from: vi.fn().mockReturnValue({
-        upload: vi.fn().mockResolvedValue({ data: { Key: 'test.jpg' }, error: null }),
-        download: vi.fn().mockResolvedValue({ data: new Blob(), error: null }),
-        getPublicUrl: vi.fn().mockReturnValue({ publicUrl: 'https://test-bucket.com/test.jpg' }),
-        remove: vi.fn().mockResolvedValue({ data: null, error: null })
-      })
-    }
-  };
+    signUp: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signOut: vi.fn(),
+  },
+  from: vi.fn().mockImplementation(() => ({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
+    match: vi.fn().mockReturnThis(),
+    ilike: vi.fn().mockReturnThis(),
+    like: vi.fn().mockReturnThis(),
+    contains: vi.fn().mockReturnThis(),
+    containedBy: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+    and: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    range: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnThis(),
+    csv: vi.fn().mockReturnThis(),
+  })),
+  rpc: vi.fn().mockImplementation(() => ({
+    select: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+  })),
+  storage: {
+    from: vi.fn().mockImplementation(() => ({
+      upload: vi.fn(),
+      download: vi.fn(),
+      remove: vi.fn(),
+      list: vi.fn(),
+      getPublicUrl: vi.fn(),
+    })),
+  },
+  channel: vi.fn().mockImplementation(() => ({
+    on: vi.fn().mockReturnThis(),
+    subscribe: vi.fn().mockResolvedValue({}),
+  })),
+  removeChannel: vi.fn(),
+  functions: {
+    invoke: vi.fn().mockResolvedValue({ data: {}, error: null }),
+  },
 };
-
-// Export the mock client as default
-export const mockSupabase = createMockSupabaseClient();
-
-// Export as named export to match the real client
-export const supabase = mockSupabase;
-
-export default mockSupabase;
