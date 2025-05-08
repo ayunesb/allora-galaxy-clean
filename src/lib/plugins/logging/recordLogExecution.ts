@@ -7,18 +7,16 @@ import { supabase } from '@/integrations/supabase/client';
  * @returns The created log record
  */
 export async function recordLogExecution(log: {
-  tenantId: string;
   pluginId: string;
-  strategyId: string;
-  agentVersionId: string;
-  executedBy: string;
+  tenantId: string;
   status: "success" | "failure";
-  type: "agent" | "plugin" | "strategy";
-  input: Record<string, any>;
-  output: any;
+  input?: Record<string, any>;
+  output?: any;
+  error?: string;
   executionTime: number;
   xpEarned: number;
-  error: string;
+  strategyId?: string;
+  agentVersionId?: string;
 }): Promise<any> {
   try {
     const { data, error } = await supabase
@@ -26,16 +24,14 @@ export async function recordLogExecution(log: {
       .insert({
         tenant_id: log.tenantId,
         plugin_id: log.pluginId,
-        strategy_id: log.strategyId,
-        agent_version_id: log.agentVersionId,
-        executed_by: log.executedBy,
+        strategy_id: log.strategyId || null,
+        agent_version_id: log.agentVersionId || null,
         status: log.status,
-        type: log.type,
-        input: log.input,
-        output: log.output,
+        input: log.input || null,
+        output: log.output || null,
         execution_time: log.executionTime,
         xp_earned: log.xpEarned,
-        error: log.error
+        error: log.error || null
       })
       .select()
       .single();

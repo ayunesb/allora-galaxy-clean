@@ -18,14 +18,13 @@ export type {
   ExecutionParams,
   ExecutionType,
   KPITrend,
-  LogStatus,
   TenantFeature
 } from '../shared';
 
 // Export RunPluginChainResult specifically as it's needed
 export type { RunPluginChainResult } from '../plugin';
 
-// Legacy type definitions for backward compatibility
+// Define LogStatus type (without re-exporting the conflicting one)
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
 export interface ExecutionRecordInput {

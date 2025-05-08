@@ -1,72 +1,67 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { NavigationItem } from '@/types/shared';
-import SidebarProfile from './sidebar/SidebarProfile';
-import SidebarFooterActions from './sidebar/SidebarFooterActions';
+import { useLocation, Link } from 'react-router-dom';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { cn } from '@/lib/utils';
 
-interface SidebarProps {
+export interface SidebarProps {
   items: NavigationItem[];
-  className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ items, className }) => {
+const Sidebar: React.FC<SidebarProps> = ({ items }) => {
   const location = useLocation();
   const { userRole } = useWorkspace();
-  
-  // Filter items based on user role
+
+  // Filter navigation items based on user role
   const filteredItems = items.filter(item => {
-    if (!item.requiresRole) return true;
-    return userRole && item.requiresRole.includes(userRole);
+    // If the item requires specific roles and user role is not in the list, hide it
+    if (item.requiresRole && userRole && !item.requiresRole.includes(userRole)) {
+      return false;
+    }
+    return true;
   });
-  
+
+  // Check if a nav item is active
+  const isActive = (item: NavigationItem) => {
+    if (item.isActive) {
+      return item.isActive(location.pathname);
+    }
+    
+    // Default behavior: check if the path starts with the href
+    // But for root path (/), only consider it active if the pathname is exactly "/"
+    if (item.href === '/') {
+      return location.pathname === '/';
+    }
+    
+    return location.pathname.startsWith(item.href);
+  };
+
   return (
-    <div className={cn(
-      'w-64 h-screen border-r shrink-0 overflow-y-auto sticky top-0 bg-background',
-      className
-    )}>
-      <div className="flex flex-col h-full">
-        <div className="flex-1 py-2">
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-              Navigation
-            </h2>
-            <div className="space-y-1">
-              {filteredItems.map((item, i) => {
-                const isActive = item.isActive 
-                  ? item.isActive(location.pathname)
-                  : location.pathname.startsWith(item.href);
-                  
-                const IconComponent = item.icon;
-                
-                return (
-                  <Link
-                    key={i}
-                    to={item.href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
-                      isActive
-                        ? 'bg-accent text-accent-foreground'
-                        : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {IconComponent && (
-                      <IconComponent className="h-4 w-4" />
-                    )}
-                    {item.title}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        
-        <div className="mt-auto">
-          <SidebarProfile />
-          <SidebarFooterActions />
-        </div>
+    <div className="w-64 h-full bg-card border-r border-border flex-shrink-0">
+      <div className="p-4 h-full flex flex-col">
+        <nav className="space-y-1 flex-1">
+          {filteredItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item);
+            
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                )}
+              >
+                {Icon && <Icon className="mr-3 h-5 w-5" />}
+                <span>{item.title}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

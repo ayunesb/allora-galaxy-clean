@@ -5,8 +5,8 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
-import { navigationItems } from '@/contexts/workspace/navigationItems';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { navigationItems } from '@/contexts/workspace/navigationItems';
 
 const MainLayout: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -16,7 +16,7 @@ const MainLayout: React.FC = () => {
       <Navbar />
       
       <div className="flex flex-1">
-        {!isMobile && <Sidebar />}
+        {!isMobile && <Sidebar items={navigationItems} />}
         
         <main className="flex-1 bg-background">
           <div className="container mx-auto py-6">

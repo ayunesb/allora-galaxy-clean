@@ -8,14 +8,14 @@ interface RequireAuthProps {
 }
 
 export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     // Redirect to login page, but save the current location for redirecting back after login
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }

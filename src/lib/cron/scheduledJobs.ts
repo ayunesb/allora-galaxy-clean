@@ -3,65 +3,75 @@ import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
 
-// Type for auto evolution result
-type AutoEvolveResult = {
-  success: boolean;
-  evolvedAgents: number;
-  errors?: string[];
-};
-
 /**
- * Run scheduled intelligence jobs
+ * Run scheduled jobs for a tenant
+ * @param tenantId Tenant ID to run jobs for
  */
-export async function runScheduledIntelligence() {
+export async function runScheduledJobs(tenantId: string) {
   try {
-    // Get all tenants that have active automation
-    const { data: tenants, error: tenantsError } = await supabase
-      .from('tenants')
-      .select('id, name')
-      .eq('status', 'active');
+    await logSystemEvent(
+      'system',
+      'info',
+      {
+        event: 'scheduled_jobs_started',
+        tenant_id: tenantId
+      },
+      tenantId
+    );
 
-    if (tenantsError) {
-      throw new Error(`Failed to fetch tenants: ${tenantsError.message}`);
+    // Run auto evolution of agents
+    const evolutionResult = await autoEvolveAgents(tenantId);
+    
+    // Update KPIs via edge function
+    const { error: kpiError } = await supabase.functions.invoke('updateKPIs', {
+      body: { tenant_id: tenantId }
+    });
+    
+    if (kpiError) {
+      await logSystemEvent(
+        'kpi',
+        'error',
+        {
+          event: 'update_kpis_failed',
+          tenant_id: tenantId,
+          error: kpiError.message
+        },
+        tenantId
+      );
     }
+    
+    await logSystemEvent(
+      'system',
+      'info',
+      {
+        event: 'scheduled_jobs_completed',
+        tenant_id: tenantId,
+        evolution_result: evolutionResult.success ? 'success' : 'failure',
+        kpi_update: kpiError ? 'failure' : 'success'
+      },
+      tenantId
+    );
 
-    if (!tenants || tenants.length === 0) {
-      console.log('No active tenants found for scheduled intelligence');
-      return;
-    }
-
-    for (const tenant of tenants) {
-      try {
-        // Auto-evolve agents for the tenant
-        const result = await autoEvolveAgents(tenant.id);
-        
-        await logSystemEvent(
-          'system',
-          'info',
-          {
-            job: 'scheduledIntelligence',
-            action: 'autoEvolveAgents',
-            result: result
-          },
-          tenant.id
-        );
-        
-        // Run other scheduled tasks here...
-        
-      } catch (tenantError: any) {
-        await logSystemEvent(
-          'system',
-          'error',
-          {
-            job: 'scheduledIntelligence',
-            tenant_id: tenant.id,
-            error: tenantError.message
-          },
-          tenant.id
-        );
-      }
-    }
+    return {
+      success: true,
+      evolutionResult,
+      kpiUpdateSuccess: !kpiError
+    };
   } catch (error: any) {
-    console.error('Error in scheduled intelligence:', error);
+    await logSystemEvent(
+      'system',
+      'error',
+      {
+        event: 'scheduled_jobs_failed',
+        tenant_id: tenantId,
+        error: error.message
+      },
+      tenantId
+    );
+
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }

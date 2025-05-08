@@ -16,7 +16,7 @@ export async function executePluginChain(
   strategy: any,
   params: {
     tenant_id: string;
-    user_id?: string;
+    user_id: string;
     dryRun?: boolean;
   }
 ): Promise<RunPluginChainResult> {
@@ -50,16 +50,26 @@ export async function executePluginChain(
       console.log(`Executing plugin ${plugin.id} in chain`);
       
       // Execute the plugin
-      const result = await executePlugin(
-        plugin,
-        params.tenant_id,
-        params.user_id || 'system',
-        currentInput,
-        strategy?.id || 'unknown'
-      );
+      const result = await executePlugin({
+        pluginId: plugin.id,
+        tenantId: params.tenant_id,
+        userId: params.user_id,
+        input: currentInput,
+        strategyId: strategy?.id
+      });
+      
+      // Convert ExecutePluginResult to PluginResult
+      const pluginResult: PluginResult = {
+        pluginId: result.pluginId,
+        success: result.success,
+        output: result.output || {},
+        error: result.error,
+        executionTime: result.executionTime,
+        xpEarned: result.xpEarned
+      };
       
       // Add result to results array
-      results.push(result);
+      results.push(pluginResult);
       
       // Update success flag
       if (!result.success) {
@@ -78,6 +88,7 @@ export async function executePluginChain(
       
       // Add error result to results array
       results.push({
+        pluginId: plugin.id,
         success: false,
         output: {},
         error: error.message,

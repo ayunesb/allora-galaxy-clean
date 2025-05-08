@@ -2,13 +2,12 @@
 import {
   LayoutDashboard,
   Rocket,
-  Galaxy,
   Zap,
   LineChart,
   Settings,
-  Users,
   Terminal,
   Brain,
+  Activity,
 } from 'lucide-react';
 import { NavigationItem } from '@/types/shared';
 
@@ -26,7 +25,7 @@ export const navigationItems: NavigationItem[] = [
   {
     title: 'Galaxy',
     href: '/galaxy',
-    icon: Galaxy
+    icon: Activity
   },
   {
     title: 'Plugins',

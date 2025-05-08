@@ -49,6 +49,12 @@ describe('autoEvolveAgents', () => {
             error: null
           })
         })
+      }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          data: null,
+          error: null
+        })
       })
     } as any);
   });
@@ -64,7 +70,7 @@ describe('autoEvolveAgents', () => {
     const result = await autoEvolveAgents('test-tenant-id', config);
     
     expect(result.success).toBe(true);
-    expect(result.agentsEvolved).toBeGreaterThan(0);
+    expect(result.evolvedAgents).toBeGreaterThan(0);
     expect(logSystemEvent).toHaveBeenCalled();
   });
 
@@ -83,7 +89,7 @@ describe('autoEvolveAgents', () => {
     const result = await autoEvolveAgents('test-tenant-id');
     
     expect(result.success).toBe(true);
-    expect(result.agentsEvolved).toBe(0);
+    expect(result.evolvedAgents).toBe(0);
     expect(result.message).toContain('No agents needed evolution');
   });
 
@@ -102,7 +108,7 @@ describe('autoEvolveAgents', () => {
     const result = await autoEvolveAgents('test-tenant-id');
     
     expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
+    expect(result.errors).toBeDefined();
     expect(logSystemEvent).toHaveBeenCalledWith(
       'agent',
       'error',

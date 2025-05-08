@@ -5,15 +5,16 @@ import { getAgentVersion } from '@/lib/agents/agentManager';
 
 interface ExecutePluginParams {
   pluginId: string;
-  input: any;
   tenantId: string;
+  userId: string;
+  input: any;
   strategyId?: string;
-  userId?: string;
   agentVersionId?: string;
 }
 
-interface ExecutePluginResult {
+export interface ExecutePluginResult {
   success: boolean;
+  pluginId: string;
   output?: any;
   error?: string;
   executionTime: number;
@@ -25,8 +26,10 @@ interface ExecutePluginResult {
  * @param params Parameters for plugin execution
  * @returns Result of plugin execution
  */
-export const executePlugin = async (params: ExecutePluginParams): Promise<ExecutePluginResult> => {
-  const { pluginId, input, tenantId, strategyId, userId, agentVersionId } = params;
+export const executePlugin = async (
+  params: ExecutePluginParams
+): Promise<ExecutePluginResult> => {
+  const { pluginId, tenantId, input, strategyId, agentVersionId } = params;
   const startTime = Date.now();
   
   try {
@@ -88,6 +91,7 @@ export const executePlugin = async (params: ExecutePluginParams): Promise<Execut
     
     return {
       success: true,
+      pluginId,
       output,
       executionTime,
       xpEarned
@@ -112,6 +116,7 @@ export const executePlugin = async (params: ExecutePluginParams): Promise<Execut
     
     return {
       success: false,
+      pluginId,
       error,
       executionTime,
       xpEarned: 0
