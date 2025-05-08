@@ -1,214 +1,299 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { GitBranch, GitCommit, GitMerge, ArrowUpRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { BarChart, Clock, ArrowUpRight } from 'lucide-react';
+import { format } from 'date-fns';
 
 export const PluginEvolutionTab = () => {
-  // This is a simplified version, you would fetch actual plugin evolution data
-  // from Supabase in a real implementation
+  const { currentTenant } = useWorkspace();
+  const tenantId = currentTenant?.id;
+  const [selectedPluginId, setSelectedPluginId] = useState<string | null>(null);
   
-  const pluginEvolutions = [
-    {
-      id: "1",
-      plugin_name: "Email Marketing Automation",
-      current_version: "2.3.0",
-      last_evolved: "2023-04-12T15:30:00Z",
-      agents: 3,
-      xp_gained: 245,
-      roi_impact: 18,
-      evolution_path: [
-        { version: "1.0.0", date: "2023-01-15T10:00:00Z", changes: 0 },
-        { version: "1.1.0", date: "2023-02-01T14:20:00Z", changes: 4 },
-        { version: "2.0.0", date: "2023-02-28T09:15:00Z", changes: 12 },
-        { version: "2.1.0", date: "2023-03-15T11:30:00Z", changes: 6 },
-        { version: "2.2.0", date: "2023-03-30T16:45:00Z", changes: 5 },
-        { version: "2.3.0", date: "2023-04-12T15:30:00Z", changes: 8 },
-      ]
+  // Fetch plugins with their logs and stats
+  const { data: plugins, isLoading } = useQuery({
+    queryKey: ['plugins', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await supabase
+        .from('plugins')
+        .select(`
+          id,
+          name,
+          description,
+          status,
+          created_at,
+          updated_at,
+          xp,
+          roi
+        `)
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching plugins:', error);
+        throw error;
+      }
+      
+      return data || [];
     },
-    {
-      id: "2",
-      plugin_name: "Lead Generation Assistant",
-      current_version: "3.5.2",
-      last_evolved: "2023-04-10T09:45:00Z",
-      agents: 5,
-      xp_gained: 310,
-      roi_impact: 24,
-      evolution_path: [
-        { version: "1.0.0", date: "2023-01-10T10:00:00Z", changes: 0 },
-        { version: "2.0.0", date: "2023-01-25T12:15:00Z", changes: 9 },
-        { version: "3.0.0", date: "2023-02-15T14:20:00Z", changes: 14 },
-        { version: "3.5.0", date: "2023-03-05T16:30:00Z", changes: 7 },
-        { version: "3.5.1", date: "2023-03-20T10:45:00Z", changes: 2 },
-        { version: "3.5.2", date: "2023-04-10T09:45:00Z", changes: 3 },
-      ]
+    enabled: !!tenantId
+  });
+  
+  // Fetch plugin logs for the selected plugin
+  const { data: pluginLogs, isLoading: isLogsLoading } = useQuery({
+    queryKey: ['pluginLogs', selectedPluginId],
+    queryFn: async () => {
+      if (!selectedPluginId) return [];
+      
+      const { data, error } = await supabase
+        .from('plugin_logs')
+        .select('*')
+        .eq('plugin_id', selectedPluginId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('Error fetching plugin logs:', error);
+        throw error;
+      }
+      
+      return data || [];
     },
-    {
-      id: "3",
-      plugin_name: "Social Media Manager",
-      current_version: "1.2.0",
-      last_evolved: "2023-04-05T13:20:00Z",
-      agents: 2,
-      xp_gained: 125,
-      roi_impact: 12,
-      evolution_path: [
-        { version: "1.0.0", date: "2023-03-01T10:00:00Z", changes: 0 },
-        { version: "1.1.0", date: "2023-03-20T11:30:00Z", changes: 5 },
-        { version: "1.2.0", date: "2023-04-05T13:20:00Z", changes: 7 },
-      ]
-    }
-  ];
+    enabled: !!selectedPluginId
+  });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  // Calculate success rate for a plugin
+  const calculateSuccessRate = (pluginId: string) => {
+    if (!pluginLogs) return '0%';
+    
+    const logs = pluginLogs.filter(log => log.plugin_id === pluginId);
+    if (logs.length === 0) return 'N/A';
+    
+    const successful = logs.filter(log => log.status === 'success').length;
+    const rate = (successful / logs.length) * 100;
+    return `${rate.toFixed(1)}%`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {pluginEvolutions.map((plugin) => (
-          <Card key={plugin.id}>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-medium">{plugin.plugin_name}</CardTitle>
-                <Badge>v{plugin.current_version}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Last evolved on {formatDate(plugin.last_evolved)}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <div>
-                  <div className="font-medium">Agent Versions</div>
-                  <div className="text-2xl font-bold">{plugin.agents}</div>
-                </div>
-                <div>
-                  <div className="font-medium">XP Gained</div>
-                  <div className="text-2xl font-bold">{plugin.xp_gained}</div>
-                </div>
-                <div>
-                  <div className="font-medium">ROI Impact</div>
-                  <div className="text-2xl font-bold flex items-center">
-                    +{plugin.roi_impact}%
-                    <ArrowUpRight className="h-4 w-4 text-green-500 ml-1" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">Evolution Path</span>
-                  <span className="text-xs text-muted-foreground">
-                    {plugin.evolution_path.length} versions
-                  </span>
-                </div>
-                <div className="relative h-16">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="h-0.5 w-full bg-muted"></div>
-                  </div>
-                  
-                  {plugin.evolution_path.map((version, index) => {
-                    // Calculate position based on time
-                    const firstDate = new Date(plugin.evolution_path[0].date).getTime();
-                    const lastDate = new Date(plugin.evolution_path[plugin.evolution_path.length - 1].date).getTime();
-                    const currentDate = new Date(version.date).getTime();
-                    
-                    // Calculate position as percentage
-                    const range = lastDate - firstDate;
-                    const position = range !== 0 
-                      ? ((currentDate - firstDate) / range) * 100 
-                      : 0;
-                    
-                    // Determine icon based on version
-                    let VersionIcon = GitCommit;
-                    if (version.version.endsWith(".0.0")) {
-                      VersionIcon = GitMerge;
-                    } else if (version.version.split(".")[2] === "0") {
-                      VersionIcon = GitBranch;
-                    }
-                    
-                    return (
-                      <div 
-                        key={version.version}
-                        className="absolute top-0 -translate-x-1/2 flex flex-col items-center"
-                        style={{ left: `${position}%` }}
-                      >
-                        <div className="flex h-8 items-center justify-center">
-                          <VersionIcon 
-                            className={`h-5 w-5 ${
-                              index === plugin.evolution_path.length - 1 
-                                ? 'text-primary' 
-                                : 'text-muted-foreground'
-                            }`}
-                          />
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Plugin Evolution</CardTitle>
+            <CardDescription>
+              Track how plugins evolve and perform over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="max-h-[500px] overflow-y-auto">
+            {plugins && plugins.length > 0 ? (
+              <div className="space-y-4">
+                {plugins.map((plugin) => (
+                  <div key={plugin.id} className="border rounded-md">
+                    <div 
+                      className={`p-4 ${selectedPluginId === plugin.id ? 'bg-muted/50' : ''}`} 
+                      onClick={() => setSelectedPluginId(plugin.id === selectedPluginId ? null : plugin.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{plugin.name}</h3>
+                            <Badge variant={plugin.status === 'active' ? 'default' : 'outline'}>
+                              {plugin.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                            {plugin.description || 'No description'}
+                          </p>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
-                          v{version.version}
-                        </span>
+                        <Button variant="ghost" size="icon">
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Button>
                       </div>
-                    );
-                  })}
-                </div>
+                      
+                      <div className="flex items-center gap-4 mt-3 text-sm">
+                        <div className="flex items-center">
+                          <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span className="font-medium">{plugin.xp || 0}</span>
+                          <span className="text-muted-foreground ml-1">XP</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span className="font-medium">
+                            {format(new Date(plugin.updated_at || plugin.created_at), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium">ROI:</span>
+                          <span className="ml-1">{plugin.roi || 0}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No plugins found</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>
+              {selectedPluginId 
+                ? plugins?.find(p => p.id === selectedPluginId)?.name || 'Plugin Details'
+                : 'Plugin Details'}
+            </CardTitle>
+            <CardDescription>
+              {selectedPluginId 
+                ? 'Execution history and performance metrics'
+                : 'Select a plugin to view details'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedPluginId ? (
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium">Performance</span>
-                  <span className="text-xs text-muted-foreground">
-                    Compared to initial version
-                  </span>
-                </div>
-                <Progress value={75} className="h-2" />
+                <Tabs defaultValue="history">
+                  <TabsList>
+                    <TabsTrigger value="history">Execution History</TabsTrigger>
+                    <TabsTrigger value="metrics">Performance Metrics</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="history">
+                    <div className="mt-4 max-h-[350px] overflow-y-auto">
+                      {isLogsLoading ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                        </div>
+                      ) : pluginLogs && pluginLogs.length > 0 ? (
+                        <div className="space-y-2">
+                          {pluginLogs.map((log) => (
+                            <div key={log.id} className="border p-3 rounded-md">
+                              <div className="flex justify-between">
+                                <div className="flex items-center">
+                                  <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
+                                    {log.status}
+                                  </Badge>
+                                  <span className="text-xs ml-2 text-muted-foreground">
+                                    {format(new Date(log.created_at), 'MMM d, yyyy HH:mm')}
+                                  </span>
+                                </div>
+                                <div className="text-xs">
+                                  <span className="font-medium">XP:</span> {log.xp_earned}
+                                </div>
+                              </div>
+                              <div className="mt-2 text-xs">
+                                <div className="font-medium">Execution time:</div>
+                                <div>{log.execution_time}s</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No execution logs found</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="metrics">
+                    <div className="mt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm font-medium">Success Rate</div>
+                            <div className="text-3xl font-bold mt-2">
+                              {calculateSuccessRate(selectedPluginId)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm font-medium">Total XP</div>
+                            <div className="text-3xl font-bold mt-2">
+                              {plugins?.find(p => p.id === selectedPluginId)?.xp || 0}
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm font-medium">Avg. Execution Time</div>
+                            <div className="text-3xl font-bold mt-2">
+                              {isLogsLoading ? (
+                                <Skeleton className="h-8 w-16" />
+                              ) : pluginLogs && pluginLogs.length > 0 ? (
+                                `${(pluginLogs.reduce((sum, log) => sum + (log.execution_time || 0), 0) / pluginLogs.length).toFixed(2)}s`
+                              ) : (
+                                'N/A'
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm font-medium">ROI Impact</div>
+                            <div className="text-3xl font-bold mt-2">
+                              {plugins?.find(p => p.id === selectedPluginId)?.roi || 0}%
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      <div className="mt-4">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="text-sm font-medium mb-2">XP Growth Trend</div>
+                            <div className="h-40 flex items-center justify-center border rounded">
+                              <p className="text-muted-foreground">XP trend visualization coming soon</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[400px] border rounded-md p-6 text-center">
+                <ArrowUpRight className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No plugin selected</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Select a plugin from the list to see details
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Plugin Evolution Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <span className="text-sm font-medium">Total Major Versions</span>
-              <div className="text-2xl font-bold">12</div>
-              <span className="text-xs text-muted-foreground">
-                Across all plugins
-              </span>
-            </div>
-            
-            <div className="space-y-1">
-              <span className="text-sm font-medium">Average XP per Plugin</span>
-              <div className="text-2xl font-bold">226.6</div>
-              <span className="text-xs text-green-500 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                +24% this month
-              </span>
-            </div>
-            
-            <div className="space-y-1">
-              <span className="text-sm font-medium">Evolution Frequency</span>
-              <div className="text-2xl font-bold">8.3 days</div>
-              <span className="text-xs text-muted-foreground">
-                Average time between versions
-              </span>
-            </div>
-            
-            <div className="space-y-1">
-              <span className="text-sm font-medium">Avg. Performance Gain</span>
-              <div className="text-2xl font-bold">18%</div>
-              <span className="text-xs text-green-500 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                Per evolution cycle
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

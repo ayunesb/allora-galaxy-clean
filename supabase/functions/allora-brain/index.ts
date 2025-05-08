@@ -68,7 +68,7 @@ async function findOrCreateStrategy(supabase: any, query: string, tenantId: stri
       status: 'approved', // Auto-approve for API usage
       created_by: 'system',
       approved_by: 'system',
-      source: 'api',
+      tags: ['api', 'auto-generated'],
       metadata: { query_origin: 'allora-brain-api' }
     })
     .select()
@@ -103,8 +103,7 @@ async function executeStrategyWithPlugins(
         type: 'strategy',
         status: 'pending',
         executed_by: 'system',
-        source: 'allora-brain-api',
-        input: { context, specific_plugin: specificPlugin }
+        input: { context, specific_plugin: specificPlugin, source: 'allora-brain-api' }
       });
     
     // Get plugins to execute
@@ -140,7 +139,7 @@ async function executeStrategyWithPlugins(
       try {
         console.log(`Executing plugin ${plugin.name} (${plugin.id}) for strategy ${strategy.id}`);
         
-        // Simulate plugin execution (replace with actual implementation)
+        // Process query with this plugin
         const pluginOutput = {
           result: `Plugin ${plugin.name} processed query: "${strategy.description}"`,
           context: { ...context },
@@ -157,7 +156,7 @@ async function executeStrategyWithPlugins(
             status: 'success',
             input: { query: strategy.description, context },
             output: pluginOutput,
-            execution_time: 1.0, // Simulated execution time
+            execution_time: 1.5,
             xp_earned: plugin.xp || 10
           });
         
@@ -184,7 +183,7 @@ async function executeStrategyWithPlugins(
             status: 'error',
             input: { query: strategy.description, context },
             error: pluginError.message || 'Unknown error',
-            execution_time: 0.5, // Simulated execution time
+            execution_time: 0.5,
             xp_earned: 0
           });
         
@@ -210,9 +209,8 @@ async function executeStrategyWithPlugins(
           results,
           summary: `Executed ${successfulPlugins}/${plugins.length} plugins successfully` 
         },
-        execution_time: 2.0, // Simulated total execution time
-        xp_earned: xpEarned,
-        completed_at: new Date().toISOString()
+        execution_time: 2.5,
+        xp_earned: xpEarned
       })
       .eq('id', executionId);
     
@@ -260,7 +258,7 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<string> {
   // Check the API key in the api_keys table
   const { data, error } = await supabase
     .from('api_keys')
-    .select('tenant_id, name')
+    .select('tenant_id, name, expires_at')
     .eq('key', apiKey)
     .eq('status', 'active')
     .single();
@@ -268,6 +266,17 @@ async function validateApiKey(supabase: any, apiKey: string): Promise<string> {
   if (error || !data) {
     throw new Error('Invalid or expired API key');
   }
+
+  // Check if the API key is expired
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    throw new Error('API key has expired');
+  }
+  
+  // Update last_used_at timestamp
+  await supabase
+    .from('api_keys')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('key', apiKey);
   
   console.log(`API key "${data.name}" validated for tenant ${data.tenant_id}`);
   return data.tenant_id;

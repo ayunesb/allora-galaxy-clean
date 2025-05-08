@@ -6,6 +6,6 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
  * @returns The current tenant ID or null if no tenant is selected
  */
 export function useTenantId(): string | null {
-  const { tenant } = useWorkspace();
-  return tenant?.id || null;
+  const { currentTenant } = useWorkspace();
+  return currentTenant?.id || null;
 }

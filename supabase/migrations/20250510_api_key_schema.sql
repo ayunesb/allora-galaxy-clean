@@ -1,80 +1,89 @@
 
--- Create API keys table for Allora-as-a-Brain
-CREATE TABLE IF NOT EXISTS api_keys (
+-- Create table for API keys if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   key TEXT NOT NULL UNIQUE,
-  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expires_at TIMESTAMPTZ,
-  last_used_at TIMESTAMPTZ,
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE,
+  last_used_at TIMESTAMP WITH TIME ZONE,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'revoked')),
-  created_by UUID REFERENCES auth.users(id)
+  metadata JSONB DEFAULT '{}'::jsonb
 );
 
--- Add Row Level Security (RLS) to API keys
-ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+-- Add index for faster lookups by key
+CREATE INDEX IF NOT EXISTS api_keys_key_idx ON public.api_keys(key);
 
--- Policy for selecting API keys: Users can view API keys for tenants they are admins of
-CREATE POLICY api_keys_select_policy ON api_keys
+-- Add index for tenant lookups
+CREATE INDEX IF NOT EXISTS api_keys_tenant_id_idx ON public.api_keys(tenant_id);
+
+-- Add Row Level Security
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only view their tenant's API keys
+CREATE POLICY api_keys_select ON public.api_keys
   FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM tenant_user_roles
       WHERE tenant_user_roles.tenant_id = api_keys.tenant_id
       AND tenant_user_roles.user_id = auth.uid()
-      AND tenant_user_roles.role IN ('owner', 'admin')
     )
   );
 
--- Policy for inserting API keys: Users can create API keys for tenants they are admins of
-CREATE POLICY api_keys_insert_policy ON api_keys
+-- Policy: Only admins and owners can insert API keys
+CREATE POLICY api_keys_insert ON public.api_keys
   FOR INSERT
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM tenant_user_roles
       WHERE tenant_user_roles.tenant_id = api_keys.tenant_id
       AND tenant_user_roles.user_id = auth.uid()
-      AND tenant_user_roles.role IN ('owner', 'admin')
+      AND tenant_user_roles.role IN ('admin', 'owner')
     )
   );
 
--- Policy for updating API keys: Users can update API keys for tenants they are admins of
-CREATE POLICY api_keys_update_policy ON api_keys
+-- Policy: Only admins and owners can update API keys
+CREATE POLICY api_keys_update ON public.api_keys
   FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM tenant_user_roles
       WHERE tenant_user_roles.tenant_id = api_keys.tenant_id
       AND tenant_user_roles.user_id = auth.uid()
-      AND tenant_user_roles.role IN ('owner', 'admin')
+      AND tenant_user_roles.role IN ('admin', 'owner')
     )
   );
 
--- Policy for deleting API keys: Users can delete API keys for tenants they are admins of
-CREATE POLICY api_keys_delete_policy ON api_keys
+-- Policy: Only admins and owners can delete API keys
+CREATE POLICY api_keys_delete ON public.api_keys
   FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM tenant_user_roles
       WHERE tenant_user_roles.tenant_id = api_keys.tenant_id
       AND tenant_user_roles.user_id = auth.uid()
-      AND tenant_user_roles.role IN ('owner', 'admin')
+      AND tenant_user_roles.role IN ('admin', 'owner')
     )
   );
 
--- Function to update last_used_at when API key is used
-CREATE OR REPLACE FUNCTION update_api_key_last_used() RETURNS TRIGGER AS $$
+-- Add function to update last_used_at when the key is used
+CREATE OR REPLACE FUNCTION public.update_api_key_last_used()
+RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE api_keys
-  SET last_used_at = NOW()
-  WHERE id = NEW.id;
+  IF TG_OP = 'UPDATE' AND OLD.last_used_at IS DISTINCT FROM NEW.last_used_at THEN
+    RETURN NEW;
+  END IF;
+  
+  NEW.last_used_at = now();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger for updating last_used timestamp
+-- Add trigger to call the function when the key is updated
+DROP TRIGGER IF EXISTS update_api_key_last_used_trigger ON public.api_keys;
 CREATE TRIGGER update_api_key_last_used_trigger
-  AFTER UPDATE OF last_used_at ON api_keys
+  BEFORE UPDATE ON public.api_keys
   FOR EACH ROW
-  EXECUTE FUNCTION update_api_key_last_used();
+  EXECUTE FUNCTION public.update_api_key_last_used();

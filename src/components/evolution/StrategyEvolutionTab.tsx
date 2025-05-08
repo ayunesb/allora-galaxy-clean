@@ -1,286 +1,281 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { 
-  BarChart, 
-  CalendarDays, 
-  Clock, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  GitCommitHorizontal 
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { ArrowUpRight, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export const StrategyEvolutionTab = () => {
+  const { currentTenant } = useWorkspace();
+  const tenantId = currentTenant?.id;
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null);
+  
+  // Fetch strategies
+  const { data: strategies, isLoading } = useQuery({
+    queryKey: ['strategies', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await supabase
+        .from('strategies')
+        .select(`
+          id,
+          title,
+          description,
+          status,
+          created_at,
+          updated_at,
+          tags,
+          completion_percentage
+        `)
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching strategies:', error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    enabled: !!tenantId
+  });
+  
+  // Fetch strategy executions for the selected strategy
+  const { data: executions, isLoading: isExecutionsLoading } = useQuery({
+    queryKey: ['strategyExecutions', selectedStrategyId],
+    queryFn: async () => {
+      if (!selectedStrategyId) return [];
+      
+      const { data, error } = await supabase
+        .from('executions')
+        .select('*')
+        .eq('strategy_id', selectedStrategyId)
+        .eq('type', 'strategy')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) {
+        console.error('Error fetching strategy executions:', error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    enabled: !!selectedStrategyId
+  });
+  
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      default:
+        return '';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Strategy Evolution Overview</CardTitle>
-          <CardDescription>
-            Track how strategies evolve over time based on execution results
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <span className="text-sm font-medium">Strategy Count</span>
-                  <div className="text-2xl font-bold">24</div>
-                </div>
-                <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-                  <GitCommitHorizontal className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium">Status</span>
-                <div className="flex items-center mt-2 space-x-2">
-                  <Badge className="bg-green-100 text-green-800">
-                    18 Active
-                  </Badge>
-                  <Badge className="bg-yellow-100 text-yellow-800">
-                    4 Draft
-                  </Badge>
-                  <Badge className="bg-red-100 text-red-800">
-                    2 Archived
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <span className="text-sm font-medium">Evolution Rate</span>
-                  <div className="text-2xl font-bold">+12.5%</div>
-                </div>
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <ArrowUpRight className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium">Time to Evolution</span>
-                <div className="flex items-center mt-2">
-                  <Clock className="h-4 w-4 text-muted-foreground mr-2" />
-                  <span>Average 14.3 days</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <span className="text-sm font-medium">Success Rate</span>
-                  <div className="text-2xl font-bold">86%</div>
-                </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium">Last Update</span>
-                <div className="flex items-center mt-2">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground mr-2" />
-                  <span>Today at 10:45 AM</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Tabs defaultValue="evolution">
-        <TabsList className="grid grid-cols-2 w-[400px]">
-          <TabsTrigger value="evolution">Evolution Metrics</TabsTrigger>
-          <TabsTrigger value="history">Strategy History</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="evolution" className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Evolution Triggers</CardTitle>
-                <CardDescription>What causes strategies to evolve</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Poor Performance</span>
-                    <span className="font-medium">42%</span>
-                  </div>
-                  <Progress value={42} />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>New Business Goals</span>
-                    <span className="font-medium">28%</span>
-                  </div>
-                  <Progress value={28} />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Market Changes</span>
-                    <span className="font-medium">18%</span>
-                  </div>
-                  <Progress value={18} />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Technical Improvements</span>
-                    <span className="font-medium">12%</span>
-                  </div>
-                  <Progress value={12} />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">KPI Improvements</CardTitle>
-                <CardDescription>Average improvement after strategy evolution</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Customer Acquisition</span>
-                    <span className="font-medium text-green-600">+24%</span>
-                  </div>
-                  <Progress value={24} className="bg-muted-foreground/20" />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Conversion Rate</span>
-                    <span className="font-medium text-green-600">+18%</span>
-                  </div>
-                  <Progress value={18} className="bg-muted-foreground/20" />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Customer Retention</span>
-                    <span className="font-medium text-green-600">+15%</span>
-                  </div>
-                  <Progress value={15} className="bg-muted-foreground/20" />
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Revenue Growth</span>
-                    <span className="font-medium text-green-600">+22%</span>
-                  </div>
-                  <Progress value={22} className="bg-muted-foreground/20" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Strategy Evolution Timeline</CardTitle>
-                  <CardDescription>How strategy performance improves over time</CardDescription>
-                </div>
-                <BarChart className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center bg-muted/40 rounded-md">
-                <span className="text-muted-foreground">
-                  [Strategy Performance Chart]
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="history" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Strategy Evolution History</CardTitle>
-              <CardDescription>Recent strategy changes and improvements</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {[
-                  {
-                    id: "1",
-                    name: "Q2 Marketing Campaign",
-                    version: "3.0",
-                    date: "2023-04-10",
-                    changes: "Target audience refinement, Ad copy optimization",
-                    improvement: "+18% click-through rate"
-                  },
-                  {
-                    id: "2",
-                    name: "Customer Retention Program",
-                    version: "2.5",
-                    date: "2023-04-05",
-                    changes: "New loyalty incentives, Enhanced email sequence",
-                    improvement: "+12% retention rate"
-                  },
-                  {
-                    id: "3",
-                    name: "Product Launch Strategy",
-                    version: "1.2",
-                    date: "2023-03-28",
-                    changes: "Adjusted pricing strategy, New distribution channels",
-                    improvement: "+24% pre-orders"
-                  },
-                  {
-                    id: "4",
-                    name: "Lead Generation Funnel",
-                    version: "4.1",
-                    date: "2023-03-15",
-                    changes: "New landing page variants, Streamlined form fields",
-                    improvement: "+15% conversion rate"
-                  },
-                  {
-                    id: "5",
-                    name: "Content Marketing Strategy",
-                    version: "2.0",
-                    date: "2023-03-10",
-                    changes: "New keywords targeting, Content calendar restructuring",
-                    improvement: "+30% organic traffic"
-                  }
-                ].map((strategy) => (
-                  <div key={strategy.id} className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-medium">{strategy.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Updated on {strategy.date}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Strategy Evolution</CardTitle>
+            <CardDescription>
+              Track how strategies evolve over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="max-h-[500px] overflow-y-auto">
+            {strategies && strategies.length > 0 ? (
+              <div className="space-y-4">
+                {strategies.map((strategy) => (
+                  <div key={strategy.id} className="border rounded-md">
+                    <div 
+                      className={`p-4 ${selectedStrategyId === strategy.id ? 'bg-muted/50' : ''}`} 
+                      onClick={() => setSelectedStrategyId(strategy.id === selectedStrategyId ? null : strategy.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{strategy.title}</h3>
+                            <Badge 
+                              variant="outline" 
+                              className={getStatusColor(strategy.status)}
+                            >
+                              {strategy.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                            {strategy.description}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="icon">
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 mt-3 text-sm">
+                        <div className="flex items-center">
+                          <FileText className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span className="font-medium">{strategy.completion_percentage || 0}%</span>
+                          <span className="text-muted-foreground ml-1">complete</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span className="font-medium">
+                            {format(new Date(strategy.updated_at || strategy.created_at), 'MMM d, yyyy')}
+                          </span>
                         </div>
                       </div>
-                      <Badge>v{strategy.version}</Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div>
-                        <span className="text-sm font-medium">Changes</span>
-                        <p className="text-sm mt-1">{strategy.changes}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium">Impact</span>
-                        <p className="text-sm mt-1 text-green-600">{strategy.improvement}</p>
-                      </div>
+                      
+                      {strategy.tags && strategy.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {strategy.tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No strategies found</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>
+              {selectedStrategyId 
+                ? strategies?.find(s => s.id === selectedStrategyId)?.title || 'Strategy Details'
+                : 'Strategy Details'}
+            </CardTitle>
+            <CardDescription>
+              {selectedStrategyId 
+                ? 'Execution history and metrics'
+                : 'Select a strategy to view details'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedStrategyId ? (
+              <div>
+                <h3 className="font-medium mb-2">Execution History</h3>
+                <div className="max-h-[400px] overflow-y-auto">
+                  {isExecutionsLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                    </div>
+                  ) : executions && executions.length > 0 ? (
+                    <div className="space-y-3">
+                      {executions.map((execution) => (
+                        <div key={execution.id} className="border p-3 rounded-md">
+                          <div className="flex justify-between">
+                            <div className="flex items-center gap-2">
+                              {execution.status === 'success' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              ) : execution.status === 'partial' ? (
+                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                                  Partial
+                                </Badge>
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              )}
+                              <span className="text-sm font-medium">
+                                {execution.status === 'success' 
+                                  ? 'Successful execution'
+                                  : execution.status === 'partial'
+                                  ? 'Partial success'
+                                  : 'Failed execution'}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(execution.created_at), 'MMM d, yyyy HH:mm')}
+                            </span>
+                          </div>
+                          
+                          <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                            <div>
+                              <div className="font-medium">Execution time</div>
+                              <div>{execution.execution_time}s</div>
+                            </div>
+                            <div>
+                              <div className="font-medium">XP earned</div>
+                              <div>{execution.xp_earned || 0}</div>
+                            </div>
+                            <div>
+                              <div className="font-medium">Plugins</div>
+                              <div>
+                                {execution.output?.plugins_executed || 0} executed, 
+                                {execution.output?.successful_plugins || 0} successful
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {execution.error && (
+                            <div className="mt-2 text-xs text-red-500">
+                              <div className="font-medium">Error</div>
+                              <div>{execution.error}</div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 border rounded-md">
+                      <p className="text-muted-foreground">No execution history found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[400px] border rounded-md p-6 text-center">
+                <ArrowUpRight className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No strategy selected</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Select a strategy from the list to see details
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

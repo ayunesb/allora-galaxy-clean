@@ -6,31 +6,33 @@ import AuthLayout from "@/layouts/AuthLayout";
 import OnboardingLayout from "@/layouts/OnboardingLayout";
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import { AdminGuard } from '@/components/guards/AdminGuard';
-import { LoadingScreen } from '@/components/LoadingScreen';
+import LoadingScreen from '@/components/LoadingScreen';
 
-// Lazy-loaded pages
+// Auth pages
+const Login = lazy(() => import('@/pages/auth/LoginPage'));
+const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
+const ResetPassword = lazy(() => import('@/pages/auth/ResetPasswordPage'));
+const Register = lazy(() => import('@/pages/auth/RegisterPage'));
+
+// Main pages
 const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
-const Login = lazy(() => import('@/pages/auth/Login'));
-const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
-const Register = lazy(() => import('@/pages/auth/Register'));
 const Onboarding = lazy(() => import('@/pages/onboarding'));
-const Galaxy = lazy(() => import('@/pages/galaxy'));
-const LaunchPage = lazy(() => import('@/pages/launch'));
-const PluginsPage = lazy(() => import('@/pages/plugins'));
-const AdminPage = lazy(() => import('@/pages/admin'));
+const Galaxy = lazy(() => import('@/pages/galaxy/GalaxyPage'));
+const LaunchPage = lazy(() => import('@/pages/launch/LaunchPage'));
+const PluginsPage = lazy(() => import('@/pages/plugins/PluginsPage'));
+const AdminPage = lazy(() => import('@/pages/admin/AdminDashboard'));
 const SystemLogs = lazy(() => import('@/pages/admin/SystemLogs'));
-const UsersPage = lazy(() => import('@/pages/admin/Users'));
-const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
-const InsightsPage = lazy(() => import('@/pages/insights'));
-const KPIDashboard = lazy(() => import('@/pages/insights/KPIDashboard'));
+const UsersPage = lazy(() => import('@/pages/admin/UserManagement'));
+const ApiKeys = lazy(() => import('@/pages/admin/ApiKeysPage'));
+const InsightsPage = lazy(() => import('@/pages/insights/KpiDashboard'));
+const KPIDashboard = lazy(() => import('@/pages/insights/KpiDashboard'));
 const StrategyPage = lazy(() => import('@/pages/strategy'));
 const StrategyDetails = lazy(() => import('@/pages/strategy/StrategyDetails'));
 const StrategyEngine = lazy(() => import('@/pages/strategy/StrategyEngine'));
-const AgentPerformance = lazy(() => import('@/pages/agents/performance'));
-const PluginDetails = lazy(() => import('@/pages/plugins/PluginDetails'));
+const AgentPerformance = lazy(() => import('@/pages/agents/AgentPerformance'));
+const PluginDetails = lazy(() => import('@/pages/plugins/PluginDetailPage'));
 const PluginEvolutionPage = lazy(() => import('@/pages/plugins/PluginEvolutionPage'));
-const AlloraBrain = lazy(() => import('@/pages/allora-brain'));
+const AlloraBrain = lazy(() => import('@/pages/allora-brain/AlloraBrainPage'));
 const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
 const EvolutionPage = lazy(() => import('@/pages/evolution'));
 
