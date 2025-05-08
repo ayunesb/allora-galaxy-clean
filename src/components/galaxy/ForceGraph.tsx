@@ -27,7 +27,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ graphData, fgRef, onNodeClick }
   };
 
   // Type-safe node click handler
-  const handleNodeClick = (node: any, event: MouseEvent) => {
+  const handleNodeClick = (node: any, _event: MouseEvent) => {
     onNodeClick(node as GraphNode);
   };
 

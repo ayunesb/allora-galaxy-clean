@@ -23,7 +23,7 @@ export interface ExecuteStrategyResult {
   plugins_executed?: number;
   successful_plugins?: number;
   xp_earned?: number;
-  status?: 'success' | 'partial' | 'failure' | 'pending';
+  status?: 'success' | 'partial' | 'failure'; // Removed 'pending' to match fixed.ts
   // Below fields for test compatibility
   executionTime?: number;
   outputs?: Record<string, any>;

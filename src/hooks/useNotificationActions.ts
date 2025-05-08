@@ -7,7 +7,7 @@ export const useNotificationActions = () => {
     markAsRead: markNotificationAsRead, 
     markAllAsRead: markAllNotificationsAsRead, 
     deleteNotification: deleteOneNotification, 
-    deleteAll: deleteAllNotifications 
+    deleteAll: deleteAllNotificationsFromDB 
   } = useNotifications();
 
   const markAsRead = async (id: string) => {
@@ -58,7 +58,7 @@ export const useNotificationActions = () => {
 
   const deleteAllNotifications = async (filter: string | null, tab: string) => {
     try {
-      await deleteAllNotifications(filter, tab === 'unread');
+      await deleteAllNotificationsFromDB(filter, tab === 'unread');
       toast({
         title: "Success",
         description: "All notifications deleted",
