@@ -3,5 +3,5 @@
  * Centralized exports for edge function utilities
  */
 
-export { corsHeaders, errorHandler } from './errorHandler';
+export { corsHeaders, errorHandler, createSuccessResponse } from './errorHandler';
 export * from './envManager';

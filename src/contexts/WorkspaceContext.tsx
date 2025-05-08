@@ -16,6 +16,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 };
 
 // Hook to use the workspace context
-export const useWorkspace = () => useContext(WorkspaceContext);
+export const useWorkspace = () => {
+  const context = useContext(WorkspaceContext);
+  
+  if (context === undefined) {
+    throw new Error('useWorkspace must be used within a WorkspaceProvider');
+  }
+  
+  return context;
+};
 
 export default WorkspaceContext;

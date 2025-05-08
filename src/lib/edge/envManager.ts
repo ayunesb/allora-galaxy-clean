@@ -1,4 +1,5 @@
 
+import { getEnvWithDefault } from '@/lib/env/envUtils';
 import { corsHeaders } from '@/lib/env';
 
 /**
@@ -9,11 +10,29 @@ import { corsHeaders } from '@/lib/env';
  */
 export function getEnv(key: string, defaultValue: string = ""): string {
   try {
-    // Use type assertion here for Deno environment
-    const deno = (globalThis as any).Deno;
-    if (deno && typeof deno.env?.get === "function") {
-      return deno.env.get(key) ?? defaultValue;
+    // First try Deno environment
+    if (typeof Deno !== 'undefined' && Deno?.env?.get) {
+      const value = Deno.env.get(key);
+      if (value !== undefined) return value;
     }
+    
+    // Fall back to process.env for Node environments
+    if (typeof process !== 'undefined' && process?.env) {
+      const value = process.env[key];
+      if (value !== undefined) return value;
+    }
+    
+    // Use import.meta.env for browser/Vite environments
+    try {
+      // @ts-ignore - import.meta is available in Vite
+      if (import.meta?.env && import.meta.env[key] !== undefined) {
+        // @ts-ignore
+        return import.meta.env[key];
+      }
+    } catch (e) {
+      // Ignore errors accessing import.meta (not available in all contexts)
+    }
+    
     return defaultValue;
   } catch (err) {
     console.warn(`Error accessing env variable ${key}:`, err);
@@ -23,3 +42,6 @@ export function getEnv(key: string, defaultValue: string = ""): string {
 
 // Re-export CORS headers for use in edge functions
 export { corsHeaders };
+
+// Export getEnvWithDefault for convenience
+export { getEnvWithDefault };
