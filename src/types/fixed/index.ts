@@ -18,7 +18,9 @@ export type {
   ExecutionParams,
   ExecutionType,
   KPITrend,
-  TenantFeature
+  TenantFeature,
+  PluginResult,
+  RunPluginChainResult
 } from '../shared';
 
 // Export RunPluginChainResult specifically as it's needed

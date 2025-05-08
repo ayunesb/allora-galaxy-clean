@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Strategy } from '@/types/strategy';
@@ -253,7 +252,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
             <p className="text-center py-4 text-muted-foreground">No evolution history found for this strategy.</p>
           ) : (
             <div className="space-y-4">
-              {history.map((event, index) => {
+              {history.map((event) => {
                 const userId = event.context?.user_id || event.context?.executed_by;
                 
                 return (

@@ -4,5 +4,6 @@ export {
   voteOnAgentVersion,
   getUserVote,
   upvoteAgentVersion, 
-  downvoteAgentVersion 
+  downvoteAgentVersion,
+  castVote
 } from './voteOnAgentVersion';

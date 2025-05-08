@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { VoteType } from '@/types/shared';
+import { VoteType } from '@/types/fixed';
 import { castVote, getUserVote } from '@/lib/agents/voting';
 import { UseAgentVoteParams, UseAgentVoteReturn } from './types';
 
@@ -20,10 +20,8 @@ export function useAgentVote({
   // Fetch the user's current vote when component mounts
   useEffect(() => {
     const fetchUserVote = async () => {
-      if (!userId) return;
-      
       try {
-        const { vote, hasVoted } = await getUserVote(agentVersionId);
+        const { vote, hasVoted } = await getUserVote(agentVersionId, userId);
         
         if (hasVoted && vote) {
           setUserVote(vote.voteType === 'upvote' ? 'up' : 'down');
@@ -40,7 +38,7 @@ export function useAgentVote({
   }, [agentVersionId, userId]);
 
   const handleVote = async (voteType: VoteType) => {
-    if (!userId || submitting) return;
+    if (submitting) return;
     
     setSubmitting(true);
     
@@ -65,7 +63,7 @@ export function useAgentVote({
   };
 
   const handleSubmitComment = async () => {
-    if (!userId || submitting || !userVote) return;
+    if (!userVote || submitting) return;
     
     setSubmitting(true);
     

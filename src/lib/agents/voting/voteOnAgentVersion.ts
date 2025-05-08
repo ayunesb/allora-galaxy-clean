@@ -1,6 +1,46 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { AgentVote, VoteResult, VoteType } from '@/types/agent';
+import { VoteType } from '@/types/fixed';
+
+/**
+ * Vote on an agent version
+ * @param agentVersionId The agent version ID to vote on
+ * @param voteType The type of vote (upvote or downvote)
+ * @param comment Optional comment explaining the vote
+ * @returns Result of the voting operation
+ */
+export async function castVote(
+  agentVersionId: string,
+  voteType: VoteType,
+  comment?: string
+): Promise<VoteResult> {
+  try {
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user) {
+      return {
+        success: false,
+        upvotes: 0,
+        downvotes: 0,
+        error: 'You must be logged in to vote'
+      };
+    }
+    
+    const userId = session.user.id;
+    
+    return voteOnAgentVersion(agentVersionId, voteType, userId, comment);
+  } catch (err: any) {
+    console.error('Error in castVote:', err);
+    return {
+      success: false,
+      upvotes: 0,
+      downvotes: 0,
+      error: `Failed to cast vote: ${err.message}`
+    };
+  }
+}
 
 /**
  * Vote on an agent version
@@ -143,8 +183,21 @@ export async function voteOnAgentVersion(
  * @param userId The user ID
  * @returns Information about the user's vote
  */
-export async function getUserVote(agentVersionId: string, userId: string) {
+export async function getUserVote(agentVersionId: string, userId?: string) {
   try {
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        return {
+          success: false,
+          hasVoted: false,
+          vote: null,
+          error: "Not authenticated"
+        };
+      }
+      userId = session.user.id;
+    }
+    
     const { data, error } = await supabase
       .from('agent_votes')
       .select('*')
@@ -179,27 +232,31 @@ export async function getUserVote(agentVersionId: string, userId: string) {
 /**
  * Upvote an agent version
  * @param agentVersionId The agent version ID
- * @param userId The user ID
  * @param comment Optional comment
  */
 export async function upvoteAgentVersion(
   agentVersionId: string,
-  userId: string,
   comment?: string
 ): Promise<VoteResult> {
-  return voteOnAgentVersion(agentVersionId, 'upvote', userId, comment);
+  return castVote(agentVersionId, 'upvote', comment);
 }
 
 /**
  * Downvote an agent version
  * @param agentVersionId The agent version ID
- * @param userId The user ID
  * @param comment Optional comment
  */
 export async function downvoteAgentVersion(
   agentVersionId: string,
-  userId: string,
   comment?: string
 ): Promise<VoteResult> {
-  return voteOnAgentVersion(agentVersionId, 'downvote', userId, comment);
+  return castVote(agentVersionId, 'downvote', comment);
+}
+
+export interface VoteResult {
+  success: boolean;
+  upvotes: number;
+  downvotes: number;
+  message?: string;
+  error?: string;
 }
