@@ -73,10 +73,10 @@ describe('Auto Evolve Agents', () => {
   it('should evolve agents that need evolution', async () => {
     const tenantId = 'test-tenant';
     
-    const result = await autoEvolveAgents(tenantId);
+    const result = await autoEvolveAgents({ tenantId });
     
     expect(result.success).toBe(true);
-    expect(result.evolved).toBeGreaterThan(0);
+    expect(result.agentsEvolved).toBeGreaterThan(0);
     expect(supabase.from).toHaveBeenCalledWith('agent_versions');
   });
 });

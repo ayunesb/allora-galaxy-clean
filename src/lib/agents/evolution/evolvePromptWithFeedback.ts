@@ -10,7 +10,7 @@
 export async function evolvePromptWithFeedback(
   currentPrompt: string,
   feedbackComments: Array<{ comment: string; vote_type: string; created_at: string }>,
-  evolveReason: string
+  evolveReason = 'Regular improvement'
 ): Promise<string> {
   try {
     // Extract positive and negative feedback

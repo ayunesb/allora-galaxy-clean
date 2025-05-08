@@ -1,6 +1,5 @@
 
 import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
 
 /**
  * Check if the user already has tenants

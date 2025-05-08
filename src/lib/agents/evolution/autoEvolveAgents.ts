@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { checkEvolutionNeeded } from './checkEvolutionNeeded';
-import { createEvolvedAgent } from './createEvolvedAgent';
+import { createEvolvedAgent, CreateEvolvedAgentOptions } from './createEvolvedAgent';
 import { deactivateAgentVersion } from './deactivateOldAgent';
 import { getFeedbackComments, evolvePromptWithFeedback } from './getFeedbackComments';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -92,7 +92,8 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
           // Evolve the prompt using feedback
           const evolvedPrompt = await evolvePromptWithFeedback(
             agentVersion.prompt,
-            comments
+            comments,
+            evolutionCheck.reason || 'Performance optimization'
           );
           
           // Create the evolved agent version
@@ -104,9 +105,6 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
             tenantId: agentVersion.tenant_id
           });
           
-          // Deactivate the old agent version
-          await deactivateAgentVersion(agentVersion.id, evolvedAgent.id);
-          
           // Log the evolution event
           await logSystemEvent(
             agentVersion.tenant_id,
@@ -115,7 +113,7 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
             {
               agent_id: agentVersion.agent_id,
               old_version_id: agentVersion.id,
-              new_version_id: evolvedAgent.id,
+              new_version_id: evolvedAgent.id || '',
               reason: evolutionCheck.reason
             }
           );
@@ -123,8 +121,8 @@ export async function autoEvolveAgents(options: EvolutionOptions = {}): Promise<
           // Add to results
           result.agentsEvolved++;
           result.evolvedAgents.push({
-            id: evolvedAgent.id,
-            name: agentVersion.name,
+            id: evolvedAgent.id || '',
+            name: agentVersion.name || 'Unknown Agent',
             reason: evolutionCheck.reason || 'Performance optimization',
             oldVersionId: agentVersion.id
           });

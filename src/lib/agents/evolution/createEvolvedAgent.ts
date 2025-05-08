@@ -5,8 +5,17 @@ import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { deactivateAgent } from './deactivateOldAgent';
 
+export interface CreateEvolvedAgentOptions {
+  originalVersionId: string;
+  agentId: string;
+  prompt: string;
+  reason: string;
+  tenantId: string;
+}
+
 export interface EvolutionResult {
   success: boolean;
+  id?: string;
   newAgentVersionId?: string;
   error?: string;
 }
@@ -14,53 +23,26 @@ export interface EvolutionResult {
 /**
  * Creates an evolved version of an agent based on feedback
  * 
- * @param agentVersionId - ID of the agent version to evolve
- * @param tenantId - ID of the tenant
- * @param evolveReason - Reason for evolving the agent
+ * @param options - Options for creating the evolved agent
  * @returns Evolution result with new agent version ID or error
  */
 export async function createEvolvedAgent(
-  agentVersionId: string,
-  tenantId: string,
-  evolveReason: string
+  options: CreateEvolvedAgentOptions
 ): Promise<EvolutionResult> {
   try {
-    // Get current agent version
-    const { data: agentVersion, error: agentError } = await supabase
-      .from('agent_versions')
-      .select('*')
-      .eq('id', agentVersionId)
-      .single();
-
-    if (agentError || !agentVersion) {
-      throw new Error(`Error fetching agent version: ${agentError?.message || 'Not found'}`);
-    }
-
-    // Get feedback comments for improvement
-    const comments = await getFeedbackComments(agentVersionId);
-    
-    // Evolve the prompt based on feedback
-    const newPrompt = await evolvePromptWithFeedback(
-      agentVersion.prompt,
-      comments,
-      evolveReason
-    );
-    
-    // Create new version (increment version number)
-    const currentVersion = parseInt(agentVersion.version.replace('v', ''), 10);
-    const newVersion = `v${currentVersion + 1}`;
+    const { originalVersionId, agentId, prompt, reason, tenantId } = options;
     
     // Insert new agent version
     const { data: newAgentVersion, error: insertError } = await supabase
       .from('agent_versions')
       .insert({
-        plugin_id: agentVersion.plugin_id,
-        prompt: newPrompt,
+        plugin_id: agentId,
+        prompt: prompt,
         created_by: 'system',
-        version: newVersion,
-        previous_version_id: agentVersionId,
+        version: `evolved-${new Date().toISOString().split('T')[0]}`,
+        previous_version_id: originalVersionId,
         status: 'active',
-        evolution_reason: evolveReason,
+        evolution_reason: reason,
         tenant_id: tenantId
       })
       .select()
@@ -71,7 +53,7 @@ export async function createEvolvedAgent(
     }
     
     // Deactivate previous version
-    await deactivateAgent(agentVersionId);
+    await deactivateAgent(originalVersionId, newAgentVersion.id);
     
     // Log the evolution event
     await logSystemEvent(
@@ -79,14 +61,15 @@ export async function createEvolvedAgent(
       'agent',
       'agent_evolved',
       {
-        previous_agent_id: agentVersionId,
+        previous_agent_id: originalVersionId,
         new_agent_id: newAgentVersion.id,
-        reason: evolveReason
+        reason: reason
       }
     );
     
     return {
       success: true,
+      id: newAgentVersion.id,
       newAgentVersionId: newAgentVersion.id
     };
   } catch (error: any) {
