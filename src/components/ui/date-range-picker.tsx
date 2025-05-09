@@ -93,7 +93,7 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={{
-              from: date?.from,
+              from: date?.from || undefined,
               to: date?.to
             }}
             onSelect={handleSelect}

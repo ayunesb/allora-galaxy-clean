@@ -1,5 +1,6 @@
 
 // CORS headers for Supabase Edge Functions
+// Note: These are now duplicated in index.ts to avoid circular imports
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

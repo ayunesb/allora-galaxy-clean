@@ -3,9 +3,9 @@ import React, { useState, useCallback } from 'react';
 import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import { AuditLog } from '@/types/shared';
 import { LogDetailDialog } from '@/components/evolution';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 
 // Define SystemLog type
 export interface SystemLog {

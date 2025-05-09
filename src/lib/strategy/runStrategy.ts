@@ -119,7 +119,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
       tenantId
     );
     
-    // Get strategy data
+    // Get strategy data - Use the extracted strategyId here
     const { strategy, error: strategyError } = await verifyStrategy(strategyId, tenantId);
     
     // Check for errors in strategy retrieval
