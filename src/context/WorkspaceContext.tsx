@@ -1,116 +1,148 @@
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from './AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
-  role: string;
 }
 
 interface WorkspaceContextType {
+  workspaces: Workspace[];
   currentWorkspace: Workspace | null;
-  setCurrentWorkspace: (workspace: Workspace | null) => void;
-  userWorkspaces: Workspace[];
   loading: boolean;
+  setCurrentWorkspace: (workspace: Workspace) => void;
   refreshWorkspaces: () => Promise<void>;
+  error: string | null;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
-export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const WorkspaceProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
-  const [userWorkspaces, setUserWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Fetch user workspaces
-  const fetchUserWorkspaces = async () => {
+  const fetchWorkspaces = async () => {
     if (!user) {
-      setUserWorkspaces([]);
+      setWorkspaces([]);
       setCurrentWorkspace(null);
       setLoading(false);
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('tenant_user_roles')
+      setLoading(true);
+      setError(null);
+
+      // Fetch workspaces (tenants) that the current user has access to
+      const { data, error: fetchError } = await supabase
+        .from('tenants')
         .select(`
-          tenant_id,
-          role,
-          tenants:tenant_id (
-            id,
-            name,
-            slug
-          )
+          id,
+          name,
+          slug,
+          tenant_user_roles!inner(user_id, role)
         `)
-        .eq('user_id', user.id);
+        .eq('tenant_user_roles.user_id', user.id);
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Error fetching workspaces:', fetchError);
+        setError('Failed to load workspaces');
+        toast({
+          title: "Error loading workspaces",
+          description: fetchError.message,
+          variant: "destructive"
+        });
+        return;
+      }
 
-      const workspaces: Workspace[] = data
-        .filter(item => item.tenants) // Filter out any null relationships
-        .map(item => ({
-          id: item.tenants.id,
-          name: item.tenants.name,
-          slug: item.tenants.slug,
-          role: item.role
-        }));
+      // Transform the data to match our Workspace type
+      const transformedWorkspaces: Workspace[] = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug
+      }));
 
-      setUserWorkspaces(workspaces);
+      setWorkspaces(transformedWorkspaces);
 
-      // Get stored workspace ID from localStorage
-      const storedWorkspaceId = localStorage.getItem('currentWorkspaceId');
-      
-      if (storedWorkspaceId && workspaces.some(w => w.id === storedWorkspaceId)) {
-        const workspace = workspaces.find(w => w.id === storedWorkspaceId);
-        if (workspace) {
-          setCurrentWorkspace(workspace);
-        }
-      } else if (workspaces.length > 0) {
-        // Default to first workspace
-        setCurrentWorkspace(workspaces[0]);
-        localStorage.setItem('currentWorkspaceId', workspaces[0].id);
-      } else {
+      // Set the first workspace as the current one if there's no current selection
+      if (transformedWorkspaces.length > 0 && !currentWorkspace) {
+        setCurrentWorkspace(transformedWorkspaces[0]);
+      } else if (transformedWorkspaces.length === 0) {
+        // Reset current workspace if there are no workspaces
         setCurrentWorkspace(null);
       }
-    } catch (error) {
-      console.error('Error fetching workspaces:', error);
-      setUserWorkspaces([]);
-      setCurrentWorkspace(null);
+
+    } catch (err: any) {
+      console.error('Error in fetchWorkspaces:', err);
+      setError('An unexpected error occurred');
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to load workspaces',
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Refresh workspaces list
-  const refreshWorkspaces = async () => {
-    setLoading(true);
-    await fetchUserWorkspaces();
+  // Switch the current workspace
+  const switchWorkspace = (workspace: Workspace) => {
+    setCurrentWorkspace(workspace);
+    // Save selection to localStorage
+    localStorage.setItem('currentWorkspace', JSON.stringify(workspace));
   };
 
-  // Initialize on auth change
+  // Restore the previously selected workspace from localStorage
+  const restoreWorkspace = () => {
+    const savedWorkspace = localStorage.getItem('currentWorkspace');
+    if (savedWorkspace) {
+      try {
+        const parsedWorkspace = JSON.parse(savedWorkspace);
+        // Only set it if it's in the available workspaces
+        if (workspaces.some(w => w.id === parsedWorkspace.id)) {
+          setCurrentWorkspace(parsedWorkspace);
+        }
+      } catch (err) {
+        console.error('Error restoring workspace from localStorage:', err);
+        localStorage.removeItem('currentWorkspace');
+      }
+    }
+  };
+
+  // Fetch workspaces when the user changes
   useEffect(() => {
-    fetchUserWorkspaces();
+    fetchWorkspaces();
   }, [user]);
 
+  // Restore the selected workspace when workspaces are loaded
+  useEffect(() => {
+    if (workspaces.length > 0 && !loading) {
+      restoreWorkspace();
+    }
+  }, [workspaces, loading]);
+
   return (
-    <WorkspaceContext.Provider value={{ 
-      currentWorkspace, 
-      setCurrentWorkspace, 
-      userWorkspaces, 
+    <WorkspaceContext.Provider value={{
+      workspaces,
+      currentWorkspace,
       loading,
-      refreshWorkspaces
+      setCurrentWorkspace: switchWorkspace,
+      refreshWorkspaces: fetchWorkspaces,
+      error
     }}>
       {children}
     </WorkspaceContext.Provider>
   );
 };
 
-export const useWorkspace = (): WorkspaceContextType => {
+export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
   if (context === undefined) {
     throw new Error('useWorkspace must be used within a WorkspaceProvider');

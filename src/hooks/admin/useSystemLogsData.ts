@@ -1,8 +1,16 @@
 
-import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { SystemEventModule, SystemEventType } from '@/types/shared';
+import { toast } from '@/components/ui/use-toast';
+
+interface SystemLog {
+  id: string;
+  module: string;
+  event: string;
+  context?: Record<string, any>;
+  created_at: string;
+  tenant_id?: string;
+}
 
 export interface LogFilterState {
   moduleFilter: string;
@@ -11,122 +19,121 @@ export interface LogFilterState {
   selectedDate: Date | null;
 }
 
-export function useSystemLogsData(tenantId: string | null) {
-  const [moduleFilter, setModuleFilter] = useState<string>('');
-  const [eventFilter, setEventFilter] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+export const useSystemLogsData = (tenantId?: string) => {
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedLog, setSelectedLog] = useState<any | null>(null);
-  const [availableModules, setAvailableModules] = useState<SystemEventModule[]>([]);
-  const [availableEvents, setAvailableEvents] = useState<SystemEventType[]>([]);
-  
-  const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery, selectedDate],
-    queryFn: async () => {
-      if (!tenantId) return [];
-      
-      // First, fetch module and event types
-      try {
-        const { data: modules, error: modulesError } = await supabase
-          .from('system_logs')
-          .select('module')
-          .eq('tenant_id', tenantId)
-          .limit(100);
-          
-        if (!modulesError && modules) {
-          const uniqueModules = Array.from(
-            new Set(modules.map(item => item.module))
-          ) as SystemEventModule[];
-          setAvailableModules(uniqueModules);
-        }
-        
-        const { data: events, error: eventsError } = await supabase
-          .from('system_logs')
-          .select('event')
-          .eq('tenant_id', tenantId)
-          .limit(100);
-          
-        if (!eventsError && events) {
-          const uniqueEvents = Array.from(
-            new Set(events.map(item => item.event))
-          ) as SystemEventType[];
-          setAvailableEvents(uniqueEvents);
-        }
-      } catch (err) {
-        console.error('Error fetching filter options:', err);
-      }
-      
-      // Now fetch logs with filters
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [availableModules, setAvailableModules] = useState<string[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<string[]>([]);
+
+  // Fetch logs with applied filters
+  const fetchLogs = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (moduleFilter) {
+        .order('created_at', { ascending: false });
+
+      // Filter by tenant if specified
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
+
+      // Apply module filter
+      if (moduleFilter !== 'all') {
         query = query.eq('module', moduleFilter);
       }
-      
-      if (eventFilter) {
+
+      // Apply event filter
+      if (eventFilter !== 'all') {
         query = query.eq('event', eventFilter);
       }
-      
+
+      // Apply search filter (across multiple fields)
       if (searchQuery) {
-        query = query.or(`context.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
+        query = query.or(`module.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
       }
-      
+
+      // Apply date filter
       if (selectedDate) {
-        const startDate = new Date(selectedDate);
-        startDate.setHours(0, 0, 0, 0);
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
         
-        const endDate = new Date(selectedDate);
-        endDate.setHours(23, 59, 59, 999);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
         
-        query = query.gte('created_at', startDate.toISOString())
-                     .lte('created_at', endDate.toISOString());
+        query = query.gte('created_at', startOfDay.toISOString())
+                     .lte('created_at', endOfDay.toISOString());
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) {
-        console.error('Error fetching system logs:', error);
         throw error;
       }
-      
-      return data || [];
-    },
-    enabled: !!tenantId
-  });
-  
-  const resetFilters = useCallback(() => {
-    setModuleFilter('');
-    setEventFilter('');
+
+      setLogs(data || []);
+
+      // Extract unique modules and events for filter dropdowns
+      if (data && data.length > 0) {
+        const modules = [...new Set(data.map(log => log.module))];
+        const events = [...new Set(data.map(log => log.event))];
+        setAvailableModules(modules);
+        setAvailableEvents(events);
+      }
+
+    } catch (error: any) {
+      console.error('Error fetching system logs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load system logs",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tenantId, moduleFilter, eventFilter, searchQuery, selectedDate]);
+
+  // Initial load and when dependencies change
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // Filter handlers
+  const handleFilterChange = (filters: LogFilterState) => {
+    setModuleFilter(filters.moduleFilter);
+    setEventFilter(filters.eventFilter);
+    setSearchQuery(filters.searchQuery);
+    setSelectedDate(filters.selectedDate);
+  };
+
+  const resetFilters = () => {
+    setModuleFilter('all');
+    setEventFilter('all');
     setSearchQuery('');
     setSelectedDate(null);
-  }, []);
-  
-  const handleFilterChange = useCallback((newFilters: LogFilterState) => {
-    setModuleFilter(newFilters.moduleFilter);
-    setEventFilter(newFilters.eventFilter);
-    setSearchQuery(newFilters.searchQuery);
-    setSelectedDate(newFilters.selectedDate);
-  }, []);
-  
-  const handleViewDetails = useCallback((log: any) => {
+  };
+
+  const handleViewDetails = (log: SystemLog) => {
     setSelectedLog(log);
-  }, []);
-  
-  const closeLogDetails = useCallback(() => {
+  };
+
+  const closeLogDetails = () => {
     setSelectedLog(null);
-  }, []);
-  
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  };
+
+  const handleRefresh = () => {
+    fetchLogs();
+  };
 
   return {
-    logs: logs || [],
+    logs,
     isLoading,
     moduleFilter,
     eventFilter,
@@ -135,10 +142,12 @@ export function useSystemLogsData(tenantId: string | null) {
     selectedLog,
     availableModules,
     availableEvents,
-    resetFilters,
     handleFilterChange,
+    resetFilters,
     handleViewDetails,
     closeLogDetails,
     handleRefresh
   };
-}
+};
+
+export default useSystemLogsData;

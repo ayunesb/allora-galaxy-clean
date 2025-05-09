@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
+import { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 
 const SystemLogs: React.FC = () => {
   const tenantId = useTenantId();

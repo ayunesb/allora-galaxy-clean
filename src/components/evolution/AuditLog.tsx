@@ -4,9 +4,16 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import AuditLogFilters, { AuditLogFilterState } from './logs/AuditLogFilters';
+import AuditLogFilters from './logs/AuditLogFilters';
 import AuditLogTable from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
+
+export interface AuditLogFilterState {
+  moduleFilter: string;
+  eventFilter: string;
+  searchQuery: string;
+  selectedDate: Date | null;
+}
 
 export const AuditLog: React.FC = () => {
   const {

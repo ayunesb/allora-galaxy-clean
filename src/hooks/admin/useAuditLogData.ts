@@ -1,9 +1,16 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenantId } from '@/hooks/useTenantId';
-import { SystemEventModule, SystemEventType } from '@/types/shared';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { toast } from '@/components/ui/use-toast';
+
+interface AuditLog {
+  id: string;
+  module: string;
+  event: string;
+  context?: Record<string, any>;
+  created_at: string;
+}
 
 export interface AuditLogFilterState {
   moduleFilter: string;
@@ -12,132 +19,126 @@ export interface AuditLogFilterState {
   selectedDate: Date | null;
 }
 
-export function useAuditLogData() {
-  const tenantId = useTenantId();
-  
-  // Log filter states
-  const [moduleFilter, setModuleFilter] = React.useState<string>('');
-  const [eventFilter, setEventFilter] = React.useState<string>('');
-  const [searchQuery, setSearchQuery] = React.useState<string>('');
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
-  const [selectedLog, setSelectedLog] = React.useState<any | null>(null);
-  
-  // Available modules and events for filters
-  const [availableModules, setAvailableModules] = React.useState<SystemEventModule[]>([]);
-  const [availableEvents, setAvailableEvents] = React.useState<SystemEventType[]>([]);
-  
-  // Fetch system logs
-  const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['auditLogs', tenantId, moduleFilter, eventFilter, searchQuery, selectedDate],
-    queryFn: async () => {
-      if (!tenantId) return [];
-      
-      try {
-        // First, fetch module and event types if not loaded
-        if (availableModules.length === 0) {
-          const { data: modules, error: modulesError } = await supabase
-            .from('system_logs')
-            .select('module')
-            .eq('tenant_id', tenantId)
-            .limit(100);
-            
-          if (!modulesError && modules) {
-            const uniqueModules = Array.from(
-              new Set(modules.map(item => item.module))
-            ) as SystemEventModule[];
-            setAvailableModules(uniqueModules);
-          }
-        }
-        
-        if (availableEvents.length === 0) {
-          const { data: events, error: eventsError } = await supabase
-            .from('system_logs')
-            .select('event')
-            .eq('tenant_id', tenantId)
-            .limit(100);
-            
-          if (!eventsError && events) {
-            const uniqueEvents = Array.from(
-              new Set(events.map(item => item.event))
-            ) as SystemEventType[];
-            setAvailableEvents(uniqueEvents);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching filter options:', err);
-      }
-      
-      // Now fetch logs with filters
+export const useAuditLogData = () => {
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [eventFilter, setEventFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [availableModules, setAvailableModules] = useState<string[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<string[]>([]);
+
+  const { currentWorkspace } = useWorkspace();
+  const tenantId = currentWorkspace?.id;
+
+  // Fetch logs with applied filters
+  const fetchLogs = useCallback(async () => {
+    if (!tenantId) {
+      setLogs([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
       let query = supabase
         .from('system_logs')
         .select('*')
         .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (moduleFilter) {
+        .order('created_at', { ascending: false });
+
+      // Apply module filter
+      if (moduleFilter !== 'all') {
         query = query.eq('module', moduleFilter);
       }
-      
-      if (eventFilter) {
+
+      // Apply event filter
+      if (eventFilter !== 'all') {
         query = query.eq('event', eventFilter);
       }
-      
+
+      // Apply search filter (across multiple fields)
       if (searchQuery) {
-        query = query.or(`context.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
+        query = query.or(`module.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
       }
-      
+
+      // Apply date filter
       if (selectedDate) {
-        const startDate = new Date(selectedDate);
-        startDate.setHours(0, 0, 0, 0);
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
         
-        const endDate = new Date(selectedDate);
-        endDate.setHours(23, 59, 59, 999);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
         
-        query = query.gte('created_at', startDate.toISOString())
-                     .lte('created_at', endDate.toISOString());
+        query = query.gte('created_at', startOfDay.toISOString())
+                     .lte('created_at', endOfDay.toISOString());
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) {
-        console.error('Error fetching system logs:', error);
         throw error;
       }
-      
-      return data || [];
-    },
-    enabled: !!tenantId
-  });
-  
-  const resetFilters = React.useCallback(() => {
-    setModuleFilter('');
-    setEventFilter('');
+
+      setLogs(data || []);
+
+      // Extract unique modules and events for filter dropdowns
+      if (data && data.length > 0) {
+        const modules = [...new Set(data.map(log => log.module))];
+        const events = [...new Set(data.map(log => log.event))];
+        setAvailableModules(modules);
+        setAvailableEvents(events);
+      }
+
+    } catch (error: any) {
+      console.error('Error fetching audit logs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load audit logs",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tenantId, moduleFilter, eventFilter, searchQuery, selectedDate]);
+
+  // Initial load and when dependencies change
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // Filter handlers
+  const handleFilterChange = (filters: AuditLogFilterState) => {
+    setModuleFilter(filters.moduleFilter);
+    setEventFilter(filters.eventFilter);
+    setSearchQuery(filters.searchQuery);
+    setSelectedDate(filters.selectedDate);
+  };
+
+  const resetFilters = () => {
+    setModuleFilter('all');
+    setEventFilter('all');
     setSearchQuery('');
     setSelectedDate(null);
-  }, []);
-  
-  const handleFilterChange = React.useCallback((newFilters: AuditLogFilterState) => {
-    setModuleFilter(newFilters.moduleFilter);
-    setEventFilter(newFilters.eventFilter);
-    setSearchQuery(newFilters.searchQuery);
-    setSelectedDate(newFilters.selectedDate);
-  }, []);
-  
-  const handleViewDetails = React.useCallback((log: any) => {
+  };
+
+  const handleViewDetails = (log: AuditLog) => {
     setSelectedLog(log);
-  }, []);
-  
-  const closeLogDetails = React.useCallback(() => {
+  };
+
+  const closeLogDetails = () => {
     setSelectedLog(null);
-  }, []);
-  
-  const handleRefresh = React.useCallback(() => {
-    refetch();
-  }, [refetch]);
+  };
+
+  const handleRefresh = () => {
+    fetchLogs();
+  };
 
   return {
-    logs: logs || [],
+    logs,
     isLoading,
     moduleFilter,
     eventFilter,
@@ -146,10 +147,12 @@ export function useAuditLogData() {
     selectedLog,
     availableModules,
     availableEvents,
-    resetFilters,
     handleFilterChange,
+    resetFilters,
     handleViewDetails,
     closeLogDetails,
     handleRefresh
   };
-}
+};
+
+export default useAuditLogData;
