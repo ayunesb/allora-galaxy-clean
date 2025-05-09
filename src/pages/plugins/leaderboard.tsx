@@ -1,214 +1,217 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Sparkles, Award, TrendingUp } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Star, Award, Zap } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Plugin {
-  id: string;
-  name: string;
-  xp: number;
-  roi: number;
-  category: string;
-  execution_count?: number;
-  success_rate?: number;
-}
-
-const PluginsLeaderboard: React.FC = () => {
+const LeaderboardPage: React.FC = () => {
   const tenantId = useTenantId();
-  const [metric, setMetric] = React.useState<'xp' | 'roi'>('xp');
-
-  // Fetch plugins data
+  const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month' | 'all'>('month');
+  
   const { data: plugins, isLoading } = useQuery({
-    queryKey: ['plugins-leaderboard', tenantId, metric],
+    queryKey: ['plugin-leaderboard', tenantId, timePeriod],
     queryFn: async () => {
       if (!tenantId) return [];
-
-      // Get plugins with their base metrics
+      
+      // Get date range for the filter
+      let dateFilter;
+      const now = new Date();
+      
+      switch(timePeriod) {
+        case 'day':
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          dateFilter = `created_at.gte.${yesterday.toISOString()}`;
+          break;
+        case 'week':
+          const lastWeek = new Date(now);
+          lastWeek.setDate(lastWeek.getDate() - 7);
+          dateFilter = `created_at.gte.${lastWeek.toISOString()}`;
+          break;
+        case 'month':
+          const lastMonth = new Date(now);
+          lastMonth.setMonth(lastMonth.getMonth() - 1);
+          dateFilter = `created_at.gte.${lastMonth.toISOString()}`;
+          break;
+        default:
+          dateFilter = '';
+      }
+      
+      // Get plugins with their XP and ROI sorted by XP
       const { data, error } = await supabase
         .from('plugins')
-        .select('id, name, xp, roi, category, status')
+        .select('id, name, description, category, xp, roi')
         .eq('tenant_id', tenantId)
-        .order(metric, { ascending: false })
+        .order('xp', { ascending: false })
         .limit(10);
-
+        
       if (error) {
-        console.error('Error fetching plugins:', error);
+        console.error('Error fetching plugin leaderboard:', error);
         throw error;
       }
-
-      // Get execution statistics for each plugin
-      const pluginsWithStats = await Promise.all(
-        (data || []).map(async (plugin) => {
-          // Count successful executions
-          const { count: successCount, error: successError } = await supabase
-            .from('plugin_logs')
-            .select('id', { count: 'exact', head: true })
-            .eq('plugin_id', plugin.id)
-            .eq('status', 'success');
-
-          // Count total executions
-          const { count: totalCount, error: totalError } = await supabase
-            .from('plugin_logs')
-            .select('id', { count: 'exact', head: true })
-            .eq('plugin_id', plugin.id);
-
-          if (successError || totalError) {
-            console.error('Error fetching execution stats:', successError || totalError);
-          }
-
-          const executionCount = totalCount || 0;
-          const successRate = executionCount > 0 ? ((successCount || 0) / executionCount) * 100 : 0;
-
-          return {
-            ...plugin,
-            execution_count: executionCount,
-            success_rate: successRate
-          };
-        })
-      );
-
-      return pluginsWithStats;
+      
+      return data || [];
     },
     enabled: !!tenantId
   });
-
-  const getCategoryBadgeColor = (category: string) => {
-    switch (category?.toLowerCase()) {
-      case 'marketing': return 'bg-pink-100 text-pink-800';
-      case 'sales': return 'bg-blue-100 text-blue-800';
-      case 'content': return 'bg-purple-100 text-purple-800';
-      case 'analytics': return 'bg-green-100 text-green-800';
-      case 'social': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  
   return (
-    <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-8">Plugin Leaderboard</h1>
-
-      <Tabs 
-        value={metric} 
-        onValueChange={(value) => setMetric(value as 'xp' | 'roi')} 
-        className="mb-6"
-      >
-        <TabsList>
-          <TabsTrigger value="xp">
-            <Sparkles className="mr-2 h-4 w-4" />
-            Experience Points
-          </TabsTrigger>
-          <TabsTrigger value="roi">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Return on Investment
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Award className="h-6 w-6 mr-2 text-amber-500" />
-            Top Performing Plugins
-          </CardTitle>
-          <CardDescription>
-            {metric === 'xp' 
-              ? 'Plugins ranked by experience points earned through successful executions' 
-              : 'Plugins ranked by return on investment impact'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center my-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : plugins && plugins.length > 0 ? (
-            <div className="overflow-x-auto">
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-4">Plugin Leaderboard</h1>
+      
+      <div className="mb-8">
+        <Tabs value={timePeriod} onValueChange={(value) => setTimePeriod(value as any)}>
+          <TabsList className="grid grid-cols-4 w-full max-w-md">
+            <TabsTrigger value="day">Today</TabsTrigger>
+            <TabsTrigger value="week">This Week</TabsTrigger>
+            <TabsTrigger value="month">This Month</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <div className="flex items-center">
+                <Star className="h-5 w-5 mr-2 text-yellow-500" />
+                Top Plugins by XP
+              </div>
+            </CardTitle>
+            <CardDescription>
+              Plugins that have earned the most experience points
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                ))}
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Rank</TableHead>
                     <TableHead>Plugin</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Executions</TableHead>
-                    <TableHead className="text-right">Success Rate</TableHead>
-                    <TableHead className="text-right">
-                      {metric === 'xp' ? 'XP' : 'ROI'}
-                    </TableHead>
+                    <TableHead className="text-right">XP</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {plugins.map((plugin, index) => (
+                  {plugins?.map((plugin, index) => (
                     <TableRow key={plugin.id}>
                       <TableCell className="font-medium">
-                        {index === 0 ? (
-                          <Badge variant="default" className="bg-amber-500">
-                            #{index + 1}
-                          </Badge>
-                        ) : index <= 2 ? (
-                          <Badge variant="outline" className="border-amber-500 text-amber-500">
-                            #{index + 1}
-                          </Badge>
-                        ) : (
-                          <span>#{index + 1}</span>
-                        )}
+                        {index === 0 && <Award className="h-5 w-5 text-yellow-500 inline mr-1" />}
+                        {index === 1 && <Award className="h-5 w-5 text-gray-400 inline mr-1" />}
+                        {index === 2 && <Award className="h-5 w-5 text-amber-700 inline mr-1" />}
+                        {index > 2 && `#${index + 1}`}
                       </TableCell>
-                      <TableCell className="font-medium">{plugin.name}</TableCell>
+                      <TableCell>{plugin.name}</TableCell>
                       <TableCell>
                         {plugin.category && (
-                          <Badge 
-                            variant="outline" 
-                            className={getCategoryBadgeColor(plugin.category)}
-                          >
-                            {plugin.category}
-                          </Badge>
+                          <Badge variant="outline">{plugin.category}</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">{plugin.execution_count?.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        {plugin.success_rate !== undefined 
-                          ? `${plugin.success_rate.toFixed(1)}%` 
-                          : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {metric === 'xp' ? plugin.xp.toLocaleString() : `${plugin.roi.toLocaleString()}%`}
-                      </TableCell>
+                      <TableCell className="text-right font-mono">{plugin.xp.toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
+                  {(plugins?.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                        No plugins found for this period
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-              <p>No plugins found. Start creating and executing plugins to see them here.</p>
-              <Button variant="outline" className="mt-4">
-                Create Your First Plugin
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <div className="flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-green-500" />
+                Top Plugins by ROI
+              </div>
+            </CardTitle>
+            <CardDescription>
+              Plugins that have the highest return on investment
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Plugin</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">ROI</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {plugins?.sort((a, b) => b.roi - a.roi).map((plugin, index) => (
+                    <TableRow key={plugin.id}>
+                      <TableCell className="font-medium">
+                        {index === 0 && <Award className="h-5 w-5 text-yellow-500 inline mr-1" />}
+                        {index === 1 && <Award className="h-5 w-5 text-gray-400 inline mr-1" />}
+                        {index === 2 && <Award className="h-5 w-5 text-amber-700 inline mr-1" />}
+                        {index > 2 && `#${index + 1}`}
+                      </TableCell>
+                      <TableCell>{plugin.name}</TableCell>
+                      <TableCell>
+                        {plugin.category && (
+                          <Badge variant="outline">{plugin.category}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{plugin.roi}%</TableCell>
+                    </TableRow>
+                  ))}
+                  {(plugins?.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                        No plugins found for this period
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
 
-export default PluginsLeaderboard;
+export default LeaderboardPage;

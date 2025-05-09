@@ -16,7 +16,7 @@ const MainLayout: React.FC = () => {
       <Navbar />
       
       <div className="flex flex-1">
-        {!isMobile && <Sidebar items={navigationItems} />}
+        {!isMobile && <Sidebar className="w-64 border-r" />}
         
         <main className="flex-1 bg-background">
           <div className="container mx-auto py-6">

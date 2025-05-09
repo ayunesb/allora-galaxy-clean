@@ -1,97 +1,107 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-interface AgentEvolutionInput {
-  parentAgentVersionId: string;
-  tenantId: string;
-  userId: string;
-  prompt: string;
-  feedbackIncorporated?: string[];
-}
-
-interface CreateAgentResult {
+export interface EvolutionResult {
   success: boolean;
-  agentVersionId?: string;
+  newAgentId?: string;
+  previousAgentId?: string;
+  version?: string;
   error?: string;
 }
 
 /**
- * Creates a new evolved version of an agent
- * @param input Evolution input parameters
- * @returns Result of the agent creation operation
+ * Creates a new evolved agent and marks the old one as inactive
+ * 
+ * @param tenantId Tenant ID
+ * @param pluginId Plugin ID
+ * @param oldAgentId Previous agent version ID
+ * @param newPrompt Evolved prompt
+ * @param metadata Optional metadata
+ * @returns Result of the evolution
  */
-export async function createEvolvedAgent(input: AgentEvolutionInput): Promise<CreateAgentResult> {
+export async function createEvolvedAgent(
+  tenantId: string,
+  pluginId: string,
+  oldAgentId: string,
+  newPrompt: string,
+  metadata?: Record<string, any>
+): Promise<EvolutionResult> {
   try {
-    // Get parent agent information
-    const { data: parentAgent, error: parentError } = await supabase
+    // 1. Get current version number
+    const { data: versions } = await supabase
       .from('agent_versions')
-      .select('plugin_id, version')
-      .eq('id', input.parentAgentVersionId)
-      .single();
-      
-    if (parentError) {
-      console.error('Error fetching parent agent:', parentError);
-      return {
-        success: false,
-        error: `Failed to fetch parent agent: ${parentError.message}`
-      };
+      .select('version')
+      .eq('plugin_id', pluginId);
+    
+    // Calculate next version
+    let nextVersion = '1.0.0';
+    if (versions && versions.length > 0) {
+      const highestVersion = versions
+        .map(v => v.version)
+        .sort((a, b) => {
+          const aParts = a.split('.').map(Number);
+          const bParts = b.split('.').map(Number);
+          for (let i = 0; i < 3; i++) {
+            if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+          }
+          return 0;
+        })[0];
+        
+      const parts = highestVersion.split('.').map(Number);
+      parts[2] += 1; // Increment patch version
+      nextVersion = parts.join('.');
     }
     
-    // Calculate next version number
-    const versionParts = parentAgent.version.split('.').map(Number);
-    versionParts[2] += 1; // Increment patch version
-    const newVersion = versionParts.join('.');
+    // 2. Mark old agent as inactive
+    await supabase
+      .from('agent_versions')
+      .update({ 
+        status: 'inactive',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', oldAgentId);
     
-    // Create new agent version
-    const { data: newAgent, error: insertError } = await supabase
+    // 3. Create new agent version
+    const { data, error } = await supabase
       .from('agent_versions')
       .insert({
-        plugin_id: parentAgent.plugin_id,
-        tenant_id: input.tenantId,
-        version: newVersion,
-        prompt: input.prompt,
+        plugin_id: pluginId,
+        version: nextVersion,
+        prompt: newPrompt,
         status: 'active',
-        created_by: input.userId,
+        tenant_id: tenantId,
+        created_by: null, // System-generated
         upvotes: 0,
-        downvotes: 0,
-        xp: 0
+        downvotes: 0
       })
       .select()
       .single();
       
-    if (insertError) {
-      console.error('Error creating evolved agent:', insertError);
-      return {
-        success: false,
-        error: `Failed to create evolved agent: ${insertError.message}`
-      };
+    if (error) {
+      throw error;
     }
     
-    // Log the evolution
-    await supabase
-      .from('system_logs')
-      .insert({
-        module: 'agent',
-        event: 'agent_evolved',
-        tenant_id: input.tenantId,
-        context: {
-          parent_agent_id: input.parentAgentVersionId,
-          new_agent_id: newAgent.id,
-          feedback_incorporated: input.feedbackIncorporated || [],
-          version_from: parentAgent.version,
-          version_to: newVersion
-        }
-      });
+    // 4. Log the evolution
+    await logSystemEvent('agent', 'agent_evolved', {
+      old_agent_id: oldAgentId,
+      new_agent_id: data.id,
+      plugin_id: pluginId,
+      metadata
+    }, tenantId);
     
     return {
       success: true,
-      agentVersionId: newAgent.id
+      newAgentId: data.id,
+      previousAgentId: oldAgentId,
+      version: nextVersion
     };
-  } catch (err: any) {
-    console.error('Error in createEvolvedAgent:', err);
+  } catch (error: any) {
+    console.error('Error creating evolved agent:', error);
+    
     return {
       success: false,
-      error: err.message || 'Unknown error creating evolved agent'
+      error: error.message
     };
   }
 }
