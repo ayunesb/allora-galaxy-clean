@@ -1,4 +1,5 @@
 
+// Re-export all utilities from the CORS module
 export * from './cors';
 
 // Add environment utility functions
@@ -43,5 +44,9 @@ export const createErrorResponse = (
   });
 };
 
-// Import CORS headers from the cors.ts file
-import { corsHeaders } from './cors';
+// Import CORS headers directly within this file
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
