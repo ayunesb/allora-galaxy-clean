@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { NavigationItem } from '@/types/shared';
 import { useTenantRole } from '@/hooks/useTenantRole';
 
@@ -10,7 +10,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
-  const location = useLocation();
   const { role } = useTenantRole();
 
   const isItemVisible = (item: NavigationItem) => {

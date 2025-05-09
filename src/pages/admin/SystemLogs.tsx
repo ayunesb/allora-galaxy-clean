@@ -163,13 +163,9 @@ const SystemLogs: React.FC = () => {
           <div className="mb-6">
             <SystemLogFilters
               moduleFilter={moduleFilter}
-              setModuleFilter={setModuleFilter}
               eventFilter={eventFilter}
-              setEventFilter={setEventFilter}
               searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
               selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
               onReset={resetFilters}
               onFilterChange={handleFilterChange}
               modules={availableModules}
