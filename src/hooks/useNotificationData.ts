@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNotifications } from '@/lib/notifications/useNotifications';
-import { Notification, NotificationContent } from '@/types/notifications';
+import { useNotifications } from '@/context/notifications/useNotifications';
+import { Notification, NotificationContent, NotificationType } from '@/types/notifications';
 
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 
@@ -21,7 +21,7 @@ export const useNotificationData = (tabFilter: string | null = null) => {
       message: notification.description || '',
       timestamp: notification.created_at,
       read: notification.is_read || false,
-      type: notification.type,
+      type: notification.type as NotificationType,
       action_url: notification.action_url,
       action_label: notification.action_label
     }));
