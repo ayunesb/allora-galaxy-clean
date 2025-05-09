@@ -44,13 +44,13 @@ export function DateRangePicker({
     onChange(undefined);
   };
 
-  // Fix type mismatch by creating a handler function that ensures correct types
-  const handleSelect = (range: { from: Date; to?: Date } | undefined) => {
+  // Fix type incompatibility by creating a proper handler function
+  const handleSelect = (range: { from?: Date; to?: Date } | undefined) => {
     if (!range || !range.from) {
       setDate(undefined);
       return;
     }
-    
+
     // Create a properly typed DateRange object
     const newRange: DateRange = {
       from: range.from,
@@ -92,10 +92,7 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={{
-              from: date?.from || undefined,
-              to: date?.to
-            }}
+            selected={date}
             onSelect={handleSelect}
             numberOfMonths={2}
           />
