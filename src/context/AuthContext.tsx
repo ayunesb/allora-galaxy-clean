@@ -1,9 +1,7 @@
 
 import React, { createContext, useContext } from 'react';
-import useSupabaseAuth from '@/hooks/useAuth';
-
-// Create the context with proper typing for the auth values
-export type AuthContextType = ReturnType<typeof useSupabaseAuth>;
+import useAuth from '@/hooks/useAuth';
+import { AuthContextType } from '@/lib/auth/types';
 
 // Create the context with undefined as initial value
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +18,7 @@ export const useAuth = () => {
 // Auth provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Use the implementation from hooks/useAuth.tsx
-  const auth = useSupabaseAuth();
+  const auth = useAuth();
   
   return (
     <AuthContext.Provider value={auth}>
