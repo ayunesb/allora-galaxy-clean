@@ -1,18 +1,20 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Workspace } from './types';
 import { toast } from '@/components/ui/use-toast';
 
 export const useWorkspaceState = () => {
   const { user } = useAuth();
-  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  const loadWorkspaces = async () => {
+  // Fetch workspaces
+  const fetchWorkspaces = async () => {
     if (!user) {
       setWorkspaces([]);
       setCurrentWorkspace(null);
@@ -20,100 +22,97 @@ export const useWorkspaceState = () => {
       return;
     }
 
-    setLoading(true);
     try {
-      // Get all workspaces the user is a member of
-      const { data: tenantUserRoles, error: rolesError } = await supabase
+      setLoading(true);
+      setError(null);
+
+      // Fetch tenants (workspaces) that the user has access to
+      const { data: tenantRoles, error: tenantError } = await supabase
         .from('tenant_user_roles')
-        .select('tenant_id')
+        .select('tenant_id, role, tenants(id, name, slug, metadata, created_at)')
         .eq('user_id', user.id);
 
-      if (rolesError) {
-        throw rolesError;
+      if (tenantError) {
+        throw tenantError;
       }
 
-      if (!tenantUserRoles || tenantUserRoles.length === 0) {
-        setWorkspaces([]);
-        setLoading(false);
-        return;
-      }
-
-      const tenantIds = tenantUserRoles.map(role => role.tenant_id);
-      
-      // Fetch workspace details
-      const { data: tenantsData, error: tenantsError } = await supabase
-        .from('tenants')
-        .select('*')
-        .in('id', tenantIds);
-        
-      if (tenantsError) {
-        throw tenantsError;
-      }
-
-      setWorkspaces(tenantsData || []);
-      
-      // Set current workspace from localStorage or use first available
-      const storedWorkspaceId = localStorage.getItem('currentWorkspaceId');
-      if (storedWorkspaceId && tenantsData) {
-        const storedWorkspace = tenantsData.find(t => t.id === storedWorkspaceId);
-        if (storedWorkspace) {
-          setCurrentWorkspace(storedWorkspace);
-        } else if (tenantsData.length > 0) {
-          setCurrentWorkspace(tenantsData[0]);
-          localStorage.setItem('currentWorkspaceId', tenantsData[0].id);
-        }
-      } else if (tenantsData && tenantsData.length > 0) {
-        setCurrentWorkspace(tenantsData[0]);
-        localStorage.setItem('currentWorkspaceId', tenantsData[0].id);
-      }
-    } catch (err: any) {
-      console.error('Error loading workspaces:', err);
-      setError(err.message || 'Failed to load workspaces');
-      toast({
-        title: "Error",
-        description: "Failed to load workspaces. Please try again later.",
-        variant: "destructive",
+      // Format the workspaces data
+      const userWorkspaces = tenantRoles.map(tr => {
+        const tenant = tr.tenants as any;
+        return {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          metadata: tenant.metadata,
+          created_at: tenant.created_at,
+          role: tr.role
+        };
       });
+
+      setWorkspaces(userWorkspaces);
+
+      // If there's no current workspace but there are available workspaces,
+      // set the first one as the current workspace
+      if (!currentWorkspace && userWorkspaces.length > 0) {
+        setCurrentWorkspace(userWorkspaces[0]);
+        // Fix: Only set userRole if role exists
+        if (userWorkspaces[0].role) {
+          setUserRole(userWorkspaces[0].role);
+        }
+        localStorage.setItem('currentWorkspace', userWorkspaces[0].id);
+      } else if (currentWorkspace) {
+        // Check if the current workspace still exists in the updated list
+        const exists = userWorkspaces.some(w => w.id === currentWorkspace.id);
+        if (!exists && userWorkspaces.length > 0) {
+          setCurrentWorkspace(userWorkspaces[0]);
+          // Fix: Only set userRole if role exists
+          if (userWorkspaces[0].role) {
+            setUserRole(userWorkspaces[0].role);
+          }
+          localStorage.setItem('currentWorkspace', userWorkspaces[0].id);
+        } else if (exists) {
+          // Update the current workspace with the latest data
+          const updated = userWorkspaces.find(w => w.id === currentWorkspace.id);
+          if (updated) {
+            setCurrentWorkspace(updated);
+            // Fix: Only set userRole if role exists
+            if (updated.role) {
+              setUserRole(updated.role);
+            }
+          }
+        }
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching workspaces:', err);
+      setError(err.message || 'Failed to fetch workspaces');
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshWorkspaces = async () => {
-    await loadWorkspaces();
-  };
-
-  // Create a new workspace
+  // Create workspace
   const createWorkspace = async (name: string): Promise<Workspace | undefined> => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to create a workspace",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!user) return undefined;
 
     try {
-      // Generate a slug from the name
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      // Create a slug from the name
+      const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
       // Create the tenant
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
-        .insert({
-          name,
+        .insert({ 
+          name, 
           slug,
-          owner_id: user.id
+          owner_id: user.id 
         })
         .select()
         .single();
-        
-      if (tenantError) {
-        throw tenantError;
-      }
 
-      // Add the user as an owner
+      if (tenantError) throw tenantError;
+
+      // Add the user as the owner of the tenant
       const { error: roleError } = await supabase
         .from('tenant_user_roles')
         .insert({
@@ -121,83 +120,39 @@ export const useWorkspaceState = () => {
           user_id: user.id,
           role: 'owner'
         });
-        
-      if (roleError) {
-        throw roleError;
-      }
+
+      if (roleError) throw roleError;
 
       // Refresh workspaces
-      await refreshWorkspaces();
-      
-      // Set this as current workspace
-      if (tenant) {
-        setCurrentWorkspace(tenant);
-        localStorage.setItem('currentWorkspaceId', tenant.id);
-      }
-      
-      toast({
-        title: "Success",
-        description: `Workspace "${name}" created successfully`,
-      });
+      await fetchWorkspaces();
       
       return tenant;
     } catch (err: any) {
       console.error('Error creating workspace:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to create workspace",
-        variant: "destructive",
-      });
+      setError(err.message || 'Failed to create workspace');
+      return undefined;
     }
   };
 
-  // Delete a workspace
+  // Delete workspace
   const deleteWorkspace = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('tenants')
         .delete()
         .eq('id', id);
-        
-      if (error) {
-        throw error;
-      }
       
-      // Refresh the list and update current workspace if needed
-      await refreshWorkspaces();
+      if (error) throw error;
       
-      if (currentWorkspace?.id === id) {
-        // If the deleted workspace was the current one, set a new current workspace
-        if (workspaces.length > 0) {
-          const newCurrentWorkspace = workspaces.find(w => w.id !== id);
-          if (newCurrentWorkspace) {
-            setCurrentWorkspace(newCurrentWorkspace);
-            localStorage.setItem('currentWorkspaceId', newCurrentWorkspace.id);
-          } else {
-            setCurrentWorkspace(null);
-            localStorage.removeItem('currentWorkspaceId');
-          }
-        } else {
-          setCurrentWorkspace(null);
-          localStorage.removeItem('currentWorkspaceId');
-        }
-      }
-      
-      toast({
-        title: "Success",
-        description: "Workspace deleted successfully",
-      });
+      // Refresh workspaces
+      await fetchWorkspaces();
     } catch (err: any) {
       console.error('Error deleting workspace:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to delete workspace",
-        variant: "destructive",
-      });
+      setError(err.message || 'Failed to delete workspace');
     }
   };
 
-  // Update a workspace
+  // Update workspace
   const updateWorkspace = async (id: string, data: Partial<Workspace>): Promise<Workspace | undefined> => {
     try {
       const { data: updatedWorkspace, error } = await supabase
@@ -206,39 +161,54 @@ export const useWorkspaceState = () => {
         .eq('id', id)
         .select()
         .single();
-        
-      if (error) {
-        throw error;
-      }
+      
+      if (error) throw error;
       
       // Refresh workspaces
-      await refreshWorkspaces();
-      
-      // Update current workspace if this was the one updated
-      if (currentWorkspace?.id === id) {
-        setCurrentWorkspace(updatedWorkspace);
-      }
-      
-      toast({
-        title: "Success",
-        description: "Workspace updated successfully",
-      });
-      
+      await fetchWorkspaces();
       return updatedWorkspace;
     } catch (err: any) {
       console.error('Error updating workspace:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to update workspace",
-        variant: "destructive",
-      });
+      setError(err.message || 'Failed to update workspace');
+      return undefined;
     }
   };
 
-  // Load workspaces when user changes
+  // Initialize workspaces on user change
   useEffect(() => {
-    loadWorkspaces();
+    if (user) {
+      // Load saved current workspace from localStorage
+      const savedWorkspaceId = localStorage.getItem('currentWorkspace');
+      
+      // Fetch workspaces first
+      fetchWorkspaces().then(() => {
+        // After fetching, if we have a saved workspace ID and workspaces
+        if (savedWorkspaceId && workspaces.length > 0) {
+          const saved = workspaces.find(w => w.id === savedWorkspaceId);
+          if (saved) {
+            setCurrentWorkspace(saved);
+            // Fix: Only set userRole if role exists
+            if (saved.role) {
+              setUserRole(saved.role);
+            }
+          }
+        }
+      });
+    } else {
+      // Reset state if no user is logged in
+      setWorkspaces([]);
+      setCurrentWorkspace(null);
+      setUserRole(null);
+      setLoading(false);
+    }
   }, [user]);
+
+  // Save the selected workspace when it changes
+  useEffect(() => {
+    if (currentWorkspace) {
+      localStorage.setItem('currentWorkspace', currentWorkspace.id);
+    }
+  }, [currentWorkspace]);
 
   return {
     currentWorkspace,
@@ -246,9 +216,13 @@ export const useWorkspaceState = () => {
     workspaces,
     loading,
     error,
-    refreshWorkspaces,
+    refreshWorkspaces: fetchWorkspaces,
     createWorkspace,
     deleteWorkspace,
-    updateWorkspace
+    updateWorkspace,
+    userRole,
+    isLoading: loading,
+    tenant: currentWorkspace,
+    currentTenant: currentWorkspace,
   };
 };

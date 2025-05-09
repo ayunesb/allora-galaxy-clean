@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/shared';
+import { UserRole } from '@/lib/auth/roleTypes';
 
 export async function fetchUserRole(tenantId: string, userUid: string): Promise<UserRole | null> {
   if (!tenantId || !userUid) return null;

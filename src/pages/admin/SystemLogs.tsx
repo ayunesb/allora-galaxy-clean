@@ -1,101 +1,44 @@
 
-import React, { useState, useEffect } from 'react';
-import { withRoleCheck } from '@/lib/auth/withRoleCheck';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SystemLogFilters } from '@/components/admin/logs/SystemLogFilters';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import SystemLogsTable, { SystemLog } from '@/components/admin/logs/SystemLogsTable';
-import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
+import LoadingScreen from '@/components/LoadingScreen';
+import { format } from 'date-fns';
+import { toast } from '@/components/ui/use-toast';
+import { withRoleCheck } from '@/lib/auth/withRoleCheck';
 
-interface LogFilterState {
-  moduleFilter: string;
-  eventFilter: string;
-  searchQuery: string;
-  selectedDate: Date | null;
+export interface SystemLog {
+  id: string;
+  tenant_id: string;
+  module: string;
+  type: string;
+  level: string;
+  description: string;
+  metadata: any;
+  created_at: string;
+  user_id: string | null;
 }
 
 const SystemLogs: React.FC = () => {
-  const { logs, loading, error } = useSystemLogsData();
-  const [filteredLogs, setFilteredLogs] = useState<SystemLog[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
-  const [events, setEvents] = useState<string[]>([]);
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
-  
-  const [filters, setFilters] = useState<LogFilterState>({
-    moduleFilter: '',
-    eventFilter: '',
-    searchQuery: '',
-    selectedDate: null
-  });
+  const {
+    logs,
+    isLoading,
+    moduleFilter,
+    eventFilter,
+    searchQuery,
+    selectedDate,
+    selectedLog,
+    setSelectedLog,
+    modules,
+    events,
+    handleFilterChange,
+    handleResetFilters,
+    handleRefresh
+  } = useSystemLogsData();
 
-  useEffect(() => {
-    // Extract unique modules and events for filters
-    if (logs?.length) {
-      const uniqueModules = [...new Set(logs.map(log => log.module))];
-      const uniqueEvents = [...new Set(logs.map(log => log.event_type))];
-      setModules(uniqueModules);
-      setEvents(uniqueEvents);
-    }
-    
-    // Apply filters
-    let filtered = [...(logs || [])];
-    
-    if (filters.moduleFilter) {
-      filtered = filtered.filter(log => log.module === filters.moduleFilter);
-    }
-    
-    if (filters.eventFilter) {
-      filtered = filtered.filter(log => log.event_type === filters.eventFilter);
-    }
-    
-    if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase();
-      filtered = filtered.filter(log => 
-        log.message.toLowerCase().includes(query) || 
-        log.module.toLowerCase().includes(query) || 
-        log.event_type.toLowerCase().includes(query)
-      );
-    }
-    
-    if (filters.selectedDate) {
-      const selectedDate = filters.selectedDate.toDateString();
-      filtered = filtered.filter(log => {
-        const logDate = new Date(log.created_at).toDateString();
-        return logDate === selectedDate;
-      });
-    }
-    
-    setFilteredLogs(filtered);
-  }, [logs, filters]);
-
-  const handleFilterChange = (newFilters: LogFilterState) => {
-    setFilters(newFilters);
-  };
-  
-  const handleResetFilters = () => {
-    setFilters({
-      moduleFilter: '',
-      eventFilter: '',
-      searchQuery: '',
-      selectedDate: null
-    });
-  };
-  
-  const handleViewDetails = (log: SystemLog) => {
-    setSelectedLog(log);
-    setIsDetailOpen(true);
-  };
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error:</strong>
-          <span className="block sm:inline"> {error}</span>
-        </div>
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingScreen />;
   }
 
   return (
@@ -103,28 +46,79 @@ const SystemLogs: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>System Logs</CardTitle>
+          <CardDescription>
+            View and search system logs across all modules
+          </CardDescription>
         </CardHeader>
+        
         <CardContent>
+          {/* Filters */}
           <SystemLogFilters
-            onReset={handleResetFilters}
-            onFilterChange={handleFilterChange}
             modules={modules}
             events={events}
+            onFilterChange={handleFilterChange}
+            onReset={handleResetFilters}
+            moduleFilter={moduleFilter}
+            eventFilter={eventFilter}
+            searchQuery={searchQuery}
+            selectedDate={selectedDate}
           />
           
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          {/* Logs Table */}
+          <div className="rounded-md border">
+            <div className="w-full overflow-auto">
+              <table className="w-full caption-bottom text-sm">
+                <thead className="[&_tr]:border-b">
+                  <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                    <th className="h-12 px-4 text-left align-middle font-medium">Time</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">Module</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">Event</th> 
+                    <th className="h-12 px-4 text-left align-middle font-medium">Level</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="[&_tr:last-child]:border-0">
+                  {logs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-muted-foreground">
+                        No logs found. Try adjusting your filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    logs.map((log) => (
+                      <tr
+                        key={log.id}
+                        className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
+                        onClick={() => setSelectedLog(log)}
+                      >
+                        <td className="p-4 align-middle">
+                          {format(new Date(log.created_at), 'MMM dd, yyyy HH:mm:ss')}
+                        </td>
+                        <td className="p-4 align-middle">{log.module}</td>
+                        <td className="p-4 align-middle">{log.type}</td>
+                        <td className="p-4 align-middle capitalize">
+                          <span
+                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                              log.level === 'error'
+                                ? 'bg-red-100 text-red-800'
+                                : log.level === 'warn'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {log.level}
+                          </span>
+                        </td>
+                        <td className="p-4 align-middle truncate max-w-xs">
+                          {log.description}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            <SystemLogsTable logs={filteredLogs} onViewDetails={handleViewDetails} />
-          )}
-          
-          <LogDetailDialog
-            log={selectedLog}
-            open={isDetailOpen}
-            onOpenChange={setIsDetailOpen}
-          />
+          </div>
         </CardContent>
       </Card>
     </div>
