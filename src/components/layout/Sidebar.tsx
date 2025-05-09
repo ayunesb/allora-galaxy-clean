@@ -3,8 +3,6 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { NavigationItem } from '@/types/shared';
 import { useTenantRole } from '@/hooks/useTenantRole';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   items: NavigationItem[];
