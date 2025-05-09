@@ -21,7 +21,6 @@ export async function execute(input: ExecuteStrategyInput): Promise<ExecuteStrat
     // Convert snake_case response to camelCase as needed
     return {
       success: data.success,
-      strategyId: input.strategyId,
       executionId: data.execution_id,
       executionTime: data.execution_time,
       status: data.status,
@@ -34,7 +33,6 @@ export async function execute(input: ExecuteStrategyInput): Promise<ExecuteStrat
     return {
       success: false,
       error: err.message || 'Unknown error occurred',
-      strategyId: input.strategyId,
       status: 'error',
       executionTime: 0
     };

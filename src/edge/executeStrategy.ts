@@ -16,7 +16,6 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
         success: false,
         error: 'Strategy ID is required',
         executionTime: 0,
-        strategyId: '',
         status: 'failed'
       };
     }
@@ -26,7 +25,6 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
         success: false,
         error: 'Tenant ID is required',
         executionTime: 0,
-        strategyId: input.strategy_id,
         status: 'failed'
       };
     }
@@ -57,7 +55,6 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
     
     return {
       success: data.success,
-      strategyId: input.strategy_id,
       status: data.success ? 'completed' : 'failed',
       executionTime: data.execution_time || 0,
       executionId: data.execution_id,
@@ -85,7 +82,6 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
     
     return {
       success: false,
-      strategyId: input.strategy_id,
       status: 'failed',
       executionTime: 0,
       error: error.message

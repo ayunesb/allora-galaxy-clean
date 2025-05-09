@@ -15,14 +15,17 @@ export const useSystemLogsData = () => {
   const [events, setEvents] = useState<string[]>([]);
   
   // Filters
-  const [moduleFilter, setModuleFilter] = useState<string>('');
-  const [eventFilter, setEventFilter] = useState<string>('');
+  const [moduleFilter, setModuleFilter] = useState<string>('all');
+  const [eventFilter, setEventFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
   const fetchLogs = useCallback(async (filters?: {
     level?: string;
     module?: string;
+    event?: string;
+    searchQuery?: string;
+    date?: Date;
   }) => {
     try {
       setIsLoading(true);
@@ -43,15 +46,19 @@ export const useSystemLogsData = () => {
         query = query.eq('level', filters.level);
       }
       
-      if (searchQuery) {
-        query = query.ilike('description', `%${searchQuery}%`);
+      if (filters?.event && filters.event !== 'all') {
+        query = query.eq('event', filters.event);
       }
       
-      if (selectedDate) {
-        const startDate = new Date(selectedDate);
+      if (filters?.searchQuery) {
+        query = query.ilike('description', `%${filters.searchQuery}%`);
+      }
+      
+      if (filters?.date) {
+        const startDate = new Date(filters.date);
         startDate.setHours(0, 0, 0, 0);
         
-        const endDate = new Date(selectedDate);
+        const endDate = new Date(filters.date);
         endDate.setHours(23, 59, 59, 999);
         
         query = query
@@ -72,7 +79,7 @@ export const useSystemLogsData = () => {
       // Extract unique modules and events
       if (data) {
         const uniqueModules = [...new Set(data.map(log => log.module))];
-        const uniqueEvents = [...new Set(data.map(log => log.type))];
+        const uniqueEvents = [...new Set(data.map(log => log.event))];
         
         setModules(uniqueModules);
         setEvents(uniqueEvents);
@@ -86,7 +93,7 @@ export const useSystemLogsData = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, searchQuery, selectedDate, toast]);
+  }, [tenantId, toast]);
   
   useEffect(() => {
     fetchLogs();
@@ -105,16 +112,18 @@ export const useSystemLogsData = () => {
   };
   
   const handleResetFilters = () => {
-    setModuleFilter('');
-    setEventFilter('');
+    setModuleFilter('all');
+    setEventFilter('all');
     setSearchQuery('');
     setSelectedDate(null);
   };
   
   const handleRefresh = () => {
     fetchLogs({
-      level: moduleFilter === 'all' ? undefined : moduleFilter,
-      module: eventFilter === 'all' ? undefined : eventFilter
+      module: moduleFilter,
+      event: eventFilter,
+      searchQuery: searchQuery,
+      date: selectedDate || undefined
     });
   };
   

@@ -149,16 +149,16 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     await updateStrategyProgress(strategyId, 'running', 10);
     
     // Fetch plugins for this strategy
-    const { plugins, error: pluginError } = await fetchPlugins(strategyId);
+    const { plugins } = await fetchPlugins(strategyId);
     
-    if (pluginError || !plugins) {
+    if (!plugins || plugins.length === 0) {
       logSystemEvent(
         "strategy",
         "error",
-        `Error retrieving plugins: ${pluginError?.message || "No plugins found"}`,
+        `No plugins found for strategy`,
         tenantId
       );
-      return { success: false, error: pluginError || new Error("No plugins found for strategy") };
+      return { success: false, error: new Error("No plugins found for strategy") };
     }
     
     // Update progress

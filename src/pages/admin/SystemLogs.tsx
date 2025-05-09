@@ -28,8 +28,15 @@ const SystemLogs: React.FC = () => {
   const {
     logs,
     modules,
+    events,
     isLoading,
     handleRefresh,
+    moduleFilter,
+    eventFilter,
+    searchQuery,
+    selectedDate,
+    handleFilterChange,
+    handleResetFilters
   } = useSystemLogsData();
 
   const handleRefreshLogs = useCallback(() => {
@@ -64,12 +71,15 @@ const SystemLogs: React.FC = () => {
         </CardHeader>
         <CardContent>
           <SystemLogFilters
-            level={level}
-            setLevel={setLevel}
-            module={module}
-            setModule={setModule}
-            refresh={handleRefreshLogs}
+            moduleFilter={moduleFilter}
+            eventFilter={eventFilter}
+            searchQuery={searchQuery}
+            selectedDate={selectedDate}
             modules={modules}
+            events={events}
+            handleFilterChange={handleFilterChange}
+            handleResetFilters={handleResetFilters}
+            handleRefresh={handleRefreshLogs}
             isLoading={isLoading}
           />
           

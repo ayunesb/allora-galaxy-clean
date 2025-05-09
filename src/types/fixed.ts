@@ -16,6 +16,8 @@ export interface ExecuteStrategyResult {
   outputs?: Record<string, any>;
   results?: Record<string, any>;
   logs?: Array<any>;
+  status?: string;
+  details?: any;
 }
 
 // Define the snake case version for edge functions
@@ -25,3 +27,4 @@ export interface ExecuteStrategyInputSnakeCase {
   user_id?: string;
   options?: Record<string, any>;
 }
+
