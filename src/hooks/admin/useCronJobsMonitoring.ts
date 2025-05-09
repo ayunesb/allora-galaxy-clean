@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -30,7 +31,7 @@ export function useCronJobsMonitoring() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
-  const tenantId = useTenantId();
+  const tenantIdHook = useTenantId();
 
   const fetchCronJobs = async () => {
     setIsLoading(true);
@@ -92,7 +93,7 @@ export function useCronJobsMonitoring() {
   // Run a CRON job manually
   const runCronJob = async (jobName: string) => {
     try {
-      const tenantId = useTenantId();
+      const tenantId = tenantIdHook;
       
       // Log the manual execution - Fix parameter count
       await logSystemEvent(

@@ -1,43 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { withRoleCheck } from '@/lib/auth/withRoleCheck';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useTenantId } from '@/hooks/useTenantId';
+import { supabase } from '@/integrations/supabase/client';
+import { PlusCircle, Search, UserPlus, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  AlertCircle,
-  RefreshCw,
-  UserPlus,
-  Search,
-  Mail,
-  MoreHorizontal,
-} from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import AdminGuard from '@/components/guards/AdminGuard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
@@ -56,128 +30,116 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Label } from '@/components/ui/label';
-import { getRoleDisplayName, UserRole } from '@/lib/auth/roleTypes';
+import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
 
-interface TenantUser {
+interface User {
   id: string;
-  email: string;
-  role: 'owner' | 'admin' | 'member' | 'viewer';
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
+  role: string;
   created_at: string;
+  user_id: string;
+  profiles: {
+    first_name: string | null;
+    last_name: string | null;
+    avatar_url: string | null;
+    email: {
+      email: string;
+    };
+  };
 }
 
-interface UserProfile {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
-  created_at?: string;
+interface UserManagementProps {
+  // Add any props if needed
 }
 
-const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<TenantUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'admin' | 'member' | 'viewer'>('member');
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
-  
-  const tenantId = useTenantId();
+const UserManagement: React.FC<UserManagementProps> = () => {
   const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
+  const tenantId = currentWorkspace?.id;
+
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
-  const loadUsers = async () => {
+  useEffect(() => {
+    fetchUsers();
+  }, [tenantId]);
+  
+  const fetchUsers = async () => {
+    if (!tenantId) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
-      if (!tenantId) {
-        throw new Error('No tenant selected');
-      }
-      
-      // Get all users associated with this tenant
-      const { data: tenantUsers, error: tenantUsersError } = await supabase
+      const { data, error } = await supabase
         .from('tenant_user_roles')
-        .select('role, user_id')
+        .select(`
+          id,
+          role,
+          user_id,
+          created_at,
+          profiles:user_id (
+            first_name,
+            last_name,
+            avatar_url,
+            email:id(email)
+          )
+        `)
         .eq('tenant_id', tenantId);
-      
-      if (tenantUsersError) throw tenantUsersError;
-      
-      if (!tenantUsers || tenantUsers.length === 0) {
-        setUsers([]);
-        return;
+        
+      if (error) {
+        throw error;
       }
       
-      // Get user profiles for each user
-      const userIds = tenantUsers.map(tu => tu.user_id);
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, created_at')
-        .in('id', userIds);
-      
-      if (profilesError) throw profilesError;
-      
-      // Get email addresses for each user (this would typically be done via an admin endpoint)
-      // For demo purposes, we're simulating this data
-      const completeUsers: TenantUser[] = tenantUsers.map(tu => {
-        const profile = (profilesData?.find(p => p.id === tu.user_id) || {}) as UserProfile;
-        // In a real app, you would get this information from an auth admin API
-        const email = `user-${tu.user_id.substring(0, 6)}@example.com`;
-        
-        return {
-          id: tu.user_id,
-          email,
-          role: tu.role as 'owner' | 'admin' | 'member' | 'viewer',
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          avatar_url: profile.avatar_url,
-          created_at: profile.created_at || new Date().toISOString()
-        };
-      });
-      
-      setUsers(completeUsers);
-      
-    } catch (err: any) {
-      console.error('Error loading users:', err);
-      setError(err.message);
+      setUsers(data || []);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
       toast({
-        title: 'Error loading users',
-        description: err.message,
-        variant: 'destructive',
+        title: "Error fetching users",
+        description: error.message,
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
   
-  useEffect(() => {
-    if (tenantId) {
-      loadUsers();
-    }
-  }, [tenantId]);
-  
-  const filteredUsers = users.filter(user => {
-    const nameMatch = 
-      (user.first_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (user.last_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleInviteUser = async (email: string, role: string) => {
+    if (!tenantId) return;
     
-    const roleMatch = !roleFilter || user.role === roleFilter;
-    
-    return nameMatch && roleMatch;
-  });
-  
-  const handleUserRoleChange = async (userId: string, newRole: 'admin' | 'member' | 'viewer') => {
     try {
-      if (!tenantId) {
-        throw new Error('No tenant selected');
-      }
+      // Call the invite Edge Function
+      const { data, error } = await supabase.functions.invoke('send-invite-email', {
+        body: { email, role, tenantId }
+      });
       
+      if (error) throw error;
+      
+      toast({
+        title: "Invitation sent",
+        description: `Invitation email sent to ${email}`,
+      });
+      
+      // Close the dialog and refresh users
+      setIsInviteDialogOpen(false);
+      await fetchUsers();
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error inviting user:', error);
+      toast({
+        title: "Error inviting user",
+        description: error.message,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    if (!tenantId) return;
+    
+    try {
       const { error } = await supabase
         .from('tenant_user_roles')
         .update({ role: newRole })
@@ -186,32 +148,26 @@ const UserManagement: React.FC = () => {
       
       if (error) throw error;
       
-      // Update local state
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
-      
       toast({
-        title: 'Role updated',
-        description: `User role has been updated to ${getRoleDisplayName(newRole)}`,
+        title: "Role updated",
+        description: `User role updated to ${newRole}`,
       });
       
-    } catch (err: any) {
-      console.error('Error updating user role:', err);
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error updating user role:', error);
       toast({
-        title: 'Error updating role',
-        description: err.message,
-        variant: 'destructive',
+        title: "Error updating role",
+        description: error.message,
+        variant: "destructive"
       });
     }
   };
   
   const handleRemoveUser = async (userId: string) => {
+    if (!tenantId) return;
+    
     try {
-      if (!tenantId) {
-        throw new Error('No tenant selected');
-      }
-      
       const { error } = await supabase
         .from('tenant_user_roles')
         .delete()
@@ -220,295 +176,201 @@ const UserManagement: React.FC = () => {
       
       if (error) throw error;
       
-      // Update local state
-      setUsers(users.filter(user => user.id !== userId));
-      
       toast({
-        title: 'User removed',
-        description: 'User has been removed from this workspace',
+        title: "User removed",
+        description: "User has been removed from the workspace",
       });
       
-    } catch (err: any) {
-      console.error('Error removing user:', err);
+      await fetchUsers();
+    } catch (error: any) {
+      console.error('Error removing user:', error);
       toast({
-        title: 'Error removing user',
-        description: err.message,
-        variant: 'destructive',
+        title: "Error removing user",
+        description: error.message,
+        variant: "destructive"
       });
     }
   };
   
-  const sendInvite = async () => {
-    try {
-      setIsSendingInvite(true);
-      
-      if (!tenantId) {
-        throw new Error('No tenant selected');
-      }
-      
-      // In a real app, this would call an edge function to send the email
-      // For this demo, we'll just simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Invitation sent',
-        description: `An invitation has been sent to ${inviteEmail}`,
-      });
-      
-      // Close dialog and reset form
-      setIsDialogOpen(false);
-      setInviteEmail('');
-      setInviteRole('member');
-      
-    } catch (err: any) {
-      console.error('Error sending invitation:', err);
-      toast({
-        title: 'Error sending invitation',
-        description: err.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSendingInvite(false);
-    }
-  };
+  // Filter users based on search query
+  const filteredUsers = users.filter(user => {
+    const firstName = user.profiles?.first_name || '';
+    const lastName = user.profiles?.last_name || '';
+    const email = user.profiles?.email?.email || '';
+    const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return fullName.includes(query) || 
+      firstName.toLowerCase().includes(query) || 
+      lastName.toLowerCase().includes(query) || 
+      email.toLowerCase().includes(query);
+  });
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
   
+  // Helper functions for UI rendering
+  const getInitials = (firstName?: string, lastName?: string) => {
+    if (!firstName && !lastName) return 'U';
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  };
+  
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return <Badge className="bg-purple-500">Owner</Badge>;
+      case 'admin':
+        return <Badge className="bg-blue-500">Admin</Badge>;
+      case 'member':
+        return <Badge className="bg-green-500">Member</Badge>;
+      case 'viewer':
+        return <Badge variant="outline">Viewer</Badge>;
+      default:
+        return <Badge variant="outline">{role}</Badge>;
+    }
+  };
+
   return (
-    <AdminGuard>
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">User Management</h1>
+        <Button onClick={() => setIsInviteDialogOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite User
+        </Button>
+      </div>
+      
+      <p className="text-muted-foreground mb-8">
+        Manage users and their roles within your workspace.
+      </p>
+      
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
             <div>
-              <CardTitle>User Management</CardTitle>
+              <CardTitle>Users</CardTitle>
               <CardDescription>
-                Manage users, permissions and invitations for your workspace.
+                Users with access to the {currentWorkspace?.name || 'current'} workspace
               </CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="mr-2 h-4 w-4" /> Invite User
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Invite a new user</DialogTitle>
-                  <DialogDescription>
-                    Send an invitation to join your workspace. They'll receive an email with a link to accept.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="user@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={inviteRole} onValueChange={(value: any) => setInviteRole(value)}>
-                      <SelectTrigger id="role">
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Administrator</SelectItem>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={sendInvite} 
-                    disabled={!inviteEmail || isSendingInvite}
-                  >
-                    {isSendingInvite ? 
-                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : 
-                      <><Mail className="mr-2 h-4 w-4" /> Send Invitation</>
-                    }
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <div className="w-full sm:w-auto flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              
-              <div className="w-full sm:w-auto">
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Filter by role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All roles</SelectItem>
-                    <SelectItem value="owner">Owner</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="member">Member</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Button variant="outline" onClick={() => {
-                setSearchTerm('');
-                setRoleFilter('');
-              }}>
-                Clear filters
-              </Button>
-              
-              <Button variant="outline" onClick={loadUsers}>
-                <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-              </Button>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Input 
+                placeholder="Search users..." 
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <div className="flex justify-center">
-                          <RefreshCw className="h-6 w-6 animate-spin text-gray-500" />
-                        </div>
-                        <p className="mt-2 text-gray-500">Loading users...</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredUsers.length ? (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar>
-                              <AvatarImage src={user.avatar_url || ''} alt={user.email} />
-                              <AvatarFallback>
-                                {getInitials(user.first_name, user.last_name)}
-                              </AvatarFallback>
-                            </Avatar>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : filteredUsers.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[250px]">User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          {user.profiles?.avatar_url ? (
+                            <AvatarImage src={user.profiles.avatar_url} />
+                          ) : null}
+                          <AvatarFallback>
+                            {getInitials(user.profiles?.first_name, user.profiles?.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          {user.profiles?.first_name || user.profiles?.last_name ? (
                             <div>
-                              <p className="font-medium">
-                                {user.first_name && user.last_name
-                                  ? `${user.first_name} ${user.last_name}`
-                                  : user.email
-                                }
-                              </p>
-                              <p className="text-xs text-muted-foreground">{user.email}</p>
+                              {user.profiles?.first_name} {user.profiles?.last_name}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getRoleDisplayName(user.role as UserRole)}
-                        </TableCell>
-                        <TableCell>{formatDate(user.created_at)}</TableCell>
-                        <TableCell className="text-right">
-                          {user.role === 'owner' ? (
-                            <Badge variant="outline">Owner</Badge>
                           ) : (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Open menu</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  disabled={user.role === 'admin'}
-                                  onClick={() => handleUserRoleChange(user.id, 'admin')}
-                                >
-                                  Make Admin
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={user.role === 'member'}
-                                  onClick={() => handleUserRoleChange(user.id, 'member')}
-                                >
-                                  Make Member
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={user.role === 'viewer'}
-                                  onClick={() => handleUserRoleChange(user.id, 'viewer')}
-                                >
-                                  Make Viewer
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-red-600 focus:text-red-600"
-                                  onClick={() => handleRemoveUser(user.id)}
-                                >
-                                  Remove from workspace
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="text-muted-foreground italic">Unnamed User</div>
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <p className="text-gray-500">No users found</p>
-                        {(searchTerm || roleFilter) && (
-                          <p className="text-sm text-gray-400 mt-1">
-                            Try clearing your filters
-                          </p>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {user.profiles?.email?.email || "No email"}
+                    </TableCell>
+                    <TableCell>
+                      {getRoleBadge(user.role)}
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(user.created_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Change Role</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleUpdateRole(user.user_id, 'admin')}>
+                            Set as Admin
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateRole(user.user_id, 'member')}>
+                            Set as Member
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateRole(user.user_id, 'viewer')}>
+                            Set as Viewer
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive" 
+                            onClick={() => handleRemoveUser(user.user_id)}
+                          >
+                            Remove User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No users found {searchQuery ? 'matching your search' : ''}
             </div>
-          </CardContent>
-          
-          <CardFooter className="flex justify-between">
-            <p className="text-sm text-muted-foreground">
-              {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
-            </p>
-          </CardFooter>
-        </Card>
-      </div>
-    </AdminGuard>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <div className="text-sm text-muted-foreground">
+            {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} in this workspace
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchUsers}>
+            Refresh
+          </Button>
+        </CardFooter>
+      </Card>
+      
+      <InviteUserDialog
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        onInvite={handleInviteUser}
+        currentWorkspace={currentWorkspace}
+      />
+    </div>
   );
 };
 
-export default UserManagement;
+export default withRoleCheck(UserManagement, { roles: ['admin', 'owner'] });

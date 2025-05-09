@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -207,7 +208,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
           const saved = workspaces.find(w => w.id === savedWorkspaceId);
           if (saved) {
             setCurrentWorkspace(saved);
-            // Fix: Only set userRole if role exists and handle undefined case
+            // Fix: Only set userRole if role exists
             if (saved.role) {
               setUserRole(saved.role);
             }
@@ -240,7 +241,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
     createWorkspace,
     deleteWorkspace,
     updateWorkspace,
-    userRole,
+    userRole: userRole as UserRole | null,
     isLoading: loading,
     tenant: currentWorkspace,
     currentTenant: currentWorkspace,
