@@ -62,7 +62,7 @@ export const AuditLog: React.FC = () => {
         <LogDetailDialog
           log={selectedLog}
           open={!!selectedLog}
-          onOpenChange={(open) => !open && closeLogDetails()}
+          onOpenChange={(open: boolean) => !open && closeLogDetails()}
         />
       </CardContent>
     </Card>
