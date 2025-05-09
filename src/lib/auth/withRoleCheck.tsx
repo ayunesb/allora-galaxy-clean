@@ -1,49 +1,62 @@
-
-import React from 'react';
+import React, { ComponentType } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { UserRole } from './roleTypes';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface RoleCheckOptions {
-  roles: UserRole[];
-  redirectTo?: string;
+interface WithRoleCheckOptions {
+  roles?: string[];
+  redirectPath?: string;
 }
 
-/**
- * Higher-order component that checks if the user has the required role
- * before rendering the component.
- */
-export function withRoleCheck<T extends object>(
-  Component: React.ComponentType<T>,
-  options: RoleCheckOptions
+export function withRoleCheck<P extends object>(
+  Component: ComponentType<P>,
+  options: WithRoleCheckOptions = {}
 ) {
-  const WithRoleCheck: React.FC<T> = (props) => {
+  const { roles = [], redirectPath = '/' } = options;
+
+  const WithRoleCheck: React.FC<P> = (props) => {
     const { user, loading: authLoading } = useAuth();
     const { userRole, loading: workspaceLoading } = useWorkspace();
     
-    const { roles, redirectTo = '/unauthorized' } = options;
-    const isLoading = authLoading || workspaceLoading;
+    const loading = authLoading || workspaceLoading;
     
-    if (isLoading) {
-      // Return a loading state
-      return <div>Loading...</div>;
+    // Show loading state
+    if (loading) {
+      return (
+        <div className="container mx-auto py-8">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <div className="grid grid-cols-2 gap-4 mt-8">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          </div>
+        </div>
+      );
     }
     
-    // Check if user is logged in
+    // If no user, redirect to login
     if (!user) {
       return <Navigate to="/auth/login" replace />;
     }
     
-    // Check if user has the required role - Fix: Cast userRole to UserRole
-    if (!userRole || !roles.includes(userRole as UserRole)) {
-      return <Navigate to={redirectTo} replace />;
+    // If no roles specified, allow access
+    if (roles.length === 0) {
+      return <Component {...props} />;
     }
     
-    // User has the required role, render the component
-    return <Component {...props} />;
+    // If user role matches required roles, allow access
+    if (userRole && roles.includes(userRole)) {
+      return <Component {...props} />;
+    }
+    
+    // Otherwise, redirect to specified path
+    return <Navigate to={redirectPath} replace />;
   };
-  
+
   return WithRoleCheck;
 }
 

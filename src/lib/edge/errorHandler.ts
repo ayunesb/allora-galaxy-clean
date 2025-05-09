@@ -1,5 +1,5 @@
 
-import { corsHeaders } from '@/lib/env';
+import { corsHeaders } from '@/lib/env/envUtils';
 
 export interface ErrorResponseData {
   success: false;

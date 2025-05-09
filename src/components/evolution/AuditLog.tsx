@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import AuditLogFilters from './logs/AuditLogFilters';
 import AuditLogTable from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AuditLogEntry {
   id: string;
@@ -43,10 +44,81 @@ const AuditLog: React.FC = () => {
   const modules = ['auth', 'strategy', 'tenant', 'user', 'plugin'];
   const events = ['created', 'updated', 'deleted', 'access', 'error'];
 
+  useEffect(() => {
+    // Fetch logs when component mounts or filters change
+    fetchLogs();
+  }, [filterState]);
+
+  // Fetch logs based on current filters
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      // Start building the query
+      let query = supabase
+        .from('system_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      // Apply module filter if set
+      if (filterState.moduleFilter) {
+        query = query.eq('module', filterState.moduleFilter);
+      }
+      
+      // Apply event filter if set
+      if (filterState.eventFilter) {
+        query = query.eq('event', filterState.eventFilter);
+      }
+      
+      // Apply date filter if set
+      if (filterState.selectedDate) {
+        const startOfDay = new Date(filterState.selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(filterState.selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        query = query.gte('created_at', startOfDay.toISOString())
+                     .lte('created_at', endOfDay.toISOString());
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching logs:', error);
+        toast({
+          title: 'Error',
+          description: `Failed to fetch logs: ${error.message}`,
+          variant: 'destructive'
+        });
+      } else {
+        // If search query is set, filter results client-side
+        let filteredData = data || [];
+        if (filterState.searchQuery) {
+          const searchLower = filterState.searchQuery.toLowerCase();
+          filteredData = filteredData.filter(log => 
+            log.module?.toLowerCase().includes(searchLower) || 
+            log.event?.toLowerCase().includes(searchLower) ||
+            log.context && JSON.stringify(log.context).toLowerCase().includes(searchLower)
+          );
+        }
+        
+        setLogs(filteredData);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching logs:', err);
+      toast({
+        title: 'Error',
+        description: `An unexpected error occurred: ${err instanceof Error ? err.message : String(err)}`,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle filter changes
   const handleFilterChange = (newFilters: AuditLogFilterState) => {
     setFilterState(newFilters);
-    // Apply filters to logs...
   };
 
   // Handle log selection
@@ -62,7 +134,7 @@ const AuditLog: React.FC = () => {
 
   // Handle refresh
   const handleRefresh = () => {
-    // Implement refresh logs logic...
+    fetchLogs();
     toast({
       title: "Refreshed",
       description: "Logs refreshed",

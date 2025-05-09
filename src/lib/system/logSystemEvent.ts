@@ -3,30 +3,34 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Log a system event to the system_logs table
- * @param module The system module (e.g., 'agent', 'strategy', 'plugin')
- * @param event The event type (e.g., 'created', 'updated', 'executed')
+ * @param tenantId The tenant ID, or 'system' for system-wide events
+ * @param module The system module (e.g., 'auth', 'strategy', 'plugin')
+ * @param eventType The event type (e.g., 'created', 'updated', 'executed')
  * @param context Additional context for the event
- * @param tenantId The tenant ID
+ * @param level Log level (info, warn, error)
  * @returns Success status and optional error
  */
 export async function logSystemEvent(
-  module: string, 
-  event: string,
+  tenantId: string,
+  module: string,
+  eventType: string,
   context: Record<string, any> = {},
-  tenantId?: string
+  level: 'info' | 'warn' | 'error' = 'info'
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
       .from('system_logs')
-      .insert({
+      .insert([{
+        tenant_id: tenantId,
         module,
-        event,
+        event: eventType,
+        level,
         context,
-        tenant_id: tenantId
-      });
+        created_at: new Date().toISOString()
+      }]);
       
     if (error) {
-      console.error(`Error logging ${module}.${event} event:`, error);
+      console.error(`Error logging ${module}.${eventType} event:`, error);
       return { success: false, error: error.message };
     }
     
@@ -40,3 +44,8 @@ export async function logSystemEvent(
     };
   }
 }
+
+/**
+ * Alias for backward compatibility
+ */
+export const logEvent = logSystemEvent;

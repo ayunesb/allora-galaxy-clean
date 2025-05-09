@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { WorkspaceContextType } from './types';
 import { fetchUserRole, fetchUserTenants } from './workspaceUtils';
-import { toast } from '@/components/ui/use-toast';
 
 export const useWorkspaceState = (): WorkspaceContextType => {
   const { user } = useAuth(); // Use the refactored useAuth hook
@@ -176,6 +175,6 @@ export const useWorkspaceState = (): WorkspaceContextType => {
     userRole,
     isLoading: loading,
     tenant: currentWorkspace,
-    currentTenant,
+    currentTenant: currentWorkspace,
   };
 };

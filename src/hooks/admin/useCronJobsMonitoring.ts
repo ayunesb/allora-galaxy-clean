@@ -1,48 +1,68 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
 export interface CronJob {
   id: string;
-  created_at: string;
-  updated_at: string;
-  name: string;
-  schedule: string;
-  endpoint: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  headers: Record<string, string>;
-  body: any;
-  is_enabled: boolean;
-  last_run_at: string | null;
-  next_run_at: string | null;
-  run_count: number;
-  error_count: number;
-  success_count: number;
-  description: string | null;
+  job_name: string;
+  execution_time: string;
+  status: string;
+  duration_ms: number | null;
+  error_message: string | null;
+}
+
+export interface CronJobStats {
+  job_name: string;
+  total_executions: number;
+  successful_executions: number;
+  failed_executions: number;
+  avg_duration_ms: number | null;
+  last_execution: string | null;
 }
 
 export const useCronJobsMonitoring = () => {
   const [jobs, setJobs] = useState<CronJob[]>([]);
+  const [stats, setStats] = useState<CronJobStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
 
   const fetchJobs = async () => {
     setLoading(true);
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('cron_jobs')
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('cron_job_executions')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('execution_time', { ascending: false });
 
-      if (error) {
-        setError(error.message);
+      if (jobsError) {
+        setError(jobsError.message);
         toast({
           title: "Error",
-          description: `Failed to fetch jobs: ${error.message}`,
+          description: `Failed to fetch jobs: ${jobsError.message}`,
           variant: "destructive"
         });
       } else {
-        setJobs(data || []);
+        setJobs(jobsData || []);
+      }
+
+      // Fetch job statistics
+      const { data: statsData, error: statsError } = await supabase
+        .from('cron_job_stats')
+        .select('*');
+
+      if (statsError) {
+        setError(statsError.message);
+        toast({
+          title: "Error",
+          description: `Failed to fetch job statistics: ${statsError.message}`,
+          variant: "destructive"
+        });
+      } else {
+        setStats(statsData || []);
       }
     } catch (err) {
       setError(`An unexpected error occurred: ${err instanceof Error ? err.message : String(err)}`);
@@ -53,12 +73,13 @@ export const useCronJobsMonitoring = () => {
       });
     } finally {
       setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [timeRange]);
 
   // Replace the toast calls to include the required title property
   const toggleJobStatus = async (jobId: string, isEnabled: boolean) => {
@@ -89,7 +110,10 @@ export const useCronJobsMonitoring = () => {
     }
   };
 
-  // Fix other toast calls in the file
+  const refreshData = () => {
+    fetchJobs();
+  };
+
   const runJob = async (jobId: string) => {
     try {
       const { error } = await supabase.functions.invoke('trigger-cron-job', {
@@ -119,6 +143,9 @@ export const useCronJobsMonitoring = () => {
     }
   };
 
+  // Alias for runJob to match the component expectations
+  const runCronJob = runJob;
+
   // Update logSystemEvent call to ensure it has the correct parameters
   const logSystemEvent = (
     eventType: string,
@@ -134,18 +161,24 @@ export const useCronJobsMonitoring = () => {
         level: level,
         description: description,
         metadata: metadata,
-        user_id: supabase.auth.currentUser?.id || null,
+        user_id: supabase.auth.getUser().then(({ data }) => data?.user?.id) || null,
       },
     ]);
   };
 
   return {
     jobs,
+    stats,
     loading,
+    isLoading,
     error,
+    timeRange,
+    setTimeRange,
     fetchJobs,
+    refreshData,
     toggleJobStatus,
     runJob,
+    runCronJob,
     logSystemEvent,
   };
 };

@@ -1,25 +1,16 @@
 
-export interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  metadata?: Record<string, any>;
-  created_at?: string;
-  role?: string;
-}
-
 export interface WorkspaceContextType {
-  currentWorkspace: Workspace | null;
-  setCurrentWorkspace: (workspace: Workspace) => void;
-  workspaces: Workspace[];
+  currentWorkspace: any | null;
+  setCurrentWorkspace: (workspace: any) => void;
+  workspaces: any[];
   loading: boolean;
-  error: string | null;
+  error: any;
   refreshWorkspaces: () => Promise<void>;
-  createWorkspace: (name: string) => Promise<Workspace | undefined>;
-  deleteWorkspace: (id: string) => Promise<void>;
-  updateWorkspace: (id: string, data: Partial<Workspace>) => Promise<Workspace | undefined>;
+  createWorkspace: (name: string, slug?: string) => Promise<any | undefined>;
+  deleteWorkspace: (workspaceId: string) => Promise<void>;
+  updateWorkspace: (workspaceId: string, updates: { name?: string; slug?: string }) => Promise<any | undefined>;
   userRole: string | null;
   isLoading: boolean;
-  tenant: Workspace | null;
-  currentTenant: Workspace | null;
+  tenant: any | null;
+  currentTenant: any | null;
 }

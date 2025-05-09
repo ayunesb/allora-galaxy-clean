@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PlayCircle, AlertTriangle, CheckCircle, Clock, RotateCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { useCronJobsMonitoring, CronJob, CronJobStats } from '@/hooks/admin/useCronJobsMonitoring';
+import { useCronJobsMonitoring, CronJob } from '@/hooks/admin/useCronJobsMonitoring';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,11 +15,12 @@ const CronJobsMonitoring: React.FC = () => {
   const { 
     jobs, 
     stats, 
+    loading,
     isLoading, 
     timeRange, 
     setTimeRange, 
-    refreshData, 
-    runCronJob 
+    fetchJobs: refreshData, 
+    runJob: runCronJob 
   } = useCronJobsMonitoring();
 
   return (
@@ -69,7 +70,7 @@ const CronJobsMonitoring: React.FC = () => {
           <TabsContent value="statistics">
             {isLoading ? (
               <StatsTableSkeleton />
-            ) : stats.length > 0 ? (
+            ) : stats && stats.length > 0 ? (
               <StatsTable stats={stats} onRunJob={runCronJob} />
             ) : (
               <div className="text-center py-10">
@@ -83,7 +84,12 @@ const CronJobsMonitoring: React.FC = () => {
   );
 };
 
-const ExecutionsTable: React.FC<{ jobs: CronJob[], onRunJob: (jobName: string) => Promise<any> }> = ({ jobs, onRunJob }) => (
+interface ExecutionsTableProps { 
+  jobs: CronJob[]; 
+  onRunJob: (jobName: string) => Promise<any>; 
+}
+
+const ExecutionsTable: React.FC<ExecutionsTableProps> = ({ jobs, onRunJob }) => (
   <div className="rounded-md border overflow-hidden">
     <Table>
       <TableHeader>
@@ -123,7 +129,21 @@ const ExecutionsTable: React.FC<{ jobs: CronJob[], onRunJob: (jobName: string) =
   </div>
 );
 
-const StatsTable: React.FC<{ stats: CronJobStats[], onRunJob: (jobName: string) => Promise<any> }> = ({ stats, onRunJob }) => (
+interface CronJobStats {
+  job_name: string;
+  total_executions: number;
+  successful_executions: number;
+  failed_executions: number;
+  avg_duration_ms: number | null;
+  last_execution: string | null;
+}
+
+interface StatsTableProps { 
+  stats: CronJobStats[]; 
+  onRunJob: (jobName: string) => Promise<any>; 
+}
+
+const StatsTable: React.FC<StatsTableProps> = ({ stats, onRunJob }) => (
   <div className="rounded-md border overflow-hidden">
     <Table>
       <TableHeader>
@@ -169,7 +189,12 @@ const StatsTable: React.FC<{ stats: CronJobStats[], onRunJob: (jobName: string) 
   </div>
 );
 
-const StatusBadge: React.FC<{ status: string, errorMessage: string | null }> = ({ status, errorMessage }) => {
+interface StatusBadgeProps { 
+  status: string; 
+  errorMessage: string | null; 
+}
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status, errorMessage }) => {
   switch (status) {
     case 'completed':
       return (

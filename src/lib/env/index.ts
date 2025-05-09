@@ -25,8 +25,8 @@ export {
   ENV_NAMES
 } from './config';
 
-// Export the safe Deno env getter function for edge functions
-export { safeGetDenoEnv } from './safeEdgeEnv';
+// Export edge environment utilities
+export { safeGetDenoEnv, getEdgeEnv, getEdgeEnvironment } from './safeEdgeEnv';
 
 // Export specific environment configurations for different contexts
-export { getEnvironmentVariable } from './environment';
+export { getEnvironmentVariable, ENV as ENV_VARS } from './environment';

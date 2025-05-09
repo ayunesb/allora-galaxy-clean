@@ -24,11 +24,13 @@ export {
   isProduction,
   getBaseUrl,
   getSafeEnv
-} from '../env';
+} from '../env/envUtils';
 
 // Re-export utility functions for edge function environment handling
 export {
-  safeGetDenoEnv
+  safeGetDenoEnv,
+  getEdgeEnv,
+  getEdgeEnvironment
 } from '../env/safeEdgeEnv';
 
 // Export safe environment getter for edge functions

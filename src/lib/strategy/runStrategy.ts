@@ -1,229 +1,142 @@
-import { supabase } from '@/integrations/supabase/client';
 
-export interface ExecuteStrategyInput {
+import { supabase } from '@/integrations/supabase/client';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+
+interface StrategyInput {
   strategyId: string;
   tenantId: string;
   userId?: string;
   options?: Record<string, any>;
 }
 
-export interface ExecuteStrategyInputSnakeCase {
-  strategy_id: string;
-  tenant_id: string;
-  user_id?: string;
-  options?: Record<string, any>;
-}
-
-export interface ExecuteStrategyResult {
+interface StrategyExecutionResult {
   success: boolean;
-  strategy_id: string;
-  status: string;
-  execution_time: number;
-  error?: string;
   execution_id?: string;
-  outputs?: Record<string, any>;
-  logs?: Array<any>;
+  execution_time?: number;
+  error?: string;
+  details?: any;
 }
 
 /**
- * Shared utility to execute a strategy
- * Can be used by both edge functions and client-side code
+ * Run a strategy through the edge function
+ * @param input Strategy execution input
+ * @returns Strategy execution result
  */
-export async function runStrategy(input: ExecuteStrategyInput | ExecuteStrategyInputSnakeCase): Promise<ExecuteStrategyResult> {
-  const startTime = performance.now();
-  const executionId = crypto.randomUUID();
-  
+export async function runStrategy(input?: StrategyInput): Promise<StrategyExecutionResult> {
   try {
-    // Normalize input to camelCase
-    const strategyId = 'strategyId' in input ? input.strategyId : input.strategy_id;
-    const tenantId = 'tenantId' in input ? input.tenantId : input.tenant_id;
-    const userId = 'userId' in input ? input.userId : 
-                  ('user_id' in input ? input.user_id : undefined);
-    const options = input.options || {};
-    
-    // Verify the strategy exists and belongs to the tenant
-    const { data: strategy, error: strategyError } = await supabase
-      .from('strategies')
-      .select('id, title, status')
-      .eq('id', strategyId)
-      .eq('tenant_id', tenantId)
-      .single();
-    
-    if (strategyError || !strategy) {
-      throw new Error(`Strategy not found or access denied: ${strategyError?.message || 'Unknown error'}`);
+    // Validate required inputs
+    if (!input) {
+      return { success: false, error: 'Strategy ID is required' };
     }
-    
-    if (strategy.status !== 'approved' && strategy.status !== 'pending') {
-      throw new Error(`Strategy cannot be executed with status: ${strategy.status}`);
+
+    if (!input.strategyId) {
+      return { success: false, error: 'Strategy ID is required' };
     }
-    
-    // Record the execution start
-    const { error: execError } = await supabase
-      .from('executions')
-      .insert({
-        id: executionId,
-        tenant_id: tenantId,
-        strategy_id: strategyId,
-        executed_by: userId,
-        type: 'strategy',
-        status: 'pending',
-        input: options
-      });
-    
-    if (execError) {
-      console.error(`Failed to record execution: ${execError.message}`);
+
+    if (!input.tenantId) {
+      return { success: false, error: 'Tenant ID is required' };
     }
-    
-    // Get plugins associated with this strategy
-    const { data: plugins, error: pluginsError } = await supabase
-      .from('plugins')
-      .select('*')
-      .eq('status', 'active')
-      .eq('tenant_id', tenantId)
-      .limit(3);  // Just for demonstration
-      
-    if (pluginsError) {
-      throw new Error(`Failed to fetch plugins: ${pluginsError.message}`);
-    }
-    
-    // Execute plugins
-    const pluginResults = [];
-    let xpEarned = 0;
-    let successfulPlugins = 0;
-    
-    for (const plugin of (plugins || [])) {
-      try {
-        // In a real implementation, we would execute the plugin's logic
-        console.log(`Executing plugin ${plugin.id} for strategy ${strategyId}`);
-        
-        // Record plugin execution success
-        const { data: logData, error: logError } = await supabase
-          .from('plugin_logs')
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: strategyId,
-            tenant_id: tenantId,
-            status: 'success',
-            input: options || {},
-            output: { message: "Plugin executed successfully" },
-            execution_time: 0.5,
-            xp_earned: 10
-          })
-          .select()
-          .single();
-        
-        if (logError) {
-          throw new Error(`Failed to record plugin execution: ${logError.message}`);
-        }
-        
-        pluginResults.push({
-          plugin_id: plugin.id,
-          success: true,
-          log_id: logData.id,
-          xp_earned: 10
-        });
-        
-        xpEarned += 10;
-        successfulPlugins++;
-        
-      } catch (pluginError: any) {
-        console.error(`Error executing plugin ${plugin.id}:`, pluginError);
-        
-        // Record failed plugin execution
-        await supabase
-          .from('plugin_logs')
-          .insert({
-            plugin_id: plugin.id,
-            strategy_id: strategyId,
-            tenant_id: tenantId,
-            status: 'failure',
-            input: options || {},
-            error: pluginError.message,
-            execution_time: 0.3,
-            xp_earned: 0
-          });
-        
-        pluginResults.push({
-          plugin_id: plugin.id,
-          success: false,
-          error: pluginError.message,
-          xp_earned: 0
-        });
+
+    // Log strategy execution start
+    await logSystemEvent(
+      input.tenantId, 
+      'strategy', 
+      'execute_strategy_started', 
+      { strategy_id: input.strategyId }
+    ).catch(err => console.error('Error logging strategy start:', err));
+
+    // Send strategy execution request to edge function
+    const { data, error } = await supabase.functions.invoke('executeStrategy', {
+      body: {
+        id: input.strategyId,
+        tenant_id: input.tenantId,
+        user_id: input.userId,
+        options: input.options || {},
       }
-    }
-    
-    // Calculate results
-    const executionTime = (performance.now() - startTime) / 1000;
-    const pluginCount = plugins ? plugins.length : 0;
-    const status = successfulPlugins === pluginCount ? 'success' : 
-                  (successfulPlugins > 0 ? 'partial' : 'failure');
-    
-    // Update the execution record
-    await supabase
-      .from('executions')
-      .update({
-        status,
-        output: { plugins: pluginResults },
-        execution_time: executionTime,
-        xp_earned: xpEarned
-      })
-      .eq('id', executionId);
-    
-    // Log system event
-    await supabase
-      .from('system_logs')
-      .insert({
-        tenant_id: tenantId,
-        module: 'strategy',
-        event: 'strategy_executed',
-        context: {
-          strategy_id: strategyId,
-          execution_id: executionId,
-          status,
-          plugins_executed: pluginCount,
-          successful_plugins: successfulPlugins,
-          xp_earned: xpEarned
+    });
+
+    // Handle errors from edge function
+    if (error) {
+      console.error('Strategy execution error:', error);
+      
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'execute_strategy_error',
+        {
+          strategy_id: input.strategyId,
+          error: error.message || 'Unknown error'
         }
-      });
-    
+      ).catch(err => console.error('Error logging strategy error:', err));
+      
+      return {
+        success: false,
+        error: `Error executing strategy: ${error.message || 'Unknown error'}`,
+      };
+    }
+
+    // Handle missing response data
+    if (!data) {
+      console.error('Strategy execution returned no data');
+      
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'execute_strategy_error',
+        {
+          strategy_id: input.strategyId,
+          error: 'No data returned from execution'
+        }
+      ).catch(err => console.error('Error logging strategy error:', err));
+      
+      return {
+        success: false,
+        error: 'No data returned from strategy execution',
+      };
+    }
+
+    // Log successful execution
+    await logSystemEvent(
+      input.tenantId,
+      'strategy',
+      'execute_strategy_completed',
+      {
+        strategy_id: input.strategyId,
+        execution_id: data.execution_id,
+        execution_time: data.execution_time
+      }
+    ).catch(err => console.error('Error logging strategy completion:', err));
+
     return {
       success: true,
-      strategy_id: strategyId,
-      status,
-      execution_time: executionTime,
-      execution_id: executionId,
-      outputs: {
-        plugins: pluginResults,
-        plugins_executed: pluginCount,
-        successful_plugins: successfulPlugins,
-        xp_earned: xpEarned
-      },
-      logs: pluginResults
+      execution_id: data.execution_id,
+      execution_time: data.execution_time,
+      details: data.details || {}
     };
+  } catch (err: any) {
+    console.error('Unexpected error executing strategy:', err);
     
-  } catch (error: any) {
-    console.error("Error executing strategy:", error);
-    
-    // Update execution record with error
-    try {
-      await supabase
-        .from('executions')
-        .update({
-          status: 'failure',
-          error: error.message,
-          execution_time: (performance.now() - startTime) / 1000
-        })
-        .eq('id', executionId);
-    } catch (updateError) {
-      console.error("Error updating execution with error status:", updateError);
+    if (input?.tenantId && input?.strategyId) {
+      await logSystemEvent(
+        input.tenantId,
+        'strategy',
+        'execute_strategy_error',
+        {
+          strategy_id: input.strategyId,
+          error: err.message || 'Unexpected error'
+        }
+      ).catch(e => console.error('Error logging strategy error:', e));
     }
     
     return {
       success: false,
-      strategy_id: 'strategyId' in input ? input.strategyId : input.strategy_id,
-      status: 'failure',
-      execution_time: (performance.now() - startTime) / 1000,
-      error: error.message
+      error: `Unexpected error: ${err.message || 'Unknown error'}`,
+      details: err.stack
     };
   }
 }
+
+// Exported for testing
+export const _testing = {
+  runStrategy
+};

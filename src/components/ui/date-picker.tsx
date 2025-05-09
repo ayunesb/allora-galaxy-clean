@@ -1,31 +1,31 @@
 
-"use client"
-
-import { format } from "date-fns"
-import { Calendar as CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import * as React from "react";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { SelectSingleEventHandler } from "react-day-picker"
+} from "@/components/ui/popover";
 
 export interface DatePickerProps {
-  date: Date | null;
+  date: Date | null | undefined;
   setDate: (date: Date | null) => void;
+  placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
-export function DatePicker({ date, setDate, className }: DatePickerProps) {
-  // Handle the onSelect event with proper typing
-  const handleSelect: SelectSingleEventHandler = (day) => {
-    // Ensure we're returning Date | null as expected by setDate
-    setDate(day || null);
-  };
-
+export function DatePicker({ 
+  date, 
+  setDate,
+  placeholder = "Pick a date", 
+  className,
+  disabled = false 
+}: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -36,20 +36,21 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
             !date && "text-muted-foreground",
             className
           )}
+          disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date ? format(date, "PPP") : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={handleSelect}
+          onSelect={setDate}
           initialFocus
-          className="p-3 pointer-events-auto"
+          disabled={disabled}
         />
       </PopoverContent>
     </Popover>
-  )
+  );
 }

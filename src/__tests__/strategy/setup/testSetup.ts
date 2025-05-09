@@ -1,17 +1,17 @@
 
-import { beforeEach, afterEach, vi } from 'vitest';
+import { vi } from 'vitest';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
+/**
+ * Set up mocks for strategy tests
+ */
 export function setupTests() {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-  
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-}
+  // Mock logSystemEvent
+  vi.mock('@/lib/system/logSystemEvent', () => ({
+    logSystemEvent: vi.fn().mockResolvedValue({ success: true })
+  }));
 
-export function setupMockedSupabase() {
+  // Mock Supabase client
   vi.mock('@/integrations/supabase/client', () => ({
     supabase: {
       functions: {
@@ -19,10 +19,21 @@ export function setupMockedSupabase() {
       }
     }
   }));
+
+  // Reset mocks before each test
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(logSystemEvent).mockResolvedValue({ success: true });
+  });
 }
 
-export function setupMockedLogSystem() {
-  vi.mock('@/lib/system/logSystemEvent', () => ({
-    logSystemEvent: vi.fn().mockResolvedValue(undefined)
-  }));
+// Helper for asserting calls to logSystemEvent
+export function assertLogEventCalled(module: string, event: string, matchData?: any) {
+  expect(logSystemEvent).toHaveBeenCalledWith(
+    expect.any(String),
+    module,
+    event,
+    matchData ? expect.objectContaining(matchData) : expect.any(Object),
+    expect.any(String)
+  );
 }
