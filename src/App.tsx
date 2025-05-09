@@ -2,7 +2,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider as NextThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import { RequireAuth } from './components/auth/RequireAuth';
 import MainLayout from './layouts/MainLayout';

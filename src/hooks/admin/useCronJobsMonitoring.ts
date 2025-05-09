@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 export type CronJob = {
   id: string;
@@ -30,7 +30,7 @@ export const useCronJobsMonitoring = () => {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('24h');
 
-  const logSystemEvent = (module: string, level: string, message: string) => {
+  const logSystemEvent = (module: string, level: string, message: string, tenantId: string) => {
     // We are not implementing the logging to the database here
     // This is just to satisfy the type requirements
     console.log(`[${module}] [${level}] ${message}`);
@@ -117,7 +117,9 @@ export const useCronJobsMonitoring = () => {
     } catch (err: any) {
       console.error('Error fetching CRON jobs data:', err);
       setError(err.message);
-      logSystemEvent('cron', 'error', `Failed to fetch CRON jobs: ${err.message}`);
+      if (tenantId) {
+        logSystemEvent('cron', 'error', `Failed to fetch CRON jobs: ${err.message}`, tenantId);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +141,7 @@ export const useCronJobsMonitoring = () => {
     try {
       // In a real implementation, this would trigger the job execution via an edge function
       // For this example, we'll just log the attempt and simulate success
-      logSystemEvent('cron', 'info', `Manual execution triggered for job: ${jobName}`);
+      logSystemEvent('cron', 'info', `Manual execution triggered for job: ${jobName}`, tenantId);
       
       // Add a new execution entry
       const newExecution = {
@@ -171,7 +173,9 @@ export const useCronJobsMonitoring = () => {
         description: err.message,
         variant: "destructive"
       });
-      logSystemEvent('cron', 'error', `Failed to run CRON job ${jobName}: ${err.message}`);
+      if (tenantId) {
+        logSystemEvent('cron', 'error', `Failed to run CRON job ${jobName}: ${err.message}`, tenantId);
+      }
     }
   };
 
