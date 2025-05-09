@@ -8,10 +8,18 @@ export interface ExecuteStrategyInputSnakeCase {
   options?: Record<string, any>;
 }
 
+// Added this type that was missing
+export interface ExecuteStrategyInput {
+  strategyId: string;
+  tenantId: string;
+  userId?: string;
+  options?: Record<string, any>;
+}
+
 export interface ExecuteStrategyResult {
   success: boolean;
   strategy_id: string;
-  status: 'completed' | 'failed' | 'pending';
+  status: 'completed' | 'failed' | 'pending' | 'error';
   execution_time: number;
   execution_id?: string;
   error?: string;

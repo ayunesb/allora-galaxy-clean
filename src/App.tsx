@@ -2,8 +2,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider as NextThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
-import { NotificationsProvider } from './context/NotificationsContext';
-import { AuthProvider } from './hooks/useAuth';
 import { RequireAuth } from './components/auth/RequireAuth';
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
@@ -21,49 +19,45 @@ import CookieConsent from './components/CookieConsent';
 function App() {
   return (
     <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <NotificationsProvider>
-          <Routes>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Index />} />
-              <Route path="notifications" element={
-                <RequireAuth>
-                  <NotificationsPage />
-                </RequireAuth>
-              } />
-            </Route>
-            
-            {/* Auth Routes */}
-            <Route path="auth/*" element={<AuthLayout children={undefined} />} />
-            
-            {/* Onboarding Routes */}
-            <Route path="onboarding/*" element={
-              <RequireAuth>
-                <OnboardingLayout children={undefined} />
-              </RequireAuth>
-            } />
-            
-            {/* Admin Routes */}
-            <Route path="admin" element={
-              <RequireAuth roles={['admin', 'owner']}>
-                <MainLayout />
-              </RequireAuth>
-            }>
-              <Route index element={<AdminDashboard />} />
-              <Route path="logs" element={<SystemLogs />} />
-              <Route path="ai-decisions" element={<AiDecisions />} />
-              <Route path="api-keys" element={<ApiKeysPage />} />
-              <Route path="cron-jobs" element={<CronJobsPage />} />
-            </Route>
-            
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          
-          <Toaster />
-          <CookieConsent />
-        </NotificationsProvider>
-      </AuthProvider>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Index />} />
+          <Route path="notifications" element={
+            <RequireAuth>
+              <NotificationsPage />
+            </RequireAuth>
+          } />
+        </Route>
+        
+        {/* Auth Routes */}
+        <Route path="auth/*" element={<AuthLayout children={undefined} />} />
+        
+        {/* Onboarding Routes */}
+        <Route path="onboarding/*" element={
+          <RequireAuth>
+            <OnboardingLayout children={undefined} />
+          </RequireAuth>
+        } />
+        
+        {/* Admin Routes */}
+        <Route path="admin" element={
+          <RequireAuth roles={['admin', 'owner']}>
+            <MainLayout />
+          </RequireAuth>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="logs" element={<SystemLogs />} />
+          <Route path="ai-decisions" element={<AiDecisions />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="cron-jobs" element={<CronJobsPage />} />
+        </Route>
+        
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      
+      <Toaster />
+      <CookieConsent />
     </NextThemeProvider>
   );
 }

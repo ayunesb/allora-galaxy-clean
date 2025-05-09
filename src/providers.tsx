@@ -19,3 +19,5 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
     </WorkspaceProvider>
   );
 };
+
+export default Providers;

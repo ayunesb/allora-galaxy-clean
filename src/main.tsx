@@ -4,8 +4,9 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/hooks/useAuth';
+import { AuthProvider } from '@/context/AuthContext';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
+import { NotificationsProvider } from '@/context/NotificationsContext';
 import App from './App';
 import './index.css';
 
@@ -25,8 +26,10 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <WorkspaceProvider>
-            <App />
-            <Toaster />
+            <NotificationsProvider>
+              <App />
+              <Toaster />
+            </NotificationsProvider>
           </WorkspaceProvider>
         </AuthProvider>
       </QueryClientProvider>

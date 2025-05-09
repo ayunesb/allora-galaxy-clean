@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from './use-toast';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';

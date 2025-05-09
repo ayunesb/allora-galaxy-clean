@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export interface RequireAuthProps {
@@ -10,8 +10,8 @@ export interface RequireAuthProps {
 }
 
 export const RequireAuth: React.FC<RequireAuthProps> = ({ children, roles }) => {
-  const { user, isLoading: authLoading } = useAuth();
-  const { userRole, isLoading: workspaceLoading } = useWorkspace();
+  const { user, loading: authLoading } = useAuth();
+  const { userRole, loading: workspaceLoading } = useWorkspace();
   const location = useLocation();
 
   const isLoading = authLoading || workspaceLoading;

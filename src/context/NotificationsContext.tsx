@@ -9,7 +9,7 @@ import { Notification, NotificationsContextValue } from './notifications/types';
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 export const NotificationsProvider = ({ children }: { children: React.ReactNode }) => {
-  const { tenant } = useWorkspace();
+  const { currentWorkspace: tenant } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
