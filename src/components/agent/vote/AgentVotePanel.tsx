@@ -7,7 +7,6 @@ import { AgentVoteProps } from './types';
 import { useAgentVote } from './useAgentVote';
 import { VoteButton } from './VoteButton';
 import { CommentSection } from './CommentSection';
-import { VoteType } from '@/types/shared';
 
 const AgentVotePanel: React.FC<AgentVoteProps> = ({
   agentVersionId,

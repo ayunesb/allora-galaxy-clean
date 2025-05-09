@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import useAuth from '@/hooks/useAuth';
 import { WorkspaceContextType } from './types';
 import { fetchUserRole, fetchUserTenants } from './workspaceUtils';
 
@@ -12,7 +11,6 @@ export const useWorkspaceState = (): WorkspaceContextType => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [currentTenant, setCurrentTenant] = useState<any>(null);
 
   // Fetch workspaces when user changes
   useEffect(() => {

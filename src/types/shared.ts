@@ -64,6 +64,7 @@ export interface KPITrend {
   direction: TrendDirection;
   percentageChange: number;
   percentage?: number; // Adding to fix error in analyzeTrends.ts
+  isPositive?: boolean; // Adding to fix error in analyzeTrends.ts
 }
 
 // System Event Module

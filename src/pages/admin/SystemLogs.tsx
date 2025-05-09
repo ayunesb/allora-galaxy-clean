@@ -4,6 +4,7 @@ import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 
 // Define SystemLog type
 export interface SystemLog {
@@ -20,6 +21,9 @@ export interface SystemLog {
 const SystemLogs: React.FC = () => {
   const [level, setLevel] = useState('all');
   const [module, setModule] = useState('all');
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const {
     logs,
     modules,
@@ -30,6 +34,11 @@ const SystemLogs: React.FC = () => {
   const handleRefreshLogs = useCallback(() => {
     handleRefresh();
   }, [handleRefresh]);
+
+  const handleViewDetails = (log: SystemLog) => {
+    setSelectedLog(log);
+    setDetailsOpen(true);
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -53,7 +62,6 @@ const SystemLogs: React.FC = () => {
             isLoading={isLoading}
           />
           
-          {/* Log table will go here - implement as needed */}
           <div className="mt-6">
             {isLoading ? (
               <div className="flex justify-center py-10">
@@ -71,6 +79,12 @@ const SystemLogs: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={detailsOpen} 
+        onClose={() => setDetailsOpen(false)} 
+      />
     </div>
   );
 };

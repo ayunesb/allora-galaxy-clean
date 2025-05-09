@@ -1,126 +1,91 @@
 
-import { Component, ErrorInfo, ReactNode } from 'react';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import ErrorFallback from '@/components/ErrorFallback';
-import { useToast } from '@/hooks/use-toast';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  tenant_id?: string;
-  supportEmail?: string;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  resetOnRouteChange?: boolean;
-  logErrors?: boolean;
+  onReset?: () => void;
+  onError?: (error: Error, info: ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
-  error?: Error;
-  errorInfo?: ErrorInfo;
+  error: Error | null;
 }
 
-/**
- * A component that catches JavaScript errors anywhere in its child component tree,
- * logs those errors, and displays a fallback UI instead of crashing the whole app
- */
 class ErrorBoundary extends Component<Props, State> {
-  public static defaultProps = {
-    logErrors: true,
-    resetOnRouteChange: true,
-    supportEmail: 'support@alloraos.com'
-  };
-  
-  public state: State = {
-    hasError: false
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log the error to our logging service
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
-    
-    // Update state with error info for debugging
-    this.setState({ errorInfo });
-    
-    // Call onError callback if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
-    }
-    
-    // Log to system logs if tenant_id is available and logging is enabled
-    if (this.props.tenant_id && this.props.logErrors) {
-      this.logErrorToSystem(error, errorInfo);
-    }
-  }
-  
-  private logErrorToSystem(error: Error, errorInfo: ErrorInfo) {
-    const eventData = {
-      message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      location: window.location.href,
-      timestamp: new Date().toISOString()
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
     };
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+    };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('Error caught by ErrorBoundary:', error, info);
     
-    logSystemEvent(
-      'system',
-      'error',
-      eventData,
-      this.props.tenant_id || 'system'
-    ).catch(logError => {
-      console.error("Failed to log system event:", logError);
-      // Try to show toast notification as a fallback
-      try {
-        // Note: This is a workaround as React classes don't support hooks
-        // In a real application, you might want to use a different approach
-        const toastFn = useToast;
-        const toast = toastFn();
-        toast({
-          title: "Error Logging Failed",
-          description: "Could not log error details to system",
-          variant: "destructive"
-        });
-      } catch (toastError) {
-        console.error("Failed to show toast:", toastError);
-      }
+    // Call onError prop if provided
+    if (this.props.onError) {
+      this.props.onError(error, info);
+    }
+
+    // Log to error reporting service or analytics
+    this.logError(error, info);
+  }
+
+  logError(error: Error, info: ErrorInfo): void {
+    // Example implementation - replace with actual error logging
+    console.group('Error Details:');
+    console.error(error.message);
+    console.error('Component Stack:', info.componentStack);
+    console.groupEnd();
+
+    // Show toast notification
+    toast({
+      title: 'An error occurred',
+      description: error.message || 'The application encountered an unexpected error',
+      variant: 'destructive',
     });
   }
 
-  private handleReset = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  reset = (): void => {
+    // Reset the error state
+    this.setState({
+      hasError: false,
+      error: null,
+    });
+
+    // Call onReset prop if provided
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
   };
 
-  componentDidUpdate(prevProps: Props) {
-    // Reset error state when route changes if resetOnRouteChange is true
-    if (
-      this.props.resetOnRouteChange &&
-      this.state.hasError &&
-      prevProps.children !== this.props.children
-    ) {
-      this.handleReset();
-    }
-  }
-
-  public render() {
+  render(): ReactNode {
     if (this.state.hasError) {
-      // Use custom fallback if provided
+      // Show custom fallback UI if provided, otherwise default error UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Otherwise use our default error fallback
       return (
-        <ErrorFallback 
-          error={this.state.error || new Error('Unknown error')}
-          errorInfo={this.state.errorInfo}
-          resetErrorBoundary={this.handleReset}
-          tenant_id={this.props.tenant_id}
-          supportEmail={this.props.supportEmail}
-        />
+        <div className="flex flex-col items-center justify-center min-h-[300px] p-6 bg-muted/30 rounded-lg border border-muted">
+          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+          <p className="text-muted-foreground mb-4 text-center max-w-md">
+            {this.state.error?.message || 'An unexpected error occurred'}
+          </p>
+          <Button onClick={this.reset}>Try again</Button>
+        </div>
       );
     }
 

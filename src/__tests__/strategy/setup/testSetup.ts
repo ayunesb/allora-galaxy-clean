@@ -1,38 +1,69 @@
 
-import { vi, beforeEach, expect } from 'vitest';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+// Test setup file contains configuration for strategy tests
 
-/**
- * Set up mocks for strategy tests
- */
-export function setupTests() {
-  // Mock logSystemEvent
-  vi.mock('@/lib/system/logSystemEvent', () => ({
-    logSystemEvent: vi.fn().mockResolvedValue({ success: true })
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { runStrategy } from '../../../lib/strategy/runStrategy';
+
+// Mock supabase client
+vi.mock('../../../integrations/supabase/client', () => {
+  const invokeFunction = vi.fn().mockImplementation(() => ({
+    data: { 
+      execution_id: 'mock-execution-id',
+      execution_time: 123,
+      details: {
+        success: true,
+        plugins_executed: 2
+      }
+    },
+    error: null
   }));
 
-  // Mock Supabase client
-  vi.mock('@/integrations/supabase/client', () => ({
-    supabase: {
-      functions: {
-        invoke: vi.fn()
+  const supabaseMock = {
+    functions: {
+      invoke: invokeFunction
+    }
+  };
+
+  return {
+    supabase: supabaseMock
+  };
+});
+
+// Mock logSystemEvent
+vi.mock('../../../lib/system/logSystemEvent', () => {
+  return {
+    logSystemEvent: vi.fn().mockResolvedValue(true)
+  };
+});
+
+// Common setup for strategy tests
+const setupStrategyTest = () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  return {
+    mockInput: {
+      strategyId: 'test-strategy-id',
+      tenantId: 'test-tenant-id',
+      userId: 'test-user-id',
+      options: {
+        test: 'option'
       }
     }
-  }));
+  };
+};
 
-  // Reset mocks before each test
-  beforeEach(() => {
-    vi.resetAllMocks();
-    vi.mocked(logSystemEvent).mockResolvedValue({ success: true });
-  });
-}
-
-// Helper for asserting calls to logSystemEvent
-export function assertLogEventCalled(module: string, event: string, matchData?: any) {
-  expect(logSystemEvent).toHaveBeenCalledWith(
-    expect.any(String),
-    module,
-    expect.objectContaining(matchData || {}),
-    expect.any(String)
-  );
-}
+export {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  setupStrategyTest
+};

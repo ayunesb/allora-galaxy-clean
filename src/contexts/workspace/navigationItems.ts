@@ -18,76 +18,91 @@ import {
 
 export const navigationItems: NavigationItem[] = [
   {
+    name: 'Dashboard',
     title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
   {
+    name: 'Launch',
     title: 'Launch',
     href: '/launch',
     icon: Rocket,
   },
   {
+    name: 'Galaxy',
     title: 'Galaxy',
     href: '/galaxy',
     icon: Globe,
   },
   {
+    name: 'Plugins',
     title: 'Plugins',
     href: '/plugins',
     icon: Puzzle,
   },
   {
+    name: 'Agents',
     title: 'Agents',
     href: '/agents/performance',
     icon: UserCog,
   },
   {
+    name: 'Evolution',
     title: 'Evolution',
     href: '/evolution',
     icon: Brain,
   },
   {
+    name: 'Insights',
     title: 'Insights',
     href: '/insights/kpis',
     icon: BarChart3,
   },
   {
+    name: 'Allora Brain',
     title: 'Allora Brain',
     href: '/allora-brain',
     icon: Brain,
   },
   {
+    name: 'Admin',
     title: 'Admin',
     href: '/admin',
     icon: Settings,
     requiresRole: ['admin', 'owner'],
     children: [
       {
+        name: 'Dashboard',
         title: 'Dashboard',
         href: '/admin',
       },
       {
+        name: 'Users',
         title: 'Users',
         href: '/admin/users',
         icon: Users,
       },
       {
+        name: 'System Logs',
         title: 'System Logs',
         href: '/admin/system-logs',
         icon: FileCog,
       },
       {
+        name: 'AI Decisions',
         title: 'AI Decisions',
         href: '/admin/ai-decisions',
         icon: Brain,
       },
       {
+        name: 'Plugin Logs',
         title: 'Plugin Logs',
         href: '/admin/plugin-logs',
         icon: AlertTriangle,
       },
       {
+        name: 'API Keys',
         title: 'API Keys',
         href: '/admin/api-keys',
         icon: KeyRound,
@@ -95,6 +110,7 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    name: 'Settings',
     title: 'Settings',
     href: '/settings',
     icon: UserCircle,

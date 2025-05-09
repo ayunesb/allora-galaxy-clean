@@ -1,8 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { format, subDays, subHours } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 export interface CronJob {
   id: string;
@@ -26,11 +25,11 @@ export const useCronJobsMonitoring = () => {
     const now = new Date();
     switch (timeRange) {
       case '24h':
-        return subHours(now, 24).toISOString();
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
       case '7d':
-        return subDays(now, 7).toISOString();
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
       case '30d':
-        return subDays(now, 30).toISOString();
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
       case 'all':
       default:
         return null;
@@ -136,5 +135,7 @@ export const useCronJobsMonitoring = () => {
     setTimeRange,
     fetchJobs,
     runJob,
+    refreshData: fetchJobs,
+    runCronJob: runJob,
   };
 };

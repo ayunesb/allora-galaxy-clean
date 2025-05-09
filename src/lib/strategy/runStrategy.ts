@@ -40,9 +40,12 @@ export async function runStrategy(input?: StrategyInput): Promise<StrategyExecut
     // Log strategy execution start
     await logSystemEvent(
       input.tenantId, 
-      'strategy', 
-      'execute_strategy_started', 
-      { strategy_id: input.strategyId }
+      'strategy',
+      'info',
+      { 
+        event_type: 'execute_strategy_started',
+        strategy_id: input.strategyId 
+      }
     ).catch(err => console.error('Error logging strategy start:', err));
 
     // Send strategy execution request to edge function
@@ -62,8 +65,9 @@ export async function runStrategy(input?: StrategyInput): Promise<StrategyExecut
       await logSystemEvent(
         input.tenantId,
         'strategy',
-        'execute_strategy_error',
+        'error',
         {
+          event_type: 'execute_strategy_error',
           strategy_id: input.strategyId,
           error: error.message || 'Unknown error'
         }
@@ -82,8 +86,9 @@ export async function runStrategy(input?: StrategyInput): Promise<StrategyExecut
       await logSystemEvent(
         input.tenantId,
         'strategy',
-        'execute_strategy_error',
+        'error',
         {
+          event_type: 'execute_strategy_error',
           strategy_id: input.strategyId,
           error: 'No data returned from execution'
         }
@@ -99,8 +104,9 @@ export async function runStrategy(input?: StrategyInput): Promise<StrategyExecut
     await logSystemEvent(
       input.tenantId,
       'strategy',
-      'execute_strategy_completed',
+      'info',
       {
+        event_type: 'execute_strategy_completed',
         strategy_id: input.strategyId,
         execution_id: data.execution_id,
         execution_time: data.execution_time
@@ -120,8 +126,9 @@ export async function runStrategy(input?: StrategyInput): Promise<StrategyExecut
       await logSystemEvent(
         input.tenantId,
         'strategy',
-        'execute_strategy_error',
+        'error',
         {
+          event_type: 'execute_strategy_error',
           strategy_id: input.strategyId,
           error: err.message || 'Unexpected error'
         }

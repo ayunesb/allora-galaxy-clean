@@ -1,63 +1,42 @@
-import React, { ComponentType } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Skeleton } from '@/components/ui/skeleton';
 
-interface WithRoleCheckOptions {
-  roles?: string[];
-  redirectPath?: string;
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import useAuth from '@/hooks/useAuth';
+import { useTenantRole } from '@/hooks/useTenantRole';
+
+export interface WithRoleCheckProps {
+  roles: string[];
 }
 
-export function withRoleCheck<P extends object>(
-  Component: ComponentType<P>,
-  options: WithRoleCheckOptions = {}
-) {
-  const { roles = [], redirectPath = '/' } = options;
-
+export const withRoleCheck = <P extends {}>(
+  Component: React.ComponentType<P>,
+  { roles }: WithRoleCheckProps
+) => {
   const WithRoleCheck: React.FC<P> = (props) => {
-    const { user, loading: authLoading } = useAuth();
-    const { userRole, loading: workspaceLoading } = useWorkspace();
-    
-    const loading = authLoading || workspaceLoading;
-    
+    const { user } = useAuth();
+    const { role, loading } = useTenantRole();
+    const location = useLocation();
+
     // Show loading state
     if (loading) {
-      return (
-        <div className="container mx-auto py-8">
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <div className="grid grid-cols-2 gap-4 mt-8">
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          </div>
-        </div>
-      );
+      return <div className="flex items-center justify-center h-screen">Loading...</div>;
     }
-    
-    // If no user, redirect to login
+
+    // If user is not authenticated, redirect to login
     if (!user) {
-      return <Navigate to="/auth/login" replace />;
+      return <Navigate to="/auth/login" state={{ from: location }} replace />;
     }
-    
-    // If no roles specified, allow access
-    if (roles.length === 0) {
+
+    // Check if user has the required role
+    if (role && roles.includes(role)) {
       return <Component {...props} />;
     }
-    
-    // If user role matches required roles, allow access
-    if (userRole && roles.includes(userRole)) {
-      return <Component {...props} />;
-    }
-    
-    // Otherwise, redirect to specified path
-    return <Navigate to={redirectPath} replace />;
+
+    // User doesn't have the required role, redirect to unauthorized
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   };
 
   return WithRoleCheck;
-}
+};
 
 export default withRoleCheck;
