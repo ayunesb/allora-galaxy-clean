@@ -39,8 +39,7 @@ export function useOnboardingSteps(validateCurrentStep: () => { valid: boolean, 
           step: steps[currentStep].id,
           next_step: steps[currentStep + 1].id,
           context: 'onboarding'
-        },
-        'system'
+        }
       ).catch(err => console.error('Failed to log step:', err));
       
       return true;

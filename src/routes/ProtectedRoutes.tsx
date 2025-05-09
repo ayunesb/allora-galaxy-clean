@@ -156,7 +156,7 @@ const ProtectedRoutes: React.FC = () => {
       </Route>
       
       {/* Admin routes wrapped in AdminLayout */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route path="/admin" element={<AdminLayout children={<Outlet />} />}>
         <Route index element={<AdminDashboard />} />
         <Route path="logs" element={<SystemLogs />} />
         <Route path="users" element={<UserManagement />} />

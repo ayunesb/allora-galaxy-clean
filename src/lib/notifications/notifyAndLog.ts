@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { SystemEventType } from '@/types/shared';
 
 export interface NotificationOptions {
   title: string;
@@ -79,8 +78,7 @@ export async function createNotification(options: NotificationOptions): Promise<
         notification_type: type,
         user_id: effectiveUserId,
         tenant_id: tenantId
-      },
-      tenantId
+      }
     );
     
     return data.id;

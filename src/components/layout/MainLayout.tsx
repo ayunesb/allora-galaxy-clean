@@ -7,28 +7,31 @@ import Footer from './Footer';
 import MobileNav from './MobileNav';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { navigationItems } from '@/contexts/workspace/navigationItems';
+import { WorkspaceProvider } from '@/contexts/workspace/WorkspaceContext';
 
 const MainLayout: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      
-      <div className="flex flex-1">
-        {!isMobile && <Sidebar items={navigationItems} />}
+    <WorkspaceProvider>
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
         
-        <main className="flex-1 bg-background">
-          <div className="container mx-auto py-6">
-            <Outlet />
-          </div>
-        </main>
+        <div className="flex flex-1">
+          {!isMobile && <Sidebar navigationItems={navigationItems} />}
+          
+          <main className="flex-1 bg-background">
+            <div className="container mx-auto py-6">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+        
+        <Footer />
+        
+        {isMobile && <MobileNav />}
       </div>
-      
-      <Footer />
-      
-      {isMobile && <MobileNav />}
-    </div>
+    </WorkspaceProvider>
   );
 };
 

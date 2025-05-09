@@ -13,7 +13,7 @@ import { SystemEventType } from '@/types/shared';
  */
 export async function logSystemEvent(
   module: string,
-  level: SystemEventType,
+  level: string,
   data: string | Record<string, any>,
   tenant_id: string = 'system',
   additionalMetadata: Record<string, any> = {}

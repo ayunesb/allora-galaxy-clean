@@ -31,10 +31,12 @@ export function DateRangePicker({ dateRange, onChange }: DateRangePickerProps) {
     
     // Only process if from is defined (required in our SharedDateRange)
     if (range.from) {
+      // Ensure we're always using a defined "from" date in our shared range
       const sharedRange: SharedDateRange = {
         from: range.from,
-        to: range.to
+        to: range.to // This can be undefined, which is fine as our SharedDateRange allows undefined "to"
       };
+      
       onChange(sharedRange);
       if (range.from && range.to) {
         setIsOpen(false);

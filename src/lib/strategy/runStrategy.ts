@@ -29,10 +29,12 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
     await logSystemEvent(
       'strategy',
       'info',
-      'execution-attempt',
-      `Attempting to execute strategy ${strategyId}`,
-      tenantId,
-      { strategy_id: strategyId, options }
+      {
+        description: `Attempting to execute strategy ${strategyId}`,
+        strategy_id: strategyId,
+        options: options
+      },
+      tenantId
     );
 
     // Execute the strategy via edge function
@@ -45,10 +47,12 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
       await logSystemEvent(
         'strategy', 
         'error',
-        'execution-failed',
-        `Failed to execute strategy ${strategyId}: ${error.message}`,
-        tenantId,
-        { strategy_id: strategyId, error: error.message }
+        {
+          description: `Failed to execute strategy ${strategyId}: ${error.message}`,
+          strategy_id: strategyId,
+          error: error.message
+        },
+        tenantId
       );
       
       throw new Error(`Strategy execution failed: ${error.message}`);
@@ -58,14 +62,13 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
     await logSystemEvent(
       'strategy',
       'info',
-      'execution-completed',
-      `Successfully executed strategy ${strategyId}`,
-      tenantId,
-      { 
+      {
+        description: `Successfully executed strategy ${strategyId}`,
         strategy_id: strategyId, 
         execution_id: data.execution_id,
         duration_ms: data.execution_time
-      }
+      },
+      tenantId
     );
 
     return data;
@@ -78,14 +81,13 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
         await logSystemEvent(
           'strategy',
           'error',
-          'execution-error',
-          `Error running strategy: ${error.message}`,
-          input.tenantId,
-          { 
+          {
+            description: `Error running strategy: ${error.message}`,
             strategy_id: input.strategyId,
             error: error.message,
             stack: error.stack
-          }
+          },
+          input.tenantId
         );
       } catch (logError) {
         console.error('Failed to log strategy execution error:', logError);

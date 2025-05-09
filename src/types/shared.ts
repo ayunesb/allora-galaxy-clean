@@ -1,4 +1,3 @@
-
 export interface AuditLog {
   id: string;
   module: string;
@@ -78,6 +77,9 @@ export interface KPITrend {
   direction: TrendDirection;
   percentage: number;
   currentValue?: number;
+  previousValue?: number;
+  percentageChange?: number;
+  isPositive?: boolean;
 }
 
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';

@@ -4,16 +4,17 @@ import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import { AuditLog } from '@/types/shared';
+import { LogDetailDialog } from '@/components/evolution';
 
 // Define SystemLog type
 export interface SystemLog {
   id: string;
   module: string;
   level: 'error' | 'warn' | 'info' | 'debug';
-  type: string;
+  event: string; // Using event instead of type for consistency
   description: string;
-  metadata: any;
+  context: any;
   tenant_id: string;
   created_at: string;
 }
@@ -21,7 +22,7 @@ export interface SystemLog {
 const SystemLogs: React.FC = () => {
   const [level, setLevel] = useState('all');
   const [module, setModule] = useState('all');
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const {
@@ -36,7 +37,17 @@ const SystemLogs: React.FC = () => {
   }, [handleRefresh]);
 
   const handleViewDetails = (log: SystemLog) => {
-    setSelectedLog(log);
+    // Convert SystemLog to AuditLog format
+    const auditLog: AuditLog = {
+      id: log.id,
+      module: log.module,
+      event_type: log.event || 'system_event',
+      description: log.description || 'No description',
+      tenant_id: log.tenant_id,
+      metadata: log.context,
+      created_at: log.created_at,
+    };
+    setSelectedLog(auditLog);
     setDetailsOpen(true);
   };
 
