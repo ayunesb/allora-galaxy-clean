@@ -83,6 +83,7 @@ const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ loading = false
               logs={mockLogs}
               isLoading={isLoading}
               title="System Activity"
+              onRefresh={handleRefresh}
             />
           </TabsContent>
 

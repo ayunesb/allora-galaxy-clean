@@ -8,9 +8,10 @@ export interface AuditLogProps {
   title?: string;
   logs: any[];
   isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
-function AuditLog({ title = "Audit Logs", logs, isLoading = false }: AuditLogProps) {
+function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: AuditLogProps) {
   const [filters, setFilters] = useState({
     search: "",
     module: "",
@@ -29,6 +30,12 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false }: AuditLogPro
       startDate: null,
       endDate: null,
     });
+  };
+
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const filteredLogs = logs.filter((log) => {
@@ -69,6 +76,7 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false }: AuditLogPro
           filters={filters}
           onFilterChange={handleFilterChange}
           onResetFilters={handleResetFilters}
+          onRefresh={handleRefresh}
         />
         <AuditLogTable logs={filteredLogs} isLoading={isLoading} />
       </CardContent>
