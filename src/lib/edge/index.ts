@@ -29,4 +29,4 @@ export {
 // Re-export utility functions for edge function environment handling
 export {
   safeGetDenoEnv
-} from '../strategy/utils/environmentUtils';
+} from '../env/safeEdgeEnv';

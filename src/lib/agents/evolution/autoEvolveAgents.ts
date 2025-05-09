@@ -1,125 +1,82 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { checkEvolutionNeeded } from './checkEvolutionNeeded';
+import { createEvolvedAgent } from './createEvolvedAgent';
+import { deactivateOldAgent } from './deactivateOldAgent';
 
-export interface EvolutionOptions {
-  evolutionThreshold?: number;
-  minimumExecutions?: number;
-  failureRateThreshold?: number;
-  staleDays?: number;
+export interface AgentEvolutionResult {
+  agentId: string;
+  success: boolean;
+  newAgentId?: string;
+  newVersion?: string;
+  error?: string;
+  reason?: string;
 }
 
 export interface EvolutionResult {
-  success: boolean;
   evolved: number;
-  agents: Array<{
-    id: string;
-    previousId: string;
-    performance: number;
-  }>;
-  message: string;
-  error?: string;
+  results: AgentEvolutionResult[];
 }
 
 /**
- * Triggers automatic evolution of agents based on performance metrics
- * @param tenantId Optional tenant ID to filter agents by tenant
- * @param options Configuration options for the evolution process
- * @returns Details of the evolution process
+ * Auto evolve agents based on performance metrics and feedback
+ * @param agents Array of agent versions to evaluate for evolution
+ * @param tenantId The tenant ID
+ * @returns Results of the evolution process
  */
 export async function autoEvolveAgents(
-  tenantId?: string,
-  options?: EvolutionOptions
+  agents: { id: string; version: string; prompt: string }[],
+  tenantId: string
 ): Promise<EvolutionResult> {
-  try {
-    // Log the start of the evolution process
-    await logSystemEvent(
-      'agent',
-      'auto_evolve_started',
-      {
-        tenant_id: tenantId,
-        options
-      },
-      tenantId
-    ).catch(() => {
-      // Non-critical error, continue execution
-      console.warn('Failed to log evolution start event');
-    });
-
-    // Call the Supabase edge function to perform the evolution
-    const { data, error } = await supabase.functions.invoke('autoEvolveAgents', {
-      body: {
-        tenant_id: tenantId,
-        options
-      }
-    });
-
-    // Handle errors from the function call
-    if (error) {
-      console.error('Error calling autoEvolveAgents function:', error);
+  const results: AgentEvolutionResult[] = [];
+  let evolvedCount = 0;
+  
+  for (const agent of agents) {
+    try {
+      // Check if this agent needs evolution
+      const needsEvolution = await checkEvolutionNeeded(agent.id);
       
-      // Log the error
-      await logSystemEvent(
-        'agent',
-        'error',
-        {
-          error: error.message,
-          tenant_id: tenantId,
-          function: 'autoEvolveAgents'
-        },
-        tenantId
-      ).catch(() => {
-        // Ignore logging errors
-      });
-
-      return {
+      if (!needsEvolution) {
+        results.push({
+          agentId: agent.id,
+          success: false,
+          reason: 'No evolution needed based on current metrics'
+        });
+        continue;
+      }
+      
+      // Create evolved agent version
+      const evolved = await createEvolvedAgent(agent.id, tenantId);
+      
+      if (evolved && evolved.success) {
+        // Deactivate the old agent
+        await deactivateOldAgent(agent.id);
+        
+        results.push({
+          agentId: agent.id,
+          success: true,
+          newAgentId: evolved.id,
+          newVersion: evolved.version
+        });
+        
+        evolvedCount++;
+      } else {
+        results.push({
+          agentId: agent.id,
+          success: false,
+          reason: 'Failed to create evolved agent'
+        });
+      }
+    } catch (error: any) {
+      results.push({
+        agentId: agent.id,
         success: false,
-        evolved: 0,
-        agents: [],
-        message: `Error evolving agents: ${error.message}`,
-        error: error.message
-      };
+        error: `Error during evolution: ${error.message}`
+      });
     }
-
-    // Log successful completion
-    await logSystemEvent(
-      'agent',
-      'auto_evolve_completed',
-      {
-        evolved: data.evolved,
-        agents: data.agents,
-        tenant_id: tenantId
-      },
-      tenantId
-    ).catch(() => {
-      // Ignore logging errors
-    });
-
-    // Return the results
-    return data as EvolutionResult;
-  } catch (error: any) {
-    console.error('Unexpected error in autoEvolveAgents:', error);
-    
-    // Log the error
-    await logSystemEvent(
-      'agent',
-      'error',
-      {
-        error: error?.message || 'Unknown error',
-        tenant_id: tenantId,
-        function: 'autoEvolveAgents'
-      },
-      tenantId
-    ).catch(() => {
-      // Ignore logging errors
-    });
-
-    return {
-      success: false,
-      evolved: 0,
-      agents: [],
-      message: `Unexpected error: ${error?.message || 'Unknown error'}`,
-      error: error?.message || 'Unknown error'
-    };
   }
+  
+  return {
+    evolved: evolvedCount,
+    results
+  };
 }

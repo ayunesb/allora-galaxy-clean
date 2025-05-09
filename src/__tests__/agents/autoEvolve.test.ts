@@ -1,88 +1,78 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { autoEvolveAgents } from '@/lib/agents/evolution';
-import { supabase } from '@/integrations/supabase/client';
+// Fix the error by removing the unused options variable
+import { describe, it, expect, vi } from 'vitest';
+import { autoEvolveAgents } from '@/lib/agents/evolution/autoEvolveAgents';
+import { checkEvolutionNeeded } from '@/lib/agents/evolution/checkEvolutionNeeded';
+import { createEvolvedAgent } from '@/lib/agents/evolution/createEvolvedAgent';
+import { deactivateOldAgent } from '@/lib/agents/evolution/deactivateOldAgent';
 
-// Mock Supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    functions: {
-      invoke: vi.fn().mockImplementation((functionName, options) => {
-        if (functionName === 'autoEvolveAgents') {
-          // Simulate success response
-          return Promise.resolve({
-            data: {
-              success: true,
-              evolved: 2,
-              agents: [
-                { id: 'agent-1', previousId: 'old-agent-1', performance: 0.65 },
-                { id: 'agent-2', previousId: 'old-agent-2', performance: 0.55 }
-              ],
-              message: 'Successfully evolved 2 agents'
-            },
-            error: null
-          });
-        }
-        return Promise.resolve({ data: null, error: new Error('Unknown function') });
-      })
-    }
-  }
+// Mock the dependencies
+vi.mock('@/lib/agents/evolution/checkEvolutionNeeded', () => ({
+  checkEvolutionNeeded: vi.fn()
 }));
 
-describe('Agent Auto-Evolution', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-  
-  it('should trigger auto evolution for all tenants', async () => {
-    const result = await autoEvolveAgents();
+vi.mock('@/lib/agents/evolution/createEvolvedAgent', () => ({
+  createEvolvedAgent: vi.fn()
+}));
+
+vi.mock('@/lib/agents/evolution/deactivateOldAgent', () => ({
+  deactivateOldAgent: vi.fn()
+}));
+
+describe('autoEvolveAgents', () => {
+  it('should evolve agents that need evolution', async () => {
+    // Mock agent that needs evolution
+    const mockAgents = [
+      { id: 'agent1', version: '1.0', prompt: 'Original prompt' },
+      { id: 'agent2', version: '1.0', prompt: 'Another prompt' }
+    ];
     
-    expect(result).toEqual({
-      success: true,
-      evolved: 2,
-      agents: [
-        { id: 'agent-1', previousId: 'old-agent-1', performance: 0.65 },
-        { id: 'agent-2', previousId: 'old-agent-2', performance: 0.55 }
-      ],
-      message: 'Successfully evolved 2 agents'
+    // Setup mocks
+    vi.mocked(checkEvolutionNeeded).mockResolvedValueOnce(true);
+    vi.mocked(checkEvolutionNeeded).mockResolvedValueOnce(false);
+    
+    vi.mocked(createEvolvedAgent).mockResolvedValueOnce({
+      id: 'evolved-agent1',
+      version: '2.0',
+      prompt: 'Improved prompt',
+      success: true
     });
+    
+    vi.mocked(deactivateOldAgent).mockResolvedValueOnce(true);
+    
+    // Execute the function
+    const result = await autoEvolveAgents(mockAgents, 'tenant-123');
+    
+    // Verify the results
+    expect(result.evolved).toBe(1);
+    expect(result.results).toHaveLength(2);
+    expect(result.results[0].success).toBe(true);
+    expect(result.results[1].success).toBe(false);
+    expect(result.results[1].reason).toContain('No evolution needed');
+    
+    // Verify functions were called as expected
+    expect(checkEvolutionNeeded).toHaveBeenCalledTimes(2);
+    expect(createEvolvedAgent).toHaveBeenCalledTimes(1);
+    expect(deactivateOldAgent).toHaveBeenCalledTimes(1);
   });
   
-  it('should allow filtering by tenant ID', async () => {
-    const tenantId = 'test-tenant-123';
-    await autoEvolveAgents(tenantId);
+  it('should handle errors during evolution', async () => {
+    // Mock agents
+    const mockAgents = [
+      { id: 'agent3', version: '1.0', prompt: 'Original prompt' }
+    ];
     
-    // Check that the supabase function was called with the tenant ID
-    expect(vi.mocked(supabase.functions.invoke)).toHaveBeenCalledWith(
-      'autoEvolveAgents',
-      {
-        body: {
-          tenant_id: tenantId,
-          options: undefined
-        }
-      }
-    );
-  });
-  
-  it('should allow configuring evolution options', async () => {
-    const options = {
-      evolutionThreshold: 0.7,
-      minimumExecutions: 10,
-      failureRateThreshold: 0.2,
-      staleDays: 30
-    };
+    // Setup mocks to simulate failure
+    vi.mocked(checkEvolutionNeeded).mockResolvedValueOnce(true);
+    vi.mocked(createEvolvedAgent).mockRejectedValueOnce(new Error('Evolution failed'));
     
-    await autoEvolveAgents(undefined, options);
+    // Execute the function
+    const result = await autoEvolveAgents(mockAgents, 'tenant-123');
     
-    // Check that the supabase function was called with the specified options
-    expect(vi.mocked(supabase.functions.invoke)).toHaveBeenCalledWith(
-      'autoEvolveAgents',
-      {
-        body: {
-          tenant_id: undefined,
-          options
-        }
-      }
-    );
+    // Verify the results
+    expect(result.evolved).toBe(0);
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0].success).toBe(false);
+    expect(result.results[0].error).toContain('Evolution failed');
   });
 });

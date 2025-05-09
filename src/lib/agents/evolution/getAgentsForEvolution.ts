@@ -2,39 +2,38 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Fetches agent versions that are eligible for evolution
- * @param tenantId Optional tenant ID to filter agents
- * @param batchSize Maximum number of agents to fetch
+ * Fetch agent versions that are candidates for evolution
+ * @param tenantId The tenant ID
  * @returns Array of agent versions
  */
-export async function getAgentsForEvolution(tenantId?: string, batchSize: number = 10) {
-  const query = supabase
-    .from('agent_versions')
-    .select(`
-      id,
-      plugin_id,
-      version,
-      prompt,
-      created_at,
-      tenant_id,
-      upvotes,
-      downvotes,
-      status
-    `)
-    .eq('status', 'active');
+export async function getAgentsForEvolution(tenantId: string) {
+  try {
+    // Get agent versions that are active and have sufficient usage
+    const { data, error } = await supabase
+      .from('agent_versions')
+      .select(`
+        id,
+        version,
+        prompt,
+        plugin_id,
+        created_at,
+        upvotes,
+        downvotes,
+        xp,
+        status
+      `)
+      .eq('status', 'active')
+      .gte('xp', 100) // Only consider agents with sufficient usage
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching agents for evolution:', error);
+      return [];
+    }
     
-  if (tenantId) {
-    query.eq('tenant_id', tenantId);
+    return data || [];
+  } catch (error) {
+    console.error('Error in getAgentsForEvolution:', error);
+    return [];
   }
-    
-  query.limit(batchSize);
-    
-  const { data, error } = await query;
-  
-  if (error) {
-    console.error('Error fetching agents for evolution:', error);
-    throw error;
-  }
-  
-  return data || [];
 }

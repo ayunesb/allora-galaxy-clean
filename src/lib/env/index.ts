@@ -5,7 +5,8 @@
  * across different environments (browser, edge functions, Node.js)
  */
 
-export { 
+// Export all environment utilities from envUtils
+export {
   ENV,
   getEnv,
   getEnvVar,
@@ -24,4 +25,5 @@ export {
   ENV_NAMES
 } from './config';
 
-// No longer export old envManager functions - use the new utilities instead
+// Export the safe Deno env getter function for edge functions
+export { safeGetDenoEnv } from './safeEdgeEnv';
