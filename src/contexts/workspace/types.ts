@@ -5,6 +5,7 @@ export interface Workspace {
   slug: string;
   metadata?: Record<string, any>;
   created_at?: string;
+  role?: string;
 }
 
 export interface WorkspaceContextType {
@@ -17,4 +18,8 @@ export interface WorkspaceContextType {
   createWorkspace: (name: string) => Promise<Workspace | undefined>;
   deleteWorkspace: (id: string) => Promise<void>;
   updateWorkspace: (id: string, data: Partial<Workspace>) => Promise<Workspace | undefined>;
+  userRole: string | null;
+  isLoading: boolean;
+  tenant: Workspace | null;
+  currentTenant: Workspace | null;
 }

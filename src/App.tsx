@@ -1,11 +1,11 @@
 
 import { Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from './lib/theme';
+import { ThemeProvider as NextThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { NotificationsProvider } from './context/NotificationsContext';
-import RequireAuth from './components/auth/RequireAuth';
+import { RequireAuth } from './components/auth/RequireAuth';
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
 import OnboardingLayout from './layouts/OnboardingLayout';
@@ -20,7 +20,7 @@ import NotificationsPage from './pages/NotificationsPage';
 
 function App() {
   return (
-    <ThemeProvider>
+    <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         <WorkspaceProvider>
           <NotificationsProvider>
@@ -35,12 +35,12 @@ function App() {
               </Route>
               
               {/* Auth Routes */}
-              <Route path="auth/*" element={<AuthLayout />} />
+              <Route path="auth/*" element={<AuthLayout children={undefined} />} />
               
               {/* Onboarding Routes */}
               <Route path="onboarding/*" element={
                 <RequireAuth>
-                  <OnboardingLayout />
+                  <OnboardingLayout children={undefined} />
                 </RequireAuth>
               } />
               
@@ -65,7 +65,7 @@ function App() {
           </NotificationsProvider>
         </WorkspaceProvider>
       </AuthProvider>
-    </ThemeProvider>
+    </NextThemeProvider>
   );
 }
 

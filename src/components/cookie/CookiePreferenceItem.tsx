@@ -4,35 +4,33 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 interface CookiePreferenceItemProps {
-  id: string;
   title: string;
   description: string;
   checked: boolean;
   disabled?: boolean;
-  onCheckedChange?: (checked: boolean) => void;
+  onChange: (checked: boolean) => void;
 }
 
 const CookiePreferenceItem: React.FC<CookiePreferenceItemProps> = ({
-  id,
   title,
   description,
   checked,
   disabled = false,
-  onCheckedChange
+  onChange,
 }) => {
   return (
-    <div className="flex items-center justify-between">
-      <div className="space-y-0.5">
-        <Label htmlFor={id}>{title}</Label>
-        <p className="text-sm text-muted-foreground">
-          {description}
-        </p>
+    <div className="flex justify-between items-center">
+      <div>
+        <Label htmlFor={`cookie-${title}`} className="text-base font-medium">
+          {title}
+        </Label>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       <Switch
-        id={id}
+        id={`cookie-${title}`}
         checked={checked}
         disabled={disabled}
-        onCheckedChange={onCheckedChange}
+        onCheckedChange={onChange}
       />
     </div>
   );

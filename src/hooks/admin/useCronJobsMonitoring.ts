@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export type CronJob = {
   id: string;
@@ -81,11 +82,7 @@ export function useCronJobsMonitoring() {
     } catch (e: any) {
       console.error('Error fetching CRON jobs data:', e);
       setError(e.message || 'Failed to fetch CRON jobs data');
-      toast({
-        title: "Error",
-        description: "Failed to load CRON jobs monitoring data",
-        variant: "destructive"
-      });
+      toast.error("Failed to load CRON jobs monitoring data");
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +91,9 @@ export function useCronJobsMonitoring() {
   // Run a CRON job manually
   const runCronJob = async (jobName: string) => {
     try {
+      // Log the manual execution
+      await logSystemEvent('system', 'manual_cron_job_trigger', { job_name: jobName });
+      
       // Call the edge function to manually trigger a CRON job
       const { data, error } = await supabase.functions.invoke('triggerCronJob', {
         body: { job_name: jobName }
@@ -101,21 +101,14 @@ export function useCronJobsMonitoring() {
       
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: `CRON job ${jobName} triggered successfully`,
-      });
+      toast.success(`CRON job ${jobName} triggered successfully`);
       
       // Refresh the data after a short delay to show the new execution
       setTimeout(fetchCronJobs, 2000);
       return data;
     } catch (e: any) {
       console.error('Error triggering CRON job:', e);
-      toast({
-        title: "Error",
-        description: e.message || "Failed to trigger CRON job",
-        variant: "destructive"
-      });
+      toast.error(e.message || "Failed to trigger CRON job");
       return null;
     }
   };
