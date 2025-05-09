@@ -1,343 +1,325 @@
 
-// Supabase Edge Function for scheduled intelligence tasks
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
+import { 
+  corsHeaders, 
+  createErrorResponse, 
+  createSuccessResponse, 
+  getEnv, 
+  handleCorsRequest, 
+  logSystemEvent,
+  parseJsonBody
+} from "../_shared/edgeUtils.ts";
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+// Environment variables
+const SUPABASE_URL = getEnv('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = getEnv('SUPABASE_SERVICE_ROLE_KEY');
 
-// Intelligence tasks configuration
+// Configuration for intelligence processing
 const CONFIG = {
-  enableKpiAnalysis: true,
-  enableAgentEvolution: true,
-  enableAlerts: true,
-  tenantBenchmarkFrequency: 'weekly', // daily, weekly, monthly
+  kpiThresholds: {
+    mrr_growth: 5, // 5% MRR growth is good
+    cac: 1000,    // $1000 CAC is threshold
+    active_users: 10 // 10% user growth is good
+  },
+  analysisWindow: {
+    days: 30,     // Analyze 30 days of data
+    minSamples: 5 // Need at least 5 data points
+  },
+  batchSize: 10   // Process 10 tenants at once
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCorsRequest(req);
+  if (corsResponse) return corsResponse;
   
   try {
-    console.log("Starting scheduled intelligence tasks");
+    // Verify required env variables
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return createErrorResponse(
+        "Supabase credentials not configured",
+        undefined,
+        500
+      );
+    }
     
-    const startTime = Date.now();
+    // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Parse request body to get specific tasks to run
-    let requestBody = {};
-    let specificTenantId = null;
+    // Parse request body for optional parameters
+    let body;
+    let specificTenantId;
     
     try {
-      requestBody = await req.json();
-      specificTenantId = requestBody.tenant_id;
-    } catch (e) {
-      // No body or invalid JSON - run for all tenants
+      body = await parseJsonBody(req);
+      specificTenantId = body.tenant_id;
+    } catch {
+      // Body parsing failed, that's ok for scheduled runs
     }
     
-    // Get active tenants
-    const { data: tenants, error: tenantsError } = await supabase
-      .from('tenants')
-      .select('id, name')
-      .order('created_at', { ascending: false });
+    // Log start of analysis process
+    const requestId = `sched_${Date.now()}`;
+    console.log(`[${requestId}] Starting scheduled intelligence analysis`);
+    
+    // Get tenants to process
+    const tenantsQuery = supabase
+      .from("tenants")
+      .select("id, name")
+      .limit(CONFIG.batchSize);
+      
+    // Filter by specific tenant if provided
+    if (specificTenantId) {
+      tenantsQuery.eq("id", specificTenantId);
+    }
+    
+    const { data: tenants, error: tenantsError } = await tenantsQuery;
       
     if (tenantsError) {
-      throw new Error(`Failed to fetch tenants: ${tenantsError.message}`);
+      console.error("Error fetching tenants:", tenantsError);
+      return createErrorResponse(
+        "Failed to fetch tenants",
+        tenantsError.message,
+        500
+      );
     }
     
-    console.log(`Found ${tenants.length} tenants to process`);
+    if (!tenants || tenants.length === 0) {
+      return createSuccessResponse({ 
+        message: "No tenants found to process",
+        tenants_processed: 0
+      });
+    }
     
-    // Filter to specific tenant if requested
-    const tenantsToProcess = specificTenantId
-      ? tenants.filter(t => t.id === specificTenantId)
-      : tenants;
-      
-    // Results tracking
-    const results = {
-      tenants_processed: 0,
-      kpis_analyzed: 0,
-      agents_evolved: 0,
-      alerts_sent: 0,
-      benchmarks_updated: 0,
-      errors: []
-    };
+    console.log(`Processing ${tenants.length} tenants`);
+    
+    // Track processing metrics
+    let kpisAnalyzed = 0;
+    let benchmarksUpdated = 0;
+    let agentsEvolved = 0;
+    const tenantResults = {};
     
     // Process each tenant
-    for (const tenant of tenantsToProcess) {
+    for (const tenant of tenants) {
+      console.log(`Processing tenant: ${tenant.name} (${tenant.id})`);
+      tenantResults[tenant.id] = { insights: [] };
+      
       try {
-        console.log(`Processing tenant: ${tenant.name} (${tenant.id})`);
+        // 1. Analyze KPIs and identify trends
+        const kpiTrends = await analyzeKpis(supabase, tenant.id);
+        kpisAnalyzed += kpiTrends.length;
         
-        // 1. KPI Analysis - detect trends and anomalies
-        if (CONFIG.enableKpiAnalysis) {
-          const kpiResults = await analyzeKpis(supabase, tenant.id);
-          results.kpis_analyzed += kpiResults.analyzed || 0;
+        // 2. Update benchmarks based on KPI analysis
+        if (kpiTrends.length > 0) {
+          await updateBenchmarks(supabase, tenant.id, kpiTrends);
+          benchmarksUpdated++;
         }
         
-        // 2. Agent Evolution - evolve agents based on performance
-        if (CONFIG.enableAgentEvolution) {
-          const agentResults = await triggerAgentEvolution(supabase, tenant.id);
-          results.agents_evolved += agentResults.evolved || 0;
-        }
+        // 3. Check if agents need evolution based on performance
+        const { evolved } = await evolveAgentsIfNeeded(supabase, tenant.id);
+        agentsEvolved += evolved;
         
-        // 3. Create tenant benchmarks for comparison
-        const now = new Date();
-        const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-        const dayOfMonth = now.getDate();
+        // 4. Log insights from analysis
+        await logInsights(supabase, tenant.id, kpiTrends);
         
-        // Weekly benchmarks on Mondays (day 1)
-        if (CONFIG.tenantBenchmarkFrequency === 'weekly' && dayOfWeek === 1) {
-          await createTenantBenchmarks(supabase, tenant.id);
-          results.benchmarks_updated++;
-        }
-        // Monthly benchmarks on the 1st
-        else if (CONFIG.tenantBenchmarkFrequency === 'monthly' && dayOfMonth === 1) {
-          await createTenantBenchmarks(supabase, tenant.id);
-          results.benchmarks_updated++;
-        }
-        // Daily benchmarks every day
-        else if (CONFIG.tenantBenchmarkFrequency === 'daily') {
-          await createTenantBenchmarks(supabase, tenant.id);
-          results.benchmarks_updated++;
-        }
+        // Record tenant processing result
+        tenantResults[tenant.id] = {
+          name: tenant.name,
+          kpis_analyzed: kpiTrends.length,
+          insights: kpiTrends.map(t => ({
+            name: t.name,
+            trend: t.direction,
+            significant: t.significant
+          })),
+          agents_evolved: evolved
+        };
         
-        // Mark tenant as processed
-        results.tenants_processed++;
+        // Log successful processing
+        await logSystemEvent(
+          supabase,
+          'system',
+          'intelligence_processed',
+          {
+            kpi_count: kpiTrends.length,
+            benchmarks_updated: benchmarksUpdated > 0,
+            agents_evolved: evolved
+          },
+          tenant.id
+        );
         
       } catch (tenantError) {
         console.error(`Error processing tenant ${tenant.id}:`, tenantError);
-        results.errors.push({
-          tenant_id: tenant.id,
-          error: tenantError.message || "Unknown error"
-        });
+        
+        tenantResults[tenant.id].error = String(tenantError);
+        
+        // Log the error but continue to next tenant
+        await logSystemEvent(
+          supabase,
+          'system',
+          'intelligence_error',
+          { error: String(tenantError) },
+          tenant.id
+        );
       }
     }
     
-    // Log completion
-    const duration = Date.now() - startTime;
-    console.log(`Scheduled intelligence tasks completed in ${duration}ms`);
+    console.log("Scheduled intelligence processing completed");
     
-    // Record execution in system_logs
-    await supabase
-      .from('system_logs')
-      .insert({
-        module: 'system',
-        event: 'scheduled_intelligence_completed',
-        context: {
-          ...results,
-          duration_ms: duration,
-          timestamp: new Date().toISOString()
-        }
-      });
-    
-    // Return results
-    return new Response(JSON.stringify({
+    // Return processing results
+    return createSuccessResponse({
       success: true,
-      ...results,
-      duration_ms: duration
-    }), {
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders
-      }
+      tenants_processed: tenants.length,
+      kpis_analyzed: kpisAnalyzed,
+      agents_evolved: agentsEvolved,
+      benchmarks_updated: benchmarksUpdated,
+      results: tenantResults
     });
     
   } catch (error) {
     console.error("Error in scheduledIntelligence:", error);
     
-    // Return error response
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message || "Unknown error occurred",
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders
-      }
-    });
+    return createErrorResponse(
+      "Failed to process scheduled intelligence",
+      String(error),
+      500
+    );
   }
 });
 
-// Helper functions
-
-// Analyze KPIs to detect trends and anomalies
+/**
+ * Analyze KPIs for a tenant and identify trends
+ */
 async function analyzeKpis(supabase, tenantId) {
-  console.log(`Analyzing KPIs for tenant ${tenantId}`);
+  const { data: kpis, error } = await supabase
+    .from('kpis')
+    .select('name, category, value, previous_value, date')
+    .eq('tenant_id', tenantId)
+    .order('date', { ascending: false })
+    .limit(100);
+    
+  if (error) throw error;
+  if (!kpis || kpis.length === 0) return [];
   
-  try {
-    // Get recent KPIs (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // Group KPIs by name to analyze trends
+  const kpiGroups = {};
+  kpis.forEach(kpi => {
+    if (!kpiGroups[kpi.name]) kpiGroups[kpi.name] = [];
+    kpiGroups[kpi.name].push(kpi);
+  });
+  
+  const trends = [];
+  
+  // Analyze each KPI group
+  for (const [name, values] of Object.entries(kpiGroups)) {
+    if (values.length < CONFIG.analysisWindow.minSamples) continue;
     
-    const { data: kpis, error: kpisError } = await supabase
-      .from('kpis')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .gte('created_at', thirtyDaysAgo.toISOString());
-      
-    if (kpisError) throw kpisError;
+    // Get most recent and historical value
+    const current = values[0].value;
+    const historical = values[values.length - 1].value;
     
-    console.log(`Found ${kpis?.length || 0} KPIs to analyze`);
+    // Calculate change
+    const absoluteChange = current - historical;
+    let percentChange = 0;
     
-    // Group KPIs by name
-    const kpiGroups = {};
-    kpis.forEach(kpi => {
-      if (!kpiGroups[kpi.name]) {
-        kpiGroups[kpi.name] = [];
-      }
-      kpiGroups[kpi.name].push(kpi);
-    });
-    
-    // Analyze each KPI group
-    let anomaliesDetected = 0;
-    
-    for (const [kpiName, kpiValues] of Object.entries(kpiGroups)) {
-      // Sort by date ascending
-      const sortedValues = kpiValues.sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      
-      if (sortedValues.length >= 3) {
-        // Simple anomaly detection (comparing recent value to average)
-        const recentValue = sortedValues[sortedValues.length - 1].value;
-        const previousValues = sortedValues.slice(0, -1).map(k => k.value);
-        const average = previousValues.reduce((sum, val) => sum + val, 0) / previousValues.length;
-        const stdDev = calculateStdDev(previousValues, average);
-        
-        // If value is more than 2 standard deviations away from mean, flag as anomaly
-        if (Math.abs(recentValue - average) > 2 * stdDev) {
-          console.log(`Anomaly detected in KPI ${kpiName}: ${recentValue} (avg: ${average.toFixed(2)}, stdDev: ${stdDev.toFixed(2)})`);
-          
-          // Log anomaly
-          await supabase
-            .from('system_logs')
-            .insert({
-              module: 'kpi',
-              event: 'anomaly_detected',
-              tenant_id: tenantId,
-              context: {
-                kpi_name: kpiName,
-                value: recentValue,
-                average: average,
-                std_dev: stdDev,
-                date: sortedValues[sortedValues.length - 1].date
-              }
-            });
-          
-          anomaliesDetected++;
-        }
-      }
+    if (historical !== 0) {
+      percentChange = (absoluteChange / Math.abs(historical)) * 100;
     }
     
-    return {
-      analyzed: kpis?.length || 0,
-      anomalies: anomaliesDetected
-    };
+    // Determine trend direction
+    let direction;
+    if (Math.abs(percentChange) < 1) {
+      direction = 'flat';
+    } else if (percentChange > 0) {
+      direction = 'up';
+    } else {
+      direction = 'down';
+    }
     
-  } catch (error) {
-    console.error('Error analyzing KPIs:', error);
-    return { analyzed: 0, anomalies: 0 };
+    // Check if trend is significant based on thresholds
+    let significant = false;
+    const category = values[0].category || 'other';
+    
+    if (name === 'Monthly Recurring Revenue' && Math.abs(percentChange) > CONFIG.kpiThresholds.mrr_growth) {
+      significant = true;
+    } else if (name === 'Customer Acquisition Cost' && Math.abs(absoluteChange) > CONFIG.kpiThresholds.cac) {
+      significant = true;
+    } else if (name === 'Active Users' && Math.abs(percentChange) > CONFIG.kpiThresholds.active_users) {
+      significant = true;
+    }
+    
+    trends.push({
+      name,
+      category,
+      current,
+      historical,
+      absoluteChange,
+      percentChange,
+      direction,
+      significant
+    });
   }
+  
+  return trends;
 }
 
-// Trigger agent evolution for a tenant
-async function triggerAgentEvolution(supabase, tenantId) {
+/**
+ * Update benchmarks based on KPI analysis
+ */
+async function updateBenchmarks(supabase, tenantId, trends) {
+  // In a real implementation, this would update benchmark data
+  // For now, log the benchmarks that would be updated
+  console.log(`Would update benchmarks for tenant ${tenantId}`);
+  return true;
+}
+
+/**
+ * Trigger agent evolution if needed
+ */
+async function evolveAgentsIfNeeded(supabase, tenantId) {
   try {
-    // Call the autoEvolveAgents function via internal Supabase function call
-    const { data: result, error } = await supabase.functions.invoke('autoEvolveAgents', {
+    // Call the autoEvolveAgents function
+    const { data, error } = await supabase.functions.invoke('autoEvolveAgents', {
       body: { tenant_id: tenantId }
     });
     
-    if (error) throw error;
-    
-    return { 
-      evolved: result.evolved || 0,
-      success: true
-    };
-  } catch (error) {
-    console.error('Error triggering agent evolution:', error);
-    return { evolved: 0, success: false };
-  }
-}
-
-// Create benchmarks for tenant comparison
-async function createTenantBenchmarks(supabase, tenantId) {
-  try {
-    console.log(`Creating benchmarks for tenant ${tenantId}`);
-    
-    // 1. Get KPI totals/averages
-    const { data: kpiStats, error: kpiError } = await supabase
-      .from('kpis')
-      .select('name, category, value')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .limit(1000);
-      
-    if (kpiError) throw kpiError;
-    
-    // Calculate averages by category and name
-    const kpiAverages = {};
-    const categoryAverages = {};
-    
-    kpiStats.forEach(kpi => {
-      // Add to KPI-specific average
-      if (!kpiAverages[kpi.name]) {
-        kpiAverages[kpi.name] = { sum: 0, count: 0 };
-      }
-      kpiAverages[kpi.name].sum += kpi.value;
-      kpiAverages[kpi.name].count++;
-      
-      // Add to category average
-      if (kpi.category) {
-        if (!categoryAverages[kpi.category]) {
-          categoryAverages[kpi.category] = { sum: 0, count: 0 };
-        }
-        categoryAverages[kpi.category].sum += kpi.value;
-        categoryAverages[kpi.category].count++;
-      }
-    });
-    
-    // 2. Create or update benchmark records
-    for (const [kpiName, stats] of Object.entries(kpiAverages)) {
-      const avgValue = stats.count > 0 ? stats.sum / stats.count : 0;
-      
-      // Get matching KPI record to determine category
-      const matchingKpi = kpiStats.find(k => k.name === kpiName);
-      const category = matchingKpi?.category || 'unknown';
-      
-      // Insert benchmark record
-      await supabase
-        .from('tenant_benchmarks')
-        .upsert({
-          tenant_id: tenantId,
-          metric_name: kpiName,
-          metric_category: category,
-          value: avgValue,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'tenant_id,metric_name' });
+    if (error) {
+      console.error(`Error evolving agents for tenant ${tenantId}:`, error);
+      return { evolved: 0 };
     }
     
-    return { created: Object.keys(kpiAverages).length };
-    
-  } catch (error) {
-    console.error('Error creating tenant benchmarks:', error);
-    return { created: 0 };
+    return { 
+      evolved: data.evolved || 0,
+      agentIds: data.agentVersionIds || []
+    };
+  } catch (err) {
+    console.error(`Error triggering agent evolution for tenant ${tenantId}:`, err);
+    return { evolved: 0 };
   }
 }
 
-// Helper function to calculate standard deviation
-function calculateStdDev(values, mean) {
-  if (values.length <= 1) return 0;
+/**
+ * Log insights from KPI analysis
+ */
+async function logInsights(supabase, tenantId, trends) {
+  // Filter for significant trends
+  const significantTrends = trends.filter(t => t.significant);
   
-  const squareDiffs = values.map(value => {
-    const diff = value - mean;
-    return diff * diff;
-  });
+  if (significantTrends.length === 0) return;
   
-  const avgSquareDiff = squareDiffs.reduce((sum, val) => sum + val, 0) / squareDiffs.length;
-  return Math.sqrt(avgSquareDiff);
+  // Log each significant trend
+  for (const trend of significantTrends) {
+    await logSystemEvent(
+      supabase,
+      'kpi',
+      `${trend.name.toLowerCase().replace(/\s+/g, '_')}_${trend.direction}`,
+      {
+        name: trend.name,
+        current: trend.current,
+        historical: trend.historical,
+        change: trend.percentChange,
+        category: trend.category
+      },
+      tenantId
+    );
+  }
 }

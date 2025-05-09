@@ -2,68 +2,67 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Checks if an agent needs evolution based on performance and threshold
+ * Checks if an agent needs evolution based on various metrics
  * @param agentId The agent version ID to check
- * @param performanceScore The current performance score (0-1)
- * @param threshold The threshold below which evolution is needed
- * @returns True if evolution is needed, false otherwise
+ * @param performance The current performance score (0-1)
+ * @param threshold The threshold performance score below which evolution is needed
+ * @returns Boolean indicating whether evolution is needed
  */
 export async function checkEvolutionNeeded(
   agentId: string,
-  performanceScore: number,
+  performance: number,
   threshold: number = 0.7
 ): Promise<boolean> {
   try {
-    // If performance is below threshold, evolution is needed
-    if (performanceScore < threshold) {
+    // Check if performance is below threshold
+    if (performance < threshold) {
       return true;
     }
     
-    // Check if agent has any negative feedback
-    const { data: negativeVotes, error: votesError } = await supabase
+    // Check for negative votes
+    const { count: downvotes, error: votesError } = await supabase
       .from('agent_votes')
-      .select('count')
+      .select('id', { count: 'exact', head: true })
       .eq('agent_version_id', agentId)
       .eq('vote_type', 'downvote');
-    
+      
     if (votesError) {
-      console.error(`Error checking votes for agent ${agentId}:`, votesError);
-      return false;
+      console.error('Error checking agent votes:', votesError);
+      throw votesError;
     }
     
-    // If there are significant negative votes, evolution may be needed
-    const negativeVoteCount = negativeVotes?.[0]?.count || 0;
-    if (negativeVoteCount >= 3) {
+    // If there are significant downvotes, evolution may be needed
+    if (downvotes && downvotes > 3) {
       return true;
     }
     
-    // Get agent creation date to check if it's "stale"
+    // Check last evolution time
     const { data: agent, error: agentError } = await supabase
       .from('agent_versions')
       .select('created_at')
       .eq('id', agentId)
       .single();
-    
+      
     if (agentError) {
-      console.error(`Error fetching agent ${agentId}:`, agentError);
-      return false;
+      console.error('Error checking agent creation date:', agentError);
+      throw agentError;
     }
     
     if (agent) {
-      const createdAt = new Date(agent.created_at);
+      const creationDate = new Date(agent.created_at);
       const now = new Date();
-      const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceCreation = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60 * 24);
       
-      // If the agent is more than 30 days old and performance is below 0.85, evolution is needed
-      if (daysSinceCreation > 30 && performanceScore < 0.85) {
+      // If the agent is old and hasn't been evolved, it might need an update
+      if (daysSinceCreation > 30) {
         return true;
       }
     }
     
-    // No need for evolution
+    // By default, no evolution needed
     return false;
   } catch (err) {
-    console.error(`Error checking if evolution is needed for agent ${agentId}:`, err);
-    return false;
+    console.error('Error in checkEvolutionNeeded:', err);
+    return false; // Default to no evolution on error
   }
 }

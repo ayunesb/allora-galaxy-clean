@@ -13,48 +13,48 @@ import { NavigationItem } from '@/types/shared';
 
 export const navigationItems: NavigationItem[] = [
   {
-    title: 'Dashboard',
+    name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard
   },
   {
-    title: 'Launch',
+    name: 'Launch',
     href: '/launch',
     icon: Rocket
   },
   {
-    title: 'Galaxy',
+    name: 'Galaxy',
     href: '/galaxy',
     icon: Activity
   },
   {
-    title: 'Plugins',
+    name: 'Plugins',
     href: '/plugins',
     icon: Zap
   },
   {
-    title: 'Agent Performance',
+    name: 'Agent Performance',
     href: '/agents/performance',
     icon: Terminal
   },
   {
-    title: 'Evolution',
+    name: 'Evolution',
     href: '/evolution',
     icon: Brain
   },
   {
-    title: 'KPI Insights',
+    name: 'KPI Insights',
     href: '/insights/kpis',
     icon: LineChart
   },
   {
-    title: 'Administration',
+    name: 'Administration',
     href: '/admin',
     icon: Settings,
     requiresRole: ['admin', 'owner']
   },
   {
-    title: 'Allora Brain',
+    name: 'Allora Brain',
     href: '/allora-brain',
     icon: Brain
   }

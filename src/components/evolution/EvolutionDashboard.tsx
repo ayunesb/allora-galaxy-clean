@@ -11,6 +11,10 @@ export const EvolutionDashboard = () => {
   // State for strategy ID (used when viewing a specific strategy)
   const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null);
   
+  const handleStrategySelect = (id: string) => {
+    setSelectedStrategyId(id);
+  };
+  
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6">Evolution Dashboard</h1>

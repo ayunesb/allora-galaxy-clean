@@ -43,7 +43,7 @@ export interface FilterParams {
 }
 
 // KPI trend direction
-export type TrendDirection = 'up' | 'down' | 'neutral';
+export type TrendDirection = 'up' | 'down' | 'neutral' | 'flat';
 
 // Log status
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';

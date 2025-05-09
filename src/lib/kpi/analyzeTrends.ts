@@ -1,58 +1,83 @@
 
-import { TrendDirection } from '@/types/shared';
-
-export interface KPITrend {
-  direction: TrendDirection;
-  percentage: number;
-  raw_change: number;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { TrendDirection, KPITrend } from '@/types/shared';
 
 /**
- * Calculate trends based on current and previous KPI values
- * @param current The current KPI value
- * @param previous The previous KPI value
- * @returns Trend information including direction and percentage change
+ * Analyzes trends for a specific KPI metric
+ * @param tenantId The tenant ID to analyze trends for
+ * @param metricName The name of the metric to analyze
+ * @param days Number of days to analyze
+ * @returns Trend data including direction and percentage change
  */
-export function calculateTrend(current: number, previous: number | null | undefined): KPITrend {
-  if (previous === null || previous === undefined || previous === 0) {
+export async function analyzeTrends(
+  tenantId: string,
+  metricName: string,
+  days: number = 30
+): Promise<KPITrend | null> {
+  try {
+    // Get the current value
+    const { data: currentData } = await supabase
+      .from('kpis')
+      .select('value')
+      .eq('tenant_id', tenantId)
+      .eq('name', metricName)
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (!currentData) return null;
+    
+    // Get the historical value
+    const historicalDate = new Date();
+    historicalDate.setDate(historicalDate.getDate() - days);
+    
+    const { data: historicalData } = await supabase
+      .from('kpis')
+      .select('value')
+      .eq('tenant_id', tenantId)
+      .eq('name', metricName)
+      .lt('date', historicalDate.toISOString())
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (!historicalData) {
+      // No historical data, so trend is neutral
+      return {
+        direction: 'neutral',
+        percentage: 0,
+        value: currentData.value
+      };
+    }
+    
+    const currentValue = currentData.value;
+    const historicalValue = historicalData.value;
+    const difference = currentValue - historicalValue;
+    
+    // Calculate percentage change
+    let percentage = 0;
+    if (historicalValue !== 0) {
+      percentage = (difference / Math.abs(historicalValue)) * 100;
+    }
+    
+    // Determine trend direction
+    let direction: TrendDirection;
+    
+    if (Math.abs(percentage) < 1) {
+      direction = 'flat'; // Less than 1% change is considered flat
+    } else if (percentage > 0) {
+      direction = 'up';
+    } else {
+      direction = 'down';
+    }
+    
     return {
-      direction: 'neutral',
-      percentage: 0,
-      raw_change: 0
+      direction,
+      percentage: Math.abs(percentage),
+      value: currentValue
     };
+  } catch (error) {
+    console.error('Error analyzing trends:', error);
+    return null;
   }
-
-  const raw_change = current - previous;
-  const percentage = (raw_change / Math.abs(previous)) * 100;
-  
-  // Determine direction with a small threshold to avoid noise
-  const threshold = 0.5; // 0.5% change threshold for direction
-  let direction: TrendDirection = 'flat';
-  
-  if (Math.abs(percentage) >= threshold) {
-    direction = raw_change > 0 ? 'up' : 'down';
-  }
-
-  return {
-    direction,
-    percentage: Math.abs(Number(percentage.toFixed(1))),
-    raw_change
-  };
-}
-
-/**
- * Format a trend for display
- * @param trend The KPI trend
- * @param includePlus Whether to include a plus sign for positive trends
- * @returns Formatted trend string
- */
-export function formatTrend(trend: KPITrend, includePlus: boolean = true): string {
-  if (trend.direction === 'neutral' || trend.direction === 'flat' || trend.percentage === 0) {
-    return '0%';
-  }
-  
-  const prefix = trend.direction === 'up' && includePlus ? '+' : '';
-  const sign = trend.direction === 'down' ? '-' : '';
-  
-  return `${prefix}${sign}${trend.percentage}%`;
 }

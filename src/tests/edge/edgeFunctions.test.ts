@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
-      invoke: vi.fn().mockImplementation((functionName, options) => {
+      invoke: vi.fn().mockImplementation((functionName) => {
         // Mock different responses based on function name
         if (functionName === 'autoEvolveAgents') {
           return Promise.resolve({

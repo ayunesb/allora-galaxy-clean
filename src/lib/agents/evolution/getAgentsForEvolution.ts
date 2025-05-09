@@ -3,41 +3,48 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Get all agents that need evolution based on vote ratios
+ * @param tenantId Optional tenant ID to filter by
+ * @param batchSize Maximum number of agents to return
+ * @returns Array of agents that are candidates for evolution
  */
-export async function getAgentsForEvolution(threshold = 0.3) {
+export async function getAgentsForEvolution(
+  tenantId?: string,
+  batchSize: number = 10
+): Promise<any[]> {
   try {
-    // Get agents with more downvotes than upvotes by the threshold
-    const { data: agentsToEvolve, error } = await supabase
+    // Build the query to get active agent versions
+    let query = supabase
       .from('agent_versions')
-      .select('id, plugin_id, prompt, version, upvotes, downvotes')
-      .lt('upvotes', supabase.rpc('multiply_value', { value: 'downvotes', multiplier: threshold }))
-      .gt('downvotes', 3) // Minimum number of downvotes to consider
-      .is('status', 'active')
-      .order('downvotes', { ascending: false });
-      
-    if (error) throw error;
-    return agentsToEvolve || [];
-  } catch (error) {
-    console.error('Error getting agents for evolution:', error);
+      .select(`
+        id,
+        plugin_id,
+        version,
+        prompt,
+        status,
+        created_at,
+        tenant_id
+      `)
+      .eq('status', 'active');
+    
+    // Filter by tenant if specified
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+    
+    // Limit the batch size
+    query = query.limit(batchSize);
+    
+    // Execute the query
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching agents for evolution:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in getAgentsForEvolution:', err);
     return [];
-  }
-}
-
-/**
- * Get the plugin for a specific agent
- */
-export async function getPluginForAgent(agentVersionId: string) {
-  try {
-    const { data: agent, error } = await supabase
-      .from('agent_versions')
-      .select('plugin_id')
-      .eq('id', agentVersionId)
-      .single();
-      
-    if (error) throw error;
-    return agent?.plugin_id;
-  } catch (error) {
-    console.error('Error getting plugin for agent:', error);
-    return null;
   }
 }

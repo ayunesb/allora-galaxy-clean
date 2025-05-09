@@ -86,7 +86,7 @@ export async function autoEvolveAgents(
             // Create new agent version
             const evolutionInput: AgentEvolutionInput = {
               parentAgentVersionId: agent.id,
-              tenantId: agent.tenant_id || tenantId || '',
+              tenantId: agent.tenant_id || '',
               userId: 'system', // System-initiated evolution
               prompt: evolvedPrompt,
               feedbackIncorporated: feedback.map(f => f.comment || '')

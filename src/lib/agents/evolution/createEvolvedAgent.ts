@@ -1,8 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-export interface EvolutionInput {
+interface AgentEvolutionInput {
   parentAgentVersionId: string;
   tenantId: string;
   userId: string;
@@ -10,72 +9,89 @@ export interface EvolutionInput {
   feedbackIncorporated?: string[];
 }
 
-export interface EvolutionResult {
+interface CreateAgentResult {
   success: boolean;
   agentVersionId?: string;
   error?: string;
 }
 
 /**
- * Create a new evolved agent version based on parent
+ * Creates a new evolved version of an agent
+ * @param input Evolution input parameters
+ * @returns Result of the agent creation operation
  */
-export async function createEvolvedAgent(input: EvolutionInput): Promise<EvolutionResult> {
+export async function createEvolvedAgent(input: AgentEvolutionInput): Promise<CreateAgentResult> {
   try {
-    const { parentAgentVersionId, tenantId, userId, prompt, feedbackIncorporated = [] } = input;
-    
-    // Get the parent agent version
+    // Get parent agent information
     const { data: parentAgent, error: parentError } = await supabase
       .from('agent_versions')
-      .select('plugin_id, version, prompt')
-      .eq('id', parentAgentVersionId)
+      .select('plugin_id, version')
+      .eq('id', input.parentAgentVersionId)
       .single();
       
     if (parentError) {
-      throw new Error(`Failed to get parent agent: ${parentError.message}`);
+      console.error('Error fetching parent agent:', parentError);
+      return {
+        success: false,
+        error: `Failed to fetch parent agent: ${parentError.message}`
+      };
     }
     
-    // Generate new version number
-    const versionParts = parentAgent.version.split('.');
-    const newVersion = `${versionParts[0]}.${Number(versionParts[1]) + 1}.0`;
+    // Calculate next version number
+    const versionParts = parentAgent.version.split('.').map(Number);
+    versionParts[2] += 1; // Increment patch version
+    const newVersion = versionParts.join('.');
     
-    // Create the new agent version
+    // Create new agent version
     const { data: newAgent, error: insertError } = await supabase
       .from('agent_versions')
       .insert({
         plugin_id: parentAgent.plugin_id,
+        tenant_id: input.tenantId,
         version: newVersion,
-        prompt,
+        prompt: input.prompt,
         status: 'active',
-        created_by: userId,
+        created_by: input.userId,
         upvotes: 0,
         downvotes: 0,
         xp: 0
       })
-      .select('id')
+      .select()
       .single();
       
     if (insertError) {
-      throw new Error(`Failed to create evolved agent: ${insertError.message}`);
+      console.error('Error creating evolved agent:', insertError);
+      return {
+        success: false,
+        error: `Failed to create evolved agent: ${insertError.message}`
+      };
     }
     
-    // Log the agent evolution
-    await logSystemEvent('agent', 'info', {
-      action: 'evolve',
-      parent_agent_id: parentAgentVersionId,
-      new_agent_id: newAgent.id,
-      user_id: userId,
-      feedback_count: feedbackIncorporated.length
-    }, tenantId);
+    // Log the evolution
+    await supabase
+      .from('system_logs')
+      .insert({
+        module: 'agent',
+        event: 'agent_evolved',
+        tenant_id: input.tenantId,
+        context: {
+          parent_agent_id: input.parentAgentVersionId,
+          new_agent_id: newAgent.id,
+          feedback_incorporated: input.feedbackIncorporated || [],
+          version_from: parentAgent.version,
+          version_to: newVersion
+        }
+      });
     
     return {
       success: true,
       agentVersionId: newAgent.id
     };
-  } catch (error: any) {
-    console.error('Error creating evolved agent:', error);
+  } catch (err: any) {
+    console.error('Error in createEvolvedAgent:', err);
     return {
       success: false,
-      error: error.message
+      error: err.message || 'Unknown error creating evolved agent'
     };
   }
 }
