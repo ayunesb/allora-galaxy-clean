@@ -6,7 +6,6 @@ import Sidebar from './Sidebar';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { navigationItems } from '@/contexts/workspace/navigationItems';
 
 const MainLayout: React.FC = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');

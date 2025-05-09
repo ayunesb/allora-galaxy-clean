@@ -1,12 +1,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { autoEvolveAgents } from '@/lib/agents/evolution';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
-      invoke: vi.fn().mockImplementation((functionName, options) => {
+      invoke: vi.fn().mockImplementation((functionName, { body }) => {
         if (functionName === 'autoEvolveAgents') {
           // Simulate success response
           return Promise.resolve({

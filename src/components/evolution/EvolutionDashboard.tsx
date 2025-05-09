@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import PluginEvolutionTab from './PluginEvolutionTab';
-import AgentEvolutionTab from './AgentEvolutionTab';
+import { AgentEvolutionTab } from './AgentEvolutionTab';
+import { PluginEvolutionTab } from './PluginEvolutionTab';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
 import AuditLog from './AuditLog';
 
@@ -46,7 +46,7 @@ const EvolutionDashboard: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="strategies" className="space-y-4">
-                <StrategyEvolutionTab />
+                <StrategyEvolutionTab strategyId={''} />
               </TabsContent>
             </div>
           </Tabs>
