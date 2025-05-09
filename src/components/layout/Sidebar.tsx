@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { NavigationItem } from '@/types/shared';
@@ -40,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
           }
         >
           {ItemIcon && <ItemIcon className="h-5 w-5 mr-2" />}
-          {!collapsed && <span>{item.name}</span>}
+          {!collapsed && <span>{item.title}</span>}
         </NavLink>
 
         {item.children && item.children.length > 0 && !collapsed && (
@@ -57,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
                     }`
                   }
                 >
-                  {child.name}
+                  {child.title}
                 </NavLink>
               </li>
             ))}
@@ -97,23 +98,3 @@ const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
 };
 
 export default Sidebar;
-
-const SidebarItem = ({ children, isActive = false, child = false, ...props }: { 
-  children: React.ReactNode; 
-  isActive?: boolean; 
-  child?: boolean;
-  [key: string]: any;
-}) => (
-  <li>
-    <Button 
-      variant={isActive ? "default" : "ghost"} 
-      className={cn("w-full justify-start", {
-        "pl-4": !child,
-        "pl-8": child
-      })}
-      {...props}
-    >
-      {children}
-    </Button>
-  </li>
-);

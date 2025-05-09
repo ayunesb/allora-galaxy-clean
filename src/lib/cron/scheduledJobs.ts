@@ -1,3 +1,4 @@
+
 import { autoEvolveAgents } from '@/lib/agents/evolution';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
@@ -23,7 +24,7 @@ function registerAutoEvolutionJob(): void {
         await logSystemEvent('system', 'error', {
           job: 'autoEvolveAgents',
           error: String(error)
-        });
+        }, 'system');
       }
     }, 24 * 60 * 60 * 1000); // Run once per day
     
