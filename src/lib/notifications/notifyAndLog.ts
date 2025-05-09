@@ -71,9 +71,10 @@ export async function createNotification(options: NotificationOptions): Promise<
     
     // Log the notification creation as a system event
     await logSystemEvent(
-      'notification' as any, // Cast to any as a temporary fix for strict type checking
-      'info' as SystemEventType,
+      'notification',
+      'info',
       {
+        description: `Notification created: ${title}`,
         notification_id: data.id,
         notification_type: type,
         user_id: effectiveUserId,
@@ -115,9 +116,10 @@ export async function markNotificationAsRead(notificationId: string): Promise<bo
     if (notification) {
       // Log the notification read as a system event
       await logSystemEvent(
-        'notification' as any, // Cast to any as a temporary fix for strict type checking
-        'info' as SystemEventType,
+        'notification',
+        'info',
         {
+          description: `Notification marked as read: ${notificationId}`,
           notification_id: notificationId,
           user_id: notification.user_id,
           action: 'mark_as_read'

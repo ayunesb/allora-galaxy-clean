@@ -6,28 +6,39 @@ import { SystemEventType } from '@/types/shared';
  * Log a system event to the database
  * @param module The module that generated the event
  * @param level The log level
- * @param type The event type
- * @param description The event description
+ * @param data Event data object or description string
  * @param tenant_id The tenant ID (optional, defaults to 'system')
- * @param metadata Additional metadata for the event
+ * @param additionalMetadata Additional metadata for the event (optional)
  * @returns The result of the operation
  */
 export async function logSystemEvent(
   module: string,
   level: SystemEventType,
-  type: string,
-  description: string,
+  data: string | Record<string, any>,
   tenant_id: string = 'system',
-  metadata: Record<string, any> = {}
+  additionalMetadata: Record<string, any> = {}
 ): Promise<any> {
   try {
+    // Process the data parameter to handle both string and object formats
+    let description: string;
+    let context: Record<string, any> = {};
+    
+    if (typeof data === 'string') {
+      description = data;
+      context = additionalMetadata;
+    } else {
+      // If data is an object, extract a description and use the object as context
+      description = data.description || data.message || JSON.stringify(data).substring(0, 255);
+      context = { ...data, ...additionalMetadata };
+    }
+
     // Convert camelCase keys to snake_case for database
     const formattedData = {
       module,
       level,
-      event: type,
-      description: description || JSON.stringify(metadata).substring(0, 255),
-      context: metadata,
+      event: typeof data === 'object' && data.event_type ? data.event_type : 'system_event',
+      description: description,
+      context,
       tenant_id
     };
 

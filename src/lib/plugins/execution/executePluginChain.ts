@@ -107,7 +107,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         });
         
         const executionTime = Date.now() - startTime;
-        const xpEarned = Math.round(executionTime / 100); // Basic XP calculation
+        const xpEarned = Math.round(executionTime / 100); // Simple XP calculation
         
         // Record execution log
         await recordLogExecution({
@@ -170,6 +170,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
       'plugin',
       'info',
       {
+        description: `Plugin chain executed with ${results.length} plugins (${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed)`,
         event: 'plugin_chain_executed',
         plugin_count: results.length,
         strategy_id: strategyId,

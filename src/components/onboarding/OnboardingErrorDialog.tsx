@@ -32,7 +32,11 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
       logSystemEvent(
         'system',
         'error',
-        { error, context: 'onboarding' },
+        {
+          description: `Onboarding error: ${error}`,
+          error: error,
+          context: 'onboarding'
+        },
         tenant_id
       ).catch(err => console.error('Failed to log onboarding error:', err));
     }
@@ -54,7 +58,8 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
       logSystemEvent(
         'system',
         'error',
-        { 
+        {
+          description: `Retry failed: ${retryError.message || 'Unknown retry error'}`, 
           error: retryError.message || 'Unknown retry error', 
           original_error: error,
           context: 'onboarding_retry'

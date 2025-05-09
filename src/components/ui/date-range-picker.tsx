@@ -1,8 +1,9 @@
 
-// Remove unused React import
+// Modified to fix type compatibility issues
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "@/types/shared";
+import { CalendarIcon } from "lucide-react";
+import { DateRange as SharedDateRange } from "@/types/shared";
+import { DateRange as CalendarDateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -14,12 +15,38 @@ import {
 import { useState } from "react";
 
 interface DateRangePickerProps {
-  dateRange: DateRange | undefined;
-  onChange: (dateRange: DateRange | undefined) => void;
+  dateRange: SharedDateRange | undefined;
+  onChange: (dateRange: SharedDateRange | undefined) => void;
 }
 
 export function DateRangePicker({ dateRange, onChange }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Convert between react-day-picker DateRange and our SharedDateRange
+  const handleCalendarSelect = (range: CalendarDateRange | undefined) => {
+    if (!range) {
+      onChange(undefined);
+      return;
+    }
+    
+    // Only process if from is defined (required in our SharedDateRange)
+    if (range.from) {
+      const sharedRange: SharedDateRange = {
+        from: range.from,
+        to: range.to
+      };
+      onChange(sharedRange);
+      if (range.from && range.to) {
+        setIsOpen(false);
+      }
+    }
+  };
+
+  // Convert our SharedDateRange to react-day-picker DateRange
+  const calendarValue: CalendarDateRange | undefined = dateRange ? {
+    from: dateRange.from,
+    to: dateRange.to
+  } : undefined;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -51,14 +78,10 @@ export function DateRangePicker({ dateRange, onChange }: DateRangePickerProps) {
         <Calendar
           initialFocus
           mode="range"
-          selected={dateRange}
-          onSelect={(range) => {
-            onChange(range);
-            if (range?.from && range?.to) {
-              setIsOpen(false);
-            }
-          }}
+          selected={calendarValue}
+          onSelect={handleCalendarSelect}
           numberOfMonths={2}
+          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>

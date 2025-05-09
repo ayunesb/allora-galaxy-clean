@@ -25,12 +25,12 @@ export interface KPI {
   updated_at: string;
 }
 
-// Missing type definitions that are imported across the project
+// Type definitions that are imported across the project
 export type VoteType = 'upvote' | 'downvote' | 'neutral';
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
-export type TrendDirection = 'increasing' | 'decreasing' | 'stable';
+export type TrendDirection = 'increasing' | 'decreasing' | 'stable' | 'up' | 'down' | 'neutral';
 
 export interface NavigationItem {
   name: string;
@@ -38,7 +38,15 @@ export interface NavigationItem {
   icon?: React.ComponentType<any>;
   children?: NavigationItem[];
   adminOnly?: boolean;
+  requiresRole?: string[];
 }
+
+export type SystemEventType = 
+  | 'info' 
+  | 'warning' 
+  | 'error' 
+  | 'success'
+  | string; // Allow string for flexibility
 
 export type SystemEventModule = 
   | 'system'
@@ -52,9 +60,7 @@ export type SystemEventModule =
   | 'kpi'
   | 'execution';
 
-export type SystemEventType = 'info' | 'warning' | 'error' | 'success';
-
-export type OnboardingStep = 'welcome' | 'company' | 'goals' | 'industry' | 'persona' | 'complete';
+export type OnboardingStep = 'welcome' | 'company' | 'goals' | 'industry' | 'persona' | 'complete' | string;
 
 export interface BaseEntity {
   id: string;
@@ -71,6 +77,7 @@ export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
 export interface KPITrend {
   direction: TrendDirection;
   percentage: number;
+  currentValue?: number;
 }
 
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';

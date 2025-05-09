@@ -47,6 +47,7 @@ export async function recordExecution(data: ExecutionRecordInput) {
     // Try to log the error as a system event
     try {
       await logSystemEvent('system', 'error', {
+        description: `Failed to record execution: ${error.message}`,
         action: 'record_execution',
         error: error.message,
         details: data

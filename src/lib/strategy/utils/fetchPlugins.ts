@@ -1,49 +1,65 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { Plugin } from '@/types';
 
-/**
- * Fetches plugins for a specific strategy
- * 
- * @param strategyId The ID of the strategy to fetch plugins for
- * @param tenantId The tenant ID
- * @returns Array of plugins
- */
-export async function fetchPluginsForStrategy(strategyId: string, tenantId: string): Promise<Plugin[]> {
+export interface Plugin {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  category?: string;
+  xp: number;
+  roi: number;
+  status: string;
+}
+
+export async function fetchPluginsForStrategy(strategyId: string): Promise<Plugin[]> {
   try {
-    // Log the plugin fetch attempt
-    await logSystemEvent('strategy' as any, 'info', {
-      strategy_id: strategyId
-    }, tenantId);
+    // Log the fetch attempt
+    await logSystemEvent(
+      'strategy',
+      'info',
+      {
+        description: `Fetching plugins for strategy ${strategyId}`,
+        strategy_id: strategyId
+      }
+    );
 
-    // Fetch available plugins for this tenant
-    const { data, error } = await supabase
-      .from('plugins')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .or(`tenant_id.is.null,status.eq.active`);
+    // Fetch plugins connected to this strategy
+    const { data: strategyPlugins, error: strategyPluginsError } = await supabase
+      .from('strategy_plugins')
+      .select('plugin_id, position')
+      .eq('strategy_id', strategyId)
+      .order('position', { ascending: true });
 
-    if (error) {
-      throw new Error(`Failed to fetch plugins: ${error.message}`);
+    if (strategyPluginsError) {
+      throw new Error(`Failed to fetch strategy plugins: ${strategyPluginsError.message}`);
     }
 
-    // Log the successful fetch
-    await logSystemEvent('strategy' as any, 'info', {
-      strategy_id: strategyId,
-      plugin_count: data?.length || 0
-    }, tenantId);
+    if (!strategyPlugins || strategyPlugins.length === 0) {
+      return [];
+    }
 
-    return data as Plugin[];
-  } catch (err: any) {
-    console.error('Error fetching plugins:', err);
-    
-    // Log the error
-    await logSystemEvent('strategy' as any, 'error', {
-      strategy_id: strategyId,
-      error: err.message
-    }, tenantId);
-    
+    const pluginIds = strategyPlugins.map(sp => sp.plugin_id);
+
+    // Fetch the full plugin data
+    const { data: plugins, error: pluginsError } = await supabase
+      .from('plugins')
+      .select('id, name, description, icon, category, xp, roi, status')
+      .in('id', pluginIds);
+
+    if (pluginsError) {
+      throw new Error(`Failed to fetch plugins: ${pluginsError.message}`);
+    }
+
+    // Sort plugins to match the order in strategy_plugins
+    const orderedPlugins = plugins ? pluginIds.map(id => 
+      plugins.find(plugin => plugin.id === id)
+    ).filter(Boolean) as Plugin[] : [];
+
+    return orderedPlugins;
+  } catch (error: any) {
+    console.error('Error fetching plugins for strategy:', error);
     return [];
   }
 }

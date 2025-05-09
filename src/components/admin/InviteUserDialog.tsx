@@ -81,7 +81,8 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
       await logSystemEvent(
         'system',
         'info',
-        { 
+        {
+          description: `Invitation sent to ${values.email} with role ${values.role}`,
           event_type: 'user_invitation', 
           email: values.email, 
           role: values.role, 

@@ -45,6 +45,7 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
       'strategy',
       'info',
       {
+        description: `Strategy ${input.strategy_id} executed successfully`,
         event_type: 'strategy_executed',
         strategy_id: input.strategy_id,
         tenant_id: input.tenant_id,
@@ -70,6 +71,7 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
         'strategy',
         'error',
         {
+          description: `Strategy execution failed: ${error.message}`,
           event_type: 'strategy_execution_failed',
           strategy_id: input.strategy_id,
           tenant_id: input.tenant_id,
