@@ -1,6 +1,5 @@
 
 import { Routes, Route } from 'react-router-dom';
-import { ThemeProvider as NextThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { RequireAuth } from './components/auth/RequireAuth';
 import MainLayout from './layouts/MainLayout';
@@ -15,10 +14,11 @@ import ApiKeysPage from './pages/admin/ApiKeysPage';
 import CronJobsPage from './pages/admin/CronJobsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CookieConsent from './components/CookieConsent';
+import { Providers } from './providers';
 
 function App() {
   return (
-    <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <Providers>
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Index />} />
@@ -58,7 +58,7 @@ function App() {
       
       <Toaster />
       <CookieConsent />
-    </NextThemeProvider>
+    </Providers>
   );
 }
 

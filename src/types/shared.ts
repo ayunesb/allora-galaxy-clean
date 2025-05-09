@@ -2,7 +2,16 @@
 // Shared type definitions used across the application
 
 // System Event Types
-export type SystemEventType = 'error' | 'warn' | 'info' | 'debug';
+export type SystemEventType = 
+  'error' | 
+  'warn' | 
+  'info' | 
+  'debug' |
+  'logs_cleanup' | 
+  'logs_cleanup_failed' | 
+  'scheduled_jobs_registered' |
+  'strategy' |
+  'onboarding_completed';
 
 // Common Status Types
 export type Status = 'idle' | 'loading' | 'success' | 'error';
@@ -33,13 +42,15 @@ export interface SortParams {
 export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
 
 // Vote Type
-export type VoteType = 'up' | 'down' | 'neutral';
+export type VoteType = 'up' | 'down' | 'neutral' | 'upvote' | 'downvote';
 
 // Navigation Item
 export interface NavigationItem {
   name: string;
   href: string;
   icon?: React.ElementType;
+  requiresRole?: string[];
+  title?: string;
   children?: NavigationItem[];
 }
 
@@ -52,6 +63,7 @@ export interface KPITrend {
   previousValue: number;
   direction: TrendDirection;
   percentageChange: number;
+  percentage?: number; // Adding to fix error in analyzeTrends.ts
 }
 
 // System Event Module
@@ -101,3 +113,19 @@ export type OnboardingStep =
   'additional-info' | 
   'strategy-generation' |
   'complete';
+
+// Audit Log Entry
+export interface AuditLog {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  module: string;
+  event_type: string;
+  user_id: string | null;
+  metadata: any;
+  created_at: string;
+  tenant_id: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+}

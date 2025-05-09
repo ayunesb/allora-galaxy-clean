@@ -1,8 +1,21 @@
+
 import React, { useState, useCallback } from 'react';
 import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+
+// Define SystemLog type
+export interface SystemLog {
+  id: string;
+  module: string;
+  level: 'error' | 'warn' | 'info' | 'debug';
+  type: string;
+  description: string;
+  metadata: any;
+  tenant_id: string;
+  created_at: string;
+}
 
 const SystemLogs: React.FC = () => {
   const [level, setLevel] = useState('all');
@@ -11,12 +24,12 @@ const SystemLogs: React.FC = () => {
     logs,
     modules,
     isLoading,
-    fetchLogs,
+    handleRefresh,
   } = useSystemLogsData();
 
-  const handleRefresh = useCallback(() => {
-    fetchLogs({ level: level === 'all' ? undefined : level, module: module === 'all' ? undefined : module });
-  }, [fetchLogs, level, module]);
+  const handleRefreshLogs = useCallback(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -35,7 +48,7 @@ const SystemLogs: React.FC = () => {
             setLevel={setLevel}
             module={module}
             setModule={setModule}
-            refresh={handleRefresh}
+            refresh={handleRefreshLogs}
             modules={modules}
             isLoading={isLoading}
           />

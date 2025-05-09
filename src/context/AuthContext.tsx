@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext } from 'react';
-import { useAuth as useSupabaseAuth, AuthProvider as AuthProviderImpl } from '@/hooks/useAuth';
+import useSupabaseAuth from '@/hooks/useAuth';
 
 // Create the context with proper typing for the auth values
 export type AuthContextType = ReturnType<typeof useSupabaseAuth>;

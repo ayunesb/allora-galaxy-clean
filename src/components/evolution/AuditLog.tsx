@@ -6,6 +6,7 @@ import AuditLogFilters from './logs/AuditLogFilters';
 import AuditLogTable from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { AuditLog as AuditLogType } from '@/types/shared';
 
 export interface AuditLogEntry {
   id: string;
@@ -102,7 +103,7 @@ const AuditLog: React.FC = () => {
           );
         }
         
-        setLogs(filteredData);
+        setLogs(filteredData as AuditLogEntry[]);
       }
     } catch (err) {
       console.error('Unexpected error fetching logs:', err);

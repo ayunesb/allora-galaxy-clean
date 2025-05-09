@@ -13,7 +13,6 @@ export const useSystemLogsData = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [modules, setModules] = useState<string[]>([]);
   const [events, setEvents] = useState<string[]>([]);
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   
   // Filters
   const [moduleFilter, setModuleFilter] = useState<string>('');
@@ -21,7 +20,10 @@ export const useSystemLogsData = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (filters?: {
+    level?: string;
+    module?: string;
+  }) => {
     try {
       setIsLoading(true);
       
@@ -33,12 +35,12 @@ export const useSystemLogsData = () => {
         query = query.eq('tenant_id', tenantId);
       }
       
-      if (moduleFilter) {
-        query = query.eq('module', moduleFilter);
+      if (filters?.module && filters.module !== 'all') {
+        query = query.eq('module', filters.module);
       }
       
-      if (eventFilter) {
-        query = query.eq('type', eventFilter);
+      if (filters?.level && filters.level !== 'all') {
+        query = query.eq('level', filters.level);
       }
       
       if (searchQuery) {
@@ -84,7 +86,7 @@ export const useSystemLogsData = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, moduleFilter, eventFilter, searchQuery, selectedDate, toast]);
+  }, [tenantId, searchQuery, selectedDate, toast]);
   
   useEffect(() => {
     fetchLogs();
@@ -99,8 +101,6 @@ export const useSystemLogsData = () => {
       setSearchQuery(value as string);
     } else if (filter === 'selectedDate') {
       setSelectedDate(value as Date | null);
-    } else if (filter === 'refresh') {
-      fetchLogs();
     }
   };
   
@@ -112,7 +112,10 @@ export const useSystemLogsData = () => {
   };
   
   const handleRefresh = () => {
-    fetchLogs();
+    fetchLogs({
+      level: moduleFilter === 'all' ? undefined : moduleFilter,
+      module: eventFilter === 'all' ? undefined : eventFilter
+    });
   };
   
   return {
@@ -122,7 +125,6 @@ export const useSystemLogsData = () => {
     eventFilter,
     searchQuery,
     selectedDate,
-    selectedLog,
     modules,
     events,
     handleFilterChange,

@@ -1,45 +1,18 @@
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
-import { useToast } from './use-toast';
+import { toast } from '@/components/ui/use-toast';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 // Types for authentication
 export type AuthUser = User;
 
-interface AuthContextType {
-  user: AuthUser | null;
-  session: Session | null;
-  loading: boolean;
-  error: Error | null;
-  signIn: (email: string, password: string) => Promise<{ user: AuthUser | null; error: Error | null }>;
-  signUp: (email: string, password: string, metadata?: object) => Promise<{ user: AuthUser | null; error: Error | null }>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: Error | null }>;
-  updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
-  refreshSession: () => Promise<void>;
-}
-
-// Create context with default values
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Custom hook to use auth context
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-// Auth provider component
-export function AuthProvider({ children }: { children: ReactNode }) {
+const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { toast } = useToast();
 
   // Initialize auth state from Supabase session
   useEffect(() => {
@@ -116,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Sign up with email and password
   const signUp = useCallback(async (email: string, password: string, metadata?: object) => {
@@ -162,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Sign out
   const signOut = useCallback(async () => {
@@ -202,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   // Reset password
   const resetPassword = useCallback(async (email: string) => {
@@ -238,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Update password
   const updatePassword = useCallback(async (newPassword: string) => {
@@ -274,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   // Refresh session
   const refreshSession = useCallback(async () => {
@@ -298,7 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value: AuthContextType = {
+  return {
     user,
     session,
     loading,
@@ -310,12 +283,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updatePassword,
     refreshSession
   };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+};
 
 export default useAuth;
