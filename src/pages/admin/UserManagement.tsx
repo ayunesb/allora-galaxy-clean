@@ -276,26 +276,6 @@ const UserManagement: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
   
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'owner':
-        return <Badge className="bg-purple-500">Owner</Badge>;
-      case 'admin':
-        return <Badge className="bg-blue-500">Admin</Badge>;
-      case 'member':
-        return <Badge className="bg-green-500">Member</Badge>;
-      case 'viewer':
-        return <Badge variant="outline">Viewer</Badge>;
-      default:
-        return <Badge variant="outline">{role}</Badge>;
-    }
-  };
-  
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName && !lastName) return 'U';
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-  };
-  
   return (
     <AdminGuard>
       <div className="container mx-auto py-8">

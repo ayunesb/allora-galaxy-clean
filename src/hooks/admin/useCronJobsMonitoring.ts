@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -93,6 +92,8 @@ export function useCronJobsMonitoring() {
   // Run a CRON job manually
   const runCronJob = async (jobName: string) => {
     try {
+      const tenantId = useTenantId();
+      
       // Log the manual execution - Fix parameter count
       await logSystemEvent(
         'system', 

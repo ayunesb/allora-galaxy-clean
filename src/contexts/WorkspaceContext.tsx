@@ -1,8 +1,8 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Workspace, WorkspaceContextType } from './workspace/types';
+import { UserRole } from '@/lib/auth/roleTypes';
 
 // Create the initial context
 const WorkspaceContext = createContext<WorkspaceContextType>({
@@ -207,7 +207,10 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
           const saved = workspaces.find(w => w.id === savedWorkspaceId);
           if (saved) {
             setCurrentWorkspace(saved);
-            setUserRole(saved.role);
+            // Fix: Only set userRole if role exists and handle undefined case
+            if (saved.role) {
+              setUserRole(saved.role);
+            }
           }
         }
       });
