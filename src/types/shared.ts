@@ -1,4 +1,3 @@
-
 // If this file doesn't exist, we'll create it with the necessary types
 export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
@@ -7,13 +6,13 @@ export type SystemEventType = 'create' | 'update' | 'delete' | 'error' | 'login'
 
 export interface AuditLog {
   id: string;
-  module: SystemEventModule;
-  event_type: SystemEventType;
+  module: string;
+  event_type: string;
   description?: string;
   tenant_id: string;
   user_id?: string;
-  metadata?: Record<string, any>;
   created_at: string;
+  metadata?: Record<string, any>;
 }
 
 // Add VoteType enum that was missing
