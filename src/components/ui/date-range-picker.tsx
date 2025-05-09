@@ -22,33 +22,25 @@ interface DateRangePickerProps {
 export function DateRangePicker({ dateRange, onChange }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Convert between react-day-picker DateRange and our SharedDateRange
-  const handleCalendarSelect = (range: CalendarDateRange | undefined) => {
-    if (!range) {
-      onChange(undefined);
-      return;
-    }
+  // Helper to ensure date objects are always provided as required by SharedDateRange
+  const ensureValidDateRange = (range: CalendarDateRange | undefined): SharedDateRange | undefined => {
+    if (!range || !range.from) return undefined;
     
-    // Only process if from is defined (required in our SharedDateRange)
-    if (range.from) {
-      // Ensure we're always using a defined "from" date in our shared range
-      const sharedRange: SharedDateRange = {
-        from: range.from,
-        to: range.to // This can be undefined, which is fine as our SharedDateRange allows undefined "to"
-      };
-      
-      onChange(sharedRange);
-      if (range.from && range.to) {
-        setIsOpen(false);
-      }
-    }
+    return {
+      from: range.from,
+      to: range.to
+    };
   };
 
-  // Convert our SharedDateRange to react-day-picker DateRange
-  const calendarValue: CalendarDateRange | undefined = dateRange ? {
-    from: dateRange.from,
-    to: dateRange.to
-  } : undefined;
+  // Convert between react-day-picker DateRange and our SharedDateRange
+  const handleCalendarSelect = (range: CalendarDateRange | undefined) => {
+    onChange(ensureValidDateRange(range));
+    
+    // Close popover when a complete range is selected
+    if (range?.from && range?.to) {
+      setIsOpen(false);
+    }
+  };
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -80,7 +72,7 @@ export function DateRangePicker({ dateRange, onChange }: DateRangePickerProps) {
         <Calendar
           initialFocus
           mode="range"
-          selected={calendarValue}
+          selected={dateRange ? { from: dateRange.from, to: dateRange.to } : undefined}
           onSelect={handleCalendarSelect}
           numberOfMonths={2}
           className="p-3 pointer-events-auto"

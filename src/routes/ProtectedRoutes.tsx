@@ -1,6 +1,6 @@
 
 import React, { Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import LoadingScreen from '@/components/LoadingScreen';
 
@@ -156,7 +156,7 @@ const ProtectedRoutes: React.FC = () => {
       </Route>
       
       {/* Admin routes wrapped in AdminLayout */}
-      <Route path="/admin" element={<AdminLayout children={<Outlet />} />}>
+      <Route path="/admin" element={<AdminLayout><Outlet /></AdminLayout>}>
         <Route index element={<AdminDashboard />} />
         <Route path="logs" element={<SystemLogs />} />
         <Route path="users" element={<UserManagement />} />

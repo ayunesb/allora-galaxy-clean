@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SystemEventType } from '@/types/shared';
 
 /**
  * Log a system event to the database
