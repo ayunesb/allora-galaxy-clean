@@ -45,7 +45,7 @@ export function DateRangePicker({
   };
 
   // Custom handler to adapt between the Calendar component's expected type and our DateRange type
-  const handleSelect = (range: { from: Date; to?: Date } | undefined) => {
+  const handleSelect = (range: any) => {
     if (range?.from) {
       // Make sure we're creating a proper DateRange with non-undefined from date
       setDate({
@@ -84,7 +84,7 @@ export function DateRangePicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
           <Calendar
             initialFocus
             mode="range"

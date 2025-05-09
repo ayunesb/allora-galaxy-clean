@@ -44,8 +44,8 @@ async function verifyStrategy(strategyId: string, tenantId: string) {
 /**
  * Update strategy execution progress
  */
-async function updateStrategyProgress(strategyId: string, status: 'running' | 'completed' | 'failed', progress: number) {
-  console.log(`Updating strategy ${strategyId} progress: ${status}, ${progress}%`);
+async function updateStrategyProgress(executionId: string, status: 'running' | 'completed' | 'failed', progress: number) {
+  console.log(`Updating strategy ${executionId} progress: ${status}, ${progress}%`);
   // In a real implementation, this would update the database
   return { success: true };
 }
@@ -145,8 +145,11 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
       return { success: false, error: new Error(validationResult.errors.join(', ')) };
     }
     
+    // Create execution ID
+    const executionId = `exec-${Date.now()}`;
+    
     // Update strategy status to running
-    await updateStrategyProgress(strategyId, 'running', 10);
+    await updateStrategyProgress(executionId, 'running', 10);
     
     // Fetch plugins for this strategy
     const { plugins } = await fetchPlugins(strategyId);
@@ -162,7 +165,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     }
     
     // Update progress
-    await updateStrategyProgress(strategyId, 'running', 20);
+    await updateStrategyProgress(executionId, 'running', 20);
     
     // Execute plugins
     const execution = await executePlugins(plugins, strategy, userId, tenantId);
@@ -178,7 +181,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     }
     
     // Update strategy status to completed
-    await updateStrategyProgress(strategyId, 'completed', 100);
+    await updateStrategyProgress(executionId, 'completed', 100);
     
     logSystemEvent(
       "strategy",
@@ -189,7 +192,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     
     return { 
       success: true,
-      execution_id: `exec-${Date.now()}`,
+      execution_id: executionId,
       execution_time: 1.5,
       results: execution.results
     };
