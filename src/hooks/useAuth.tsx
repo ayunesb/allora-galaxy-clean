@@ -2,18 +2,15 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, AuthError } from '@supabase/supabase-js';
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  isLoading: boolean; // Add isLoading for backward compatibility
-  error: AuthError | null;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
-}
+import { AuthContextType } from '@/lib/auth/types';
+import {
+  signInWithEmailPassword,
+  signUpWithEmailPassword,
+  signOutUser,
+  sendPasswordResetEmail,
+  updateUserPassword,
+  getCurrentSession
+} from '@/lib/auth/utils';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -23,14 +20,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<AuthError | null>(null);
 
   useEffect(() => {
+    // Set up auth state listener first
+    const { data: authListener } = supabase.auth.onAuthStateChange((_) => {
+      // Instead of duplicating the session check logic here, just call checkSession
+      checkSession();
+    });
+
     // Check if there's an active session
     const checkSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        setUser(data.session?.user || null);
-      } catch (err) {
-        console.error('Error checking session:', err);
-        setError(err as AuthError);
+        const { session, error: sessionError } = await getCurrentSession();
+        
+        if (sessionError) {
+          setError(sessionError);
+        }
+        
+        setUser(session?.user || null);
       } finally {
         setLoading(false);
       }
@@ -38,62 +43,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkSession();
 
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_) => {
-      checkSession();
-    });
-
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error };
-    } catch (err) {
-      console.error('Error signing in:', err);
-      return { error: err as AuthError };
-    }
+    return signInWithEmailPassword(email, password);
   };
 
   const signUp = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      return { error };
-    } catch (err) {
-      console.error('Error signing up:', err);
-      return { error: err as AuthError };
-    }
+    return signUpWithEmailPassword(email, password);
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await signOutUser();
+    } catch (err) {
+      setError(err as AuthError);
+    }
   };
 
   const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
-      });
-      return { error };
-    } catch (err) {
-      console.error('Error resetting password:', err);
-      return { error: err as AuthError };
-    }
+    return sendPasswordResetEmail(email);
   };
 
   const updatePassword = async (newPassword: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      return { error };
-    } catch (err) {
-      console.error('Error updating password:', err);
-      return { error: err as AuthError };
-    }
+    return updateUserPassword(newPassword);
   };
 
   const value = {

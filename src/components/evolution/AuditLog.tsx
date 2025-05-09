@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
 import AuditLogFilters from './logs/AuditLogFilters';
 import AuditLogTable from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
@@ -65,6 +64,7 @@ const AuditLog: React.FC = () => {
   const handleRefresh = () => {
     // Implement refresh logs logic...
     toast({
+      title: "Refreshed",
       description: "Logs refreshed",
     });
   };
