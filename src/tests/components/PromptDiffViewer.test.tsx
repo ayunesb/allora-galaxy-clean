@@ -1,6 +1,6 @@
 
 import { render } from '@testing-library/react';
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import PromptDiffViewer from '@/components/PromptDiffViewer';
 
 describe('PromptDiffViewer', () => {
