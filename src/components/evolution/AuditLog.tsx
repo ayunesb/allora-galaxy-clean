@@ -3,14 +3,13 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
-import { SystemLogFilters, LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { SystemEventModule } from '@/types/shared';
 
 export const AuditLog: React.FC = () => {
   const tenantId = useTenantId();

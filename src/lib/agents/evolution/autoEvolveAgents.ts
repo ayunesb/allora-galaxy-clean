@@ -9,7 +9,6 @@ import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
 import { createEvolvedAgent } from './createEvolvedAgent';
 import { deactivateOldAgent } from './deactivateOldAgent';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { SystemEventType } from '@/types/shared';
 
 export interface EvolutionConfig {
   evolutionThreshold?: number;
@@ -20,12 +19,10 @@ export interface EvolutionConfig {
 }
 
 export interface EvolutionResult {
-  id: string;
-  plugin_id: string;
-  prompt: string;
-  version: number;
-  isActive: boolean;
-  created_at: string;
+  success: boolean;
+  evolved: number;
+  message?: string;
+  error?: string;
 }
 
 /**
@@ -36,12 +33,7 @@ export interface EvolutionResult {
 export async function autoEvolveAgents(
   tenantId?: string,
   config?: EvolutionConfig
-): Promise<{
-  success: boolean;
-  evolved: number;
-  message?: string;
-  error?: string;
-}> {
+): Promise<EvolutionResult> {
   try {
     console.log('Starting agent evolution process');
     
@@ -65,7 +57,7 @@ export async function autoEvolveAgents(
         console.log(`Agent ${agent.id} performance: ${performance.score.toFixed(2)}`);
         
         // Check if evolution is needed
-        const shouldEvolve = await checkEvolutionNeeded(agent.id, performance, evolutionThreshold);
+        const shouldEvolve = await checkEvolutionNeeded(agent.id, performance.score, evolutionThreshold);
         
         if (shouldEvolve) {
           console.log(`Evolution needed for agent ${agent.id}`);
@@ -77,7 +69,7 @@ export async function autoEvolveAgents(
           const evolvedPrompt = await evolvePromptWithFeedback(
             agent.prompt,
             feedback,
-            performance
+            performance.score
           );
           
           if (evolvedPrompt !== agent.prompt) {
@@ -94,7 +86,7 @@ export async function autoEvolveAgents(
             // Log evolution event
             await logSystemEvent(
               'agent',
-              'info' as SystemEventType,
+              'info',
               {
                 event: 'agent_evolved',
                 old_agent_id: agent.id,

@@ -19,7 +19,9 @@ export interface Plugin {
 }
 
 export interface PluginResult {
+  pluginId: string;
   success: boolean;
+  status: 'success' | 'failure' | 'pending';
   output: Record<string, any>;
   error?: string;
   executionTime: number;
@@ -29,7 +31,7 @@ export interface PluginResult {
 export interface RunPluginChainResult {
   success: boolean;
   results: PluginResult[];
-  output: Record<string, any>;
+  output?: Record<string, any>;
   error?: string;
 }
 

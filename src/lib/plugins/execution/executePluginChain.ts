@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { executePlugin } from './executePlugin';
 import { recordLogExecution } from '../logging/recordLogExecution';
-import { PluginResult, RunPluginChainResult } from '@/types/fixed';
+import { PluginResult } from '@/types/plugin';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export interface ExecutePluginChainParams {
@@ -11,6 +11,13 @@ export interface ExecutePluginChainParams {
   tenantId: string;
   userId?: string;
   strategyId?: string;
+}
+
+export interface RunPluginChainResult {
+  success: boolean;
+  results: PluginResult[];
+  output?: Record<string, any>;
+  error?: string;
 }
 
 /**
@@ -73,11 +80,11 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
       
       const agentVersion = plugin.agent_versions[0];
       if (!agentVersion) {
-        const result = {
-          success: false,
+        const result: PluginResult = {
           pluginId: plugin.id,
-          agentVersionId: null,
-          input: currentInput,
+          success: false,
+          status: 'failure',
+          output: {},
           error: 'No active agent version found for plugin',
           executionTime: 0,
           xpEarned: 0
@@ -91,9 +98,12 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         const startTime = Date.now();
         
         const executionResult = await executePlugin({
-          prompt: agentVersion.prompt,
+          pluginId: plugin.id,
+          tenantId,
+          userId: userId || '',
           input: currentInput,
-          metadata: plugin.metadata
+          strategyId,
+          agentVersionId: agentVersion.id
         });
         
         const executionTime = Date.now() - startTime;
@@ -115,14 +125,13 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         
         // Add result to results array
         const result: PluginResult = {
+          pluginId: plugin.id,
           success: executionResult.success,
-          input: currentInput,
+          status: executionResult.success ? 'success' : 'failure',
           output: executionResult.output,
           error: executionResult.error,
           executionTime,
           xpEarned,
-          pluginId: plugin.id,
-          agentVersionId: agentVersion.id
         };
         
         results.push(result);
@@ -143,13 +152,13 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         console.error(`Unexpected error executing plugin ${plugin.name}:`, err);
         
         const result: PluginResult = {
+          pluginId: plugin.id,
           success: false,
-          input: currentInput,
+          status: 'failure',
+          output: {},
           error: errorMessage,
           executionTime: 0,
           xpEarned: 0,
-          pluginId: plugin.id,
-          agentVersionId: agentVersion.id
         };
         
         results.push(result);
@@ -159,8 +168,9 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
     // Log chain execution to system logs
     await logSystemEvent(
       'plugin',
-      'plugin_chain_executed',
+      'info',
       {
+        event: 'plugin_chain_executed',
         plugin_count: results.length,
         strategy_id: strategyId,
         success_count: results.filter(r => r.success).length,
