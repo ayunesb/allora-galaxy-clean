@@ -1,0 +1,47 @@
+
+export * from './cors';
+
+// Add environment utility functions
+export const getEnvOrThrow = (name: string): string => {
+  const value = Deno.env.get(name);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+};
+
+export const getEnvWithDefault = (name: string, defaultValue: string): string => {
+  return Deno.env.get(name) || defaultValue;
+};
+
+// Error handling utilities
+export interface ErrorResponse {
+  success: false;
+  error: string;
+  details?: any;
+  status?: number;
+}
+
+export const createErrorResponse = (
+  message: string, 
+  status: number = 500, 
+  details?: any
+): Response => {
+  const errorBody: ErrorResponse = {
+    success: false,
+    error: message,
+    details,
+    status
+  };
+  
+  return new Response(JSON.stringify(errorBody), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders
+    }
+  });
+};
+
+// Import CORS headers from the cors.ts file
+import { corsHeaders } from './cors';

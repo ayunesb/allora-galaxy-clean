@@ -25,8 +25,7 @@ serve(async (req) => {
   
   try {
     // Parse request body
-    const body = await req.json();
-    const { tenant_id, options } = body;
+    const { tenant_id, options } = await req.json();
     
     // Create Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -38,8 +37,7 @@ serve(async (req) => {
     };
     
     // Log start of evolution process
-    await logSystemEvent(supabase, 'agent', 'info', {
-      event: 'auto_evolve_started',
+    await logSystemEvent(supabase, 'agent', 'auto_evolve_started', {
       tenant_id,
       config
     }, tenant_id);
@@ -82,8 +80,7 @@ serve(async (req) => {
             );
             
             // Log the evolution
-            await logSystemEvent(supabase, 'agent', 'info', {
-              event: 'agent_evolved',
+            await logSystemEvent(supabase, 'agent', 'agent_evolved', {
               old_agent_id: agent.id,
               new_agent_id: newAgent.id,
               plugin_id: agent.plugin_id,
@@ -106,8 +103,7 @@ serve(async (req) => {
     }
     
     // Log completion
-    await logSystemEvent(supabase, 'agent', 'info', {
-      event: 'auto_evolve_completed',
+    await logSystemEvent(supabase, 'agent', 'auto_evolve_completed', {
       agents_processed: agents.length,
       agents_evolved: evolvedCount,
       tenant_id
@@ -147,7 +143,7 @@ serve(async (req) => {
 
 // Helper functions
 async function getAgentsForEvolution(supabase, tenantId, config) {
-  const { data, error } = await supabase
+  const query = supabase
     .from('agent_versions')
     .select(`
       id,
@@ -157,8 +153,15 @@ async function getAgentsForEvolution(supabase, tenantId, config) {
       created_at,
       tenant_id
     `)
-    .eq('status', 'active')
-    .limit(config.batchSize);
+    .eq('status', 'active');
+    
+  if (tenantId) {
+    query.eq('tenant_id', tenantId);
+  }
+    
+  query.limit(config.batchSize);
+    
+  const { data, error } = await query;
     
   if (error) throw error;
   return data || [];
@@ -218,64 +221,72 @@ async function evolvePrompt(currentPrompt, feedback, performance) {
 }
 
 async function createEvolvedAgent(supabase, tenantId, pluginId, oldAgentId, newPrompt) {
-  // 1. Get current version number
-  const { data: versions } = await supabase
-    .from('agent_versions')
-    .select('version')
-    .eq('plugin_id', pluginId);
-  
-  // Calculate next version
-  let nextVersion = '1.0.0';
-  if (versions && versions.length > 0) {
-    const highestVersion = versions
-      .map(v => v.version)
-      .sort((a, b) => {
-        const aParts = a.split('.').map(Number);
-        const bParts = b.split('.').map(Number);
-        for (let i = 0; i < 3; i++) {
-          if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
-        }
-        return 0;
-      })[0];
-      
-    const parts = highestVersion.split('.').map(Number);
-    parts[2] += 1; // Increment patch version
-    nextVersion = parts.join('.');
-  }
-  
-  // 2. Mark old agent as inactive
-  await supabase
-    .from('agent_versions')
-    .update({ status: 'inactive' })
-    .eq('id', oldAgentId);
-  
-  // 3. Create new agent version
-  const { data, error } = await supabase
-    .from('agent_versions')
-    .insert({
-      plugin_id: pluginId,
-      version: nextVersion,
-      prompt: newPrompt,
-      status: 'active',
-      tenant_id: tenantId,
-      created_by: null, // System-generated
-      upvotes: 0,
-      downvotes: 0
-    })
-    .select()
-    .single();
+  try {
+    // 1. Get current version number
+    const { data: versions } = await supabase
+      .from('agent_versions')
+      .select('version')
+      .eq('plugin_id', pluginId);
     
-  if (error) throw error;
-  return data;
+    // Calculate next version
+    let nextVersion = '1.0.0';
+    if (versions && versions.length > 0) {
+      const highestVersion = versions
+        .map(v => v.version)
+        .sort((a, b) => {
+          const aParts = a.split('.').map(Number);
+          const bParts = b.split('.').map(Number);
+          for (let i = 0; i < 3; i++) {
+            if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+          }
+          return 0;
+        })[0];
+        
+      const parts = highestVersion.split('.').map(Number);
+      parts[2] += 1; // Increment patch version
+      nextVersion = parts.join('.');
+    }
+    
+    // 2. Mark old agent as inactive
+    await supabase
+      .from('agent_versions')
+      .update({ 
+        status: 'inactive',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', oldAgentId);
+    
+    // 3. Create new agent version
+    const { data, error } = await supabase
+      .from('agent_versions')
+      .insert({
+        plugin_id: pluginId,
+        version: nextVersion,
+        prompt: newPrompt,
+        status: 'active',
+        tenant_id: tenantId,
+        created_by: null, // System-generated
+        upvotes: 0,
+        downvotes: 0
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating evolved agent:', error);
+    throw error;
+  }
 }
 
-async function logSystemEvent(supabase, module, level, context, tenantId) {
+async function logSystemEvent(supabase, module, event, context, tenantId) {
   try {
     await supabase
       .from('system_logs')
       .insert({
         module,
-        event: context.event || level,
+        event,
         context,
         tenant_id: tenantId
       });

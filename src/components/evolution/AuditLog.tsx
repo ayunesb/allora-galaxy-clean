@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 export const AuditLog: React.FC = () => {
   const tenantId = useTenantId();
@@ -20,12 +21,52 @@ export const AuditLog: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   
+  // Available modules and events for filters
+  const [availableModules, setAvailableModules] = useState<SystemEventModule[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<SystemEventType[]>([]);
+  
   // Fetch system logs
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ['auditLogs', tenantId, moduleFilter, eventFilter, searchQuery],
     queryFn: async () => {
       if (!tenantId) return [];
       
+      try {
+        // First, fetch module and event types if not loaded
+        if (availableModules.length === 0) {
+          const { data: modules, error: modulesError } = await supabase
+            .from('system_logs')
+            .select('module')
+            .eq('tenant_id', tenantId)
+            .limit(100);
+            
+          if (!modulesError && modules) {
+            const uniqueModules = Array.from(
+              new Set(modules.map(item => item.module))
+            ) as SystemEventModule[];
+            setAvailableModules(uniqueModules);
+          }
+        }
+        
+        if (availableEvents.length === 0) {
+          const { data: events, error: eventsError } = await supabase
+            .from('system_logs')
+            .select('event')
+            .eq('tenant_id', tenantId)
+            .limit(100);
+            
+          if (!eventsError && events) {
+            const uniqueEvents = Array.from(
+              new Set(events.map(item => item.event))
+            ) as SystemEventType[];
+            setAvailableEvents(uniqueEvents);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching filter options:', err);
+      }
+      
+      // Now fetch logs with filters
       let query = supabase
         .from('system_logs')
         .select('*')
@@ -111,6 +152,8 @@ export const AuditLog: React.FC = () => {
             setSearchQuery={setSearchQuery}
             onReset={resetFilters}
             onFilterChange={handleFilterChange}
+            modules={availableModules}
+            events={availableEvents}
           />
         </div>
         

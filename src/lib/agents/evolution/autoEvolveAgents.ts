@@ -7,7 +7,7 @@ import { calculateAgentPerformance } from './calculatePerformance';
 import { getFeedbackComments } from './getFeedbackComments';
 import { evolvePromptWithFeedback } from './evolvePromptWithFeedback';
 import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgent } from './deactivateOldAgent';
+import { deactivateAgentVersion } from './deactivateOldAgent';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export interface EvolutionConfig {
@@ -23,6 +23,15 @@ export interface EvolutionResult {
   evolved: number;
   message?: string;
   error?: string;
+  agentVersionIds?: string[]; // Array of evolved agent version IDs
+}
+
+interface AgentEvolutionInput {
+  parentAgentVersionId: string;
+  tenantId: string;
+  userId: string;
+  prompt: string;
+  feedbackIncorporated?: string[];
 }
 
 /**
@@ -46,6 +55,7 @@ export async function autoEvolveAgents(
     console.log(`Found ${agents.length} agents to check for evolution`);
     
     let evolvedCount = 0;
+    const evolvedAgentIds: string[] = [];
     
     for (const agent of agents) {
       try {
@@ -74,32 +84,38 @@ export async function autoEvolveAgents(
           
           if (evolvedPrompt !== agent.prompt) {
             // Create new agent version
-            const newAgent = await createEvolvedAgent(
-              agent.plugin_id,
-              agent.id,
-              evolvedPrompt
-            );
+            const evolutionInput: AgentEvolutionInput = {
+              parentAgentVersionId: agent.id,
+              tenantId: agent.tenant_id || tenantId || '',
+              userId: 'system', // System-initiated evolution
+              prompt: evolvedPrompt,
+              feedbackIncorporated: feedback.map(f => f.comment || '')
+            };
             
-            // Deactivate old agent version
-            await deactivateOldAgent(agent.id);
+            const newAgentResult = await createEvolvedAgent(evolutionInput);
             
-            // Log evolution event
-            await logSystemEvent(
-              'agent',
-              'info',
-              {
-                event: 'agent_evolved',
-                old_agent_id: agent.id,
-                new_agent_id: newAgent.id,
-                plugin_id: agent.plugin_id,
-                performance_score: performance,
-                feedback_count: feedback.length,
-              },
-              tenantId
-            );
-            
-            evolvedCount++;
-            console.log(`Successfully evolved agent ${agent.id} to new version ${newAgent.id}`);
+            if (newAgentResult.success && newAgentResult.agentVersionId) {
+              // Deactivate old agent version
+              await deactivateAgentVersion(agent.id, newAgentResult.agentVersionId);
+              
+              // Log evolution event
+              await logSystemEvent(
+                'agent',
+                'agent_evolved',
+                {
+                  old_agent_id: agent.id,
+                  new_agent_id: newAgentResult.agentVersionId,
+                  plugin_id: agent.plugin_id,
+                  performance_score: performance,
+                  feedback_count: feedback.length,
+                },
+                tenantId
+              );
+              
+              evolvedCount++;
+              evolvedAgentIds.push(newAgentResult.agentVersionId);
+              console.log(`Successfully evolved agent ${agent.id} to new version ${newAgentResult.agentVersionId}`);
+            }
           } else {
             console.log(`No significant changes in prompt for agent ${agent.id}, skipping evolution`);
           }
@@ -116,6 +132,7 @@ export async function autoEvolveAgents(
     return {
       success: true,
       evolved: evolvedCount,
+      agentVersionIds: evolvedAgentIds,
       message: evolvedCount > 0 
         ? `Successfully evolved ${evolvedCount} agents` 
         : 'No agents needed evolution'
