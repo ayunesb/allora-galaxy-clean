@@ -31,7 +31,7 @@ export function useCronJobsMonitoring() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
-  const tenantIdHook = useTenantId();
+  const tenantId = useTenantId();
 
   const fetchCronJobs = async () => {
     setIsLoading(true);
@@ -93,14 +93,12 @@ export function useCronJobsMonitoring() {
   // Run a CRON job manually
   const runCronJob = async (jobName: string) => {
     try {
-      const tenantId = tenantIdHook;
-      
-      // Log the manual execution - Fix parameter count
+      // Log the manual execution - Fix parameter count by passing module, event, context, tenantId
       await logSystemEvent(
-        'system', 
-        'manual_cron_job_trigger', 
-        { job_name: jobName },
-        tenantId
+        'system',               // module
+        'manual_cron_job_trigger', // event
+        { job_name: jobName },     // context
+        tenantId                // tenantId
       );
       
       // Call the edge function to manually trigger a CRON job

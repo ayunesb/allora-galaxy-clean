@@ -9,7 +9,7 @@ import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
-import { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import { LogFilterState } from '@/hooks/admin/useSystemLogsData';
 
 const SystemLogs: React.FC = () => {
   const tenantId = useTenantId();

@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { withRoleCheck } from '@/lib/auth/withRoleCheck';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useTenantId } from '@/hooks/useTenantId';
 import { supabase } from '@/integrations/supabase/client';
-import { PlusCircle, Search, UserPlus, Mail } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -13,15 +12,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,26 +22,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
 
+interface UserEmail {
+  email: string;
+}
+
+interface UserProfile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  email: UserEmail;
+}
+
 interface User {
   id: string;
   role: string;
   created_at: string;
   user_id: string;
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-    email: {
-      email: string;
-    };
-  };
+  profiles: UserProfile;
 }
 
-interface UserManagementProps {
-  // Add any props if needed
+interface InviteUserDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  currentWorkspace: any;
 }
 
-const UserManagement: React.FC<UserManagementProps> = () => {
+const UserManagement: React.FC = () => {
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
   const tenantId = currentWorkspace?.id;
@@ -60,7 +56,6 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   useEffect(() => {
     fetchUsers();
@@ -91,7 +86,16 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         throw error;
       }
       
-      setUsers(data || []);
+      // Transform the data to match our User interface
+      const transformedUsers: User[] = (data || []).map((item: any) => ({
+        id: item.id,
+        role: item.role,
+        user_id: item.user_id,
+        created_at: item.created_at,
+        profiles: item.profiles as UserProfile
+      }));
+      
+      setUsers(transformedUsers);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
@@ -212,7 +216,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
   };
   
   // Helper functions for UI rendering
-  const getInitials = (firstName?: string, lastName?: string) => {
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
     if (!firstName && !lastName) return 'U';
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
@@ -366,7 +370,6 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       <InviteUserDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
-        onInvite={handleInviteUser}
         currentWorkspace={currentWorkspace}
       />
     </div>
