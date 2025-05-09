@@ -22,7 +22,8 @@ export interface DatePickerProps {
 export function DatePicker({ date, setDate, className }: DatePickerProps) {
   // Handle the onSelect event with proper typing
   const handleSelect: SelectSingleEventHandler = (day) => {
-    setDate(day);
+    // Ensure we're returning Date | null as expected by setDate
+    setDate(day || null);
   };
 
   return (
