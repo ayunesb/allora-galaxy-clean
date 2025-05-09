@@ -3,39 +3,27 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Deactivates an old agent version after evolution
- * @param oldVersionId Agent version ID to deactivate
- * @param newVersionId New agent version ID that replaces it
- * @returns Success result
+ * @param agentId ID of the agent version to deactivate
+ * @returns Success status
  */
-export async function deactivateAgentVersion(
-  oldVersionId: string,
-  newVersionId: string
-): Promise<boolean> {
+export async function deactivateOldAgent(agentId: string): Promise<boolean> {
   try {
-    // Update the old version's status to inactive
     const { error } = await supabase
       .from('agent_versions')
-      .update({
+      .update({ 
         status: 'inactive',
-        replaced_by: newVersionId,
         updated_at: new Date().toISOString()
       })
-      .eq('id', oldVersionId);
+      .eq('id', agentId);
     
     if (error) {
-      console.error(`Failed to deactivate agent version ${oldVersionId}:`, error);
+      console.error('Error deactivating old agent:', error);
       return false;
     }
     
     return true;
-  } catch (err: any) {
-    console.error(`Error deactivating agent version ${oldVersionId}:`, err);
+  } catch (error) {
+    console.error('Unexpected error deactivating old agent:', error);
     return false;
   }
 }
-
-// For backward compatibility
-export const deactivateOldAgent = deactivateAgentVersion;
-
-// Export a common alias for consistency
-export { deactivateAgentVersion as deactivateAgent };

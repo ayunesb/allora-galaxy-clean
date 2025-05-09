@@ -11,16 +11,17 @@
  * @returns The value of the environment variable or defaultValue
  */
 export function ENV(key: string, defaultValue?: string): string | undefined {
-  // Try Deno.env in edge function context
   try {
-    // @ts-ignore - Deno may be available in edge functions
-    if (typeof Deno !== 'undefined' && Deno.env && Deno.env.get) {
-      // @ts-ignore
-      const value = Deno.env.get(key);
+    // Try Deno.env in edge function context
+    if (typeof globalThis !== 'undefined' && 
+        'Deno' in globalThis && 
+        typeof (globalThis as any).Deno?.env?.get === 'function') {
+      const value = (globalThis as any).Deno.env.get(key);
       if (value !== undefined) return value;
     }
   } catch (e) {
     // Ignore errors when Deno is not available
+    console.warn(`Error accessing Deno env for ${key}:`, e);
   }
   
   // Try Node.js process.env
@@ -94,4 +95,5 @@ export function getSafeEnv(key: string, defaultValue: string = "", required: boo
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };

@@ -11,4 +11,4 @@ export { getPluginsForOptimization } from './getPluginsForOptimization';
 export { getFeedbackComments } from './getFeedbackComments';
 
 // Explicitly re-export to resolve ambiguity
-export { type EvolutionResult } from './createEvolvedAgent';
+export { type EvolutionResult } from './autoEvolveAgents';

@@ -17,6 +17,14 @@ export interface SuccessResponseData {
 }
 
 /**
+ * Generate a unique request ID for tracking
+ * @returns Unique request ID
+ */
+export function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
  * Error handler for edge functions
  * @param err The error object
  * @param requestId Optional request ID for tracking
@@ -58,8 +66,6 @@ export function errorHandler(err: any, requestId?: string): Response {
     }
   );
 }
-
-export { corsHeaders };
 
 /**
  * Create a standardized success response for edge functions
@@ -131,3 +137,37 @@ export function createErrorResponse(
     }
   );
 }
+
+/**
+ * Handle CORS preflight requests
+ * @returns Response for OPTIONS requests with CORS headers
+ */
+export function handleCorsPreflightRequest(): Response {
+  return new Response(null, { headers: corsHeaders });
+}
+
+/**
+ * Handle errors that occur during strategy execution
+ * @param error The error that occurred
+ * @param requestStart The timestamp when the request started
+ * @returns An error response
+ */
+export function handleExecutionError(error: any, requestStart: number): Response {
+  const requestId = generateRequestId();
+  console.error(`Execution error [${requestId}]:`, error);
+  
+  const executionTime = (performance.now() - requestStart) / 1000;
+  
+  return createErrorResponse(
+    error?.message || 'Unexpected error during execution',
+    {
+      execution_time: executionTime,
+      stack: error?.stack ? error.stack.split('\n').slice(0, 3).join('\n') : undefined
+    },
+    error?.status || 500,
+    error?.code || 'EXECUTION_ERROR',
+    requestId
+  );
+}
+
+export { corsHeaders };

@@ -2,38 +2,20 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Count agent usage in recent executions
+ * Fetches usage statistics for an agent
+ * @param agentId The ID of the agent version
+ * @returns Array of usage logs
  */
-export async function getAgentUsageStats(days = 30) {
-  try {
-    // Base query for plugin logs from recent days
-    const { data, error } = await supabase
-      .from('plugin_logs')
-      .select('agent_version_id, status, created_at')
-      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-      .eq('status', 'success');
+export async function getAgentUsageStats(agentId: string) {
+  const { data, error } = await supabase
+    .from('plugin_logs')
+    .select('status, execution_time, created_at, error, xp_earned')
+    .eq('agent_version_id', agentId);
     
-    if (error) throw error;
-    
-    // Process the data to simulate a groupBy operation
-    const groupedData = data?.reduce((acc, item) => {
-      if (!item.agent_version_id) return acc;
-      
-      const key = `${item.agent_version_id}-${item.status}`;
-      if (!acc[key]) {
-        acc[key] = { 
-          agent_version_id: item.agent_version_id, 
-          status: item.status,
-          count: 0
-        };
-      }
-      acc[key].count += 1;
-      return acc;
-    }, {} as Record<string, any>) || {};
-    
-    return Object.values(groupedData);
-  } catch (error) {
-    console.error('Error getting agent usage stats:', error);
-    return [];
+  if (error) {
+    console.error('Error fetching agent usage statistics:', error);
+    throw error;
   }
+  
+  return data || [];
 }

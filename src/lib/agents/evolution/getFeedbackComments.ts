@@ -2,30 +2,22 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Gets feedback comments for an agent version
- * @param agentVersionId Agent version ID to get feedback for
- * @returns Array of feedback comments with vote types
+ * Get feedback comments for an agent version
+ * @param agentId The agent version ID
+ * @returns Array of feedback comments with vote type
  */
-export async function getFeedbackComments(
-  agentVersionId: string
-): Promise<Array<{ comment: string; vote_type: string; created_at: string }>> {
-  try {
-    const { data, error } = await supabase
-      .from('agent_votes')
-      .select('comment, vote_type, created_at')
-      .not('comment', 'is', null);
+export async function getFeedbackComments(agentId: string) {
+  const { data, error } = await supabase
+    .from('agent_votes')
+    .select('comment, vote_type, created_at, user_id')
+    .eq('agent_version_id', agentId)
+    .not('comment', 'is', null)
+    .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error(`Error fetching feedback for agent ${agentVersionId}:`, error);
-      return [];
-    }
-    
-    return data || [];
-  } catch (err) {
-    console.error(`Error fetching feedback:`, err);
-    return [];
+  if (error) {
+    console.error('Error fetching agent feedback:', error);
+    throw error;
   }
+  
+  return data || [];
 }
-
-// Re-export for backward compatibility
-export { evolvePromptWithFeedback } from './evolvePromptWithFeedback';

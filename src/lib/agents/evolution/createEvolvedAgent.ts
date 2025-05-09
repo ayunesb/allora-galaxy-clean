@@ -1,31 +1,27 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export interface EvolutionResult {
-  success: boolean;
-  newAgentId?: string;
-  previousAgentId?: string;
-  version?: string;
-  error?: string;
+  id: string;
+  version: string;
+  previousId: string;
+  prompt: string;
+  pluginId: string;
 }
 
 /**
- * Creates a new evolved agent and marks the old one as inactive
- * 
- * @param tenantId Tenant ID
- * @param pluginId Plugin ID
+ * Creates a new evolved version of an agent
+ * @param tenantId Tenant ID for the new agent
+ * @param pluginId Plugin ID associated with the agent
  * @param oldAgentId Previous agent version ID
- * @param newPrompt Evolved prompt
- * @param metadata Optional metadata
- * @returns Result of the evolution
+ * @param prompt New prompt for the evolved agent
+ * @returns Details of the newly created agent
  */
 export async function createEvolvedAgent(
   tenantId: string,
   pluginId: string,
   oldAgentId: string,
-  newPrompt: string,
-  metadata?: Record<string, any>
+  newPrompt: string
 ): Promise<EvolutionResult> {
   try {
     // 1. Get current version number
@@ -53,16 +49,7 @@ export async function createEvolvedAgent(
       nextVersion = parts.join('.');
     }
     
-    // 2. Mark old agent as inactive
-    await supabase
-      .from('agent_versions')
-      .update({ 
-        status: 'inactive',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', oldAgentId);
-    
-    // 3. Create new agent version
+    // 2. Create new agent version
     const { data, error } = await supabase
       .from('agent_versions')
       .insert({
@@ -81,27 +68,16 @@ export async function createEvolvedAgent(
     if (error) {
       throw error;
     }
-    
-    // 4. Log the evolution
-    await logSystemEvent('agent', 'agent_evolved', {
-      old_agent_id: oldAgentId,
-      new_agent_id: data.id,
-      plugin_id: pluginId,
-      metadata
-    }, tenantId);
-    
+
     return {
-      success: true,
-      newAgentId: data.id,
-      previousAgentId: oldAgentId,
-      version: nextVersion
+      id: data.id,
+      version: data.version,
+      previousId: oldAgentId,
+      prompt: data.prompt,
+      pluginId: data.plugin_id
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating evolved agent:', error);
-    
-    return {
-      success: false,
-      error: error.message
-    };
+    throw error;
   }
 }

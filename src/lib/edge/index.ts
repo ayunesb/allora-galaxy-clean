@@ -8,6 +8,9 @@ export {
   errorHandler, 
   createSuccessResponse, 
   createErrorResponse,
+  handleExecutionError,
+  handleCorsPreflightRequest,
+  generateRequestId,
   type ErrorResponseData,
   type SuccessResponseData
 } from './errorHandler';
@@ -22,3 +25,8 @@ export {
   getBaseUrl,
   getSafeEnv
 } from '../env';
+
+// Re-export utility functions for edge function environment handling
+export {
+  safeGetDenoEnv
+} from '../strategy/utils/environmentUtils';

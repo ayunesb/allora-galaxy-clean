@@ -1,42 +1,31 @@
 
 /**
- * Calculates the performance score of an agent based on its usage statistics
- * @param stats Array of usage statistics for the agent
+ * Calculate performance score for an agent based on usage statistics
+ * @param stats Array of usage logs
  * @returns Performance score between 0 and 1
  */
-export async function calculateAgentPerformance(stats: any[]): Promise<number> {
-  try {
-    if (!stats || stats.length === 0) {
-      return 0.5; // Default to neutral score if no stats
-    }
-    
-    // Extract success count and total count
-    const totalCount = stats.length;
-    const successCount = stats.filter(stat => stat.status === 'success').length;
-    
-    // Calculate base success rate
-    const successRate = successCount / totalCount;
-    
-    // Calculate average execution time (lower is better)
-    const executionTimes = stats
-      .filter(stat => typeof stat.execution_time === 'number' && stat.execution_time > 0)
-      .map(stat => stat.execution_time);
-      
-    let timeEfficiency = 0.5; // Default neutral score
-    
-    if (executionTimes.length > 0) {
-      const avgExecutionTime = executionTimes.reduce((sum, time) => sum + time, 0) / executionTimes.length;
-      // Normalize to a score where 0.1s is excellent (1.0) and 10s is poor (0.0)
-      // Using a logarithmic scale
-      timeEfficiency = Math.max(0, Math.min(1, 1 - (Math.log(avgExecutionTime + 0.1) / Math.log(20))));
-    }
-    
-    // Weighted score combining success rate (70%) and time efficiency (30%)
-    const performanceScore = (successRate * 0.7) + (timeEfficiency * 0.3);
-    
-    return performanceScore;
-  } catch (err) {
-    console.error('Error calculating agent performance:', err);
-    return 0.5; // Default to neutral score on error
+export function calculatePerformance(stats: any[]): number {
+  if (!stats || stats.length === 0) return 0.5; // Default neutral score
+  
+  const successCount = stats.filter(log => log.status === 'success').length;
+  const totalCount = stats.length;
+  
+  // Calculate base success rate
+  const successRate = totalCount > 0 ? successCount / totalCount : 0.5;
+  
+  // Calculate average XP earned (normalized to 0-1 scale)
+  const totalXp = stats.reduce((sum, log) => sum + (log.xp_earned || 0), 0);
+  const averageXp = totalCount > 0 ? totalXp / (totalCount * 20) : 0; // Normalize to 0-1 assuming max XP is 20
+  
+  // Calculate execution time factor (faster is better, normalized to 0-1 scale)
+  const successLogs = stats.filter(log => log.status === 'success');
+  let timeScore = 0.5;
+  if (successLogs.length > 0) {
+    const avgExecutionTime = successLogs.reduce((sum, log) => sum + (log.execution_time || 0), 0) / successLogs.length;
+    // Lower time is better, with diminishing returns after 5 seconds
+    timeScore = Math.max(0, Math.min(1, 1 - (avgExecutionTime / 10)));
   }
+  
+  // Combine scores with different weights
+  return (successRate * 0.6) + (averageXp * 0.2) + (timeScore * 0.2);
 }
