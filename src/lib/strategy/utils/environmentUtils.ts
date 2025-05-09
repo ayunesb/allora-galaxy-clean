@@ -1,49 +1,65 @@
 
 /**
- * Safely get environment variables in Deno edge functions
- * @param key The environment variable name
- * @param defaultValue Optional default value
- * @returns The environment variable value or default
+ * Safe environment variable getter for Deno environment
+ * This function safely accesses environment variables in edge functions
+ * @param key Environment variable key
+ * @param defaultValue Default value if environment variable is not found
+ * @returns The environment variable value or the default value
  */
-export function getDenoEnv(key: string, defaultValue: string = ''): string {
+export function getDenoEnv(key: string, defaultValue: string = ""): string {
   try {
-    // Try to access Deno.env if available
+    // First try Deno environment
     if (typeof globalThis !== 'undefined' && 
         'Deno' in globalThis && 
         typeof (globalThis as any).Deno?.env?.get === 'function') {
       const value = (globalThis as any).Deno.env.get(key);
       if (value !== undefined) return value;
     }
+    
+    // Fall back to process.env for Node.js environments
+    if (typeof process !== 'undefined' && process?.env) {
+      const value = process.env[key];
+      if (value !== undefined) return value;
+    }
+    
     return defaultValue;
-  } catch (e) {
-    console.warn(`Error accessing Deno env variable ${key}:`, e);
+  } catch (err) {
+    console.warn(`Error accessing env variable ${key}:`, err);
     return defaultValue;
   }
 }
 
 /**
- * Get secure environment variables required for strategy execution
- * @returns Object containing secure environment variables
+ * Get all environment variables needed for strategy execution
+ * @returns Object containing all required environment variables
  */
 export function getStrategyExecutionEnv(): Record<string, string> {
   return {
-    OPENAI_API_KEY: getDenoEnv('OPENAI_API_KEY', ''),
     SUPABASE_URL: getDenoEnv('SUPABASE_URL', ''),
-    SUPABASE_SERVICE_ROLE_KEY: getDenoEnv('SUPABASE_SERVICE_ROLE_KEY', ''),
-    HUBSPOT_API_KEY: getDenoEnv('HUBSPOT_API_KEY', '')
+    SUPABASE_SERVICE_KEY: getDenoEnv('SUPABASE_SERVICE_ROLE_KEY', ''),
+    SUPABASE_ANON_KEY: getDenoEnv('SUPABASE_ANON_KEY', ''),
+    OPENAI_API_KEY: getDenoEnv('OPENAI_API_KEY', ''),
+    NODE_ENV: getDenoEnv('NODE_ENV', 'development')
   };
 }
 
 /**
- * Validate required environment variables for strategy execution
- * @returns Object with validation result and missing variables
+ * Check if required environment variables are present
+ * @param requiredVars Array of required environment variable names
+ * @returns Object indicating if all required variables are present and list of missing variables
  */
-export function validateStrategyExecutionEnv(): { valid: boolean; missing: string[] } {
-  const requiredVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-  const missingVars = requiredVars.filter(key => !getDenoEnv(key));
+export function validateRequiredEnv(requiredVars: string[]): { valid: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  for (const varName of requiredVars) {
+    const value = getDenoEnv(varName);
+    if (!value) {
+      missing.push(varName);
+    }
+  }
   
   return {
-    valid: missingVars.length === 0,
-    missing: missingVars
+    valid: missing.length === 0,
+    missing
   };
 }

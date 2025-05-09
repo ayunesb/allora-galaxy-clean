@@ -45,7 +45,7 @@ export function DateRangePicker({
   };
 
   // Custom handler to adapt between the Calendar component's expected type and our DateRange type
-  const handleSelect = (range: any) => {
+  const handleSelect = (range: { from: Date; to?: Date } | undefined) => {
     if (range?.from) {
       // Make sure we're creating a proper DateRange with non-undefined from date
       setDate({
