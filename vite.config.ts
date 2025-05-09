@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      // Use our shim for the problematic package
+      // Use our improved shim for the problematic package
       'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.js'),
     },
   },
@@ -33,7 +33,13 @@ export default defineConfig(({ mode }) => ({
     host: "::"
   },
   optimizeDeps: {
-    exclude: ['three-bmfont-text'] // Exclude the problematic package from optimization
+    exclude: ['three-bmfont-text'], // Exclude the problematic package from optimization
+    esbuildOptions: {
+      // Additional configuration to prevent git clone attempts
+      define: {
+        global: 'globalThis',
+      },
+    }
   }
 }));
 
