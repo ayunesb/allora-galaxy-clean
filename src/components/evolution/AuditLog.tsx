@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AuditLogFilters from './logs/AuditLogFilters';
 import AuditLogTable from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
-import { AuditLog as AuditLogType } from '@/types/shared';
+import { AuditLog as AuditLogType, DateRange } from '@/types/shared';
 
 interface AuditLogProps {
   logs: AuditLogType[];
@@ -23,7 +23,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
 }) => {
   const [module, setModule] = useState('all');
   const [eventType, setEventType] = useState('all');
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 

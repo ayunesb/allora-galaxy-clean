@@ -6,24 +6,28 @@ import { SystemEventType } from '@/types/shared';
  * Log a system event to the database
  * @param module The module that generated the event
  * @param level The log level
- * @param data The data to log
+ * @param type The event type
+ * @param description The event description
  * @param tenant_id The tenant ID (optional, defaults to 'system')
+ * @param metadata Additional metadata for the event
  * @returns The result of the operation
  */
 export async function logSystemEvent(
   module: string,
   level: SystemEventType,
-  data: Record<string, any>,
-  tenant_id: string = 'system'
+  type: string,
+  description: string,
+  tenant_id: string = 'system',
+  metadata: Record<string, any> = {}
 ): Promise<any> {
   try {
     // Convert camelCase keys to snake_case for database
     const formattedData = {
       module,
       level,
-      type: data.event_type || data.action || 'info',
-      description: data.message || JSON.stringify(data).substring(0, 255),
-      metadata: data,
+      event: type,
+      description: description || JSON.stringify(metadata).substring(0, 255),
+      context: metadata,
       tenant_id
     };
 
@@ -44,3 +48,5 @@ export async function logSystemEvent(
     return { success: false, error: err.message };
   }
 }
+
+export default logSystemEvent;

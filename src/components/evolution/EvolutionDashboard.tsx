@@ -1,86 +1,109 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AgentEvolutionTab } from './AgentEvolutionTab';
-import { PluginEvolutionTab } from './PluginEvolutionTab';
-import StrategyEvolutionTab from './StrategyEvolutionTab';
+import { Card, CardContent } from '@/components/ui/card';
 import AuditLog from './AuditLog';
+import { AuditLog as AuditLogType } from '@/types/shared';
 
-const EvolutionDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('agents');
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('');
-  
-  // Mock data for AuditLog
-  const mockLogs = [];
-  const mockModules = ['strategy', 'agent', 'plugin', 'auth'];
-  const mockEventTypes = ['created', 'updated', 'deleted', 'executed'];
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handleStrategySelect = (id: string) => {
-    setSelectedStrategyId(id);
-    if (id && activeTab !== 'strategies') {
-      setActiveTab('strategies');
+interface EvolutionDashboardProps {
+  loading?: boolean;
+}
+
+const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ loading = false }) => {
+  const [activeTab, setActiveTab] = useState('system-logs');
+  const [isLoading, setIsLoading] = useState(loading);
+
+  // Define proper type for mockLogs
+  const mockLogs: AuditLogType[] = [
+    {
+      id: '1',
+      module: 'strategy',
+      event_type: 'create',
+      description: 'New strategy created',
+      tenant_id: 'tenant-1',
+      created_at: new Date().toISOString(),
+      metadata: { strategy_id: 'strat-123', name: 'Growth Strategy Q2' }
+    },
+    {
+      id: '2',
+      module: 'plugin',
+      event_type: 'execute',
+      description: 'Plugin executed successfully',
+      tenant_id: 'tenant-1',
+      user_id: 'user-1',
+      created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      metadata: { plugin_id: 'plugin-456', execution_time: 1.25 }
+    },
+    {
+      id: '3',
+      module: 'auth',
+      event_type: 'login',
+      description: 'User logged in',
+      tenant_id: 'tenant-1',
+      user_id: 'user-2',
+      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      metadata: { method: 'email', device: 'mobile' }
+    },
+    {
+      id: '4',
+      module: 'system',
+      event_type: 'error',
+      description: 'Edge function failed',
+      tenant_id: 'tenant-1',
+      created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      metadata: { function: 'updateKPIs', error: 'Timeout exceeded' }
     }
-  };
-  
+  ];
+
+  const modules = ['strategy', 'plugin', 'auth', 'system'];
+  const eventTypes = ['create', 'execute', 'login', 'error', 'update', 'delete'];
+
   const handleRefresh = () => {
     setIsLoading(true);
-    // Mock refresh operation
-    setTimeout(() => setIsLoading(false), 1000);
+    // Simulating API call
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
   };
-  
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Evolution Dashboard</h2>
-          <p className="text-muted-foreground mt-2">
-            Track the evolution of your AI components and learn from their improvements
-          </p>
-        </div>
-      </div>
-      
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Evolution Analytics</CardTitle>
-          <CardDescription>
-            View evolution patterns and performance improvements
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="agents" value={activeTab} onValueChange={setActiveTab}>
-            <div className="space-y-4">
-              <TabsList className="grid grid-cols-3 w-full max-w-md">
-                <TabsTrigger value="agents">Agents</TabsTrigger>
-                <TabsTrigger value="plugins">Plugins</TabsTrigger>
-                <TabsTrigger value="strategies">Strategies</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="agents" className="space-y-4">
-                <AgentEvolutionTab onStrategySelect={handleStrategySelect} />
-              </TabsContent>
-              
-              <TabsContent value="plugins" className="space-y-4">
-                <PluginEvolutionTab onStrategySelect={handleStrategySelect} />
-              </TabsContent>
-              
-              <TabsContent value="strategies" className="space-y-4">
-                <StrategyEvolutionTab strategyId={selectedStrategyId} />
-              </TabsContent>
+    <Card>
+      <CardContent className="p-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value)}
+          className="w-full"
+        >
+          <TabsList className="mb-4">
+            <TabsTrigger value="system-logs">System Logs</TabsTrigger>
+            <TabsTrigger value="agent-evolution">Agent Evolution</TabsTrigger>
+            <TabsTrigger value="strategy-logs">Strategy Logs</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="system-logs" className="m-0">
+            <AuditLog
+              logs={mockLogs}
+              modules={modules}
+              eventTypes={eventTypes}
+              isLoading={isLoading}
+              onRefresh={handleRefresh}
+            />
+          </TabsContent>
+
+          <TabsContent value="agent-evolution" className="m-0">
+            <div className="flex items-center justify-center p-12 text-muted-foreground">
+              Agent evolution tracking coming soon...
             </div>
-          </Tabs>
-        </CardContent>
-      </Card>
-      
-      <AuditLog 
-        logs={mockLogs}
-        modules={mockModules}
-        eventTypes={mockEventTypes}
-        isLoading={isLoading}
-        onRefresh={handleRefresh}
-      />
-    </div>
+          </TabsContent>
+
+          <TabsContent value="strategy-logs" className="m-0">
+            <div className="flex items-center justify-center p-12 text-muted-foreground">
+              Strategy logs tracking coming soon...
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 

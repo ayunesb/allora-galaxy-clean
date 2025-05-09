@@ -26,14 +26,14 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
     };
 
     // Log the execution attempt
-    await logSystemEvent({
-      module: 'strategy',
-      level: 'info',
-      type: 'execution-attempt',
-      description: `Attempting to execute strategy ${strategyId}`,
-      tenant_id: tenantId,
-      metadata: { strategy_id: strategyId, options }
-    });
+    await logSystemEvent(
+      'strategy',
+      'info',
+      'execution-attempt',
+      `Attempting to execute strategy ${strategyId}`,
+      tenantId,
+      { strategy_id: strategyId, options }
+    );
 
     // Execute the strategy via edge function
     const { data, error } = await supabase.functions.invoke('executeStrategy', {
@@ -42,31 +42,31 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
 
     if (error) {
       // Log execution failure
-      await logSystemEvent({
-        module: 'strategy',
-        level: 'error',
-        type: 'execution-failed',
-        description: `Failed to execute strategy ${strategyId}: ${error.message}`,
-        tenant_id: tenantId,
-        metadata: { strategy_id: strategyId, error: error.message }
-      });
+      await logSystemEvent(
+        'strategy', 
+        'error',
+        'execution-failed',
+        `Failed to execute strategy ${strategyId}: ${error.message}`,
+        tenantId,
+        { strategy_id: strategyId, error: error.message }
+      );
       
       throw new Error(`Strategy execution failed: ${error.message}`);
     }
 
     // Log execution success
-    await logSystemEvent({
-      module: 'strategy',
-      level: 'info',
-      type: 'execution-completed',
-      description: `Successfully executed strategy ${strategyId}`,
-      tenant_id: tenantId,
-      metadata: { 
+    await logSystemEvent(
+      'strategy',
+      'info',
+      'execution-completed',
+      `Successfully executed strategy ${strategyId}`,
+      tenantId,
+      { 
         strategy_id: strategyId, 
         execution_id: data.execution_id,
         duration_ms: data.execution_time
       }
-    });
+    );
 
     return data;
   } catch (error: any) {
@@ -75,18 +75,18 @@ export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteS
     // Try to log the error if we have tenant ID
     if (input?.tenantId) {
       try {
-        await logSystemEvent({
-          module: 'strategy',
-          level: 'error',
-          type: 'execution-error',
-          description: `Error running strategy: ${error.message}`,
-          tenant_id: input.tenantId,
-          metadata: { 
+        await logSystemEvent(
+          'strategy',
+          'error',
+          'execution-error',
+          `Error running strategy: ${error.message}`,
+          input.tenantId,
+          { 
             strategy_id: input.strategyId,
             error: error.message,
             stack: error.stack
           }
-        });
+        );
       } catch (logError) {
         console.error('Failed to log strategy execution error:', logError);
       }
