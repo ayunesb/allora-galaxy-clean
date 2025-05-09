@@ -1,102 +1,102 @@
 
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { NavigationItem } from '@/types/shared';
-import { navigationItems } from '@/contexts/workspace/navigationItems';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useTenantRole } from '@/hooks/useTenantRole';
 
 interface SidebarProps {
-  className?: string;
+  items: NavigationItem[];
+  collapsed?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ className }) => {
-  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
   const location = useLocation();
-  const { role: userRole } = useTenantRole();
-  
-  const toggleSubmenu = (href: string) => {
-    setOpenItems((prev) => ({
-      ...prev,
-      [href]: !prev[href],
-    }));
-  };
-  
-  const isLinkActive = (href: string) => {
-    if (href === '/') {
-      return location.pathname === href;
-    }
-    return location.pathname.startsWith(href);
+  const { userRole } = useTenantRole();
+
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const userHasRequiredRole = (item: NavigationItem) => {
+  const isItemVisible = (item: NavigationItem) => {
+    // Show item if no role requirements or if user has required role
     if (!item.requiresRole) return true;
+    
     if (!userRole) return false;
+    
     return item.requiresRole.includes(userRole);
   };
 
   const renderNavItem = (item: NavigationItem) => {
-    const active = isLinkActive(item.href);
-    
-    // Check if user has the required role to see this item
-    if (!userHasRequiredRole(item)) return null;
-    
-    if (item.children) {
-      const isOpen = openItems[item.href] || active;
-      const hasActiveChild = item.children.some((child) => isLinkActive(child.href));
-      
-      return (
-        <React.Fragment key={item.href}>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-between px-2 h-9 font-medium",
-              (active || hasActiveChild) ? "bg-accent text-accent-foreground" : "transparent"
-            )}
-            onClick={() => toggleSubmenu(item.href)}
-          >
-            <span className="flex items-center">
-              {item.icon && <item.icon className="h-4 w-4 mr-2" />}
-              {item.name}
-            </span>
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-          
-          {isOpen && (
-            <div className="ml-4 border-l pl-2 border-muted">
-              {item.children.map(renderNavItem)}
-            </div>
-          )}
-        </React.Fragment>
-      );
-    }
+    if (!isItemVisible(item)) return null;
+
+    const ItemIcon = item.icon;
     
     return (
-      <div key={item.href}>
-        {item.divider && <div className="h-px bg-border my-2" />}
-        <Link
+      <li key={item.href}>
+        <NavLink
           to={item.href}
-          className={cn(
-            "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium",
-            active ? "bg-accent text-accent-foreground" : "hover:bg-accent hover:text-accent-foreground"
-          )}
+          className={({ isActive }) =>
+            `flex items-center py-2 px-3 my-1 font-medium rounded-md transition-colors ${
+              isActive
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'hover:bg-sidebar-accent/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
+            }`
+          }
         >
-          {item.icon && <item.icon className="h-4 w-4" />}
-          {item.name}
-        </Link>
-      </div>
+          {ItemIcon && <ItemIcon className="h-5 w-5 mr-2" />}
+          {!collapsed && <span>{item.name}</span>}
+        </NavLink>
+
+        {item.children && item.children.length > 0 && !collapsed && (
+          <ul className="ml-4 mt-1">
+            {item.children.filter(isItemVisible).map((child) => (
+              <li key={child.href}>
+                <NavLink
+                  to={child.href}
+                  className={({ isActive }) =>
+                    `flex items-center py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-sidebar-accent/50 text-sidebar-accent-foreground'
+                        : 'hover:bg-sidebar-accent/30 text-sidebar-foreground/70 hover:text-sidebar-foreground'
+                    }`
+                  }
+                >
+                  {child.name}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
     );
   };
 
   return (
-    <ScrollArea className={cn("h-full", className)}>
-      <div className="space-y-1 py-2">
-        {navigationItems.map(renderNavItem)}
+    <div
+      className={`h-screen bg-sidebar fixed top-0 left-0 w-64 z-40 border-r border-sidebar-border transition-all duration-300 ease-in-out ${
+        collapsed ? 'w-16' : 'w-64'
+      }`}
+    >
+      <div className="flex flex-col h-full">
+        <div className="p-4 border-b border-sidebar-border flex items-center justify-center">
+          {collapsed ? (
+            <span className="text-2xl font-bold">A</span>
+          ) : (
+            <span className="text-2xl font-bold">Allora OS</span>
+          )}
+        </div>
+
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <ul className="space-y-1">
+            {items.map(renderNavItem)}
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
+          {/* Footer items can go here */}
+        </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 };
 
