@@ -14,12 +14,13 @@ import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
+import { Workspace } from "@/contexts/workspace/types";
 
 /**
  * WorkspaceSwitcher allows users to switch between different tenants/workspaces
  */
 export function WorkspaceSwitcher() {
-  const { currentWorkspace, setCurrentWorkspace, userWorkspaces, loading } = useWorkspace();
+  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export function WorkspaceSwitcher() {
   const handleSelectWorkspace = async (workspaceId: string) => {
     if (currentWorkspace?.id === workspaceId) return;
     
-    const workspace = userWorkspaces.find(w => w.id === workspaceId);
+    const workspace = workspaces.find((w: Workspace) => w.id === workspaceId);
     if (workspace) {
       setCurrentWorkspace(workspace);
       localStorage.setItem('currentWorkspaceId', workspace.id);
@@ -77,7 +78,7 @@ export function WorkspaceSwitcher() {
         <DropdownMenuContent className="w-[200px]">
           <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {userWorkspaces.map((workspace) => (
+          {workspaces.map((workspace: Workspace) => (
             <DropdownMenuItem
               key={workspace.id}
               onClick={() => handleSelectWorkspace(workspace.id)}

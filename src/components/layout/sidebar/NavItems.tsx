@@ -1,69 +1,95 @@
 
-import { LucideIcon } from 'lucide-react';
 import {
-  BarChart4,
-  Layers,
-  Rocket,
+  BarChart3,
+  LayoutDashboard,
   Settings,
   Users,
-  Zap,
-  Database,
-  Plug,
-} from 'lucide-react';
+  Rocket,
+  Network,
+  ListTodo,
+  Clock,
+  AlertCircle,
+  History
+} from "lucide-react";
 
-interface NavItem {
-  title: string;
-  href: string;
-  icon: LucideIcon;
-  children?: NavItem[];
-  adminOnly?: boolean;
-}
-
-export const mainNavItems: NavItem[] = [
+export const navigationItems = [
   {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: BarChart4,
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
   },
   {
-    title: 'Galaxy',
-    href: '/galaxy',
-    icon: Zap,
-  },
-  {
-    title: 'Launch',
-    href: '/launch',
+    title: "Launch",
+    href: "/launch",
     icon: Rocket,
   },
   {
-    title: 'Plugins',
-    href: '/plugins',
-    icon: Plug,
+    title: "Galaxy",
+    href: "/galaxy",
+    icon: Network,
   },
   {
-    title: 'KPIs',
-    href: '/insights/kpis',
-    icon: Database,
+    title: "Analytics",
+    href: "/insights/kpis",
+    icon: BarChart3,
   },
 ];
 
-export const adminNavItems: NavItem[] = [
+export const adminNavigationItems = [
   {
-    title: 'Admin',
-    href: '/admin',
+    title: "Admin Dashboard",
+    href: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    title: "System Logs",
+    href: "/admin/logs",
+    icon: History,
+  },
+  {
+    title: "AI Decisions",
+    href: "/admin/ai-decisions",
+    icon: AlertCircle,
+  },
+  {
+    title: "CRON Jobs",
+    href: "/admin/cron-jobs",
+    icon: Clock,
+  },
+  {
+    title: "API Keys",
+    href: "/admin/api-keys",
     icon: Settings,
-    children: [
-      {
-        title: 'Users',
-        href: '/admin/users',
-        icon: Users,
-      },
-      {
-        title: 'AI Decisions',
-        href: '/admin/ai-decisions',
-        icon: Layers,
-      },
-    ],
-    adminOnly: true,
+  },
+];
+
+export const profileNavigationItems = [
+  {
+    title: "Profile Settings",
+    href: "/settings/profile",
+    icon: Users,
+  },
+  {
+    title: "Account",
+    href: "/settings/account",
+    icon: Settings,
+  },
+];
+
+export const agentNavigationItems = [
+  {
+    title: "Performance",
+    href: "/agents/performance",
+    icon: BarChart3,
+  },
+  {
+    title: "Tasks",
+    href: "/agents/tasks",
+    icon: ListTodo,
   },
 ];

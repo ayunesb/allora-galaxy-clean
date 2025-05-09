@@ -1,22 +1,20 @@
 
-import { UserRole } from "@/types/shared";
-
-export interface TenantWithRole {
+export interface Workspace {
   id: string;
   name: string;
-  slug?: string;
-  role: UserRole;
+  slug: string;
+  metadata?: Record<string, any>;
+  created_at?: string;
 }
 
 export interface WorkspaceContextType {
-  currentTenant: TenantWithRole | null;
-  tenants: TenantWithRole[];
-  setCurrentTenant: (tenant: TenantWithRole | null) => void;
-  isLoading: boolean;
-  userRole?: UserRole;
-  tenant?: {
-    id: string;
-    name: string;
-  } | null;
-  loading?: boolean; // Added for backward compatibility
+  currentWorkspace: Workspace | null;
+  setCurrentWorkspace: (workspace: Workspace) => void;
+  workspaces: Workspace[];
+  loading: boolean;
+  error: string | null;
+  refreshWorkspaces: () => Promise<void>;
+  createWorkspace: (name: string) => Promise<Workspace | undefined>;
+  deleteWorkspace: (id: string) => Promise<void>;
+  updateWorkspace: (id: string, data: Partial<Workspace>) => Promise<Workspace | undefined>;
 }

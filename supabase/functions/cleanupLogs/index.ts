@@ -1,105 +1,189 @@
-import { createClient } from '@supabase/supabase-js';
-import { corsHeaders } from '../../lib/corsHeaders';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
-// Number of days to keep logs
-const LOG_RETENTION_DAYS = 30;
+// CORS Headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-Deno.serve(async (req) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
+// Helper function to safely get environment variables
+function getEnv(name: string, fallback: string = ""): string {
+  try {
+    return Deno.env.get(name) ?? fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase admin client with service role key
-    const supabase = createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization') || '' },
-        },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-
-    // Parse request for optional parameters
-    let body: Record<string, unknown> = {};
-    try {
-      body = await req.json();
-    } catch (e) {
-      // Default to empty body
-      body = {};
+    // Initialize Supabase client
+    const supabaseUrl = getEnv("SUPABASE_URL");
+    const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: "Missing Supabase credentials" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
 
-    const retentionDays = (body.retention_days as number) || LOG_RETENTION_DAYS;
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-    const cutoffTimestamp = cutoffDate.toISOString();
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Clean up plugin logs
-    const { data: pluginLogsResult, error: pluginLogsError } = await supabase
+    // Get retention settings
+    const { data: settings, error: settingsError } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'log_retention')
+      .single();
+    
+    if (settingsError) {
+      console.error("Error fetching retention settings:", settingsError);
+      // Use default values if settings not found
+      settings = {
+        value: {
+          plugin_logs_days: 30,
+          system_logs_days: 90,
+          executions_days: 60
+        }
+      };
+    }
+    
+    const retentionDays = settings.value;
+    console.log("Using retention settings:", retentionDays);
+    
+    // Start tracking cleanup metrics
+    const results = {
+      plugin_logs_deleted: 0,
+      system_logs_deleted: 0,
+      executions_deleted: 0,
+      cron_history_deleted: 0
+    };
+
+    // Clean up plugin_logs
+    const pluginLogsDate = new Date();
+    pluginLogsDate.setDate(pluginLogsDate.getDate() - retentionDays.plugin_logs_days);
+    
+    const { data: deletedPluginLogs, error: pluginLogsError } = await supabase
       .from('plugin_logs')
       .delete()
-      .lt('created_at', cutoffTimestamp)
+      .lt('created_at', pluginLogsDate.toISOString())
       .select('count');
-
+    
     if (pluginLogsError) {
-      throw new Error(`Failed to clean up plugin logs: ${pluginLogsError.message}`);
+      console.error("Error cleaning up plugin logs:", pluginLogsError);
+    } else {
+      results.plugin_logs_deleted = deletedPluginLogs?.length || 0;
+      console.log(`Deleted ${results.plugin_logs_deleted} plugin logs`);
     }
 
-    // Clean up system logs
-    const { data: systemLogsResult, error: systemLogsError } = await supabase
+    // Clean up system_logs
+    const systemLogsDate = new Date();
+    systemLogsDate.setDate(systemLogsDate.getDate() - retentionDays.system_logs_days);
+    
+    const { data: deletedSystemLogs, error: systemLogsError } = await supabase
       .from('system_logs')
       .delete()
-      .lt('created_at', cutoffTimestamp)
+      .lt('created_at', systemLogsDate.toISOString())
       .select('count');
-
+    
     if (systemLogsError) {
-      throw new Error(`Failed to clean up system logs: ${systemLogsError.message}`);
+      console.error("Error cleaning up system logs:", systemLogsError);
+    } else {
+      results.system_logs_deleted = deletedSystemLogs?.length || 0;
+      console.log(`Deleted ${results.system_logs_deleted} system logs`);
     }
 
-    // Log the cleanup action
-    await supabase.from('system_logs').insert({
-      tenant_id: body.tenant_id || 'system',
-      category: 'maintenance',
-      event: 'logs_cleanup',
-      details: {
-        plugin_logs_deleted: pluginLogsResult?.length || 0,
-        system_logs_deleted: systemLogsResult?.length || 0,
-        retention_days: retentionDays
+    // Clean up executions table if it exists
+    const executionsDate = new Date();
+    executionsDate.setDate(executionsDate.getDate() - (retentionDays.executions_days || 60));
+    
+    try {
+      const { data: deletedExecutions, error: executionsError } = await supabase
+        .from('executions')
+        .delete()
+        .lt('created_at', executionsDate.toISOString())
+        .not('status', 'eq', 'pending') // Don't delete pending executions
+        .select('count');
+      
+      if (executionsError) {
+        console.error("Error cleaning up executions:", executionsError);
+      } else {
+        results.executions_deleted = deletedExecutions?.length || 0;
+        console.log(`Deleted ${results.executions_deleted} executions`);
       }
-    });
+    } catch (error) {
+      console.error("Error accessing executions table:", error);
+    }
+
+    // Clean up cron_job_history older than 30 days
+    const cronHistoryDate = new Date();
+    cronHistoryDate.setDate(cronHistoryDate.getDate() - 30);
+    
+    try {
+      const { data: deletedCronHistory, error: cronHistoryError } = await supabase
+        .from('cron_job_history')
+        .delete()
+        .lt('execution_time', cronHistoryDate.toISOString())
+        .select('count');
+      
+      if (cronHistoryError) {
+        console.error("Error cleaning up cron job history:", cronHistoryError);
+      } else {
+        results.cron_history_deleted = deletedCronHistory?.length || 0;
+        console.log(`Deleted ${results.cron_history_deleted} cron job history records`);
+      }
+    } catch (error) {
+      console.error("Error accessing cron job history:", error);
+    }
+
+    // Log the cleanup event
+    await supabase
+      .from('system_logs')
+      .insert({
+        module: 'system',
+        event: 'logs_cleanup',
+        context: {
+          ...results,
+          plugin_logs_retention_days: retentionDays.plugin_logs_days,
+          system_logs_retention_days: retentionDays.system_logs_days,
+          executions_retention_days: retentionDays.executions_days || 60
+        }
+      });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Logs cleanup completed successfully',
-        plugin_logs_deleted: pluginLogsResult?.length || 0,
-        system_logs_deleted: systemLogsResult?.length || 0
+        message: "Log cleanup completed successfully",
+        results
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   } catch (error) {
-    console.error('Error cleaning up logs:', error);
+    console.error("Error in cleanupLogs:", error);
     
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || 'An unexpected error occurred',
+      JSON.stringify({ 
+        error: "Failed to clean up logs", 
+        details: error.message || String(error)
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   }
