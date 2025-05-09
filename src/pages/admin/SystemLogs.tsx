@@ -20,8 +20,6 @@ export interface SystemLog {
 }
 
 const SystemLogs: React.FC = () => {
-  const [level, setLevel] = useState('all');
-  const [module, setModule] = useState('all');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
