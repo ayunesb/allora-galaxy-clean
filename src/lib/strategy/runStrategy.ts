@@ -97,7 +97,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
       return { success: false, error: 'Strategy ID is required' };
     }
     
-    // Extract parameters
+    // Extract parameters from input object
     const strategyId = input.strategyId;
     const tenantId = input.tenantId;
     const userId = input.userId;
@@ -119,7 +119,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
       tenantId
     );
     
-    // Get strategy data - Use the extracted strategyId here
+    // Get strategy data
     const { strategy, error: strategyError } = await verifyStrategy(strategyId, tenantId);
     
     // Check for errors in strategy retrieval
