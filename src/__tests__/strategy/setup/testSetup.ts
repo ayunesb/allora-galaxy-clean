@@ -58,6 +58,9 @@ const setupStrategyTest = () => {
   };
 };
 
+// Export a setupTests function that other test files can import
+export const setupTests = setupStrategyTest;
+
 export {
   describe,
   it,
@@ -65,5 +68,6 @@ export {
   beforeEach,
   afterEach,
   vi,
-  setupStrategyTest
+  setupStrategyTest,
+  runStrategy
 };
