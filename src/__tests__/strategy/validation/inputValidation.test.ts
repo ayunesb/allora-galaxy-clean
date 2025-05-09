@@ -11,12 +11,12 @@ describe('runStrategy Input Validation', () => {
     const missingStrategyId = {
       tenantId: 'tenant-123',
       userId: 'user-123'
-    } as any;
+    };
     
     const missingTenantId = {
       strategyId: 'strategy-123',
       userId: 'user-123'
-    } as any;
+    };
     
     // Act
     const result1 = await runStrategy(missingStrategyId);

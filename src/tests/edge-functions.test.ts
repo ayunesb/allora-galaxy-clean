@@ -6,14 +6,23 @@ import { runStrategy } from '@/lib/strategy/runStrategy';
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
-      invoke: vi.fn().mockResolvedValue({ data: { success: true }, error: null })
+      invoke: vi.fn().mockResolvedValue({ 
+        data: { 
+          success: true,
+          execution_id: 'exec-123',
+          execution_time: 1.5
+        }, 
+        error: null 
+      })
     }
   }
 }));
 
 // Mock logging function
 vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn().mockResolvedValue(true)
+  logSystemEvent: vi.fn().mockResolvedValue(true),
+  __esModule: true,
+  default: vi.fn().mockResolvedValue(true)
 }));
 
 describe('Edge Functions Integration', () => {

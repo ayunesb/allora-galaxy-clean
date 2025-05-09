@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { type SystemEventModule } from '@/types/shared';
@@ -12,7 +13,7 @@ export function notify(title: string, description: string, type: 'success' | 'er
   toast({
     title: title,
     description: description,
-    variant: type,
+    variant: type === 'error' ? 'destructive' : 'default',
   });
 }
 

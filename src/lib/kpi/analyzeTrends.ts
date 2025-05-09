@@ -55,7 +55,7 @@ export function analyzeKpiTrend(kpi: KPI): KPITrend {
     direction: 'stable',
     percentage: 0,
     currentValue: kpi.value,
-    previousValue: undefined,
+    previousValue: null,
     isPositive: false,
     percentageChange: 0
   };
@@ -82,7 +82,7 @@ export function analyzeKpiTarget(kpi: KPI): KPITrend {
       direction,
       percentage: Number(percentageOfTarget.toFixed(1)),
       currentValue: kpi.value,
-      previousValue: kpi.target,
+      previousValue: null,
       isPositive: isTrendPositive(direction),
       percentageChange: kpi.value - kpi.target
     };
@@ -93,7 +93,7 @@ export function analyzeKpiTarget(kpi: KPI): KPITrend {
     direction: 'stable',
     percentage: 0,
     currentValue: kpi.value,
-    previousValue: undefined,
+    previousValue: null,
     isPositive: false,
     percentageChange: 0
   };
