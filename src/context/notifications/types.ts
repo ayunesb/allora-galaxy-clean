@@ -18,6 +18,8 @@ export interface NotificationsContextValue {
   unreadCount: number;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  refreshNotifications: () => Promise<void>;
   loading: boolean;
   error: Error | null;
 }
