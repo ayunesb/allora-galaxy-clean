@@ -1,7 +1,8 @@
+
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import ErrorFallback from '@/components/ErrorFallback';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   children: ReactNode;
@@ -57,25 +58,35 @@ class ErrorBoundary extends Component<Props, State> {
   }
   
   private logErrorToSystem(error: Error, errorInfo: ErrorInfo) {
+    const eventData = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      location: window.location.href,
+      timestamp: new Date().toISOString()
+    };
+    
     logSystemEvent(
       'system',
       'error',
-      {
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        location: window.location.href,
-        timestamp: new Date().toISOString()
-      },
+      eventData,
       this.props.tenant_id || 'system'
     ).catch(logError => {
       console.error("Failed to log system event:", logError);
       // Try to show toast notification as a fallback
-      toast({
-        title: "Error Logging Failed",
-        description: "Could not log error details to system",
-        variant: "destructive"
-      });
+      try {
+        // Note: This is a workaround as React classes don't support hooks
+        // In a real application, you might want to use a different approach
+        const toastFn = useToast;
+        const toast = toastFn();
+        toast({
+          title: "Error Logging Failed",
+          description: "Could not log error details to system",
+          variant: "destructive"
+        });
+      } catch (toastError) {
+        console.error("Failed to show toast:", toastError);
+      }
     });
   }
 

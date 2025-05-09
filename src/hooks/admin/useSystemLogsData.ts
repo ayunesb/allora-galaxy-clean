@@ -1,137 +1,120 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { SystemLog } from '@/pages/admin/SystemLogs';
+import { useToast } from '@/hooks/use-toast';
+import { useTenantId } from '@/hooks/useTenantId';
 
-interface SystemLog {
-  id: string;
-  module: string;
-  event: string;
-  context?: Record<string, any>;
-  created_at: string;
-  tenant_id?: string;
-}
-
-export interface LogFilterState {
-  moduleFilter: string;
-  eventFilter: string;
-  searchQuery: string;
-  selectedDate: Date | null;
-}
-
-export const useSystemLogsData = (tenantId?: string) => {
+export const useSystemLogsData = () => {
+  const { toast } = useToast();
+  const tenantId = useTenantId();
+  
   const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [moduleFilter, setModuleFilter] = useState('all');
-  const [eventFilter, setEventFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [modules, setModules] = useState<string[]>([]);
+  const [events, setEvents] = useState<string[]>([]);
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [availableModules, setAvailableModules] = useState<string[]>([]);
-  const [availableEvents, setAvailableEvents] = useState<string[]>([]);
-
-  // Fetch logs with applied filters
+  
+  // Filters
+  const [moduleFilter, setModuleFilter] = useState<string>('');
+  const [eventFilter, setEventFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  
   const fetchLogs = useCallback(async () => {
-    setIsLoading(true);
-
     try {
+      setIsLoading(true);
+      
       let query = supabase
         .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Filter by tenant if specified
+        .select('*');
+      
       if (tenantId) {
         query = query.eq('tenant_id', tenantId);
       }
-
-      // Apply module filter
-      if (moduleFilter !== 'all') {
+      
+      if (moduleFilter) {
         query = query.eq('module', moduleFilter);
       }
-
-      // Apply event filter
-      if (eventFilter !== 'all') {
-        query = query.eq('event', eventFilter);
+      
+      if (eventFilter) {
+        query = query.eq('type', eventFilter);
       }
-
-      // Apply search filter (across multiple fields)
+      
       if (searchQuery) {
-        query = query.or(`module.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
+        query = query.ilike('description', `%${searchQuery}%`);
       }
-
-      // Apply date filter
+      
       if (selectedDate) {
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
         
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
         
-        query = query.gte('created_at', startOfDay.toISOString())
-                     .lte('created_at', endOfDay.toISOString());
+        query = query
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
       }
-
-      const { data, error } = await query;
-
+      
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
       if (error) {
         throw error;
       }
-
-      setLogs(data || []);
-
-      // Extract unique modules and events for filter dropdowns
-      if (data && data.length > 0) {
-        const modules = [...new Set(data.map(log => log.module))];
-        const events = [...new Set(data.map(log => log.event))];
-        setAvailableModules(modules);
-        setAvailableEvents(events);
+      
+      setLogs(data as SystemLog[]);
+      
+      // Extract unique modules and events
+      if (data) {
+        const uniqueModules = [...new Set(data.map(log => log.module))];
+        const uniqueEvents = [...new Set(data.map(log => log.type))];
+        
+        setModules(uniqueModules);
+        setEvents(uniqueEvents);
       }
-
     } catch (error: any) {
-      console.error('Error fetching system logs:', error);
       toast({
-        title: "Error",
-        description: "Failed to load system logs",
-        variant: "destructive"
+        title: 'Error fetching logs',
+        description: error.message,
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, moduleFilter, eventFilter, searchQuery, selectedDate]);
-
-  // Initial load and when dependencies change
+  }, [tenantId, moduleFilter, eventFilter, searchQuery, selectedDate, toast]);
+  
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
-
-  // Filter handlers
-  const handleFilterChange = (filters: LogFilterState) => {
-    setModuleFilter(filters.moduleFilter);
-    setEventFilter(filters.eventFilter);
-    setSearchQuery(filters.searchQuery);
-    setSelectedDate(filters.selectedDate);
+  
+  const handleFilterChange = (filter: string, value: string | Date | null) => {
+    if (filter === 'moduleFilter') {
+      setModuleFilter(value as string);
+    } else if (filter === 'eventFilter') {
+      setEventFilter(value as string);
+    } else if (filter === 'searchQuery') {
+      setSearchQuery(value as string);
+    } else if (filter === 'selectedDate') {
+      setSelectedDate(value as Date | null);
+    } else if (filter === 'refresh') {
+      fetchLogs();
+    }
   };
-
-  const resetFilters = () => {
-    setModuleFilter('all');
-    setEventFilter('all');
+  
+  const handleResetFilters = () => {
+    setModuleFilter('');
+    setEventFilter('');
     setSearchQuery('');
     setSelectedDate(null);
   };
-
-  const handleViewDetails = (log: SystemLog) => {
-    setSelectedLog(log);
-  };
-
-  const closeLogDetails = () => {
-    setSelectedLog(null);
-  };
-
+  
   const handleRefresh = () => {
     fetchLogs();
   };
-
+  
   return {
     logs,
     isLoading,
@@ -140,14 +123,10 @@ export const useSystemLogsData = (tenantId?: string) => {
     searchQuery,
     selectedDate,
     selectedLog,
-    availableModules,
-    availableEvents,
+    modules,
+    events,
     handleFilterChange,
-    resetFilters,
-    handleViewDetails,
-    closeLogDetails,
-    handleRefresh
+    handleResetFilters,
+    handleRefresh,
   };
 };
-
-export default useSystemLogsData;

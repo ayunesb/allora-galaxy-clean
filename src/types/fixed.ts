@@ -1,5 +1,5 @@
 
-// Define fixed types used across the application
+// Type definitions for snake_case API parameters and responses
 
 export interface ExecuteStrategyInputSnakeCase {
   strategy_id: string;
@@ -8,20 +8,29 @@ export interface ExecuteStrategyInputSnakeCase {
   options?: Record<string, any>;
 }
 
-export interface ExecuteStrategyInput {
-  strategyId: string;
-  tenantId: string;
-  userId?: string;
-  options?: Record<string, any>;
-}
-
 export interface ExecuteStrategyResult {
   success: boolean;
   strategy_id: string;
-  status: string;
+  status: 'completed' | 'failed' | 'pending';
+  execution_time: number;
+  execution_id?: string;
+  error?: string;
+  details?: any;
+}
+
+export interface SnakeCaseExecutionResult {
+  success: boolean;
+  execution_id: string;
   execution_time: number;
   error?: string;
-  execution_id?: string;
-  outputs?: Record<string, any>;
-  logs?: Array<any>;
 }
+
+export type CamelToSnakeCase<S extends string> = S extends `${infer T}${infer U}`
+  ? `${T extends Capitalize<T> ? "_" : ""}${Lowercase<T>}${CamelToSnakeCase<U>}`
+  : S;
+
+export type SnakeCasify<T> = {
+  [K in keyof T as CamelToSnakeCase<string & K>]: T[K] extends object
+    ? SnakeCasify<T[K]>
+    : T[K];
+};

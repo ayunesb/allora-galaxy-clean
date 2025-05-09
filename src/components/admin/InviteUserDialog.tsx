@@ -82,6 +82,7 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
         'system',
         'info',
         { 
+          event_type: 'user_invitation', 
           email: values.email, 
           role: values.role, 
           context: 'user_invitation' 

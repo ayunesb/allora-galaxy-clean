@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext } from 'react';
-import { useAuth as useAuthHook } from '@/hooks/useAuth';
+import { useAuth as useAuthHook, AuthProvider as AuthProviderImpl } from '@/hooks/useAuth';
 
 // Re-export the auth provider and hook from our hooks implementation
 export const AuthContext = createContext<ReturnType<typeof useAuthHook> | undefined>(undefined);
@@ -13,8 +13,7 @@ export const useAuth = () => {
   return context;
 };
 
-// This is a stub component that redirects to the new implementation
-// to maintain backward compatibility
+// Connect the implementation to the context provider
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>; 
+  return <AuthProviderImpl>{children}</AuthProviderImpl>;
 };

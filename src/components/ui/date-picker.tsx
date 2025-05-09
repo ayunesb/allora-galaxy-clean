@@ -1,5 +1,6 @@
 
-import * as React from "react";
+"use client";
+
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={setDate}
+          onSelect={(date) => setDate(date || null)}
           initialFocus
           disabled={disabled}
         />

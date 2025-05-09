@@ -25,15 +25,17 @@ export function ErrorFallback({
 
   useEffect(() => {
     // Log the error to our system
+    const eventData = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo?.componentStack,
+      react_error_boundary: true
+    };
+    
     logSystemEvent(
       'system',
       'error',
-      {
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo?.componentStack,
-        react_error_boundary: true
-      },
+      eventData,
       tenant_id
     ).catch(console.error);
   }, [error, errorInfo, tenant_id]);

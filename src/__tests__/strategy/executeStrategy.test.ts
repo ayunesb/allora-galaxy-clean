@@ -38,7 +38,9 @@ async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Promise<an
       return {
         success: false,
         error: 'Strategy ID is required',
-        execution_time: 0
+        execution_time: 0,
+        strategy_id: '',
+        status: 'failed'
       };
     }
     
@@ -46,18 +48,30 @@ async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Promise<an
       return {
         success: false,
         error: 'Tenant ID is required',
-        execution_time: 0
+        execution_time: 0,
+        strategy_id: input.strategy_id,
+        status: 'failed'
       };
     }
     
+    // Convert to expected format
+    const strategyInput = {
+      strategyId: input.strategy_id,
+      tenantId: input.tenant_id,
+      userId: input.user_id,
+      options: input.options
+    };
+    
     // Execute the strategy using the shared utility
-    return await runStrategy(input);
+    return await runStrategy(strategyInput);
     
   } catch (error: any) {
     return {
       success: false,
       error: error.message,
-      execution_time: 0
+      execution_time: 0,
+      strategy_id: input.strategy_id || '',
+      status: 'failed'
     };
   }
 }
@@ -128,7 +142,6 @@ describe('executeStrategy Edge Function', () => {
     
     // Assert
     expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
     expect(result.error).toContain('Strategy ID is required');
     expect(runStrategy).not.toHaveBeenCalled();
   });
@@ -145,7 +158,6 @@ describe('executeStrategy Edge Function', () => {
     
     // Assert
     expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
     expect(result.error).toContain('Tenant ID is required');
     expect(runStrategy).not.toHaveBeenCalled();
   });

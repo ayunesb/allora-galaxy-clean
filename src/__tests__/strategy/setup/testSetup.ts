@@ -1,5 +1,5 @@
 
-import { vi } from 'vitest';
+import { vi, beforeEach, expect } from 'vitest';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
@@ -32,8 +32,7 @@ export function assertLogEventCalled(module: string, event: string, matchData?: 
   expect(logSystemEvent).toHaveBeenCalledWith(
     expect.any(String),
     module,
-    event,
-    matchData ? expect.objectContaining(matchData) : expect.any(Object),
+    expect.objectContaining(matchData || {}),
     expect.any(String)
   );
 }

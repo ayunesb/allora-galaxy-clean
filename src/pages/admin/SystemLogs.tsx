@@ -1,11 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SystemLogFilters } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import LoadingScreen from '@/components/LoadingScreen';
 import { format } from 'date-fns';
-import { toast } from '@/components/ui/use-toast';
 import { withRoleCheck } from '@/lib/auth/withRoleCheck';
 
 export interface SystemLog {
@@ -28,8 +27,6 @@ const SystemLogs: React.FC = () => {
     eventFilter,
     searchQuery,
     selectedDate,
-    selectedLog,
-    setSelectedLog,
     modules,
     events,
     handleFilterChange,
@@ -89,7 +86,6 @@ const SystemLogs: React.FC = () => {
                       <tr
                         key={log.id}
                         className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
-                        onClick={() => setSelectedLog(log)}
                       >
                         <td className="p-4 align-middle">
                           {format(new Date(log.created_at), 'MMM dd, yyyy HH:mm:ss')}

@@ -1,51 +1,46 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { SystemEventType } from '@/types/shared';
 
 /**
- * Log a system event to the system_logs table
- * @param tenantId The tenant ID, or 'system' for system-wide events
- * @param module The system module (e.g., 'auth', 'strategy', 'plugin')
- * @param eventType The event type (e.g., 'created', 'updated', 'executed')
- * @param context Additional context for the event
- * @param level Log level (info, warn, error)
- * @returns Success status and optional error
+ * Log a system event to the database
+ * @param module The module that generated the event
+ * @param level The log level
+ * @param data The data to log
+ * @param tenant_id The tenant ID (optional, defaults to 'system')
+ * @returns The result of the operation
  */
 export async function logSystemEvent(
-  tenantId: string,
   module: string,
-  eventType: string,
-  context: Record<string, any> = {},
-  level: 'info' | 'warn' | 'error' = 'info'
-): Promise<{ success: boolean; error?: string }> {
+  level: SystemEventType,
+  data: Record<string, any>,
+  tenant_id: string = 'system'
+): Promise<any> {
   try {
-    const { error } = await supabase
+    // Convert camelCase keys to snake_case for database
+    const formattedData = {
+      module,
+      level,
+      type: data.event_type || data.action || 'info',
+      description: data.message || JSON.stringify(data).substring(0, 255),
+      metadata: data,
+      tenant_id
+    };
+
+    const { data: result, error } = await supabase
       .from('system_logs')
-      .insert([{
-        tenant_id: tenantId,
-        module,
-        event: eventType,
-        level,
-        context,
-        created_at: new Date().toISOString()
-      }]);
+      .insert(formattedData)
+      .select()
+      .single();
       
     if (error) {
-      console.error(`Error logging ${module}.${eventType} event:`, error);
-      return { success: false, error: error.message };
+      console.error('Error logging system event:', error);
+      return { success: false, error };
     }
     
-    return { success: true };
-  } catch (error: any) {
-    // Don't let logging failures break the application
-    console.error('Error in logSystemEvent:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Unknown error during system event logging'
-    };
+    return { success: true, data: result };
+  } catch (err: any) {
+    console.error('Failed to log system event:', err);
+    return { success: false, error: err.message };
   }
 }
-
-/**
- * Alias for backward compatibility
- */
-export const logEvent = logSystemEvent;
