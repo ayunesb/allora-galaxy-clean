@@ -6,12 +6,11 @@ import { withRoleCheck } from '@/lib/auth/withRoleCheck';
 import { useTenantId } from '@/hooks/useTenantId';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 const SystemLogs: React.FC = () => {
@@ -19,6 +18,7 @@ const SystemLogs: React.FC = () => {
   const [moduleFilter, setModuleFilter] = useState('');
   const [eventFilter, setEventFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   
   // Fetch module and event types for filters
@@ -27,7 +27,7 @@ const SystemLogs: React.FC = () => {
   
   // Fetch system logs
   const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery],
+    queryKey: ['systemLogs', tenantId, moduleFilter, eventFilter, searchQuery, selectedDate],
     queryFn: async () => {
       if (!tenantId) return [];
       
@@ -82,6 +82,17 @@ const SystemLogs: React.FC = () => {
         query = query.or(`context.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
       }
       
+      if (selectedDate) {
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        query = query.gte('created_at', startDate.toISOString())
+                     .lte('created_at', endDate.toISOString());
+      }
+      
       const { data, error } = await query;
       
       if (error) {
@@ -98,12 +109,14 @@ const SystemLogs: React.FC = () => {
     setModuleFilter('');
     setEventFilter('');
     setSearchQuery('');
+    setSelectedDate(null);
   };
   
   const handleFilterChange = (newFilters: LogFilterState) => {
     setModuleFilter(newFilters.moduleFilter);
     setEventFilter(newFilters.eventFilter);
     setSearchQuery(newFilters.searchQuery);
+    setSelectedDate(newFilters.selectedDate);
   };
   
   const handleViewDetails = (log: any) => {
@@ -155,6 +168,8 @@ const SystemLogs: React.FC = () => {
               setEventFilter={setEventFilter}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
               onReset={resetFilters}
               onFilterChange={handleFilterChange}
               modules={availableModules}

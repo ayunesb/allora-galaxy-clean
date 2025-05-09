@@ -19,6 +19,7 @@ export const AuditLog: React.FC = () => {
   const [moduleFilter, setModuleFilter] = useState<string>('');
   const [eventFilter, setEventFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   
   // Available modules and events for filters
@@ -27,7 +28,7 @@ export const AuditLog: React.FC = () => {
   
   // Fetch system logs
   const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['auditLogs', tenantId, moduleFilter, eventFilter, searchQuery],
+    queryKey: ['auditLogs', tenantId, moduleFilter, eventFilter, searchQuery, selectedDate],
     queryFn: async () => {
       if (!tenantId) return [];
       
@@ -86,6 +87,17 @@ export const AuditLog: React.FC = () => {
         query = query.or(`context.ilike.%${searchQuery}%,event.ilike.%${searchQuery}%`);
       }
       
+      if (selectedDate) {
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        query = query.gte('created_at', startDate.toISOString())
+                     .lte('created_at', endDate.toISOString());
+      }
+      
       const { data, error } = await query;
       
       if (error) {
@@ -102,12 +114,14 @@ export const AuditLog: React.FC = () => {
     setModuleFilter('');
     setEventFilter('');
     setSearchQuery('');
+    setSelectedDate(null);
   };
   
   const handleFilterChange = (newFilters: LogFilterState) => {
     setModuleFilter(newFilters.moduleFilter);
     setEventFilter(newFilters.eventFilter);
     setSearchQuery(newFilters.searchQuery);
+    setSelectedDate(newFilters.selectedDate);
   };
   
   const handleViewDetails = (log: any) => {
@@ -150,6 +164,8 @@ export const AuditLog: React.FC = () => {
             setEventFilter={setEventFilter}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
             onReset={resetFilters}
             onFilterChange={handleFilterChange}
             modules={availableModules}

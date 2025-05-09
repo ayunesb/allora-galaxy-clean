@@ -1,92 +1,123 @@
-// This is a placeholder file that needs to be implemented properly
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const data = [
-  { name: 'Google Analytics', xp: 1200 },
-  { name: 'Stripe', xp: 800 },
-  { name: 'SendGrid', xp: 600 },
-  { name: 'HubSpot', xp: 550 },
-  { name: 'Zapier', xp: 500 }
-];
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 
-const LeaderboardPage = () => {
-  const [period, setPeriod] = useState('7d');
-  const [sortBy, setSortBy] = useState('xp');
-  
-  return (
-    <div className="container mx-auto py-8">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold mb-4 md:mb-0">Plugin Leaderboard</h1>
-        
-        <div className="flex gap-4">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="all">All time</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="xp">XP</SelectItem>
-              <SelectItem value="roi">ROI</SelectItem>
-              <SelectItem value="executions">Executions</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+interface Plugin {
+  id: string;
+  name: string;
+  category: string;
+  xp: number;
+  roi: number;
+  status: string;
+}
+
+const PluginLeaderboard = () => {
+  const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const tenantId = useTenantId();
+
+  useEffect(() => {
+    async function fetchPlugins() {
+      if (!tenantId) return;
       
-      <Tabs defaultValue="chart">
-        <TabsList className="mb-6">
-          <TabsTrigger value="chart">Chart</TabsTrigger>
-          <TabsTrigger value="table">Table</TabsTrigger>
-        </TabsList>
-        
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('plugins')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('xp', { ascending: false })
+          .limit(10);
+          
+        if (error) throw error;
+        setPlugins(data || []);
+      } catch (error) {
+        console.error('Error fetching plugins:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchPlugins();
+  }, [tenantId]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return <Badge className="bg-green-500">Active</Badge>;
+      case 'inactive':
+        return <Badge variant="outline">Inactive</Badge>;
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Top Performing Plugins</CardTitle>
-            <CardDescription>
-              Performance metrics based on XP earned
-            </CardDescription>
+            <CardTitle>Plugin Leaderboard</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="xp" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="animate-pulse space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-12 bg-muted rounded-md" />
+              ))}
             </div>
           </CardContent>
         </Card>
-      </Tabs>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Plugin Leaderboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {plugins.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No plugins available to display.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rank</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">XP</TableHead>
+                  <TableHead className="text-right">ROI</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {plugins.map((plugin, index) => (
+                  <TableRow key={plugin.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell>{plugin.name}</TableCell>
+                    <TableCell>{plugin.category || 'Uncategorized'}</TableCell>
+                    <TableCell className="text-right">{plugin.xp.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{plugin.roi}%</TableCell>
+                    <TableCell>{getStatusBadge(plugin.status)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default LeaderboardPage;
+export default PluginLeaderboard;

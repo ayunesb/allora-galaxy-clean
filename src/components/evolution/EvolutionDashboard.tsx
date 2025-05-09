@@ -9,6 +9,7 @@ import AuditLog from './AuditLog';
 
 const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('agents');
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('');
   
   return (
     <div className="space-y-6">
@@ -46,7 +47,7 @@ const EvolutionDashboard: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="strategies" className="space-y-4">
-                <StrategyEvolutionTab strategyId={''} />
+                <StrategyEvolutionTab strategyId={selectedStrategyId} />
               </TabsContent>
             </div>
           </Tabs>
