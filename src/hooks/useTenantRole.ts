@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/hooks/useAuth';
-
-type TenantRole = 'owner' | 'admin' | 'member' | 'guest' | null;
+import { UserRole } from '@/types/shared';
 
 /**
  * Hook to get the current user's role within the active tenant
@@ -12,7 +11,7 @@ type TenantRole = 'owner' | 'admin' | 'member' | 'guest' | null;
 export function useTenantRole() {
   const { user } = useAuth();
   const tenantId = useTenantId();
-  const [role, setRole] = useState<TenantRole>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +34,7 @@ export function useTenantRole() {
           console.error('Error fetching tenant role:', error);
           setRole(null);
         } else {
-          setRole(data?.role as TenantRole);
+          setRole(data?.role as UserRole);
         }
       } catch (err) {
         console.error('Error in useTenantRole hook:', err);

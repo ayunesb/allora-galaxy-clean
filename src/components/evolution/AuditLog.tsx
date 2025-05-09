@@ -1,30 +1,30 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
-import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
-import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SystemEventModule, SystemEventType } from '@/types/shared';
+import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 
 export const AuditLog: React.FC = () => {
   const tenantId = useTenantId();
   
   // Log filter states
-  const [moduleFilter, setModuleFilter] = useState<string>('');
-  const [eventFilter, setEventFilter] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [moduleFilter, setModuleFilter] = React.useState<string>('');
+  const [eventFilter, setEventFilter] = React.useState<string>('');
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
+  const [selectedLog, setSelectedLog] = React.useState<any | null>(null);
   
   // Available modules and events for filters
-  const [availableModules, setAvailableModules] = useState<SystemEventModule[]>([]);
-  const [availableEvents, setAvailableEvents] = useState<SystemEventType[]>([]);
+  const [availableModules, setAvailableModules] = React.useState<SystemEventModule[]>([]);
+  const [availableEvents, setAvailableEvents] = React.useState<SystemEventType[]>([]);
   
   // Fetch system logs
   const { data: logs, isLoading, refetch } = useQuery({
