@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { UserRole } from '@/types/shared';
+import { UserRole } from '@/lib/auth/roleTypes';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
@@ -33,8 +33,8 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
     return <Navigate to="/auth/login" replace />;
   }
   
-  // Redirect if not authorized
-  if (!userRole || !roles.includes(userRole)) {
+  // Redirect if not authorized - Fix: Cast userRole to UserRole
+  if (!userRole || !roles.includes(userRole as UserRole)) {
     return <Navigate to={redirectTo} replace />;
   }
   

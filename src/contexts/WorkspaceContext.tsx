@@ -75,21 +75,30 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       // set the first one as the current workspace
       if (!currentWorkspace && userWorkspaces.length > 0) {
         setCurrentWorkspace(userWorkspaces[0]);
-        setUserRole(userWorkspaces[0].role);
+        // Fix: Only set userRole if role exists
+        if (userWorkspaces[0].role) {
+          setUserRole(userWorkspaces[0].role);
+        }
         localStorage.setItem('currentWorkspace', userWorkspaces[0].id);
       } else if (currentWorkspace) {
         // Check if the current workspace still exists in the updated list
         const exists = userWorkspaces.some(w => w.id === currentWorkspace.id);
         if (!exists && userWorkspaces.length > 0) {
           setCurrentWorkspace(userWorkspaces[0]);
-          setUserRole(userWorkspaces[0].role);
+          // Fix: Only set userRole if role exists
+          if (userWorkspaces[0].role) {
+            setUserRole(userWorkspaces[0].role);
+          }
           localStorage.setItem('currentWorkspace', userWorkspaces[0].id);
         } else if (exists) {
           // Update the current workspace with the latest data
           const updated = userWorkspaces.find(w => w.id === currentWorkspace.id);
           if (updated) {
             setCurrentWorkspace(updated);
-            setUserRole(updated.role);
+            // Fix: Only set userRole if role exists
+            if (updated.role) {
+              setUserRole(updated.role);
+            }
           }
         }
       }

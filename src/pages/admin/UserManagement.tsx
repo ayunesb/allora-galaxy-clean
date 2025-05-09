@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTenantId } from '@/hooks/useTenantId';
@@ -58,7 +57,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
-import { getRoleDisplayName } from '@/lib/auth/roleTypes';
+import { getRoleDisplayName, UserRole } from '@/lib/auth/roleTypes';
 
 interface TenantUser {
   id: string;
@@ -455,7 +454,9 @@ const UserManagement: React.FC = () => {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{getRoleBadge(user.role)}</TableCell>
+                        <TableCell>
+                          {getRoleDisplayName(user.role as UserRole)}
+                        </TableCell>
                         <TableCell>{formatDate(user.created_at)}</TableCell>
                         <TableCell className="text-right">
                           {user.role === 'owner' ? (

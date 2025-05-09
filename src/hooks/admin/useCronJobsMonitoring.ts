@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export type CronJob = {
   id: string;
@@ -30,6 +31,7 @@ export function useCronJobsMonitoring() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
+  const tenantId = useTenantId();
 
   const fetchCronJobs = async () => {
     setIsLoading(true);
@@ -91,8 +93,13 @@ export function useCronJobsMonitoring() {
   // Run a CRON job manually
   const runCronJob = async (jobName: string) => {
     try {
-      // Log the manual execution
-      await logSystemEvent('system', 'manual_cron_job_trigger', { job_name: jobName });
+      // Log the manual execution - Fix parameter count
+      await logSystemEvent(
+        'system', 
+        'manual_cron_job_trigger', 
+        { job_name: jobName },
+        tenantId
+      );
       
       // Call the edge function to manually trigger a CRON job
       const { data, error } = await supabase.functions.invoke('triggerCronJob', {

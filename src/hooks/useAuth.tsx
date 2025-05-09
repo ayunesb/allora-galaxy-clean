@@ -6,6 +6,7 @@ import { User, AuthError } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isLoading: boolean; // Add isLoading for backward compatibility
   error: AuthError | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
@@ -98,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     loading,
+    isLoading: loading, // Add isLoading for backward compatibility
     error,
     signIn,
     signUp,

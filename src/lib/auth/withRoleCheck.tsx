@@ -19,8 +19,8 @@ export function withRoleCheck<T extends object>(
   options: RoleCheckOptions
 ) {
   const WithRoleCheck: React.FC<T> = (props) => {
-    const { user, isLoading: authLoading } = useAuth();
-    const { userRole, isLoading: workspaceLoading } = useWorkspace();
+    const { user, loading: authLoading } = useAuth();
+    const { userRole, loading: workspaceLoading } = useWorkspace();
     
     const { roles, redirectTo = '/unauthorized' } = options;
     const isLoading = authLoading || workspaceLoading;
@@ -35,7 +35,7 @@ export function withRoleCheck<T extends object>(
       return <Navigate to="/auth/login" replace />;
     }
     
-    // Check if user has the required role
+    // Check if user has the required role - Fix: Cast userRole to UserRole
     if (!userRole || !roles.includes(userRole as UserRole)) {
       return <Navigate to={redirectTo} replace />;
     }
