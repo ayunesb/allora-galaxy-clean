@@ -15,6 +15,7 @@ import CronJobsPage from './pages/admin/CronJobsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CookieConsent from './components/CookieConsent';
 import { Providers } from './providers';
+import EvolutionPage from './pages/evolution';
 
 function App() {
   return (
@@ -25,6 +26,13 @@ function App() {
           <Route path="notifications" element={
             <RequireAuth>
               <NotificationsPage />
+            </RequireAuth>
+          } />
+          
+          {/* Evolution Routes */}
+          <Route path="evolution" element={
+            <RequireAuth>
+              <EvolutionPage />
             </RequireAuth>
           } />
         </Route>

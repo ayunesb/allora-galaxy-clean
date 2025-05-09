@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      // Add our shim for the problematic package
+      // Use our shim for the problematic package
       'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.js'),
     },
   },
@@ -31,6 +31,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 8080,
     host: "::"
+  },
+  optimizeDeps: {
+    exclude: ['three-bmfont-text'] // Exclude the problematic package from optimization
   }
 }));
 
