@@ -5,6 +5,10 @@ DROP POLICY IF EXISTS "tenant_user_roles_insert" ON public.tenant_user_roles;
 DROP POLICY IF EXISTS "tenant_user_roles_update" ON public.tenant_user_roles;
 DROP POLICY IF EXISTS "tenant_user_roles_delete" ON public.tenant_user_roles;
 
+-- Drop existing security functions to avoid conflicts
+DROP FUNCTION IF EXISTS public.is_tenant_member;
+DROP FUNCTION IF EXISTS public.is_tenant_admin;
+
 -- Create a security definer function to check if a user is a tenant member
 -- This function will be run with the permissions of the function owner, 
 -- bypassing RLS checks and thus avoiding recursion
@@ -156,4 +160,27 @@ CREATE POLICY "kpis_update" ON public.kpis
       SELECT user_id FROM tenant_user_roles 
       WHERE tenant_user_roles.tenant_id = kpis.tenant_id AND role IN ('owner', 'admin')
     )
+  );
+
+-- Add RLS policies for system_logs
+DROP POLICY IF EXISTS "system_logs_select" ON public.system_logs;
+DROP POLICY IF EXISTS "system_logs_insert" ON public.system_logs;
+DROP POLICY IF EXISTS "system_logs_update" ON public.system_logs;
+DROP POLICY IF EXISTS "system_logs_delete" ON public.system_logs;
+
+CREATE POLICY "system_logs_select" ON public.system_logs
+  FOR SELECT 
+  USING (
+    is_tenant_member(tenant_id)
+    OR tenant_id = 'system'
+  );
+
+CREATE POLICY "system_logs_insert" ON public.system_logs
+  FOR INSERT 
+  WITH CHECK (true); -- Allow any authenticated user to insert logs
+
+CREATE POLICY "system_logs_delete" ON public.system_logs
+  FOR DELETE 
+  USING (
+    is_tenant_admin(tenant_id)
   );
