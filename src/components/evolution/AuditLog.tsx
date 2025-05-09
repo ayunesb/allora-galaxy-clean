@@ -1,9 +1,9 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AuditLogFilters } from "./logs/AuditLogFilters";
-import { AuditLogTable } from "./logs/AuditLogTable";
-import { LogDetailDialog } from "./logs/LogDetailDialog";
+import AuditLogFilters from "./logs/AuditLogFilters";
+import AuditLogTable from "./logs/AuditLogTable";
+import LogDetailDialog from "./logs/LogDetailDialog";
 import { AuditLog as AuditLogType } from "@/types/shared";
 
 export interface AuditLogProps {
