@@ -18,15 +18,25 @@ export async function execute(input: ExecuteStrategyInput): Promise<ExecuteStrat
       throw new Error(`Error executing strategy: ${error.message}`);
     }
     
-    // Return the data as is - no conversion needed as it's already in the expected format
-    return data as ExecuteStrategyResult;
+    // Convert snake_case response to camelCase as needed
+    return {
+      success: data.success,
+      strategyId: input.strategyId,
+      executionId: data.execution_id,
+      executionTime: data.execution_time,
+      status: data.status,
+      results: data.results,
+      outputs: data.outputs,
+      error: data.error,
+      logs: data.logs
+    };
   } catch (err: any) {
     return {
       success: false,
       error: err.message || 'Unknown error occurred',
-      strategy_id: input.strategyId,
+      strategyId: input.strategyId,
       status: 'error',
-      execution_time: 0
+      executionTime: 0
     };
   }
 }

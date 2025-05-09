@@ -32,7 +32,7 @@ export function DateRangePicker({
     }
   }, [date, onChange]);
 
-  // Update the internal state when the external state changes
+  // Update the internal state when the external value changes
   React.useEffect(() => {
     if (value) {
       setDate(value);
@@ -42,6 +42,18 @@ export function DateRangePicker({
   const handleClear = () => {
     setDate(undefined);
     onChange(undefined);
+  };
+
+  // Custom handler to adapt between the Calendar component's expected type and our DateRange type
+  const handleSelect = (range: { from: Date; to?: Date } | undefined) => {
+    if (range) {
+      setDate({
+        from: range.from,
+        to: range.to
+      } as DateRange);
+    } else {
+      setDate(undefined);
+    }
   };
 
   return (
@@ -76,8 +88,11 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date}
-            onSelect={setDate}
+            selected={{
+              from: date?.from,
+              to: date?.to
+            }}
+            onSelect={handleSelect}
             numberOfMonths={2}
           />
           <div className="flex justify-end p-2">
