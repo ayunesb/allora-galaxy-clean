@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NotificationsProvider } from '@/context/NotificationsContext';
-import { WorkspaceProvider } from '@/context/WorkspaceContext';
+import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 interface ProvidersProps {
