@@ -7,7 +7,7 @@ interface AgentEvolutionTabProps {
   onStrategySelect?: (strategyId: string) => void;
 }
 
-export const AgentEvolutionTab: React.FC<AgentEvolutionTabProps> = ({ onStrategySelect }) => {
+const AgentEvolutionTab: React.FC<AgentEvolutionTabProps> = ({ onStrategySelect }) => {
   return (
     <Card>
       <CardHeader>
@@ -33,3 +33,5 @@ export const AgentEvolutionTab: React.FC<AgentEvolutionTabProps> = ({ onStrategy
     </Card>
   );
 };
+
+export default AgentEvolutionTab;

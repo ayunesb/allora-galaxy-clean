@@ -44,17 +44,20 @@ export function DateRangePicker({
     onChange(undefined);
   };
 
-  // Custom handler to adapt between the Calendar component's expected type and our DateRange type
-  const handleSelect = (range: { from: Date; to?: Date } | undefined) => {
-    if (range?.from) {
-      // Make sure we're creating a proper DateRange with non-undefined from date
-      setDate({
-        from: range.from,
-        to: range.to
-      });
-    } else {
+  // Fix the type mismatch by ensuring from date is always defined
+  const handleSelect = (selectedRange: { from: Date; to?: Date } | undefined) => {
+    if (!selectedRange) {
       setDate(undefined);
+      return;
     }
+    
+    // Create a properly typed DateRange object
+    const newRange: DateRange = {
+      from: selectedRange.from,
+      to: selectedRange.to
+    };
+    
+    setDate(newRange);
   };
 
   return (
@@ -89,7 +92,10 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date}
+            selected={{
+              from: date?.from || undefined,
+              to: date?.to || undefined
+            }}
             onSelect={handleSelect}
             numberOfMonths={2}
           />

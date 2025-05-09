@@ -7,7 +7,7 @@ interface PluginEvolutionTabProps {
   onStrategySelect?: (strategyId: string) => void;
 }
 
-export const PluginEvolutionTab: React.FC<PluginEvolutionTabProps> = ({ onStrategySelect }) => {
+const PluginEvolutionTab: React.FC<PluginEvolutionTabProps> = ({ onStrategySelect }) => {
   return (
     <Card>
       <CardHeader>
@@ -33,3 +33,5 @@ export const PluginEvolutionTab: React.FC<PluginEvolutionTabProps> = ({ onStrate
     </Card>
   );
 };
+
+export default PluginEvolutionTab;
