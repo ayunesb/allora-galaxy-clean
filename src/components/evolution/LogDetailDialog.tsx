@@ -1,4 +1,4 @@
 // This file is now moved to src/components/evolution/logs/LogDetailDialog.tsx
 // We'll keep this as a re-export file for backward compatibility
 
-export { default as LogDetailDialog } from './logs/LogDetailDialog';
+export { default } from './logs/LogDetailDialog';
