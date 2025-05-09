@@ -38,7 +38,7 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={setDate}
+          onSelect={(selectedDate) => setDate(selectedDate)}
           initialFocus
           className="p-3 pointer-events-auto"
         />
