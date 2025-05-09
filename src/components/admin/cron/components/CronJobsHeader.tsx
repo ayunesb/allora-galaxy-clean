@@ -3,7 +3,7 @@ import React from 'react';
 import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ReloadIcon } from '@radix-ui/react-icons';
+import { RefreshCw } from 'lucide-react';
 
 interface CronJobsHeaderProps {
   timeRange: string;
@@ -40,7 +40,7 @@ export const CronJobsHeader: React.FC<CronJobsHeaderProps> = ({
           onClick={onRefresh}
           disabled={isLoading}
         >
-          <ReloadIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
     </CardHeader>

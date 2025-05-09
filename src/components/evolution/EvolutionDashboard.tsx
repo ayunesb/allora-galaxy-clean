@@ -11,11 +11,23 @@ const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('agents');
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('');
   
+  // Mock data for AuditLog
+  const mockLogs = [];
+  const mockModules = ['strategy', 'agent', 'plugin', 'auth'];
+  const mockEventTypes = ['created', 'updated', 'deleted', 'executed'];
+  const [isLoading, setIsLoading] = useState(false);
+  
   const handleStrategySelect = (id: string) => {
     setSelectedStrategyId(id);
     if (id && activeTab !== 'strategies') {
       setActiveTab('strategies');
     }
+  };
+  
+  const handleRefresh = () => {
+    setIsLoading(true);
+    // Mock refresh operation
+    setTimeout(() => setIsLoading(false), 1000);
   };
   
   return (
@@ -61,7 +73,13 @@ const EvolutionDashboard: React.FC = () => {
         </CardContent>
       </Card>
       
-      <AuditLog />
+      <AuditLog 
+        logs={mockLogs}
+        modules={mockModules}
+        eventTypes={mockEventTypes}
+        isLoading={isLoading}
+        onRefresh={handleRefresh}
+      />
     </div>
   );
 };

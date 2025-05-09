@@ -2,8 +2,8 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { PlayIcon } from 'lucide-react';
-import StatusBadge from './StatusBadge';
+import { Play as PlayIcon } from 'lucide-react';
+import { StatusBadge } from './StatusBadge';
 
 interface CronJob {
   id: string;

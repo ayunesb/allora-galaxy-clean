@@ -1,9 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-interface CronJob {
+export interface CronJob {
   id: string;
   name: string;
   schedule: string;

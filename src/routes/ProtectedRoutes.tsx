@@ -18,6 +18,17 @@ import { useOnboardingRedirect } from '@/hooks/useOnboardingRedirect';
 import NotificationsPage from '@/pages/notifications/NotificationsPage';
 import Unauthorized from '@/pages/unauthorized';
 
+// Admin pages
+import { 
+  SystemLogs, 
+  AdminDashboard, 
+  AiDecisions, 
+  ApiKeysPage, 
+  CronJobsPage,
+  UserManagement,
+  PluginLogs
+} from '@/pages/admin';
+
 // Lazy-loaded pages
 const GalaxyPage = lazy(() => import('@/pages/galaxy/GalaxyPage'));
 const LaunchPage = lazy(() => import('@/pages/launch/LaunchPage'));
@@ -28,7 +39,6 @@ const AgentPerformance = lazy(() => import('@/pages/agents/AgentPerformance'));
 const KpiDashboard = lazy(() => import('@/pages/insights/KpiDashboard'));
 const StrategyBuilder = lazy(() => import('@/pages/launch/StrategyBuilder'));
 const StrategyEngine = lazy(() => import('@/pages/strategy/StrategyEngine'));
-const AdminRoutes = lazy(() => import('@/pages/admin'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const ProfileSettings = lazy(() => import('@/pages/settings/ProfileSettings'));
 const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
@@ -146,13 +156,15 @@ const ProtectedRoutes: React.FC = () => {
       </Route>
       
       {/* Admin routes wrapped in AdminLayout */}
-      <Route path="/admin" element={
-        <AdminLayout>
-          <Suspense fallback={<LoadingScreen />}>
-            <AdminRoutes />
-          </Suspense>
-        </AdminLayout>
-      } />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="logs" element={<SystemLogs />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="ai-decisions" element={<AiDecisions />} />
+        <Route path="cron-jobs" element={<CronJobsPage />} />
+        <Route path="api-keys" element={<ApiKeysPage />} />
+        <Route path="plugin-logs" element={<PluginLogs />} />
+      </Route>
       
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

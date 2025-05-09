@@ -35,3 +35,5 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, errorMessage }
       return <Badge variant="outline">{status}</Badge>;
   }
 };
+
+export default StatusBadge;

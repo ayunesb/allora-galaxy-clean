@@ -5,10 +5,18 @@ import { PlayCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from './StatusBadge';
-import { CronJob } from '@/hooks/admin/useCronJobsMonitoring';
+
+interface CronJobExecution {
+  id: string;
+  job_name: string;
+  status: string;
+  execution_time: string;
+  duration_ms: number | null;
+  error_message: string | null;
+}
 
 interface ExecutionsTableProps { 
-  jobs: CronJob[]; 
+  jobs: CronJobExecution[]; 
   onRunJob: (jobName: string) => Promise<any>; 
 }
 
