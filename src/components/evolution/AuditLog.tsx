@@ -18,7 +18,8 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: "",
-    module: "",
+    module: null as string | null,
+    eventType: null as string | null,
     startDate: null as Date | null,
     endDate: null as Date | null,
   });
@@ -30,7 +31,8 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: 
   const handleResetFilters = () => {
     setFilters({
       search: "",
-      module: "",
+      module: null,
+      eventType: null,
       startDate: null,
       endDate: null,
     });
@@ -55,6 +57,11 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: 
 
     // Filter by module
     if (filters.module && log.module !== filters.module) {
+      return false;
+    }
+
+    // Filter by event type
+    if (filters.eventType && log.event_type !== filters.eventType) {
       return false;
     }
 
@@ -87,11 +94,13 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: 
           onResetFilters={handleResetFilters}
           onRefresh={handleRefresh}
         />
-        <AuditLogTable 
-          logs={filteredLogs} 
-          isLoading={isLoading} 
-          onViewDetails={handleViewDetails} 
-        />
+        <div className="mt-4">
+          <AuditLogTable 
+            logs={filteredLogs} 
+            isLoading={isLoading} 
+            onViewDetails={handleViewDetails} 
+          />
+        </div>
         
         <LogDetailDialog 
           log={selectedLog} 
