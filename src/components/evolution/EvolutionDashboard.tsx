@@ -55,6 +55,7 @@ const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ loading = false
     }
   ];
 
+  // Use the handleRefresh function in the AuditLog component
   const handleRefresh = () => {
     setIsLoading(true);
     // Simulating API call
@@ -81,6 +82,7 @@ const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ loading = false
             <AuditLog
               logs={mockLogs}
               isLoading={isLoading}
+              title="System Activity"
             />
           </TabsContent>
 
