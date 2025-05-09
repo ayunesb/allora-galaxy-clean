@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import AuditLogFilters from './logs/AuditLogFilters';
+import AuditLogFilters, { AuditLogFilterState } from './logs/AuditLogFilters';
 import AuditLogTable from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
 
@@ -46,7 +46,7 @@ export const AuditLog: React.FC = () => {
             searchQuery={searchQuery}
             selectedDate={selectedDate}
             onReset={resetFilters}
-            onFilterChange={handleFilterChange}
+            onFilterChange={(newFilters: AuditLogFilterState) => handleFilterChange(newFilters)}
             modules={availableModules}
             events={availableEvents}
           />

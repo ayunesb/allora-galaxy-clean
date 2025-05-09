@@ -44,7 +44,6 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ to, icon, label, end = false 
 };
 
 const Sidebar: React.FC = () => {
-  const { currentWorkspace } = useWorkspace();
   const { role } = useTenantRole();
   
   const isAdmin = role === 'admin' || role === 'owner';

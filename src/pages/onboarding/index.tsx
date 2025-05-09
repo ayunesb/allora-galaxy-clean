@@ -6,7 +6,7 @@ import WelcomeScreen from '@/components/onboarding/WelcomeScreen';
 import { useTenantAvailability } from '@/hooks/useTenantAvailability';
 import { useAuth } from '@/context/AuthContext';
 import PageHelmet from '@/components/PageHelmet';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
 
 const OnboardingPage: React.FC = () => {
   const { tenantId, isAvailable, isLoading: tenantLoading } = useTenantAvailability();

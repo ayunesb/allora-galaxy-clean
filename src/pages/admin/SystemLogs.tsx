@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters, { LogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsTable from '@/components/admin/logs/SystemLogsTable';
 import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
 
@@ -58,7 +58,7 @@ const SystemLogs: React.FC = () => {
               searchQuery={searchQuery}
               selectedDate={selectedDate}
               onReset={resetFilters}
-              onFilterChange={handleFilterChange}
+              onFilterChange={(newFilters: LogFilterState) => handleFilterChange(newFilters)}
               modules={availableModules}
               events={availableEvents}
             />
