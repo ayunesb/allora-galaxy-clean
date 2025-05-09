@@ -3,15 +3,19 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuditLogFilters } from "./logs/AuditLogFilters";
 import { AuditLogTable } from "./logs/AuditLogTable";
+import { LogDetailDialog } from "./logs/LogDetailDialog";
+import { AuditLog as AuditLogType } from "@/types/shared";
 
 export interface AuditLogProps {
   title?: string;
-  logs: any[];
+  logs: AuditLogType[];
   isLoading?: boolean;
   onRefresh?: () => void;
 }
 
 function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: AuditLogProps) {
+  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: "",
     module: "",
@@ -36,6 +40,11 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: 
     if (onRefresh) {
       onRefresh();
     }
+  };
+
+  const handleViewDetails = (log: AuditLogType) => {
+    setSelectedLog(log);
+    setDetailsOpen(true);
   };
 
   const filteredLogs = logs.filter((log) => {
@@ -78,7 +87,17 @@ function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: 
           onResetFilters={handleResetFilters}
           onRefresh={handleRefresh}
         />
-        <AuditLogTable logs={filteredLogs} isLoading={isLoading} />
+        <AuditLogTable 
+          logs={filteredLogs} 
+          isLoading={isLoading} 
+          onViewDetails={handleViewDetails} 
+        />
+        
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={detailsOpen} 
+          onClose={() => setDetailsOpen(false)} 
+        />
       </CardContent>
     </Card>
   );
