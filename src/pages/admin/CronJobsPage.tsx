@@ -1,28 +1,26 @@
 
 import React from 'react';
-import { withRoleCheck } from '@/lib/auth/withRoleCheck';
-import CronJobsMonitoring from '@/components/admin/cron/CronJobsMonitoring';
 import PageHelmet from '@/components/PageHelmet';
+import CronJobsMonitoring from '@/components/admin/cron/CronJobsMonitoring';
 
 const CronJobsPage: React.FC = () => {
   return (
-    <div className="container mx-auto py-8">
-      <PageHelmet 
-        title="CRON Jobs Management" 
-        description="Monitor and manage scheduled background tasks and automation"
+    <div className="container mx-auto p-4 space-y-4">
+      <PageHelmet
+        title="CRON Jobs"
+        description="Manage and monitor scheduled CRON jobs"
       />
       
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">CRON Jobs Management</h1>
-      </div>
-      
-      <p className="text-muted-foreground mb-8">
-        Monitor and manage scheduled background tasks and automation.
+      <h1 className="text-2xl font-bold">CRON Jobs</h1>
+      <p className="text-muted-foreground">
+        Monitor and control scheduled jobs running in the system.
       </p>
       
-      <CronJobsMonitoring />
+      <div className="mt-6">
+        <CronJobsMonitoring />
+      </div>
     </div>
   );
 };
 
-export default withRoleCheck(CronJobsPage, { roles: ['admin', 'owner'] });
+export default CronJobsPage;

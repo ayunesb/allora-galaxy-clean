@@ -1,6 +1,14 @@
 
-export { default as ApiKeys } from './ApiKeysPage';
-export { default as SystemLogs } from './SystemLogs';
-export { default as Users } from './UserManagement';
-export { default as CronJobs } from './CronJobsMonitoring';
-export { default as default } from './AdminDashboard';
+import SystemLogs from './SystemLogs';
+import AdminDashboard from './AdminDashboard';
+import AiDecisions from './AiDecisions';
+import ApiKeysPage from './ApiKeysPage';
+import CronJobsPage from './CronJobsPage';
+
+export {
+  SystemLogs,
+  AdminDashboard,
+  AiDecisions,
+  ApiKeysPage,
+  CronJobsPage
+};

@@ -1,6 +1,16 @@
 
-export { default as AuditLog } from './AuditLog';
-export { default as EvolutionDashboard } from './EvolutionDashboard';
-export { default as AuditLogTable } from './logs/AuditLogTable';
-export { default as AuditLogFilters } from './logs/AuditLogFilters';
-export { default as LogDetailDialog } from './logs/LogDetailDialog';
+import AuditLog from './AuditLog';
+import AgentVotePanel from './AgentVotePanel';
+import EvolutionGraph from './EvolutionGraph';
+import AuditLogTable from './logs/AuditLogTable';
+import AuditLogFilters from './logs/AuditLogFilters';
+import LogDetailDialog from './logs/LogDetailDialog';
+
+export {
+  AuditLog,
+  AgentVotePanel,
+  EvolutionGraph,
+  AuditLogTable,
+  AuditLogFilters,
+  LogDetailDialog
+};

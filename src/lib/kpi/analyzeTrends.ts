@@ -1,87 +1,97 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { TrendDirection, KPITrend } from '@/types/shared';
+import { KPI, KPITrend, TrendDirection } from '@/types/shared';
 
 /**
- * Analyzes trends for a specific KPI metric
- * @param tenantId The tenant ID to analyze trends for
- * @param metricName The name of the metric to analyze
- * @param days Number of days to analyze
- * @returns Trend data including direction and percentage change
+ * Calculate the percentage change between two values
+ * @param current The current value
+ * @param previous The previous value
+ * @returns The percentage change as a number
  */
-export async function analyzeTrends(
-  tenantId: string,
-  metricName: string,
-  days: number = 30
-): Promise<KPITrend | null> {
-  try {
-    // Get the current value
-    const { data: currentData } = await supabase
-      .from('kpis')
-      .select('value')
-      .eq('tenant_id', tenantId)
-      .eq('name', metricName)
-      .order('date', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (!currentData) return null;
-    
-    // Get the historical value
-    const historicalDate = new Date();
-    historicalDate.setDate(historicalDate.getDate() - days);
-    
-    const { data: historicalData } = await supabase
-      .from('kpis')
-      .select('value')
-      .eq('tenant_id', tenantId)
-      .eq('name', metricName)
-      .lt('date', historicalDate.toISOString())
-      .order('date', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (!historicalData) {
-      // No historical data, so trend is neutral
-      return {
-        direction: 'neutral',
-        percentage: 0,
-        isPositive: false
-      };
-    }
-    
-    const currentValue = currentData.value;
-    const historicalValue = historicalData.value;
-    const difference = currentValue - historicalValue;
-    
-    // Calculate percentage change
-    let percentage = 0;
-    if (historicalValue !== 0) {
-      percentage = (difference / Math.abs(historicalValue)) * 100;
-    }
-    
-    // Determine trend direction
-    let direction: TrendDirection;
-    let isPositive: boolean;
-    
-    if (Math.abs(percentage) < 1) {
-      direction = 'neutral';
-      isPositive = false;
-    } else if (percentage > 0) {
-      direction = 'up';
-      isPositive = true;
-    } else {
-      direction = 'down';
-      isPositive = false;
-    }
-    
-    return {
-      direction,
-      percentage: Math.abs(percentage),
-      isPositive
-    };
-  } catch (error) {
-    console.error('Error analyzing trends:', error);
-    return null;
+export function calculatePercentageChange(current: number, previous: number): number {
+  if (previous === 0) {
+    return current > 0 ? 100 : 0;
   }
+  return ((current - previous) / Math.abs(previous)) * 100;
+}
+
+/**
+ * Determine the trend direction based on percentage change
+ * @param percentageChange The percentage change
+ * @returns The trend direction
+ */
+export function determineTrendDirection(percentageChange: number): TrendDirection {
+  if (percentageChange > 0) return 'up';
+  if (percentageChange < 0) return 'down';
+  return 'neutral';
+}
+
+/**
+ * Process a KPI and calculate its trend information
+ * @param kpi The KPI to analyze
+ * @returns A KPI trend object
+ */
+export function analyzeKpiTrend(kpi: KPI): KPITrend {
+  // If there's no previous value, we can't calculate a trend
+  if (kpi.previous_value === null || kpi.previous_value === undefined) {
+    return {
+      currentValue: kpi.value,
+      previousValue: 0,
+      direction: 'neutral',
+      percentageChange: 0,
+      percentage: 0,
+      isPositive: false
+    };
+  }
+
+  const percentageChange = calculatePercentageChange(kpi.value, kpi.previous_value);
+  const direction = determineTrendDirection(percentageChange);
+  
+  return {
+    currentValue: kpi.value,
+    previousValue: kpi.previous_value,
+    direction,
+    percentageChange,
+    percentage: Math.abs(percentageChange),
+    isPositive: direction === 'up'
+  };
+}
+
+/**
+ * Process multiple KPIs and calculate their trend information
+ * @param kpis Array of KPIs to analyze
+ * @returns An array of KPI trend objects
+ */
+export function analyzeKpiTrends(kpis: KPI[]): KPITrend[] {
+  return kpis.map(analyzeKpiTrend);
+}
+
+/**
+ * Calculate the trend direction and percentage change between two numbers
+ * @param current Current value
+ * @param previous Previous value
+ * @returns An object with trend direction, percentage change and whether it's positive
+ */
+export function calculateTrend(current: number, previous: number): KPITrend {
+  if (previous === 0) {
+    return {
+      currentValue: current,
+      previousValue: previous,
+      direction: current > 0 ? 'up' : 'neutral',
+      percentageChange: current > 0 ? 100 : 0,
+      percentage: current > 0 ? 100 : 0,
+      isPositive: current > 0
+    };
+  }
+  
+  const percentageChange = calculatePercentageChange(current, previous);
+  const direction = determineTrendDirection(percentageChange);
+  
+  return {
+    currentValue: current,
+    previousValue: previous,
+    direction,
+    percentageChange,
+    percentage: Math.abs(percentageChange),
+    isPositive: direction === 'up'
+  };
 }

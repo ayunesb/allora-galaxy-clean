@@ -72,9 +72,22 @@ const SystemLogs: React.FC = () => {
                 No logs matching your filters
               </div>
             ) : (
-              <pre className="bg-muted p-4 rounded max-h-96 overflow-auto text-xs">
-                {JSON.stringify(logs, null, 2)}
-              </pre>
+              <div className="bg-muted p-4 rounded overflow-auto max-h-96">
+                <pre className="text-xs">
+                  {JSON.stringify(logs, null, 2)}
+                </pre>
+                <div className="flex justify-end mt-4">
+                  {logs.map((log, idx) => (
+                    <button 
+                      key={log.id || idx}
+                      className="text-xs text-primary hover:underline mr-2" 
+                      onClick={() => handleViewDetails(log)}
+                    >
+                      View Details #{idx + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </CardContent>

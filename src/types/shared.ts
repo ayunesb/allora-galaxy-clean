@@ -15,6 +15,7 @@ export type SystemEventType =
 
 // Common Status Types
 export type Status = 'idle' | 'loading' | 'success' | 'error';
+export type LogStatus = 'idle' | 'loading' | 'success' | 'error'; // Alias for backward compatibility
 
 // Common Response Types
 export interface ApiResponse<T = any> {
@@ -63,8 +64,8 @@ export interface KPITrend {
   previousValue: number;
   direction: TrendDirection;
   percentageChange: number;
-  percentage?: number; // Adding to fix error in analyzeTrends.ts
-  isPositive?: boolean; // Adding to fix error in analyzeTrends.ts
+  percentage?: number;
+  isPositive?: boolean;
 }
 
 // System Event Module
@@ -129,4 +130,16 @@ export interface AuditLog {
   tenant_id: string;
   level: 'info' | 'warn' | 'error';
   message: string;
+}
+
+// Tenant interface
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  updated_at?: string;
+  owner_id?: string;
+  metadata?: Record<string, any>;
+  features?: TenantFeature[];
 }
