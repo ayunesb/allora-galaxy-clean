@@ -93,7 +93,7 @@ export function useCronJobsMonitoring() {
   // Run a CRON job manually
   const runCronJob = async (jobName: string) => {
     try {
-      // Log the manual execution - Fix parameter count by passing module, event, context, tenantId
+      // Log the manual execution - Fixed parameter count by passing all required parameters
       await logSystemEvent(
         'system',               // module
         'manual_cron_job_trigger', // event

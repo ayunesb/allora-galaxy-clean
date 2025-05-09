@@ -41,12 +41,6 @@ interface User {
   profiles: UserProfile;
 }
 
-interface InviteUserDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  currentWorkspace: any;
-}
-
 const UserManagement: React.FC = () => {
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
@@ -113,7 +107,7 @@ const UserManagement: React.FC = () => {
     
     try {
       // Call the invite Edge Function
-      const { data, error } = await supabase.functions.invoke('send-invite-email', {
+      const { error } = await supabase.functions.invoke('send-invite-email', {
         body: { email, role, tenantId }
       });
       
@@ -370,7 +364,6 @@ const UserManagement: React.FC = () => {
       <InviteUserDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
-        currentWorkspace={currentWorkspace}
       />
     </div>
   );
