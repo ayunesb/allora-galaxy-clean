@@ -44,6 +44,22 @@ export function DateRangePicker({
     onChange(undefined);
   };
 
+  // Fix type mismatch by creating a handler function that ensures correct types
+  const handleSelect = (range: { from: Date; to?: Date } | undefined) => {
+    if (!range || !range.from) {
+      setDate(undefined);
+      return;
+    }
+    
+    // Create a properly typed DateRange object
+    const newRange: DateRange = {
+      from: range.from,
+      to: range.to
+    };
+    
+    setDate(newRange);
+  };
+
   return (
     <div className={cn('grid gap-2', className)}>
       <Popover>
@@ -76,8 +92,11 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date}
-            onSelect={setDate}
+            selected={{
+              from: date?.from,
+              to: date?.to
+            }}
+            onSelect={handleSelect}
             numberOfMonths={2}
           />
           <div className="flex justify-end p-2">
