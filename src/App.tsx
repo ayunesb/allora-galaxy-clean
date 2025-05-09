@@ -1,9 +1,9 @@
 
-import React, { useEffect } from 'react';
-import { useRoutes, Navigate, useLocation } from 'react-router-dom';
+import { useRoutes } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import routes from '@/routes';
+import { routes } from '@/routes';
 import { useThemeStore, setupThemeWatcher, applyTheme } from '@/lib/theme';
+import { useEffect } from 'react';
 
 function App() {
   const { loading } = useAuth();

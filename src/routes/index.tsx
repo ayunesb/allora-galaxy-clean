@@ -5,7 +5,7 @@ import ProtectedRoutes from './ProtectedRoutes';
 import AuthRoutes from './AuthRoutes';
 import OnboardingRoutes from './OnboardingRoutes';
 
-const routes: RouteObject[] = [
+export const routes: RouteObject[] = [
   {
     path: '/',
     element: <ProtectedRoutes />,

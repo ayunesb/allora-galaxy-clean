@@ -1,5 +1,4 @@
 
-// Supabase Edge Function for sending emails
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
@@ -12,6 +11,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to safely get environment variables
+function getEnv(name: string, fallback: string = ""): string {
+  try {
+    return Deno.env.get(name) || fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
+}
+
 interface EmailRequest {
   to: string | string[];
   subject: string;
@@ -22,7 +31,6 @@ interface EmailRequest {
   cc?: string | string[];
   bcc?: string | string[];
   templateData?: Record<string, any>;
-  templateId?: string;
 }
 
 serve(async (req) => {
@@ -32,23 +40,26 @@ serve(async (req) => {
   }
 
   try {
+    // Get API key, with fallback to environment variable
+    const apiKey = resendApiKey || getEnv('RESEND_API_KEY');
+    
     // Validate that API key exists
-    if (!resendApiKey) {
+    if (!apiKey) {
       throw new Error('Missing RESEND_API_KEY environment variable');
     }
 
     // Initialize Resend client
-    const resend = new Resend(resendApiKey);
+    const resend = new Resend(apiKey);
 
     // Parse request body
     const requestData: EmailRequest = await req.json();
 
     // Validate required fields
-    if (!requestData.to || !requestData.subject || (!requestData.html && !requestData.text && !requestData.templateId)) {
+    if (!requestData.to || !requestData.subject || (!requestData.html && !requestData.text)) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Required fields missing: 'to', 'subject', and either 'html', 'text', or 'templateId' must be provided" 
+          error: "Required fields missing: 'to', 'subject', and either 'html' or 'text' must be provided" 
         }),
         { 
           status: 400, 

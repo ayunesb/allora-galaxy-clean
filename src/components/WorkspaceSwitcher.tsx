@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu,
@@ -12,7 +12,6 @@ import {
 import { ChevronsUpDown, Check, PlusCircle } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
 
