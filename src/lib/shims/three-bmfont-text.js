@@ -1,6 +1,6 @@
 
 // This is an improved shim for the three-bmfont-text package
-// We're implementing just enough to prevent build errors
+// We're implementing just enough to prevent build errors and git clone attempts
 
 /**
  * Creates a text geometry that mimics the three-bmfont-text behavior
@@ -55,3 +55,29 @@ export const shaderLib = {
     fragment: `void main() {}`
   }
 };
+
+// Add any THREE.js specific compatibility interfaces
+export const attributes = {
+  position: {
+    array: new Float32Array(),
+    count: 0,
+    itemSize: 3,
+    needsUpdate: false
+  },
+  uv: {
+    array: new Float32Array(),
+    count: 0,
+    itemSize: 2,
+    needsUpdate: false
+  }
+};
+
+// Prevent attempted imports from failing
+if (typeof window !== 'undefined') {
+  window.THREE_TEXT_MODULE = {
+    createTextGeometry,
+    utils,
+    shaderLib,
+    attributes
+  };
+}

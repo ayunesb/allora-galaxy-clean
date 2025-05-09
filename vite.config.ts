@@ -39,7 +39,9 @@ export default defineConfig(({ mode }) => ({
       define: {
         global: 'globalThis',
       },
-    }
+    },
+    // Force include our custom shim
+    include: ['path']
   }
 }));
 
