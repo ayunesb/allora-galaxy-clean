@@ -1,134 +1,106 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { toast } from '@/components/ui/use-toast';
+import { type SystemEventModule } from '@/types/shared';
 
-export interface NotificationOptions {
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  tenantId: string;
-  userId?: string;
-  metadata?: Record<string, any>;
-  actionUrl?: string;
-  actionLabel?: string;
+/**
+ * Notify the user with a toast message
+ * @param title The title of the notification
+ * @param description The description of the notification
+ * @param type The type of the notification
+ */
+export function notify(title: string, description: string, type: 'success' | 'error' | 'warning' | 'info') {
+  toast({
+    title: title,
+    description: description,
+    variant: type,
+  });
 }
 
 /**
- * Creates a new notification and logs it as a system event
- * @param options The notification options
- * @returns A promise that resolves to the notification ID
+ * Log a system event to Supabase
+ * 
+ * @param module The module generating the log
+ * @param level The log level (info, warning, error, etc)
+ * @param data Data to log (string or object with details)
+ * @param tenant_id The tenant ID
+ * @param additionalMetadata Any additional metadata to include
+ * @returns The result of the operation
  */
-export async function createNotification(options: NotificationOptions): Promise<string | null> {
-  const {
-    title,
-    message,
-    type,
-    tenantId,
-    userId,
-    metadata = {},
-    actionUrl,
-    actionLabel
-  } = options;
-  
+export async function logSystemEvent(
+  module: string,
+  level: string,
+  data: string | Record<string, any>,
+  tenant_id: string = 'system',
+  additionalMetadata: Record<string, any> = {}
+): Promise<any> {
   try {
-    if (!tenantId) {
-      console.error('Tenant ID is required to create a notification');
-      return null;
-    }
+    // Process the data parameter to handle both string and object formats
+    let description: string;
+    let context: Record<string, any> = {};
     
-    // If no user ID provided, try to get the current user
-    let effectiveUserId = userId;
-    if (!effectiveUserId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      effectiveUserId = user?.id;
+    if (typeof data === 'string') {
+      description = data;
+      context = additionalMetadata;
+    } else {
+      // If data is an object, extract a description and use the object as context
+      description = data.description || data.message || JSON.stringify(data).substring(0, 255);
+      context = { ...data, ...additionalMetadata };
     }
-    
-    if (!effectiveUserId) {
-      console.error('User ID is required to create a notification');
-      return null;
-    }
-    
-    // Create the notification
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        title,
-        message,
-        type,
-        tenant_id: tenantId,
-        user_id: effectiveUserId,
-        metadata,
-        action_url: actionUrl,
-        action_label: actionLabel
-      })
-      .select('id')
+
+    // Convert camelCase keys to snake_case for database
+    const formattedData = {
+      module,
+      level,
+      event: typeof data === 'object' && data.event_type ? data.event_type : 'system_event',
+      description: description,
+      context,
+      tenant_id
+    };
+
+    const { data: result, error } = await supabase
+      .from('system_logs')
+      .insert(formattedData)
+      .select()
       .single();
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Log the notification creation as a system event
-    await logSystemEvent(
-      'notification',
-      'info',
-      {
-        description: `Notification created: ${title}`,
-        notification_id: data.id,
-        notification_type: type,
-        user_id: effectiveUserId,
-        tenant_id: tenantId
-      }
-    );
-    
-    return data.id;
-  } catch (err: any) {
-    console.error('Failed to create notification:', err.message);
-    return null;
-  }
-}
-
-/**
- * Marks a notification as read
- * @param notificationId The notification ID to mark as read
- * @returns A promise that resolves to true if successful
- */
-export async function markNotificationAsRead(notificationId: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('id', notificationId);
       
     if (error) {
-      throw error;
+      console.error('Error logging system event:', error);
+      return { success: false, error };
     }
     
-    // Get notification details
-    const { data: notification } = await supabase
-      .from('notifications')
-      .select('tenant_id, user_id')
-      .eq('id', notificationId)
-      .single();
-    
-    if (notification) {
-      // Log the notification read as a system event
-      await logSystemEvent(
-        'notification',
-        'info',
-        {
-          description: `Notification marked as read: ${notificationId}`,
-          notification_id: notificationId,
-          user_id: notification.user_id,
-          action: 'mark_as_read'
-        },
-        notification.tenant_id
-      );
-    }
-    
-    return true;
+    return { success: true, data: result };
   } catch (err: any) {
-    console.error('Failed to mark notification as read:', err.message);
-    return false;
+    console.error('Failed to log system event:', err);
+    return { success: false, error: err.message };
   }
 }
+
+/**
+ * Notify the user and log the event to Supabase
+ * @param module The module that generated the event
+ * @param level The log level
+ * @param title The title of the notification
+ * @param description The description of the notification
+ * @param type The type of the notification
+ * @param data Event data object or description string
+ * @param tenant_id The tenant ID (optional, defaults to 'system')
+ * @param additionalMetadata Additional metadata for the event (optional)
+ */
+export async function notifyAndLog(
+  module: SystemEventModule,
+  level: string,
+  title: string,
+  description: string,
+  type: 'success' | 'error' | 'warning' | 'info',
+  data: string | Record<string, any>,
+  tenant_id: string = 'system',
+  additionalMetadata: Record<string, any> = {}
+): Promise<any> {
+  // Notify the user
+  notify(title, description, type);
+
+  // Log the event to Supabase
+  return logSystemEvent(module, level, data, tenant_id, additionalMetadata);
+}
+
+export default notifyAndLog;

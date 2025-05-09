@@ -13,7 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navigationItems }) => {
 
   return (
     <div className={`bg-background border-r p-3 transition-all duration-300 ease-in-out ${collapsed ? 'w-16' : 'w-64'}`}>
-      <SidebarNav items={navigationItems} collapsed={collapsed} />
+      <SidebarNav items={navigationItems} />
     </div>
   );
 };

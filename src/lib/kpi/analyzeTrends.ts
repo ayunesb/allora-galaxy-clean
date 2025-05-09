@@ -27,7 +27,7 @@ function determineTrendDirection(current: number, previous: number): TrendDirect
  * Get whether a trend is positive based on the direction
  */
 function isTrendPositive(direction: TrendDirection): boolean {
-  return direction === 'increasing';
+  return direction === 'increasing' || direction === 'up';
 }
 
 /**
@@ -55,7 +55,7 @@ export function analyzeKpiTrend(kpi: KPI): KPITrend {
     direction: 'stable',
     percentage: 0,
     currentValue: kpi.value,
-    previousValue: null,
+    previousValue: undefined,
     isPositive: false,
     percentageChange: 0
   };
@@ -93,7 +93,7 @@ export function analyzeKpiTarget(kpi: KPI): KPITrend {
     direction: 'stable',
     percentage: 0,
     currentValue: kpi.value,
-    previousValue: null,
+    previousValue: undefined,
     isPositive: false,
     percentageChange: 0
   };

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { NavigationItem } from '@/types/navigation';
+import { NavigationItem } from '@/types/shared';
 
 interface SidebarNavProps {
   items: NavigationItem[];
@@ -22,12 +22,13 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
       {items.map((item) => {
-        const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+        const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+        const itemKey = item.id || item.name;
 
         return (
           <Link
-            key={item.id}
-            to={item.path}
+            key={itemKey}
+            to={item.href}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
               isActive
@@ -36,7 +37,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
             )}
           >
             {item.icon && <span className="h-4 w-4">{renderIconComponent(item.icon)}</span>}
-            <span>{item.label}</span>
+            <span>{item.label || item.name}</span>
           </Link>
         );
       })}

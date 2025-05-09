@@ -4,7 +4,6 @@ import {
   Rocket,
   Settings,
   Layers,
-  Activity,
   BarChart,
   Users,
   Package,

@@ -1,4 +1,3 @@
-
 export interface AuditLog {
   id: string;
   module: string;
@@ -39,6 +38,9 @@ export interface NavigationItem {
   children?: NavigationItem[];
   adminOnly?: boolean;
   requiresRole?: string[];
+  id?: string;    // Added for compatibility
+  label?: string; // Added for compatibility
+  path?: string;  // Added for compatibility
 }
 
 export type SystemEventType = 
@@ -78,7 +80,7 @@ export interface KPITrend {
   direction: TrendDirection;
   percentage: number;
   currentValue?: number;
-  previousValue?: number;
+  previousValue?: number | null;
   percentageChange?: number;
   isPositive?: boolean;
 }

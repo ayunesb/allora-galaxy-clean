@@ -1,129 +1,96 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
-import useTenantId from '@/hooks/useTenantId';
+import { supabase } from "@/integrations/supabase/client";
+import logSystemEvent from "@/lib/system/logSystemEvent";
+import { fetchPlugins } from "./utils/fetchPlugins";
+import { executePlugins } from "./utils/executePlugins";
+import { validateInput } from "./utils/validateInput";
+import { verifyStrategy } from "./utils/verifyStrategy";
+import { updateStrategyProgress } from "./utils/updateStrategyProgress";
 
 /**
- * Runs a strategy by calling the executeStrategy edge function
- * @param input The strategy execution input
- * @returns The execution result
+ * Run a strategy by ID
  */
-export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
+export async function runStrategy(strategyId: string, userId: string | undefined, tenantId: string) {
   try {
-    const { strategyId, tenantId, userId, options = {} } = input;
-
-    // Validate required parameters
-    if (!strategyId) throw new Error('Strategy ID is required');
-    if (!tenantId) throw new Error('Tenant ID is required');
-    
-    // Convert camelCase to snake_case for edge function
-    const payload = {
-      strategy_id: strategyId,
-      tenant_id: tenantId,
-      user_id: userId,
-      options
-    };
-
-    // Log the execution attempt
-    await logSystemEvent(
-      'strategy',
-      'info',
-      {
-        description: `Attempting to execute strategy ${strategyId}`,
-        strategy_id: strategyId,
-        options: options
-      },
-      tenantId
+    // Log start of strategy execution
+    logSystemEvent(
+      "strategy",
+      "info",
+      `Starting strategy execution for ${strategyId}`
     );
-
-    // Execute the strategy via edge function
-    const { data, error } = await supabase.functions.invoke('executeStrategy', {
-      body: payload
-    });
-
-    if (error) {
-      // Log execution failure
-      await logSystemEvent(
-        'strategy', 
-        'error',
-        {
-          description: `Failed to execute strategy ${strategyId}: ${error.message}`,
-          strategy_id: strategyId,
-          error: error.message
-        },
-        tenantId
+    
+    // Get strategy data
+    const { strategy, error: strategyError } = await verifyStrategy(strategyId, tenantId);
+    
+    // Check for errors in strategy retrieval
+    if (strategyError || !strategy) {
+      logSystemEvent(
+        "strategy",
+        "error",
+        `Error retrieving strategy: ${strategyError?.message || "Strategy not found"}`
       );
-      
-      throw new Error(`Strategy execution failed: ${error.message}`);
+      return { error: strategyError || new Error("Strategy not found") };
     }
-
-    // Log execution success
-    await logSystemEvent(
-      'strategy',
-      'info',
-      {
-        description: `Successfully executed strategy ${strategyId}`,
-        strategy_id: strategyId, 
-        execution_id: data.execution_id,
-        duration_ms: data.execution_time
-      },
-      tenantId
+    
+    // Validate the strategy input
+    const { error: validationError } = validateInput(strategy);
+    if (validationError) {
+      logSystemEvent(
+        "strategy",
+        "error",
+        `Strategy validation failed: ${validationError.message}`
+      );
+      return { error: validationError };
+    }
+    
+    // Update strategy status to running
+    await updateStrategyProgress(strategyId, 'running', 10);
+    
+    // Fetch plugins for this strategy
+    const { plugins, error: pluginError } = await fetchPlugins(strategyId);
+    
+    if (pluginError || !plugins || plugins.length === 0) {
+      logSystemEvent(
+        "strategy",
+        "error",
+        `Error retrieving plugins: ${pluginError?.message || "No plugins found"}`
+      );
+      return { error: pluginError || new Error("No plugins found for strategy") };
+    }
+    
+    // Update progress
+    await updateStrategyProgress(strategyId, 'running', 20);
+    
+    // Execute plugins
+    const { results, error: executionError } = await executePlugins(plugins, strategy, userId, tenantId);
+    
+    if (executionError) {
+      logSystemEvent(
+        "strategy",
+        "error",
+        `Error executing plugins: ${executionError.message}`
+      );
+      return { error: executionError };
+    }
+    
+    // Update strategy status to completed
+    await updateStrategyProgress(strategyId, 'completed', 100);
+    
+    logSystemEvent(
+      "strategy",
+      "info",
+      `Strategy ${strategyId} executed successfully`
     );
-
-    return data;
+    
+    return { results };
+    
   } catch (error: any) {
-    console.error('Error running strategy:', error);
-    
-    // Try to log the error if we have tenant ID
-    if (input?.tenantId) {
-      try {
-        await logSystemEvent(
-          'strategy',
-          'error',
-          {
-            description: `Error running strategy: ${error.message}`,
-            strategy_id: input.strategyId,
-            error: error.message,
-            stack: error.stack
-          },
-          input.tenantId
-        );
-      } catch (logError) {
-        console.error('Failed to log strategy execution error:', logError);
-      }
-    }
-    
-    return {
-      success: false,
-      strategy_id: input.strategyId,
-      status: 'error',
-      execution_time: 0,
-      error: error.message
-    };
+    // Log any unexpected errors
+    logSystemEvent(
+      "strategy",
+      "error",
+      `Unexpected error in runStrategy: ${error.message}`
+    );
+    return { error };
   }
 }
-
-/**
- * React hook to run a strategy
- * @returns A function to run a strategy
- */
-export function useRunStrategy() {
-  const tenantId = useTenantId();
-
-  const execute = async (strategyId: string, options = {}) => {
-    if (!tenantId) {
-      throw new Error('Tenant ID is required to run a strategy');
-    }
-
-    return runStrategy({
-      strategyId,
-      tenantId,
-      options
-    });
-  };
-
-  return { execute };
-}
-
-export default runStrategy;
