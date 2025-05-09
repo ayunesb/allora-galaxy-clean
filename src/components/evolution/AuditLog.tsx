@@ -1,76 +1,78 @@
 
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import AuditLogFilters from './logs/AuditLogFilters';
-import AuditLogTable from './logs/AuditLogTable';
-import LogDetailDialog from './logs/LogDetailDialog';
-import { AuditLog as AuditLogType, DateRange } from '@/types/shared';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuditLogFilters } from "./logs/AuditLogFilters";
+import { AuditLogTable } from "./logs/AuditLogTable";
+import { LogDetailDialog } from "./logs/LogDetailDialog";
 
-interface AuditLogProps {
-  logs: AuditLogType[];
-  modules: string[];
-  eventTypes: string[];
-  isLoading: boolean;
-  onRefresh: () => void;
+export interface AuditLogProps {
+  title?: string;
+  logs: any[];
+  isLoading?: boolean;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({
-  logs,
-  modules,
-  eventTypes,
-  isLoading,
-  onRefresh
-}) => {
-  const [module, setModule] = useState('all');
-  const [eventType, setEventType] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+export function AuditLog({ title = "Audit Logs", logs, isLoading = false }: AuditLogProps) {
+  const [filters, setFilters] = useState({
+    search: "",
+    module: "",
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+  });
 
-  const handleRefreshLogs = useCallback(() => {
-    onRefresh();
-  }, [onRefresh]);
-
-  const handleViewDetails = (log: AuditLogType) => {
-    setSelectedLog(log);
-    setDetailsOpen(true);
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: "",
+      module: "",
+      startDate: null,
+      endDate: null,
+    });
+  };
+
+  const filteredLogs = logs.filter((log) => {
+    // Filter by search term
+    if (filters.search && !JSON.stringify(log).toLowerCase().includes(filters.search.toLowerCase())) {
+      return false;
+    }
+
+    // Filter by module
+    if (filters.module && log.module !== filters.module) {
+      return false;
+    }
+
+    // Filter by start date
+    if (filters.startDate && new Date(log.created_at) < filters.startDate) {
+      return false;
+    }
+
+    // Filter by end date
+    if (filters.endDate) {
+      const endDateWithTime = new Date(filters.endDate);
+      endDateWithTime.setHours(23, 59, 59, 999);
+      if (new Date(log.created_at) > endDateWithTime) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl font-semibold">Audit Logs</CardTitle>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <AuditLogFilters
-          module={module}
-          setModule={setModule}
-          eventType={eventType}
-          setEventType={setEventType}
-          modules={modules}
-          eventTypes={eventTypes}
-          dateRange={dateRange}
-          setDateRange={setDateRange}
-          refresh={handleRefreshLogs}
-          isLoading={isLoading}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onResetFilters={handleResetFilters}
         />
-        
-        <div className="mt-6">
-          <AuditLogTable
-            logs={logs}
-            isLoading={isLoading}
-            onViewDetails={handleViewDetails}
-          />
-        </div>
+        <AuditLogTable logs={filteredLogs} isLoading={isLoading} />
       </CardContent>
-
-      <LogDetailDialog
-        log={selectedLog} 
-        open={detailsOpen} 
-        onClose={() => setDetailsOpen(false)} 
-      />
     </Card>
   );
-};
-
-export default AuditLog;
+}

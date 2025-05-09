@@ -1,96 +1,23 @@
 
 import logSystemEvent from '@/lib/system/logSystemEvent';
-import { ValidationResult } from '@/types/strategy';
-
-/**
- * Validate input for strategy execution
- */
-function validateInput(strategy: any): ValidationResult {
-  const errors: string[] = [];
-  
-  if (!strategy) {
-    errors.push('Strategy is required');
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
-
-/**
- * Verify strategy exists and belongs to tenant
- */
-async function verifyStrategy(strategyId: string, tenantId: string) {
-  if (!strategyId) {
-    return { error: new Error('Strategy ID is required') };
-  }
-  
-  if (!tenantId) {
-    return { error: new Error('Tenant ID is required') };
-  }
-  
-  // In a real implementation, we would fetch the strategy from the database
-  const strategy = {
-    id: strategyId,
-    tenant_id: tenantId,
-    title: 'Sample Strategy',
-    status: 'approved'
-  };
-  
-  return { strategy };
-}
-
-/**
- * Update strategy execution progress
- */
-async function updateStrategyProgress(executionId: string, status: 'running' | 'completed' | 'failed', progress: number) {
-  console.log(`Updating strategy ${executionId} progress: ${status}, ${progress}%`);
-  // In a real implementation, this would update the database
-  return { success: true };
-}
-
-/**
- * Fetch plugins for a strategy
- */
-async function fetchPlugins(strategyId: string) {
-  // In a real implementation, this would fetch plugins from the database
-  const plugins = [
-    { id: 'plugin-1', name: 'Plugin 1' },
-    { id: 'plugin-2', name: 'Plugin 2' }
-  ];
-  return { plugins };
-}
-
-/**
- * Execute plugins for a strategy
- */
-async function executePlugins(plugins: any[], strategyData: any, userId?: string, tenantId?: string) {
-  // Prevent unused variable warnings by using the parameters
-  console.log(`Executing plugins for strategy with user ${userId} in tenant ${tenantId}`);
-  
-  // In a real implementation, this would execute the plugins
-  const results = plugins.map(plugin => ({
-    plugin_id: plugin.id,
-    success: true,
-    output: { message: `Executed ${plugin.name} for strategy ${strategyData.id}` }
-  }));
-  
-  return {
-    results,
-    xpEarned: 10,
-    successfulPlugins: plugins.length,
-    status: 'success' as 'success' | 'failure' | 'partial'
-  };
-}
+import { validateInput } from './utils/validateInput';
+import { verifyStrategyHelper } from './utils/verifyStrategyHelper';
+import { updateProgress } from './utils/updateProgress';
+import { fetchPluginsHelper } from './utils/fetchPluginsHelper';
+import { executePluginsHelper } from './utils/executePluginsHelper';
 
 /**
  * Run a strategy by ID
- * @param strategyId - The ID of the strategy to run
- * @param userId - Optional user ID
- * @param tenantId - Tenant ID
+ * @param input - The input parameters for strategy execution
+ * @returns Results of strategy execution
  */
-export async function runStrategy(input: any): Promise<{ success: boolean, error?: any, results?: any[], execution_id?: string, execution_time?: number }> {
+export async function runStrategy(input: any): Promise<{ 
+  success: boolean, 
+  error?: any, 
+  results?: any[], 
+  execution_id?: string, 
+  execution_time?: number 
+}> {
   try {
     // Handle undefined or null input
     if (!input) {
@@ -120,7 +47,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     );
     
     // Get strategy data
-    const { strategy, error: strategyError } = await verifyStrategy(strategyId, tenantId);
+    const { strategy, error: strategyError } = await verifyStrategyHelper(strategyId, tenantId);
     
     // Check for errors in strategy retrieval
     if (strategyError || !strategy) {
@@ -149,10 +76,10 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     const executionId = `exec-${Date.now()}`;
     
     // Update strategy status to running
-    await updateStrategyProgress(executionId, 'running', 10);
+    await updateProgress(executionId, 'running', 10);
     
     // Fetch plugins for this strategy
-    const { plugins } = await fetchPlugins(strategyId);
+    const { plugins } = await fetchPluginsHelper(strategy.id);
     
     if (!plugins || plugins.length === 0) {
       logSystemEvent(
@@ -165,10 +92,10 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     }
     
     // Update progress
-    await updateStrategyProgress(executionId, 'running', 20);
+    await updateProgress(executionId, 'running', 20);
     
     // Execute plugins
-    const execution = await executePlugins(plugins, strategy, userId, tenantId);
+    const execution = await executePluginsHelper(plugins, strategy, userId, tenantId);
     
     if (!execution.status || execution.status === 'failure') {
       logSystemEvent(
@@ -181,7 +108,7 @@ export async function runStrategy(input: any): Promise<{ success: boolean, error
     }
     
     // Update strategy status to completed
-    await updateStrategyProgress(executionId, 'completed', 100);
+    await updateProgress(executionId, 'completed', 100);
     
     logSystemEvent(
       "strategy",
