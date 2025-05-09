@@ -4,9 +4,9 @@ import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import { AuditLog } from '@/types/shared';
-import { LogDetailDialog } from '@/components/evolution/logs/LogDetailDialog';
-import { SystemLogFilters } from '@/components/admin/logs/SystemLogFilters';
-import { AuditLogTable } from '@/components/evolution/logs/AuditLogTable';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import AuditLogTable from '@/components/evolution/logs/AuditLogTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Define SystemLog type
@@ -106,7 +106,7 @@ const SystemLogs: React.FC = () => {
                 <AuditLogTable 
                   logs={convertedLogs} 
                   isLoading={isLoading} 
-                  onViewDetails={(log) => {
+                  onViewDetails={(log: AuditLog) => {
                     setSelectedLog(log);
                     setDetailsOpen(true);
                   }}

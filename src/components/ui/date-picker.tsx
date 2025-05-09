@@ -19,6 +19,14 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ date, onDateChange, placeholder = "Pick a date", className }: DatePickerProps) {
+  // This function handles the type conversion between Calendar's date selection
+  // and our component's expected types
+  const handleSelect = (selectedDate: Date | undefined) => {
+    if (onDateChange) {
+      onDateChange(selectedDate || null);
+    }
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -38,7 +46,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Pick a date", cl
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={onDateChange}
+          onSelect={handleSelect}
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />
