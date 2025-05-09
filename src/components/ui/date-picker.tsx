@@ -21,6 +21,8 @@ export function DatePicker({
   onSelect,
   className,
 }: DatePickerProps) {
+  // This function handles the type conversion between Calendar's date selection
+  // and our component's expected types
   const handleSelect = (selectedDate: Date | undefined) => {
     onSelect(selectedDate || null);
   };
