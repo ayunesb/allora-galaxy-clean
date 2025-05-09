@@ -1,16 +1,15 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getCookieConsentStatus, setCookieConsentStatus } from '@/lib/utils';
 import CookieConsentDialog from './cookie/CookieConsentDialog';
+import type { CookiePreferences } from './cookie/CookieConsentDialog';
 
 const CookieConsent: React.FC = () => {
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [hasConsent, setHasConsent] = useState(getCookieConsentStatus());
 
-  const handleAccept = (preferences: any) => {
+  const handleAccept = (preferences: CookiePreferences) => {
     setCookieConsentStatus(true, preferences);
     setHasConsent(true);
     setIsDialogOpen(false);

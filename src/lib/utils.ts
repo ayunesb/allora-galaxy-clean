@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -85,4 +84,23 @@ export function safeGetDenoEnv(name: string): string | undefined {
     console.error(`Error accessing Deno env: ${e}`);
   }
   return undefined;
+}
+
+// Cookie consent utilities
+export function getCookieConsentStatus(): boolean {
+  const consentStatus = localStorage.getItem('cookie-consent');
+  return consentStatus === 'true';
+}
+
+export function setCookieConsentStatus(accepted: boolean, preferences: any = null): void {
+  localStorage.setItem('cookie-consent', accepted.toString());
+  
+  if (preferences) {
+    localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
+  }
+}
+
+export function getCookiePreferences(): any {
+  const preferences = localStorage.getItem('cookie-preferences');
+  return preferences ? JSON.parse(preferences) : null;
 }

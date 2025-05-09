@@ -17,6 +17,7 @@ import AiDecisions from './pages/admin/AiDecisions';
 import ApiKeysPage from './pages/admin/ApiKeysPage';
 import CronJobsPage from './pages/admin/CronJobsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import CookieConsent from './components/CookieConsent';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
             </Routes>
             
             <Toaster />
+            <CookieConsent />
           </NotificationsProvider>
         </WorkspaceProvider>
       </AuthProvider>
