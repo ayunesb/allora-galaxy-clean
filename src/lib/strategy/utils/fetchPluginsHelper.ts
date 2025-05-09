@@ -4,7 +4,7 @@
  * @param strategyId The ID of the strategy
  * @returns Array of plugins
  */
-export async function fetchPluginsHelper(strategyId: string) {
+export async function fetchPluginsHelper(_strategyId: string) {
   // In a real implementation, this would fetch plugins from the database
   const plugins = [
     { id: 'plugin-1', name: 'Plugin 1' },

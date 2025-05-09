@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import AuditLog from './AuditLog';
@@ -55,9 +55,6 @@ const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ loading = false
     }
   ];
 
-  const modules = ['strategy', 'plugin', 'auth', 'system'];
-  const eventTypes = ['create', 'execute', 'login', 'error', 'update', 'delete'];
-
   const handleRefresh = () => {
     setIsLoading(true);
     // Simulating API call
@@ -83,10 +80,7 @@ const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ loading = false
           <TabsContent value="system-logs" className="m-0">
             <AuditLog
               logs={mockLogs}
-              modules={modules}
-              eventTypes={eventTypes}
               isLoading={isLoading}
-              onRefresh={handleRefresh}
             />
           </TabsContent>
 

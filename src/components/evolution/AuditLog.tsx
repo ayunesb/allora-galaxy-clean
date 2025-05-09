@@ -1,9 +1,8 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuditLogFilters } from "./logs/AuditLogFilters";
 import { AuditLogTable } from "./logs/AuditLogTable";
-import { LogDetailDialog } from "./logs/LogDetailDialog";
 
 export interface AuditLogProps {
   title?: string;
@@ -11,7 +10,7 @@ export interface AuditLogProps {
   isLoading?: boolean;
 }
 
-export function AuditLog({ title = "Audit Logs", logs, isLoading = false }: AuditLogProps) {
+function AuditLog({ title = "Audit Logs", logs, isLoading = false }: AuditLogProps) {
   const [filters, setFilters] = useState({
     search: "",
     module: "",
@@ -76,3 +75,5 @@ export function AuditLog({ title = "Audit Logs", logs, isLoading = false }: Audi
     </Card>
   );
 }
+
+export default AuditLog;
