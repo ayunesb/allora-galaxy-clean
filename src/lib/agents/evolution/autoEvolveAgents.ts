@@ -53,11 +53,11 @@ export async function autoEvolveAgents(
         const stats = await getAgentUsageStats(agent.id);
         
         // Calculate performance score
-        const performance = calculateAgentPerformance(stats);
-        console.log(`Agent ${agent.id} performance: ${performance.score.toFixed(2)}`);
+        const performance = await calculateAgentPerformance(stats);
+        console.log(`Agent ${agent.id} performance: ${performance.toFixed(2)}`);
         
         // Check if evolution is needed
-        const shouldEvolve = await checkEvolutionNeeded(agent.id, performance.score, evolutionThreshold);
+        const shouldEvolve = await checkEvolutionNeeded(agent.id, performance, evolutionThreshold);
         
         if (shouldEvolve) {
           console.log(`Evolution needed for agent ${agent.id}`);
@@ -69,7 +69,7 @@ export async function autoEvolveAgents(
           const evolvedPrompt = await evolvePromptWithFeedback(
             agent.prompt,
             feedback,
-            performance.score
+            performance
           );
           
           if (evolvedPrompt !== agent.prompt) {
@@ -92,7 +92,7 @@ export async function autoEvolveAgents(
                 old_agent_id: agent.id,
                 new_agent_id: newAgent.id,
                 plugin_id: agent.plugin_id,
-                performance_score: performance.score,
+                performance_score: performance,
                 feedback_count: feedback.length,
               },
               tenantId
