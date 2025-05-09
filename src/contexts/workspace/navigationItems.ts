@@ -1,61 +1,102 @@
 
+import { NavigationItem } from '@/types/shared';
 import {
   LayoutDashboard,
   Rocket,
-  Zap,
-  LineChart,
+  Globe,
+  Puzzle,
+  UserCog,
+  BarChart3,
   Settings,
-  Terminal,
+  UserCircle,
+  FileCog,
+  Users,
+  AlertTriangle,
+  KeyRound,
   Brain,
-  Activity,
 } from 'lucide-react';
-import { NavigationItem } from '@/types/shared';
 
 export const navigationItems: NavigationItem[] = [
   {
     name: 'Dashboard',
     href: '/dashboard',
-    icon: LayoutDashboard
+    icon: LayoutDashboard,
   },
   {
     name: 'Launch',
     href: '/launch',
-    icon: Rocket
+    icon: Rocket,
   },
   {
     name: 'Galaxy',
     href: '/galaxy',
-    icon: Activity
+    icon: Globe,
   },
   {
     name: 'Plugins',
     href: '/plugins',
-    icon: Zap
+    icon: Puzzle,
   },
   {
-    name: 'Agent Performance',
+    name: 'Agents',
     href: '/agents/performance',
-    icon: Terminal
+    icon: UserCog,
   },
   {
     name: 'Evolution',
     href: '/evolution',
-    icon: Brain
+    icon: Brain,
   },
   {
-    name: 'KPI Insights',
+    name: 'Insights',
     href: '/insights/kpis',
-    icon: LineChart
-  },
-  {
-    name: 'Administration',
-    href: '/admin',
-    icon: Settings,
-    requiresRole: ['admin', 'owner']
+    icon: BarChart3,
   },
   {
     name: 'Allora Brain',
     href: '/allora-brain',
-    icon: Brain
-  }
+    icon: Brain,
+  },
+  {
+    name: 'Admin',
+    href: '/admin',
+    icon: Settings,
+    requiresRole: ['admin', 'owner'],
+    children: [
+      {
+        name: 'Dashboard',
+        href: '/admin',
+      },
+      {
+        name: 'Users',
+        href: '/admin/users',
+        icon: Users,
+      },
+      {
+        name: 'System Logs',
+        href: '/admin/system-logs',
+        icon: FileCog,
+      },
+      {
+        name: 'AI Decisions',
+        href: '/admin/ai-decisions',
+        icon: Brain,
+      },
+      {
+        name: 'Plugin Logs',
+        href: '/admin/plugin-logs',
+        icon: AlertTriangle,
+      },
+      {
+        name: 'API Keys',
+        href: '/admin/api-keys',
+        icon: KeyRound,
+      },
+    ],
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: UserCircle,
+  },
 ];

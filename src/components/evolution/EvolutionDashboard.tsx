@@ -11,6 +11,13 @@ const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('agents');
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('');
   
+  const handleStrategySelect = (id: string) => {
+    setSelectedStrategyId(id);
+    if (id && activeTab !== 'strategies') {
+      setActiveTab('strategies');
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -39,11 +46,11 @@ const EvolutionDashboard: React.FC = () => {
               </TabsList>
               
               <TabsContent value="agents" className="space-y-4">
-                <AgentEvolutionTab />
+                <AgentEvolutionTab onStrategySelect={handleStrategySelect} />
               </TabsContent>
               
               <TabsContent value="plugins" className="space-y-4">
-                <PluginEvolutionTab />
+                <PluginEvolutionTab onStrategySelect={handleStrategySelect} />
               </TabsContent>
               
               <TabsContent value="strategies" className="space-y-4">

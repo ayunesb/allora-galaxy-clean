@@ -1,4 +1,3 @@
-
 export type SystemEventModule = 
   | 'strategy' 
   | 'plugin' 
@@ -54,7 +53,7 @@ export interface NavigationItem {
   children?: NavigationItem[];
 }
 
-export type TrendDirection = 'up' | 'down' | 'neutral';
+export type TrendDirection = 'up' | 'down' | 'neutral' | 'flat';
 
 export type KPITrend = {
   direction: TrendDirection;

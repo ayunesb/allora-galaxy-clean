@@ -11,19 +11,15 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
   const location = useLocation();
-  const { userRole } = useTenantRole();
-
-  const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
-  };
+  const { role } = useTenantRole();
 
   const isItemVisible = (item: NavigationItem) => {
     // Show item if no role requirements or if user has required role
     if (!item.requiresRole) return true;
     
-    if (!userRole) return false;
+    if (!role) return false;
     
-    return item.requiresRole.includes(userRole);
+    return item.requiresRole.includes(role);
   };
 
   const renderNavItem = (item: NavigationItem) => {

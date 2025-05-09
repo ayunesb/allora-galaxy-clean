@@ -46,7 +46,7 @@ export async function analyzeTrends(
       return {
         direction: 'neutral',
         percentage: 0,
-        value: currentData.value
+        isPositive: false
       };
     }
     
@@ -62,19 +62,23 @@ export async function analyzeTrends(
     
     // Determine trend direction
     let direction: TrendDirection;
+    let isPositive: boolean;
     
     if (Math.abs(percentage) < 1) {
-      direction = 'flat'; // Less than 1% change is considered flat
+      direction = 'neutral';
+      isPositive = false;
     } else if (percentage > 0) {
       direction = 'up';
+      isPositive = true;
     } else {
       direction = 'down';
+      isPositive = false;
     }
     
     return {
       direction,
       percentage: Math.abs(percentage),
-      value: currentValue
+      isPositive
     };
   } catch (error) {
     console.error('Error analyzing trends:', error);
