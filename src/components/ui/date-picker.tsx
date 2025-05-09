@@ -14,12 +14,14 @@ interface DatePickerProps {
   date: Date | null;
   onSelect: (date: Date | null) => void;
   className?: string;
+  placeholder?: string;
 }
 
 export function DatePicker({
   date,
   onSelect,
   className,
+  placeholder = "Pick a date",
 }: DatePickerProps) {
   // This function handles the type conversion between Calendar's date selection
   // and our component's expected types
@@ -40,7 +42,7 @@ export function DatePicker({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "PPP") : <span>Pick a date</span>}
+            {date ? format(date, "PPP") : <span>{placeholder}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
