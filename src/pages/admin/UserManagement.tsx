@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { withRoleCheck } from '@/lib/auth/withRoleCheck';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -99,38 +98,6 @@ const UserManagement: React.FC = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const handleInviteUser = async (email: string, role: string) => {
-    if (!tenantId) return;
-    
-    try {
-      // Call the invite Edge Function
-      const { error } = await supabase.functions.invoke('send-invite-email', {
-        body: { email, role, tenantId }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Invitation sent",
-        description: `Invitation email sent to ${email}`,
-      });
-      
-      // Close the dialog and refresh users
-      setIsInviteDialogOpen(false);
-      await fetchUsers();
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error inviting user:', error);
-      toast({
-        title: "Error inviting user",
-        description: error.message,
-        variant: "destructive"
-      });
-      return false;
     }
   };
   
