@@ -5,24 +5,8 @@ export * from '../agent';
 export * from '../strategy';
 export * from '../execution';
 
-// Export shared types without the Tenant to avoid ambiguity
-export type {
-  UserRole,
-  NavigationItem,
-  VoteType,
-  TrendDirection,
-  SystemEventModule,
-  SystemEventType,
-  OnboardingStep,
-  BaseEntity,
-  ExecutionParams,
-  ExecutionType,
-  KPITrend,
-  TenantFeature,
-} from '../shared';
-
-// Export RunPluginChainResult specifically as it's needed
-export type { RunPluginChainResult } from '../plugin';
+// Re-export utility functions
+export { camelToSnake, camelToSnakeObject } from '@/lib/utils/dataConversion';
 
 // Define LogStatus type (without re-exporting the conflicting one)
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
@@ -46,4 +30,19 @@ export interface ExecutionRecordInput {
 export type { PluginResult } from '../plugin';
 
 // We're aligning with the shared.ts definition to ensure consistency
-export { type VoteType as AgentVoteType } from '../shared';
+export { type VoteType } from '../shared';
+
+// Export these directly rather than re-exporting from shared to avoid conflicts
+export type { 
+  UserRole,
+  NavigationItem,
+  TrendDirection,
+  SystemEventModule,
+  SystemEventType,
+  OnboardingStep,
+  BaseEntity,
+  ExecutionParams,
+  ExecutionType,
+  KPITrend,
+  TenantFeature
+} from '../shared';

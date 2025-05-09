@@ -1,13 +1,13 @@
 
 import { supabase } from '@/lib/supabase';
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
-import { camelToSnake } from '@/types/fixed';
+import { camelToSnakeObject } from '@/lib/utils/dataConversion';
 
 // Export the execute function
 export async function execute(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   try {
     // Convert camelCase input to snake_case for the edge function
-    const snakeInput = camelToSnake(input);
+    const snakeInput = camelToSnakeObject(input);
     
     // Call the edge function
     const { data, error } = await supabase.functions.invoke('executeStrategy', {
@@ -24,7 +24,9 @@ export async function execute(input: ExecuteStrategyInput): Promise<ExecuteStrat
     return {
       success: false,
       error: err.message || 'Unknown error occurred',
-      status: 'error'
+      strategy_id: input.strategyId,
+      status: 'error',
+      execution_time: 0
     };
   }
 }

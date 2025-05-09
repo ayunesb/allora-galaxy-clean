@@ -1,8 +1,9 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { NavigationItem } from '@/types/shared';
 import { useTenantRole } from '@/hooks/useTenantRole';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   items: NavigationItem[];
@@ -96,3 +97,23 @@ const Sidebar: React.FC<SidebarProps> = ({ items, collapsed }) => {
 };
 
 export default Sidebar;
+
+const SidebarItem = ({ children, isActive = false, child = false, ...props }: { 
+  children: React.ReactNode; 
+  isActive?: boolean; 
+  child?: boolean;
+  [key: string]: any;
+}) => (
+  <li>
+    <Button 
+      variant={isActive ? "default" : "ghost"} 
+      className={cn("w-full justify-start", {
+        "pl-4": !child,
+        "pl-8": child
+      })}
+      {...props}
+    >
+      {children}
+    </Button>
+  </li>
+);

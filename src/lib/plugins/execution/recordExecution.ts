@@ -1,18 +1,18 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecutionRecordInput } from '@/types/fixed';
+import { ExecutionRecordInput } from '@/types/execution';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Records a plugin or strategy execution in the database
+ * Record an execution in the database
  * 
- * @param data Execution data to record
- * @returns The created execution record or undefined if creation failed
+ * @param data The execution data to record
+ * @returns The result of the operation
  */
-export async function recordExecution(data: ExecutionRecordInput): Promise<{ id: string } | undefined> {
+export async function recordExecution(data: ExecutionRecordInput) {
   try {
-    // Convert camelCase to snake_case for database insertion
-    const recordData = {
+    // Convert camelCase keys to snake_case for the database
+    const record = {
       tenant_id: data.tenantId,
       status: data.status,
       type: data.type,
@@ -27,40 +27,37 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ id:
       error: data.error
     };
 
-    // Insert the execution record
-    const { data: result, error } = await supabase
-      .from('execution_logs')
-      .insert(recordData)
-      .select('id')
+    const { data: execution, error } = await supabase
+      .from('executions')
+      .insert(record)
+      .select()
       .single();
-
+      
     if (error) {
-      console.error('Error recording execution:', error);
-      return undefined;
+      throw error;
     }
-
-    // Log the execution event
-    await logSystemEvent(
-      data.type === 'strategy' ? 'strategy' : 'plugin',
-      'info',
-      {
-        strategy_id: data.strategyId,
-        plugin_id: data.pluginId,
-        agent_version_id: data.agentVersionId,
-        status: data.status,
-        has_error: !!data.error,
-        execution_time: data.executionTime,
-        xp_earned: data.xpEarned
-      },
-      data.tenantId
-    ).catch(err => {
-      console.warn('Failed to log execution event:', err);
-      // Non-critical error, continue execution
-    });
-
-    return result;
-  } catch (err) {
-    console.error('Unexpected error recording execution:', err);
-    return undefined;
+    
+    return { 
+      success: true, 
+      data: execution
+    };
+  } catch (error: any) {
+    console.error('Error recording execution:', error);
+    
+    // Try to log the error as a system event
+    try {
+      await logSystemEvent('system', 'error', {
+        action: 'record_execution',
+        error: error.message,
+        details: data
+      }, data.tenantId);
+    } catch (logError) {
+      console.error('Failed to log execution error:', logError);
+    }
+    
+    return { 
+      success: false, 
+      error: error.message || 'Unknown error recording execution'
+    };
   }
 }

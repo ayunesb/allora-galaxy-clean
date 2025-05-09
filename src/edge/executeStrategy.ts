@@ -14,6 +14,8 @@ export default async function executeStrategy(
       return {
         success: false,
         error: 'Strategy ID is required',
+        strategy_id: '',
+        status: 'error',
         execution_time: (performance.now() - startTime) / 1000
       };
     }
@@ -22,6 +24,8 @@ export default async function executeStrategy(
       return {
         success: false,
         error: 'Tenant ID is required',
+        strategy_id: input.strategy_id,
+        status: 'error',
         execution_time: (performance.now() - startTime) / 1000
       };
     }
@@ -43,6 +47,8 @@ export default async function executeStrategy(
     return {
       success: false,
       error: err.message || 'An unexpected error occurred',
+      strategy_id: input.strategy_id || '',
+      status: 'error',
       execution_time: (performance.now() - startTime) / 1000
     };
   }

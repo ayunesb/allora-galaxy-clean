@@ -1,6 +1,4 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { getStrategyExecutionEnv } from '../strategy/utils/environmentUtils';
 
 export interface ExecuteStrategyInput {
   strategyId: string;
@@ -39,7 +37,8 @@ export async function runStrategy(input: ExecuteStrategyInput | ExecuteStrategyI
     // Normalize input to camelCase
     const strategyId = 'strategyId' in input ? input.strategyId : input.strategy_id;
     const tenantId = 'tenantId' in input ? input.tenantId : input.tenant_id;
-    const userId = 'userId' in input ? input.userId : input.user_id;
+    const userId = 'userId' in input ? input.userId : 
+                  ('user_id' in input ? input.user_id : undefined);
     const options = input.options || {};
     
     // Verify the strategy exists and belongs to the tenant
