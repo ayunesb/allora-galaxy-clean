@@ -27,3 +27,6 @@ export {
 
 // Export the safe Deno env getter function for edge functions
 export { safeGetDenoEnv } from './safeEdgeEnv';
+
+// Export specific environment configurations for different contexts
+export { getEnvironmentVariable } from './environment';

@@ -22,6 +22,7 @@ export async function getAgentsForEvolution(tenantId: string) {
         xp,
         status
       `)
+      .eq('tenant_id', tenantId)
       .eq('status', 'active')
       .gte('xp', 100) // Only consider agents with sufficient usage
       .order('created_at', { ascending: false });

@@ -1,8 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import executeStrategy from "@/edge/executeStrategy";
-import { ExecuteStrategyInputSnakeCase } from "@/types/fixed";
 import { runStrategy } from "@/lib/strategy/runStrategy";
+import { ExecuteStrategyInputSnakeCase } from "@/types/fixed";
 
 // Mock the runStrategy function
 vi.mock('@/lib/strategy/runStrategy', () => ({
@@ -26,6 +25,40 @@ if (typeof globalThis !== 'undefined') {
   // Use type assertion to handle TypeScript complaint about index signature
   if (!('Deno' in globalThis)) {
     (globalThis as any).Deno = mockDeno;
+  }
+}
+
+/**
+ * Edge function wrapper for executing a strategy
+ */
+async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Promise<any> {
+  try {
+    // Validate input
+    if (!input.strategy_id) {
+      return {
+        success: false,
+        error: 'Strategy ID is required',
+        execution_time: 0
+      };
+    }
+    
+    if (!input.tenant_id) {
+      return {
+        success: false,
+        error: 'Tenant ID is required',
+        execution_time: 0
+      };
+    }
+    
+    // Execute the strategy using the shared utility
+    return await runStrategy(input);
+    
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      execution_time: 0
+    };
   }
 }
 

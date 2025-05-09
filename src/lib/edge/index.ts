@@ -30,3 +30,6 @@ export {
 export {
   safeGetDenoEnv
 } from '../env/safeEdgeEnv';
+
+// Export safe environment getter for edge functions
+export { getDenoEnv } from '../strategy/utils/environmentUtils';

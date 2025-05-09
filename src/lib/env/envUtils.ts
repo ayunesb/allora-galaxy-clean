@@ -10,7 +10,7 @@
  * @param defaultValue Optional default value if env var is not found
  * @returns The value of the environment variable or defaultValue
  */
-export function ENV(key: string, defaultValue?: string): string | undefined {
+export function ENV(key: string, defaultValue?: string): string {
   try {
     // Try Deno.env in edge function context
     if (typeof globalThis !== 'undefined' && 
@@ -42,7 +42,7 @@ export function ENV(key: string, defaultValue?: string): string | undefined {
     // Ignore errors when import.meta is not available
   }
   
-  return defaultValue;
+  return defaultValue || '';
 }
 
 // Alias getEnv for backward compatibility
@@ -57,7 +57,7 @@ export const getEnvVar = ENV;
  */
 export function getEnvWithDefault(key: string, defaultValue: string): string {
   const value = ENV(key);
-  return value !== undefined ? value : defaultValue;
+  return value !== '' ? value : defaultValue;
 }
 
 /**

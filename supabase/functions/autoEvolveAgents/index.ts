@@ -1,12 +1,23 @@
 
 // Supabase Edge Function to automatically evolve agents based on performance
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
+
+// Safely get environment variables
+function safeGetDenoEnv(key: string, defaultValue: string = ""): string {
+  try {
+    return Deno.env.get(key) ?? defaultValue;
+  } catch (err) {
+    console.warn(`Error accessing env variable ${key}:`, err);
+    return defaultValue;
+  }
+}
 
 // Configuration for agent evolution
 const CONFIG = {
@@ -27,8 +38,22 @@ serve(async (req) => {
     // Parse request body
     const { tenant_id, options } = await req.json();
     
+    // Get Supabase credentials
+    const SUPABASE_URL = safeGetDenoEnv("SUPABASE_URL");
+    const SUPABASE_SERVICE_KEY = safeGetDenoEnv("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Required environment variables are not configured"
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+    
     // Create Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
     // Merge config with any provided options
     const config = {
@@ -124,7 +149,7 @@ serve(async (req) => {
       }
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in autoEvolveAgents:", error);
     
     return new Response(JSON.stringify({
@@ -142,7 +167,7 @@ serve(async (req) => {
 });
 
 // Helper functions
-async function getAgentsForEvolution(supabase, tenantId, config) {
+async function getAgentsForEvolution(supabase: any, tenantId: string, config: any) {
   const query = supabase
     .from('agent_versions')
     .select(`
@@ -167,7 +192,7 @@ async function getAgentsForEvolution(supabase, tenantId, config) {
   return data || [];
 }
 
-async function getAgentStats(supabase, agentId) {
+async function getAgentStats(supabase: any, agentId: string) {
   const { data, error } = await supabase
     .from('plugin_logs')
     .select('status, execution_time, created_at')
@@ -177,7 +202,7 @@ async function getAgentStats(supabase, agentId) {
   return data || [];
 }
 
-function calculatePerformance(stats) {
+function calculatePerformance(stats: any[]) {
   if (!stats || stats.length === 0) return 0.5; // Default neutral score
   
   const successCount = stats.filter(log => log.status === 'success').length;
@@ -187,7 +212,7 @@ function calculatePerformance(stats) {
   return totalCount > 0 ? successCount / totalCount : 0.5;
 }
 
-function hasHighFailureRate(stats, threshold) {
+function hasHighFailureRate(stats: any[], threshold: number) {
   if (!stats || stats.length < 10) return false; // Need minimum sample size
   
   const failureCount = stats.filter(log => log.status !== 'success').length;
@@ -196,7 +221,7 @@ function hasHighFailureRate(stats, threshold) {
   return totalCount > 0 && (failureCount / totalCount) > threshold;
 }
 
-async function getAgentFeedback(supabase, agentId) {
+async function getAgentFeedback(supabase: any, agentId: string) {
   const { data, error } = await supabase
     .from('agent_votes')
     .select('comment, vote_type')
@@ -207,7 +232,7 @@ async function getAgentFeedback(supabase, agentId) {
   return data || [];
 }
 
-async function evolvePrompt(currentPrompt, feedback, performance) {
+async function evolvePrompt(currentPrompt: string, feedback: any[], performance: number) {
   // In a real implementation, this would use LLM to improve the prompt
   // This is a placeholder that just adds feedback to the prompt
   if (feedback.length === 0) return currentPrompt;
@@ -220,7 +245,13 @@ async function evolvePrompt(currentPrompt, feedback, performance) {
   return `${currentPrompt}\n\n# Evolution Notes (Performance: ${performance.toFixed(2)}):\n${feedbackText}`;
 }
 
-async function createEvolvedAgent(supabase, tenantId, pluginId, oldAgentId, newPrompt) {
+async function createEvolvedAgent(
+  supabase: any, 
+  tenantId: string, 
+  pluginId: string, 
+  oldAgentId: string, 
+  newPrompt: string
+) {
   try {
     // 1. Get current version number
     const { data: versions } = await supabase
@@ -232,8 +263,8 @@ async function createEvolvedAgent(supabase, tenantId, pluginId, oldAgentId, newP
     let nextVersion = '1.0.0';
     if (versions && versions.length > 0) {
       const highestVersion = versions
-        .map(v => v.version)
-        .sort((a, b) => {
+        .map((v: any) => v.version)
+        .sort((a: string, b: string) => {
           const aParts = a.split('.').map(Number);
           const bParts = b.split('.').map(Number);
           for (let i = 0; i < 3; i++) {
@@ -280,7 +311,13 @@ async function createEvolvedAgent(supabase, tenantId, pluginId, oldAgentId, newP
   }
 }
 
-async function logSystemEvent(supabase, module, event, context, tenantId) {
+async function logSystemEvent(
+  supabase: any,
+  module: string,
+  event: string,
+  context: Record<string, any>,
+  tenantId?: string
+) {
   try {
     await supabase
       .from('system_logs')

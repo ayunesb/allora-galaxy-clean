@@ -8,12 +8,14 @@ export interface ErrorResponseData {
   timestamp: string;
   code?: string;
   requestId?: string;
+  status: number;
 }
 
-export interface SuccessResponseData {
+export interface SuccessResponseData<T = any> {
   success: true;
+  data: T;
   timestamp: string;
-  [key: string]: any;
+  requestId?: string;
 }
 
 /**
@@ -40,7 +42,8 @@ export function errorHandler(err: any, requestId?: string): Response {
   const responseData: ErrorResponseData = { 
     success: false,
     error: message,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    status
   };
   
   if (err?.details) {
@@ -73,12 +76,16 @@ export function errorHandler(err: any, requestId?: string): Response {
  * @param status HTTP status code
  * @returns Success response
  */
-export function createSuccessResponse(data: Record<string, any> = {}, status: number = 200): Response {
-  const responseData: SuccessResponseData = {
+export function createSuccessResponse<T = any>(data: T, status: number = 200, requestId?: string): Response {
+  const responseData: SuccessResponseData<T> = {
     success: true,
-    ...data,
+    data,
     timestamp: new Date().toISOString()
   };
+  
+  if (requestId) {
+    responseData.requestId = requestId;
+  }
   
   return new Response(
     JSON.stringify(responseData),
@@ -111,7 +118,8 @@ export function createErrorResponse(
   const responseData: ErrorResponseData = {
     success: false,
     error: message,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    status
   };
   
   if (details !== undefined) {
