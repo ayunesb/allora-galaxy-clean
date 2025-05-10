@@ -7,16 +7,22 @@ export const getSystemLogColumns = (onRowClick: (log: any) => void): ColumnDef<a
   {
     accessorKey: 'module',
     header: 'Module',
-    cell: ({ row }) => (
-      <Badge variant="outline">{row.getValue('module') || 'system'}</Badge>
-    )
+    cell: ({ row }) => {
+      return (
+        <Badge variant="outline">
+          {row.getValue('module') || 'system'}
+        </Badge>
+      );
+    }
   },
   {
     accessorKey: 'event',
     header: 'Event',
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue('event')}</span>
-    )
+    cell: ({ row }) => {
+      return (
+        <span className="font-medium">{row.getValue('event')}</span>
+      );
+    }
   },
   {
     accessorKey: 'created_at',
@@ -32,13 +38,15 @@ export const getSystemLogColumns = (onRowClick: (log: any) => void): ColumnDef<a
   },
   {
     id: 'actions',
-    cell: ({ row }) => (
-      <button 
-        className="text-sm text-primary hover:underline" 
-        onClick={() => onRowClick(row.original)}
-      >
-        View details
-      </button>
-    )
+    cell: ({ row }) => {
+      return (
+        <button 
+          className="text-sm text-primary hover:underline" 
+          onClick={() => onRowClick(row.original)}
+        >
+          View details
+        </button>
+      );
+    }
   },
 ];

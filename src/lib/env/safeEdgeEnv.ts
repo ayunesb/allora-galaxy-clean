@@ -1,99 +1,54 @@
 
 /**
- * Utilities for safely accessing environment variables in edge functions
+ * Safely get Deno environment variables with fallbacks
+ * This is used in edge functions where Deno.env is available
  */
 
 /**
- * Safely gets a Deno environment variable with fallback
- * @param name The name of the environment variable
- * @param fallback Optional fallback value if environment variable is not found
- * @returns The environment variable value or the fallback
+ * Safely get a Deno environment variable with fallback
+ * @param key Environment variable name
+ * @param fallback Optional fallback value if not found
+ * @returns The environment variable value or fallback
  */
-export function safeGetDenoEnv(name: string, fallback: string = ''): string {
+export function safeGetDenoEnv(key: string, fallback: string = ""): string {
   try {
     // Use type assertion here for Deno environment
     const deno = (globalThis as any).Deno;
     if (deno && typeof deno.env?.get === "function") {
-      return deno.env.get(name) ?? fallback;
+      return deno.env.get(key) ?? fallback;
     }
     return fallback;
   } catch (err) {
-    console.warn(`Error accessing Deno env variable ${name}:`, err);
+    console.warn(`Error accessing Deno env variable ${key}:`, err);
     return fallback;
   }
 }
 
 /**
- * Gets environment variables in edge function context with proper fallback handling
- * @param name The name of the environment variable
- * @param fallback Optional fallback value if environment variable is not found
- * @returns The environment variable value or the fallback
+ * Get edge function environment variables with consistent fallback behavior
+ * Works in both Deno and Node environments
  */
-export function getEdgeEnv(name: string, fallback: string = ''): string {
-  // Try Deno.env first (edge functions)
-  try {
-    const deno = (globalThis as any).Deno;
-    if (deno && typeof deno.env?.get === "function") {
-      const value = deno.env.get(name);
-      if (value !== undefined && value !== null) {
-        return value;
-      }
-    }
-  } catch (e) {
-    // Silently fail and try next method
-    console.debug(`Edge env: Deno.env not available for ${name}, trying process.env`);
-  }
+export function getEdgeEnv(key: string, fallback: string = ""): string {
+  // Try Deno.env first
+  let value = safeGetDenoEnv(key);
+  if (value) return value;
   
-  // Try process.env (Node.js) as fallback
+  // Fall back to Node process.env if available
   try {
     if (typeof process !== 'undefined' && process.env) {
-      const value = (process.env as any)[name];
-      if (value !== undefined && value !== null) {
-        return value;
-      }
+      value = process.env[key] ?? fallback;
+      if (value) return value;
     }
   } catch (e) {
-    // Silently fail and return fallback
-    console.debug(`Edge env: process.env not available for ${name}, using fallback`);
+    console.warn(`Error accessing Node env variable ${key}:`, e);
   }
   
-  // Return fallback if all attempts fail
   return fallback;
 }
 
 /**
- * Gets the current environment (development, production, etc.)
- * Works in both Deno and Node.js environments
+ * Get the current environment (production, development, etc)
  */
-export function getEdgeEnvironment(): 'development' | 'production' | 'test' {
-  const env = getEdgeEnv('NODE_ENV', 'development');
-  
-  if (env === 'production') return 'production';
-  if (env === 'test') return 'test';
-  return 'development';
-}
-
-/**
- * Helper function to safely get Deno environment variable
- * This handles both Supabase Edge Functions and local development
- */
-export function getDenoEnv(name: string, defaultValue: string = ''): string {
-  return safeGetDenoEnv(name, defaultValue);
-}
-
-/**
- * Validate existence of required environment variables
- * Throws an error if any required variable is missing
- */
-export function validateRequiredEnv(requiredVars: string[]): void {
-  const missing: string[] = [];
-  
-  requiredVars.forEach(name => {
-    const value = getEdgeEnv(name);
-    if (!value) missing.push(name);
-  });
-  
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
+export function getEdgeEnvironment(): string {
+  return getEdgeEnv('NODE_ENV', 'development');
 }

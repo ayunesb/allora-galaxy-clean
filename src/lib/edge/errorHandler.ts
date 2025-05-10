@@ -1,181 +1,115 @@
 
-import { corsHeaders } from '@/lib/env/envUtils';
+/**
+ * Standardized error handling utilities for edge functions
+ */
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+};
 
 export interface ErrorResponseData {
-  success: false;
   error: string;
+  message?: string;
   details?: any;
-  timestamp: string;
-  code?: string;
-  requestId?: string;
-  status: number;
+  timestamp?: string;
+  request_id?: string;
 }
 
-export interface SuccessResponseData<T = any> {
-  success: true;
-  data: T;
-  timestamp: string;
-  requestId?: string;
+export interface SuccessResponseData {
+  success: boolean;
+  data?: any;
+  message?: string;
+  timestamp?: string;
+  execution_time?: number;
 }
 
 /**
  * Generate a unique request ID for tracking
- * @returns Unique request ID
  */
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
 /**
- * Error handler for edge functions
- * @param err The error object
- * @param requestId Optional request ID for tracking
- * @returns A JSON response with the error message and a 500 status code
- */
-export function errorHandler(err: any, requestId?: string): Response {
-  console.error(`Edge Function Error${requestId ? ` [${requestId}]` : ''}:`, err);
-  
-  const message = err?.message || 'Internal Server Error';
-  const status = err?.status || 500;
-  const code = err?.code || 'INTERNAL_ERROR';
-  
-  const responseData: ErrorResponseData = { 
-    success: false,
-    error: message,
-    timestamp: new Date().toISOString(),
-    status
-  };
-  
-  if (err?.details) {
-    responseData.details = err.details;
-  }
-  
-  if (code) {
-    responseData.code = code;
-  }
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
-  return new Response(
-    JSON.stringify(responseData),
-    { 
-      status: status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
-}
-
-/**
- * Create a standardized success response for edge functions
- * @param data Response data
- * @param status HTTP status code
- * @returns Success response
- */
-export function createSuccessResponse<T = any>(data: T, status: number = 200, requestId?: string): Response {
-  const responseData: SuccessResponseData<T> = {
-    success: true,
-    data,
-    timestamp: new Date().toISOString()
-  };
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
-  return new Response(
-    JSON.stringify(responseData),
-    { 
-      status: status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
-}
-
-/**
- * Create a standardized error response for edge functions
- * @param message Error message
- * @param details Additional error details
- * @param status HTTP status code
- * @param code Error code
- * @param requestId Optional request ID for tracking
- * @returns Error response
+ * Create a standardized error response
  */
 export function createErrorResponse(
+  status: number, 
   message: string, 
   details?: any, 
-  status: number = 500,
-  code?: string,
-  requestId?: string
+  startTime?: number
 ): Response {
-  const responseData: ErrorResponseData = {
-    success: false,
+  const executionTime = startTime ? (performance.now() - startTime) / 1000 : undefined;
+  
+  const errorResponse: ErrorResponseData = {
     error: message,
+    details: details,
     timestamp: new Date().toISOString(),
-    status
+    request_id: generateRequestId()
   };
   
-  if (details !== undefined) {
-    responseData.details = details;
-  }
-  
-  if (code) {
-    responseData.code = code;
-  }
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
   return new Response(
-    JSON.stringify(responseData),
+    JSON.stringify({
+      ...errorResponse,
+      execution_time: executionTime
+    }),
     { 
-      status: status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     }
   );
 }
 
 /**
- * Handle CORS preflight requests
- * @returns Response for OPTIONS requests with CORS headers
+ * Create a standardized success response
+ */
+export function createSuccessResponse(
+  data: any,
+  message?: string,
+  startTime?: number
+): Response {
+  const executionTime = startTime ? (performance.now() - startTime) / 1000 : undefined;
+  
+  const successResponse: SuccessResponseData = {
+    success: true,
+    data,
+    message,
+    timestamp: new Date().toISOString(),
+    execution_time: executionTime
+  };
+  
+  return new Response(
+    JSON.stringify(successResponse),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  );
+}
+
+/**
+ * Handle CORS preflight request
  */
 export function handleCorsPreflightRequest(): Response {
   return new Response(null, { headers: corsHeaders });
 }
 
 /**
- * Handle errors that occur during strategy execution
- * @param error The error that occurred
- * @param requestStart The timestamp when the request started
- * @returns An error response
+ * Handle execution errors in edge functions
  */
-export function handleExecutionError(error: any, requestStart: number): Response {
-  const requestId = generateRequestId();
-  console.error(`Execution error [${requestId}]:`, error);
-  
-  const executionTime = (performance.now() - requestStart) / 1000;
+export function handleExecutionError(
+  error: any,
+  startTime?: number,
+  module?: string
+): Response {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`Error in ${module || 'edge function'}:`, error);
   
   return createErrorResponse(
-    error?.message || 'Unexpected error during execution',
-    {
-      execution_time: executionTime,
-      stack: error?.stack ? error.stack.split('\n').slice(0, 3).join('\n') : undefined
-    },
-    error?.status || 500,
-    error?.code || 'EXECUTION_ERROR',
-    requestId
+    500,
+    "Internal server error occurred",
+    errorMessage,
+    startTime
   );
 }
-
-export { corsHeaders };
