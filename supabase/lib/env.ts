@@ -1,25 +1,55 @@
 
-// Helper function to safely get environment variables
+/**
+ * Environment utilities for edge functions
+ */
+
+/**
+ * Safely get environment variables with fallback
+ * @param name The name of the environment variable
+ * @param fallback Optional fallback value if not found
+ * @returns The environment variable value or fallback
+ */
 export function getEnv(name: string, fallback: string = ""): string {
   try {
-    // Try to get from Deno.env first
-    if (typeof Deno !== 'undefined' && Deno.env && Deno.env.get) {
-      const value = Deno.env.get(name);
-      if (value !== undefined) return value;
-    }
-    
-    // Try to get from process.env as fallback (for local dev)
-    if (typeof process !== 'undefined' && process.env && process.env[name]) {
-      return process.env[name] as string;
-    }
-    
-    return fallback;
+    const value = Deno.env.get(name);
+    return value !== undefined ? value : fallback;
   } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
+    console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
 }
 
-export default {
-  getEnv
-};
+/**
+ * Validate required environment variables
+ * @param requiredVars Array of environment variable definitions
+ * @returns Object with environment variables
+ */
+export function validateEnv(requiredVars: EnvVar[]): Record<string, string> {
+  const env: Record<string, string> = {};
+  const missing: string[] = [];
+
+  requiredVars.forEach(({ name, required, description }) => {
+    const value = getEnv(name, '');
+    
+    if (required && !value) {
+      missing.push(`${name}${description ? ` (${description})` : ''}`);
+    }
+    
+    env[name] = value;
+  });
+
+  if (missing.length > 0) {
+    console.error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  return env;
+}
+
+/**
+ * Environment variable configuration
+ */
+export interface EnvVar {
+  name: string;
+  required: boolean;
+  description?: string;
+}

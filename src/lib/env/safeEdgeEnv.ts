@@ -1,63 +1,70 @@
 
 /**
- * Safely access Deno environment variables in edge functions
- * This prevents errors when running in non-Deno environments
- * @param key The environment variable name
- * @param defaultValue Optional default value
- * @returns The environment variable value or default
+ * Utilities for safely accessing environment variables in edge functions
  */
-export function safeGetDenoEnv(key: string, defaultValue: string = ''): string {
+
+/**
+ * Safely gets a Deno environment variable with fallback
+ * @param name The name of the environment variable
+ * @param fallback Optional fallback value if environment variable is not found
+ * @returns The environment variable value or the fallback
+ */
+export function safeGetDenoEnv(name: string, fallback: string = ''): string {
   try {
-    // Try to access Deno.env if available
-    if (typeof globalThis !== 'undefined' && 
-        'Deno' in globalThis && 
-        typeof (globalThis as any).Deno?.env?.get === 'function') {
-      const value = (globalThis as any).Deno.env.get(key);
-      if (value !== undefined) return value;
+    // Use type assertion here for Deno environment
+    const deno = (globalThis as any).Deno;
+    if (deno && typeof deno.env?.get === "function") {
+      return deno.env.get(name) ?? fallback;
     }
-    return defaultValue;
-  } catch (e) {
-    console.warn(`Error accessing Deno env for ${key}:`, e);
-    return defaultValue;
+    return fallback;
+  } catch (err) {
+    console.warn(`Error accessing Deno env variable ${name}:`, err);
+    return fallback;
   }
 }
 
 /**
- * Safely get environment variables in edge functions with fallback to process.env
- * @param key The environment variable name
- * @param defaultValue Optional default value
- * @returns The environment variable value or default
+ * Gets environment variables in edge function context with proper fallback handling
+ * @param name The name of the environment variable
+ * @param fallback Optional fallback value if environment variable is not found
+ * @returns The environment variable value or the fallback
  */
-export function getEdgeEnv(key: string, defaultValue: string = ''): string {
-  // First try Deno.env
-  const denoValue = safeGetDenoEnv(key);
-  if (denoValue) return denoValue;
-  
-  // Then try process.env as fallback
+export function getEdgeEnv(name: string, fallback: string = ''): string {
+  // Try Deno.env first (edge functions)
   try {
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-      return process.env[key] || defaultValue;
+    const deno = (globalThis as any).Deno;
+    if (deno && typeof deno.env?.get === "function") {
+      const value = deno.env.get(name);
+      if (value !== undefined && value !== null) {
+        return value;
+      }
     }
   } catch (e) {
-    // Ignore process.env access errors
+    // Silently fail and try next method
   }
   
-  return defaultValue;
+  // Try process.env (Node.js) as fallback
+  try {
+    const value = (process.env as any)[name];
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  } catch (e) {
+    // Silently fail and return fallback
+  }
+  
+  // Return fallback if all attempts fail
+  return fallback;
 }
 
 /**
- * Get all common environment variables needed for edge functions
- * @returns Object with all environment variables
+ * Gets the current environment (development, production, etc.)
+ * Works in both Deno and Node.js environments
  */
-export function getEdgeEnvironment(): Record<string, string> {
-  return {
-    SUPABASE_URL: getEdgeEnv('SUPABASE_URL'),
-    SUPABASE_SERVICE_ROLE_KEY: getEdgeEnv('SUPABASE_SERVICE_ROLE_KEY'),
-    SUPABASE_ANON_KEY: getEdgeEnv('SUPABASE_ANON_KEY'),
-    OPENAI_API_KEY: getEdgeEnv('OPENAI_API_KEY'),
-    STRIPE_SECRET_KEY: getEdgeEnv('STRIPE_SECRET_KEY'),
-    HUBSPOT_API_KEY: getEdgeEnv('HUBSPOT_API_KEY'),
-    SENDGRID_API_KEY: getEdgeEnv('SENDGRID_API_KEY'),
-    NODE_ENV: getEdgeEnv('NODE_ENV', 'development'),
-  };
+export function getEdgeEnvironment(): 'development' | 'production' | 'test' {
+  const env = getEdgeEnv('NODE_ENV', 'development');
+  
+  if (env === 'production') return 'production';
+  if (env === 'test') return 'test';
+  return 'development';
 }

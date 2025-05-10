@@ -1,63 +1,42 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
 interface ExecutionLog {
   id: string;
-  timestamp: string;
-  action: string;
   status: string;
-  details?: string;
-  metadata?: Record<string, any>;
+  created_at: string;
+  execution_time?: number;
+  xp_earned?: number;
+  error?: string;
+  [key: string]: any;
 }
 
 interface ExecutionLogsProps {
   logs: ExecutionLog[];
-  formatDate: (date: string) => string;
+  formatDate: (dateStr: string) => string;
   renderStatusBadge: (status: string) => React.ReactNode;
-  onViewDetails?: (log: ExecutionLog) => void;
-  isLoading?: boolean;
 }
 
 const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
   logs,
   formatDate,
-  renderStatusBadge,
-  onViewDetails,
-  isLoading = false
+  renderStatusBadge
 }) => {
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Execution Logs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const [expandedLogs, setExpandedLogs] = React.useState<Set<string>>(new Set());
 
-  if (!logs || logs.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Execution Logs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            No execution logs available for this strategy.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const toggleExpand = (logId: string) => {
+    const newExpanded = new Set(expandedLogs);
+    if (newExpanded.has(logId)) {
+      newExpanded.delete(logId);
+    } else {
+      newExpanded.add(logId);
+    }
+    setExpandedLogs(newExpanded);
+  };
 
   return (
     <Card>
@@ -65,42 +44,102 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
         <CardTitle>Execution Logs</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Details</TableHead>
-                {onViewDetails && <TableHead></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>{formatDate(log.timestamp)}</TableCell>
-                  <TableCell>{log.action}</TableCell>
-                  <TableCell>{renderStatusBadge(log.status)}</TableCell>
-                  <TableCell className="max-w-md truncate">{log.details || 'No details available'}</TableCell>
-                  {onViewDetails && (
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onViewDetails(log)}
-                        className="flex items-center gap-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only md:not-sr-only">Details</span>
-                      </Button>
-                    </TableCell>
-                  )}
+        {logs.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground">
+            No execution logs found for this strategy.
+          </div>
+        ) : (
+          <div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead></TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>XP</TableHead>
+                  <TableHead>Details</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <React.Fragment key={log.id}>
+                    <TableRow>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => toggleExpand(log.id)}
+                        >
+                          {expandedLogs.has(log.id) ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {formatDate(log.created_at)}
+                      </TableCell>
+                      <TableCell>{renderStatusBadge(log.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>{log.execution_time?.toFixed(2) || '0'}s</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>+{log.xp_earned || 0} XP</TableCell>
+                      <TableCell>
+                        {log.error ? (
+                          <span className="text-destructive text-xs">{log.error}</span>
+                        ) : (
+                          <span className="text-xs">Success</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                    
+                    {expandedLogs.has(log.id) && (
+                      <TableRow>
+                        <TableCell colSpan={6}>
+                          <div className="p-4 bg-muted/50 rounded-md">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {log.input && (
+                                <div>
+                                  <h4 className="text-sm font-semibold mb-2">Input</h4>
+                                  <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
+                                    {JSON.stringify(log.input, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                              
+                              {log.output && (
+                                <div>
+                                  <h4 className="text-sm font-semibold mb-2">Output</h4>
+                                  <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
+                                    {JSON.stringify(log.output, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {log.error && (
+                              <div className="mt-4">
+                                <h4 className="text-sm font-semibold mb-2">Error</h4>
+                                <pre className="bg-destructive/10 text-destructive p-2 rounded text-xs overflow-x-auto">
+                                  {log.error}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
