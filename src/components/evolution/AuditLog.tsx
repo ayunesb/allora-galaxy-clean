@@ -1,99 +1,106 @@
 
-import React, { useState } from 'react';
-import AuditLogFilters, { AuditLogFilters as FilterState } from './logs/AuditLogFilters';
-import AuditLogTable, { AuditLog as Log } from './logs/AuditLogTable';
-import LogDetailDialog from './logs/LogDetailDialog';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuditLog as SharedAuditLog } from '@/types/shared';
+import { AuditLog as AuditLogType } from '@/types/shared';
+import AuditLogTable from './logs/AuditLogTable';
+import AuditLogFilters from './logs/AuditLogFilters';
+import LogDetailDialog from './logs/LogDetailDialog';
 
-export interface AuditLogProps {
+interface AuditLogProps {
   title?: string;
-  onRefresh: () => void;
+  data: AuditLogType[];
   isLoading: boolean;
-  data: SharedAuditLog[];
+  onRefresh: () => void;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({ 
-  title = 'System Logs',
-  onRefresh, 
+const AuditLog: React.FC<AuditLogProps> = ({
+  title = "Audit Logs",
+  data,
   isLoading,
-  data
+  onRefresh
 }) => {
-  const [filters, setFilters] = useState<FilterState>({});
-  const [selectedLog, setSelectedLog] = useState<SharedAuditLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [moduleFilter, setModuleFilter] = useState('');
+  const [eventFilter, setEventFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters);
-    // In a real implementation, this would trigger a re-fetch with the updated filters
-  };
+  // Extract unique modules and event types from data
+  const modules = Array.from(new Set(data.map(log => log.module)));
+  const events = Array.from(new Set(data.map(log => log.event_type)));
 
-  // Map SharedAuditLog to Log format expected by AuditLogTable
-  const convertToTableFormat = (logs: SharedAuditLog[]): Log[] => {
-    return logs.map(log => ({
-      id: log.id,
-      module: log.module,
-      event_type: log.event_type,
-      description: log.description || 'No description', // Ensure description is never undefined
-      tenant_id: log.tenant_id,
-      created_at: log.created_at,
-      user_id: log.user_id,
-      metadata: log.metadata
-    }));
-  };
-
-  const handleViewLog = (log: Log) => {
-    // Find the original log in data to ensure we're passing the proper type
-    const originalLog = data.find(l => l.id === log.id) || null;
-    setSelectedLog(originalLog);
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-  };
-
-  // Apply filters locally
+  // Filter logs based on selected filters
   const filteredLogs = data.filter(log => {
-    if (filters.module && log.module !== filters.module) return false;
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      const matchesEvent = log.event_type?.toLowerCase().includes(searchTerm);
-      const matchesDescription = log.description?.toLowerCase().includes(searchTerm);
-      if (!matchesEvent && !matchesDescription) return false;
-    }
-    // Time range filtering would happen here
-    return true;
+    const matchesModule = !moduleFilter || log.module === moduleFilter;
+    const matchesEvent = !eventFilter || log.event_type === eventFilter;
+    const matchesSearch = !searchQuery || 
+      log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.module.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.event_type.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesModule && matchesEvent && matchesSearch;
   });
 
+  const handleFilterChange = useCallback((type: string, value: string) => {
+    switch (type) {
+      case 'module':
+        setModuleFilter(value);
+        break;
+      case 'event':
+        setEventFilter(value);
+        break;
+      case 'search':
+        setSearchQuery(value);
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setModuleFilter('');
+    setEventFilter('');
+    setSearchQuery('');
+  }, []);
+
+  const handleViewDetails = useCallback((log: AuditLogType) => {
+    setSelectedLog(log);
+    setDetailsOpen(true);
+  }, []);
+
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <AuditLogFilters 
-          filters={filters} 
-          onFilterChange={handleFilterChange} 
-          onRefresh={onRefresh}
-          isLoading={isLoading}
-        />
-        
-        <div className="mt-4">
-          <AuditLogTable 
-            logs={convertToTableFormat(filteredLogs)} 
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <AuditLogFilters
+            moduleFilter={moduleFilter}
+            eventFilter={eventFilter}
+            searchQuery={searchQuery}
+            modules={modules}
+            events={events}
+            handleFilterChange={handleFilterChange}
+            handleResetFilters={handleResetFilters}
+            handleRefresh={onRefresh}
             isLoading={isLoading}
-            onViewDetails={handleViewLog}
           />
-        </div>
-        
-        <LogDetailDialog
-          log={selectedLog}
-          open={dialogOpen}
-          onClose={handleCloseDialog}
-        />
-      </CardContent>
-    </Card>
+          
+          <AuditLogTable
+            logs={filteredLogs}
+            isLoading={isLoading}
+            onViewDetails={handleViewDetails}
+          />
+        </CardContent>
+      </Card>
+
+      <LogDetailDialog
+        log={selectedLog}
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+      />
+    </>
   );
 };
 

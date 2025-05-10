@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { NavigationItem } from '@/types/shared';
+import * as LucideIcons from 'lucide-react';
 
 interface SidebarNavProps {
   items: NavigationItem[];
@@ -13,17 +14,24 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
   // Function to render icon component
-  const renderIconComponent = (icon: React.ElementType | undefined) => {
+  const renderIcon = (icon?: string) => {
     if (!icon) return null;
-    const IconComponent = icon;
-    return <IconComponent className="h-4 w-4" />;
+    
+    // Check if the icon name exists in Lucide icons
+    const IconComponent = (LucideIcons as any)[icon];
+    
+    if (IconComponent) {
+      return <IconComponent className="h-4 w-4" />;
+    }
+    
+    return null;
   };
 
   return (
     <nav className={cn("flex flex-col gap-1", className)}>
       {items.map((item) => {
         const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
-        const itemKey = item.id || item.name;
+        const itemKey = item.href || item.name;
 
         return (
           <Link
@@ -36,8 +44,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
                 : "hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            {item.icon && <span className="h-4 w-4">{renderIconComponent(item.icon)}</span>}
-            <span>{item.label || item.name}</span>
+            {item.icon && <span className="h-4 w-4">{renderIcon(item.icon)}</span>}
+            <span>{item.name}</span>
           </Link>
         );
       })}
