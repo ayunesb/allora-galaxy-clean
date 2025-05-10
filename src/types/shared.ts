@@ -203,3 +203,20 @@ export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additiona
 
 // Log status type
 export type LogStatus = 'success' | 'error' | 'warning' | 'info';
+
+// System event module type for logs
+export type SystemEventModule = 
+  | 'auth' 
+  | 'strategy' 
+  | 'plugin' 
+  | 'agent' 
+  | 'webhook' 
+  | 'notification' 
+  | 'system'
+  | 'billing'
+  | 'execution'
+  | 'email'
+  | 'onboarding';
+
+// System event type for logs
+export type SystemEventType = string;

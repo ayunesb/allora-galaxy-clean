@@ -1,129 +1,120 @@
 
-import React, { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuditLog as AuditLogType } from '@/types/shared';
-import AuditLogTable, { TableAuditLog } from './logs/AuditLogTable';
-import AuditLogFilters from './logs/AuditLogFilters';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import LogDetailDialog from './logs/LogDetailDialog';
-import { DateRange } from '@/types/shared';
+import { AuditLog as AuditLogType } from '@/types/shared';
 
 interface AuditLogProps {
   title?: string;
+  isLoading?: boolean;
+  onRefresh?: () => void;
   data: AuditLogType[];
-  isLoading: boolean;
-  onRefresh: () => void;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({
-  title = "Audit Logs",
-  data,
-  isLoading,
-  onRefresh
-}) => {
+const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogProps) => {
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    moduleFilter: '',
-    eventFilter: '',
-    searchQuery: '',
-    selectedDate: null as DateRange | null
-  });
 
-  // Extract unique modules and event types from data
-  const modules = Array.from(new Set(data.map(log => log.module)));
-  const events = Array.from(new Set(data.map(log => log.event_type)));
+  // Helper to get a short preview of context JSON
+  const getContextPreview = (context?: Record<string, any>) => {
+    if (!context) return 'No data';
+    try {
+      const entries = Object.entries(context);
+      if (entries.length === 0) return 'Empty';
+      
+      const [key, value] = entries[0];
+      const valueStr = typeof value === 'object' 
+        ? JSON.stringify(value).substring(0, 15) + '...' 
+        : String(value).substring(0, 15);
+      
+      return `${key}: ${valueStr}${entries.length > 1 ? ` (+ ${entries.length - 1} more)` : ''}`;
+    } catch (e) {
+      return 'Invalid data';
+    }
+  };
 
-  // Filter logs based on selected filters
-  const filteredLogs = data.filter(log => {
-    const matchesModule = !filters.moduleFilter || log.module === filters.moduleFilter;
-    const matchesEvent = !filters.eventFilter || log.event_type === filters.eventFilter;
-    const matchesSearch = !filters.searchQuery || 
-      log.description?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-      log.module.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-      log.event_type.toLowerCase().includes(filters.searchQuery.toLowerCase());
-    
-    // Date filtering logic would go here if needed
-    
-    return matchesModule && matchesEvent && matchesSearch;
-  });
-
-  const handleFilterChange = useCallback((type: string, value: string | DateRange | null) => {
-    setFilters(prev => ({
-      ...prev,
-      [type === 'search' ? 'searchQuery' : 
-        type === 'module' ? 'moduleFilter' :
-        type === 'event' ? 'eventFilter' : 
-        'selectedDate']: value
-    }));
-  }, []);
-
-  const handleResetFilters = useCallback(() => {
-    setFilters({
-      moduleFilter: '',
-      eventFilter: '',
-      searchQuery: '',
-      selectedDate: null
-    });
-  }, []);
-
-  // Convert AuditLogType to TableAuditLog
-  const convertedLogs: TableAuditLog[] = filteredLogs.map(log => ({
-    id: log.id,
-    module: log.module,
-    event_type: log.event_type,
-    description: log.description,
-    tenant_id: log.tenant_id,
-    metadata: log.metadata,
-    created_at: log.created_at
-  }));
-
-  const handleViewDetails = useCallback((log: TableAuditLog) => {
-    // Convert TableAuditLog back to AuditLogType
-    const auditLog: AuditLogType = {
-      id: log.id,
-      module: log.module,
-      event_type: log.event_type,
-      description: log.description || 'No description',
-      tenant_id: log.tenant_id,
-      created_at: log.created_at,
-      metadata: log.metadata
-    };
-    
-    setSelectedLog(auditLog);
-    setDetailsOpen(true);
-  }, []);
+  // Format timestamp
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(date);
+  };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <AuditLogFilters
-            filters={filters}
-            modules={modules}
-            events={events}
-            onFilterChange={handleFilterChange}
-            onResetFilters={handleResetFilters}
-            onRefresh={onRefresh}
-            isLoading={isLoading}
-          />
-          
-          <AuditLogTable
-            logs={convertedLogs}
-            isLoading={isLoading}
-            onViewDetails={handleViewDetails}
-          />
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>{title}</CardTitle>
+        {onRefresh && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[250px]" />
+                  <Skeleton className="h-4 w-[200px]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : data.length === 0 ? (
+          <p className="text-center text-muted-foreground py-4">No logs found.</p>
+        ) : (
+          <div className="space-y-4">
+            {data.map((log) => (
+              <div
+                key={log.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                onClick={() => setSelectedLog(log)}
+              >
+                <div className="space-y-1">
+                  <div className="font-medium flex flex-col sm:flex-row gap-2 sm:items-center">
+                    <span>{log.event || 'Unknown Event'}</span>
+                    {log.module && (
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                        {log.module}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {log.description || getContextPreview(log.context)}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2 sm:mt-0">
+                  {formatDate(log.created_at)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-      <LogDetailDialog
-        log={selectedLog}
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-      />
-    </>
+        <LogDetailDialog
+          isOpen={!!selectedLog}
+          onClose={() => setSelectedLog(null)}
+          log={selectedLog}
+        />
+      </CardContent>
+    </Card>
   );
 };
 
