@@ -93,7 +93,7 @@ export interface Tenant {
   };
 }
 
-// Add DateRange interface for the date picker
+// Add this DateRange type if it doesn't exist
 export interface DateRange {
   from: Date;
   to?: Date;

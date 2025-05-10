@@ -6,14 +6,6 @@ const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000000;
 
 type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
-export type ToastActionElement = React.ReactElement<typeof sonnerToast>;
-
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const;
 
 let count = 0;
 
@@ -21,6 +13,13 @@ function genId() {
   count = (count + 1) % Number.MAX_SAFE_INTEGER;
   return count.toString();
 }
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const;
 
 type ActionType = typeof actionTypes;
 
@@ -46,12 +45,14 @@ interface State {
   toasts: Toast[];
 }
 
-export type Toast = ToastProps & {
+export type Toast = {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
-  action?: ToastActionElement;
+  action?: React.ReactElement;
   variant?: "default" | "destructive" | "success";
+  duration?: number;
+  className?: string;
 };
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
@@ -137,39 +138,36 @@ function dispatch(action: Action) {
   });
 }
 
-type Toast = Omit<
-  ToastProps,
-  "onOpenChange" | "open"
-> & {
-  id: string;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  action?: React.ReactElement;
-  variant?: "default" | "destructive" | "success";
-};
-
 export function toast({
   variant = "default",
   title,
   description,
+  duration,
+  className,
   ...props
-}: Toast) {
+}: Omit<Toast, "id">) {
   const id = genId();
 
   const handleSonnerToast = () => {
     if (variant === "destructive") {
       sonnerToast.error(title as string, {
         description: description as string,
+        duration,
+        className,
         ...props,
       });
     } else if (variant === "success") {
       sonnerToast.success(title as string, {
         description: description as string,
+        duration,
+        className,
         ...props,
       });
     } else {
       sonnerToast(title as string, {
         description: description as string,
+        duration,
+        className,
         ...props,
       });
     }
@@ -182,6 +180,8 @@ export function toast({
     dismiss: () => null,
   };
 }
+
+export type ToastActionElement = React.ReactElement;
 
 export function useToast() {
   const [state] = React.useState<State>(() => memoryState);
