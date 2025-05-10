@@ -39,10 +39,6 @@ const EvolutionDashboard = () => {
     }
   }, [type]);
 
-  const handleStrategySelection = (strategyId: string) => {
-    setSelectedStrategyId(strategyId);
-  };
-
   // If no workspace is selected, show a loading state
   if (!currentWorkspace) {
     return (

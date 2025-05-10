@@ -2,19 +2,27 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface HistoryItem {
+  id: string;
+  action: string;
+  status: string;
+  timestamp: string;
+  user_id?: string;
+  details?: string;
+}
 
 interface EvolutionHistoryProps {
-  history: any[];
-  formatDate: (dateStr: string) => string;
-  renderUser: (userId: string | undefined) => React.ReactNode;
+  history: HistoryItem[];
+  formatDate: (date: string) => string;
   renderStatusBadge: (status: string) => React.ReactNode;
 }
 
 const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
   history,
   formatDate,
-  renderUser,
-  renderStatusBadge
+  renderStatusBadge,
 }) => {
   if (!history || history.length === 0) {
     return (
@@ -23,44 +31,40 @@ const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
           <CardTitle>Evolution History</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            No history found for this strategy
-          </p>
+          <div className="text-center py-8 text-muted-foreground">
+            No history available for this strategy.
+          </div>
         </CardContent>
       </Card>
     );
   }
-  
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Evolution History</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Event</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {history.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{formatDate(item.timestamp)}</TableCell>
+                <TableCell>{item.action}</TableCell>
+                <TableCell>{renderStatusBadge(item.status)}</TableCell>
+                <TableCell>{item.details || 'No details available'}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {history.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell className="font-medium">{event.event}</TableCell>
-                  <TableCell>{formatDate(event.created_at)}</TableCell>
-                  <TableCell>{event.description || 'N/A'}</TableCell>
-                  <TableCell>
-                    {event.context?.status && renderStatusBadge(event.context.status)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

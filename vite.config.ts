@@ -25,7 +25,13 @@ export default defineConfig(({ mode }) => ({
         'https://deno.land/std@0.168.0/http/server.ts',
         'https://esm.sh/@supabase/supabase-js@2',
         'https://esm.sh/stripe@12.0.0?target=deno'
-      ]
+      ],
+      // Add onwarn handler to suppress git clone warnings
+      onwarn(warning, warn) {
+        // Suppress git clone warnings for three-bmfont-text
+        if (warning.message.includes('three-bmfont-text')) return;
+        warn(warning);
+      }
     }
   },
   server: {

@@ -1,30 +1,42 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface ExecutionLog {
+  id: string;
+  execution_type: string;
+  status: string;
+  created_at: string;
+  duration_ms?: number;
+  user_id?: string;
+  metadata?: any;
+  error?: string;
+}
 
 interface ExecutionLogsProps {
-  logs: any[];
-  formatDate: (dateStr: string) => string;
-  renderUser: (userId: string | undefined) => React.ReactNode;
+  logs: ExecutionLog[];
+  formatDate: (date: string) => string;
   renderStatusBadge: (status: string) => React.ReactNode;
 }
 
 const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
   logs,
   formatDate,
-  renderUser,
-  renderStatusBadge
+  renderStatusBadge,
 }) => {
-  const [selectedLog, setSelectedLog] = React.useState<any | null>(null);
-  
-  const viewLogDetails = (log: any) => {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<ExecutionLog | null>(null);
+
+  const handleViewDetails = (log: ExecutionLog) => {
     setSelectedLog(log);
-    // Open modal or expand details
+    setDetailsOpen(true);
   };
-  
+
   if (!logs || logs.length === 0) {
     return (
       <Card>
@@ -32,54 +44,109 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
           <CardTitle>Execution Logs</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            No executions found for this strategy
-          </p>
+          <div className="text-center py-8 text-muted-foreground">
+            No execution logs available for this strategy.
+          </div>
         </CardContent>
       </Card>
     );
   }
-  
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Execution Logs</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border overflow-hidden">
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Execution Logs</CardTitle>
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Executed By</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>XP</TableHead>
-                <TableHead>Time</TableHead>
+                <TableHead>Duration</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {logs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="font-mono text-xs">{log.id.substring(0, 8)}</TableCell>
-                  <TableCell>{renderUser(log.executed_by)}</TableCell>
                   <TableCell>{formatDate(log.created_at)}</TableCell>
+                  <TableCell>{log.execution_type}</TableCell>
                   <TableCell>{renderStatusBadge(log.status)}</TableCell>
-                  <TableCell>{log.xp_earned || 0}</TableCell>
-                  <TableCell>{log.execution_time ? `${log.execution_time.toFixed(2)}s` : 'N/A'}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => viewLogDetails(log)}>
-                      <Eye className="h-4 w-4" />
+                    {log.duration_ms ? `${log.duration_ms}ms` : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleViewDetails(log)}
+                    >
+                      Details
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Execution Log Details</DialogTitle>
+          </DialogHeader>
+
+          {selectedLog && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium">Execution Type:</p>
+                  <p className="text-sm">{selectedLog.execution_type}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Status:</p>
+                  <p className="text-sm">{selectedLog.status}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Date:</p>
+                  <p className="text-sm">{formatDate(selectedLog.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Duration:</p>
+                  <p className="text-sm">
+                    {selectedLog.duration_ms ? `${selectedLog.duration_ms}ms` : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {selectedLog.error && (
+                <div>
+                  <p className="text-sm font-medium">Error:</p>
+                  <pre className="text-xs bg-red-50 p-2 rounded overflow-auto">
+                    {selectedLog.error}
+                  </pre>
+                </div>
+              )}
+
+              {selectedLog.metadata && (
+                <div>
+                  <p className="text-sm font-medium">Metadata:</p>
+                  <ScrollArea className="h-[200px] rounded-md border p-2">
+                    <pre className="text-xs">
+                      {JSON.stringify(selectedLog.metadata, null, 2)}
+                    </pre>
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

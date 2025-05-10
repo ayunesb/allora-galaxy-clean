@@ -5,7 +5,7 @@ import { useCronJobsMonitoring } from '@/hooks/admin/useCronJobsMonitoring';
 import { CronJobsHeader } from './components/CronJobsHeader';
 import { CronJobsTabs } from './components/CronJobsTabs';
 
-// Define the correct interfaces for the component
+// Define the interfaces for the component
 export interface CronJob {
   id: string;
   name: string;
@@ -23,11 +23,6 @@ export interface CronJob {
 export interface CronJobStats {
   status: string;
   count: number;
-}
-
-interface TimeRange {
-  value: string;
-  label: string;
 }
 
 interface Stats {
