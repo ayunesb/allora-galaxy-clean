@@ -85,19 +85,18 @@ const CronJobsMonitoring: React.FC = () => {
   };
 
   const handleTimeRangeChange = (value: string) => {
-    const selectedTimeRange: TimeRange = {
+    setTimeRange({
       value,
       label: value === 'day' ? 'Last 24 hours' : 
              value === 'week' ? 'Last 7 days' : 
              value === 'month' ? 'Last 30 days' : 'All time'
-    };
-    setTimeRange(selectedTimeRange);
+    });
   };
 
   return (
     <Card>
       <CronJobsHeader
-        timeRange={timeRange}
+        timeRange={timeRange.value}
         isLoading={isLoading}
         onTimeRangeChange={handleTimeRangeChange}
         onRefresh={refreshData}

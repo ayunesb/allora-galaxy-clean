@@ -38,13 +38,13 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
 
   // Render status badge
   const renderStatusBadge = (status: string) => {
-    let variant: "default" | "secondary" | "destructive" | "outline" = "default";
+    let variant: "default" | "secondary" | "destructive" | "outline" | "success" = "default";
     
     switch (status.toLowerCase()) {
       case 'approved':
       case 'completed':
       case 'success':
-        variant = "default"; // blue
+        variant = "success"; // Changed to success
         break;
       case 'pending':
       case 'in_progress':
@@ -67,12 +67,12 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
     return <StrategyLoadingSkeleton />;
   }
 
-  // Render no data state
+  // Render no data state or default content for new users
   if (!strategy) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p>Strategy not found or you don't have permission to view it.</p>
+          <p>Select a strategy or create one to view its evolution details.</p>
         </CardContent>
       </Card>
     );

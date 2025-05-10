@@ -1,15 +1,25 @@
 
-import { getEnvVar, corsHeaders } from "../lib/envUtils";
-
-/**
- * Universal environment variable getter that works in both Deno and Node environments
- * @param key The environment variable key to retrieve
- * @param defaultValue Optional default value if the environment variable is not found
- * @returns The environment variable value or the default value
- */
-export function getEnv(key: string, defaultValue: string = ""): string {
-  return getEnvVar(key, defaultValue);
+// Helper function to safely get environment variables
+export function getEnv(name: string, fallback: string = ""): string {
+  try {
+    // Try to get from Deno.env first
+    if (typeof Deno !== 'undefined' && Deno.env && Deno.env.get) {
+      const value = Deno.env.get(name);
+      if (value !== undefined) return value;
+    }
+    
+    // Try to get from process.env as fallback (for local dev)
+    if (typeof process !== 'undefined' && process.env && process.env[name]) {
+      return process.env[name] as string;
+    }
+    
+    return fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
 }
 
-// Export CORS headers for edge functions
-export { corsHeaders };
+export default {
+  getEnv
+};

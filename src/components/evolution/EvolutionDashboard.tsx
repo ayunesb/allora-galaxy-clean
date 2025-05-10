@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import AuditLog from './AuditLog';
 import AgentEvolutionTab from './AgentEvolutionTab';
 import PluginEvolutionTab from './PluginEvolutionTab';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
-import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import useAuditLogData from '@/hooks/admin/useAuditLogData';
 
@@ -19,6 +18,7 @@ const EvolutionDashboard = () => {
   const { logs, isLoading, handleRefresh } = useAuditLogData();
   const [activeTab, setActiveTab] = useState('logs');
   const { currentWorkspace } = useWorkspace();
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('');
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -98,7 +98,7 @@ const EvolutionDashboard = () => {
         </TabsContent>
 
         <TabsContent value="strategy">
-          <StrategyEvolutionTab />
+          <StrategyEvolutionTab strategyId={selectedStrategyId || 'default'} />
         </TabsContent>
       </Tabs>
     </div>

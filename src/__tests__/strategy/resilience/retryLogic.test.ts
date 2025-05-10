@@ -1,9 +1,9 @@
 
-import { describe, it, expect, vi } from 'vitest';
-import { runStrategy } from "@/lib/strategy/runStrategy";
-import { setupTests } from '../setup/testSetup';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { executeStrategy } from '@/edge/executeStrategy';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock dependencies
+// Mock the Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
@@ -12,39 +12,76 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
-describe('runStrategy Retry and Resilience', () => {
-  setupTests();
-  
-  it('should retry when temporary errors occur', async () => {
-    // Arrange
-    const validStrategyInput = {
-      strategyId: 'strategy-123',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
-    };
-    
-    const supabaseMock = await import('@/integrations/supabase/client');
-    
-    // Mock temporary error then success
-    vi.mocked(supabaseMock.supabase.functions.invoke)
-      .mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Temporary error' }
-      })
-      .mockResolvedValueOnce({
+// Mock the logSystemEvent function
+vi.mock('@/lib/system/logSystemEvent', () => ({
+  logSystemEvent: vi.fn().mockResolvedValue({ success: true })
+}));
+
+describe('executeStrategy retry logic', () => {
+  const mockInput = {
+    strategy_id: 'test-strategy-id',
+    tenant_id: 'test-tenant-id',
+    user_id: 'test-user-id'
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should make up to 3 attempts on transient errors', async () => {
+    // Mock Supabase to fail twice then succeed
+    const mockInvoke = vi.fn();
+    mockInvoke
+      .mockRejectedValueOnce(new Error('Temporary network error'))
+      .mockRejectedValueOnce(new Error('Temporary server error'))
+      .mockResolvedValueOnce({ 
         data: { 
           success: true,
-          execution_id: 'exec-123-retry',
-          execution_time: 2.5
+          execution_id: 'test-execution-id',
+          execution_time: 1.5
         },
         error: null
       });
+      
+    (supabase.functions.invoke as any) = mockInvoke;
     
-    // Act
-    const result = await runStrategy(validStrategyInput);
+    const result = await executeStrategy(mockInput);
     
-    // Assert
+    expect(mockInvoke).toHaveBeenCalledTimes(3);
     expect(result.success).toBe(true);
-    expect(result.execution_id).toBe('exec-123-retry');
+    expect(result.executionId).toBe('test-execution-id'); // Fixed property name
+    expect(result.executionTime).toBe(1.5);
+  });
+
+  it('should stop retrying after success', async () => {
+    // Mock Supabase to succeed on first try
+    const mockInvoke = vi.fn().mockResolvedValueOnce({ 
+      data: { 
+        success: true,
+        execution_id: 'test-execution-id'
+      },
+      error: null
+    });
+    
+    (supabase.functions.invoke as any) = mockInvoke;
+    
+    const result = await executeStrategy(mockInput);
+    
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(true);
+  });
+
+  it('should report error after all attempts fail', async () => {
+    // Mock Supabase to fail consistently
+    const mockError = new Error('Persistent error');
+    const mockInvoke = vi.fn().mockRejectedValue(mockError);
+    
+    (supabase.functions.invoke as any) = mockInvoke;
+    
+    const result = await executeStrategy(mockInput);
+    
+    expect(mockInvoke).toHaveBeenCalledTimes(3);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Persistent error');
   });
 });

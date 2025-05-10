@@ -5,6 +5,7 @@ import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { Button } from '@/components/ui/button';
 import NotificationCenterTabs from './NotificationCenterTabs';
+import { NotificationContent } from '@/types/notifications';
 
 export interface NotificationCenterContentProps {
   notifications: Notification[];
@@ -37,7 +38,7 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   // Map to UI-ready format
-  const notificationItems = notifications.map(notification => ({
+  const notificationItems: NotificationContent[] = notifications.map(notification => ({
     id: notification.id,
     title: notification.title,
     message: notification.description || '',
