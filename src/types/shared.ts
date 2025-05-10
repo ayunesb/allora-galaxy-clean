@@ -1,3 +1,4 @@
+
 // Add or update the AuditLog type in the shared types
 export interface AuditLog {
   id: string;
@@ -112,10 +113,10 @@ export interface Tenant {
   };
 }
 
-// Add missing DateRange interface
+// Update DateRange interface to match fixed.ts
 export interface DateRange {
   from: Date;
-  to: Date;
+  to?: Date;
 }
 
 // Add the KPI interface

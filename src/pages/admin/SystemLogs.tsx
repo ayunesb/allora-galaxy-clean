@@ -82,13 +82,7 @@ const SystemLogs: React.FC = () => {
 
   // Function to adapt handler for SystemLogFilters
   const handleLogFilterChange = (type: string, value: string | DateRange | null) => {
-    // Convert DateRange to Date for useSystemLogsData if needed
-    if (type === 'selectedDate' && value && typeof value !== 'string') {
-      const dateValue = (value as DateRange).from;
-      handleFilterChange(type, dateValue);
-    } else {
-      handleFilterChange(type, value as string);
-    }
+    handleFilterChange(type, value);
   };
 
   return (
@@ -104,16 +98,16 @@ const SystemLogs: React.FC = () => {
         </CardHeader>
         <CardContent>
           <SystemLogFilters
-            moduleFilter={moduleFilter}
-            eventFilter={eventFilter}
-            searchQuery={searchQuery}
-            selectedDate={selectedDate as DateRange | null}
             modules={modules}
             events={events}
-            handleFilterChange={handleLogFilterChange}
-            handleResetFilters={handleResetFilters}
-            handleRefresh={handleRefreshLogs}
             isLoading={isLoading}
+            onFilterChange={handleLogFilterChange}
+            onResetFilters={handleResetFilters}
+            onRefresh={handleRefreshLogs}
+            searchQuery={searchQuery}
+            moduleFilter={moduleFilter}
+            eventFilter={eventFilter}
+            selectedDate={selectedDate as DateRange | null}
           />
           
           <div className="mt-6">
@@ -167,7 +161,7 @@ const SystemLogs: React.FC = () => {
       <LogDetailDialog 
         log={selectedLog} 
         open={detailsOpen} 
-        onClose={() => setDetailsOpen(false)} 
+        onOpenChange={setDetailsOpen} 
       />
     </div>
   );

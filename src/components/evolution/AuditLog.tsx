@@ -1,10 +1,11 @@
 
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuditLog as AuditLogType, DateRange } from '@/types/shared';
+import { AuditLog as AuditLogType } from '@/types/shared';
 import AuditLogTable from './logs/AuditLogTable';
 import AuditLogFilters from './logs/AuditLogFilters';
 import LogDetailDialog from './logs/LogDetailDialog';
+import { DateRange } from '@/types/shared';
 
 interface AuditLogProps {
   title?: string;
@@ -98,7 +99,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
       <LogDetailDialog
         log={selectedLog}
         open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
+        onOpenChange={setDetailsOpen}
       />
     </>
   );
