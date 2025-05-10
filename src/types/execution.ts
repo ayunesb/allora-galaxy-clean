@@ -1,41 +1,34 @@
 
-/**
- * Record for execution logs
- */
-export interface ExecutionRecordInput {
-  tenantId: string;
-  status: string;
-  type: 'strategy' | 'plugin' | 'agent' | 'system';
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  executedBy?: string;
-  input?: any;
-  output?: any;
-  executionTime?: number;
-  xpEarned?: number;
-  error?: string;
-}
-
-export interface ExecutionRecord {
+// Execution related types
+export interface Execution {
   id: string;
   tenant_id: string;
-  status: string;
   type: string;
+  status: 'success' | 'failure' | 'pending';
   strategy_id?: string;
   plugin_id?: string;
   agent_version_id?: string;
   executed_by?: string;
-  input?: any;
-  output?: any;
-  created_at?: string;
-  execution_time?: number;
-  xp_earned?: number;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
   error?: string;
+  created_at: string;
+  execution_time: number;
+  xp_earned: number;
 }
 
-export interface ExecutionResult {
-  success: boolean;
-  data?: ExecutionRecord;
-  error?: string;
+export interface ExecutionParams {
+  tenant_id: string;
+  strategy_id?: string;
+  user_id?: string;
+  options?: Record<string, any>;
+}
+
+export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'test' | 'system';
+
+export interface BaseEntity {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+  tenant_id: string;
 }

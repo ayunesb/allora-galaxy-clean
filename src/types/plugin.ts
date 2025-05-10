@@ -1,59 +1,47 @@
 
-/**
- * Type definitions for plugins
- */
+// Plugin and agent related types
+import { User } from './user';
 
 export interface Plugin {
   id: string;
   name: string;
   description?: string;
-  category?: string;
-  status: string;
+  status: 'active' | 'inactive' | 'deprecated';
+  xp: number;
+  roi: number;
+  created_at: string;
+  updated_at: string;
   icon?: string;
-  metadata?: Record<string, any>;
-  xp?: number;
-  roi?: number;
-  tenant_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface PluginResult {
-  pluginId: string;
-  success: boolean;
-  status: 'success' | 'failure' | 'pending';
-  output: Record<string, any>;
-  error?: string;
-  executionTime: number;
-  xpEarned: number;
-}
-
-export interface RunPluginChainResult {
-  success: boolean;
-  results: PluginResult[];
-  output?: Record<string, any>;
-  error?: string;
-}
-
-export interface PluginExecutionParams {
+  category?: string;
   tenant_id: string;
-  user_id?: string;
-  strategy_id?: string;
-  execution_id?: string;
-  options?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
-export interface PluginLogEntry {
+export interface AgentVersion {
   id: string;
   plugin_id: string;
-  agent_version_id?: string;
+  version: string;
+  prompt: string;
+  status: 'active' | 'deprecated';
+  xp: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: User;
+  upvotes: number;
+  downvotes: number;
+}
+
+export interface PluginLog {
+  id: string;
+  plugin_id: string;
   strategy_id?: string;
+  agent_version_id?: string;
   tenant_id: string;
-  status: string;
+  status: 'success' | 'failure' | 'pending';
   input?: Record<string, any>;
   output?: Record<string, any>;
   error?: string;
+  created_at: string;
   execution_time: number;
   xp_earned: number;
-  created_at: string;
 }

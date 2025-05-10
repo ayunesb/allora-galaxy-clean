@@ -1,11 +1,11 @@
 
-import { LucideIcon } from 'lucide-react';
-
+// Navigation-related types
 export interface NavigationItem {
-  id: string;
-  label: string;
-  path: string;
-  icon?: LucideIcon;
+  title: string;
+  href?: string;
+  icon?: React.ComponentType<{ className?: string }>;
   items?: NavigationItem[];
   disabled?: boolean;
+  external?: boolean;
+  label?: string;
 }
