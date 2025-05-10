@@ -60,7 +60,7 @@ const SystemLogs: React.FC = () => {
   };
 
   // Convert SystemLogs to AuditLogs format for the table component
-  const convertedLogs = logs.map(log => ({
+  const convertedLogs: TableAuditLog[] = logs.map(log => ({
     id: log.id,
     module: log.module,
     event_type: log.event || 'system_event',

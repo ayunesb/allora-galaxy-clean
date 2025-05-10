@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SystemLog } from '@/pages/admin/SystemLogs';
 import { useToast } from '@/hooks/use-toast';
 import { useTenantId } from '@/hooks/useTenantId';
+import { DateRange } from '@/types/shared';
 
 export const useSystemLogsData = () => {
   const { toast } = useToast();
@@ -18,14 +19,14 @@ export const useSystemLogsData = () => {
   const [moduleFilter, setModuleFilter] = useState<string>('all');
   const [eventFilter, setEventFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<DateRange | null>(null);
   
   const fetchLogs = useCallback(async (filters?: {
     level?: string;
     module?: string;
     event?: string;
     searchQuery?: string;
-    date?: Date;
+    date?: DateRange | null;
   }) => {
     try {
       setIsLoading(true);
@@ -55,15 +56,19 @@ export const useSystemLogsData = () => {
       }
       
       if (filters?.date) {
-        const startDate = new Date(filters.date);
-        startDate.setHours(0, 0, 0, 0);
+        const { from, to } = filters.date;
         
-        const endDate = new Date(filters.date);
-        endDate.setHours(23, 59, 59, 999);
-        
-        query = query
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+        if (from) {
+          const startDate = new Date(from);
+          startDate.setHours(0, 0, 0, 0);
+          query = query.gte('created_at', startDate.toISOString());
+          
+          if (to) {
+            const endDate = new Date(to);
+            endDate.setHours(23, 59, 59, 999);
+            query = query.lte('created_at', endDate.toISOString());
+          }
+        }
       }
       
       const { data, error } = await query
@@ -99,7 +104,7 @@ export const useSystemLogsData = () => {
     fetchLogs();
   }, [fetchLogs]);
   
-  const handleFilterChange = (filter: string, value: string | Date | null) => {
+  const handleFilterChange = (filter: string, value: string | DateRange | null) => {
     if (filter === 'moduleFilter') {
       setModuleFilter(value as string);
     } else if (filter === 'eventFilter') {
@@ -107,7 +112,7 @@ export const useSystemLogsData = () => {
     } else if (filter === 'searchQuery') {
       setSearchQuery(value as string);
     } else if (filter === 'selectedDate') {
-      setSelectedDate(value as Date | null);
+      setSelectedDate(value as DateRange | null);
     }
   };
   
@@ -123,7 +128,7 @@ export const useSystemLogsData = () => {
       module: moduleFilter,
       event: eventFilter,
       searchQuery: searchQuery,
-      date: selectedDate || undefined
+      date: selectedDate
     });
   };
   
