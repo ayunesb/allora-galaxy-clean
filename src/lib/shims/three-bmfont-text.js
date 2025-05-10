@@ -1,17 +1,48 @@
 
-// This is a shim for the three-bmfont-text package
-// It provides bare minimum functionality to prevent build errors
+// This is a comprehensive shim for the three-bmfont-text package
+// It provides the necessary interfaces to prevent build errors
 // while the actual package is unavailable
 
-module.exports = function createTextGeometry(opt) {
+function createGeometry(opt) {
   return {
     update: function() {},
-    layout: null,
+    vertices: [],
     visibleGlyphs: [],
-    opacity: 1,
-    color: 0xffffff,
-    position: [0, 0, 0],
-    scale: [1, 1, 1],
-    visible: true
+    layout: null,
+    positions: [],
+    cells: [],
+    uvs: [],
+    dispose: function() {},
   };
-};
+}
+
+function createMeshes(opt) {
+  return [];
+}
+
+function createBasicText(opt) {
+  return {
+    text: opt.text || '',
+    font: opt.font || null,
+    width: opt.width || 0,
+    align: opt.align || 'left',
+    letterSpacing: opt.letterSpacing || 0,
+    mode: opt.mode || 'normal',
+    opacity: opt.opacity || 1,
+    color: opt.color || 0xffffff,
+    billboard: opt.billboard || false,
+    visible: opt.visible !== false
+  };
+}
+
+// Main export to match the expected API
+function createTextGeometry(opt) {
+  return createGeometry(opt);
+}
+
+// Add all expected exports
+createTextGeometry.createGeometry = createGeometry;
+createTextGeometry.createMeshes = createMeshes;
+createTextGeometry.createBasicText = createBasicText;
+
+module.exports = createTextGeometry;

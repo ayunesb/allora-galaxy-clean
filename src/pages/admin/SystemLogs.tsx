@@ -6,7 +6,7 @@ import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import { AuditLog } from '@/types/shared';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import AuditLogTable from '@/components/evolution/logs/AuditLogTable';
+import AuditLogTable, { AuditLog as TableAuditLog } from '@/components/evolution/logs/AuditLogTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Define SystemLog type
@@ -60,7 +60,7 @@ const SystemLogs: React.FC = () => {
   };
 
   // Convert SystemLogs to AuditLogs format for the table component
-  const convertedLogs: AuditLog[] = logs.map(log => ({
+  const convertedLogs: TableAuditLog[] = logs.map(log => ({
     id: log.id,
     module: log.module,
     event_type: log.event || 'system_event',
@@ -69,6 +69,16 @@ const SystemLogs: React.FC = () => {
     metadata: log.context,
     created_at: log.created_at,
   }));
+
+  // Create a handler for table log view
+  const handleTableLogView = (log: TableAuditLog) => {
+    // Find the original log
+    const originalLog = logs.find(l => l.id === log.id);
+    
+    if (originalLog) {
+      handleViewDetails(originalLog);
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -106,10 +116,7 @@ const SystemLogs: React.FC = () => {
                 <AuditLogTable 
                   logs={convertedLogs} 
                   isLoading={isLoading} 
-                  onViewDetails={(log: AuditLog) => {
-                    setSelectedLog(log);
-                    setDetailsOpen(true);
-                  }}
+                  onViewDetails={handleTableLogView}
                 />
               </TabsContent>
               

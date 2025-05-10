@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
 import AuditLogFilters, { AuditLogFilters as FilterState } from './logs/AuditLogFilters';
-import AuditLogTable from './logs/AuditLogTable';
+import AuditLogTable, { AuditLog as Log } from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuditLog as Log } from './logs/AuditLogTable';
+import { AuditLog as SharedAuditLog } from '@/types/shared';
 
 export interface AuditLogProps {
   title?: string;
   onRefresh: () => void;
   isLoading: boolean;
-  data: Log[];
+  data: SharedAuditLog[];
 }
 
 const AuditLog: React.FC<AuditLogProps> = ({ 
@@ -20,7 +20,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
   data
 }) => {
   const [filters, setFilters] = useState<FilterState>({});
-  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
+  const [selectedLog, setSelectedLog] = useState<SharedAuditLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleFilterChange = (newFilters: FilterState) => {
@@ -28,8 +28,24 @@ const AuditLog: React.FC<AuditLogProps> = ({
     // In a real implementation, this would trigger a re-fetch with the updated filters
   };
 
+  // Map SharedAuditLog to Log format expected by AuditLogTable
+  const convertToTableFormat = (logs: SharedAuditLog[]): Log[] => {
+    return logs.map(log => ({
+      id: log.id,
+      module: log.module,
+      event_type: log.event_type,
+      description: log.description,
+      tenant_id: log.tenant_id,
+      created_at: log.created_at,
+      user_id: log.user_id,
+      metadata: log.metadata
+    }));
+  };
+
   const handleViewLog = (log: Log) => {
-    setSelectedLog(log);
+    // Find the original log in data to ensure we're passing the proper type
+    const originalLog = data.find(l => l.id === log.id) || null;
+    setSelectedLog(originalLog);
     setDialogOpen(true);
   };
 
@@ -42,8 +58,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
     if (filters.module && log.module !== filters.module) return false;
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      const matchesEvent = log.event?.toLowerCase().includes(searchTerm) || 
-                          log.event_type?.toLowerCase().includes(searchTerm);
+      const matchesEvent = log.event_type?.toLowerCase().includes(searchTerm);
       const matchesDescription = log.description?.toLowerCase().includes(searchTerm);
       if (!matchesEvent && !matchesDescription) return false;
     }
@@ -66,7 +81,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
         
         <div className="mt-4">
           <AuditLogTable 
-            logs={filteredLogs} 
+            logs={convertToTableFormat(filteredLogs)} 
             isLoading={isLoading}
             onViewDetails={handleViewLog}
           />

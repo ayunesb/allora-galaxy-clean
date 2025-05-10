@@ -41,7 +41,7 @@ interface Stats {
 const CronJobsMonitoring: React.FC = () => {
   const { 
     jobs: cronJobData, 
-    stats: cronJobStats, 
+    stats: cronJobStats,
     isLoading, 
     timeRange, 
     setTimeRange, 
@@ -85,13 +85,12 @@ const CronJobsMonitoring: React.FC = () => {
   };
 
   const handleTimeRangeChange = (value: string) => {
-    setTimeRange((prevState: TimeRange) => ({
-      ...prevState,
+    setTimeRange({
       value,
       label: value === 'day' ? 'Last 24 hours' : 
              value === 'week' ? 'Last 7 days' : 
              value === 'month' ? 'Last 30 days' : 'All time'
-    }));
+    });
   };
 
   return (

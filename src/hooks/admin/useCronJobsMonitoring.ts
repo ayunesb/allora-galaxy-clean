@@ -6,6 +6,7 @@ import { notifySuccess, notifyError } from '@/components/ui/BetterToast';
 export interface CronJob {
   id: string;
   name: string;
+  schedule?: string;
   last_run: string | null;
   status: 'success' | 'failure' | 'running' | 'scheduled';
   next_run: string | null;
@@ -16,21 +17,23 @@ export interface CronJob {
 }
 
 export interface CronJobStats {
-  job_name: string;
-  success_count: number;
-  failure_count: number;
-  avg_duration_ms: number;
-  last_success: string | null;
-  last_failure: string | null;
+  status: string;
+  count: number;
 }
 
-export type TimeRange = '24h' | '7d' | '30d' | '90d';
+export interface TimeRange {
+  value: string;
+  label: string;
+}
 
 export const useCronJobsMonitoring = () => {
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [stats, setStats] = useState<CronJobStats[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>('7d');
+  const [timeRange, setTimeRange] = useState<TimeRange>({
+    value: '7d',
+    label: 'Last 7 days'
+  });
 
   const fetchJobs = useCallback(async () => {
     setIsLoading(true);
@@ -41,6 +44,7 @@ export const useCronJobsMonitoring = () => {
         {
           id: '1',
           name: 'update_kpis_daily',
+          schedule: '0 0 * * *',  // Daily at midnight
           last_run: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
           status: 'success',
           next_run: new Date(Date.now() + 1000 * 60 * 60 * 21).toISOString(),
@@ -52,6 +56,7 @@ export const useCronJobsMonitoring = () => {
         {
           id: '2',
           name: 'sync_mqls_weekly',
+          schedule: '0 0 * * 0',  // Weekly on Sunday
           last_run: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
           status: 'success',
           next_run: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4).toISOString(),
@@ -63,6 +68,7 @@ export const useCronJobsMonitoring = () => {
         {
           id: '3',
           name: 'auto_evolve_agents_daily',
+          schedule: '0 3 * * *',  // Daily at 3am
           last_run: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
           status: 'failure',
           next_run: new Date(Date.now() + 1000 * 60 * 60 * 19).toISOString(),
@@ -74,6 +80,7 @@ export const useCronJobsMonitoring = () => {
         {
           id: '4',
           name: 'scheduled-intelligence-daily',
+          schedule: '30 0 * * *',  // Daily at 00:30
           last_run: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
           status: 'success',
           next_run: new Date(Date.now() + 1000 * 60 * 60 * 23 + 1000 * 60 * 30).toISOString(),
@@ -85,6 +92,7 @@ export const useCronJobsMonitoring = () => {
         {
           id: '5',
           name: 'cleanup_old_execution_logs',
+          schedule: '0 */12 * * *',  // Every 12 hours
           last_run: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
           status: 'success',
           next_run: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
@@ -96,46 +104,10 @@ export const useCronJobsMonitoring = () => {
       ];
 
       const mockStats: CronJobStats[] = [
-        {
-          job_name: 'update_kpis_daily',
-          success_count: 28,
-          failure_count: 2,
-          avg_duration_ms: 2150,
-          last_success: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-          last_failure: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString()
-        },
-        {
-          job_name: 'sync_mqls_weekly',
-          success_count: 4,
-          failure_count: 0,
-          avg_duration_ms: 5320,
-          last_success: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-          last_failure: null
-        },
-        {
-          job_name: 'auto_evolve_agents_daily',
-          success_count: 24,
-          failure_count: 6,
-          avg_duration_ms: 3240,
-          last_success: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          last_failure: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString()
-        },
-        {
-          job_name: 'scheduled-intelligence-daily',
-          success_count: 29,
-          failure_count: 1,
-          avg_duration_ms: 7840,
-          last_success: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          last_failure: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString()
-        },
-        {
-          job_name: 'cleanup_old_execution_logs',
-          success_count: 30,
-          failure_count: 0,
-          avg_duration_ms: 1180,
-          last_success: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-          last_failure: null
-        }
+        { status: 'success', count: 28 },
+        { status: 'failure', count: 8 },
+        { status: 'running', count: 2 },
+        { status: 'scheduled', count: 12 }
       ];
 
       setJobs(mockJobs);
