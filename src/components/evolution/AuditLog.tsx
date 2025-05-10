@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuditLog as AuditLogType } from '@/types/shared';
-import AuditLogTable from './logs/AuditLogTable';
+import AuditLogTable, { TableAuditLog } from './logs/AuditLogTable';
 import AuditLogFilters from './logs/AuditLogFilters';
 import LogDetailDialog from './logs/LogDetailDialog';
 import { DateRange } from '@/types/shared';
@@ -66,8 +66,30 @@ const AuditLog: React.FC<AuditLogProps> = ({
     });
   }, []);
 
-  const handleViewDetails = useCallback((log: AuditLogType) => {
-    setSelectedLog(log);
+  // Convert AuditLogType to TableAuditLog
+  const convertedLogs: TableAuditLog[] = filteredLogs.map(log => ({
+    id: log.id,
+    module: log.module,
+    event_type: log.event_type,
+    description: log.description,
+    tenant_id: log.tenant_id,
+    metadata: log.metadata,
+    created_at: log.created_at
+  }));
+
+  const handleViewDetails = useCallback((log: TableAuditLog) => {
+    // Convert TableAuditLog back to AuditLogType
+    const auditLog: AuditLogType = {
+      id: log.id,
+      module: log.module,
+      event_type: log.event_type,
+      description: log.description || 'No description',
+      tenant_id: log.tenant_id,
+      created_at: log.created_at,
+      metadata: log.metadata
+    };
+    
+    setSelectedLog(auditLog);
     setDetailsOpen(true);
   }, []);
 
@@ -89,7 +111,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
           />
           
           <AuditLogTable
-            logs={filteredLogs}
+            logs={convertedLogs}
             isLoading={isLoading}
             onViewDetails={handleViewDetails}
           />

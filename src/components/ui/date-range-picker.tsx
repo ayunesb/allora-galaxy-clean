@@ -27,27 +27,27 @@ export function DateRangePicker({
 
   // Update the external state when the internal state changes
   React.useEffect(() => {
-    if (date) {
+    if (date !== undefined) {
       onChange(date);
     }
   }, [date, onChange]);
 
   // Update the internal state when the external value changes
   React.useEffect(() => {
-    if (value) {
+    if (value !== undefined) {
       setDate(value);
     }
   }, [value]);
 
   const handleClear = () => {
-    setDate(undefined);
-    onChange(undefined);
+    setDate(null);
+    onChange(null);
   };
 
   // Fix type incompatibility by creating a proper handler function
   const handleSelect = (range: { from?: Date; to?: Date } | undefined) => {
     if (!range || !range.from) {
-      setDate(undefined);
+      setDate(null);
       return;
     }
 
@@ -94,7 +94,7 @@ export function DateRangePicker({
             defaultMonth={date?.from}
             selected={{
               from: date?.from,
-              to: date?.to || date?.from
+              to: date?.to
             }}
             onSelect={handleSelect}
             numberOfMonths={2}
