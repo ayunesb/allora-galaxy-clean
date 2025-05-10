@@ -7,6 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to safely get environment variables
+function getEnv(name: string, fallback: string = ""): string {
+  try {
+    return Deno.env.get(name) ?? fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
+}
+
 interface WebhookAlertConfig {
   webhook_url: string;
   alert_type: string;
@@ -22,10 +32,8 @@ serve(async (req) => {
   }
   
   try {
-    const supabaseUrl = typeof Deno !== 'undefined' ? 
-      Deno.env.get("SUPABASE_URL") : process.env.SUPABASE_URL || '';
-    const supabaseServiceKey = typeof Deno !== 'undefined' ? 
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") : process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const supabaseUrl = getEnv("SUPABASE_URL");
+    const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing Supabase credentials');

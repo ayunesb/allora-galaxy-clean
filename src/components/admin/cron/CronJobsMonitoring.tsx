@@ -11,7 +11,7 @@ interface TimeRange {
 }
 
 // Define the types for CronJob and Stats to match the expected interface
-interface CronJob {
+export interface CronJob {
   id: string;
   name: string;
   schedule: string;
@@ -20,6 +20,14 @@ interface CronJob {
   status: 'active' | 'inactive' | 'running' | 'failed';
   function_name: string;
   created_at: string;
+  error_message?: string | null;
+  duration_ms?: number | null;
+  metadata?: Record<string, any> | null;
+}
+
+export interface CronJobStats {
+  status: string;
+  count: number;
 }
 
 interface Stats {
@@ -32,8 +40,8 @@ interface Stats {
 
 const CronJobsMonitoring: React.FC = () => {
   const { 
-    jobs: cronJobs, 
-    stats: cronStats, 
+    jobs: cronJobData, 
+    stats: cronJobStats, 
     isLoading, 
     timeRange, 
     setTimeRange, 
@@ -42,22 +50,42 @@ const CronJobsMonitoring: React.FC = () => {
   } = useCronJobsMonitoring();
 
   // Map the jobData to the expected CronJob type
-  const jobs: CronJob[] = cronJobs.map(job => ({
-    ...job,
-    schedule: job.schedule || '* * * * *' // Provide default schedule if not available
+  const jobs: CronJob[] = cronJobData.map(job => ({
+    id: job.id,
+    name: job.name,
+    schedule: job.schedule || '* * * * *', // Provide default schedule if not available
+    last_run: job.last_run,
+    next_run: job.next_run,
+    status: mapStatus(job.status),
+    function_name: job.name, // Using name as function_name
+    created_at: job.created_at,
+    error_message: job.error_message,
+    duration_ms: job.duration_ms,
+    metadata: job.metadata
   }));
 
-  // Create a Stats object from cronStats
+  // Map status from API to our component's expected values
+  function mapStatus(status: 'success' | 'running' | 'failure' | 'scheduled'): 'active' | 'inactive' | 'running' | 'failed' {
+    switch (status) {
+      case 'success': return 'active';
+      case 'running': return 'running';
+      case 'failure': return 'failed';
+      case 'scheduled': return 'inactive';
+      default: return 'inactive';
+    }
+  }
+
+  // Create a Stats object from cronJobStats
   const stats: Stats = {
-    total: cronStats.reduce((sum, stat) => sum + stat.count, 0),
-    active: cronStats.find(s => s.status === 'active')?.count || 0,
-    pending: cronStats.find(s => s.status === 'pending')?.count || 0,
-    failed: cronStats.find(s => s.status === 'failed')?.count || 0,
-    completed: cronStats.find(s => s.status === 'completed')?.count || 0
+    total: cronJobStats.reduce((sum, stat) => sum + stat.count, 0),
+    active: cronJobStats.find(s => s.status === 'success')?.count || 0,
+    pending: cronJobStats.find(s => s.status === 'scheduled')?.count || 0,
+    failed: cronJobStats.find(s => s.status === 'failure')?.count || 0,
+    completed: cronJobStats.find(s => s.status === 'success')?.count || 0
   };
 
   const handleTimeRangeChange = (value: string) => {
-    const selectedTimeRange = {
+    const selectedTimeRange: TimeRange = {
       value,
       label: value === 'day' ? 'Last 24 hours' : 
              value === 'week' ? 'Last 7 days' : 

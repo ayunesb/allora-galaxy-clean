@@ -2,24 +2,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
+// Helper function to safely get environment variables
+function getEnv(name: string, fallback: string = ""): string {
+  try {
+    return Deno.env.get(name) ?? fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
+}
+
 // Get API key from environment variable
-const resendApiKey = Deno.env.get('RESEND_API_KEY');
+const resendApiKey = getEnv('RESEND_API_KEY');
 
 // Set up CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Helper function to safely get environment variables
-function getEnv(name: string, fallback: string = ""): string {
-  try {
-    return Deno.env.get(name) || fallback;
-  } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
-    return fallback;
-  }
-}
 
 interface EmailRequest {
   to: string | string[];

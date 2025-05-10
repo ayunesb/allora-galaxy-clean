@@ -32,7 +32,6 @@ export function Toaster({ position = "bottom-right", closeButton = true, richCol
   return (
     <Sonner
       theme={theme as "light" | "dark" | "system"}
-      className="toaster group"
       toastOptions={{
         classNames: {
           toast: cn(toastVariants({ variant: "default" })),
@@ -40,7 +39,7 @@ export function Toaster({ position = "bottom-right", closeButton = true, richCol
           success: cn(toastVariants({ variant: "default" })),
           warning: cn(toastVariants({ variant: "default" })),
           info: cn(toastVariants({ variant: "default" })),
-        },
+        } as any
       }}
       position={position}
       closeButton={closeButton}

@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import AuditLogFilters, { AuditLogFilters as AuditLogFiltersType } from './logs/AuditLogFilters';
-import AuditLogTable from './logs/AuditLogTable';
+import AuditLogTable, { AuditLog as AuditLogType } from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
-import useAuditLogData, { AuditLog as AuditLogType } from '@/hooks/admin/useAuditLogData';
+import useAuditLogData from '@/hooks/admin/useAuditLogData';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AuditLogProps {
@@ -26,7 +26,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { logs, loading, error, refetch } = useAuditLogData(filters);
+  const { logs, isLoading, error, handleRefresh } = useAuditLogData(filters);
 
   const displayLogs = useMemo(() => {
     if (limitEntries && logs.length > 5) {
@@ -63,8 +63,8 @@ const AuditLog: React.FC<AuditLogProps> = ({
             <CardTitle>{title}</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={loading}>
-            {loading ? <ReloadIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={isLoading}>
+            {isLoading ? <ReloadIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
             Refresh
           </Button>
         </CardHeader>
@@ -76,7 +76,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
           onClearFilters={handleClearFilters}
         />
 
-        {loading ? (
+        {isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
@@ -87,7 +87,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
         ) : error ? (
           <div className="text-center py-4 text-red-500">
             <p>Error loading audit logs: {error.message}</p>
-            <Button onClick={() => refetch()} variant="outline" className="mt-2">
+            <Button onClick={handleRefresh} variant="outline" className="mt-2">
               Try Again
             </Button>
           </div>
