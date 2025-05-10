@@ -1,47 +1,36 @@
 
-import {
-  LayoutDashboard,
-  Rocket,
-  Settings,
-  Layers,
-  BarChart,
-  Users,
-  Package,
-  Globe,
-  Bell,
-} from "lucide-react";
 import { NavigationItem } from "@/types/shared";
 
 export const navigationItems: NavigationItem[] = [
   {
     name: "Dashboard",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: "LayoutDashboard",
   },
   {
     name: "Notifications",
     href: "/notifications",
-    icon: Bell,
+    icon: "Bell",
   },
   {
     name: "Galaxy",
     href: "/galaxy",
-    icon: Globe,
+    icon: "Globe",
   },
   {
     name: "Launch",
     href: "/launch",
-    icon: Rocket,
+    icon: "Rocket",
   },
   {
     name: "Plugins",
     href: "/plugins",
-    icon: Package,
+    icon: "Package",
   },
   {
     name: "Agents",
     href: "/agents",
-    icon: Users,
+    icon: "Users",
     children: [
       {
         name: "Performance",
@@ -52,7 +41,7 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Insights",
     href: "/insights",
-    icon: BarChart,
+    icon: "BarChart",
     children: [
       {
         name: "KPIs",
@@ -63,12 +52,12 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Settings",
     href: "/settings",
-    icon: Settings,
+    icon: "Settings",
   },
   {
     name: "Admin",
     href: "/admin",
-    icon: Layers,
+    icon: "Layers",
     adminOnly: true,
     children: [
       {

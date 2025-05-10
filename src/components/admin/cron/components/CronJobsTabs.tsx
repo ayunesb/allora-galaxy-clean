@@ -5,14 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Play as PlayIcon } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 
-interface CronJob {
+export interface CronJob {
   id: string;
   name: string;
   schedule: string;
-  last_run: string;
-  next_run: string;
+  last_run: string | null;
+  next_run: string | null;
   status: string;
   error_message: string | null;
+  function_name?: string;
+  created_at?: string;
+  duration_ms?: number | null;
+  metadata?: Record<string, any> | null;
 }
 
 interface Stats {
@@ -23,7 +27,7 @@ interface Stats {
   completed: number;
 }
 
-interface CronJobsTabsProps {
+export interface CronJobsTabsProps {
   jobs: CronJob[];
   stats: Stats;
   isLoading: boolean;

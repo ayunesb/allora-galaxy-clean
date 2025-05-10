@@ -13,7 +13,7 @@ interface SidebarNavProps {
 const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
-  // Function to render icon component
+  // Function to render icon component from string name
   const renderIcon = (icon?: string) => {
     if (!icon) return null;
     

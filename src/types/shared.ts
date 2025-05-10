@@ -15,7 +15,7 @@ export interface AuditLog {
 export type VoteType = 'upvote' | 'downvote';
 
 // Add missing TrendDirection type
-export type TrendDirection = 'up' | 'down' | 'neutral';
+export type TrendDirection = 'up' | 'down' | 'neutral' | 'increasing' | 'decreasing' | 'stable';
 
 // Add missing LogStatus type
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
@@ -29,6 +29,8 @@ export interface NavigationItem {
   requiresAuth?: boolean;
   roles?: UserRole[];
   isActive?: boolean;
+  children?: NavigationItem[];
+  adminOnly?: boolean;
 }
 
 // Add missing SystemEventModule type
@@ -38,7 +40,15 @@ export type SystemEventModule = 'auth' | 'strategy' | 'plugin' | 'agent' | 'kpi'
 export type SystemEventType = 'create' | 'update' | 'delete' | 'error' | 'login' | 'logout';
 
 // Add missing OnboardingStep type
-export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'strategy' | 'complete';
+export type OnboardingStep = 
+  | 'welcome' 
+  | 'company' 
+  | 'persona' 
+  | 'strategy' 
+  | 'complete'
+  | 'company-info'
+  | 'additional-info'
+  | 'strategy-generation';
 
 // Add missing BaseEntity type
 export interface BaseEntity {
@@ -62,13 +72,17 @@ export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
 
 // Add missing KPITrend type
 export interface KPITrend {
-  name: string;
-  value: number;
+  name?: string;
+  value?: number;
   previousValue?: number | null;
-  trend: TrendDirection;
+  trend?: TrendDirection;
   percentChange?: number;
   target?: number;
-  unit: string;
+  unit?: string;
+  direction?: TrendDirection; 
+  percentage?: number;
+  currentValue?: number;
+  isPositive?: boolean;
 }
 
 // Add missing UserRole type
@@ -103,4 +117,22 @@ export interface Tenant {
 export interface DateRange {
   from: Date;
   to: Date;
+}
+
+// Add the KPI interface
+export interface KPI {
+  id: string;
+  name: string;
+  value: number;
+  previous_value?: number | null;
+  unit: string;
+  target?: number | null;
+  category: string;
+  period: string;
+  source?: string;
+  created_at: string;
+  updated_at: string;
+  tenant_id: string;
+  metadata?: Record<string, any>;
+  date: string;
 }

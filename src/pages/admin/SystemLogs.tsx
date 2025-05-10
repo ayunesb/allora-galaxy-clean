@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { AuditLog } from '@/types/shared';
+import { AuditLog, DateRange } from '@/types/shared';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import AuditLogTable, { AuditLog as TableAuditLog } from '@/components/evolution/logs/AuditLogTable';
@@ -80,6 +80,11 @@ const SystemLogs: React.FC = () => {
     }
   };
 
+  // Function to adapt handler for SystemLogFilters
+  const handleLogFilterChange = (type: string, value: string | DateRange | null) => {
+    handleFilterChange(type, value as string | DateRange | null);
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-4">
       <PageHelmet
@@ -96,10 +101,10 @@ const SystemLogs: React.FC = () => {
             moduleFilter={moduleFilter}
             eventFilter={eventFilter}
             searchQuery={searchQuery}
-            selectedDate={selectedDate}
+            selectedDate={selectedDate as DateRange | null}
             modules={modules}
             events={events}
-            handleFilterChange={handleFilterChange}
+            handleFilterChange={handleLogFilterChange}
             handleResetFilters={handleResetFilters}
             handleRefresh={handleRefreshLogs}
             isLoading={isLoading}

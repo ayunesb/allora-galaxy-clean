@@ -51,10 +51,10 @@ export function DateRangePicker({
       return;
     }
 
-    // Create a properly typed DateRange object
+    // Create a properly typed DateRange object with safe defaults
     const newRange: DateRange = {
       from: range.from,
-      to: range.to
+      to: range.to || range.from // Default to from date if to is undefined
     };
     
     setDate(newRange);
@@ -95,6 +95,7 @@ export function DateRangePicker({
             selected={date}
             onSelect={handleSelect}
             numberOfMonths={2}
+            className="pointer-events-auto"
           />
           <div className="flex justify-end p-2">
             <Button variant="ghost" size="sm" onClick={handleClear}>
