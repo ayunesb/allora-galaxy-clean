@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      // Use our improved shim for the problematic package
+      // Use our existing shim for the problematic package
       'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.js'),
     },
   },
