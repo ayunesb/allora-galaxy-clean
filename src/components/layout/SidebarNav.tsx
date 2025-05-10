@@ -24,7 +24,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
     }
     
     // If icon is a string (name of Lucide icon)
-    const IconComponent = (LucideIcons as any)[icon];
+    const IconComponent = (LucideIcons as Record<string, React.ComponentType<any>>)[icon];
     
     if (IconComponent) {
       return <IconComponent className="h-4 w-4" />;
