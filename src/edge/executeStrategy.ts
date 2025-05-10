@@ -29,12 +29,18 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
       };
     }
     
+    console.log('Calling executeStrategy edge function with:', {
+      strategyId: input.strategy_id,
+      tenantId: input.tenant_id
+    });
+    
     // Execute the strategy via Supabase edge function
     const { data, error } = await supabase.functions.invoke('executeStrategy', {
       body: input
     });
     
     if (error) {
+      console.error('Edge function error:', error);
       throw new Error(`Error executing strategy: ${error.message}`);
     }
     
@@ -43,32 +49,45 @@ export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Pro
       'strategy',
       'info',
       {
-        description: `Strategy ${input.strategy_id} executed successfully`,
+        description: `Strategy ${input.strategy_id} executed successfully via edge function`,
         event_type: 'strategy_executed',
         strategy_id: input.strategy_id,
         tenant_id: input.tenant_id,
         user_id: input.user_id,
-        success: data.success
+        success: data.success,
+        execution_id: data.execution_id,
+        execution_time: data.execution_time,
+        plugins_executed: data.plugins_executed,
+        successful_plugins: data.successful_plugins,
       },
       input.tenant_id
     );
     
+    // Return execution result in camelCase format
     return {
       success: data.success,
       status: data.success ? 'completed' : 'failed',
       executionTime: data.execution_time || 0,
       executionId: data.execution_id,
       error: data.error,
-      details: data.details
+      details: data.details,
+      xpEarned: data.xp_earned,
+      pluginsExecuted: data.plugins_executed,
+      successfulPlugins: data.successful_plugins,
+      outputs: data.outputs,
+      results: data.results,
+      logs: data.logs
     };
   } catch (error: any) {
+    console.error('Error in executeStrategy edge wrapper:', error);
+    
     // Log the error
     try {
       await logSystemEvent(
         'strategy',
         'error',
         {
-          description: `Strategy execution failed: ${error.message}`,
+          description: `Strategy execution failed in edge wrapper: ${error.message}`,
           event_type: 'strategy_execution_failed',
           strategy_id: input.strategy_id,
           tenant_id: input.tenant_id,

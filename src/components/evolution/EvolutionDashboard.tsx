@@ -18,7 +18,7 @@ const EvolutionDashboard = () => {
   const { logs, isLoading, handleRefresh } = useAuditLogData();
   const [activeTab, setActiveTab] = useState('logs');
   const { currentWorkspace } = useWorkspace();
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('default');
+  const [selectedStrategyId] = useState<string>('default');
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);

@@ -29,7 +29,11 @@ export default defineConfig(({ mode }) => ({
       // Add onwarn handler to suppress git clone warnings
       onwarn(warning, warn) {
         // Suppress git clone warnings for three-bmfont-text
-        if (warning.message.includes('three-bmfont-text')) return;
+        if (warning.message && (
+          warning.message.includes('three-bmfont-text') || 
+          warning.message.includes('git+') ||
+          warning.message.includes('git clone')
+        )) return;
         warn(warning);
       }
     }

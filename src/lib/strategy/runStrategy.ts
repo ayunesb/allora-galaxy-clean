@@ -1,133 +1,96 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/strategy/fixed';
-import logSystemEvent from '@/lib/system/logSystemEvent';
+import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
+import { camelToSnakeObject } from '@/lib/utils/dataConversion';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Shared utility function for executing a strategy
- * Can be used from both frontend code and edge functions
+ * Run a strategy with the given parameters
+ * @param input Strategy execution input parameters
+ * @returns Promise with execution results
  */
-export async function runStrategy(input?: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
+export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   try {
-    // Input validation
-    if (!input) {
-      return { 
-        success: false, 
-        error: 'Strategy ID is required' 
-      };
-    }
-
+    // Validate required input
     if (!input.strategyId) {
-      return { 
-        success: false, 
-        error: 'Strategy ID is required' 
-      };
-    }
-    
-    if (!input.tenantId) {
-      return { 
-        success: false, 
-        error: 'Tenant ID is required' 
-      };
+      throw new Error('Strategy ID is required');
     }
 
-    // Convert camelCase to snake_case for the edge function
-    const edgeFunctionInput = {
-      strategy_id: input.strategyId,
-      tenant_id: input.tenantId,
-      user_id: input.userId,
-      options: input.options
-    };
+    if (!input.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+
+    console.log('Running strategy:', input.strategyId);
     
-    // Invoke the edge function via Supabase
+    // Convert camelCase input to snake_case for the edge function
+    const snakeInput = camelToSnakeObject(input);
+    
+    // Execute the strategy via edge function
     const { data, error } = await supabase.functions.invoke('executeStrategy', {
-      body: edgeFunctionInput
+      body: snakeInput
     });
     
     if (error) {
-      // Log error to Supabase
-      await logSystemEvent(
-        'strategy',
-        'error',
-        {
-          description: `Error executing strategy: ${error.message}`,
-          strategy_id: input.strategyId,
-          error: error.message,
-          stack: error.stack
-        },
-        input.tenantId
-      );
-      
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('Error executing strategy:', error);
+      throw new Error(`Error executing strategy: ${error.message}`);
     }
-    
-    // Map snake_case response to camelCase format
-    const result: ExecuteStrategyResult = {
-      success: data.success,
-      error: data.error,
-      executionId: data.execution_id,
-      executionTime: data.execution_time,
-      outputs: data.outputs,
-      results: data.results,
-      logs: data.logs
-    };
     
     // Log successful execution
-    if (result.success) {
-      await logSystemEvent(
-        'strategy',
-        'info',
-        {
-          description: 'Strategy executed successfully',
-          strategy_id: input.strategyId,
-          execution_id: result.executionId,
-          execution_time: result.executionTime
-        },
-        input.tenantId
-      );
-    } else {
-      await logSystemEvent(
-        'strategy',
-        'warning',
-        {
-          description: `Strategy execution failed: ${result.error}`,
-          strategy_id: input.strategyId,
-          error: result.error
-        },
-        input.tenantId
-      );
-    }
+    await logSystemEvent(
+      'strategy',
+      'info',
+      {
+        description: `Strategy ${input.strategyId} executed successfully`,
+        event_type: 'strategy_executed',
+        strategy_id: input.strategyId,
+        tenant_id: input.tenantId,
+        user_id: input.userId,
+        success: data.success,
+        execution_id: data.execution_id
+      },
+      input.tenantId
+    );
     
-    return result;
-  } catch (error: any) {
-    // Handle unexpected errors
-    console.error('Unexpected error in runStrategy:', error);
+    // Return execution result in camelCase format
+    return {
+      success: data.success,
+      executionId: data.execution_id,
+      executionTime: data.execution_time,
+      status: data.status,
+      results: data.results,
+      outputs: data.outputs,
+      error: data.error,
+      logs: data.logs,
+      xpEarned: data.xp_earned,
+      pluginsExecuted: data.plugins_executed,
+      successfulPlugins: data.successful_plugins
+    };
+  } catch (err: any) {
+    console.error('Error in runStrategy:', err);
     
-    // Attempt to log the error to Supabase
+    // Log execution error
     try {
       await logSystemEvent(
         'strategy',
         'error',
         {
-          description: `Unexpected error in runStrategy: ${error.message}`,
-          strategy_id: input?.strategyId,
-          error: error.message,
-          stack: error.stack
+          description: `Strategy execution failed: ${err.message}`,
+          event_type: 'strategy_execution_failed',
+          strategy_id: input.strategyId,
+          tenant_id: input.tenantId,
+          error: err.message
         },
-        input?.tenantId || 'system'
+        input.tenantId
       );
-    } catch (logError) {
-      console.error('Failed to log error to Supabase:', logError);
+    } catch (logErr) {
+      console.error('Failed to log strategy execution error:', logErr);
     }
     
     return {
       success: false,
-      error: error.message || 'An unexpected error occurred'
+      error: err.message || 'Unknown error occurred',
+      executionTime: 0,
+      status: 'failed'
     };
   }
 }
-
-export default runStrategy;

@@ -93,7 +93,6 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
       <EvolutionHistory 
         history={history}
         formatDate={formatDate}
-        renderUser={renderUser}
         renderStatusBadge={renderStatusBadge}
       />
       
@@ -101,7 +100,6 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
       <ExecutionLogs 
         logs={logs}
         formatDate={formatDate}
-        renderUser={renderUser}
         renderStatusBadge={renderStatusBadge}
       />
     </div>

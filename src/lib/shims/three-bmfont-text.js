@@ -7,6 +7,7 @@
  * components using this package can compile without errors
  */
 
+// Create the geometry with all required properties
 function createGeometry(opt) {
   return {
     update: function() {},
@@ -34,6 +35,7 @@ function createGeometry(opt) {
   };
 }
 
+// Create mesh objects
 function createMeshes(opt) {
   return [{
     position: { x: 0, y: 0, z: 0 },
@@ -44,6 +46,7 @@ function createMeshes(opt) {
   }];
 }
 
+// Create basic text representation
 function createBasicText(opt) {
   return {
     text: opt?.text || '',
@@ -68,10 +71,12 @@ function createTextGeometry(opt) {
 createTextGeometry.createGeometry = createGeometry;
 createTextGeometry.createMeshes = createMeshes;
 createTextGeometry.createBasicText = createBasicText;
+createTextGeometry.default = createTextGeometry; // Add default export to support ES module imports
 
 // Handle both ESM and CommonJS exports
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = createTextGeometry;
+  module.exports.default = createTextGeometry;
 } else {
   export default createTextGeometry;
 }

@@ -18,9 +18,12 @@ export interface ExecuteStrategyResult {
   logs?: Array<any>;
   status?: string;
   details?: any;
+  xpEarned?: number;
+  pluginsExecuted?: number;
+  successfulPlugins?: number;
 }
 
-// Define the snake case version for edge functions
+// Define snake case versions for edge functions
 export interface ExecuteStrategyInputSnakeCase {
   strategy_id: string;
   tenant_id: string;
@@ -28,3 +31,17 @@ export interface ExecuteStrategyInputSnakeCase {
   options?: Record<string, any>;
 }
 
+export interface ExecuteStrategyResultSnakeCase {
+  success: boolean;
+  error?: string;
+  execution_id?: string;
+  execution_time?: number;
+  outputs?: Record<string, any>;
+  results?: Record<string, any>;
+  logs?: Array<any>;
+  status?: string;
+  details?: any;
+  xp_earned?: number;
+  plugins_executed?: number;
+  successful_plugins?: number;
+}
