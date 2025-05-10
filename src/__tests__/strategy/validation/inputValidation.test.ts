@@ -27,7 +27,7 @@ describe('Strategy Input Validation', () => {
 
   it('should reject execution with missing inputs', async () => {
     // Test with undefined input
-    const result1 = await runStrategy(undefined);
+    const result1 = await runStrategy({} as ExecuteStrategyInput);
     expect(result1.success).toBe(false);
     expect(result1.error).toContain('Strategy ID is required');
     

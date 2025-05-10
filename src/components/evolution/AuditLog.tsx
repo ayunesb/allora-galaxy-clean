@@ -34,7 +34,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
       id: log.id,
       module: log.module,
       event_type: log.event_type,
-      description: log.description,
+      description: log.description || 'No description', // Ensure description is never undefined
       tenant_id: log.tenant_id,
       created_at: log.created_at,
       user_id: log.user_id,
