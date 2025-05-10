@@ -11,10 +11,11 @@ import SystemLogFilters, { SystemLogFilter } from '@/components/admin/logs/Syste
 import { LogDetailDialog } from '@/components/evolution/logs/LogDetailDialog';
 import { fetchSystemLogs, fetchLogModules, fetchTenants } from '@/lib/admin/systemLogs';
 import { getSystemLogColumns } from '@/lib/admin/systemLogColumns';
+import { SystemLog } from '@/types';
 
 const SystemLogs: React.FC = () => {
   const [filters, setFilters] = useState<SystemLogFilter>({});
-  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [isFilterVisible, setIsFilterVisible] = useState(true);
 
   const { data: logs, isLoading } = useQuery({
@@ -32,7 +33,7 @@ const SystemLogs: React.FC = () => {
     queryFn: fetchTenants,
   });
 
-  const handleRowClick = (log: any) => {
+  const handleRowClick = (log: SystemLog) => {
     setSelectedLog(log);
   };
 
