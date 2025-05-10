@@ -1,4 +1,3 @@
-
 // Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
@@ -44,4 +43,10 @@ export interface ExecuteStrategyResultSnakeCase {
   xp_earned?: number;
   plugins_executed?: number;
   successful_plugins?: number;
+}
+
+// Add DateRange type for our filters
+export interface DateRange {
+  from: Date;
+  to?: Date;
 }

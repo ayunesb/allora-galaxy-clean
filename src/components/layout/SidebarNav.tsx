@@ -24,7 +24,8 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
     }
     
     // If icon is a string (name of Lucide icon)
-    const IconComponent = (LucideIcons as Record<string, React.ComponentType<any>>)[icon];
+    // Use type assertion to avoid compatibility issues with the index signature
+    const IconComponent = (LucideIcons as unknown as Record<string, React.ComponentType<any>>)[icon];
     
     if (IconComponent) {
       return <IconComponent className="h-4 w-4" />;
