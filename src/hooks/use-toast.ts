@@ -1,160 +1,198 @@
 
-import { useCallback, useState } from "react";
-import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
-import { useTenantId } from './useTenantId';
-import { useNotifications } from '@/lib/notifications/useNotifications';
+import * as React from "react";
+import { toast as sonnerToast } from "sonner";
 
-// Define the toast types
-export interface Toast {
-  id: string;
-  title: string;
-  description?: React.ReactNode;
-  action?: React.ReactNode;
-  variant?: "default" | "destructive";
-  className?: string;
-  duration?: number;
+const TOAST_LIMIT = 5;
+const TOAST_REMOVE_DELAY = 1000000;
+
+type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
+export type ToastActionElement = React.ReactElement<typeof sonnerToast>;
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const;
+
+let count = 0;
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER;
+  return count.toString();
 }
 
-export type ToastActionElement = React.ReactNode;
+type ActionType = typeof actionTypes;
 
-// Create a custom hook for toast
-export const useToast = () => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"];
+      toast: Toast;
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"];
+      toast: Partial<Toast>;
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"];
+      toastId?: string;
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"];
+      toastId?: string;
+    };
 
-  const toast = useCallback(
-    (props: Omit<Toast, "id">) => {
-      const id = uuidv4();
-      const newToast = { id, ...props };
-      setToasts((prevToasts) => [...prevToasts, newToast]);
-      return id;
-    },
-    [setToasts]
-  );
+interface State {
+  toasts: Toast[];
+}
 
-  const dismiss = useCallback((toastId?: string) => {
-    setToasts((prevToasts) => prevToasts.filter(({ id }) => id !== toastId));
-  }, [setToasts]);
-
-  return {
-    toast,
-    dismiss,
-    toasts,
-  };
+export type Toast = ToastProps & {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+  variant?: "default" | "destructive" | "success";
 };
 
-// Export a standalone toast function to optionally persist to notifications
-export const toast = (props: {
-  title: string;
-  description?: string;
-  action?: ToastActionElement;
-  variant?: "default" | "destructive";
-  className?: string;
-  duration?: number;
-  persist?: boolean; // If true, also save to notifications system
-}) => {
-  // For standalone usage, create a temporary toast and use it
-  const id = uuidv4();
-  const toastInstance = document.createEvent('CustomEvent');
-  toastInstance.initCustomEvent('toast', true, true, { id, ...props });
-  document.dispatchEvent(toastInstance);
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
-  // If persist is true, save to supabase
-  if (props.persist) {
-    const notificationType = props.variant === "destructive" ? "error" : "info";
-    const tenant_id = localStorage.getItem('currentTenantId');
-    
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.id && tenant_id) {
-        supabase.from('notifications').insert({
-          id: uuidv4(),
-          title: props.title,
-          description: props.description || '',
-          tenant_id,
-          user_id: data.user.id,
-          type: notificationType,
-          created_at: new Date().toISOString()
-        }).then(({ error }) => {
-          if (error) {
-            console.error('Error persisting notification:', error);
-          }
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return;
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId);
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    });
+  }, TOAST_REMOVE_DELAY);
+
+  toastTimeouts.set(toastId, timeout);
+};
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      };
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      };
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action;
+
+      if (toastId) {
+        addToRemoveQueue(toastId);
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id);
         });
       }
-    });
-  }
-};
 
-// Hook for sending notifications that are persisted
-export const useNotify = () => {
-  const tenantId = useTenantId();
-  const { refreshNotifications } = useNotifications();
-  
-  const notify = useCallback(async (params: {
-    title: string;
-    description?: string;
-    type?: "info" | "success" | "warning" | "error" | "system" | "milestone";
-    action_url?: string;
-    action_label?: string;
-  }) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData?.user?.id;
-      
-      if (!userId || !tenantId) {
-        console.error('Cannot send notification: Missing user ID or tenant ID');
-        return { success: false, error: new Error('Missing user ID or tenant ID') };
-      }
-      
-      const { error } = await supabase.from('notifications').insert({
-        title: params.title,
-        description: params.description,
-        tenant_id: tenantId,
-        user_id: userId,
-        type: params.type || 'info',
-        action_url: params.action_url,
-        action_label: params.action_label,
-        created_at: new Date().toISOString()
-      });
-      
-      if (error) {
-        console.error('Error sending notification:', error);
-        return { success: false, error };
-      }
-      
-      // Also show as a toast
-      const variant = params.type === 'error' ? 'destructive' : 'default';
-      const className = getClassNameByType(params.type);
-      
-      toast({
-        title: params.title,
-        description: params.description,
-        variant,
-        className
-      });
-      
-      // Refresh notifications
-      await refreshNotifications();
-      
-      return { success: true };
-    } catch (err) {
-      console.error('Failed to send notification:', err);
-      return { success: false, error: err as Error };
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+              }
+            : t
+        ),
+      };
     }
-  }, [tenantId, refreshNotifications]);
-  
-  return { notify };
+
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        };
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      };
+  }
 };
 
-// Helper function to get class names based on notification type
-function getClassNameByType(type?: string): string | undefined {
-  switch (type) {
-    case 'success':
-      return 'border-green-600 bg-green-50 dark:bg-green-950/30';
-    case 'warning':
-      return 'border-yellow-600 bg-yellow-50 dark:bg-yellow-950/30';
-    case 'error':
-      return ''; // Using destructive variant instead
-    default:
-      return undefined;
-  }
+const listeners: ((state: State) => void)[] = [];
+
+let memoryState: State = { toasts: [] };
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action);
+  listeners.forEach((listener) => {
+    listener(memoryState);
+  });
+}
+
+type Toast = Omit<
+  ToastProps,
+  "onOpenChange" | "open"
+> & {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactElement;
+  variant?: "default" | "destructive" | "success";
+};
+
+export function toast({
+  variant = "default",
+  title,
+  description,
+  ...props
+}: Toast) {
+  const id = genId();
+
+  const handleSonnerToast = () => {
+    if (variant === "destructive") {
+      sonnerToast.error(title as string, {
+        description: description as string,
+        ...props,
+      });
+    } else if (variant === "success") {
+      sonnerToast.success(title as string, {
+        description: description as string,
+        ...props,
+      });
+    } else {
+      sonnerToast(title as string, {
+        description: description as string,
+        ...props,
+      });
+    }
+  };
+
+  handleSonnerToast();
+
+  return {
+    id: id,
+    dismiss: () => null,
+  };
+}
+
+export function useToast() {
+  const [state] = React.useState<State>(() => memoryState);
+
+  React.useEffect(() => {
+    return () => {};
+  }, []);
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  };
 }

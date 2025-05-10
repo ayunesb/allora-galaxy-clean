@@ -1,39 +1,47 @@
 
 import React from 'react';
-import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface StatusBadgeProps { 
-  status: string; 
-  errorMessage: string | null; 
+interface StatusBadgeProps {
+  status: string;
+  errorMessage?: string | null;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, errorMessage }) => {
+  let variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'success' = 'default';
+  
   switch (status) {
     case 'completed':
-      return (
-        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Completed
-        </Badge>
-      );
-    case 'started':
-      return (
-        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-          <Clock className="w-3 h-3 mr-1" />
-          Running
-        </Badge>
-      );
+      variant = 'success';
+      break;
     case 'failed':
-      return (
-        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200" title={errorMessage || undefined}>
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Failed
-        </Badge>
-      );
+      variant = 'destructive';
+      break;
+    case 'started':
+      variant = 'secondary';
+      break;
+    case 'pending':
+      variant = 'outline';
+      break;
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      variant = 'default';
   }
+  
+  if (errorMessage) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant={variant}>{status}</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs break-words">{errorMessage}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  
+  return <Badge variant={variant}>{status}</Badge>;
 };
-
-export default StatusBadge;
