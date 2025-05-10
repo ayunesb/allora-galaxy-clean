@@ -58,7 +58,7 @@ const ExplorePage: React.FC = () => {
     }
   ];
 
-  const trendigPlugins = [
+  const trendingPlugins = [
     {
       id: 5,
       name: 'AI Content Generator',
@@ -214,7 +214,7 @@ const ExplorePage: React.FC = () => {
 
             <TabsContent value="trending">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {trendigPlugins.map(renderPlugin)}
+                {trendingPlugins.map(renderPlugin)}
               </div>
             </TabsContent>
 

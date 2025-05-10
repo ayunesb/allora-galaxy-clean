@@ -143,8 +143,9 @@ serve(async (req) => {
         .from("system_logs")
         .insert({
           tenant_id: milestoneAlert.tenant_id,
-          module: "notifications",
+          module: "notification",
           event: "milestone_alert_created",
+          description: milestoneAlert.title,
           context: {
             achievement_type: milestoneAlert.achievement_type,
             achievement_id: milestoneAlert.achievement_id,

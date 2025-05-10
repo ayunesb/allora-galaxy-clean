@@ -49,13 +49,13 @@ export async function runStrategy(input?: ExecuteStrategyInput): Promise<Execute
       await logSystemEvent(
         'strategy',
         'error',
-        `Error executing strategy: ${error.message}`,
-        input.tenantId,
         {
+          description: `Error executing strategy: ${error.message}`,
           strategy_id: input.strategyId,
           error: error.message,
           stack: error.stack
-        }
+        },
+        input.tenantId
       );
       
       return {
@@ -80,24 +80,24 @@ export async function runStrategy(input?: ExecuteStrategyInput): Promise<Execute
       await logSystemEvent(
         'strategy',
         'info',
-        'Strategy executed successfully',
-        input.tenantId,
         {
+          description: 'Strategy executed successfully',
           strategy_id: input.strategyId,
           execution_id: result.executionId,
           execution_time: result.executionTime
-        }
+        },
+        input.tenantId
       );
     } else {
       await logSystemEvent(
         'strategy',
         'warning',
-        `Strategy execution failed: ${result.error}`,
-        input.tenantId,
         {
+          description: `Strategy execution failed: ${result.error}`,
           strategy_id: input.strategyId,
           error: result.error
-        }
+        },
+        input.tenantId
       );
     }
     
@@ -111,13 +111,13 @@ export async function runStrategy(input?: ExecuteStrategyInput): Promise<Execute
       await logSystemEvent(
         'strategy',
         'error',
-        `Unexpected error in runStrategy: ${error.message}`,
-        input?.tenantId || 'system',
         {
+          description: `Unexpected error in runStrategy: ${error.message}`,
           strategy_id: input?.strategyId,
           error: error.message,
           stack: error.stack
-        }
+        },
+        input?.tenantId || 'system'
       );
     } catch (logError) {
       console.error('Failed to log error to Supabase:', logError);

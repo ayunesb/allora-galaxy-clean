@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { runStrategy } from "@/lib/strategy/runStrategy";
-import { ExecuteStrategyInputSnakeCase } from "@/types/fixed";
+import { ExecuteStrategyInputSnakeCase } from "@/types/strategy/fixed";
 
 // Mock the runStrategy function
 vi.mock('@/lib/strategy/runStrategy', () => ({
@@ -85,9 +85,9 @@ describe('executeStrategy Edge Function', () => {
       return Promise.resolve({
         success: true,
         error: undefined,
-        strategy_id: 'strategy-123',
+        executionId: 'exec-123',
         status: 'completed',
-        execution_time: 1.5,
+        executionTime: 1.5,
         outputs: { result: 'success' },
         logs: []
       });
@@ -112,5 +112,17 @@ describe('executeStrategy Edge Function', () => {
     // Assert
     expect(runStrategy).toHaveBeenCalled();
     expect(result.success).toBe(true);
+  });
+  
+  it('should validate required fields', async () => {
+    // Missing strategy_id
+    const result1 = await executeStrategy({ tenant_id: 'tenant-123', user_id: 'user-123' } as any);
+    expect(result1.success).toBe(false);
+    expect(result1.error).toContain('Strategy ID is required');
+    
+    // Missing tenant_id
+    const result2 = await executeStrategy({ strategy_id: 'strategy-123', user_id: 'user-123' } as any);
+    expect(result2.success).toBe(false);
+    expect(result2.error).toContain('Tenant ID is required');
   });
 });

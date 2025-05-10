@@ -68,6 +68,9 @@ serve(async (req) => {
       );
     }
 
+    // Log system info for audit purposes
+    console.log(`Send email function called with: to=${Array.isArray(requestData.to) ? requestData.to.join(',') : requestData.to}, subject=${requestData.subject}`);
+
     // Prepare email data for sending
     const emailData = {
       from: requestData.from || "Allora OS <no-reply@alloraos.com>",

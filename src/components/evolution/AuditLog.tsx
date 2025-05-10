@@ -1,115 +1,79 @@
 
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ReloadIcon } from '@radix-ui/react-icons';
-import AuditLogFilters, { AuditLogFilters as AuditLogFiltersType } from './logs/AuditLogFilters';
-import AuditLogTable, { AuditLog as AuditLogType } from './logs/AuditLogTable';
+import React, { useState } from 'react';
+import AuditLogFilters, { AuditLogFilters as FilterState } from './logs/AuditLogFilters';
+import AuditLogTable, { AuditLog as Log } from './logs/AuditLogTable';
 import LogDetailDialog from './logs/LogDetailDialog';
-import useAuditLogData from '@/hooks/admin/useAuditLogData';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface AuditLogProps {
-  limitEntries?: boolean;
-  showHeader?: boolean;
+export interface AuditLogProps {
   title?: string;
-  description?: string;
+  onRefresh: () => void;
+  isLoading: boolean;
+  data: Log[];
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({
-  limitEntries = false,
-  showHeader = true,
-  title = "Audit Logs",
-  description = "Review all system actions and changes"
+const AuditLog: React.FC<AuditLogProps> = ({ 
+  title = 'System Logs',
+  onRefresh, 
+  isLoading,
+  data
 }) => {
-  const [filters, setFilters] = useState<AuditLogFiltersType>({});
-  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
+  const [filters, setFilters] = useState<FilterState>({});
+  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { logs, isLoading, error, handleRefresh } = useAuditLogData(filters);
-
-  const displayLogs = useMemo(() => {
-    if (limitEntries && logs.length > 5) {
-      return logs.slice(0, 5);
-    }
-    return logs;
-  }, [logs, limitEntries]);
-
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    // In a real implementation, this would trigger a re-fetch with the updated filters
   };
 
-  const handleClearFilters = () => {
-    setFilters({});
-  };
-
-  const handleRowClick = (log: AuditLogType) => {
+  const handleViewLog = (log: Log) => {
     setSelectedLog(log);
     setDialogOpen(true);
   };
 
-  const handleDialogOpenChange = (open: boolean) => {
-    setDialogOpen(open);
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
   };
 
+  // Apply filters locally
+  const filteredLogs = data.filter(log => {
+    if (filters.module && log.module !== filters.module) return false;
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      const matchesEvent = log.event?.toLowerCase().includes(searchTerm);
+      const matchesDescription = log.description?.toLowerCase().includes(searchTerm);
+      if (!matchesEvent && !matchesDescription) return false;
+    }
+    // Time range filtering would happen here
+    return true;
+  });
+
   return (
-    <Card className="w-full">
-      {showHeader && (
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>{title}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
-          </div>
-          <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={isLoading}>
-            {isLoading ? <ReloadIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Refresh
-          </Button>
-        </CardHeader>
-      )}
+    <Card className="shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
       <CardContent>
-        <AuditLogFilters
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onClearFilters={handleClearFilters}
+        <AuditLogFilters 
+          filters={filters} 
+          onFilterChange={handleFilterChange} 
+          onRefresh={onRefresh}
+          isLoading={isLoading}
         />
-
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : error ? (
-          <div className="text-center py-4 text-red-500">
-            <p>Error loading audit logs: {error.message}</p>
-            <Button onClick={handleRefresh} variant="outline" className="mt-2">
-              Try Again
-            </Button>
-          </div>
-        ) : (
-          <AuditLogTable 
-            logs={displayLogs} 
-            onRowClick={handleRowClick} 
-          />
-        )}
         
-        {limitEntries && logs.length > 5 && (
-          <div className="mt-4 text-center">
-            <Button variant="link">View All Logs</Button>
-          </div>
-        )}
+        <AuditLogTable 
+          logs={filteredLogs} 
+          isLoading={isLoading}
+          onViewLog={handleViewLog}
+        />
+        
+        <LogDetailDialog
+          log={selectedLog}
+          open={dialogOpen}
+          onClose={handleCloseDialog}
+        />
       </CardContent>
-
-      <LogDetailDialog 
-        log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={handleDialogOpenChange} 
-      />
     </Card>
   );
 };

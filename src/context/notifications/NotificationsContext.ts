@@ -1,6 +1,6 @@
 
 import { createContext } from 'react';
-import { NotificationsContextValue } from './types';
+import { NotificationsContextValue } from '@/types/notifications';
 
 // Create context with default values
 const NotificationsContext = createContext<NotificationsContextValue>({

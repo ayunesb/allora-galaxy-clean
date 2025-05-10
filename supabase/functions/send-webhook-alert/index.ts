@@ -60,6 +60,7 @@ serve(async (req) => {
         tenant_id: config.tenant_id,
         module: 'webhook',
         event: `webhook_alert_${config.alert_type}`,
+        description: config.message,
         context: {
           webhook_url: config.webhook_url,
           alert_type: config.alert_type,

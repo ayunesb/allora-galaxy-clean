@@ -9,10 +9,10 @@ const useAuditLogData = (filters: AuditLogFilters = {}) => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { workspace } = useWorkspace();
+  const { currentWorkspace } = useWorkspace();
 
   const fetchLogs = useCallback(async () => {
-    if (!workspace?.id) return;
+    if (!currentWorkspace?.id) return;
     
     setIsLoading(true);
     setError(null);
@@ -21,7 +21,7 @@ const useAuditLogData = (filters: AuditLogFilters = {}) => {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .eq('tenant_id', workspace.id)
+        .eq('tenant_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
       
       // Apply filters
@@ -48,7 +48,7 @@ const useAuditLogData = (filters: AuditLogFilters = {}) => {
     } finally {
       setIsLoading(false);
     }
-  }, [workspace?.id, filters]);
+  }, [currentWorkspace?.id, filters]);
 
   useEffect(() => {
     fetchLogs();
