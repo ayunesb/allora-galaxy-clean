@@ -21,7 +21,9 @@ interface KPI {
 }
 
 export function calculateTrendDirection(current: number, previous: number | null | undefined): TrendDirection {
-  if (!previous) return 'neutral';
+  if (previous === null || previous === undefined) {
+    return 'neutral';
+  }
   
   if (current > previous) {
     return 'up';
@@ -48,12 +50,12 @@ export function formatKPIValue(value: number, unit: string): string {
 
 export function createKPITrend(name: string, current: number, previous: number | null | undefined, unit: string, target?: number): KPITrend {
   const trend = calculateTrendDirection(current, previous);
-  const percentChange = previous ? calculatePercentChange(current, previous) : 0;
+  const percentChange = previous !== null && previous !== undefined ? calculatePercentChange(current, previous) : 0;
 
   return {
     name,
     value: current,
-    previousValue: previous,
+    previousValue: previous || undefined,
     trend,
     percentChange,
     unit,
@@ -65,7 +67,7 @@ export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
   return {
     name,
     value: 0,
-    previousValue: null,
+    previousValue: undefined,
     trend: 'neutral',
     percentChange: 0,
     unit
@@ -91,11 +93,11 @@ export function analyzeKPITrend(kpi: KPI): KPITrend {
   return {
     name: kpi.name,
     value: kpi.value,
-    previousValue: kpi.previous_value,
+    previousValue: kpi.previous_value || undefined,
     trend,
     percentChange,
     unit: kpi.unit,
-    target: kpi.target
+    target: kpi.target || undefined
   };
 }
 
@@ -115,8 +117,8 @@ export function createMockKPITrend(config: {
     target
   } = config;
   
-  let trend = config.trend;
-  if (!trend) {
+  let trend = config.trend || 'neutral';
+  if (!config.trend) {
     if (value > previousValue) {
       trend = 'up';
     } else if (value < previousValue) {

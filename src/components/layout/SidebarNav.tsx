@@ -13,11 +13,17 @@ interface SidebarNavProps {
 const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
-  // Function to render icon component from string name
-  const renderIcon = (icon?: string) => {
+  // Function to render icon
+  const renderIcon = (icon?: string | React.ComponentType<any>) => {
     if (!icon) return null;
     
-    // Check if the icon name exists in Lucide icons
+    // If icon is a component (React component)
+    if (typeof icon !== 'string') {
+      const IconComponent = icon;
+      return <IconComponent className="h-4 w-4" />;
+    }
+    
+    // If icon is a string (name of Lucide icon)
     const IconComponent = (LucideIcons as any)[icon];
     
     if (IconComponent) {

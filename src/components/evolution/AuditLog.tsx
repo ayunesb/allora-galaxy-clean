@@ -21,10 +21,12 @@ const AuditLog: React.FC<AuditLogProps> = ({
 }) => {
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [moduleFilter, setModuleFilter] = useState('');
-  const [eventFilter, setEventFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const [filters, setFilters] = useState({
+    moduleFilter: '',
+    eventFilter: '',
+    searchQuery: '',
+    selectedDate: null as DateRange | null
+  });
 
   // Extract unique modules and event types from data
   const modules = Array.from(new Set(data.map(log => log.module)));
@@ -32,12 +34,12 @@ const AuditLog: React.FC<AuditLogProps> = ({
 
   // Filter logs based on selected filters
   const filteredLogs = data.filter(log => {
-    const matchesModule = !moduleFilter || log.module === moduleFilter;
-    const matchesEvent = !eventFilter || log.event_type === eventFilter;
-    const matchesSearch = !searchQuery || 
-      log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.module.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.event_type.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesModule = !filters.moduleFilter || log.module === filters.moduleFilter;
+    const matchesEvent = !filters.eventFilter || log.event_type === filters.eventFilter;
+    const matchesSearch = !filters.searchQuery || 
+      log.description?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+      log.module.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+      log.event_type.toLowerCase().includes(filters.searchQuery.toLowerCase());
     
     // Date filtering logic would go here if needed
     
@@ -45,29 +47,22 @@ const AuditLog: React.FC<AuditLogProps> = ({
   });
 
   const handleFilterChange = useCallback((type: string, value: string | DateRange | null) => {
-    switch (type) {
-      case 'module':
-        setModuleFilter(value as string);
-        break;
-      case 'event':
-        setEventFilter(value as string);
-        break;
-      case 'search':
-        setSearchQuery(value as string);
-        break;
-      case 'date':
-        setDateRange(value as DateRange | null);
-        break;
-      default:
-        break;
-    }
+    setFilters(prev => ({
+      ...prev,
+      [type === 'search' ? 'searchQuery' : 
+        type === 'module' ? 'moduleFilter' :
+        type === 'event' ? 'eventFilter' : 
+        'selectedDate']: value
+    }));
   }, []);
 
   const handleResetFilters = useCallback(() => {
-    setModuleFilter('');
-    setEventFilter('');
-    setSearchQuery('');
-    setDateRange(null);
+    setFilters({
+      moduleFilter: '',
+      eventFilter: '',
+      searchQuery: '',
+      selectedDate: null
+    });
   }, []);
 
   const handleViewDetails = useCallback((log: AuditLogType) => {
@@ -83,15 +78,12 @@ const AuditLog: React.FC<AuditLogProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <AuditLogFilters
-            moduleFilter={moduleFilter}
-            eventFilter={eventFilter}
-            searchQuery={searchQuery}
-            selectedDate={dateRange}
+            filters={filters}
             modules={modules}
             events={events}
-            handleFilterChange={handleFilterChange}
-            handleResetFilters={handleResetFilters}
-            handleRefresh={onRefresh}
+            onFilterChange={handleFilterChange}
+            onResetFilters={handleResetFilters}
+            onRefresh={onRefresh}
             isLoading={isLoading}
           />
           

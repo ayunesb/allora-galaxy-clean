@@ -92,7 +92,10 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date || undefined}
+            selected={{
+              from: date?.from,
+              to: date?.to || date?.from
+            }}
             onSelect={handleSelect}
             numberOfMonths={2}
             className="pointer-events-auto"

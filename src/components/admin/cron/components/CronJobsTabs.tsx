@@ -2,36 +2,13 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExecutionsTable } from './ExecutionsTable';
-import { StatsTable } from './StatsTable';
+import { ExecutionsTable, CronJobExecution } from './ExecutionsTable';
+import { StatsTable, CronJobStats } from './StatsTable';
 import { Button } from '@/components/ui/button';
 
-// Define the CronJob type identical to the one in CronJobsMonitoring
-export interface CronJob {
-  id: string;
-  name: string;
-  schedule: string | null | undefined;
-  last_run: string | null;
-  next_run: string | null;
-  status: 'active' | 'inactive' | 'running' | 'failed';
-  function_name: string;
-  created_at: string;
-  error_message?: string | null | undefined;
-  duration_ms?: number | null;
-  metadata?: Record<string, any> | null;
-}
-
-interface Stats {
-  total: number;
-  active: number;
-  pending: number;
-  failed: number;
-  completed: number;
-}
-
 interface CronJobsTabsProps {
-  jobs: CronJob[];
-  stats: Stats;
+  jobs: CronJobExecution[];
+  stats: CronJobStats;
   isLoading: boolean;
   onRunJob?: (jobName: string) => Promise<any>;
 }
@@ -63,7 +40,7 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
             <ExecutionsTable 
               jobs={jobs} 
               isLoading={isLoading}
-              actionButton={(job: CronJob) => (
+              actionButton={(job: CronJobExecution) => (
                 <Button
                   size="sm"
                   variant="outline"
@@ -89,4 +66,6 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
   );
 };
 
+export type { CronJobExecution as CronJob };
+export type { CronJobStats };
 export default CronJobsTabs;

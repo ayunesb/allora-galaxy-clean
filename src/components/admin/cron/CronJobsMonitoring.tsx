@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCronJobsMonitoring } from '@/hooks/admin/useCronJobsMonitoring';
 import { CronJobsHeader } from './components/CronJobsHeader';
-import { CronJobsTabs, CronJob as TabsCronJob } from './components/CronJobsTabs';
+import { CronJobsTabs, CronJob as TabsCronJob, CronJobStats } from './components/CronJobsTabs';
 
 // Define the interfaces for the component
 export interface CronJob {
@@ -12,7 +12,7 @@ export interface CronJob {
   schedule: string | null | undefined;
   last_run: string | null;
   next_run: string | null;
-  status: 'active' | 'inactive' | 'running' | 'failed';
+  status: 'success' | 'failure' | 'running' | 'scheduled';
   function_name: string;
   created_at: string;
   error_message?: string | null | undefined;
@@ -20,17 +20,9 @@ export interface CronJob {
   metadata?: Record<string, any> | null;
 }
 
-export interface CronJobStats {
+export interface CronJobStat {
   status: string;
   count: number;
-}
-
-interface Stats {
-  total: number;
-  active: number;
-  pending: number;
-  failed: number;
-  completed: number;
 }
 
 const CronJobsMonitoring: React.FC = () => {
@@ -48,11 +40,11 @@ const CronJobsMonitoring: React.FC = () => {
   const jobs: TabsCronJob[] = cronJobData.map(job => ({
     id: job.id,
     name: job.name,
-    schedule: job.schedule, // Matching the nullable/undefined type
+    schedule: job.schedule,
     last_run: job.last_run,
     next_run: job.next_run,
     status: mapStatus(job.status),
-    function_name: job.name, // Using name as function_name
+    function_name: job.name,
     created_at: job.created_at,
     error_message: job.error_message,
     duration_ms: job.duration_ms,
@@ -71,7 +63,7 @@ const CronJobsMonitoring: React.FC = () => {
   }
 
   // Create a Stats object from cronJobStats
-  const stats: Stats = {
+  const stats: CronJobStats = {
     total: cronJobStats.reduce((sum, stat) => sum + stat.count, 0),
     active: cronJobStats.find(s => s.status === 'success')?.count || 0,
     pending: cronJobStats.find(s => s.status === 'scheduled')?.count || 0,
