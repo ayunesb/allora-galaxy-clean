@@ -42,6 +42,7 @@ const StrategyEngine = lazy(() => import('@/pages/strategy/StrategyEngine'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const ProfileSettings = lazy(() => import('@/pages/settings/ProfileSettings'));
 const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
+const ExplorePage = lazy(() => import('@/pages/explore/ExplorePage'));
 
 /**
  * ProtectedRoutes component that handles authentication and onboarding redirects
@@ -124,6 +125,13 @@ const ProtectedRoutes: React.FC = () => {
         <Route path="agents/performance" element={
           <Suspense fallback={<LoadingScreen />}>
             <AgentPerformance />
+          </Suspense>
+        } />
+        
+        {/* Explore route */}
+        <Route path="explore" element={
+          <Suspense fallback={<LoadingScreen />}>
+            <ExplorePage />
           </Suspense>
         } />
         

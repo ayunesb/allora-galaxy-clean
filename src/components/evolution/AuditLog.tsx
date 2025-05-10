@@ -1,115 +1,117 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import AuditLogFilters from "./logs/AuditLogFilters";
-import AuditLogTable from "./logs/AuditLogTable";
-import LogDetailDialog from "./logs/LogDetailDialog";
-import { AuditLog as AuditLogType } from "@/types/shared";
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ReloadIcon } from '@radix-ui/react-icons';
+import AuditLogFilters, { AuditLogFilters as AuditLogFiltersType } from './logs/AuditLogFilters';
+import AuditLogTable from './logs/AuditLogTable';
+import LogDetailDialog from './logs/LogDetailDialog';
+import useAuditLogData, { AuditLog as AuditLogType } from '@/hooks/admin/useAuditLogData';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export interface AuditLogProps {
+interface AuditLogProps {
+  limitEntries?: boolean;
+  showHeader?: boolean;
   title?: string;
-  logs: AuditLogType[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
+  description?: string;
 }
 
-function AuditLog({ title = "Audit Logs", logs, isLoading = false, onRefresh }: AuditLogProps) {
+const AuditLog: React.FC<AuditLogProps> = ({
+  limitEntries = false,
+  showHeader = true,
+  title = "Audit Logs",
+  description = "Review all system actions and changes"
+}) => {
+  const [filters, setFilters] = useState<AuditLogFiltersType>({});
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    search: "",
-    module: null as string | null,
-    eventType: null as string | null,
-    startDate: null as Date | null,
-    endDate: null as Date | null,
-  });
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { logs, loading, error, refetch } = useAuditLogData(filters);
+
+  const displayLogs = useMemo(() => {
+    if (limitEntries && logs.length > 5) {
+      return logs.slice(0, 5);
+    }
+    return logs;
+  }, [logs, limitEntries]);
 
   const handleFilterChange = (key: string, value: any) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
-  const handleResetFilters = () => {
-    setFilters({
-      search: "",
-      module: null,
-      eventType: null,
-      startDate: null,
-      endDate: null,
-    });
+  const handleClearFilters = () => {
+    setFilters({});
   };
 
-  const handleRefresh = () => {
-    if (onRefresh) {
-      onRefresh();
-    }
-  };
-
-  const handleViewDetails = (log: AuditLogType) => {
+  const handleRowClick = (log: AuditLogType) => {
     setSelectedLog(log);
-    setDetailsOpen(true);
+    setDialogOpen(true);
   };
 
-  const filteredLogs = logs.filter((log) => {
-    // Filter by search term
-    if (filters.search && !JSON.stringify(log).toLowerCase().includes(filters.search.toLowerCase())) {
-      return false;
-    }
-
-    // Filter by module
-    if (filters.module && log.module !== filters.module) {
-      return false;
-    }
-
-    // Filter by event type
-    if (filters.eventType && log.event_type !== filters.eventType) {
-      return false;
-    }
-
-    // Filter by start date
-    if (filters.startDate && new Date(log.created_at) < filters.startDate) {
-      return false;
-    }
-
-    // Filter by end date
-    if (filters.endDate) {
-      const endDateWithTime = new Date(filters.endDate);
-      endDateWithTime.setHours(23, 59, 59, 999);
-      if (new Date(log.created_at) > endDateWithTime) {
-        return false;
-      }
-    }
-
-    return true;
-  });
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
+    <Card className="w-full">
+      {showHeader && (
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>{title}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={loading}>
+            {loading ? <ReloadIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Refresh
+          </Button>
+        </CardHeader>
+      )}
       <CardContent>
         <AuditLogFilters
           filters={filters}
           onFilterChange={handleFilterChange}
-          onResetFilters={handleResetFilters}
-          onRefresh={handleRefresh}
+          onClearFilters={handleClearFilters}
         />
-        <div className="mt-4">
+
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-4 text-red-500">
+            <p>Error loading audit logs: {error.message}</p>
+            <Button onClick={() => refetch()} variant="outline" className="mt-2">
+              Try Again
+            </Button>
+          </div>
+        ) : (
           <AuditLogTable 
-            logs={filteredLogs} 
-            isLoading={isLoading} 
-            onViewDetails={handleViewDetails} 
+            logs={displayLogs} 
+            onRowClick={handleRowClick} 
           />
-        </div>
+        )}
         
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={detailsOpen} 
-          onClose={() => setDetailsOpen(false)} 
-        />
+        {limitEntries && logs.length > 5 && (
+          <div className="mt-4 text-center">
+            <Button variant="link">View All Logs</Button>
+          </div>
+        )}
       </CardContent>
+
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={dialogOpen} 
+        onOpenChange={handleDialogOpenChange} 
+      />
     </Card>
   );
-}
+};
 
 export default AuditLog;

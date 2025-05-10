@@ -1,7 +1,5 @@
 
-import React from "react";
 import { Toaster as Sonner } from "sonner";
-
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
