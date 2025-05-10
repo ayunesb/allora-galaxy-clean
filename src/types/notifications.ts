@@ -1,4 +1,3 @@
-
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'alert' | 'system';
 
 export interface CreateNotificationInput {

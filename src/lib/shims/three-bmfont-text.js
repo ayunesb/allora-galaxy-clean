@@ -1,18 +1,17 @@
 
-// This is a simple shim for the three-bmfont-text package to avoid git clone errors
-// Since we're encountering installation issues with the library, we'll create a minimal shim
-// This file will be imported instead of the actual package
+// This is a shim for the three-bmfont-text package
+// It provides bare minimum functionality to prevent build errors
+// while the actual package is unavailable
 
-// Export a minimalist API that mimics the three-bmfont-text package
-exports.createText = function createText() {
-  console.warn('Using three-bmfont-text shim implementation');
+module.exports = function createTextGeometry(opt) {
   return {
-    position: { array: [] },
-    uv: { array: [] },
-    index: { array: [] },
     update: function() {},
-    dispose: function() {}
+    layout: null,
+    visibleGlyphs: [],
+    opacity: 1,
+    color: 0xffffff,
+    position: [0, 0, 0],
+    scale: [1, 1, 1],
+    visible: true
   };
 };
-
-// Add any other functions that might be needed

@@ -5,12 +5,7 @@ import { useCronJobsMonitoring } from '@/hooks/admin/useCronJobsMonitoring';
 import { CronJobsHeader } from './components/CronJobsHeader';
 import { CronJobsTabs } from './components/CronJobsTabs';
 
-interface TimeRange {
-  value: string;
-  label: string;
-}
-
-// Define the types for CronJob and Stats to match the expected interface
+// Define the correct interfaces for the component
 export interface CronJob {
   id: string;
   name: string;
@@ -28,6 +23,11 @@ export interface CronJob {
 export interface CronJobStats {
   status: string;
   count: number;
+}
+
+interface TimeRange {
+  value: string;
+  label: string;
 }
 
 interface Stats {
@@ -65,7 +65,7 @@ const CronJobsMonitoring: React.FC = () => {
   }));
 
   // Map status from API to our component's expected values
-  function mapStatus(status: 'success' | 'running' | 'failure' | 'scheduled'): 'active' | 'inactive' | 'running' | 'failed' {
+  function mapStatus(status: string): 'active' | 'inactive' | 'running' | 'failed' {
     switch (status) {
       case 'success': return 'active';
       case 'running': return 'running';
@@ -85,12 +85,13 @@ const CronJobsMonitoring: React.FC = () => {
   };
 
   const handleTimeRangeChange = (value: string) => {
-    setTimeRange({
+    setTimeRange((prevState: TimeRange) => ({
+      ...prevState,
       value,
       label: value === 'day' ? 'Last 24 hours' : 
              value === 'week' ? 'Last 7 days' : 
              value === 'month' ? 'Last 30 days' : 'All time'
-    });
+    }));
   };
 
   return (
