@@ -54,7 +54,7 @@ export function DateRangePicker({
     // Create a properly typed DateRange object with safe defaults
     const newRange: DateRange = {
       from: range.from,
-      to: range.to || range.from // Default to from date if to is undefined
+      to: range.to || null
     };
     
     setDate(newRange);
@@ -94,7 +94,7 @@ export function DateRangePicker({
             defaultMonth={date?.from}
             selected={{
               from: date?.from,
-              to: date?.to
+              to: date?.to || undefined
             }}
             onSelect={handleSelect}
             numberOfMonths={2}
