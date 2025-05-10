@@ -111,7 +111,7 @@ ToastIcon.displayName = "ToastIcon";
 
 // Helper functions to show different types of toasts
 export const notifySuccess = (title: string, description?: string) => {
-  toast({
+  return toast({
     title,
     description,
     variant: "success"
@@ -119,7 +119,7 @@ export const notifySuccess = (title: string, description?: string) => {
 };
 
 export const notifyError = (title: string, description?: string) => {
-  toast({
+  return toast({
     title,
     description,
     variant: "destructive"
@@ -127,7 +127,7 @@ export const notifyError = (title: string, description?: string) => {
 };
 
 export const notifyInfo = (title: string, description?: string) => {
-  toast({
+  return toast({
     title,
     description,
     variant: "default"
@@ -135,7 +135,7 @@ export const notifyInfo = (title: string, description?: string) => {
 };
 
 export const notifyWarning = (title: string, description?: string) => {
-  toast({
+  return toast({
     title,
     description,
     variant: "default",

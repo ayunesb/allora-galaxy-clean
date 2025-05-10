@@ -1,83 +1,15 @@
 
-// This is an improved shim for the three-bmfont-text package
-// We're implementing just enough to prevent build errors and git clone attempts
-
-/**
- * Creates a text geometry that mimics the three-bmfont-text behavior
- */
-function createTextGeometry(text, opts = {}) {
-  // Return a basic implementation that won't break the app
-  return {
-    text,
-    options: opts,
-    update: function() {},
-    dispose: function() {},
-    vertices: [],
-    visibleGlyphs: [],
-    layout: {
-      width: opts.width || 0,
-      height: opts.height || 0,
-      lineHeight: opts.lineHeight || 0
-    }
-  };
-}
-
-// Export the main function as both default export and named export
-export default createTextGeometry;
-export { createTextGeometry };
-
-// Add any additional exports that might be needed
-export const utils = {
-  // Font utilities
-  getAlignedOffset: () => [0, 0],
-  createLayout: (options) => ({
-    text: options.text || '',
-    width: options.width || 0,
-    height: options.height || 0,
-    lines: [],
-    glyphs: [],
-    characters: []
-  }),
-  computeGlyphBounds: () => ({ min: [0, 0], max: [0, 0] }),
-  measureWidth: () => 0,
-  getGlyphMetrics: () => ({ width: 0, height: 0, xadvance: 0 }),
-
-  // Alignment utility functions
-  alignText: (text, width, align) => 0,
-  wordWrap: (text, options) => [],
-  computeLineMetrics: () => ({ width: 0, height: 0, ascender: 0, descender: 0 })
-};
-
-// Additional WebGL related helper functions
-export const shaderLib = {
-  msdf: {
-    vertex: `void main() {}`,
-    fragment: `void main() {}`
+// This is a simple shim for the three-bmfont-text package to avoid git clone errors
+// Since we're encountering installation issues with the library, we'll create a minimal shim
+module.exports = {
+  createText: function() {
+    console.warn('three-bmfont-text is using a shim implementation');
+    return {
+      position: { array: [] },
+      uv: { array: [] },
+      index: { array: [] },
+      update: function() {},
+      dispose: function() {}
+    };
   }
 };
-
-// Add any THREE.js specific compatibility interfaces
-export const attributes = {
-  position: {
-    array: new Float32Array(),
-    count: 0,
-    itemSize: 3,
-    needsUpdate: false
-  },
-  uv: {
-    array: new Float32Array(),
-    count: 0,
-    itemSize: 2,
-    needsUpdate: false
-  }
-};
-
-// Prevent attempted imports from failing
-if (typeof window !== 'undefined') {
-  window.THREE_TEXT_MODULE = {
-    createTextGeometry,
-    utils,
-    shaderLib,
-    attributes
-  };
-}

@@ -5,7 +5,8 @@ import { toast as sonnerToast } from "sonner";
 const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000000;
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
+// Removed unused type
+// type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
 
 let count = 0;
 
