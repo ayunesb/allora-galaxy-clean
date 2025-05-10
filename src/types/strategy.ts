@@ -1,28 +1,36 @@
 
 // Strategy related types
-import { DateRange } from 'react-day-picker';
-import { User } from './user';
-import { TrendDirection } from './trends';
-
 export interface Strategy {
   id: string;
+  tenant_id: string;
   title: string;
   description: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
-  created_by?: User;
-  approved_by?: User;
-  created_at: string;
-  updated_at: string;
-  due_date?: string;
+  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed' | 'in_progress';
   priority?: 'low' | 'medium' | 'high';
+  created_by: string;
+  created_at: string;
+  approved_by?: string;
+  approved_at?: string;
+  rejected_by?: string;
+  rejected_at?: string;
   tags?: string[];
   completion_percentage?: number;
-  tenant_id: string;
+  due_date?: string;
 }
 
 export interface StrategyFilter {
-  dateRange?: DateRange;
-  status?: string;
-  priority?: string;
-  searchTerm?: string;
+  status?: string[];
+  query?: string;
+  tags?: string[];
+  priority?: string[];
+}
+
+export interface StrategyExecution {
+  id: string;
+  strategy_id: string;
+  status: string;
+  started_at: string;
+  completed_at?: string;
+  executed_by?: string;
+  results?: Record<string, any>;
 }

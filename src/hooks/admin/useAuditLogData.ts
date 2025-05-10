@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { AuditLog } from '@/types/shared';
+import { AuditLog, SystemLog } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
@@ -33,11 +33,14 @@ const useAuditLogData = (): UseAuditLogDataReturn => {
       }
       
       // Transform system_logs data to match AuditLog interface
-      const transformedLogs: AuditLog[] = data.map(log => ({
+      const transformedLogs: AuditLog[] = (data as SystemLog[]).map(log => ({
         id: log.id,
-        module: log.module,
+        entity_type: log.module || 'system',
+        entity_id: log.id,
+        user_id: log.tenant_id || '',
         event_type: log.event || 'unknown',
-        description: log.description || '',
+        description: log.context?.description || '',
+        module: log.module,
         tenant_id: log.tenant_id,
         created_at: log.created_at,
         metadata: log.context,

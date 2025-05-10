@@ -67,6 +67,8 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
         return <Badge variant="destructive">Rejected</Badge>;
       case 'completed':
         return <Badge variant="default">Completed</Badge>;
+      case 'in_progress':
+        return <Badge variant="secondary">In Progress</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

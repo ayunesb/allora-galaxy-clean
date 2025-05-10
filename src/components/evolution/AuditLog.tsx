@@ -5,17 +5,17 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import LogDetailDialog from './logs/LogDetailDialog';
-import { AuditLog as AuditLogType } from '@/types/shared';
+import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
 
 interface AuditLogProps {
   title?: string;
   isLoading?: boolean;
   onRefresh?: () => void;
-  data: AuditLogType[];
+  data: (AuditLogType | SystemLog)[];
 }
 
 const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogProps) => {
-  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLogType | SystemLog | null>(null);
 
   // Helper to get a short preview of context JSON
   const getContextPreview = (context?: Record<string, any>) => {
@@ -46,6 +46,11 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
       minute: '2-digit',
       second: '2-digit',
     }).format(date);
+  };
+
+  // Helper to determine if log is a SystemLog
+  const isSystemLog = (log: AuditLogType | SystemLog): log is SystemLog => {
+    return 'module' in log && 'event' in log && !('entity_type' in log);
   };
 
   return (
@@ -89,7 +94,7 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
               >
                 <div className="space-y-1">
                   <div className="font-medium flex flex-col sm:flex-row gap-2 sm:items-center">
-                    <span>{log.event || 'Unknown Event'}</span>
+                    <span>{isSystemLog(log) ? log.event : log.event_type}</span>
                     {log.module && (
                       <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         {log.module}
@@ -97,7 +102,9 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
                     )}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {log.description || getContextPreview(log.context)}
+                    {isSystemLog(log) 
+                      ? log.description || getContextPreview(log.context) 
+                      : log.description || getContextPreview(log.metadata)}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground mt-2 sm:mt-0">

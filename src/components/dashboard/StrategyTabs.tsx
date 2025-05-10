@@ -34,13 +34,18 @@ export const StrategyTabs: React.FC<StrategyTabsProps> = ({
                 id={strategy.id}
                 title={strategy.title}
                 description={strategy.description}
-                status={strategy.status === 'approved' ? 'active' : 
-                       strategy.status === 'in_progress' ? 'active' :
-                       strategy.status === 'rejected' ? 'archived' : 
-                       strategy.status === 'completed' ? 'completed' : 'pending'}
+                status={
+                  strategy.status === 'approved' || strategy.status === 'in_progress' 
+                    ? 'active' 
+                    : strategy.status === 'rejected' 
+                    ? 'archived' 
+                    : strategy.status === 'completed' 
+                    ? 'completed' 
+                    : 'pending'
+                }
                 priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
                 completionPercentage={strategy.completion_percentage || 0}
-                createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
+                createdBy={typeof strategy.created_by === 'string' && strategy.created_by === 'ai' ? 'ai' : 'human'}
                 tags={strategy.tags || []}
               />
             ))
@@ -71,7 +76,7 @@ export const StrategyTabs: React.FC<StrategyTabsProps> = ({
                   status="pending"
                   priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
                   completionPercentage={strategy.completion_percentage || 0}
-                  createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
+                  createdBy={typeof strategy.created_by === 'string' && strategy.created_by === 'ai' ? 'ai' : 'human'}
                   tags={strategy.tags || []}
                 />
               ))
@@ -99,7 +104,7 @@ export const StrategyTabs: React.FC<StrategyTabsProps> = ({
                   status="active"
                   priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
                   completionPercentage={strategy.completion_percentage || 0}
-                  createdBy={strategy.created_by === 'ai' ? 'ai' : 'human'}
+                  createdBy={typeof strategy.created_by === 'string' && strategy.created_by === 'ai' ? 'ai' : 'human'}
                   tags={strategy.tags || []}
                 />
               ))

@@ -1,87 +1,93 @@
 
 import { NavigationItem } from "@/types/shared";
+import * as LucideIcons from "lucide-react";
+
+// Type-safe function to get Lucide icon component
+const getIcon = (iconName: string) => {
+  return (LucideIcons as any)[iconName] || undefined;
+};
 
 export const navigationItems: NavigationItem[] = [
   {
-    name: "Dashboard",
+    title: "Dashboard",
     href: "/dashboard",
-    icon: "LayoutDashboard",
+    icon: getIcon("LayoutDashboard"),
   },
   {
-    name: "Notifications",
+    title: "Notifications",
     href: "/notifications",
-    icon: "Bell",
+    icon: getIcon("Bell"),
   },
   {
-    name: "Galaxy",
+    title: "Galaxy",
     href: "/galaxy",
-    icon: "Globe",
+    icon: getIcon("Globe"),
   },
   {
-    name: "Launch",
+    title: "Launch",
     href: "/launch",
-    icon: "Rocket",
+    icon: getIcon("Rocket"),
   },
   {
-    name: "Plugins",
+    title: "Plugins",
     href: "/plugins",
-    icon: "Package",
+    icon: getIcon("Package"),
   },
   {
-    name: "Agents",
+    title: "Agents",
     href: "/agents",
-    icon: "Users",
-    children: [
+    icon: getIcon("Users"),
+    items: [
       {
-        name: "Performance",
+        title: "Performance",
         href: "/agents/performance",
       },
     ],
   },
   {
-    name: "Insights",
+    title: "Insights",
     href: "/insights",
-    icon: "BarChart",
-    children: [
+    icon: getIcon("BarChart"),
+    items: [
       {
-        name: "KPIs",
+        title: "KPIs",
         href: "/insights/kpis",
       },
     ],
   },
   {
-    name: "Settings",
+    title: "Settings",
     href: "/settings",
-    icon: "Settings",
+    icon: getIcon("Settings"),
   },
   {
-    name: "Admin",
+    title: "Admin",
     href: "/admin",
-    icon: "Layers",
+    icon: getIcon("Layers"),
     adminOnly: true,
-    children: [
+    items: [
       {
-        name: "Dashboard",
+        title: "Dashboard",
         href: "/admin",
       },
       {
-        name: "Users",
+        title: "Users",
         href: "/admin/users",
       },
       {
-        name: "System Logs",
+        title: "System Logs",
         href: "/admin/logs",
       },
       {
-        name: "AI Decisions",
+        title: "AI Decisions",
         href: "/admin/ai-decisions",
       },
       {
-        name: "Plugin Logs",
+        title: "Plugin Logs",
         href: "/admin/plugin-logs",
       },
       {
-        name: "API Keys",
+        title: "API Keys",
         href: "/admin/api-keys",
       },
     ],

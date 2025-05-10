@@ -24,6 +24,21 @@ export interface ExecutionParams {
   options?: Record<string, any>;
 }
 
+export interface ExecutionRecordInput {
+  tenantId: string;
+  status: string;
+  type: string;
+  strategyId?: string;
+  pluginId?: string;
+  agentVersionId?: string;
+  executedBy?: string;
+  input?: any;
+  output?: any;
+  executionTime?: number;
+  xpEarned?: number;
+  error?: string;
+}
+
 export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'test' | 'system';
 
 export interface BaseEntity {

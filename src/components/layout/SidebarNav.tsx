@@ -14,7 +14,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
   const location = useLocation();
 
   // Function to render icon
-  const renderIcon = (icon?: string | React.ComponentType<any>) => {
+  const renderIcon = (icon?: React.ComponentType<any> | string) => {
     if (!icon) return null;
     
     // If icon is a component (React component)
@@ -38,7 +38,19 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
     <nav className={cn("flex flex-col gap-1", className)}>
       {items.map((item) => {
         const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
-        const itemKey = item.href || item.name;
+        const itemKey = item.href || item.title;
+
+        if (!item.href) {
+          return (
+            <div 
+              key={itemKey}
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground"
+            >
+              {item.icon && <span className="h-4 w-4">{renderIcon(item.icon)}</span>}
+              <span>{item.title}</span>
+            </div>
+          );
+        }
 
         return (
           <Link
@@ -52,7 +64,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
             )}
           >
             {item.icon && <span className="h-4 w-4">{renderIcon(item.icon)}</span>}
-            <span>{item.name}</span>
+            <span>{item.title}</span>
           </Link>
         );
       })}

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { SystemLog } from '@/pages/admin/SystemLogs';
+import { SystemLog } from '@/types/logs';
 import { useToast } from '@/hooks/use-toast';
 import { useTenantId } from '@/hooks/useTenantId';
 import { DateRange } from '@/types/shared';
