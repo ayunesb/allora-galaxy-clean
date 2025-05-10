@@ -2,7 +2,8 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { DateRange } from '@/types/shared';
+import { DateRange } from 'react-day-picker';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,99 +13,72 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
-interface DateRangePickerProps {
-  value?: DateRange | null;
-  onChange: (range?: DateRange | null) => void;
+interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+  dateRange?: DateRange;
+  onDateRangeChange?: (dateRange?: DateRange) => void;
+  align?: 'start' | 'center' | 'end';
   className?: string;
+  disabled?: boolean;
 }
 
 export function DateRangePicker({
-  value,
-  onChange,
+  dateRange,
+  onDateRangeChange,
+  align = 'start',
   className,
+  disabled,
+  ...props
 }: DateRangePickerProps) {
-  const [date, setDate] = React.useState<DateRange | undefined | null>(value);
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
-  // Update the external state when the internal state changes
-  React.useEffect(() => {
-    if (date !== undefined) {
-      onChange(date);
+  const handleSelect = (range: DateRange | undefined) => {
+    if (onDateRangeChange) {
+      onDateRangeChange(range);
     }
-  }, [date, onChange]);
-
-  // Update the internal state when the external value changes
-  React.useEffect(() => {
-    if (value !== undefined) {
-      setDate(value);
+    if (range?.to) {
+      setIsCalendarOpen(false);
     }
-  }, [value]);
-
-  const handleClear = () => {
-    setDate(null);
-    onChange(null);
-  };
-
-  // Fix type incompatibility by creating a proper handler function
-  const handleSelect = (range: { from?: Date; to?: Date } | undefined) => {
-    if (!range || !range.from) {
-      setDate(null);
-      return;
-    }
-
-    // Create a properly typed DateRange object with safe defaults
-    const newRange: DateRange = {
-      from: range.from,
-      to: range.to || null
-    };
-    
-    setDate(newRange);
   };
 
   return (
-    <div className={cn('grid gap-2', className)}>
-      <Popover>
+    <div className={cn('grid gap-2', className)} {...props}>
+      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant="outline"
+            variant={'outline'}
+            size="sm"
             className={cn(
               'w-full justify-start text-left font-normal',
-              !date && 'text-muted-foreground'
+              !dateRange && 'text-muted-foreground',
+              disabled && 'opacity-50 cursor-not-allowed'
             )}
+            disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
+            {dateRange?.from ? (
+              dateRange.to ? (
                 <>
-                  {format(date.from, 'LLL dd, y')} -{' '}
-                  {format(date.to, 'LLL dd, y')}
+                  {format(dateRange.from, 'LLL dd, y')} -{' '}
+                  {format(dateRange.to, 'LLL dd, y')}
                 </>
               ) : (
-                format(date.from, 'LLL dd, y')
+                format(dateRange.from, 'LLL dd, y')
               )
             ) : (
-              <span>Pick a date range</span>
+              <span>Select date range</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+        <PopoverContent className="w-auto p-0" align={align}>
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
-            selected={{
-              from: date?.from,
-              to: date?.to || undefined
-            }}
+            defaultMonth={dateRange?.from}
+            selected={dateRange}
             onSelect={handleSelect}
             numberOfMonths={2}
-            className="pointer-events-auto"
           />
-          <div className="flex justify-end p-2">
-            <Button variant="ghost" size="sm" onClick={handleClear}>
-              Clear
-            </Button>
-          </div>
         </PopoverContent>
       </Popover>
     </div>

@@ -1,158 +1,181 @@
 
-// Add DateRange type if it doesn't exist
-export interface DateRange {
-  from: Date;
-  to?: Date | null;
-}
+import { DateRange } from 'react-day-picker';
 
-// Also ensure AuditLog type is properly defined
-export interface AuditLog {
-  id: string;
-  module: string;
-  event_type: string;
-  description: string;
-  tenant_id: string;
-  created_at: string;
-  metadata?: any;
-  user_id?: string;
-}
-
-// Define SystemEventModule type
-export type SystemEventModule = 
-  | 'system'
-  | 'auth'
-  | 'strategy'
-  | 'plugin'
-  | 'agent'
-  | 'tenant'
-  | 'user'
-  | 'execution'
-  | 'onboarding'
-  | 'kpi'
-  | 'notification'
-  | 'cron'
-  | 'integration';
-
-// Define SystemEventType
-export type SystemEventType =
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'success'
-  | 'failure'
-  | 'created'
-  | 'updated'
-  | 'deleted'
-  | 'executed'
-  | 'scheduled';
-
-// Define OnboardingStep
-export type OnboardingStep =
-  | 'company-info'
-  | 'persona'
-  | 'additional-info'
-  | 'strategy-generation';
-
-// Add missing VoteType type
-export type VoteType = 'upvote' | 'downvote';
-
-// Add missing TrendDirection type
-export type TrendDirection = 'up' | 'down' | 'neutral';
-
-// Add missing LogStatus type
-export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
-
-// Add missing NavigationItem type
+// Navigation
 export interface NavigationItem {
-  name: string;
-  href: string;
-  icon?: string | React.ComponentType<any>;
+  title: string;
+  href?: string;
+  icon?: React.ComponentType<{ className?: string }>;
   items?: NavigationItem[];
-  requiresAuth?: boolean;
-  roles?: UserRole[];
-  isActive?: boolean;
-  children?: NavigationItem[];
-  adminOnly?: boolean;
+  disabled?: boolean;
+  external?: boolean;
+  label?: string;
 }
 
-// Add missing BaseEntity type
-export interface BaseEntity {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Add missing ExecutionParams type
-export interface ExecutionParams {
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  tenantId: string;
-  userId?: string;
-  input?: any;
-}
-
-// Add missing ExecutionType type
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
-
-// Add missing KPITrend type
-export interface KPITrend {
-  name?: string;
-  value?: number;
-  previousValue?: number | null;
-  trend?: TrendDirection;
-  percentChange?: number;
-  target?: number;
-  unit?: string;
-  isPositive?: boolean;
-  currentValue?: number;
-  direction?: TrendDirection; 
-  percentage?: number;
-}
-
-// Add missing UserRole type
-export type UserRole = 'owner' | 'admin' | 'member' | 'guest' | 'api';
-
-// Add missing TenantFeature type
-export interface TenantFeature {
-  id: string;
-  name: string;
-  enabled: boolean;
-  tenant_id: string;
-}
-
-// Add missing Tenant interface
+// Tenants and Users
 export interface Tenant {
   id: string;
   name: string;
   slug: string;
-  owner_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  metadata?: {
-    logo_url?: string;
-    primary_color?: string;
-    features?: Record<string, boolean>;
-    stripe_customer_id?: string;
-    [key: string]: any;
-  };
-}
-
-// Add the KPI interface
-export interface KPI {
-  id: string;
-  name: string;
-  value: number;
-  previous_value?: number | null;
-  unit: string;
-  target?: number | null;
-  category: string;
-  period: string;
-  source?: string;
-  date: string;
-  tenant_id: string;
   created_at: string;
   updated_at: string;
+  owner_id: string;
   metadata?: Record<string, any>;
+}
+
+export interface UserRole {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  created_at: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  preferences?: Record<string, any>;
+  onboarding_completed?: boolean;
+}
+
+// Business Objects
+export interface Strategy {
+  id: string;
+  title: string;
+  description: string;
+  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed';
+  created_by?: User;
+  approved_by?: User;
+  created_at: string;
+  updated_at: string;
+  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  completion_percentage?: number;
+  tenant_id: string;
+}
+
+export interface Plugin {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'inactive' | 'deprecated';
+  xp: number;
+  roi: number;
+  created_at: string;
+  updated_at: string;
+  icon?: string;
+  category?: string;
+  tenant_id: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AgentVersion {
+  id: string;
+  plugin_id: string;
+  version: string;
+  prompt: string;
+  status: 'active' | 'deprecated';
+  xp: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: User;
+  upvotes: number;
+  downvotes: number;
+}
+
+export interface PluginLog {
+  id: string;
+  plugin_id: string;
+  strategy_id?: string;
+  agent_version_id?: string;
+  tenant_id: string;
+  status: 'success' | 'failure' | 'pending';
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  error?: string;
+  created_at: string;
+  execution_time: number;
+  xp_earned: number;
+}
+
+export interface KPI {
+  id: string;
+  tenant_id: string;
+  name: string;
+  value: number;
+  previous_value?: number;
+  source?: 'stripe' | 'ga4' | 'hubspot' | 'manual';
+  category?: 'financial' | 'marketing' | 'sales' | 'product';
+  date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Voting Types
+export type VoteType = 'upvote' | 'downvote';
+
+export interface AgentVote {
+  id: string;
+  agent_version_id: string;
+  user_id: string;
+  vote_type: 'up' | 'down';
+  comment?: string;
+  created_at: string;
+}
+
+// System and Audit Logs
+export interface SystemLog {
+  id: string;
+  module: string;
+  event: string;
+  context?: Record<string, any>;
+  created_at: string;
+  tenant_id?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  user_id: string;
+  event_type: string;
+  description: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+// Executions
+export interface Execution {
+  id: string;
+  tenant_id: string;
+  type: string;
+  status: 'success' | 'failure' | 'pending';
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  executed_by?: string;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  error?: string;
+  created_at: string;
+  execution_time: number;
+  xp_earned: number;
+}
+
+// Evolution types
+export interface EvolutionFilter {
+  dateRange?: DateRange;
+  type?: string;
+  status?: string;
+  searchTerm?: string;
 }

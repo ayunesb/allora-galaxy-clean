@@ -41,16 +41,20 @@ export function getEdgeEnv(name: string, fallback: string = ''): string {
     }
   } catch (e) {
     // Silently fail and try next method
+    console.debug(`Edge env: Deno.env not available for ${name}, trying process.env`);
   }
   
   // Try process.env (Node.js) as fallback
   try {
-    const value = (process.env as any)[name];
-    if (value !== undefined && value !== null) {
-      return value;
+    if (typeof process !== 'undefined' && process.env) {
+      const value = (process.env as any)[name];
+      if (value !== undefined && value !== null) {
+        return value;
+      }
     }
   } catch (e) {
     // Silently fail and return fallback
+    console.debug(`Edge env: process.env not available for ${name}, using fallback`);
   }
   
   // Return fallback if all attempts fail
@@ -67,4 +71,29 @@ export function getEdgeEnvironment(): 'development' | 'production' | 'test' {
   if (env === 'production') return 'production';
   if (env === 'test') return 'test';
   return 'development';
+}
+
+/**
+ * Helper function to safely get Deno environment variable
+ * This handles both Supabase Edge Functions and local development
+ */
+export function getDenoEnv(name: string, defaultValue: string = ''): string {
+  return safeGetDenoEnv(name, defaultValue);
+}
+
+/**
+ * Validate existence of required environment variables
+ * Throws an error if any required variable is missing
+ */
+export function validateRequiredEnv(requiredVars: string[]): void {
+  const missing: string[] = [];
+  
+  requiredVars.forEach(name => {
+    const value = getEdgeEnv(name);
+    if (!value) missing.push(name);
+  });
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
 }

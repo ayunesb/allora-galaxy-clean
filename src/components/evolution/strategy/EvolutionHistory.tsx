@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AuditLog } from '@/types/shared';
 
 interface EvolutionHistoryProps {
@@ -31,7 +30,7 @@ const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
             <div className="absolute left-0 top-0 bottom-0 w-px bg-muted ml-6 mt-6"></div>
             
             <div className="space-y-6 relative">
-              {history.map((log, index) => (
+              {history.map((log) => (
                 <div key={log.id} className="flex">
                   <div className="flex-shrink-0 relative">
                     <div className="h-3 w-3 rounded-full bg-primary mt-2 ml-5"></div>
