@@ -42,17 +42,19 @@ export const fetchSystemLogs = async (filters: SystemLogFilter = {}) => {
 };
 
 export const fetchLogModules = async () => {
+  // Using a different approach to get distinct values
   const { data, error } = await supabase
     .from('system_logs')
-    .select('module')
-    .distinct();
-    
+    .select('module');
+  
   if (error) {
     console.error('Error fetching log modules:', error);
     throw error;
   }
   
-  return data.map(item => item.module).filter(Boolean);
+  // Extract unique module names
+  const uniqueModules = Array.from(new Set(data.map(item => item.module).filter(Boolean)));
+  return uniqueModules;
 };
 
 export const fetchTenants = async () => {

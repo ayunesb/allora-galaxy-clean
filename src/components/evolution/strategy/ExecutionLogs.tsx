@@ -1,41 +1,55 @@
 
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 
-interface ExecutionLog {
-  id: string;
-  status: string;
-  created_at: string;
-  execution_time?: number;
-  xp_earned?: number;
-  error?: string;
-  [key: string]: any;
+export interface ExecutionLogsProps {
+  logs: any[];
+  renderUser?: (userId: string | undefined) => any;
+  formatDate?: (dateStr: string) => string;
 }
 
-interface ExecutionLogsProps {
-  logs: ExecutionLog[];
-  formatDate: (dateStr: string) => string;
-  renderStatusBadge: (status: string) => React.ReactNode;
-}
-
-const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
+const ExecutionLogs: React.FC<ExecutionLogsProps> = ({ 
   logs,
-  formatDate,
-  renderStatusBadge
+  renderUser = (userId) => userId || 'Unknown',
+  formatDate = (dateStr) => dateStr
 }) => {
-  const [expandedLogs, setExpandedLogs] = React.useState<Set<string>>(new Set());
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
-  const toggleExpand = (logId: string) => {
-    const newExpanded = new Set(expandedLogs);
-    if (newExpanded.has(logId)) {
-      newExpanded.delete(logId);
-    } else {
-      newExpanded.add(logId);
+  const toggleLogExpand = (id: string) => {
+    setExpandedLogs(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  if (!logs || logs.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Execution Logs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-center py-8">
+            No execution logs available for this strategy.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'success':
+        return <Badge variant="success">Success</Badge>;
+      case 'failure':
+        return <Badge variant="destructive">Failed</Badge>;
+      case 'pending':
+        return <Badge variant="warning">Pending</Badge>;
+      case 'partial':
+        return <Badge variant="secondary">Partial</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
     }
-    setExpandedLogs(newExpanded);
   };
 
   return (
@@ -44,102 +58,73 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
         <CardTitle>Execution Logs</CardTitle>
       </CardHeader>
       <CardContent>
-        {logs.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">
-            No execution logs found for this strategy.
-          </div>
-        ) : (
-          <div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead></TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>XP</TableHead>
-                  <TableHead>Details</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => (
-                  <React.Fragment key={log.id}>
-                    <TableRow>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => toggleExpand(log.id)}
-                        >
-                          {expandedLogs.has(log.id) ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {formatDate(log.created_at)}
-                      </TableCell>
-                      <TableCell>{renderStatusBadge(log.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          <span>{log.execution_time?.toFixed(2) || '0'}s</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>+{log.xp_earned || 0} XP</TableCell>
-                      <TableCell>
-                        {log.error ? (
-                          <span className="text-destructive text-xs">{log.error}</span>
-                        ) : (
-                          <span className="text-xs">Success</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                    
-                    {expandedLogs.has(log.id) && (
-                      <TableRow>
-                        <TableCell colSpan={6}>
-                          <div className="p-4 bg-muted/50 rounded-md">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {log.input && (
-                                <div>
-                                  <h4 className="text-sm font-semibold mb-2">Input</h4>
-                                  <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-                                    {JSON.stringify(log.input, null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                              
-                              {log.output && (
-                                <div>
-                                  <h4 className="text-sm font-semibold mb-2">Output</h4>
-                                  <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-                                    {JSON.stringify(log.output, null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {log.error && (
-                              <div className="mt-4">
-                                <h4 className="text-sm font-semibold mb-2">Error</h4>
-                                <pre className="bg-destructive/10 text-destructive p-2 rounded text-xs overflow-x-auto">
-                                  {log.error}
-                                </pre>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <div className="space-y-4">
+          {logs.map(log => (
+            <div 
+              key={log.id}
+              className="border rounded-lg overflow-hidden"
+            >
+              <div 
+                className="bg-muted/50 p-4 flex justify-between items-center cursor-pointer"
+                onClick={() => toggleLogExpand(log.id)}
+              >
+                <div className="flex items-center gap-3">
+                  {getStatusBadge(log.status)}
+                  <span className="text-sm font-medium">
+                    {formatDate(log.created_at)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {log.executed_by && (
+                    <span className="text-xs text-muted-foreground">
+                      Executed by: {renderUser(log.executed_by)}
+                    </span>
+                  )}
+                  <Button variant="ghost" size="sm">
+                    {expandedLogs[log.id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </Button>
+                </div>
+              </div>
+              
+              {expandedLogs[log.id] && (
+                <div className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground">Execution Time</h4>
+                      <p className="text-sm">{log.execution_time ? `${log.execution_time.toFixed(2)}s` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground">XP Earned</h4>
+                      <p className="text-sm">{log.xp_earned || 0}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground">Type</h4>
+                      <p className="text-sm capitalize">{log.type || 'Unknown'}</p>
+                    </div>
+                  </div>
+                  
+                  {log.output && (
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Output</h4>
+                      <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto max-h-[200px]">
+                        {JSON.stringify(log.output, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  
+                  {log.error && (
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2 text-destructive">Error</h4>
+                      <pre className="text-xs bg-destructive/10 text-destructive p-3 rounded-md overflow-x-auto">
+                        {log.error}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

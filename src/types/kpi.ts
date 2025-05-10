@@ -1,29 +1,25 @@
 
 // KPI related types
-import { TrendDirection } from './trends';
-
 export interface KPI {
   id: string;
-  tenant_id: string;
   name: string;
+  category?: string;
   value: number;
   previous_value?: number;
-  source?: 'stripe' | 'ga4' | 'hubspot' | 'manual';
-  category?: 'financial' | 'marketing' | 'sales' | 'product';
   date: string;
-  created_at: string;
+  tenant_id?: string;
+  source?: string;
   updated_at: string;
+  created_at: string;
 }
 
-// KPI trend data
 export interface KPITrend {
   id: string;
   name: string;
   value: number;
   previousValue?: number;
-  percentChange: number;
-  direction: TrendDirection;
-  target?: number;
-  date: string;
-  category?: string;
+  change?: number;
+  changePercent?: number;
+  direction?: 'up' | 'down' | 'neutral';
+  trend?: 'increasing' | 'decreasing' | 'stable';
 }

@@ -16,6 +16,7 @@ export interface Strategy {
   tags?: string[];
   completion_percentage?: number;
   due_date?: string;
+  updated_at?: string;
 }
 
 export interface StrategyFilter {
@@ -33,4 +34,10 @@ export interface StrategyExecution {
   completed_at?: string;
   executed_by?: string;
   results?: Record<string, any>;
+}
+
+// Define validation result
+export interface ValidationResult {
+  valid: boolean;
+  errors: Record<string, string>;
 }

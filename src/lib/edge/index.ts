@@ -3,14 +3,14 @@
  * Centralized exports for edge function utilities
  */
 
+// Re-export error handling utilities with fallbacks
 export { 
-  corsHeaders, 
-  errorHandler, 
-  createSuccessResponse, 
-  createErrorResponse,
+  corsHeaders,
   handleExecutionError,
   handleCorsPreflightRequest,
   generateRequestId,
+  createSuccessResponse,
+  createErrorResponse,
   type ErrorResponseData,
   type SuccessResponseData
 } from './errorHandler';

@@ -1,65 +1,60 @@
 
 /**
- * Standardized error handling utilities for edge functions
+ * Error handling utilities for edge functions
  */
 
+// CORS headers for edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
+// Standard error response interface
 export interface ErrorResponseData {
   error: string;
   message?: string;
   details?: any;
-  timestamp?: string;
+  status: number;
   request_id?: string;
 }
 
+// Standard success response interface
 export interface SuccessResponseData {
-  success: boolean;
-  data?: any;
+  data: any;
+  status: number;
   message?: string;
-  timestamp?: string;
-  execution_time?: number;
-}
-
-/**
- * Generate a unique request ID for tracking
- */
-export function generateRequestId(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  request_id?: string;
 }
 
 /**
  * Create a standardized error response
  */
 export function createErrorResponse(
-  status: number, 
-  message: string, 
-  details?: any, 
-  startTime?: number
+  error: Error | string,
+  status: number = 500,
+  details?: any,
+  requestId?: string
 ): Response {
-  const executionTime = startTime ? (performance.now() - startTime) / 1000 : undefined;
+  const errorMessage = typeof error === 'string' ? error : error.message;
   
-  const errorResponse: ErrorResponseData = {
-    error: message,
-    details: details,
-    timestamp: new Date().toISOString(),
-    request_id: generateRequestId()
+  const responseBody: ErrorResponseData = {
+    error: errorMessage,
+    status,
+    request_id: requestId || generateRequestId(),
   };
   
-  return new Response(
-    JSON.stringify({
-      ...errorResponse,
-      execution_time: executionTime
-    }),
-    { 
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    }
-  );
+  if (details) {
+    responseBody.details = details;
+  }
+  
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
 }
 
 /**
@@ -67,25 +62,34 @@ export function createErrorResponse(
  */
 export function createSuccessResponse(
   data: any,
+  status: number = 200,
   message?: string,
-  startTime?: number
+  requestId?: string
 ): Response {
-  const executionTime = startTime ? (performance.now() - startTime) / 1000 : undefined;
-  
-  const successResponse: SuccessResponseData = {
-    success: true,
+  const responseBody: SuccessResponseData = {
     data,
-    message,
-    timestamp: new Date().toISOString(),
-    execution_time: executionTime
+    status,
+    request_id: requestId || generateRequestId(),
   };
   
-  return new Response(
-    JSON.stringify(successResponse),
-    { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    }
-  );
+  if (message) {
+    responseBody.message = message;
+  }
+  
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+/**
+ * Generate a unique request ID
+ */
+export function generateRequestId(): string {
+  return crypto.randomUUID();
 }
 
 /**
@@ -96,20 +100,41 @@ export function handleCorsPreflightRequest(): Response {
 }
 
 /**
+ * Error handler for edge functions
+ */
+export function errorHandler(error: any): Response {
+  console.error('Edge function error:', error);
+  
+  const status = error.status || 500;
+  const message = error.message || 'Internal server error';
+  
+  return createErrorResponse(message, status);
+}
+
+/**
  * Handle execution errors in edge functions
  */
-export function handleExecutionError(
-  error: any,
-  startTime?: number,
-  module?: string
-): Response {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  console.error(`Error in ${module || 'edge function'}:`, error);
+export function handleExecutionError(error: any, requestId?: string): Response {
+  console.error(`Execution error [${requestId || 'no-id'}]:`, error);
+  
+  // Determine appropriate status code
+  let status = 500;
+  if (error.status) {
+    status = error.status;
+  } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-token') {
+    status = 401;
+  } else if (error.code === 'auth/permission-denied' || error.code === 'permission-denied') {
+    status = 403;
+  } else if (error.code === 'not-found') {
+    status = 404;
+  } else if (error.code === 'already-exists') {
+    status = 409;
+  }
   
   return createErrorResponse(
-    500,
-    "Internal server error occurred",
-    errorMessage,
-    startTime
+    error.message || 'Execution error',
+    status,
+    error.details || error.stack,
+    requestId
   );
 }

@@ -20,7 +20,7 @@ interface StrategyEvolutionTabProps {
 
 const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId = 'default' }) => {
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>(strategyId);
-  const { loading, strategy, history, logs, userMap, formatDate, error } = useStrategyEvolution(selectedStrategyId);
+  const { loading, history, logs, userMap, formatDate, error } = useStrategyEvolution(selectedStrategyId);
 
   const { data: strategies, isLoading: loadingStrategies } = useQuery({
     queryKey: ['strategies-for-evolution'],
@@ -120,7 +120,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
           <TabsContent value="history">
             <EvolutionHistory 
               history={history} 
-              renderUser={renderUser} 
+              renderUser={renderUser}
               formatDate={formatDate} 
             />
           </TabsContent>

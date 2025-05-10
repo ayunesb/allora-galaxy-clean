@@ -14,7 +14,9 @@ export type {
 export type { 
   Plugin, 
   AgentVersion, 
-  PluginLog 
+  PluginLog,
+  PluginResult,
+  RunPluginChainResult
 } from './plugin';
 export type { 
   VoteType, 
@@ -40,3 +42,9 @@ export type {
 } from './execution';
 export type { EvolutionFilter } from './evolution';
 export type { OnboardingStep } from './onboarding';
+
+// Add DateRange type
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
