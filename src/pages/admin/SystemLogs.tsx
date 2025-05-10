@@ -6,7 +6,7 @@ import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import { AuditLog, DateRange } from '@/types/shared';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import AuditLogTable, { AuditLog as TableAuditLog } from '@/components/evolution/logs/AuditLogTable';
+import AuditLogTable, { TableAuditLog } from '@/components/evolution/logs/AuditLogTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Define SystemLog type
@@ -60,7 +60,7 @@ const SystemLogs: React.FC = () => {
   };
 
   // Convert SystemLogs to AuditLogs format for the table component
-  const convertedLogs: TableAuditLog[] = logs.map(log => ({
+  const convertedLogs = logs.map(log => ({
     id: log.id,
     module: log.module,
     event_type: log.event || 'system_event',
