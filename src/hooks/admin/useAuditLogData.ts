@@ -1,67 +1,67 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { AuditLog } from '@/types/shared';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { AuditLog } from '@/components/evolution/logs/AuditLogTable';
-import { AuditLogFilters } from '@/components/evolution/logs/AuditLogFilters';
 
-const useAuditLogData = (filters: AuditLogFilters = {}) => {
+interface UseAuditLogDataReturn {
+  logs: AuditLog[];
+  isLoading: boolean;
+  handleRefresh: () => void;
+}
+
+const useAuditLogData = (): UseAuditLogDataReturn => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { currentWorkspace } = useWorkspace();
 
   const fetchLogs = useCallback(async () => {
     if (!currentWorkspace?.id) return;
     
     setIsLoading(true);
-    setError(null);
-    
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('system_logs')
         .select('*')
         .eq('tenant_id', currentWorkspace.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
       
-      // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
+      if (error) {
+        console.error('Error fetching audit logs:', error);
+        return;
       }
       
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
+      // Transform system_logs data to match AuditLog interface
+      const transformedLogs: AuditLog[] = data.map(log => ({
+        id: log.id,
+        module: log.module,
+        event_type: log.event || 'unknown',
+        description: log.description || '',
+        tenant_id: log.tenant_id,
+        created_at: log.created_at,
+        metadata: log.context,
+      }));
       
-      if (filters.search) {
-        query = query.or(`event.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-      }
-      
-      const { data, error } = await query.limit(100);
-      
-      if (error) throw error;
-      
-      setLogs(data || []);
-    } catch (err: any) {
-      console.error('Error fetching audit logs:', err);
-      setError(err);
+      setLogs(transformedLogs);
+    } catch (error) {
+      console.error('Error in fetchLogs:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id, filters]);
+  }, [currentWorkspace?.id]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchLogs();
-  };
+  }, [fetchLogs]);
 
   return {
     logs,
     isLoading,
-    error,
     handleRefresh
   };
 };

@@ -33,26 +33,6 @@ interface Stats {
   completed: number;
 }
 
-// Define the correct interface for jobs to match the CronJobsTabs expected type
-interface CronJobsTabsProps {
-  jobs: {
-    id: string;
-    name: string;
-    schedule: string;
-    last_run: string | null;
-    next_run: string | null;
-    status: 'active' | 'inactive' | 'running' | 'failed';
-    function_name: string;
-    created_at: string;
-    error_message?: string | null;
-    duration_ms?: number | null;
-    metadata?: Record<string, any> | null;
-  }[];
-  stats: Stats;
-  isLoading: boolean;
-  onRunJob: (jobId: string) => void;
-}
-
 const CronJobsMonitoring: React.FC = () => {
   const { 
     jobs: cronJobData, 
@@ -65,7 +45,7 @@ const CronJobsMonitoring: React.FC = () => {
   } = useCronJobsMonitoring();
 
   // Map the jobData to the expected CronJob type
-  const jobs = cronJobData.map(job => ({
+  const jobs: CronJob[] = cronJobData.map(job => ({
     id: job.id,
     name: job.name,
     schedule: job.schedule || '* * * * *', // Provide default schedule if not available

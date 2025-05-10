@@ -78,5 +78,10 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = createTextGeometry;
   module.exports.default = createTextGeometry;
 } else {
-  export default createTextGeometry;
+  // Use named export syntax for ESM
+  const module = { exports: createTextGeometry };
+  export const createGeometry = module.exports.createGeometry;
+  export const createMeshes = module.exports.createMeshes;
+  export const createBasicText = module.exports.createBasicText;
+  export default module.exports;
 }
