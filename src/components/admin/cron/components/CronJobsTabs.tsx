@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import ExecutionsTable from './ExecutionsTable';
-import StatsTable from './StatsTable';
+import { ExecutionsTable } from './ExecutionsTable';
+import { StatsTable } from './StatsTable';
 import { Button } from '@/components/ui/button';
 
 // Define the CronJob type identical to the one in CronJobsMonitoring
@@ -63,7 +63,7 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
             <ExecutionsTable 
               jobs={jobs} 
               isLoading={isLoading}
-              actionButton={(job) => (
+              actionButton={(job: CronJob) => (
                 <Button
                   size="sm"
                   variant="outline"

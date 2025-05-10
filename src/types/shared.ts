@@ -1,4 +1,3 @@
-
 // Add or update the AuditLog type in the shared types
 export interface AuditLog {
   id: string;
@@ -15,7 +14,7 @@ export interface AuditLog {
 export type VoteType = 'upvote' | 'downvote';
 
 // Add missing TrendDirection type
-export type TrendDirection = 'up' | 'down' | 'neutral' | 'increasing' | 'decreasing' | 'stable';
+export type TrendDirection = 'up' | 'down' | 'neutral';
 
 // Add missing LogStatus type
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
@@ -24,7 +23,7 @@ export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 export interface NavigationItem {
   name: string;
   href: string;
-  icon?: string;
+  icon?: string | React.ComponentType<any>;
   items?: NavigationItem[];
   requiresAuth?: boolean;
   roles?: UserRole[];
@@ -130,9 +129,9 @@ export interface KPI {
   category: string;
   period: string;
   source?: string;
+  date: string;
+  tenant_id: string;
   created_at: string;
   updated_at: string;
-  tenant_id: string;
   metadata?: Record<string, any>;
-  date: string;
 }

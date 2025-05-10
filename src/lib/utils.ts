@@ -104,3 +104,17 @@ export function getCookiePreferences(): any {
   const preferences = localStorage.getItem('cookie-preferences');
   return preferences ? JSON.parse(preferences) : null;
 }
+
+/**
+ * Calculate the percentage change between two values
+ * @param current The current value
+ * @param previous The previous value
+ * @returns The percentage change (e.g., 10 for 10% increase)
+ */
+export function calculatePercentChange(current: number, previous: number): number {
+  if (previous === 0) {
+    return current > 0 ? 100 : 0; // Avoid division by zero
+  }
+  
+  return parseFloat((((current - previous) / previous) * 100).toFixed(1));
+}

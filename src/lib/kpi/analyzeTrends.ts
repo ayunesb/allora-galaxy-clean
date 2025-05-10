@@ -1,6 +1,6 @@
 
-import { calculatePercentChange } from '@/lib/utils';
 import { KPITrend, TrendDirection } from '@/types/shared';
+import { calculatePercentChange } from '@/lib/utils';
 
 // Define the KPI interface locally if not exported from shared types
 interface KPI {
@@ -33,7 +33,7 @@ export function calculateTrendDirection(current: number, previous: number | null
 }
 
 export function isPositiveTrend(direction: TrendDirection): boolean {
-  return direction === 'up' || direction === 'increasing';
+  return direction === 'up';
 }
 
 export function formatKPIValue(value: number, unit: string): string {
