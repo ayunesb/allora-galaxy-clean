@@ -39,7 +39,7 @@ export type SystemEventModule = 'auth' | 'strategy' | 'plugin' | 'agent' | 'kpi'
 // Add missing SystemEventType type
 export type SystemEventType = 'create' | 'update' | 'delete' | 'error' | 'login' | 'logout';
 
-// Add missing OnboardingStep type
+// Add missing OnboardingStep type - updating to include additional steps mentioned in errors
 export type OnboardingStep = 
   | 'welcome' 
   | 'company' 
@@ -79,10 +79,10 @@ export interface KPITrend {
   percentChange?: number;
   target?: number;
   unit?: string;
+  isPositive?: boolean;
+  currentValue?: number;
   direction?: TrendDirection; 
   percentage?: number;
-  currentValue?: number;
-  isPositive?: boolean;
 }
 
 // Add missing UserRole type

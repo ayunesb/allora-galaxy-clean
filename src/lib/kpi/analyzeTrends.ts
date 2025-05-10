@@ -1,100 +1,140 @@
 
-import { KPI, KPITrend, TrendDirection } from '@/types/shared';
+import { calculatePercentChange } from '@/lib/utils';
+import { KPITrend, TrendDirection } from '@/types/shared';
 
-/**
- * Calculate percentage change between two values
- */
-function calculatePercentageChange(current: number, previous: number): number {
-  if (previous === 0) {
-    return current > 0 ? 100 : 0;
-  }
-  return ((current - previous) / Math.abs(previous)) * 100;
+// Define the KPI interface locally if not exported from shared types
+interface KPI {
+  id: string;
+  name: string;
+  value: number;
+  previous_value?: number | null;
+  unit: string;
+  target?: number | null;
+  category: string;
+  period: string;
+  source?: string;
+  date: string;
+  tenant_id: string;
+  created_at: string;
+  updated_at: string;
+  metadata?: Record<string, any>;
 }
 
-/**
- * Determine trend direction based on values
- */
-function determineTrendDirection(current: number, previous: number): TrendDirection {
+export function calculateTrendDirection(current: number, previous: number | null | undefined): TrendDirection {
+  if (!previous) return 'neutral';
+  
   if (current > previous) {
-    return 'increasing';
+    return 'up';
   } else if (current < previous) {
-    return 'decreasing';
-  }
-  return 'stable';
-}
-
-/**
- * Get whether a trend is positive based on the direction
- */
-function isTrendPositive(direction: TrendDirection): boolean {
-  return direction === 'increasing' || direction === 'up';
-}
-
-/**
- * Analyze KPI to determine trend
- */
-export function analyzeKpiTrend(kpi: KPI): KPITrend {
-  // If we have a previous value, calculate trend
-  if (kpi.previous_value !== null && kpi.previous_value !== undefined) {
-    const direction = determineTrendDirection(kpi.value, kpi.previous_value);
-    const percentage = Math.abs(calculatePercentageChange(kpi.value, kpi.previous_value));
-    const isPositive = isTrendPositive(direction);
-    
-    return {
-      direction,
-      percentage: Number(percentage.toFixed(1)),
-      currentValue: kpi.value,
-      previousValue: kpi.previous_value,
-      isPositive,
-      percentageChange: isPositive ? percentage : -percentage
-    };
+    return 'down';
   }
   
-  // If no previous value, assume stable
+  return 'neutral';
+}
+
+export function isPositiveTrend(direction: TrendDirection): boolean {
+  return direction === 'up' || direction === 'increasing';
+}
+
+export function formatKPIValue(value: number, unit: string): string {
+  if (unit === '%') {
+    return `${value.toFixed(1)}%`;
+  } else if (unit === '$') {
+    return `$${value.toLocaleString()}`;
+  }
+  
+  return value.toLocaleString();
+}
+
+export function createKPITrend(name: string, current: number, previous: number | null | undefined, unit: string, target?: number): KPITrend {
+  const trend = calculateTrendDirection(current, previous);
+  const percentChange = previous ? calculatePercentChange(current, previous) : 0;
+
   return {
-    direction: 'stable',
-    percentage: 0,
-    currentValue: kpi.value,
-    previousValue: null,
-    isPositive: false,
-    percentageChange: 0
+    name,
+    value: current,
+    previousValue: previous,
+    trend,
+    percentChange,
+    unit,
+    target
   };
 }
 
-/**
- * Analyze KPI against its target
- */
-export function analyzeKpiTarget(kpi: KPI): KPITrend {
-  // If we have a target, calculate trend against target
-  if (kpi.target !== null && kpi.target !== undefined) {
-    const percentageOfTarget = (kpi.value / kpi.target) * 100;
-    let direction: TrendDirection;
-    
-    if (percentageOfTarget >= 100) {
-      direction = 'increasing';
-    } else if (percentageOfTarget >= 75) {
-      direction = 'stable';
+export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
+  return {
+    name,
+    value: 0,
+    previousValue: null,
+    trend: 'neutral',
+    percentChange: 0,
+    unit
+  };
+}
+
+export function analyzeKPITrend(kpi: KPI): KPITrend {
+  let trend: TrendDirection = 'neutral';
+  let percentChange = 0;
+  
+  if (kpi.previous_value !== null && kpi.previous_value !== undefined) {
+    if (kpi.value > kpi.previous_value) {
+      trend = 'up';
+    } else if (kpi.value < kpi.previous_value) {
+      trend = 'down';
     } else {
-      direction = 'decreasing';
+      trend = 'neutral';
     }
     
-    return {
-      direction,
-      percentage: Number(percentageOfTarget.toFixed(1)),
-      currentValue: kpi.value,
-      previousValue: null,
-      isPositive: isTrendPositive(direction),
-      percentageChange: kpi.value - kpi.target
-    };
+    percentChange = calculatePercentChange(kpi.value, kpi.previous_value);
   }
   
-  // If no target, assume stable
   return {
-    direction: 'stable',
-    percentage: 0,
-    currentValue: kpi.value,
-    previousValue: null,
-    isPositive: false,
-    percentageChange: 0
+    name: kpi.name,
+    value: kpi.value,
+    previousValue: kpi.previous_value,
+    trend,
+    percentChange,
+    unit: kpi.unit,
+    target: kpi.target
+  };
+}
+
+export function createMockKPITrend(config: {
+  name: string;
+  value: number;
+  previousValue?: number;
+  trend?: TrendDirection;
+  unit?: string;
+  target?: number;
+}): KPITrend {
+  const {
+    name,
+    value,
+    previousValue = value * 0.9,
+    unit = '',
+    target
+  } = config;
+  
+  let trend = config.trend;
+  if (!trend) {
+    if (value > previousValue) {
+      trend = 'up';
+    } else if (value < previousValue) {
+      trend = 'down';
+    } else {
+      trend = 'neutral';
+    }
+  }
+  
+  const percentChange = previousValue ? calculatePercentChange(value, previousValue) : 0;
+  
+  return {
+    name,
+    value,
+    previousValue,
+    trend,
+    percentChange,
+    unit,
+    target
   };
 }

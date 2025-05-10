@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/popover';
 
 interface DateRangePickerProps {
-  value?: DateRange;
-  onChange: (range?: DateRange) => void;
+  value?: DateRange | null;
+  onChange: (range?: DateRange | null) => void;
   className?: string;
 }
 
@@ -23,7 +23,7 @@ export function DateRangePicker({
   onChange,
   className,
 }: DateRangePickerProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(value);
+  const [date, setDate] = React.useState<DateRange | undefined | null>(value);
 
   // Update the external state when the internal state changes
   React.useEffect(() => {
@@ -92,7 +92,7 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date}
+            selected={date || undefined}
             onSelect={handleSelect}
             numberOfMonths={2}
             className="pointer-events-auto"

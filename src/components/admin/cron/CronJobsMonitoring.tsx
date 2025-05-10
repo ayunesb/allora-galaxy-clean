@@ -3,19 +3,19 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCronJobsMonitoring } from '@/hooks/admin/useCronJobsMonitoring';
 import { CronJobsHeader } from './components/CronJobsHeader';
-import { CronJobsTabs } from './components/CronJobsTabs';
+import { CronJobsTabs, CronJob as TabsCronJob } from './components/CronJobsTabs';
 
 // Define the interfaces for the component
 export interface CronJob {
   id: string;
   name: string;
-  schedule: string;
+  schedule: string | null | undefined;
   last_run: string | null;
   next_run: string | null;
   status: 'active' | 'inactive' | 'running' | 'failed';
   function_name: string;
   created_at: string;
-  error_message?: string | null;
+  error_message?: string | null | undefined;
   duration_ms?: number | null;
   metadata?: Record<string, any> | null;
 }
@@ -44,11 +44,11 @@ const CronJobsMonitoring: React.FC = () => {
     runJob: runCronJob 
   } = useCronJobsMonitoring();
 
-  // Map the jobData to the expected CronJob type
-  const jobs: CronJob[] = cronJobData.map(job => ({
+  // Map the jobData to the expected CronJob type that matches CronJobsTabs interface
+  const jobs: TabsCronJob[] = cronJobData.map(job => ({
     id: job.id,
     name: job.name,
-    schedule: job.schedule || '* * * * *', // Provide default schedule if not available
+    schedule: job.schedule, // Matching the nullable/undefined type
     last_run: job.last_run,
     next_run: job.next_run,
     status: mapStatus(job.status),

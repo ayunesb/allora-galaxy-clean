@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuditLog as AuditLogType } from '@/types/shared';
+import { AuditLog as AuditLogType, DateRange } from '@/types/shared';
 import AuditLogTable from './logs/AuditLogTable';
 import AuditLogFilters from './logs/AuditLogFilters';
 import LogDetailDialog from './logs/LogDetailDialog';
@@ -24,6 +24,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
   const [moduleFilter, setModuleFilter] = useState('');
   const [eventFilter, setEventFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   // Extract unique modules and event types from data
   const modules = Array.from(new Set(data.map(log => log.module)));
@@ -38,19 +39,24 @@ const AuditLog: React.FC<AuditLogProps> = ({
       log.module.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.event_type.toLowerCase().includes(searchQuery.toLowerCase());
     
+    // Date filtering logic would go here if needed
+    
     return matchesModule && matchesEvent && matchesSearch;
   });
 
-  const handleFilterChange = useCallback((type: string, value: string) => {
+  const handleFilterChange = useCallback((type: string, value: string | DateRange | null) => {
     switch (type) {
       case 'module':
-        setModuleFilter(value);
+        setModuleFilter(value as string);
         break;
       case 'event':
-        setEventFilter(value);
+        setEventFilter(value as string);
         break;
       case 'search':
-        setSearchQuery(value);
+        setSearchQuery(value as string);
+        break;
+      case 'date':
+        setDateRange(value as DateRange | null);
         break;
       default:
         break;
@@ -61,6 +67,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
     setModuleFilter('');
     setEventFilter('');
     setSearchQuery('');
+    setDateRange(null);
   }, []);
 
   const handleViewDetails = useCallback((log: AuditLogType) => {
@@ -79,6 +86,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
             moduleFilter={moduleFilter}
             eventFilter={eventFilter}
             searchQuery={searchQuery}
+            selectedDate={dateRange}
             modules={modules}
             events={events}
             handleFilterChange={handleFilterChange}

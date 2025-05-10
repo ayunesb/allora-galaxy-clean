@@ -82,7 +82,13 @@ const SystemLogs: React.FC = () => {
 
   // Function to adapt handler for SystemLogFilters
   const handleLogFilterChange = (type: string, value: string | DateRange | null) => {
-    handleFilterChange(type, value as string | DateRange | null);
+    // Convert DateRange to Date for useSystemLogsData if needed
+    if (type === 'selectedDate' && value && typeof value !== 'string') {
+      const dateValue = (value as DateRange).from;
+      handleFilterChange(type, dateValue);
+    } else {
+      handleFilterChange(type, value as string);
+    }
   };
 
   return (
