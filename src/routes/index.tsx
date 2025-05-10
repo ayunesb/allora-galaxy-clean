@@ -1,4 +1,3 @@
-
 import { RouteObject } from 'react-router-dom';
 import PublicRoutes from './PublicRoutes';
 import ProtectedRoutes from './ProtectedRoutes';
@@ -88,7 +87,7 @@ export const routes: RouteObject[] = [
             element: <AdminGuard><UserManagement /></AdminGuard>
           },
           {
-            path: 'admin/logs',
+            path: 'admin/system-logs',
             element: <AdminGuard><SystemLogs /></AdminGuard>
           },
           {
