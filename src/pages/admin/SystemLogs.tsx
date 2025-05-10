@@ -107,7 +107,7 @@ const SystemLogs: React.FC = () => {
             searchQuery={searchQuery}
             moduleFilter={moduleFilter}
             eventFilter={eventFilter}
-            selectedDate={selectedDate as DateRange | null}
+            selectedDate={selectedDate}
           />
           
           <div className="mt-6">
