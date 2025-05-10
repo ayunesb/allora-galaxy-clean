@@ -33,7 +33,7 @@ export function getEdgeEnv(key: string, fallback: string = ""): string {
   let value = safeGetDenoEnv(key);
   if (value) return value;
   
-  // Fall back to Node process.env if available
+  // Fall back to Node.js process.env if available
   try {
     if (typeof process !== 'undefined' && process.env) {
       value = process.env[key] ?? fallback;

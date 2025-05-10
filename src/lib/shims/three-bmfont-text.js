@@ -1,32 +1,30 @@
 
-// This is a simplified shim for three-bmfont-text to avoid git clone errors
-// It provides the minimal functionality required by the application
+/**
+ * This is a minimal shim for three-bmfont-text to prevent import errors.
+ * It provides just enough functionality to avoid breaking builds.
+ */
 
-export default function createTextGeometry(options) {
-  // Return a simplified version of the geometry
+// Basic constructor that takes options
+function createText(options = {}) {
   return {
-    update: () => {},
-    dispose: () => {},
-    layout: {
-      width: 0,
-      height: 0,
-      descender: 0,
-      baseline: 0,
-      lineHeight: 0,
-      capHeight: 0,
-      xHeight: 0,
-      glyphs: []
+    text: options.text || '',
+    position: { x: 0, y: 0, z: 0 },
+    layout: options.layout || {},
+    material: options.material || null,
+    geometry: {
+      update: () => {},
+      attributes: {},
+      dispose: () => {}
     },
-    visibleGlyphs: [],
-    vertices: new Float32Array(),
-    attributesNeedUpdate: () => true,
+    update: () => {},
+    dispose: () => {}
   };
 }
 
-export const utils = {
-  getAlignedX: (textWidth, align, width) => {
-    if (align === 'center') return (width - textWidth) / 2;
-    if (align === 'right') return width - textWidth;
-    return 0;
-  }
-};
+// Export as both CommonJS and ES module
+if (typeof module !== 'undefined') {
+  module.exports = createText;
+  module.exports.default = createText;
+}
+
+export default createText;

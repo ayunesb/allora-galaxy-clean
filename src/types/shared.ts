@@ -152,6 +152,8 @@ export interface AuditLog {
   description: string;
   metadata?: Record<string, any>;
   created_at: string;
+  module?: string;
+  tenant_id?: string;
 }
 
 // Executions
@@ -179,3 +181,25 @@ export interface EvolutionFilter {
   status?: string;
   searchTerm?: string;
 }
+
+// Trend direction for KPIs
+export type TrendDirection = 'up' | 'down' | 'neutral' | 'increasing' | 'decreasing' | 'stable';
+
+// KPI trend data
+export interface KPITrend {
+  id: string;
+  name: string;
+  value: number;
+  previousValue?: number;
+  percentChange: number;
+  direction: TrendDirection;
+  target?: number;
+  date: string;
+  category?: string;
+}
+
+// Onboarding step type
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+
+// Log status type
+export type LogStatus = 'success' | 'error' | 'warning' | 'info';
