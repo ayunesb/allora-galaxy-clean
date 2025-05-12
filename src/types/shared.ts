@@ -7,7 +7,7 @@ export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
 export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
 
-export type SystemEventType = 'create' | 'update' | 'delete' | 'execute' | 'error' | 'login' | 'logout';
+export type SystemEventType = 'create' | 'update' | 'delete' | 'execute' | 'error' | 'login' | 'logout' | 'onboarding_welcome' | 'onboarding_company-info' | 'onboarding_persona' | 'onboarding_additional-info' | 'onboarding_strategy-generation' | 'onboarding_completed';
 
 export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
 

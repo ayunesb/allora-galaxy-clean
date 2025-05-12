@@ -54,16 +54,11 @@ const OnboardingWizard: React.FC = () => {
         <StepContent 
           step={currentStep}
           formData={formData}
-          updateFormData={(section: keyof typeof formData, value: any) => {
-            updateFormData(section, value);
-          }}
+          updateFormData={updateFormData}
           isGenerating={isGenerating}
-          setFieldValue={(field: string, value: any) => {
-            // Extract section and field name
-            const [section, fieldName] = field.split('.');
-            if (section && fieldName && section in formData) {
-              updateFormData(section as keyof typeof formData, { [fieldName]: value });
-            }
+          setFieldValue={(key: string, value: any) => {
+            // Pass to updateFormData which now handles both update patterns
+            updateFormData({ [key]: value });
           }}
         />
       </div>

@@ -11,17 +11,18 @@ export {
   isEnvTrue,
   isDevelopment,
   isTest,
+  isProduction,
   getEnvsByPrefix,
-  getSafeEnv
+  getSafeEnv,
+  ENV,
+  corsHeaders,
+  getBaseUrl
 } from './envUtils';
 
 // Re-export from environment with explicit naming
 export {
   getEnvironmentVariable,
-  isProduction,
-  getBaseUrl,
-  validateEnvironment,
-  corsHeaders
+  validateEnvironment
 } from './environment';
 
 // Re-export from safeEdgeEnv

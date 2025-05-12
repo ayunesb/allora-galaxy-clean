@@ -1,29 +1,33 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { AuditLog, LogFilters, SystemEventModule } from '@/types/logs';
-import { DateRange } from '@/types/shared';
-import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { SystemLog, LogFilters } from '@/types/logs';
+import { useTenantId } from '@/hooks/useTenantId';
 
-export function useSystemLogsData(initialFilters: LogFilters = {}) {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState<LogFilters>(initialFilters);
-
+export const useSystemLogsData = () => {
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Partial<LogFilters>>({});
+  const { tenantId } = useTenantId();
+  
   const fetchLogs = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
       let query = supabase
         .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
       
-      if (filters.module) {
-        query = query.eq('module', filters.module);
+      // Apply tenant filter if applicable
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
       
-      if (filters.tenant_id) {
-        query = query.eq('tenant_id', filters.tenant_id);
+      // Apply filters
+      if (filters.module) {
+        query = query.eq('module', filters.module);
       }
       
       if (filters.event) {
@@ -42,63 +46,38 @@ export function useSystemLogsData(initialFilters: LogFilters = {}) {
         query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
       }
       
-      const { data, error } = await query.limit(100);
+      // Order by created_at DESC
+      query = query.order('created_at', { ascending: false });
       
-      if (error) throw error;
+      // Limit to 100 records
+      query = query.limit(100);
       
-      setLogs(data as AuditLog[]);
-    } catch (error) {
-      console.error('Error fetching system logs:', error);
+      const { data, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      setLogs(data || []);
+    } catch (err: any) {
+      console.error('Error fetching system logs:', err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
-
+  
+  // Fetch logs on mount and when filters change
   useEffect(() => {
     fetchLogs();
-  }, [
-    filters.module,
-    filters.event,
-    filters.fromDate,
-    filters.toDate,
-    filters.tenant_id,
-    filters.searchTerm
-  ]);
-
-  const handleFilterChange = (newFilters: LogFilters) => {
-    setFilters({ ...filters, ...newFilters });
-  };
-
-  const handleDateRangeChange = (dateRange: DateRange | null) => {
-    if (!dateRange) {
-      const { fromDate, toDate, ...rest } = filters;
-      setFilters(rest);
-      return;
-    }
-    
-    const newFilters: LogFilters = { ...filters };
-    
-    if (dateRange.from) {
-      newFilters.fromDate = format(dateRange.from, 'yyyy-MM-dd');
-    }
-    
-    if (dateRange.to) {
-      newFilters.toDate = format(dateRange.to, 'yyyy-MM-dd');
-    }
-    
-    setFilters(newFilters);
-  };
-
-  const refetchLogs = () => {
-    fetchLogs();
-  };
-
+  }, [tenantId, filters]);
+  
   return {
     logs,
     isLoading,
+    error,
     filters,
-    setFilters: handleFilterChange,
-    refetchLogs,
-    handleDateRangeChange
+    setFilters,
+    refetch: fetchLogs
   };
-}
+};

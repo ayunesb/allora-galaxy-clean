@@ -28,7 +28,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   const [filters, setFilters] = useState<AuditLogFilterState>({});
   
   // If data is not provided as props, use the hook to fetch the data
-  const hookData = useAuditLogData(filters);
+  const hookData = useAuditLogData(filters as any);
   const logs = data || hookData.logs;
   const loading = isLoading !== undefined ? isLoading : hookData.isLoading;
   const handleRefresh = onRefresh || hookData.refetch;

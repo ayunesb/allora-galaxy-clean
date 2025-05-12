@@ -1,55 +1,58 @@
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { AuditLog } from '@/types/logs';
-import { SystemEventModule } from '@/types/shared';
-import { DateRange } from '@/types/shared';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { SystemLog, LogFilters } from '@/types/logs';
+import { useTenantId } from '@/hooks/useTenantId';
 
-interface AIDecisionsFilters {
-  searchTerm: string;
-  dateRange?: DateRange;
-  module?: SystemEventModule;
-}
-
-export function useAiDecisions() {
-  const { toast } = useToast();
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+export const useAiDecisionsData = () => {
+  const [decisions, setDecisions] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<AIDecisionsFilters>({
-    searchTerm: '',
-  });
-
-  useEffect(() => {
-    fetchAIDecisions();
-  }, [filters]);
-
-  const fetchAIDecisions = async () => {
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Partial<LogFilters>>({});
+  const { tenantId } = useTenantId();
+  
+  const fetchDecisions = async () => {
     setIsLoading(true);
+    setError(null);
     
     try {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .eq('module', 'system')
-        .eq('event', 'ai_decision')
-        .order('created_at', { ascending: false });
-        
-      // Apply search filter if provided
-      if (filters.searchTerm) {
-        query = query.textSearch('context', filters.searchTerm);
+        .or('module.eq.agent,module.eq.strategy,event.eq.execute');
+      
+      // Apply tenant filter if applicable
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
       }
       
-      // Apply date range filter if provided
-      if (filters.dateRange?.from) {
-        const fromDate = filters.dateRange.from.toISOString();
-        query = query.gte('created_at', fromDate);
-        
-        if (filters.dateRange.to) {
-          const toDate = filters.dateRange.to.toISOString();
-          query = query.lte('created_at', toDate);
-        }
+      // Apply filters
+      if (filters.module) {
+        query = query.eq('module', filters.module);
       }
+      
+      if (filters.event) {
+        query = query.eq('event', filters.event);
+      }
+      
+      if (filters.fromDate) {
+        query = query.gte('created_at', filters.fromDate);
+      }
+      
+      if (filters.toDate) {
+        query = query.lte('created_at', filters.toDate);
+      }
+      
+      if (filters.searchTerm) {
+        // Use ilike for case-insensitive search
+        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
+      }
+      
+      // Order by created_at DESC
+      query = query.order('created_at', { ascending: false });
+      
+      // Limit to 100 records
+      query = query.limit(100);
       
       const { data, error } = await query;
       
@@ -57,28 +60,26 @@ export function useAiDecisions() {
         throw error;
       }
       
-      setLogs(data as AuditLog[]);
-    } catch (error: any) {
-      console.error('Error fetching AI decisions:', error);
-      toast({
-        title: 'Error fetching AI decisions',
-        description: error.message || 'Failed to load AI decisions',
-        variant: 'destructive'
-      });
+      setDecisions(data || []);
+    } catch (err: any) {
+      console.error('Error fetching AI decisions:', err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const refetchLogs = () => {
-    fetchAIDecisions();
-  };
-
+  
+  // Fetch decisions on mount and when filters change
+  useEffect(() => {
+    fetchDecisions();
+  }, [tenantId, filters]);
+  
   return {
-    logs,
+    decisions,
     isLoading,
+    error,
     filters,
     setFilters,
-    refetchLogs
+    refetch: fetchDecisions
   };
-}
+};
