@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import { AuditLog } from '@/types/logs';
+import { AuditLog, SystemEventModule } from '@/types/logs';
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 
 const AiDecisions = () => {

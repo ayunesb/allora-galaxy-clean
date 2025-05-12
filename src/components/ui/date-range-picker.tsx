@@ -5,12 +5,14 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "@/types/shared";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { DateRange as DayPickerDateRange } from "react-day-picker";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { convertDateRange } from "@/types/shared";
 
 interface DateRangePickerProps {
   value?: DateRange;
@@ -32,15 +34,16 @@ export function DateRangePicker({
     setDate(value);
   }, [value]);
 
-  const handleSelect = (range: DateRange | undefined) => {
-    setDate(range);
+  const handleSelect = (range: DayPickerDateRange | undefined) => {
+    const convertedRange = convertDateRange(range);
+    setDate(convertedRange);
     if (onChange) {
-      onChange(range);
+      onChange(convertedRange);
     }
   };
 
   // Convert our DateRange type to the Calendar component's expected format
-  const selectedDates: { from: Date; to?: Date } | undefined = date
+  const selectedDates: DayPickerDateRange | undefined = date
     ? { from: date.from, to: date.to }
     : undefined;
 
@@ -77,17 +80,7 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={selectedDates}
-            onSelect={(selectedRange) => {
-              if (selectedRange && 'from' in selectedRange) {
-                // Convert to our DateRange type
-                handleSelect({ 
-                  from: selectedRange.from as Date, 
-                  to: selectedRange.to as Date | undefined
-                });
-              } else {
-                handleSelect(undefined);
-              }
-            }}
+            onSelect={handleSelect}
             numberOfMonths={2}
           />
           <div className="flex justify-end gap-2 p-3">

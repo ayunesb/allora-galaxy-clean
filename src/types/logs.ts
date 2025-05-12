@@ -1,5 +1,4 @@
 
-
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
 export type SystemEventModule = 
@@ -11,7 +10,8 @@ export type SystemEventModule =
   | 'auth'
   | 'billing'
   | 'hubspot' 
-  | 'system';
+  | 'system'
+  | 'ai';
 
 export type SystemEventType = 
   | 'created' 
@@ -39,6 +39,7 @@ export interface AuditLog extends SystemLog {
   details?: Record<string, any>;
   resource_type?: string;
   resource_id?: string;
+  error?: string;
   // Add these fields for backward compatibility with data from API
   entity_type?: SystemEventModule; 
   entity_id?: string;

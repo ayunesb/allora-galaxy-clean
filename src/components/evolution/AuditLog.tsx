@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AuditLog as AuditLogType } from '@/types/logs';
-import LogDetailDialog from './logs/LogDetailDialog';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
-import { AuditLogFilters as AuditLogFiltersType } from '@/components/evolution/logs/AuditLogFilters';
+import { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
 import { SystemEventModule } from '@/types/logs';
 
 export interface AuditLogProps {
@@ -26,14 +26,14 @@ const AuditLog: React.FC<AuditLogProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [filters, setFilters] = useState<AuditLogFiltersType>({ searchTerm: '' });
+  const [filters, setFilters] = useState<AuditLogFilter>({ searchTerm: '' });
 
   const handleOpen = (log: AuditLogType) => {
     setSelectedLog(log);
     setOpen(true);
   };
 
-  const handleFilterChange = (newFilters: AuditLogFiltersType) => {
+  const handleFilterChange = (newFilters: AuditLogFilter) => {
     setFilters(newFilters);
   };
 
@@ -56,6 +56,12 @@ const AuditLog: React.FC<AuditLogProps> = ({
 
   const modules: SystemEventModule[] = Array.from(new Set(data.map(log => log.module))) as SystemEventModule[];
 
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
@@ -65,6 +71,8 @@ const AuditLog: React.FC<AuditLogProps> = ({
             onFilterChange={handleFilterChange}
             modules={modules}
             filters={filters}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
           />
           {onRefresh && (
             <Button variant="outline" onClick={onRefresh} disabled={isLoading}>
@@ -101,7 +109,9 @@ const AuditLog: React.FC<AuditLogProps> = ({
         </ScrollArea>
       </CardContent>
       
-      <LogDetailDialog log={selectedLog} open={open} onOpenChange={setOpen} />
+      {selectedLog && (
+        <LogDetailDialog log={selectedLog} open={open} onOpenChange={setOpen} />
+      )}
     </Card>
   );
 };
