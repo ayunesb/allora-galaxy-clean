@@ -4,16 +4,16 @@ import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
-import { OnboardingStep as OnboardingStepType } from '@/types/onboarding';
+import { OnboardingStep } from '@/types/onboarding';
 
 // Define steps for the onboarding process
 const STEPS = [
-  { id: 'welcome' as OnboardingStepType, label: 'Welcome' },
-  { id: 'company-info' as OnboardingStepType, label: 'Company Info' },
-  { id: 'persona' as OnboardingStepType, label: 'Persona' },
-  { id: 'additional-info' as OnboardingStepType, label: 'Additional Info' },
-  { id: 'strategy-generation' as OnboardingStepType, label: 'Strategy' },
-  { id: 'completed' as OnboardingStepType, label: 'Complete' }
+  { id: 'welcome' as OnboardingStep, label: 'Welcome' },
+  { id: 'company-info' as OnboardingStep, label: 'Company Info' },
+  { id: 'persona' as OnboardingStep, label: 'Persona' },
+  { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
+  { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
+  { id: 'completed' as OnboardingStep, label: 'Complete' }
 ];
 
 const OnboardingWizard: React.FC = () => {
@@ -37,9 +37,6 @@ const OnboardingWizard: React.FC = () => {
     // Add validation logic here based on currentStep
     return false;
   };
-
-  // Current step content
-  const currentStepData = STEPS.find(step => step.id === currentStep) || STEPS[0];
   
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col h-full">
@@ -57,12 +54,8 @@ const OnboardingWizard: React.FC = () => {
         <StepContent 
           step={currentStep}
           formData={formData}
-          updateFormData={(field, value) => {
-            // Extract section and field name
-            const [section, fieldName] = field.split('.');
-            if (section && fieldName && section in formData) {
-              updateFormData(section as keyof typeof formData, { [fieldName]: value });
-            }
+          updateFormData={(section, value) => {
+            updateFormData(section, value);
           }}
           isGenerating={isGenerating}
           setFieldValue={(field, value) => {

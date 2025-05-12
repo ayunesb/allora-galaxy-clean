@@ -55,20 +55,25 @@ export function useUserData() {
         if (error) throw error;
         
         if (data && Array.isArray(data)) {
-          const formattedUsers: User[] = data.map(item => ({
-            id: item.id,
-            role: item.role,
-            created_at: item.created_at,
-            user_id: item.user_id,
-            profiles: {
-              first_name: item.profiles?.first_name || '',
-              last_name: item.profiles?.last_name || '',
-              avatar_url: item.profiles?.avatar_url || '',
-              email: Array.isArray(item.profiles?.email) 
-                ? item.profiles.email 
-                : []
-            }
-          }));
+          const formattedUsers: User[] = data.map(item => {
+            // Extract profile data correctly, accounting for possible null values
+            const profile = item.profiles || {};
+            
+            return {
+              id: item.id,
+              role: item.role,
+              created_at: item.created_at,
+              user_id: item.user_id,
+              profiles: {
+                first_name: profile.first_name || '',
+                last_name: profile.last_name || '',
+                avatar_url: profile.avatar_url || '',
+                email: Array.isArray(profile.email) 
+                  ? profile.email 
+                  : []
+              }
+            };
+          });
           
           setUsers(formattedUsers);
         }

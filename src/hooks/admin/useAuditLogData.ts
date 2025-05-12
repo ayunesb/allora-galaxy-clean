@@ -1,72 +1,87 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { AuditLog, LogFilters } from '@/types/logs';
 import { supabase } from '@/lib/supabase';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { AuditLog } from '@/types/logs';
-import { AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters';
 
-export const useAuditLogData = (filters: AuditLogFilterState = {}) => {
+export function useAuditLogData(initialFilters?: Partial<LogFilters>) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState<LogFilters>(initialFilters || {});
+  const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
 
-  const fetchLogs = useCallback(async () => {
-    if (!currentWorkspace?.id) {
-      setLogs([]);
-      return;
-    }
+  useEffect(() => {
+    fetchLogs();
+  }, [filters, currentWorkspace?.id]);
 
+  const fetchLogs = async () => {
+    if (!currentWorkspace?.id) return;
+    
     setIsLoading(true);
-    setError(null);
-
+    
     try {
       let query = supabase
         .from('system_logs')
         .select('*')
         .eq('tenant_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
-
-      // Apply filters
+      
+      // Apply module filter if provided
       if (filters.module) {
         query = query.eq('module', filters.module);
       }
-
+      
+      // Apply event filter if provided
+      if (filters.event) {
+        query = query.eq('event', filters.event);
+      }
+      
+      // Apply date range filters if provided
+      if (filters.fromDate) {
+        query = query.gte('created_at', filters.fromDate);
+      }
+      
+      if (filters.toDate) {
+        query = query.lte('created_at', filters.toDate);
+      }
+      
+      // Apply search term if provided
       if (filters.searchTerm) {
-        query = query.or(`context.ilike.%${filters.searchTerm}%,event.ilike.%${filters.searchTerm}%`);
+        query = query.or(`event.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
       }
-
-      if (filters.dateRange?.from) {
-        query = query.gte('created_at', filters.dateRange.from.toISOString());
-        
-        if (filters.dateRange.to) {
-          query = query.lte('created_at', filters.dateRange.to.toISOString());
-        }
-      }
-
-      const { data, error } = await query.limit(100);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
       setLogs(data as AuditLog[]);
-    } catch (err: any) {
-      console.error('Error fetching audit logs:', err);
-      setError(err);
+    } catch (error: any) {
+      console.error('Error fetching audit logs:', error);
+      toast({
+        title: 'Error fetching logs',
+        description: error.message || 'Failed to load audit logs',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id, filters]);
+  };
 
-  useEffect(() => {
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  const refetch = () => {
     fetchLogs();
-  }, [fetchLogs]);
+  };
 
   return {
     logs,
     isLoading,
-    error,
-    refetch: fetchLogs,
+    filters,
+    updateFilters,
+    refetch
   };
-};
+}

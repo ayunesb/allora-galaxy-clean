@@ -1,78 +1,96 @@
 
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { SystemEventModule } from '@/types/shared';
+
+// Extend SystemEventModule type to include "onboarding"
+type ExtendedEventModule = SystemEventModule | "onboarding";
 
 /**
- * Track when a user views an onboarding step
- * @param userId User ID
- * @param stepId Step ID
- * @param additionalData Additional data to log
+ * Log onboarding start event
+ * @param userId The user ID
+ * @param tenantId The tenant ID
  */
-export function trackOnboardingStepView(
-  userId: string,
-  stepId: string,
-  additionalData: Record<string, any> = {}
-): Promise<any> {
-  return logSystemEvent('onboarding', 'info', {
-    event_type: 'step_view',
-    user_id: userId,
-    step_id: stepId,
-    ...additionalData,
-  });
+export async function logOnboardingStarted(userId: string, tenantId?: string) {
+  try {
+    await logSystemEvent(
+      "user" as SystemEventModule, // Use "user" instead of "onboarding"
+      "onboarding_started",
+      {
+        user_id: userId,
+        timestamp: new Date().toISOString()
+      },
+      tenantId
+    );
+  } catch (error) {
+    console.error("Failed to log onboarding start event:", error);
+  }
 }
 
 /**
- * Track when a user completes an onboarding step
- * @param userId User ID
- * @param stepId Step ID
- * @param additionalData Additional data to log
+ * Log step completion event during onboarding
+ * @param userId The user ID
+ * @param step The completed step
+ * @param tenantId The tenant ID
  */
-export function trackOnboardingStepCompleted(
-  userId: string,
-  stepId: string,
-  additionalData: Record<string, any> = {}
-): Promise<any> {
-  return logSystemEvent('onboarding', 'info', {
-    event_type: 'step_completed',
-    user_id: userId,
-    step_id: stepId,
-    ...additionalData,
-  });
+export async function logStepCompleted(userId: string, step: string, tenantId?: string) {
+  try {
+    await logSystemEvent(
+      "user" as SystemEventModule, // Use "user" instead of "onboarding"
+      "onboarding_step_completed",
+      {
+        user_id: userId,
+        step,
+        timestamp: new Date().toISOString()
+      },
+      tenantId
+    );
+  } catch (error) {
+    console.error(`Failed to log step completion for step ${step}:`, error);
+  }
 }
 
 /**
- * Track when onboarding is complete
- * @param userId User ID
- * @param tenantId Tenant ID
- * @param additionalData Additional data to log
+ * Log onboarding completion event
+ * @param userId The user ID
+ * @param tenantId The tenant ID
+ * @param totalSteps Total number of steps completed
  */
-export function trackOnboardingComplete(
-  userId: string,
-  tenantId: string,
-  additionalData: Record<string, any> = {}
-): Promise<any> {
-  return logSystemEvent('onboarding', 'info', {
-    event_type: 'onboarding_completed',
-    user_id: userId,
-    tenant_id: tenantId,
-    ...additionalData,
-  });
+export async function logOnboardingCompleted(userId: string, tenantId?: string, totalSteps?: number) {
+  try {
+    await logSystemEvent(
+      "user" as SystemEventModule, // Use "user" instead of "onboarding"
+      "onboarding_completed",
+      {
+        user_id: userId,
+        total_steps: totalSteps,
+        timestamp: new Date().toISOString()
+      },
+      tenantId
+    );
+  } catch (error) {
+    console.error("Failed to log onboarding completion event:", error);
+  }
 }
 
 /**
- * Track onboarding errors
- * @param userId User ID
- * @param errorMessage Error message
- * @param additionalData Additional data to log
+ * Log onboarding abandonment event
+ * @param userId The user ID
+ * @param lastStep The last step before abandonment
+ * @param tenantId The tenant ID
  */
-export function trackOnboardingError(
-  userId: string,
-  errorMessage: string,
-  additionalData: Record<string, any> = {}
-): Promise<any> {
-  return logSystemEvent('onboarding', 'error', {
-    event_type: 'onboarding_error',
-    user_id: userId,
-    error: errorMessage,
-    ...additionalData,
-  });
+export async function logOnboardingAbandoned(userId: string, lastStep: string, tenantId?: string) {
+  try {
+    await logSystemEvent(
+      "user" as SystemEventModule, // Use "user" instead of "onboarding"
+      "onboarding_abandoned",
+      {
+        user_id: userId,
+        last_step: lastStep,
+        timestamp: new Date().toISOString()
+      },
+      tenantId
+    );
+  } catch (error) {
+    console.error("Failed to log onboarding abandonment event:", error);
+  }
 }

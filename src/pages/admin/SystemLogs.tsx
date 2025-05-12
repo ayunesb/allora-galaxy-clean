@@ -1,61 +1,62 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
-import { AuditLog } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import { useAdminLogs } from '@/hooks/admin/useAdminLogs';
+import { AuditLog } from '@/types/logs';
 
 const SystemLogs = () => {
-  const {
-    logs,
-    loading,
-    filters,
-    modules,
-    fetchLogs,
-    handleFilterChange,
-  } = useSystemLogsData();
-  
+  const { logs, isLoading, filters, setFilters, refetchLogs } = useAdminLogs();
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
-
-  const handleOpenLogDetail = (log: AuditLog) => {
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  
+  const handleLogClick = (log: AuditLog) => {
     setSelectedLog(log);
-    setShowLogDetail(true);
+    setIsDetailOpen(true);
   };
-
+  
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">System Logs</h1>
+    <div className="container p-6 mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">System Logs</h1>
+      </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>System Activity Logs</CardTitle>
-          <SystemLogFilter 
-            onFilterChange={handleFilterChange}
-            filters={filters}
-            modules={modules}
-            onRefresh={fetchLogs}
-            isLoading={loading}
-          />
-        </CardHeader>
-        <CardContent className="p-0">
-          <SystemLogsList
-            logs={logs}
-            isLoading={loading}
-            onLogClick={handleOpenLogDetail}
-          />
-        </CardContent>
-      </Card>
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Log Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SystemLogFilters 
+              filters={filters}
+              onFiltersChange={setFilters}
+              isLoading={isLoading}
+              onRefresh={refetchLogs}
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>System Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SystemLogsList 
+              logs={logs} 
+              isLoading={isLoading}
+              onLogClick={handleLogClick}
+            />
+          </CardContent>
+        </Card>
+      </div>
       
-      {selectedLog && (
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={showLogDetail} 
-          onOpenChange={setShowLogDetail} 
-        />
-      )}
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      />
     </div>
   );
 };

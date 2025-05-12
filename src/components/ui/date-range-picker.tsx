@@ -1,8 +1,11 @@
 
+"use client";
+
 import * as React from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "@/types/shared";
+import { CalendarIcon } from "lucide-react";
+import { addDays, format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -10,78 +13,139 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface DateRangePickerProps {
-  value?: DateRange;
-  onChange?: (date: DateRange | undefined) => void;
-  placeholder?: string;
-  className?: string;
-}
+export type DateRangePickerProps = {
+  date?: DateRange;
+  onDateChange: (date: DateRange) => void;
+  align?: "center" | "start" | "end";
+  locale?: Locale;
+  showCompare?: boolean;
+};
 
 export function DateRangePicker({
-  value,
-  onChange,
-  placeholder = "Select date range",
-  className,
+  date,
+  onDateChange,
+  align = "center",
+  locale,
+  showCompare,
 }: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [selectedPreset, setSelectedPreset] = React.useState<string | undefined>();
 
-  const handleSelect = (range: { from: Date; to?: Date }) => {
-    onChange?.(range);
-    if (range.to) {
-      setIsOpen(false);
-    }
-  };
+  const presets = [
+    {
+      name: "Today",
+      dateRange: {
+        from: new Date(),
+        to: new Date(),
+      },
+    },
+    {
+      name: "Yesterday",
+      dateRange: {
+        from: addDays(new Date(), -1),
+        to: addDays(new Date(), -1),
+      },
+    },
+    {
+      name: "Last 7 days",
+      dateRange: {
+        from: addDays(new Date(), -7),
+        to: new Date(),
+      },
+    },
+    {
+      name: "Last 30 days",
+      dateRange: {
+        from: addDays(new Date(), -30),
+        to: new Date(),
+      },
+    },
+    {
+      name: "Last 90 days",
+      dateRange: {
+        from: addDays(new Date(), -90),
+        to: new Date(),
+      },
+    },
+  ];
 
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange?.(undefined);
+  const handleSelect = (preset: { name: string; dateRange: DateRange }) => {
+    setSelectedPreset(preset.name);
+    onDateChange(preset.dateRange);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover>
       <PopoverTrigger asChild>
         <Button
+          id="date-range"
           variant="outline"
           className={cn(
-            "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground",
-            className
+            "w-full justify-start text-left",
+            !date && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value?.from ? (
-            value.to ? (
+          {date?.from ? (
+            date.to ? (
               <>
-                {format(value.from, "LLL dd, y")} -{" "}
-                {format(value.to, "LLL dd, y")}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto h-6 w-6 px-0"
-                  onClick={handleClear}
-                >
-                  ×
-                </Button>
+                {format(date.from, "LLL dd, y")} -{" "}
+                {format(date.to, "LLL dd, y")}
               </>
             ) : (
-              format(value.from, "LLL dd, y")
+              format(date.from, "LLL dd, y")
             )
           ) : (
-            <span>{placeholder}</span>
+            <span>Select date range</span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          initialFocus
-          mode="range"
-          defaultMonth={value?.from}
-          selected={value}
-          onSelect={handleSelect}
-          numberOfMonths={2}
-        />
+      <PopoverContent className="w-auto p-0" align={align}>
+        <div className="flex flex-col sm:flex-row gap-0 sm:gap-4 p-3">
+          <div>
+            <Select
+              value={selectedPreset}
+              onValueChange={(value) => {
+                const preset = presets.find((preset) => preset.name === value);
+                if (preset) handleSelect(preset);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select range" />
+              </SelectTrigger>
+              <SelectContent>
+                {presets.map((preset) => (
+                  <SelectItem key={preset.name} value={preset.name}>
+                    {preset.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="p-3">
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={date?.from}
+              selected={date}
+              onSelect={(range) => {
+                if (range) {
+                  setSelectedPreset(undefined);
+                  onDateChange(range);
+                }
+              }}
+              numberOfMonths={2}
+              locale={locale}
+            />
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );

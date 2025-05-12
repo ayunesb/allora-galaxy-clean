@@ -2,7 +2,8 @@
 import { LucideIcon } from 'lucide-react';
 
 export interface NavigationItem {
-  title: string;
+  name?: string; // For backward compatibility
+  title: string; // Primary field for display
   href: string;
   icon?: LucideIcon | string;
   items?: NavigationItem[];

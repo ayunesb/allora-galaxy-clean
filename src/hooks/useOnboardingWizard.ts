@@ -3,27 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useStrategyGeneration } from '@/hooks/useStrategyGeneration';
-import { OnboardingStep } from '@/types/onboarding';
-
-// Define the form data structure
-export interface OnboardingFormData {
-  companyInfo: {
-    name: string;
-    industry: string;
-    size: string;
-  };
-  persona: {
-    name: string;
-    goals: string[];
-    tone: string;
-  };
-  additionalInfo: {
-    targetAudience: string;
-    keyCompetitors: string;
-    uniqueSellingPoints: string;
-  };
-  [key: string]: any;
-}
+import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
 
 export function useOnboardingWizard() {
   const { toast } = useToast();

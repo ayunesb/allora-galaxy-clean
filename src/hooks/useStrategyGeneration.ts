@@ -32,10 +32,11 @@ export const useStrategyGeneration = () => {
         throw new Error(result.error || 'Failed to complete onboarding');
       }
       
+      // Return the result with strategyId if available
       return {
         success: true,
         tenantId: result.tenantId,
-        strategyId: result.strategyId || undefined
+        strategyId: result.strategyId
       };
     } catch (error: any) {
       console.error('Strategy generation error:', error);
