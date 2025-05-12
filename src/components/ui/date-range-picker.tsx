@@ -12,20 +12,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { convertDateRange } from "@/types/shared";
 
 interface DateRangePickerProps {
   value?: DateRange;
   onChange?: (value?: DateRange) => void;
   className?: string;
   placeholder?: string;
+  calendarDaysLimit?: number;
 }
 
 export function DateRangePicker({
   value,
   onChange,
   className,
-  placeholder = "Select date range"
+  placeholder = "Select date range",
+  calendarDaysLimit
 }: DateRangePickerProps) {
   const [date, setDate] = React.useState<DateRange | undefined>(value);
 
@@ -90,7 +91,8 @@ export function DateRangePicker({
             defaultMonth={date?.from}
             selected={selectedDates}
             onSelect={handleSelect}
-            numberOfMonths={2}
+            numberOfMonths={calendarDaysLimit ? 1 : 2}
+            className="pointer-events-auto"
           />
           <div className="flex justify-end gap-2 p-3">
             <Button 

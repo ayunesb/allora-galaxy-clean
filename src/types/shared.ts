@@ -1,4 +1,3 @@
-
 import { DateRange as DayPickerDateRange } from 'react-day-picker';
 
 export interface FilterState {
@@ -18,6 +17,7 @@ export interface FilterProps<T = FilterState> {
   isLoading?: boolean;
 }
 
+// DateRange type for our filters
 export interface DateRange {
   from: Date;
   to?: Date;
