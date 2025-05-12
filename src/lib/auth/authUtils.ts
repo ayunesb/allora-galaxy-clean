@@ -26,7 +26,7 @@ export async function signInWithEmailAndPassword(email: string, password: string
       description: `Welcome back, ${data.user?.email}`,
     });
     
-    return { user: data.user, error: null };
+    return { user: data.user, session: data.session, error: undefined };
   } catch (err: any) {
     console.error('Error signing in:', err);
     
@@ -36,7 +36,7 @@ export async function signInWithEmailAndPassword(email: string, password: string
       variant: 'destructive',
     });
     
-    return { user: null, error: err };
+    return { user: null, session: null, error: err };
   }
 }
 
@@ -69,7 +69,7 @@ export async function signUpWithEmailAndPassword(
       description: 'Please check your email to verify your account',
     });
     
-    return { user: data.user, error: null };
+    return { user: data.user, session: data.session, error: undefined };
   } catch (err: any) {
     console.error('Error signing up:', err);
     
@@ -79,7 +79,7 @@ export async function signUpWithEmailAndPassword(
       variant: 'destructive',
     });
     
-    return { user: null, error: err };
+    return { user: null, session: null, error: err };
   }
 }
 

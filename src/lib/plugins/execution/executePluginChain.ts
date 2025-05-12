@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { executePlugin } from './executePlugin';
 import { recordLogExecution } from '../logging/recordLogExecution';
@@ -81,7 +80,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
       const agentVersion = plugin.agent_versions[0];
       if (!agentVersion) {
         const result: PluginResult = {
-          plugin_id: plugin.id,
+          pluginId: plugin.id,  // Correctly using camelCase
           success: false,
           status: 'failure',
           output: {},
@@ -111,7 +110,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         
         // Record execution log
         await recordLogExecution({
-          pluginId: plugin.id,
+          pluginId: plugin.id,  // Correctly using camelCase
           tenantId,
           status: executionResult.success ? 'success' : 'failure',
           input: currentInput,
@@ -125,7 +124,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         
         // Add result to results array
         const result: PluginResult = {
-          plugin_id: plugin.id,
+          pluginId: plugin.id,  // Correctly using camelCase
           success: executionResult.success,
           status: executionResult.success ? 'success' : 'failure',
           output: executionResult.output,
@@ -152,7 +151,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         console.error(`Unexpected error executing plugin ${plugin.name}:`, err);
         
         const result: PluginResult = {
-          plugin_id: plugin.id,
+          pluginId: plugin.id,  // Correctly using camelCase
           success: false,
           status: 'failure',
           output: {},

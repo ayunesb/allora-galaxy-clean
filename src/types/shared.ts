@@ -1,43 +1,102 @@
+// Shared types used across the application
 
-// Adding this content if it doesn't exist or needs to be updated
-export type VoteType = 'upvote' | 'downvote';
-
-export type SystemEventModule = 
-  | 'system' 
-  | 'auth' 
-  | 'billing' 
-  | 'agent' 
-  | 'strategy' 
-  | 'plugin' 
-  | 'product' 
-  | 'marketing'
-  | 'user'
-  | 'tenant';
-
-export type SystemEventType = 
-  | 'login' 
-  | 'signup' 
-  | 'logout'
-  | 'password_reset'
-  | 'kpi_updated'
-  | 'agent_vote'
-  | 'execute'
-  | 'approval'
-  | 'rejection'
-  | 'generation'
-  | 'error';
-
+// Generic type for date ranges
 export interface DateRange {
-  from: Date;
+  from?: Date;
   to?: Date;
 }
 
-export type UserRole = 'admin' | 'owner' | 'user' | 'viewer';
+// Generic type for trend direction
+export type TrendDirection = 'up' | 'down' | 'neutral';
 
-export type TrendDirection = 'up' | 'down' | 'flat';
+// Generic type for vote type
+export type VoteType = 'upvote' | 'downvote';
 
-export interface KPITrend {
-  direction: TrendDirection;
-  percentage: number;
+// Generic type for user role
+export type UserRole = 'admin' | 'user' | 'guest';
+
+// Generic type for system event module
+export type SystemEventModule = 
+  | 'auth'
+  | 'user'
+  | 'tenant'
+  | 'strategy'
+  | 'plugin'
+  | 'agent'
+  | 'billing'
+  | 'system'
+  | 'kpi'
+  | 'trend'
+  | 'execution'
+  | 'evolution'
+  | 'onboarding'
+  | 'notification'
+  | 'galaxy';
+
+// Generic type for system event type
+export type SystemEventType = 
+  | 'create' 
+  | 'update' 
+  | 'delete' 
+  | 'execute' 
+  | 'error' 
+  | 'info'
+  | 'login'
+  | 'logout'
+  | 'signup'
+  | 'password_reset'
+  | 'password_update'
+  | 'vote'
+  | 'comment'
+  | 'share'
+  | 'view'
+  | 'download'
+  | 'upload'
+  | 'deploy'
+  | 'sync'
+  | 'schedule'
+  | 'cancel'
+  | 'approve'
+  | 'reject'
+  | 'complete'
+  | 'fail'
+  | 'start'
+  | 'end'
+  | 'pause'
+  | 'resume'
+  | 'connect'
+  | 'disconnect';
+
+// Generic type for KPI trend
+export type KPITrend = {
+  date: string;
   value: number;
-}
+};
+
+// Additional shared types needed by various components
+export type NavigationItem = {
+  title: string;
+  href: string;
+  icon?: React.ReactNode;
+  children?: NavigationItem[];
+};
+
+export type OnboardingStep = {
+  id: string;
+  title: string;
+  description?: string;
+  isCompleted: boolean;
+};
+
+export type BaseEntity = {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ExecutionType = 'strategy' | 'plugin' | 'agent';
+export type ExecutionParams = Record<string, any>;
+export type TenantFeature = 'ai_decisions' | 'advanced_analytics' | 'custom_plugins';
+
+// Enhanced VoteType to ensure consistency across the app
+export type VoteType = 'upvote' | 'downvote';

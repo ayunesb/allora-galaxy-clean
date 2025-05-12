@@ -22,7 +22,6 @@ export async function getUserVote(userId: string, agentVersionId: string): Promi
       if (error.code === 'PGRST116') {
         // No vote found - this is not an error
         return {
-          success: true,
           hasVoted: false,
           vote: null
         };
@@ -35,7 +34,6 @@ export async function getUserVote(userId: string, agentVersionId: string): Promi
     const voteType: VoteType = data.vote_type === 'up' ? 'upvote' : 'downvote';
     
     return {
-      success: true,
       hasVoted: true,
       vote: {
         voteType,
@@ -45,7 +43,6 @@ export async function getUserVote(userId: string, agentVersionId: string): Promi
   } catch (error: any) {
     console.error('Error getting user vote:', error);
     return {
-      success: false,
       hasVoted: false,
       vote: null,
       error: error.message

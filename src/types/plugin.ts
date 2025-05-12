@@ -1,4 +1,3 @@
-
 /**
  * Plugin entity interface
  */
@@ -36,12 +35,22 @@ export interface PluginLog {
 }
 
 /**
- * Plugin execution result interface
+ * Plugin result interface
  */
 export interface PluginResult {
   success: boolean;
+  pluginId: string; // Changed from plugin_id to pluginId for consistency
   output?: any;
   error?: string;
   executionTime?: number;
   xp?: number;
+}
+
+/**
+ * Result of running a chain of plugins
+ */
+export interface RunPluginChainResult {
+  success: boolean;
+  results: PluginResult[];
+  error?: string;
 }

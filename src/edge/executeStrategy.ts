@@ -22,13 +22,13 @@ interface StrategyExecutionResponse {
 export function processExecutionResponse(response: StrategyExecutionResponse): ExecuteStrategyResult {
   return {
     success: response.success,
-    executionId: response.execution_id,
+    execution_id: response.execution_id,
     status: response.status,
     error: response.error,
-    executionTime: response.execution_time_ms ? response.execution_time_ms / 1000 : undefined,
-    pluginsExecuted: response.plugins_executed,
-    successfulPlugins: response.successful_plugins,
-    xpEarned: response.xp_earned,
+    execution_time: response.execution_time_ms ? response.execution_time_ms / 1000 : undefined,
+    plugins_executed: response.plugins_executed,
+    successful_plugins: response.successful_plugins,
+    xp_earned: response.xp_earned,
     outputs: response.data
   };
 }

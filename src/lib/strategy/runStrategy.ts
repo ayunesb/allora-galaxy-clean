@@ -10,7 +10,7 @@ import { logSystemEvent, logSystemError } from '@/lib/system/logSystemEvent';
  * @returns Execution result
  */
 export async function runStrategy(
-  input: ExecuteStrategyInput | undefined
+  input: ExecuteStrategyInput
 ): Promise<ExecuteStrategyResult> {
   try {
     // Validate input
@@ -29,7 +29,10 @@ export async function runStrategy(
       await logSystemEvent(
         'strategy',
         'info',
-        `Starting strategy execution for ${input.strategyId}`,
+        {
+          message: `Starting strategy execution for ${input.strategyId}`,
+          strategy_id: input.strategyId
+        },
         input.tenantId
       );
     } catch (logError) {

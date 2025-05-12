@@ -1,4 +1,3 @@
-
 export interface Agent {
   id: string;
   name: string;
@@ -54,4 +53,23 @@ export interface AgentPerformance {
   averageExecutionTime: number;
   upvoteRatio: number;
   xpGained: number;
+}
+
+export interface UserVoteInfo {
+  success?: boolean;
+  hasVoted: boolean;
+  vote: {
+    voteType: VoteType;
+    comment?: string;
+  } | null;
+  error?: string;
+}
+
+export interface VoteResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  upvotes: number;
+  downvotes: number;
+  voteId?: string;
 }

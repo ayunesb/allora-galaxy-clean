@@ -1,74 +1,156 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { VoteType } from '@/types/shared';
-import { AgentVote } from '@/types/agent';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { VoteButton } from './VoteButton';
+import { CommentSection } from './CommentSection';
+import { getUserVote } from '@/lib/agents/voting/getUserVote';
+import { voteOnAgentVersion } from '@/lib/agents/voting/voteOnAgentVersion';
+import { getAgentVoteStats } from '@/lib/agents/voting/getAgentVoteStats';
+import type { VoteType } from '@/types/shared';
 
-export interface AgentVotePanelProps {
+interface AgentVotePanelProps {
   agentVersionId: string;
-  currentVote?: AgentVote | null;
-  upvotes: number;
-  downvotes: number;
-  onVote: (voteType: VoteType) => void;
-  isLoading?: boolean;
-  showCount?: boolean;
+  initialUpvotes?: number;
+  initialDownvotes?: number;
 }
 
-const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
+const AgentVotePanel: React.FC<AgentVotePanelProps> = ({ 
   agentVersionId,
-  currentVote,
-  upvotes = 0,
-  downvotes = 0,
-  onVote,
-  isLoading = false,
-  showCount = true
+  initialUpvotes = 0, 
+  initialDownvotes = 0 
 }) => {
-  const handleUpvote = () => {
-    onVote('upvote');
+  const { user } = useAuth();
+  const [userVote, setUserVote] = useState<VoteType | null>(null);
+  const [userComment, setUserComment] = useState<string>('');
+  const [upvotes, setUpvotes] = useState<number>(initialUpvotes);
+  const [downvotes, setDownvotes] = useState<number>(initialDownvotes);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Load the user's existing vote if they are logged in
+  useEffect(() => {
+    const loadUserVote = async () => {
+      if (!user) return;
+      
+      try {
+        const voteInfo = await getUserVote(user.id, agentVersionId);
+        if (voteInfo.hasVoted && voteInfo.vote) {
+          setUserVote(voteInfo.vote.voteType);
+          setUserComment(voteInfo.vote.comment || '');
+        }
+      } catch (error) {
+        console.error('Error loading user vote:', error);
+      }
+    };
+
+    // Load vote stats
+    const loadVoteStats = async () => {
+      try {
+        const stats = await getAgentVoteStats(agentVersionId);
+        if (stats.success) {
+          setUpvotes(stats.upvotes);
+          setDownvotes(stats.downvotes);
+        }
+      } catch (error) {
+        console.error('Error loading vote stats:', error);
+      }
+    };
+    
+    loadUserVote();
+    loadVoteStats();
+  }, [user, agentVersionId]);
+
+  const handleVote = async (voteType: VoteType) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      // If user is clicking the same vote type they already selected, treat as removing vote
+      const newVoteType = userVote === voteType ? null : voteType;
+      
+      // Process the vote
+      if (newVoteType) {
+        const result = await voteOnAgentVersion(user.id, agentVersionId, newVoteType, userComment);
+        
+        if (result.success) {
+          setUserVote(newVoteType);
+          setUpvotes(result.upvotes);
+          setDownvotes(result.downvotes);
+        }
+      } else {
+        // Remove the vote (implementation would depend on your backend)
+        // This is a simplified example
+        const result = await voteOnAgentVersion(user.id, agentVersionId, voteType, userComment);
+        
+        if (result.success) {
+          setUserVote(null);
+          setUpvotes(result.upvotes);
+          setDownvotes(result.downvotes);
+        }
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDownvote = () => {
-    onVote('downvote');
+  const handleCommentChange = (comment: string) => {
+    setUserComment(comment);
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!user || !userVote) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await voteOnAgentVersion(user.id, agentVersionId, userVote, userComment);
+      
+      if (result.success) {
+        // Comment updated successfully
+        console.log('Comment updated');
+      }
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <Card>
-      <CardHeader className="py-3">
-        <h3 className="text-sm font-medium">Agent Feedback</h3>
-      </CardHeader>
-      <CardContent className="py-2">
-        <div className="flex items-center justify-between">
-          <Button
-            variant={currentVote?.vote_type === 'upvote' ? 'default' : 'outline'}
-            size="sm"
-            onClick={handleUpvote}
-            disabled={isLoading}
-            className="flex-1 mr-2"
-          >
-            <ThumbsUp className="h-4 w-4 mr-1" />
-            {showCount && <span>{upvotes}</span>}
-          </Button>
-          
-          <Button
-            variant={currentVote?.vote_type === 'downvote' ? 'destructive' : 'outline'}
-            size="sm"
-            onClick={handleDownvote}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            <ThumbsDown className="h-4 w-4 mr-1" />
-            {showCount && <span>{downvotes}</span>}
-          </Button>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-0 pb-2">
-        <p className="text-xs text-muted-foreground text-center w-full">
-          Your feedback helps improve agent performance
+    <div className="space-y-4">
+      <div className="flex items-center justify-center space-x-6">
+        <VoteButton 
+          type="upvote"
+          count={upvotes}
+          active={userVote === 'upvote'}
+          onClick={() => handleVote('upvote')}
+          disabled={isLoading || !user}
+        />
+        
+        <VoteButton 
+          type="downvote"
+          count={downvotes}
+          active={userVote === 'downvote'}
+          onClick={() => handleVote('downvote')}
+          disabled={isLoading || !user}
+        />
+      </div>
+      
+      {user && userVote && (
+        <CommentSection
+          comment={userComment}
+          onChange={handleCommentChange}
+          onSubmit={handleCommentSubmit}
+          isSubmitting={isLoading}
+        />
+      )}
+      
+      {!user && (
+        <p className="text-center text-sm text-muted-foreground">
+          Sign in to vote on this agent version
         </p>
-      </CardFooter>
-    </Card>
+      )}
+    </div>
   );
 };
 
