@@ -1,9 +1,19 @@
+
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useRoutes } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import routes from './routes';
+
 export function App() {
+  const routeElement = useRoutes(routes);
+  
   return (
-    <div>
-      <h1>Hello, World!</h1>
-    </div>
-  ); // Ensure this closing parenthesis is present
+    <>
+      <Toaster position="top-right" richColors />
+      {routeElement}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </>
+  );
 }
 
 // Add this so main.tsx can import default
