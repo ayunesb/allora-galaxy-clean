@@ -31,11 +31,8 @@ export interface StrategyInput {
   due_date?: string | null;
 }
 
-// Use specific ValidationResult for strategy
-export interface StrategyValidationResult {
+// Define validation result with Record<string, string> for errors
+export interface ValidationResult {
   valid: boolean;
-  errors: string[];
+  errors: Record<string, string>;
 }
-
-// Export ValidationResult with StrategyValidationResult alias
-export type ValidationResult = StrategyValidationResult;
