@@ -1,4 +1,3 @@
-
 import { HubSpotClient } from './hubspot_client';
 import { Logger } from './logger';
 
@@ -30,8 +29,7 @@ export class HubSpotAdapter {
       const updatedContact = {
         properties: {
           ...contact.properties,
-          previous_value: previousValues && 'mql_count' in previousValues.properties ? 
-            previousValues.properties.mql_count : undefined,
+          previous_value: previousValues['mql_count'] ?? undefined,
         },
       };
       await this.client.createOrUpdateContact(updatedContact);

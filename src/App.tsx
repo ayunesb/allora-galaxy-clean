@@ -1,5 +1,6 @@
-
-import { Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import HomePage from '@/pages/HomePage'; // Ensure this path matches your alias setup
 import { Toaster } from '@/components/ui/sonner';
 import { RequireAuth } from './components/auth/RequireAuth';
 import MainLayout from './layouts/MainLayout';
@@ -20,52 +21,55 @@ import EvolutionPage from './pages/evolution';
 function App() {
   return (
     <Providers>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Index />} />
-          <Route path="notifications" element={
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Index />} />
+            <Route path="notifications" element={
+              <RequireAuth>
+                <NotificationsPage />
+              </RequireAuth>
+            } />
+            
+            {/* Evolution Routes */}
+            <Route path="evolution" element={
+              <RequireAuth>
+                <EvolutionPage />
+              </RequireAuth>
+            } />
+          </Route>
+          
+          {/* Auth Routes */}
+          <Route path="auth/*" element={<AuthLayout children={undefined} />} />
+          
+          {/* Onboarding Routes */}
+          <Route path="onboarding/*" element={
             <RequireAuth>
-              <NotificationsPage />
+              <OnboardingLayout children={undefined} />
             </RequireAuth>
           } />
           
-          {/* Evolution Routes */}
-          <Route path="evolution" element={
-            <RequireAuth>
-              <EvolutionPage />
+          {/* Admin Routes */}
+          <Route path="admin" element={
+            <RequireAuth roles={['admin', 'owner']}>
+              <MainLayout />
             </RequireAuth>
-          } />
-        </Route>
+          }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="logs" element={<SystemLogs />} />
+            <Route path="ai-decisions" element={<AiDecisions />} />
+            <Route path="api-keys" element={<ApiKeysPage />} />
+            <Route path="cron-jobs" element={<CronJobsPage />} />
+          </Route>
+          
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
         
-        {/* Auth Routes */}
-        <Route path="auth/*" element={<AuthLayout children={undefined} />} />
-        
-        {/* Onboarding Routes */}
-        <Route path="onboarding/*" element={
-          <RequireAuth>
-            <OnboardingLayout children={undefined} />
-          </RequireAuth>
-        } />
-        
-        {/* Admin Routes */}
-        <Route path="admin" element={
-          <RequireAuth roles={['admin', 'owner']}>
-            <MainLayout />
-          </RequireAuth>
-        }>
-          <Route index element={<AdminDashboard />} />
-          <Route path="logs" element={<SystemLogs />} />
-          <Route path="ai-decisions" element={<AiDecisions />} />
-          <Route path="api-keys" element={<ApiKeysPage />} />
-          <Route path="cron-jobs" element={<CronJobsPage />} />
-        </Route>
-        
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      
-      <Toaster />
-      <CookieConsent />
+        <Toaster />
+        <CookieConsent />
+      </BrowserRouter>
     </Providers>
   );
 }

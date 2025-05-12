@@ -1,4 +1,3 @@
-
 /**
  * KPI related types for the application
  */
@@ -19,18 +18,9 @@ export interface KPITrendObject {
 
 // KPI data structure
 export interface KPI {
-  id: string;
   name: string;
-  value: number;
-  previous_value?: number | null;
-  unit: string;
-  target?: number | null;
+  current_value: number;
+  previous_value?: number;
   category: string;
-  period: string;
-  source?: string;
-  date: string;
-  tenant_id: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: Record<string, any>;
+  period: 'daily' | 'monthly' | 'quarterly';
 }

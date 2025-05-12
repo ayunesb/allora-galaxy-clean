@@ -1,4 +1,3 @@
-
 /**
  * This is a TypeScript shim for three-bmfont-text to prevent import errors.
  * It provides enough functionality to avoid breaking builds while using
@@ -50,7 +49,7 @@ function createTextGeometry(text: string, options: any = {}): TextGeometry {
 }
 
 // Export as a module with default and named exports
-export default createTextGeometry;
+export default {} as any;
 
 export const threeBMFontText = {
   createTextGeometry

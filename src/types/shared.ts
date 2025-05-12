@@ -1,9 +1,8 @@
-
 import { ReactNode } from 'react';
 
 export interface DateRange {
-  from: Date | undefined;
-  to?: Date | undefined;
+  from: Date;
+  to: Date;
 }
 
 export interface MenuItem {
@@ -18,7 +17,7 @@ export interface MenuItem {
 export interface NavigationItem {
   title: string;
   href: string;
-  icon?: React.ComponentType<any> | string;
+  icon: React.FC;
   items?: NavigationItem[];
   adminOnly?: boolean;
   disabled?: boolean;
@@ -26,13 +25,13 @@ export interface NavigationItem {
 }
 
 // User related types
-export type UserRole = 'admin' | 'member' | 'owner' | 'guest' | 'viewer';
+export type UserRole = 'admin' | 'user' | 'guest';
 
 // Voting related types
-export type VoteType = 'upvote' | 'downvote';
+export type VoteType = 'up' | 'down';
 
 // Trend related types
-export type TrendDirection = 'up' | 'down' | 'neutral' | 'increasing' | 'decreasing' | 'stable';
+export type TrendDirection = 'up' | 'down' | 'neutral';
 export type KPITrend = 'increasing' | 'decreasing' | 'stable';
 
 // System event related types
@@ -95,4 +94,17 @@ export interface User {
   email: string;
   name?: string;
   avatar_url?: string;
+}
+
+export interface SystemLog {
+  id: string;
+  message: string;
+  timestamp: Date;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  user: string;
+  timestamp: Date;
 }

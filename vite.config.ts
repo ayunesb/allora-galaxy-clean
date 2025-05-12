@@ -1,19 +1,13 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { componentTagger } from "lovable-tagger";
 
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
-      // Use our internal shim instead of the external package
-      'three-bmfont-text': path.resolve(__dirname, './src/lib/shims/three-bmfont-text.ts'),
+      '@': path.resolve(__dirname, './src'),
+      'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.ts'),
     },
   },
   build: {
@@ -26,9 +20,7 @@ export default defineConfig(({ mode }) => ({
         'https://esm.sh/@supabase/supabase-js@2',
         'https://esm.sh/stripe@12.0.0?target=deno'
       ],
-      // Add onwarn handler to suppress git clone warnings
       onwarn(warning, warn) {
-        // Suppress git clone warnings for three-bmfont-text
         if (warning.message && (
           warning.message.includes('three-bmfont-text') || 
           warning.message.includes('git+') ||
@@ -49,15 +41,15 @@ export default defineConfig(({ mode }) => ({
       'three-bmfont-text', 
       'document-register-element', 
       'debug'
-    ], // Exclude problematic packages from optimization
+    ],
     esbuildOptions: {
-      // Additional configuration to prevent git clone attempts
       define: {
         global: 'globalThis',
       },
     },
+    include: ['react-helmet-async'],
   }
-}));
+});
 
 // Vitest configuration
 export const test = {

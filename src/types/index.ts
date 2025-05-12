@@ -1,4 +1,3 @@
-
 // Central type exports file
 // This file re-exports all types from the type system for easier imports
 
@@ -43,3 +42,5 @@ export interface DateRange {
   from: Date | undefined;
   to?: Date | undefined;
 }
+
+export * from './shared';
