@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -36,6 +37,12 @@ export default defineConfig({
     port: 8080,
     host: "::",
     historyApiFallback: true, // For React Router SPA fallback
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '9c3148d9-ab17-4b9a-908f-dd75ce70b6c1.lovableproject.com',
+      '.lovableproject.com'
+    ]
   },
   optimizeDeps: {
     exclude: [
