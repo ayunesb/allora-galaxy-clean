@@ -25,7 +25,7 @@ export function processExecutionResponse(response: StrategyExecutionResponse): E
     executionId: response.execution_id,
     status: response.status,
     error: response.error,
-    execution_time: response.execution_time_ms ? response.execution_time_ms / 1000 : undefined,
+    executionTime: response.execution_time_ms ? response.execution_time_ms / 1000 : undefined,
     pluginsExecuted: response.plugins_executed,
     successfulPlugins: response.successful_plugins,
     xpEarned: response.xp_earned,
@@ -33,4 +33,5 @@ export function processExecutionResponse(response: StrategyExecutionResponse): E
   };
 }
 
+// Default export for easier importing
 export default processExecutionResponse;

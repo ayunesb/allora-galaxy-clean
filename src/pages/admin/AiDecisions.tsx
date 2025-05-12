@@ -2,11 +2,11 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
+import { SystemLog, LogFilters, SystemEventType } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters, { SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
-import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
-import { SystemLog, LogFilters, SystemEventType } from '@/types/logs';
 
 const AiDecisions: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);

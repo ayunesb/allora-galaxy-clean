@@ -1,60 +1,47 @@
 
+/**
+ * Plugin entity interface
+ */
 export interface Plugin {
   id: string;
   name: string;
   description?: string;
-  category?: string;
   icon?: string;
-  status: string;
-  tenant_id?: string;
+  category?: string;
+  status: 'active' | 'inactive' | 'deprecated';
   created_at?: string;
   updated_at?: string;
+  xp: number;
+  roi: number;
+  tenant_id: string;
   metadata?: Record<string, any>;
-  xp?: number;
-  roi?: number;
 }
 
-export interface AgentVersion {
-  id: string;
-  plugin_id: string;
-  version: string;
-  prompt: string;
-  status: string;
-  created_at?: string;
-  created_by?: string;
-  upvotes?: number;
-  downvotes?: number;
-  xp?: number;
-}
-
+/**
+ * Plugin log entity interface
+ */
 export interface PluginLog {
   id: string;
-  tenant_id?: string;
   plugin_id?: string;
-  agent_version_id?: string;
+  tenant_id?: string;
   strategy_id?: string;
+  agent_version_id?: string;
   status: string;
   input?: Record<string, any>;
   output?: Record<string, any>;
   error?: string;
-  execution_time?: number;
-  xp_earned?: number;
-  created_at?: string;
+  execution_time: number;
+  xp_earned: number;
+  created_at: string;
 }
 
+/**
+ * Plugin execution result interface
+ */
 export interface PluginResult {
-  plugin_id: string;
   success: boolean;
-  status: 'success' | 'failure' | 'pending';
-  output: any;
+  output?: any;
   error?: string;
-  executionTime: number;
-  xpEarned: number;
-}
-
-export interface RunPluginChainResult {
-  success: boolean;
-  results: PluginResult[];
-  output?: Record<string, any>;
-  error?: string;
+  executionTime?: number;
+  xp?: number;
 }

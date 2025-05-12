@@ -16,6 +16,17 @@ export interface AuthResult {
   error?: string;
 }
 
+export interface AuthResponse {
+  user: User | null;
+  session: Session | null;
+  error?: Error;
+}
+
+export interface AuthError {
+  message: string;
+  status?: number;
+}
+
 export interface AuthContextType {
   user: User | null;
   session: Session | null;

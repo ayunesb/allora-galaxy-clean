@@ -39,8 +39,6 @@ export {
 // Also selectively re-export common types for backward compatibility
 export type { 
   DateRange,
-  FilterState,
-  FilterProps,
   NavigationItem,
   UserRole,
   TrendDirection,

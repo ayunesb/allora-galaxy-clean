@@ -1,36 +1,57 @@
 
-import { VoteType } from './shared';
+export interface Agent {
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  created_at?: string;
+  updated_at?: string;
+  status: 'active' | 'inactive' | 'deprecated';
+  xp?: number;
+  plugin_id?: string;
+  tenant_id: string;
+}
 
 export interface AgentVersion {
   id: string;
   version: string;
   prompt: string;
-  status: string;
+  status: 'active' | 'inactive' | 'deprecated';
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  plugin_id?: string;
   upvotes: number;
   downvotes: number;
   xp: number;
-  created_at: string;
-  updated_at: string;
-  plugin_id?: string;
-  created_by?: string;
 }
 
-export interface AgentVersionVote {
-  voteType: VoteType;
+export interface AgentVote {
+  id: string;
+  agent_version_id: string;
+  user_id: string;
+  vote_type: 'upvote' | 'downvote';
+  comment?: string;
+  created_at: string;
+}
+
+export interface AgentVoteInput {
+  agentVersionId: string;
+  voteType: 'upvote' | 'downvote';
   comment?: string;
 }
 
-export interface UserVoteInfo {
+export interface AgentVoteResult {
   success: boolean;
-  hasVoted: boolean;
-  vote: AgentVersionVote | null;
+  vote?: AgentVote;
   error?: string;
 }
 
-export interface VoteResult {
-  success: boolean;
-  message?: string;
-  upvotes: number;
-  downvotes: number;
-  error?: string;
+export interface AgentPerformance {
+  agentVersionId: string;
+  executionCount: number;
+  successRate: number;
+  averageExecutionTime: number;
+  upvoteRatio: number;
+  xpGained: number;
 }

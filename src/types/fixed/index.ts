@@ -1,13 +1,11 @@
 
 // Export types from the agent module
 export * from '../agent';
+
 // Export types from the plugin module without PluginResult which would cause ambiguity
 export type { 
   Plugin, 
-  PluginConfig, 
-  PluginInput, 
-  PluginLog,
-  PluginExecution
+  PluginLog
 } from '../plugin';
 
 // Re-export strategy types
@@ -49,3 +47,34 @@ export type {
   KPITrend,
   DateRange
 } from '../shared';
+
+// Define ExecuteStrategyInput interface
+export interface ExecuteStrategyInput {
+  strategyId: string;
+  tenantId: string;
+  userId?: string;
+  options?: Record<string, any>;
+}
+
+// Define the snake_case version for API compatibility
+export interface ExecuteStrategyInputSnakeCase {
+  strategy_id: string;
+  tenant_id: string;
+  user_id?: string;
+  options?: Record<string, any>;
+}
+
+// Define ExecuteStrategyResult interface
+export interface ExecuteStrategyResult {
+  success: boolean;
+  executionId?: string;
+  executionTime: number;
+  status: 'success' | 'partial' | 'failure' | 'error' | string;
+  error?: string;
+  pluginsExecuted?: number;
+  successfulPlugins?: number;
+  xpEarned?: number;
+  results?: any;
+  outputs?: any;
+  logs?: any[];
+}

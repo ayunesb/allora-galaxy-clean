@@ -1,94 +1,137 @@
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ForceGraph2D from 'react-force-graph-2d';
+import { useTheme } from '@/hooks/useTheme';
 
-interface NodeData {
+export interface GraphNode {
   id: string;
-  group: string;
-  label: string;
-  value: number;
+  name: string;
+  type: 'strategy' | 'plugin' | 'agent';
+  status?: string;
+  color?: string;
+  val?: number;
 }
 
-interface LinkData {
+export interface GraphLink {
   source: string;
   target: string;
-  value: number;
+  value?: number;
 }
 
-interface EvolutionGraphProps {
-  nodes?: NodeData[];
-  links?: LinkData[];
-  isLoading?: boolean;
+export interface EvolutionGraphProps {
+  nodes: GraphNode[];
+  links: GraphLink[];
+  onNodeClick?: (node: GraphNode) => void;
   title?: string;
-  height?: string;
+  height?: number;
+  width?: number;
 }
 
-const EvolutionGraph: React.FC<EvolutionGraphProps> = ({ 
-  nodes = [], 
-  links = [], 
-  isLoading = false,
-  title = "Evolution Graph",
-  height = "500px"
+const EvolutionGraph: React.FC<EvolutionGraphProps> = ({
+  nodes = [],
+  links = [],
+  onNodeClick,
+  title = 'Evolution Graph',
+  height = 400,
+  width = undefined
 }) => {
-  const [viewType, setViewType] = React.useState<'graph' | 'tree'>('graph');
+  const { theme } = useTheme();
+  const [viewType, setViewType] = useState<'2d' | '3d'>('2d');
+  const graphRef = useRef<any>();
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[500px] w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleNodeClick = (node: GraphNode) => {
+    if (onNodeClick) {
+      onNodeClick(node);
+    }
+  };
 
-  if (nodes.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center h-[300px]">
-          <p className="text-muted-foreground">No evolution data available</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getNodeColor = (node: GraphNode) => {
+    if (node.color) return node.color;
+    
+    switch (node.type) {
+      case 'strategy':
+        return '#3b82f6';
+      case 'plugin':
+        return '#10b981';
+      case 'agent':
+        return '#f97316';
+      default:
+        return '#6366f1';
+    }
+  };
+  
+  // Resize graph on container resize
+  useEffect(() => {
+    if (!graphRef.current) return;
+    
+    const handleResize = () => {
+      if (containerRef.current && graphRef.current) {
+        graphRef.current.width(containerRef.current.clientWidth);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, [graphRef.current]);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{title}</CardTitle>
-        <Tabs value={viewType} onValueChange={(value) => setViewType(value as 'graph' | 'tree')}>
-          <TabsList>
-            <TabsTrigger value="graph">Force Graph</TabsTrigger>
-            <TabsTrigger value="tree">Tree View</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </CardHeader>
-      <CardContent>
-        <div style={{ height, width: '100%', position: 'relative' }}>
-          {viewType === 'graph' ? (
-            <div className="w-full h-full border border-muted rounded-md">
-              {/* For actual implementation, integrate react-force-graph-2d here */}
-              <div className="flex items-center justify-center h-full bg-muted/10">
-                <p className="text-muted-foreground">Graph visualization would render here</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-full h-full border border-muted rounded-md">
-              {/* For actual implementation, integrate a tree visualization here */}
-              <div className="flex items-center justify-center h-full bg-muted/10">
-                <p className="text-muted-foreground">Tree visualization would render here</p>
-              </div>
-            </div>
-          )}
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle>{title}</CardTitle>
+          <Tabs value={viewType} onValueChange={(v) => setViewType(v as '2d' | '3d')}>
+            <TabsList>
+              <TabsTrigger value="2d">2D View</TabsTrigger>
+              <TabsTrigger value="3d" disabled>3D View</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+      </CardHeader>
+      <CardContent className="pt-0" ref={containerRef}>
+        {nodes.length === 0 ? (
+          <div className="flex items-center justify-center h-[400px] bg-muted/20 rounded-md">
+            <p className="text-muted-foreground">No evolution data available</p>
+          </div>
+        ) : (
+          <ForceGraph2D
+            ref={graphRef}
+            graphData={{ nodes, links }}
+            nodeLabel="name"
+            nodeColor={node => getNodeColor(node as GraphNode)}
+            nodeVal={node => (node as GraphNode).val || 1}
+            linkWidth={link => (link as GraphLink).value || 1}
+            height={height}
+            width={width}
+            backgroundColor={theme === 'dark' ? '#1e1e2e' : '#ffffff'}
+            nodeCanvasObject={(node, ctx, globalScale) => {
+              const { id, name, x, y } = node as GraphNode & { x?: number, y?: number };
+              if (typeof x !== 'number' || typeof y !== 'number') return;
+              
+              const fontSize = 4;
+              const label = name;
+              
+              // Draw node
+              ctx.beginPath();
+              ctx.arc(x, y, 5, 0, 2 * Math.PI);
+              ctx.fillStyle = getNodeColor(node as GraphNode);
+              ctx.fill();
+              
+              // Draw label if zoomed in enough
+              if (globalScale >= 1.2) {
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.fillStyle = theme === 'dark' ? 'white' : 'black';
+                ctx.textAlign = 'center';
+                ctx.fillText(label, x, y + 12);
+              }
+            }}
+            onNodeClick={handleNodeClick}
+          />
+        )}
       </CardContent>
     </Card>
   );
