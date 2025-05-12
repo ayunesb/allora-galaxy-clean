@@ -1,6 +1,4 @@
 
-import { SystemEventModule, SystemEventType } from './shared';
-
 /**
  * System log entry
  */
@@ -14,11 +12,6 @@ export interface SystemLog {
 }
 
 /**
- * System event modules
- */
-export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
-
-/**
  * Audit log entry (alias for SystemLog for backward compatibility)
  */
 export interface AuditLog extends SystemLog {}
@@ -27,10 +20,13 @@ export interface AuditLog extends SystemLog {}
  * Log filters for querying logs
  */
 export interface LogFilters {
-  module?: SystemEventModule;
-  event?: SystemEventType;
-  fromDate?: Date;
-  toDate?: Date;
+  module?: SystemEventModule | null;
+  event?: string | null;
+  fromDate?: Date | null;
+  toDate?: Date | null;
   tenant_id?: string;
   searchTerm?: string;
 }
+
+// Re-export SystemEventModule from shared to avoid duplicate declarations
+export { SystemEventModule, SystemEventType } from './shared';

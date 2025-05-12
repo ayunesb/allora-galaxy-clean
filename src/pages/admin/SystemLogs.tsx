@@ -6,7 +6,7 @@ import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters, { SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { SystemLog } from '@/types/logs';
+import { SystemLog, LogFilters } from '@/types/logs';
 
 const SystemLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
@@ -21,10 +21,14 @@ const SystemLogs: React.FC = () => {
   
   const handleFilterChange = (newFilters: SystemLogFilterState) => {
     // Convert SystemLogFilterState to LogFilters
-    setFilters({
+    // Handle empty string for module by converting to null
+    const updatedFilters: LogFilters = {
       ...newFilters,
-      // No conversion needed anymore since we updated LogFilters to use Date
-    });
+      module: newFilters.module === '' ? null : newFilters.module,
+      event: newFilters.event === '' ? null : newFilters.event
+    };
+    
+    setFilters(updatedFilters);
   };
   
   return (

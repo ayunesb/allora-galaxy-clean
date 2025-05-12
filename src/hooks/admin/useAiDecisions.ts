@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemLog, LogFilters } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
@@ -12,7 +12,7 @@ export const useAiDecisionsData = () => {
   const [filters, setFilters] = useState<LogFilters>({});
   const { tenantId } = useTenantId();
   
-  const fetchDecisions = async () => {
+  const fetchDecisions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -70,12 +70,12 @@ export const useAiDecisionsData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tenantId, filters]);
   
   // Fetch decisions on mount and when filters change
   useEffect(() => {
     fetchDecisions();
-  }, [tenantId, filters]);
+  }, [fetchDecisions]);
   
   return {
     decisions,
