@@ -79,7 +79,7 @@ export async function completeExecution(params: {
     // First get the existing execution to calculate duration
     const { data: execution, error: fetchError } = await supabase
       .from('execution_metrics')
-      .select('start_time, resource_type, resource_id')
+      .select('start_time, resource_type, resource_id, metadata')
       .eq('id', executionId)
       .single();
     
@@ -92,13 +92,18 @@ export async function completeExecution(params: {
     const startTime = new Date(execution.start_time);
     const durationMs = endTime.getTime() - startTime.getTime();
     
+    // Merge metadata if existing metadata is available
+    const updatedMetadata = execution.metadata 
+      ? { ...execution.metadata, ...(metadata || {}) } 
+      : metadata;
+    
     const updateData = {
       end_time: endTime,
       duration_ms: durationMs,
       status: success ? 'completed' : 'failed',
       success,
       error: error || null,
-      metadata: metadata ? { ...execution.metadata, ...metadata } : execution.metadata
+      metadata: updatedMetadata
     };
     
     const { error: updateError } = await supabase

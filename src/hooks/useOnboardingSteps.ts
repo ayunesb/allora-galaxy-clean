@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { OnboardingStep } from '@/types/shared';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export interface OnboardingStepItem {

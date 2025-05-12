@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';

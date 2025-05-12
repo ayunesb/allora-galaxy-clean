@@ -34,3 +34,19 @@ export interface ExecutionSummary {
   averageDuration: number;
   timeWindow: string;
 }
+
+// Add the missing ExecutionRecordInput interface
+export interface ExecutionRecordInput {
+  tenantId: string;
+  status: string;
+  type: string;
+  strategyId?: string;
+  pluginId?: string;
+  agentVersionId?: string;
+  executedBy?: string;
+  input?: any;
+  output?: any;
+  executionTime?: number;
+  xpEarned?: number;
+  error?: string;
+}

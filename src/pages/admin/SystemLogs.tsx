@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/lib/supabase';
-import SystemLogFilter, { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
+import { SystemLogFilter as SystemLogFilterType } from '@/components/admin/logs/SystemLogFilters';
 import { AuditLog } from '@/types/logs';
 import { Badge } from '@/components/ui/badge';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
@@ -16,7 +16,7 @@ const SystemLogs = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
-  const [filters, setFilters] = useState<SystemLogFilter>({
+  const [filters, setFilters] = useState<SystemLogFilterType>({
     searchTerm: '',
   });
   
@@ -92,7 +92,7 @@ const SystemLogs = () => {
     }
   };
 
-  const handleFilterChange = (newFilters: SystemLogFilter) => {
+  const handleFilterChange = (newFilters: SystemLogFilterType) => {
     setFilters(newFilters);
     // Re-fetch logs with new filters
     setTimeout(fetchLogs, 0);
