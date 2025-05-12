@@ -1,5 +1,5 @@
 
-import { KPITrend, TrendDirection } from '@/types/shared';
+import { KPITrend, TrendDirection, LegacyTrendDirection, mapTrendDirection } from '@/types/shared';
 import { calculatePercentChange } from '@/lib/utils';
 
 // Define the KPI interface locally if not exported from shared types
@@ -56,7 +56,7 @@ export function createKPITrend(name: string, current: number, previous: number |
     name,
     value: current,
     previousValue: previous || undefined,
-    trend,
+    trend: mapTrendDirection(trend),
     percentChange,
     unit,
     target
@@ -68,7 +68,7 @@ export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
     name,
     value: 0,
     previousValue: undefined,
-    trend: 'neutral',
+    trend: 'stable',
     percentChange: 0,
     unit
   };
@@ -94,7 +94,7 @@ export function analyzeKPITrend(kpi: KPI): KPITrend {
     name: kpi.name,
     value: kpi.value,
     previousValue: kpi.previous_value || undefined,
-    trend,
+    trend: mapTrendDirection(trend),
     percentChange,
     unit: kpi.unit,
     target: kpi.target || undefined
@@ -134,7 +134,7 @@ export function createMockKPITrend(config: {
     name,
     value,
     previousValue,
-    trend,
+    trend: mapTrendDirection(trend),
     percentChange,
     unit,
     target

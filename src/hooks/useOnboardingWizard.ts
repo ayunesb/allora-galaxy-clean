@@ -40,18 +40,18 @@ export function useOnboardingWizard() {
     { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
   ];
   
-  const step = steps[currentStep];
+  const step = steps[currentStep ?? 0];
   
   // Track step view
   const trackStepView = useCallback(() => {
     if (user) {
       trackOnboardingStepView(user.id, step.id);
     }
-  }, [step.id, user]);
+  }, [step?.id, user]);
   
   // Validate current step
   const validateCurrentStep = () => {
-    const stepId = steps[currentStep].id;
+    const stepId = steps[currentStep ?? 0].id;
     const validation = validateOnboardingData(formData, stepId);
     
     if (!validation.valid) {
@@ -68,14 +68,14 @@ export function useOnboardingWizard() {
   
   // Check if current step is valid
   const isStepValid = () => {
-    const stepId = steps[currentStep].id;
+    const stepId = steps[currentStep ?? 0].id;
     return validateOnboardingData(formData, stepId).valid;
   };
   
   // Handle step navigation
   const handleStepClick = (index: number) => {
     // Only allow going to completed steps or next step
-    if (index <= currentStep + 1) {
+    if (index <= (currentStep ?? 0) + 1) {
       setStep(index);
       trackStepView();
     }
@@ -89,10 +89,10 @@ export function useOnboardingWizard() {
       return false;
     }
     
-    if (currentStep < steps.length - 1) {
+    if ((currentStep ?? 0) < steps.length - 1) {
       // Track step completion
       if (user) {
-        trackOnboardingStepCompleted(user.id, steps[currentStep].id);
+        trackOnboardingStepCompleted(user.id, steps[currentStep ?? 0].id);
       }
       
       nextStep();
@@ -105,7 +105,7 @@ export function useOnboardingWizard() {
   
   // Handle previous step
   const handlePrevStep = () => {
-    if (currentStep > 0) {
+    if ((currentStep ?? 0) > 0) {
       prevStep();
       trackStepView();
     }

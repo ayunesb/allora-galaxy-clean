@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import LogDetailDialog from './logs/LogDetailDialog';
-import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
 
 interface AuditLogProps {
   title?: string;

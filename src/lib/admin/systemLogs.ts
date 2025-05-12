@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
 import { format } from 'date-fns';
+import { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
 
 export const fetchSystemLogs = async (filters: SystemLogFilter = {}) => {
   let query = supabase

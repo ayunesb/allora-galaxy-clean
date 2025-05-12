@@ -1,4 +1,3 @@
-
 /**
  * HubSpot API adapter for Allora
  * Handles data fetching and transformation from HubSpot
@@ -142,7 +141,7 @@ export function formatMQLsAsKPIs(
       tenant_id,
       name: 'Marketing Qualified Leads',
       value: mqlData.mql_count,
-      previous_value: previousValues['mql_count'] ?? null,
+      previous_value: previousValues['mql_count'] ?? undefined,
       category: 'marketing',
       period: 'daily',
       source: 'hubspot',
@@ -156,7 +155,7 @@ export function formatMQLsAsKPIs(
       tenant_id,
       name: 'High Quality MQLs',
       value: mqlData.high_quality_count,
-      previous_value: previousValues['high_quality'] ?? null,
+      previous_value: previousValues['high_quality'] ?? undefined,
       category: 'marketing',
       period: 'daily',
       source: 'hubspot',
@@ -170,7 +169,7 @@ export function formatMQLsAsKPIs(
       tenant_id,
       name: 'MQL to SQL Conversion Rate',
       value: mqlData.mql_to_sql_rate,
-      previous_value: previousValues['conversion_rate'] ?? null,
+      previous_value: previousValues['conversion_rate'] ?? undefined,
       category: 'marketing',
       period: 'daily',
       source: 'hubspot',

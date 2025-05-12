@@ -1,17 +1,15 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTenantId } from '@/hooks/useTenantId';
-import { VoteType } from '@/types/shared';
 
 interface AgentEvolutionTabProps {}
 
 const AgentEvolutionTab: React.FC<AgentEvolutionTabProps> = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
-  const tenantId = useTenantId();
+  // We'll comment out unused state variables to keep them for future implementation
+  // const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+  // const tenantId = useTenantId();
 
   // This is a placeholder component until we fetch the real data
   return (

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,7 +96,8 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
     fetchStrategyDetails();
   }, [strategyId]);
 
-  const formatDate = (dateString?: string) => {
+  // Updated to handle undefined/null values
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) return 'N/A';
     try {
       return format(new Date(dateString), 'PPp');

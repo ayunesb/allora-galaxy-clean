@@ -1,6 +1,12 @@
 
 import { create } from 'zustand';
-import { OnboardingFormData, OnboardingState, OnboardingAction, OnboardingStep } from '@/types/onboarding';
+import { 
+  OnboardingFormData, 
+  OnboardingState, 
+  OnboardingStep,
+  OnboardingStore,
+  OnboardingStoreActions 
+} from '@/types/onboarding';
 
 // Initial form data state
 const initialFormData: OnboardingFormData = {
@@ -21,20 +27,23 @@ const initialFormData: OnboardingFormData = {
 
 // Initial onboarding state
 const initialState: OnboardingState = {
-  currentStep: 0,
+  step: 'welcome',
   formData: initialFormData,
-  isComplete: false,
-  tenantId: undefined,
+  isLoading: false,
+  error: null,
+  currentStep: 0,
   isSubmitting: false,
+  isComplete: false,
+  tenantId: undefined
 };
 
 // Create onboarding store
-export const useOnboardingStore = create<OnboardingState & OnboardingAction>((set) => ({
+export const useOnboardingStore = create<OnboardingStore>((set) => ({
   ...initialState,
   
   // Step navigation
-  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 3) })),
-  prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 0) })),
+  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep! + 1, 3) })),
+  prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep! - 1, 0) })),
   setStep: (step: number) => set({ currentStep: step }),
   
   // Form data management
