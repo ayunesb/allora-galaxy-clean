@@ -1,22 +1,6 @@
 
 import { KPITrend, TrendDirection } from '@/types/shared';
-
-// Define the KPI interface locally if not exported from shared types
-interface KPI {
-  id: string;
-  name: string;
-  value: number;
-  previous_value?: number | null;
-  unit: string;
-  target?: number | null;
-  category: string;
-  source?: string;
-  date: string;
-  tenant_id: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: Record<string, any>;
-}
+import { KPI } from '@/types/kpi';
 
 export function calculateTrendDirection(current: number, previous: number | null | undefined): TrendDirection {
   if (previous === null || previous === undefined) {
@@ -87,7 +71,7 @@ export function analyzeKPITrend(kpi: KPI): KPITrend {
     previousValue: kpi.previous_value || undefined,
     direction,
     name: kpi.name,
-    unit: kpi.unit,
+    unit: kpi.unit || '',
     target: kpi.target || undefined
   };
 }

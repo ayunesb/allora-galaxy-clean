@@ -43,8 +43,8 @@ export interface NavigationItem {
   disabled?: boolean;
   external?: boolean;
   children?: NavigationItem[];
-  items?: NavigationItem[]; // Add support for items
-  adminOnly?: boolean; // Add support for adminOnly flag
+  items?: NavigationItem[]; // Support for items
+  adminOnly?: boolean; // Support for adminOnly flag
 }
 
 // Trend direction types
@@ -53,7 +53,7 @@ export type TrendDirection = 'up' | 'down' | 'neutral';
 // Voting types
 export type VoteType = 'upvote' | 'downvote';
 
-// System event types
+// System event types - unified with types/logs.ts
 export type SystemEventModule = 
   | 'strategy'
   | 'agent'
@@ -65,7 +65,7 @@ export type SystemEventModule =
   | 'hubspot' 
   | 'system'
   | 'ai'
-  | 'onboarding'; // Add onboarding module type
+  | 'onboarding'; // Added onboarding module type
 
 export type SystemEventType = 
   | 'created' 
@@ -84,9 +84,9 @@ export interface KPITrend {
   previousValue?: number;
   change?: number;
   direction: TrendDirection;
-  name?: string; // Add name property
-  unit?: string; // Add unit property
-  target?: number; // Add target property
+  name?: string; // Name property
+  unit?: string; // Unit property
+  target?: number; // Target property
 }
 
 // Base entity interface for common fields

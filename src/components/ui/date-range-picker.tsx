@@ -34,12 +34,21 @@ export function DateRangePicker({
     setDate(value);
   }, [value]);
 
+  // Handle calendar selection and convert to our DateRange format
   const handleSelect = (range: DayPickerDateRange | undefined) => {
-    const convertedRange = convertDateRange(range);
-    setDate(convertedRange);
-    if (onChange) {
-      onChange(convertedRange);
+    if (!range || !range.from) {
+      setDate(undefined);
+      onChange?.(undefined);
+      return;
     }
+    
+    const newRange: DateRange = {
+      from: range.from,
+      to: range.to
+    };
+    
+    setDate(newRange);
+    onChange?.(newRange);
   };
 
   // Convert our DateRange type to the Calendar component's expected format

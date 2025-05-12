@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { OnboardingFormData } from '@/types/onboarding';
 
 /**
  * Validates a company name
@@ -62,19 +63,17 @@ export async function createCompanyProfile(
 /**
  * Creates a persona profile
  * @param tenantId Tenant ID
- * @param targetAudience Target audience
- * @param audienceNeeds Audience needs
- * @param businessModel Business model
- * @param tonePreference Tone preference
+ * @param persona Persona data
  * @param userId User ID of the creator
  * @returns Result of the operation
  */
 export async function createPersonaProfile(
   tenantId: string,
-  targetAudience: string[],
-  audienceNeeds: string[],
-  businessModel: string,
-  tonePreference: string,
+  persona: {
+    name: string;
+    goals: string[];
+    tone: string;
+  },
   userId: string
 ) {
   try {
@@ -82,10 +81,9 @@ export async function createPersonaProfile(
       .from('persona_profiles')
       .insert({
         tenant_id: tenantId,
-        target_audience: targetAudience,
-        audience_needs: audienceNeeds,
-        business_model: businessModel,
-        tone_preference: tonePreference,
+        name: persona.name,
+        goals: persona.goals,
+        tone: persona.tone,
         created_by: userId
       })
       .select()
@@ -108,14 +106,59 @@ export async function createPersonaProfile(
 
 /**
  * Completes the onboarding process
- * @param tenantId Tenant ID
  * @param userId User ID
- * @returns Result of the operation
+ * @param formData Onboarding form data
+ * @returns Result of the operation with tenantId
  */
-export async function completeOnboarding(tenantId: string, userId: string) {
+export async function completeOnboarding(userId: string, formData: OnboardingFormData): Promise<{ success: boolean; error?: string; tenantId?: string }> {
   try {
+    // Create a new tenant
+    const { data: tenantData, error: tenantError } = await supabase
+      .from('tenants')
+      .insert({ 
+        name: formData.companyName,
+        owner_id: userId,
+        slug: formData.companyName.toLowerCase().replace(/\s+/g, '-')
+      })
+      .select()
+      .single();
+
+    if (tenantError) throw tenantError;
+    
+    const tenantId = tenantData.id;
+    
+    // Create a tenant-user role
+    const { error: roleError } = await supabase
+      .from('tenant_user_roles')
+      .insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        role: 'owner'
+      });
+
+    if (roleError) throw roleError;
+    
+    // Create company profile
+    await createCompanyProfile(
+      tenantId,
+      formData.companyName,
+      formData.industry,
+      formData.companySize,
+      formData.goals,
+      userId
+    );
+    
+    // Create persona profile
+    if (formData.persona) {
+      await createPersonaProfile(
+        tenantId,
+        formData.persona,
+        userId
+      );
+    }
+
     // Update the tenant record to mark onboarding as completed
-    const { error: tenantError } = await supabase
+    const { error: updateError } = await supabase
       .from('tenants')
       .update({ 
         onboarding_completed: true,
@@ -123,7 +166,7 @@ export async function completeOnboarding(tenantId: string, userId: string) {
       })
       .eq('id', tenantId);
 
-    if (tenantError) throw tenantError;
+    if (updateError) throw updateError;
     
     // Update the user profile to mark onboarding as completed
     const { error: profileError } = await supabase
@@ -140,7 +183,7 @@ export async function completeOnboarding(tenantId: string, userId: string) {
       user_id: userId
     }, tenantId);
     
-    return { success: true };
+    return { success: true, tenantId };
   } catch (err: any) {
     console.error('Error completing onboarding:', err);
     return { success: false, error: err.message || 'Failed to complete onboarding' };

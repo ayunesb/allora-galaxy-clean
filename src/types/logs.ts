@@ -1,28 +1,7 @@
 
+import { SystemEventModule, SystemEventType } from './shared';
+
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
-
-export type SystemEventModule = 
-  | 'strategy'
-  | 'agent'
-  | 'plugin'
-  | 'user'
-  | 'tenant'
-  | 'auth'
-  | 'billing'
-  | 'hubspot' 
-  | 'system'
-  | 'ai';
-
-export type SystemEventType = 
-  | 'created' 
-  | 'updated' 
-  | 'deleted' 
-  | 'executed' 
-  | 'approved' 
-  | 'rejected'
-  | 'error'
-  | 'info'
-  | 'warning';
 
 export interface SystemLog {
   id: string;

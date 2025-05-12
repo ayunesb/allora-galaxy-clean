@@ -5,8 +5,10 @@ import { setupTests } from '../setup/testSetup';
 
 // Mock dependencies
 vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn().mockResolvedValue(undefined),
-  default: vi.fn().mockResolvedValue(undefined)
+  logSystemEvent: vi.fn().mockResolvedValue({ success: true, id: 'mock-log-id' }),
+  default: vi.fn().mockResolvedValue({ success: true, id: 'mock-log-id' }),
+  logSystemError: vi.fn().mockResolvedValue({ success: true, id: 'mock-error-log-id' }),
+  logSystemInfo: vi.fn().mockResolvedValue({ success: true, id: 'mock-info-log-id' })
 }));
 
 describe('runStrategy Error Handling', () => {
@@ -42,8 +44,14 @@ describe('runStrategy Error Handling', () => {
     };
     
     const logSystemEventModule = await import('@/lib/system/logSystemEvent');
-    vi.mocked(logSystemEventModule.default).mockImplementationOnce(() => {
-      throw new Error('Logging failed');
+    
+    // Override the mock for this specific test
+    vi.mocked(logSystemEventModule.default).mockRejectedValueOnce(new Error('Logging failed'));
+    
+    const supabaseMock = await import('@/integrations/supabase/client');
+    vi.mocked(supabaseMock.supabase.functions.invoke).mockResolvedValueOnce({
+      data: { success: true },
+      error: null
     });
     
     // Act - should not throw despite log failure
