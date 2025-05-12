@@ -32,7 +32,9 @@ export default defineConfig(({ mode }) => ({
         if (warning.message && (
           warning.message.includes('three-bmfont-text') || 
           warning.message.includes('git+') ||
-          warning.message.includes('git clone')
+          warning.message.includes('git clone') ||
+          warning.message.includes('document-register-element') ||
+          warning.message.includes('debug')
         )) return;
         warn(warning);
       }
@@ -43,7 +45,11 @@ export default defineConfig(({ mode }) => ({
     host: "::"
   },
   optimizeDeps: {
-    exclude: ['three-bmfont-text'], // Exclude the problematic package from optimization
+    exclude: [
+      'three-bmfont-text', 
+      'document-register-element', 
+      'debug'
+    ], // Exclude problematic packages from optimization
     esbuildOptions: {
       // Additional configuration to prevent git clone attempts
       define: {
