@@ -1,14 +1,14 @@
 
-import { KPITrendObject, KPI } from '@/types/kpi';
+import { KPITrendObject, KPI, KPITrend } from '@/types/kpi';
 import { TrendDirection } from '@/types/trends';
 import { calculatePercentChange } from '@/lib/utils';
 
 /**
  * Calculate the trend direction based on current and previous values
  */
-export function calculateTrendDirection(current: number, previous: number | null | undefined): TrendDirection {
+export function calculateTrendDirection(current: number, previous: number | null | undefined): KPITrend {
   if (previous === null || previous === undefined) {
-    return 'neutral';
+    return 'stable';
   }
   
   if (current > previous) {
@@ -21,9 +21,21 @@ export function calculateTrendDirection(current: number, previous: number | null
 }
 
 /**
+ * Convert TrendDirection to KPITrend
+ */
+export function toKPITrend(direction: TrendDirection): KPITrend {
+  if (direction === 'up' || direction === 'increasing') {
+    return 'increasing';
+  } else if (direction === 'down' || direction === 'decreasing') {
+    return 'decreasing';
+  }
+  return 'stable';
+}
+
+/**
  * Check if the trend direction is positive
  */
-export function isPositiveTrend(direction: TrendDirection): boolean {
+export function isPositiveTrend(direction: TrendDirection | KPITrend): boolean {
   return direction === 'up' || direction === 'increasing';
 }
 
@@ -76,13 +88,10 @@ export function createEmptyTrend(name: string, unit: string = ''): KPITrendObjec
  * Analyze a KPI object and convert it to a KPITrendObject
  */
 export function analyzeKPITrend(kpi: KPI): KPITrendObject {
-  let trend: TrendDirection = 'neutral';
-  let percentChange = 0;
-  
-  if (kpi.previous_value !== null && kpi.previous_value !== undefined) {
-    trend = calculateTrendDirection(kpi.value, kpi.previous_value);
-    percentChange = calculatePercentChange(kpi.value, kpi.previous_value);
-  }
+  const trend = calculateTrendDirection(kpi.value, kpi.previous_value);
+  const percentChange = kpi.previous_value !== null && kpi.previous_value !== undefined 
+    ? calculatePercentChange(kpi.value, kpi.previous_value) 
+    : 0;
   
   return {
     name: kpi.name,
@@ -114,8 +123,10 @@ export function createMockKPITrend(config: {
     target
   } = config;
   
-  let trend: TrendDirection = config.trend || 'stable';
-  if (!config.trend) {
+  let trend: KPITrend;
+  if (config.trend) {
+    trend = toKPITrend(config.trend);
+  } else {
     trend = calculateTrendDirection(value, previousValue);
   }
   

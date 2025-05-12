@@ -33,6 +33,12 @@ export interface OnboardingState {
   error: string | null;
 }
 
+// Define validation result type
+export interface ValidationResult {
+  valid: boolean;
+  errors: Record<string, string>;
+}
+
 // Define zustand state actions
 export interface OnboardingStateActions {
   nextStep: () => void;

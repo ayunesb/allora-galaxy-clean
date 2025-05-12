@@ -13,7 +13,7 @@ export type {
 } from './strategy';
 export type { 
   Plugin, 
-  AgentVersion, 
+  AgentVersion,
   PluginLog,
   PluginResult,
   RunPluginChainResult

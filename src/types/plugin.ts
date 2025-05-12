@@ -35,19 +35,30 @@ export interface PluginLog {
 
 // Plugin result type for execution results
 export interface PluginResult {
-  success: boolean;
   plugin_id: string;
+  success: boolean;
+  status: PluginLogStatus;
   output?: Record<string, any>;
   error?: string;
-  log_id?: string;
   execution_time?: number;
   xp_earned?: number;
+}
+
+// Agent version type
+export interface AgentVersion {
+  id: string;
+  version: string;
+  plugin_id: string;
+  prompt: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Result of running a plugin chain
 export interface RunPluginChainResult {
   success: boolean;
   results: PluginResult[];
-  totalXp: number;
-  executionTime: number;
+  output?: Record<string, any>;
+  error?: string;
 }
