@@ -95,8 +95,11 @@ export function generateRequestId(): string {
 /**
  * Handle CORS preflight request
  */
-export function handleCorsPreflightRequest(): Response {
-  return new Response(null, { headers: corsHeaders });
+export function handleCorsPreflightRequest(req: Request): Response | null {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  return null;
 }
 
 /**

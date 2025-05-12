@@ -35,7 +35,10 @@ const AdminDashboardContent = () => {
           .eq('tenant_id', currentWorkspace.id);
           
         if (error) throw error;
-        setUsers(data || []);
+        
+        // Type assertion to ensure the data matches our User type
+        const typedData = data as User[];
+        setUsers(typedData || []);
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {

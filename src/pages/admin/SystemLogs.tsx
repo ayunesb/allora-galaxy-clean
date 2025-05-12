@@ -1,158 +1,146 @@
 
-import React, { useState, useEffect } from 'react';
-import { fetchSystemLogs, fetchLogModules, fetchTenants } from '@/lib/admin/systemLogs';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import { Loader2, RefreshCw, Search } from 'lucide-react';
-import SystemLogFilters, { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { supabase } from '@/lib/supabase';
+import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
+import { AuditLog as AuditLogType, SystemEventModule } from '@/types/logs';
+import { FilterState } from '@/types/shared';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import { SystemLog, SystemEventModule } from '@/types/logs';
-import withRoleCheck from '@/lib/auth/withRoleCheck';
+import { Badge } from '@/components/ui/badge';
 
-const SystemLogs: React.FC = () => {
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
-  const [tenants, setTenants] = useState<Array<{ id: string; name: string }>>([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<SystemLogFilter>({});
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+const SystemLogs = () => {
+  const { currentWorkspace } = useWorkspace();
+  const [logs, setLogs] = useState<AuditLogType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
+  const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
+  const [filters, setFilters] = useState<FilterState<SystemEventModule>>({
+    searchTerm: '',
+  });
+  
+  // List of available modules based on SystemEventModule type
+  const modules: SystemEventModule[] = [
+    'strategy',
+    'agent',
+    'plugin',
+    'user',
+    'tenant',
+    'auth',
+    'billing',
+    'hubspot',
+    'system'
+  ];
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchLogs();
+  }, [currentWorkspace?.id]);
+
+  const fetchLogs = async () => {
+    if (!currentWorkspace?.id) return;
+    
     setLoading(true);
     try {
-      const logsData = await fetchSystemLogs(filters);
-      setLogs(logsData);
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('*')
+        .eq('tenant_id', currentWorkspace.id)
+        .order('created_at', { ascending: false });
       
-      if (!modules.length) {
-        const modulesData = await fetchLogModules();
-        setModules(modulesData);
+      if (error) {
+        throw error;
       }
       
-      if (!tenants.length) {
-        const tenantsData = await fetchTenants();
-        setTenants(tenantsData);
-      }
+      setLogs(data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching system logs:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [filters]);
-
-  const handleRefresh = () => {
-    fetchData();
-  };
-
-  const handleFilterChange = (newFilters: SystemLogFilter) => {
+  const handleFilterChange = (newFilters: FilterState<SystemEventModule>) => {
     setFilters(newFilters);
   };
 
-  const handleLogClick = (log: SystemLog) => {
+  const handleOpenLogDetail = (log: AuditLogType) => {
     setSelectedLog(log);
-    setDialogOpen(true);
+    setShowLogDetail(true);
   };
 
-  const getStatusVariant = (event: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (event.includes('error') || event.includes('failed')) {
-      return 'destructive';
-    } else if (event.includes('warning')) {
-      return 'secondary';
-    } else if (event.includes('success') || event.includes('completed')) {
-      return 'default';
-    }
-    return 'outline';
-  };
-
-  // Convert string array to SystemEventModule array
-  const typedModules: SystemEventModule[] = modules.filter((module): module is SystemEventModule => {
-    // Validate that each module is actually a SystemEventModule
-    return ['strategy', 'agent', 'plugin', 'user', 'tenant', 'auth', 'billing', 'hubspot', 'system'].includes(module);
+  const filteredLogs = logs.filter(log => {
+    // Filter by search term
+    const searchTermMatch = !filters.searchTerm || 
+      log.event.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      log.module.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+      (log.context && JSON.stringify(log.context).toLowerCase().includes(filters.searchTerm.toLowerCase()));
+    
+    // Filter by module
+    const moduleMatch = !filters.module || log.module === filters.module;
+    
+    // Filter by date range
+    const dateRangeMatch = !filters.dateRange?.from || (
+      new Date(log.created_at) >= filters.dateRange.from &&
+      (!filters.dateRange.to || new Date(log.created_at) <= filters.dateRange.to)
+    );
+    
+    return searchTermMatch && moduleMatch && dateRangeMatch;
   });
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">System Logs</h1>
-        <Button onClick={handleRefresh} variant="outline" size="icon">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
-
+      <h1 className="text-3xl font-bold mb-6">System Logs</h1>
+      
       <Card>
         <CardHeader>
-          <CardTitle>Logs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SystemLogFilters
-            filters={filters}
+          <CardTitle>System Activity Logs</CardTitle>
+          <SystemLogFilter 
             onFilterChange={handleFilterChange}
+            filters={filters}
             modules={modules}
-            tenants={tenants}
+            onRefresh={fetchLogs}
+            isLoading={loading}
           />
-          
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[600px] w-full">
+            <div className="divide-y divide-border">
+              {filteredLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="grid grid-cols-12 items-center gap-4 p-4 hover:bg-secondary cursor-pointer"
+                  onClick={() => handleOpenLogDetail(log)}
+                >
+                  <div className="col-span-2 text-xs text-muted-foreground">
+                    {format(new Date(log.created_at), 'MMM dd, yyyy hh:mm:ss')}
+                  </div>
+                  <div className="col-span-2">
+                    <Badge variant="secondary">{log.module}</Badge>
+                  </div>
+                  <div className="col-span-8">{log.event}</div>
+                </div>
+              ))}
+              {filteredLogs.length === 0 && (
+                <div className="p-4 text-center text-muted-foreground">
+                  {loading ? 'Loading logs...' : 'No logs found.'}
+                </div>
+              )}
             </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Search className="mx-auto h-12 w-12 text-muted-foreground/50 mb-2" />
-              <p>No logs found</p>
-              <p className="text-sm">Try adjusting your filters</p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Module</TableHead>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Tenant</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleLogClick(log)}>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(log.event)}>
-                          {log.module}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{log.event}</TableCell>
-                      <TableCell>{tenants.find(t => t.id === log.tenant_id)?.name || log.tenant_id?.substring(0, 8) || 'System'}</TableCell>
-                      <TableCell>{format(new Date(log.created_at), 'MMM dd, yyyy HH:mm:ss')}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          </ScrollArea>
         </CardContent>
       </Card>
-
-      <LogDetailDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        log={selectedLog}
-      />
+      
+      {selectedLog && (
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={showLogDetail} 
+          onOpenChange={setShowLogDetail} 
+        />
+      )}
     </div>
   );
 };
 
-export default withRoleCheck(SystemLogs, {
-  roles: ['admin', 'owner'],
-  redirectTo: '/unauthorized'
-});
+export default SystemLogs;

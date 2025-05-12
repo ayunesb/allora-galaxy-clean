@@ -41,7 +41,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
     const matchesSearchTerm =
       log.event.toLowerCase().includes(searchTermLower) ||
       log.module.toLowerCase().includes(searchTermLower) ||
-      (log.description && log.description.toLowerCase().includes(searchTermLower));
+      (log.description && log.description.toString().toLowerCase().includes(searchTermLower));
 
     const matchesModule = !filters.module || log.module === filters.module;
     
@@ -63,6 +63,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
           <AuditLogFilters 
             onFilterChange={handleFilterChange}
             modules={modules}
+            filters={filters}
           />
           {onRefresh && (
             <Button variant="outline" onClick={onRefresh} disabled={isLoading}>

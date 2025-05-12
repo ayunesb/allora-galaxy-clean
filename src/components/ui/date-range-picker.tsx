@@ -1,84 +1,103 @@
 
-import * as React from 'react';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { DateRange } from 'react-day-picker';
-
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import * as React from "react";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { DateRange } from "@/types/shared";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
-interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
-  dateRange?: DateRange;
-  onDateRangeChange?: (dateRange?: DateRange) => void;
-  align?: 'start' | 'center' | 'end';
+interface DateRangePickerProps {
+  value?: DateRange;
+  onChange?: (value?: DateRange) => void;
   className?: string;
-  disabled?: boolean;
+  placeholder?: string;
 }
 
 export function DateRangePicker({
-  dateRange,
-  onDateRangeChange,
-  align = 'start',
+  value,
+  onChange,
   className,
-  disabled,
-  ...props
+  placeholder = "Select date range"
 }: DateRangePickerProps) {
-  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [date, setDate] = React.useState<DateRange | undefined>(value);
+
+  // Update internal state when external value changes
+  React.useEffect(() => {
+    setDate(value);
+  }, [value]);
 
   const handleSelect = (range: DateRange | undefined) => {
-    if (onDateRangeChange) {
-      onDateRangeChange(range);
-    }
-    if (range?.to) {
-      setIsCalendarOpen(false);
+    setDate(range);
+    if (onChange) {
+      onChange(range);
     }
   };
 
   return (
-    <div className={cn('grid gap-2', className)} {...props}>
-      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+    <div className={cn("grid gap-2", className)}>
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant={'outline'}
-            size="sm"
+            variant={"outline"}
             className={cn(
-              'w-full justify-start text-left font-normal',
-              !dateRange && 'text-muted-foreground',
-              disabled && 'opacity-50 cursor-not-allowed'
+              "w-full justify-start text-left font-normal",
+              !date && "text-muted-foreground"
             )}
-            disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
+            {date?.from ? (
+              date.to ? (
                 <>
-                  {format(dateRange.from, 'LLL dd, y')} -{' '}
-                  {format(dateRange.to, 'LLL dd, y')}
+                  {format(date.from, "LLL dd, y")} -{" "}
+                  {format(date.to, "LLL dd, y")}
                 </>
               ) : (
-                format(dateRange.from, 'LLL dd, y')
+                format(date.from, "LLL dd, y")
               )
             ) : (
-              <span>Select date range</span>
+              <span>{placeholder}</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align={align}>
+        <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange}
+            defaultMonth={date?.from}
+            selected={date}
             onSelect={handleSelect}
             numberOfMonths={2}
           />
+          <div className="flex justify-end gap-2 p-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleSelect(undefined)}
+            >
+              Clear
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => {
+                if (date?.from) {
+                  const today = new Date();
+                  handleSelect({
+                    from: date.from,
+                    to: today > date.from ? today : date.from
+                  });
+                }
+              }}
+            >
+              Apply
+            </Button>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
