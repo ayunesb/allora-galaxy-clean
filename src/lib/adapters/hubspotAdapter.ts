@@ -1,203 +1,153 @@
 
-import { getEnvWithDefault } from '@/lib/env';
+/**
+ * HubSpot API adapter for integrating with HubSpot CRM
+ */
 
-interface HubSpotContact {
+// Types for HubSpot API responses
+export interface HubSpotContact {
   id: string;
   properties: {
     email: string;
     firstname?: string;
     lastname?: string;
     company?: string;
-    lifecyclestage?: string;
-    hs_lead_status?: string;
+    phone?: string;
+    lifecycle_stage?: string;
     [key: string]: any;
   };
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface HubSpotDeals {
+// Types for internal use
+interface HubSpotCompany {
   id: string;
   properties: {
-    dealname: string;
-    amount?: string;
-    closedate?: string;
-    dealstage?: string;
-    pipeline?: string;
+    name: string;
+    domain?: string;
+    industry?: string;
     [key: string]: any;
   };
 }
 
 /**
- * Adapter for HubSpot API integration
+ * Fetch contacts from HubSpot
+ * @param apiKey HubSpot API key
+ * @param limit Maximum number of contacts to retrieve
+ * @returns Array of contacts
  */
-export class HubspotAdapter {
-  private apiKey: string;
-  private baseUrl: string = 'https://api.hubapi.com';
-
-  constructor(apiKey?: string) {
-    // Use provided API key or get it from environment variables
-    this.apiKey = apiKey || getEnvWithDefault('HUBSPOT_API_KEY', '');
-    
-    if (!this.apiKey) {
-      console.warn('HubSpot API key not found. Some functionality may be limited.');
-    }
-  }
-
-  /**
-   * Fetch MQLs (Marketing Qualified Leads) from HubSpot
-   */
-  async fetchMQLs(limit: number = 100): Promise<HubSpotContact[]> {
-    if (!this.apiKey) {
-      throw new Error('HubSpot API key is required to fetch MQLs');
-    }
-
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/crm/v3/objects/contacts/search`, 
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify({
-            filterGroups: [
-              {
-                filters: [
-                  {
-                    propertyName: 'lifecyclestage',
-                    operator: 'EQ',
-                    value: 'marketingqualifiedlead'
-                  }
-                ]
-              }
-            ],
-            properties: ['email', 'firstname', 'lastname', 'company', 'lifecyclestage', 'hs_lead_status'],
-            limit: limit
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HubSpot API responded with status ${response.status}`);
+export async function fetchHubspotContacts(apiKey: string, limit: number = 100): Promise<HubSpotContact[]> {
+  try {
+    const response = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       }
-
-      const data = await response.json();
-      return data.results as HubSpotContact[];
-    } catch (error) {
-      console.error('Error fetching MQLs from HubSpot:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create or update contact in HubSpot
-   */
-  async upsertContact(contact: { email: string; [key: string]: any }): Promise<HubSpotContact> {
-    if (!this.apiKey) {
-      throw new Error('HubSpot API key is required to upsert contacts');
-    }
-
-    if (!contact.email) {
-      throw new Error('Email is required for contact creation/update');
-    }
-
-    try {
-      // First check if contact exists
-      const searchResponse = await fetch(
-        `${this.baseUrl}/crm/v3/objects/contacts/search`, 
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify({
-            filterGroups: [
-              {
-                filters: [
-                  {
-                    propertyName: 'email',
-                    operator: 'EQ',
-                    value: contact.email
-                  }
-                ]
-              }
-            ],
-            properties: ['email']
-          })
-        }
-      );
-
-      const searchData = await searchResponse.json();
-      
-      if (searchData.total > 0) {
-        // Update existing contact
-        const contactId = searchData.results[0].id;
-        const updateResponse = await fetch(
-          `${this.baseUrl}/crm/v3/objects/contacts/${contactId}`, 
-          {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-              properties: this.formatContactProperties(contact)
-            })
-          }
-        );
-
-        if (!updateResponse.ok) {
-          throw new Error(`Failed to update contact: ${updateResponse.statusText}`);
-        }
-
-        return await updateResponse.json();
-      } else {
-        // Create new contact
-        const createResponse = await fetch(
-          `${this.baseUrl}/crm/v3/objects/contacts`, 
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-              properties: this.formatContactProperties(contact)
-            })
-          }
-        );
-
-        if (!createResponse.ok) {
-          throw new Error(`Failed to create contact: ${createResponse.statusText}`);
-        }
-
-        return await createResponse.json();
-      }
-    } catch (error) {
-      console.error('Error upserting contact in HubSpot:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Format contact properties for HubSpot API
-   */
-  private formatContactProperties(contact: Record<string, any>): Record<string, any> {
-    const { email, ...otherProps } = contact;
+    });
     
-    // Map common property names to HubSpot properties
-    const properties: Record<string, any> = {
-      email,
-      ...(contact.firstName && { firstname: contact.firstName }),
-      ...(contact.lastName && { lastname: contact.lastName }),
-      ...(contact.name && !contact.firstName && { firstname: contact.name.split(' ')[0] }),
-      ...(contact.name && !contact.lastName && { lastname: contact.name.split(' ').slice(1).join(' ') }),
-      ...otherProps
-    };
+    if (!response.ok) {
+      throw new Error(`HubSpot API Error: ${response.status} - ${response.statusText}`);
+    }
     
-    return properties;
+    const data = await response.json();
+    return data.results;
+  } catch (error: any) {
+    console.error('Error fetching HubSpot contacts:', error);
+    throw error;
   }
 }
 
-export default HubspotAdapter;
+/**
+ * Create a new contact in HubSpot
+ * @param apiKey HubSpot API key
+ * @param contactData Contact properties
+ * @returns Created contact
+ */
+export async function createHubspotContact(
+  apiKey: string, 
+  contactData: { 
+    email: string;
+    firstname?: string;
+    lastname?: string;
+    company?: string;
+    [key: string]: any;
+  }
+): Promise<HubSpotContact> {
+  try {
+    const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        properties: contactData
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HubSpot API Error: ${response.status} - ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error: any) {
+    console.error('Error creating HubSpot contact:', error);
+    throw error;
+  }
+}
+
+/**
+ * Sync leads from application database to HubSpot
+ * @param apiKey HubSpot API key
+ * @param leads Application leads
+ * @returns Results of the sync operation
+ */
+export async function syncLeadsToHubspot(
+  apiKey: string, 
+  leads: Array<{
+    email: string;
+    name?: string;
+    company?: string;
+    score?: number;
+    created_at: string;
+    [key: string]: any;
+  }>
+): Promise<{ success: boolean; synced: number; failed: number; errors: any[] }> {
+  const errors: any[] = [];
+  let synced = 0;
+  let failed = 0;
+  
+  try {
+    // Process each lead
+    for (const lead of leads) {
+      try {
+        // Map lead data to HubSpot contact properties
+        const contactData = {
+          email: lead.email,
+          firstname: lead.name?.split(' ')[0],
+          lastname: lead.name?.split(' ').slice(1).join(' '),
+          company: lead.company,
+          lead_score: lead.score?.toString(),
+          lead_source: 'Allora OS App',
+          lead_created_date: lead.created_at
+        };
+        
+        await createHubspotContact(apiKey, contactData);
+        synced++;
+      } catch (error) {
+        failed++;
+        errors.push({ lead: lead.email, error });
+      }
+    }
+    
+    return {
+      success: failed === 0,
+      synced,
+      failed,
+      errors
+    };
+  } catch (error) {
+    console.error('Error syncing leads to HubSpot:', error);
+    throw error;
+  }
+}

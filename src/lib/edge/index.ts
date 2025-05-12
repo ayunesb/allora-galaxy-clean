@@ -17,12 +17,15 @@ export {
 
 // Re-export environment variables utilities
 export {
-  ENV,
   getEnv,
-  getEnvVar,
   getEnvWithDefault,
-  corsHeaders as envCorsHeaders,
+  isEnvTrue,
+  isDevelopment,
   isProduction,
+  isTest,
+  getEnvsByPrefix,
+  ENV,
+  corsHeaders as envCorsHeaders,
   getBaseUrl,
   getSafeEnv
 } from '../env/envUtils';
@@ -33,6 +36,3 @@ export {
   getEdgeEnv,
   getEdgeEnvironment
 } from '../env/safeEdgeEnv';
-
-// Export safe environment getter for edge functions
-export { getDenoEnv } from '../strategy/utils/environmentUtils';

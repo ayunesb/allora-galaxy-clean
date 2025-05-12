@@ -15,7 +15,7 @@ import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
 const EvolutionDashboard = () => {
   const { type } = useParams<{ type?: string }>();
   const navigate = useNavigate();
-  const { logs, isLoading, handleRefresh } = useAuditLogData();
+  const { logs, isLoading, refetch } = useAuditLogData();
   const [activeTab, setActiveTab] = useState('logs');
   const { currentWorkspace } = useWorkspace();
   const [selectedPluginId, setSelectedPluginId] = useState<string | undefined>(undefined);
@@ -70,7 +70,7 @@ const EvolutionDashboard = () => {
         <div className="space-x-2">
           <Button
             variant="outline"
-            onClick={handleRefresh}
+            onClick={refetch}
             disabled={isLoading}
           >
             {isLoading ? 'Refreshing...' : 'Refresh'}
@@ -89,9 +89,9 @@ const EvolutionDashboard = () => {
         <TabsContent value="logs">
           <AuditLog 
             title="System Activity Logs"
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
             data={logs}
+            isLoading={isLoading}
+            onRefresh={refetch}
           />
         </TabsContent>
 

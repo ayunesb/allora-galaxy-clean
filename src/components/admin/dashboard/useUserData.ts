@@ -55,7 +55,6 @@ export function useUserData() {
         if (error) throw error;
         
         if (data && Array.isArray(data)) {
-          // Format the user data to match the User interface
           const formattedUsers: User[] = data.map(item => ({
             id: item.id,
             role: item.role,

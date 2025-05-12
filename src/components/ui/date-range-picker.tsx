@@ -3,115 +3,99 @@ import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "@/types/shared";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { DateRange as DayPickerDateRange } from "react-day-picker";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 interface DateRangePickerProps {
   value?: DateRange;
-  onChange?: (value?: DateRange) => void;
+  onChange: (value?: DateRange) => void;
   className?: string;
-  placeholder?: string;
-  calendarDaysLimit?: number;
+  align?: "start" | "center" | "end";
 }
 
 export function DateRangePicker({
   value,
   onChange,
   className,
-  placeholder = "Select date range",
-  calendarDaysLimit
+  align = "start",
 }: DateRangePickerProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(value);
+  const [isOpen, setIsOpen] = React.useState(false);
 
-  // Update internal state when external value changes
-  React.useEffect(() => {
-    setDate(value);
-  }, [value]);
-
-  // Handle calendar selection and convert to our DateRange format
-  const handleSelect = (range: DayPickerDateRange | undefined) => {
-    if (!range || !range.from) {
-      setDate(undefined);
-      onChange?.(undefined);
-      return;
+  // Format the date range for display
+  const formatDateRange = () => {
+    if (!value?.from) return "Select date range";
+    
+    if (!value.to) {
+      return format(value.from, "PPP");
     }
-    
-    const newRange: DateRange = {
-      from: range.from,
-      to: range.to
-    };
-    
-    setDate(newRange);
-    onChange?.(newRange);
-  };
 
-  // Convert our DateRange type to the Calendar component's expected format
-  const selectedDates: DayPickerDateRange | undefined = date
-    ? { from: date.from, to: date.to }
-    : undefined;
+    return `${format(value.from, "PPP")} - ${format(value.to, "PPP")}`;
+  };
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}
             className={cn(
               "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              !value && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(date.from, "LLL dd, y")
-              )
-            ) : (
-              <span>{placeholder}</span>
-            )}
+            {formatDateRange()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align={align}>
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
-            selected={selectedDates}
-            onSelect={handleSelect}
-            numberOfMonths={calendarDaysLimit ? 1 : 2}
-            className="pointer-events-auto"
+            defaultMonth={value?.from}
+            selected={{
+              from: value?.from || new Date(),
+              to: value?.to,
+            }}
+            onSelect={(range) => {
+              if (range?.from && range.to) {
+                onChange({ 
+                  from: range.from, 
+                  to: range.to 
+                });
+              } else if (range?.from) {
+                onChange({ 
+                  from: range.from 
+                });
+              } else {
+                onChange(undefined);
+              }
+              setIsOpen(false);
+            }}
+            numberOfMonths={2}
           />
-          <div className="flex justify-end gap-2 p-3">
+          <div className="flex justify-end gap-2 p-3 border-t">
             <Button 
               variant="outline" 
-              size="sm" 
-              onClick={() => handleSelect(undefined)}
+              size="sm"
+              onClick={() => {
+                onChange(undefined);
+                setIsOpen(false);
+              }}
             >
               Clear
             </Button>
             <Button 
-              size="sm" 
+              size="sm"
               onClick={() => {
-                if (date?.from) {
-                  const today = new Date();
-                  handleSelect({
-                    from: date.from,
-                    to: today > date.from ? today : date.from
-                  });
-                }
+                // Apply the current selection
+                setIsOpen(false);
               }}
             >
               Apply

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from '@/context/notifications/useNotifications';
-import { Notification, NotificationContent } from '@/types/notifications';
+import { Notification, NotificationContent, NotificationType } from '@/types/notifications';
 
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 

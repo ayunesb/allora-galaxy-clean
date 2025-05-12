@@ -5,7 +5,13 @@ import { AuditLog, SystemEventModule } from '@/types/logs';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import { DateRange } from '@/types/shared';
-import type { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
+
+export interface SystemLogFilter {
+  searchTerm?: string;
+  module?: SystemEventModule;
+  dateRange?: DateRange;
+  tenant?: string;
+}
 
 export interface SystemLogsDataParams {
   initialFilters?: SystemLogFilter;
@@ -124,6 +130,7 @@ export const useSystemLogsData = (params?: SystemLogsDataParams) => {
     handleFilterChange,
     setDateRange,
     setSearchTerm,
-    setModule
+    setModule,
+    refetch: fetchLogs
   };
 };
