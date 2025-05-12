@@ -1,153 +1,162 @@
 
 /**
- * Environment utilities for client and edge functions
+ * Environment utilities for consistent environment variable access
  */
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 /**
- * Environment categories
+ * Get an environment variable
+ * @param name Variable name
+ * @param fallback Optional fallback value
+ * @returns Environment variable value or fallback
  */
-export enum ENV {
-  DEVELOPMENT = 'development',
-  PRODUCTION = 'production',
-  TEST = 'test',
-}
-
-/**
- * Get environment variable with strict type checking
- * @param name The environment variable name
- * @throws Error if the environment variable is not defined
- */
-export function getEnv(name: string): string {
-  // For Vite, we use import.meta.env
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    const value = import.meta.env[name] || import.meta.env[`VITE_${name}`];
-    if (value) return value;
-  }
-  
-  // For Node.js, use process.env
-  if (typeof process !== 'undefined' && process.env) {
-    const value = process.env[name];
-    if (value) return value;
-  }
-  
-  throw new Error(`Environment variable ${name} is not defined`);
-}
-
-/**
- * Get environment variable with fallback value
- * @param name The environment variable name
- * @param defaultValue The default value to return if not found
- */
-export function getEnvWithDefault(name: string, defaultValue: string): string {
+export function getEnv(name: string, fallback: string = ""): string {
   try {
-    return getEnv(name);
-  } catch (e) {
-    return defaultValue;
+    // For Deno environment
+    if (typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env) {
+      return Deno.env.get(name) ?? fallback;
+    }
+    
+    // For browser environment with import.meta.env
+    // @ts-ignore - import.meta.env may not exist in all contexts
+    if (typeof import.meta !== "undefined" && import.meta.env) {
+      // @ts-ignore - dynamic access
+      const value = import.meta.env[name] || import.meta.env[`VITE_${name}`];
+      return value || fallback;
+    }
+    
+    // For Node.js environment
+    // @ts-ignore - process.env may not exist in all contexts
+    if (typeof process !== "undefined" && process.env) {
+      // @ts-ignore - dynamic access
+      return process.env[name] || fallback;
+    }
+    
+    return fallback;
+  } catch (error) {
+    console.error(`Error accessing environment variable ${name}:`, error);
+    return fallback;
   }
+}
+
+/**
+ * Get an environment variable with default value
+ * @param name Variable name
+ * @param defaultValue Default value
+ * @returns Environment variable value or default
+ */
+export function getEnvWithDefault<T>(name: string, defaultValue: T): string | T {
+  const value = getEnv(name);
+  return value || defaultValue;
 }
 
 /**
  * Check if environment variable is true
- * @param name The environment variable name
+ * @param name Variable name
+ * @param defaultValue Default value
+ * @returns Boolean value
  */
-export function isEnvTrue(name: string): boolean {
-  try {
-    const value = getEnv(name).toLowerCase();
-    return value === 'true' || value === '1' || value === 'yes';
-  } catch (e) {
-    return false;
-  }
+export function isEnvTrue(name: string, defaultValue: boolean = false): boolean {
+  const value = getEnv(name).toLowerCase();
+  if (!value) return defaultValue;
+  return value === 'true' || value === '1' || value === 'yes';
 }
 
 /**
  * Check if current environment is development
+ * @returns True if development environment
  */
 export function isDevelopment(): boolean {
-  try {
-    const mode = getEnvWithDefault('NODE_ENV', '').toLowerCase();
-    return mode === 'development' || mode === 'dev';
-  } catch (e) {
-    return false;
-  }
-}
-
-/**
- * Check if current environment is production
- */
-export function isProduction(): boolean {
-  try {
-    const mode = getEnvWithDefault('NODE_ENV', '').toLowerCase();
-    return mode === 'production' || mode === 'prod';
-  } catch (e) {
-    return false;
-  }
+  const nodeEnv = getEnv('NODE_ENV').toLowerCase();
+  return nodeEnv === '' || nodeEnv === 'development';
 }
 
 /**
  * Check if current environment is test
+ * @returns True if test environment
  */
 export function isTest(): boolean {
-  try {
-    const mode = getEnvWithDefault('NODE_ENV', '').toLowerCase();
-    return mode === 'test';
-  } catch (e) {
-    return false;
-  }
+  return getEnv('NODE_ENV').toLowerCase() === 'test';
 }
 
 /**
- * Get all environment variables with a specified prefix
- * @param prefix The prefix to filter environment variables
+ * Check if current environment is production
+ * @returns True if production environment
+ */
+export function isProduction(): boolean {
+  return getEnv('NODE_ENV').toLowerCase() === 'production';
+}
+
+/**
+ * Get environment variables by prefix
+ * @param prefix Variables prefix
+ * @returns Object with variables
  */
 export function getEnvsByPrefix(prefix: string): Record<string, string> {
   const result: Record<string, string> = {};
   
-  // For Vite, use import.meta.env
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    Object.keys(import.meta.env).forEach(key => {
-      if (key.startsWith(prefix)) {
-        result[key] = import.meta.env[key];
-      }
-    });
-  }
-  
-  // For Node.js, use process.env
-  if (typeof process !== 'undefined' && process.env) {
-    Object.keys(process.env).forEach(key => {
-      if (key.startsWith(prefix)) {
-        result[key] = process.env[key] || '';
-      }
-    });
+  try {
+    // For browser environment with import.meta.env
+    // @ts-ignore - import.meta.env may not exist in all contexts
+    if (typeof import.meta !== "undefined" && import.meta.env) {
+      // @ts-ignore - Object.entries may not be available
+      Object.entries(import.meta.env).forEach(([key, value]) => {
+        if (key.startsWith(prefix) || key.startsWith(`VITE_${prefix}`)) {
+          const newKey = key.startsWith('VITE_') ? key.substring(5) : key;
+          result[newKey] = String(value);
+        }
+      });
+    }
+    
+    // For Node.js environment
+    // @ts-ignore - process.env may not exist in all contexts
+    if (typeof process !== "undefined" && process.env) {
+      // @ts-ignore - Object.entries may not be available
+      Object.entries(process.env).forEach(([key, value]) => {
+        if (key.startsWith(prefix)) {
+          result[key] = String(value);
+        }
+      });
+    }
+  } catch (error) {
+    console.error(`Error getting environment variables with prefix ${prefix}:`, error);
   }
   
   return result;
 }
 
 /**
- * Get the base URL for the current environment
+ * Get a safe environment variable (no error if not found)
+ * @param name Variable name
+ * @param fallback Optional fallback value
+ * @returns Environment variable value or fallback
  */
-export function getBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
+export function getSafeEnv(name: string, fallback: string = ""): string {
+  try {
+    return getEnv(name, fallback);
+  } catch (error) {
+    return fallback;
   }
-  
-  // For Node.js or edge functions
-  return getEnvWithDefault('VITE_PUBLIC_URL', 'http://localhost:3000');
 }
 
 /**
- * Safely get environment variable with clean error handling
+ * Get base URL from environment or default
+ * @returns Base URL string
  */
-export function getSafeEnv(name: string, defaultValue: string = ''): string {
-  try {
-    return getEnv(name);
-  } catch (error) {
-    console.warn(`Failed to get environment variable ${name}:`, error);
-    return defaultValue;
-  }
+export function getBaseUrl(): string {
+  return getEnv('BASE_URL', getEnv('VITE_BASE_URL', window?.location?.origin || ''));
 }
+
+// Environment variables constants
+export const ENV = {
+  NODE_ENV: getEnv('NODE_ENV', 'development'),
+  BASE_URL: getBaseUrl(),
+  API_URL: getEnv('API_URL', getEnv('VITE_API_URL', '')),
+  SUPABASE_URL: getEnv('SUPABASE_URL', getEnv('VITE_SUPABASE_URL', '')),
+  SUPABASE_ANON_KEY: getEnv('SUPABASE_ANON_KEY', getEnv('VITE_SUPABASE_ANON_KEY', ''))
+};
+
+// CORS headers for edge functions
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};

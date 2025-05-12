@@ -1,17 +1,31 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { routes } from '@/routes';
 import { AuthContextType } from '@/lib/auth/types';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
+
+// Create the query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // 1 minute
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
 
 // Create the router
 const router = createBrowserRouter(routes);
 
 // Define the root component
 const Root = () => {
-  const [authState, setAuthState] = useState<AuthContextType>({
+  // Initial auth state
+  const authState: AuthContextType = {
     user: null,
     session: null,
     loading: true,
@@ -24,17 +38,17 @@ const Root = () => {
     updatePassword: async () => ({ success: false, error: 'Not implemented' }),
     refreshSession: async () => ({ success: false, error: 'Not implemented' }),
     checkUserRole: async () => null
-  });
+  };
 
-  // Initialize authentication state
-  useEffect(() => {
-    // ... authentication initialization logic here
-  }, []);
+  // Note: actual auth logic would be implemented here and update the authState
+  // This is a placeholder for future implementation
 
   return (
-    <AuthProvider value={authState}>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider value={authState}>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

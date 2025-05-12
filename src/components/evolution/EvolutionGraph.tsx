@@ -109,7 +109,7 @@ const EvolutionGraph: React.FC<EvolutionGraphProps> = ({
             width={width}
             backgroundColor={theme === 'dark' ? '#1e1e2e' : '#ffffff'}
             nodeCanvasObject={(node, ctx, globalScale) => {
-              const { id, name, x, y } = node as GraphNode & { x?: number, y?: number };
+              const { name, x, y } = node as GraphNode & { x?: number, y?: number };
               if (typeof x !== 'number' || typeof y !== 'number') return;
               
               const fontSize = 4;

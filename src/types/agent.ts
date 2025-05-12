@@ -1,3 +1,6 @@
+
+import { VoteType } from './shared';
+
 export interface Agent {
   id: string;
   name: string;
@@ -29,14 +32,14 @@ export interface AgentVote {
   id: string;
   agent_version_id: string;
   user_id: string;
-  vote_type: 'upvote' | 'downvote';
+  vote_type: VoteType;
   comment?: string;
   created_at: string;
 }
 
 export interface AgentVoteInput {
   agentVersionId: string;
-  voteType: 'upvote' | 'downvote';
+  voteType: VoteType;
   comment?: string;
 }
 
@@ -72,4 +75,9 @@ export interface VoteResult {
   upvotes: number;
   downvotes: number;
   voteId?: string;
+}
+
+export interface AgentVoteStats {
+  upvotes: number;
+  downvotes: number;
 }

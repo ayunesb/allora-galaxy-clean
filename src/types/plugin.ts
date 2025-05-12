@@ -1,3 +1,4 @@
+
 /**
  * Plugin entity interface
  */
@@ -39,7 +40,8 @@ export interface PluginLog {
  */
 export interface PluginResult {
   success: boolean;
-  pluginId: string; // Changed from plugin_id to pluginId for consistency
+  pluginId: string;
+  status?: string; // Added status field to match usage in executePluginChain.ts
   output?: any;
   error?: string;
   executionTime?: number;

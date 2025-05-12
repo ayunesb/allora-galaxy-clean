@@ -46,10 +46,8 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
     const loadVoteStats = async () => {
       try {
         const stats = await getAgentVoteStats(agentVersionId);
-        if (stats.success) {
-          setUpvotes(stats.upvotes);
-          setDownvotes(stats.downvotes);
-        }
+        setUpvotes(stats.upvotes);
+        setDownvotes(stats.downvotes);
       } catch (error) {
         console.error('Error loading vote stats:', error);
       }
@@ -120,17 +118,17 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-center space-x-6">
         <VoteButton 
-          type="upvote"
+          type="up"
           count={upvotes}
-          active={userVote === 'upvote'}
+          isActive={userVote === 'upvote'}
           onClick={() => handleVote('upvote')}
           disabled={isLoading || !user}
         />
         
         <VoteButton 
-          type="downvote"
+          type="down"
           count={downvotes}
-          active={userVote === 'downvote'}
+          isActive={userVote === 'downvote'}
           onClick={() => handleVote('downvote')}
           disabled={isLoading || !user}
         />
@@ -139,9 +137,10 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
       {user && userVote && (
         <CommentSection
           comment={userComment}
-          onChange={handleCommentChange}
+          setComment={handleCommentChange}
           onSubmit={handleCommentSubmit}
-          isSubmitting={isLoading}
+          onCancel={() => {}}
+          disabled={isLoading}
         />
       )}
       

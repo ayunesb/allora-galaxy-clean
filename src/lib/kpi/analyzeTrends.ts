@@ -1,80 +1,91 @@
 
-import { TrendDirection, KPITrend } from '@/types/shared';
+import { KPITrend, TrendDirection } from '@/types/shared';
 
-/**
- * Analyzes trend direction based on current and previous values
- * @param currentValue Current metric value
- * @param previousValue Previous metric value
- * @param threshold Optional threshold for considering a change significant (default: 0)
- * @returns Trend direction ('up', 'down', or 'flat')
- */
-export function analyzeTrendDirection(
-  currentValue: number,
-  previousValue: number | null | undefined,
-  threshold: number = 0
-): TrendDirection {
-  if (previousValue === null || previousValue === undefined) {
-    return 'flat';
-  }
-
-  const diff = currentValue - previousValue;
-  
-  if (Math.abs(diff) <= threshold) {
-    return 'flat';
-  }
-  
-  return diff > 0 ? 'up' : 'down';
+// Enhanced KPI trend with direction
+interface EnhancedKPITrend extends KPITrend {
+  direction: TrendDirection;
 }
 
 /**
- * Calculates percentage change between current and previous values
- * @param currentValue Current metric value
- * @param previousValue Previous metric value
- * @returns Percentage change (positive for increase, negative for decrease)
+ * Calculate the trend direction based on historical data
+ * @param data Array of data points
+ * @returns Trend direction
  */
-export function calculatePercentageChange(
-  currentValue: number,
-  previousValue: number | null | undefined
-): number {
-  if (previousValue === null || previousValue === undefined || previousValue === 0) {
-    return 0;
-  }
+export function calculateTrendDirection(data: KPITrend[]): TrendDirection {
+  if (!data || data.length < 2) return 'neutral';
   
-  return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+  // Use last two data points to determine direction
+  const lastPoint = data[data.length - 1];
+  const previousPoint = data[data.length - 2];
+  
+  if (lastPoint.value > previousPoint.value) {
+    return 'up';
+  } else if (lastPoint.value < previousPoint.value) {
+    return 'down';
+  } else {
+    return 'neutral';
+  }
 }
 
 /**
- * Analyzes KPI trend comprehensively
- * @param currentValue Current metric value
- * @param previousValue Previous metric value
- * @param threshold Optional threshold for considering a change significant (default: 0)
- * @returns KPITrend object with direction, percentage change and absolute change
+ * Calculate the percentage change between two values
+ * @param oldValue The old value
+ * @param newValue The new value
+ * @returns Percentage change as a number
  */
-export function analyzeKpiTrend(
-  currentValue: number,
-  previousValue: number | null | undefined,
-  threshold: number = 0
-): KPITrend {
-  const direction = analyzeTrendDirection(currentValue, previousValue, threshold);
-  const percentage = calculatePercentageChange(currentValue, previousValue);
-  const value = previousValue !== null && previousValue !== undefined 
-    ? currentValue - previousValue 
-    : 0;
+export function calculatePercentageChange(oldValue: number, newValue: number): number {
+  if (oldValue === 0) return newValue > 0 ? 100 : 0;
+  return ((newValue - oldValue) / Math.abs(oldValue)) * 100;
+}
+
+/**
+ * Analyze trends in KPI data
+ * @param data Array of KPI data points
+ * @returns Analyzed trend data
+ */
+export function analyzeTrends(data: KPITrend[]): {
+  direction: TrendDirection;
+  percentageChange: number;
+  enhancedData: EnhancedKPITrend[];
+} {
+  if (!data || data.length === 0) {
+    return {
+      direction: 'neutral',
+      percentageChange: 0,
+      enhancedData: []
+    };
+  }
+  
+  // Calculate overall trend direction
+  const direction = calculateTrendDirection(data);
+  
+  // Calculate percentage change from first to last data point
+  const firstValue = data[0].value;
+  const lastValue = data[data.length - 1].value;
+  const percentageChange = calculatePercentageChange(firstValue, lastValue);
+  
+  // Enhance data with trend direction for each point
+  const enhancedData: EnhancedKPITrend[] = data.map((point, index) => {
+    let pointDirection: TrendDirection = 'neutral';
     
+    if (index > 0) {
+      const prevValue = data[index - 1].value;
+      if (point.value > prevValue) {
+        pointDirection = 'up';
+      } else if (point.value < prevValue) {
+        pointDirection = 'down';
+      }
+    }
+    
+    return {
+      ...point,
+      direction: pointDirection
+    };
+  });
+  
   return {
     direction,
-    percentage,
-    value
+    percentageChange,
+    enhancedData
   };
-}
-
-/**
- * Formats percentage change for display
- * @param percentage Percentage change value
- * @param precision Number of decimal places (default: 1)
- * @returns Formatted percentage string with + or - prefix
- */
-export function formatPercentageChange(percentage: number, precision: number = 1): string {
-  const prefix = percentage > 0 ? '+' : '';
-  return `${prefix}${percentage.toFixed(precision)}%`;
 }

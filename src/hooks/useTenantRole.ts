@@ -57,7 +57,7 @@ export function useTenantRole(tenantId?: string): UseTenantRoleResult {
     role,
     isAdmin: role === 'admin' || role === 'owner',
     isOwner: role === 'owner',
-    isUser: !!role,
+    isUser: role !== null,
     isLoading,
     error,
     refetch: fetchRole

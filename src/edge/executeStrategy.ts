@@ -3,6 +3,7 @@ import { ExecuteStrategyResult, StrategyExecutionStatus } from '@/lib/strategy/t
 
 interface StrategyExecutionResponse {
   success: boolean;
+  strategy_id?: string; // Make this optional since responses might not include it
   execution_id?: string;
   status: StrategyExecutionStatus;
   message?: string;
@@ -22,6 +23,7 @@ interface StrategyExecutionResponse {
 export function processExecutionResponse(response: StrategyExecutionResponse): ExecuteStrategyResult {
   return {
     success: response.success,
+    strategy_id: response.strategy_id || '',  // Default to empty string if not provided
     execution_id: response.execution_id,
     status: response.status,
     error: response.error,

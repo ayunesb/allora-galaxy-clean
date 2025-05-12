@@ -1,3 +1,4 @@
+
 // Shared types used across the application
 
 // Generic type for date ranges
@@ -97,6 +98,3 @@ export type BaseEntity = {
 export type ExecutionType = 'strategy' | 'plugin' | 'agent';
 export type ExecutionParams = Record<string, any>;
 export type TenantFeature = 'ai_decisions' | 'advanced_analytics' | 'custom_plugins';
-
-// Enhanced VoteType to ensure consistency across the app
-export type VoteType = 'upvote' | 'downvote';
