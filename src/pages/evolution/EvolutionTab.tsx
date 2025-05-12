@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -12,33 +12,33 @@ import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 import { AuditLog, SystemLog } from '@/types/logs';
 import { DateRange } from '@/types/shared';
 
-// Define columns for the DataTable
+// Define columns for the DataTable with proper typing
 const getColumns = (onRowClick: (log: AuditLog | SystemLog) => void) => [
   {
     accessorKey: 'id',
     header: 'ID',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('id')}</span>,
+    cell: ({ row }: { row: any }) => <span className="font-medium">{row.getValue('id')}</span>,
   },
   {
     accessorKey: 'created_at',
     header: 'Timestamp',
-    cell: ({ row }) => {
+    cell: ({ row }: { row: any }) => {
       return format(new Date(row.getValue('created_at')), 'PPp');
     },
   },
   {
     accessorKey: 'event_type',
     header: 'Action',
-    cell: ({ row }) => row.getValue('event_type') || row.getValue('event'),
+    cell: ({ row }: { row: any }) => row.getValue('event_type') || row.getValue('event'),
   },
   {
     accessorKey: 'description',
     header: 'Description',
-    cell: ({ row }) => row.getValue('description') || 'No description',
+    cell: ({ row }: { row: any }) => row.getValue('description') || 'No description',
   },
   {
     id: 'actions',
-    cell: ({ row }) => (
+    cell: ({ row }: { row: any }) => (
       <Button 
         variant="ghost" 
         size="sm" 
