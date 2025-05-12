@@ -11,8 +11,9 @@ import {
   AlertCircle,
   History
 } from "lucide-react";
+import { NavigationItem } from "@/types/navigation";
 
-export const navigationItems = [
+export const navigationItems: NavigationItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
@@ -35,7 +36,7 @@ export const navigationItems = [
   },
 ];
 
-export const adminNavigationItems = [
+export const adminNavigationItems: NavigationItem[] = [
   {
     title: "Admin Dashboard",
     href: "/admin",
@@ -68,7 +69,7 @@ export const adminNavigationItems = [
   },
 ];
 
-export const profileNavigationItems = [
+export const profileNavigationItems: NavigationItem[] = [
   {
     title: "Profile Settings",
     href: "/settings/profile",
@@ -81,7 +82,7 @@ export const profileNavigationItems = [
   },
 ];
 
-export const agentNavigationItems = [
+export const agentNavigationItems: NavigationItem[] = [
   {
     title: "Performance",
     href: "/agents/performance",

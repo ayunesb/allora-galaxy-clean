@@ -3,8 +3,27 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useStrategyGeneration } from '@/hooks/useStrategyGeneration';
-import { OnboardingStep } from '@/types/shared';
-import { OnboardingFormData } from '@/types/onboarding';
+import { OnboardingStep } from '@/types/onboarding';
+
+// Define the form data structure
+export interface OnboardingFormData {
+  companyInfo: {
+    name: string;
+    industry: string;
+    size: string;
+  };
+  persona: {
+    name: string;
+    goals: string[];
+    tone: string;
+  };
+  additionalInfo: {
+    targetAudience: string;
+    keyCompetitors: string;
+    uniqueSellingPoints: string;
+  };
+  [key: string]: any;
+}
 
 export function useOnboardingWizard() {
   const { toast } = useToast();
@@ -51,21 +70,21 @@ export function useOnboardingWizard() {
   const nextStep = () => {
     switch (currentStep) {
       case 'welcome':
-        setCurrentStep('company_info');
+        setCurrentStep('company-info');
         break;
-      case 'company_info':
+      case 'company-info':
         setCurrentStep('persona');
         break;
       case 'persona':
-        setCurrentStep('additional_info');
+        setCurrentStep('additional-info');
         break;
-      case 'additional_info':
-        setCurrentStep('strategy_generation');
+      case 'additional-info':
+        setCurrentStep('strategy-generation');
         break;
-      case 'strategy_generation':
-        setCurrentStep('complete');
+      case 'strategy-generation':
+        setCurrentStep('completed');
         break;
-      case 'complete':
+      case 'completed':
         navigate('/dashboard');
         break;
     }
@@ -74,20 +93,20 @@ export function useOnboardingWizard() {
   // Go back to previous step
   const prevStep = () => {
     switch (currentStep) {
-      case 'company_info':
+      case 'company-info':
         setCurrentStep('welcome');
         break;
       case 'persona':
-        setCurrentStep('company_info');
+        setCurrentStep('company-info');
         break;
-      case 'additional_info':
+      case 'additional-info':
         setCurrentStep('persona');
         break;
-      case 'strategy_generation':
-        setCurrentStep('additional_info');
+      case 'strategy-generation':
+        setCurrentStep('additional-info');
         break;
-      case 'complete':
-        setCurrentStep('strategy_generation');
+      case 'completed':
+        setCurrentStep('strategy-generation');
         break;
     }
   };

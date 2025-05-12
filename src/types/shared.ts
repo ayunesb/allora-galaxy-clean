@@ -9,7 +9,7 @@ export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent
 
 export type SystemEventType = 'create' | 'update' | 'delete' | 'execute' | 'error' | 'login' | 'logout';
 
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
 
 export type VoteType = 'upvote' | 'downvote' | 'neutral';
 

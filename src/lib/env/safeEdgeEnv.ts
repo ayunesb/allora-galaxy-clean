@@ -12,12 +12,14 @@
 export function safeGetDenoEnv(key: string, defaultValue: string = ""): string {
   try {
     // First try Deno environment if available
-    if (typeof globalThis !== 'undefined' && typeof globalThis.Deno !== 'undefined') {
+    if (typeof globalThis !== 'undefined') {
       // Check if Deno exists before trying to access .env
+      // @ts-ignore - Accessing potential Deno property
+      const deno = globalThis.Deno;
       // @ts-ignore - Deno is not recognized in TypeScript
-      if (globalThis.Deno?.env?.get) {
+      if (deno?.env?.get) {
         // @ts-ignore - Access Deno env
-        const value = globalThis.Deno.env.get(key);
+        const value = deno.env.get(key);
         if (value !== undefined) return value;
       }
     }

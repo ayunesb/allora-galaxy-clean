@@ -35,7 +35,7 @@ export const useStrategyGeneration = () => {
       return {
         success: true,
         tenantId: result.tenantId,
-        strategyId: result.strategyId
+        strategyId: result.strategyId || undefined
       };
     } catch (error: any) {
       console.error('Strategy generation error:', error);

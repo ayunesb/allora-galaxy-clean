@@ -11,16 +11,28 @@ export interface PersonaProfile {
 
 // Define the form data type for onboarding
 export interface OnboardingFormData {
-  companyName: string;
-  industry: string;
-  companySize: string;
+  companyName?: string;
+  industry?: string;
+  companySize?: string;
   website?: string;
-  revenueRange: string;
-  description: string;
-  goals: string[];
+  revenueRange?: string;
+  description?: string;
+  goals?: string[];
   additionalInfo?: string;
-  persona: PersonaProfile;
-  [key: string]: any; // Allow additional properties
+  persona?: PersonaProfile;
+  companyInfo?: {
+    name: string;
+    industry: string;
+    size: string;
+    [key: string]: any;
+  };
+  additionalInfo?: {
+    targetAudience: string;
+    keyCompetitors: string;
+    uniqueSellingPoints: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
 }
 
 // Define onboarding state

@@ -4,16 +4,16 @@ import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
-import { OnboardingStep } from '@/types/shared';
+import { OnboardingStep as OnboardingStepType } from '@/types/onboarding';
 
 // Define steps for the onboarding process
 const STEPS = [
-  { id: 'welcome', label: 'Welcome' },
-  { id: 'company_info', label: 'Company Info' },
-  { id: 'persona', label: 'Persona' },
-  { id: 'additional_info', label: 'Additional Info' },
-  { id: 'strategy_generation', label: 'Strategy' },
-  { id: 'complete', label: 'Complete' }
+  { id: 'welcome' as OnboardingStepType, label: 'Welcome' },
+  { id: 'company-info' as OnboardingStepType, label: 'Company Info' },
+  { id: 'persona' as OnboardingStepType, label: 'Persona' },
+  { id: 'additional-info' as OnboardingStepType, label: 'Additional Info' },
+  { id: 'strategy-generation' as OnboardingStepType, label: 'Strategy' },
+  { id: 'completed' as OnboardingStepType, label: 'Complete' }
 ];
 
 const OnboardingWizard: React.FC = () => {
@@ -46,10 +46,10 @@ const OnboardingWizard: React.FC = () => {
       {/* Progress indicators */}
       <OnboardingProgress 
         currentStep={getCurrentStepIndex()} 
-        onStepClick={(index: number) => {
+        onStepClick={() => {
           // Optional: Add step navigation logic here
         }}
-        steps={STEPS.map(s => ({ id: s.id, label: s.label }))}
+        steps={STEPS}
       />
       
       {/* Form content */}
@@ -57,7 +57,13 @@ const OnboardingWizard: React.FC = () => {
         <StepContent 
           step={currentStep}
           formData={formData}
-          updateFormData={updateFormData}
+          updateFormData={(field, value) => {
+            // Extract section and field name
+            const [section, fieldName] = field.split('.');
+            if (section && fieldName && section in formData) {
+              updateFormData(section as keyof typeof formData, { [fieldName]: value });
+            }
+          }}
           isGenerating={isGenerating}
           setFieldValue={(field, value) => {
             // Extract section and field name
