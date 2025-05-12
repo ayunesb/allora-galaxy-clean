@@ -12,15 +12,19 @@
  */
 export function safeGetDenoEnv(name: string, fallback: string = ""): string {
   try {
-    // First try Deno.env if available
-    if (typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env) {
-      return Deno.env.get(name) ?? fallback;
+    // Use globalThis for safer Deno access
+    if (typeof globalThis !== "undefined" && 
+        typeof (globalThis as any).Deno !== "undefined" && 
+        typeof (globalThis as any).Deno.env !== "undefined" && 
+        (globalThis as any).Deno.env) {
+      return (globalThis as any).Deno.env.get(name) ?? fallback;
     }
+    
     // Fallback to process.env for non-Deno environments
     // @ts-ignore - process.env may not exist in all contexts
     return typeof process !== "undefined" && process.env ? (process.env[name] || fallback) : fallback;
   } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
+    console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
 }

@@ -41,11 +41,12 @@ export interface PluginLog {
 export interface PluginResult {
   success: boolean;
   pluginId: string;
-  status?: string; // Added status field to match usage in executePluginChain.ts
+  status?: string;
   output?: any;
   error?: string;
   executionTime?: number;
   xp?: number;
+  xpEarned?: number; // Added xpEarned to PluginResult
 }
 
 /**

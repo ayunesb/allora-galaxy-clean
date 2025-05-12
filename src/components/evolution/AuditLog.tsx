@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
 import { AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters';
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import { AuditLog as AuditLogType } from '@/types/logs';
+import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
 
 export interface AuditLogProps {
   title?: string;
@@ -25,7 +26,13 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   onRefresh
 }) => {
   const [activeTab, setActiveTab] = useState('all');
-  const [filters, setFilters] = useState<AuditLogFilterState>({});
+  const [filters, setFilters] = useState<AuditLogFilterState>({
+    module: '',
+    event: '',
+    fromDate: null,
+    toDate: null,
+    searchTerm: ''
+  });
   
   // If data is not provided as props, use the hook to fetch the data
   const hookData = useAuditLogData(filters as any);
@@ -36,6 +43,20 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   const handleFilterChange = (newFilters: AuditLogFilterState) => {
     setFilters(newFilters);
   };
+
+  // Convert AuditLogType[] to SystemLog[] for SystemLogsList compatibility
+  const mapAuditLogsToSystemLogs = (auditLogs: AuditLogType[]): SystemLog[] => {
+    return auditLogs.map(log => ({
+      id: log.id,
+      module: log.module || ('system' as any), // Default to 'system' if not provided
+      event: log.event || (log.action as any), // Use action as event if event is not provided
+      context: log.details || {},
+      created_at: log.created_at,
+      tenant_id: log.tenant_id
+    }));
+  };
+  
+  const mappedLogs = mapAuditLogsToSystemLogs(logs);
   
   return (
     <Card className="w-full">
@@ -63,25 +84,34 @@ export const AuditLog: React.FC<AuditLogProps> = ({
           </div>
           
           <TabsContent value="all">
-            <SystemLogsList logs={logs} isLoading={loading} />
+            <SystemLogsList logs={mappedLogs} isLoading={loading} />
           </TabsContent>
           
           <TabsContent value="user">
-            <SystemLogsList logs={logs.filter(log => 
-              log.module === 'user' || log.module === 'auth'
-            )} isLoading={loading} />
+            <SystemLogsList 
+              logs={mappedLogs.filter(log => 
+                log.module === 'user' || log.module === 'auth'
+              )} 
+              isLoading={loading} 
+            />
           </TabsContent>
           
           <TabsContent value="content">
-            <SystemLogsList logs={logs.filter(log => 
-              log.module === 'strategy' || log.module === 'plugin' || log.module === 'agent'
-            )} isLoading={loading} />
+            <SystemLogsList 
+              logs={mappedLogs.filter(log => 
+                log.module === 'strategy' || log.module === 'plugin' || log.module === 'agent'
+              )} 
+              isLoading={loading} 
+            />
           </TabsContent>
           
           <TabsContent value="system">
-            <SystemLogsList logs={logs.filter(log => 
-              log.module === 'system' || log.module === 'billing' || log.module === 'tenant'
-            )} isLoading={loading} />
+            <SystemLogsList 
+              logs={mappedLogs.filter(log => 
+                log.module === 'system' || log.module === 'billing' || log.module === 'tenant'
+              )} 
+              isLoading={loading} 
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -12,8 +12,11 @@
 export function getEnv(name: string, fallback: string = ""): string {
   try {
     // For Deno environment
-    if (typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env) {
-      return Deno.env.get(name) ?? fallback;
+    if (typeof globalThis !== "undefined" && 
+        typeof (globalThis as any).Deno !== "undefined" && 
+        typeof (globalThis as any).Deno.env !== "undefined" && 
+        (globalThis as any).Deno.env) {
+      return (globalThis as any).Deno.env.get(name) ?? fallback;
     }
     
     // For browser environment with import.meta.env

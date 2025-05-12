@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuditLog, LogFilters } from '@/types/logs';
 import { supabase } from '@/lib/supabase';
@@ -8,15 +8,18 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 export function useAuditLogData(initialFilters?: Partial<LogFilters>) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<LogFilters>(initialFilters || {});
+  const [filters, setFilters] = useState<LogFilters>({
+    module: initialFilters?.module || null,
+    event: initialFilters?.event || null,
+    fromDate: initialFilters?.fromDate || null,
+    toDate: initialFilters?.toDate || null,
+    searchTerm: initialFilters?.searchTerm || '',
+    limit: initialFilters?.limit || 100
+  });
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
 
-  useEffect(() => {
-    fetchLogs();
-  }, [filters, currentWorkspace?.id]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (!currentWorkspace?.id) return;
     
     setIsLoading(true);
@@ -52,6 +55,9 @@ export function useAuditLogData(initialFilters?: Partial<LogFilters>) {
         query = query.or(`event.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
       }
       
+      // Apply limit if provided
+      query = query.limit(filters.limit || 100);
+      
       const { data, error } = await query;
       
       if (error) throw error;
@@ -67,7 +73,11 @@ export function useAuditLogData(initialFilters?: Partial<LogFilters>) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters, currentWorkspace?.id, toast]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const updateFilters = (newFilters: Partial<LogFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -82,6 +92,7 @@ export function useAuditLogData(initialFilters?: Partial<LogFilters>) {
     isLoading,
     filters,
     updateFilters,
+    setFilters: updateFilters,
     refetch
   };
 }

@@ -9,7 +9,14 @@ export const useAiDecisionsData = () => {
   const [decisions, setDecisions] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<LogFilters>({});
+  const [filters, setFilters] = useState<LogFilters>({
+    module: null,
+    event: null,
+    fromDate: null,
+    toDate: null,
+    searchTerm: '',
+    limit: 100
+  });
   const { tenantId } = useTenantId();
   
   const fetchDecisions = useCallback(async () => {
@@ -54,8 +61,8 @@ export const useAiDecisionsData = () => {
       // Order by created_at DESC
       query = query.order('created_at', { ascending: false });
       
-      // Limit to 100 records
-      query = query.limit(100);
+      // Limit to 100 records or user specified limit
+      query = query.limit(filters.limit || 100);
       
       const { data, error } = await query;
       

@@ -25,6 +25,9 @@ export interface AuditLog {
   details?: Record<string, any> | null;
   created_at: string;
   tenant_id?: string | null;
+  // Add missing fields to make AuditLog compatible with SystemLog
+  module?: SystemEventModule;
+  event?: SystemEventType;
 }
 
 /**
@@ -39,9 +42,16 @@ export interface LogFilters {
   tenant_id?: string | null;
   limit?: number;
   offset?: number;
+  // Add fields used in the hooks
+  fromDate?: Date | null;
+  toDate?: Date | null;
+  searchTerm?: string;
 }
 
 /**
  * Log status type
  */
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
+
+// Re-export from shared
+export { SystemEventModule, SystemEventType } from './shared';

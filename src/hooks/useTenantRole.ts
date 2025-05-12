@@ -1,67 +1,69 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import useAuth from './useAuth';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/shared';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTenantId } from './useTenantId';
 
-export interface UseTenantRoleResult {
+export function useTenantRole(requiredRole?: UserRole): {
   role: UserRole | null;
-  isAdmin: boolean;
-  isOwner: boolean;
-  isUser: boolean;
   isLoading: boolean;
-  error: Error | null;
-  refetch: () => Promise<void>;
-}
-
-export function useTenantRole(tenantId?: string): UseTenantRoleResult {
-  const { user } = useAuth();
+  hasRequiredRole: boolean;
+  isOwner: boolean;
+  isAdmin: boolean;
+} {
   const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchRole = useCallback(async () => {
-    if (!user || !tenantId) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('tenant_user_roles')
-        .select('role')
-        .eq('tenant_id', tenantId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError) {
-        throw new Error(fetchError.message);
-      }
-
-      setRole(data?.role as UserRole);
-    } catch (err: any) {
-      console.error('Error fetching user role:', err);
-      setError(err);
-      setRole(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, tenantId]);
+  const { user } = useAuth();
+  const { tenantId } = useTenantId();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchRole();
-  }, [fetchRole]);
+    async function fetchTenantRole() {
+      if (!user?.id || !tenantId) {
+        setIsLoading(false);
+        setRole(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('tenant_user_roles')
+          .select('role')
+          .eq('tenant_id', tenantId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching tenant role:', error);
+          setRole(null);
+        } else {
+          setRole(data?.role as UserRole || null);
+        }
+      } catch (error) {
+        console.error('Error in tenant role fetch:', error);
+        setRole(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTenantRole();
+  }, [user?.id, tenantId]);
+
+  useEffect(() => {
+    // Redirect if required role isn't met and we've finished loading
+    if (!isLoading && requiredRole && role !== requiredRole && !(requiredRole === 'admin' && role === 'owner')) {
+      navigate('/dashboard');
+    }
+  }, [role, requiredRole, isLoading, navigate]);
 
   return {
     role,
-    isAdmin: role === 'admin' || role === 'owner',
-    isOwner: role === 'owner',
-    isUser: role !== null,
     isLoading,
-    error,
-    refetch: fetchRole
+    hasRequiredRole: !requiredRole || role === requiredRole || (requiredRole === 'admin' && role === 'owner'),
+    isOwner: role === 'owner',
+    isAdmin: role === 'admin' || role === 'owner'
   };
 }
-
-export default useTenantRole;

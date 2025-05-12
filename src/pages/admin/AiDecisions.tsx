@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
-import { SystemLog, LogFilters, SystemEventModule, SystemEventType } from '@/types/logs';
+import { SystemLog, LogFilters } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters, { SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
@@ -23,9 +23,12 @@ const AiDecisions: React.FC = () => {
     // Convert SystemLogFilterState to LogFilters
     // Handle empty string for module by converting to null
     const updatedFilters: LogFilters = {
-      ...newFilters,
-      module: newFilters.module === '' ? null : newFilters.module as SystemEventModule | null,
-      event: newFilters.event === '' ? null : newFilters.event as SystemEventType | null
+      ...filters,
+      module: newFilters.module === '' ? null : newFilters.module as any,
+      event: newFilters.event === '' ? null : newFilters.event as any,
+      fromDate: newFilters.fromDate,
+      toDate: newFilters.toDate,
+      searchTerm: newFilters.searchTerm
     };
     
     setFilters(updatedFilters);
@@ -39,7 +42,13 @@ const AiDecisions: React.FC = () => {
       />
       
       <SystemLogFilters 
-        filters={filters as SystemLogFilterState} 
+        filters={{
+          module: filters.module || '',
+          event: filters.event || '',
+          fromDate: filters.fromDate,
+          toDate: filters.toDate,
+          searchTerm: filters.searchTerm
+        }}
         onFilterChange={handleFilterChange}
         isLoading={isLoading}
         onRefresh={refetch}

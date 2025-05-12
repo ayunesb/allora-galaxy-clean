@@ -9,7 +9,14 @@ export const useSystemLogsData = () => {
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<LogFilters>({});
+  const [filters, setFilters] = useState<LogFilters>({
+    module: null,
+    event: null,
+    fromDate: null,
+    toDate: null,
+    searchTerm: '',
+    limit: 100
+  });
   const { tenantId } = useTenantId();
 
   const fetchLogs = useCallback(async () => {
@@ -51,8 +58,8 @@ export const useSystemLogsData = () => {
         query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
       }
       
-      // Limit to 100 records
-      const { data, error } = await query.limit(100);
+      // Limit to 100 records or user specified limit
+      const { data, error } = await query.limit(filters.limit || 100);
       
       if (error) throw error;
       
