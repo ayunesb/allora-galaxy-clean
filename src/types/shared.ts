@@ -43,8 +43,8 @@ export type {
 export type { EvolutionFilter } from './evolution';
 export type { OnboardingStep } from './onboarding';
 
-// Add DateRange type
+// Add DateRange type that matches react-day-picker's DateRange
 export interface DateRange {
-  from: Date;
-  to?: Date;
+  from: Date | undefined;
+  to?: Date | undefined;
 }

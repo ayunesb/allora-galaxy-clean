@@ -3,6 +3,7 @@
  * HubSpot client for interacting with the HubSpot API
  */
 export interface HubSpotContact {
+  id?: string;
   properties: {
     email: string;
     firstname: string;
@@ -76,7 +77,7 @@ export class HubSpotClient {
       let url;
       let method;
       
-      if (existingContact) {
+      if (existingContact && existingContact.id) {
         url = `${this.baseUrl}/crm/v3/objects/contacts/${existingContact.id}`;
         method = 'PATCH';
       } else {

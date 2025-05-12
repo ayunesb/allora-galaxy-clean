@@ -13,10 +13,10 @@ export interface LoggerOptions {
 export class Logger {
   private context: Record<string, any>;
   private service: string;
-  private logLevel: LogLevel; // Renamed to avoid name collision
+  private level: LogLevel; // Renamed from logLevel
 
   constructor(options: LoggerOptions = {}) {
-    this.logLevel = options.level || 'info';
+    this.level = options.level || 'info';
     this.context = options.context || {};
     this.service = options.service || 'allora-os';
   }
@@ -60,6 +60,9 @@ export class Logger {
    * Internal logging implementation
    */
   private log(level: LogLevel, message: string, data?: any): void {
+    // Only log if the level is appropriate based on this.level
+    if (!this.shouldLog(level)) return;
+    
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -89,6 +92,21 @@ export class Logger {
       default:
         console.log(message, logEntry);
     }
+  }
+  
+  /**
+   * Determine if a message at the given level should be logged
+   */
+  private shouldLog(messageLevel: LogLevel): boolean {
+    const levels: Record<LogLevel, number> = {
+      debug: 0,
+      info: 1,
+      warn: 2,
+      error: 3,
+      fatal: 4
+    };
+    
+    return levels[messageLevel] >= levels[this.level];
   }
 }
 

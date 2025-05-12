@@ -10,7 +10,8 @@ interface HubSpotContact {
     phone: string;
     company: string;
     website: string;
-    mql_count: number | undefined;
+    mql_count?: number;
+    [key: string]: any;
   };
 }
 
@@ -29,7 +30,8 @@ export class HubSpotAdapter {
       const updatedContact = {
         properties: {
           ...contact.properties,
-          previous_value: previousValues['mql_count'] ?? undefined,
+          previous_value: previousValues && 'mql_count' in previousValues.properties ? 
+            previousValues.properties.mql_count : undefined,
         },
       };
       await this.client.createOrUpdateContact(updatedContact);

@@ -6,7 +6,6 @@
 export type * from './navigation';
 export type * from './user';
 export type * from './tenant';
-export type * from './strategy';
 export type * from './plugin';
 export type * from './voting';
 export type * from './logs';
@@ -14,6 +13,15 @@ export type * from './kpi';
 export type * from './trends';
 export type * from './execution';
 export type * from './evolution';
+
+// Handle strategy types separately to avoid ValidationResult naming conflicts
+export type { 
+  Strategy, 
+  StrategyFilter, 
+  StrategyExecution,
+  // Rename ValidationResult from strategy to avoid conflict
+  ValidationResult as StrategyValidationResult
+} from './strategy';
 
 // Explicitly handle ValidationResult conflict by not re-exporting it directly
 export type { 
@@ -30,8 +38,8 @@ export type {
 export type * from './notifications';
 export type * from './galaxy';
 
-// DateRange type used for date filters
+// DateRange type used for date filters - now defined to match react-day-picker's DateRange
 export interface DateRange {
-  from: Date;
-  to?: Date;
+  from: Date | undefined;
+  to?: Date | undefined;
 }
