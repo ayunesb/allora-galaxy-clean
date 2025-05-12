@@ -116,7 +116,7 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
         )}
 
         <LogDetailDialog
-          isOpen={!!selectedLog}
+          open={!!selectedLog}
           onClose={() => setSelectedLog(null)}
           log={selectedLog}
         />

@@ -3,8 +3,8 @@
 
 // Date range type for date pickers
 export interface DateRange {
-  from: Date;
-  to?: Date;
+  from: Date | undefined;
+  to?: Date | undefined;
 }
 
 // Vote types used in agent voting

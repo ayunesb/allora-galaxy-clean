@@ -3,25 +3,25 @@ import { VoteType } from "../shared";
 
 export interface AgentVersionData {
   id: string;
-  plugin_id: string;
+  plugin_id?: string | null;
   version: string;
   prompt: string;
   status: 'active' | 'deprecated';
-  xp: number;
-  created_at: string;
-  updated_at: string;
-  created_by?: string;
-  upvotes: number;
-  downvotes: number;
+  xp?: number | null;
+  created_at: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  upvotes?: number | null;
+  downvotes?: number | null;
 }
 
 export interface AgentVote {
   id?: string;
-  agent_version_id: string;
-  user_id: string;
+  agent_version_id: string | null;
+  user_id: string | null;
   vote_type: VoteType;
-  comment?: string;
-  created_at?: string;
+  comment?: string | null;
+  created_at?: string | null;
 }
 
 export interface VoteResult {

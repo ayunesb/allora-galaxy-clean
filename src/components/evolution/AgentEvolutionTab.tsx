@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,28 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTenantId } from '@/hooks/useTenantId';
 import { VoteType } from '@/types/shared';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AgentVersionData, AgentVote } from '@/types/agent';
 
 interface AgentVersion {
   id: string;
   version: string;
   prompt: string;
   status: string;
-  created_at: string;
-  updated_at?: string;
-  created_by?: string;
-  plugin_id?: string;
-  upvotes: number;
-  downvotes: number;
-  xp: number;
-}
-
-interface AgentVote {
-  id: string;
-  agent_version_id: string;
-  user_id: string;
-  vote_type: VoteType;
-  comment?: string;
-  created_at: string;
+  created_at: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  plugin_id?: string | null;
+  upvotes: number | null;
+  downvotes: number | null;
+  xp: number | null;
 }
 
 const AgentEvolutionTab: React.FC = () => {
@@ -57,8 +48,8 @@ const AgentEvolutionTab: React.FC = () => {
         if (agentError) throw agentError;
         
         if (agentData && agentData.length > 0) {
-          setAgents(agentData);
-          setSelectedAgent(agentData[0]);
+          setAgents(agentData as AgentVersion[]);
+          setSelectedAgent(agentData[0] as AgentVersion);
           
           // Fetch votes for the first agent
           const { data: voteData, error: voteError } = await supabase
@@ -68,7 +59,7 @@ const AgentEvolutionTab: React.FC = () => {
             .order('created_at', { ascending: false });
             
           if (voteError) throw voteError;
-          setVotes(voteData || []);
+          setVotes(voteData as AgentVote[] || []);
         }
       } catch (error) {
         console.error('Error fetching agent data:', error);
@@ -95,7 +86,7 @@ const AgentEvolutionTab: React.FC = () => {
         .order('created_at', { ascending: false });
         
       if (voteError) throw voteError;
-      setVotes(voteData || []);
+      setVotes(voteData as AgentVote[] || []);
     } catch (error) {
       console.error('Error fetching agent votes:', error);
     } finally {
@@ -103,7 +94,8 @@ const AgentEvolutionTab: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Unknown date';
     try {
       return format(new Date(dateStr), 'MMM dd, yyyy HH:mm:ss');
     } catch (e) {
@@ -118,6 +110,7 @@ const AgentEvolutionTab: React.FC = () => {
     const dateMap = new Map<string, number>();
     
     votes.forEach(vote => {
+      if (!vote.created_at) return;
       const date = format(new Date(vote.created_at), 'MM/dd');
       const currentValue = dateMap.get(date) || 0;
       dateMap.set(date, currentValue + (vote.vote_type === 'upvote' ? 1 : -1));
@@ -190,21 +183,21 @@ const AgentEvolutionTab: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                       <Card>
                         <CardContent className="pt-6">
-                          <div className="text-2xl font-bold">{selectedAgent.upvotes}</div>
+                          <div className="text-2xl font-bold">{selectedAgent.upvotes || 0}</div>
                           <p className="text-xs text-muted-foreground">Upvotes</p>
                         </CardContent>
                       </Card>
                       
                       <Card>
                         <CardContent className="pt-6">
-                          <div className="text-2xl font-bold">{selectedAgent.downvotes}</div>
+                          <div className="text-2xl font-bold">{selectedAgent.downvotes || 0}</div>
                           <p className="text-xs text-muted-foreground">Downvotes</p>
                         </CardContent>
                       </Card>
                       
                       <Card>
                         <CardContent className="pt-6">
-                          <div className="text-2xl font-bold">{selectedAgent.xp}</div>
+                          <div className="text-2xl font-bold">{selectedAgent.xp || 0}</div>
                           <p className="text-xs text-muted-foreground">Total XP</p>
                         </CardContent>
                       </Card>
@@ -251,7 +244,7 @@ const AgentEvolutionTab: React.FC = () => {
                                   <p className="text-sm mt-2">{vote.comment || 'No comment provided'}</p>
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {formatDate(vote.created_at)}
+                                  {vote.created_at ? formatDate(vote.created_at) : 'Unknown date'}
                                 </div>
                               </div>
                             </CardContent>

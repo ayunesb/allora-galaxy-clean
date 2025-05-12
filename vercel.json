@@ -1,8 +1,8 @@
+
 {
   "framework": "vite",
-  "build": {
-    "env": {
-      // Add any required environment variables here
-    }
-  }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "buildCommand": "npm run build"
 }

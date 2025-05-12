@@ -14,6 +14,14 @@ interface PromptDiffAnalysisProps {
   pluginId?: string;
 }
 
+interface PromptAnalysis {
+  id: string;
+  agent_version_id: string;
+  diff_summary: string;
+  impact_rationale: string;
+  created_at: string;
+}
+
 export const PromptDiffAnalysis: React.FC<PromptDiffAnalysisProps> = ({
   currentPrompt,
   previousPrompt,
@@ -25,16 +33,31 @@ export const PromptDiffAnalysis: React.FC<PromptDiffAnalysisProps> = ({
     queryKey: ['prompt-analysis', agentVersionId],
     queryFn: async () => {
       try {
-        // First check if we have a stored analysis
+        // First check if we have a stored analysis via a custom function call
+        // This avoids direct table access which might not exist
         if (agentVersionId) {
-          const { data: storedAnalysis, error: fetchError } = await supabase
-            .from('agent_version_analyses')
-            .select('*')
-            .eq('agent_version_id', agentVersionId)
-            .maybeSingle();
-
+          const { data: storedAnalysis, error: fetchError } = await supabase.rpc('get_agent_analysis', {
+            version_id: agentVersionId
+          });
+          
           if (!fetchError && storedAnalysis) {
             return storedAnalysis;
+          }
+          
+          // Fallback if RPC doesn't exist - this is just temporary until the table is created
+          try {
+            const { data: directData, error: directError } = await supabase
+              .from('agent_version_analyses')
+              .select('*')
+              .eq('agent_version_id', agentVersionId)
+              .maybeSingle();
+              
+            if (!directError && directData) {
+              return directData;
+            }
+          } catch (directFetchError) {
+            console.warn('Table agent_version_analyses may not exist yet:', directFetchError);
+            // Continue to generate new analysis
           }
         }
 
