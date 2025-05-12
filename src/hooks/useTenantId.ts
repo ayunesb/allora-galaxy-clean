@@ -7,10 +7,10 @@ interface UseTenantIdResult {
 }
 
 export function useTenantId(): UseTenantIdResult {
-  const { currentTenant, loading } = useWorkspace();
+  const { currentWorkspace, loading } = useWorkspace();
   
   return {
-    tenantId: currentTenant?.id,
+    tenantId: currentWorkspace?.id,
     isLoading: loading
   };
 }

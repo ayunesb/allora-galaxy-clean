@@ -18,7 +18,7 @@ export const calculatePercentChange = (current: number, previous: number): numbe
 export const determineTrendDirection = (percentChange: number): TrendDirection => {
   if (percentChange > 0) return 'up';
   if (percentChange < 0) return 'down';
-  return 'flat';
+  return 'neutral'; // Changed from 'flat' to 'neutral' to match TrendDirection type
 };
 
 /**
@@ -32,10 +32,11 @@ export const analyzeKpiTrend = (kpi: KPI): KPITrend => {
   const direction = determineTrendDirection(percentChange);
   
   return {
-    currentValue,
+    name: kpi.name,
+    value: currentValue,
     previousValue,
-    percentChange,
-    direction
+    direction,
+    percentageChange: percentChange
   };
 };
 
@@ -133,8 +134,8 @@ export const formatKpiTrendForDisplay = (trend: KPITrend): {
   trendDirection: TrendDirection;
 } => {
   return {
-    displayValue: trend.currentValue.toLocaleString(),
-    displayChange: `${trend.percentChange >= 0 ? '+' : ''}${trend.percentChange.toFixed(1)}%`,
+    displayValue: trend.value.toLocaleString(),
+    displayChange: `${trend.percentageChange >= 0 ? '+' : ''}${trend.percentageChange.toFixed(1)}%`,
     trendDirection: trend.direction
   };
 };

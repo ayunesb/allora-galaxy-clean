@@ -51,46 +51,46 @@ export const validateStep = (formData: OnboardingFormData, step: string): boolea
 };
 
 /**
- * Merge partial form data with existing data
+ * Merge partial form data with existing data without duplicating properties
  */
 export const mergeFormData = (
   existing: OnboardingFormData,
   partial: Partial<OnboardingFormData>
 ): OnboardingFormData => {
-  // Create a new object with merged properties
-  const merged: OnboardingFormData = {
-    ...existing,
-    ...partial,
-    
-    // Handle nested objects properly with default values
-    companyInfo: {
-      name: '',
-      industry: '',
-      size: '',
-      ...(existing.companyInfo || {}),
-      ...(partial.companyInfo || {})
-    },
-    
-    persona: {
-      name: '',
-      goals: [],
-      tone: '',
-      ...(existing.persona || {}),
-      ...(partial.persona || {})
-    },
-    
-    additionalInfo: {
-      targetAudience: '',
-      keyCompetitors: '',
-      uniqueSellingPoints: '',
-      ...(existing.additionalInfo && typeof existing.additionalInfo === 'object' 
-        ? existing.additionalInfo 
-        : {}),
-      ...(partial.additionalInfo && typeof partial.additionalInfo === 'object' 
-        ? partial.additionalInfo 
-        : {})
-    }
-  };
+  // Clone the existing object to avoid mutation
+  const result = { ...existing };
   
-  return merged;
+  // Handle top-level properties
+  Object.keys(partial).forEach(key => {
+    if (key !== 'companyInfo' && key !== 'persona' && key !== 'additionalInfo') {
+      // @ts-ignore - Dynamic keys
+      result[key] = partial[key];
+    }
+  });
+  
+  // Handle nested companyInfo
+  if (partial.companyInfo) {
+    result.companyInfo = {
+      ...existing.companyInfo,
+      ...partial.companyInfo
+    };
+  }
+  
+  // Handle nested persona
+  if (partial.persona) {
+    result.persona = {
+      ...existing.persona,
+      ...partial.persona
+    };
+  }
+  
+  // Handle nested additionalInfo
+  if (partial.additionalInfo && typeof partial.additionalInfo === 'object') {
+    result.additionalInfo = {
+      ...existing.additionalInfo,
+      ...partial.additionalInfo
+    };
+  }
+  
+  return result;
 };

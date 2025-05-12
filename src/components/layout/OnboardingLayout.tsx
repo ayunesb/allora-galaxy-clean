@@ -17,7 +17,7 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   totalSteps = 4
 }) => {
   const { t } = useTranslation();
-  const tenantId = useTenantId();
+  const { tenantId } = useTenantId();
   const [progressWidth, setProgressWidth] = useState(0);
   const [hasRendered, setHasRendered] = useState(false);
   

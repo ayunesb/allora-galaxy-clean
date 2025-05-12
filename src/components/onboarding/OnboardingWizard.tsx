@@ -4,7 +4,7 @@ import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
-import { OnboardingStep } from '@/types/onboarding';
+import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
 
 // Define steps for the onboarding process
 const STEPS = [
