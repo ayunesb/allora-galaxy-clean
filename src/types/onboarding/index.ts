@@ -1,5 +1,5 @@
 
-import { OnboardingStep } from '../onboarding';
+import { OnboardingStep } from '../shared';
 
 // Define persona type
 export interface PersonaProfile {

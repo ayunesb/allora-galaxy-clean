@@ -43,4 +43,5 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
   refreshSession: () => Promise<void>;
+  checkUserRole: (role: string) => Promise<boolean>;
 }

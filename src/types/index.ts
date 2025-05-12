@@ -14,7 +14,10 @@ export type * from './kpi';
 export type * from './trends';
 export type * from './execution';
 export type * from './evolution';
-export type * from './onboarding';
+// Re-export from onboarding with namespace to avoid conflicts
+import * as OnboardingTypes from './onboarding';
+export { OnboardingTypes };
+export type { OnboardingStep } from './onboarding';
 export type * from './notifications';
 export type * from './galaxy';
 

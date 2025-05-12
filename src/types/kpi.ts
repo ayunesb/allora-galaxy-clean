@@ -14,7 +14,7 @@ export interface KPI {
 }
 
 export interface KPITrend {
-  id: string;
+  id?: string;
   name: string;
   value: number;
   previousValue?: number;
@@ -22,4 +22,6 @@ export interface KPITrend {
   changePercent?: number;
   direction?: 'up' | 'down' | 'neutral';
   trend?: 'increasing' | 'decreasing' | 'stable';
+  unit?: string;
+  target?: number;
 }

@@ -33,7 +33,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({
       
       try {
         for (const role of roles) {
-          const hasRole = await checkUserRole(role as string);
+          const hasRole = await checkUserRole(role.toString());
           if (hasRole) {
             setHasPermission(true);
             return;
@@ -49,7 +49,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({
     if (!loading) {
       checkPermission();
     }
-  }, [user, loading, roles]);
+  }, [user, loading, roles, checkUserRole]);
 
   if (loading || hasPermission === null) {
     return (

@@ -30,7 +30,7 @@ const withRoleCheck = <P extends object>(
         
         try {
           for (const role of roles) {
-            const hasRole = await checkUserRole(role as string);
+            const hasRole = await checkUserRole(role.toString());
             if (hasRole) {
               setHasPermission(true);
               return;
@@ -46,7 +46,7 @@ const withRoleCheck = <P extends object>(
       if (!loading) {
         checkPermission();
       }
-    }, [user, loading, roles]);
+    }, [user, loading]);
 
     if (loading || hasPermission === null) {
       return (

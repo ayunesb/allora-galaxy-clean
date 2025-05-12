@@ -1,6 +1,5 @@
 
 import { KPITrend, TrendDirection } from '@/types/shared';
-import { calculatePercentChange } from '@/lib/utils';
 
 // Define the KPI interface locally if not exported from shared types
 interface KPI {

@@ -127,6 +127,37 @@ const useAuth = () => {
     }
   }, []);
 
+  // Check if user has a specific role
+  const checkUserRole = useCallback(async (role: string): Promise<boolean> => {
+    if (!user) {
+      return false;
+    }
+
+    try {
+      // First check for global roles in user metadata
+      const userRole = user.app_metadata?.role || 'user';
+      if (userRole === role) {
+        return true;
+      }
+
+      // Then check for tenant-specific roles
+      const { data, error } = await supabase
+        .from('tenant_user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data?.role === role;
+    } catch (err) {
+      console.error('Error checking user role:', err);
+      return false;
+    }
+  }, [user]);
+
   return {
     user,
     session,
@@ -137,7 +168,8 @@ const useAuth = () => {
     signOut,
     resetPassword,
     updatePassword,
-    refreshSession
+    refreshSession,
+    checkUserRole
   };
 };
 

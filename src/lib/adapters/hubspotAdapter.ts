@@ -1,181 +1,233 @@
 
-/**
- * HubSpot API adapter for Allora
- * Handles data fetching and transformation from HubSpot
- */
+import { supabase } from '@/integrations/supabase/client';
+import { ENV } from '@/lib/env';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-import type { KPI } from '@/types/shared';
-
-export interface HubspotContact {
+// Interface for HubSpot contact
+interface HubspotContact {
   id: string;
   properties: {
-    email: string;
     firstname?: string;
     lastname?: string;
+    email: string;
+    company?: string;
     hs_lead_status?: string;
+    lifecyclestage?: string;
+    hubspot_score?: string;
+    lastmodifieddate?: string;
     createdate?: string;
     [key: string]: any;
-  };
-  createdAt: string;
-  updatedAt: string;
+  }
 }
 
-export interface HubspotMQLsResponse {
-  results: HubspotContact[];
-  paging?: {
-    next?: {
-      link: string;
-    };
-  };
-  total?: number;
+// Interface for a formatted lead
+interface FormattedLead {
+  id?: string;
+  name: string;
+  email: string;
+  company?: string;
+  source: string;
+  status: string;
+  score?: number;
+  last_activity?: string;
+  metadata: {
+    hubspot_id?: string;
+    lifecycle_stage?: string;
+    [key: string]: any;
+  }
 }
 
-export interface HubspotMQLResult {
-  mql_count: number;
-  high_quality_count: number;
-  mql_to_sql_rate: number;
-  previous_mql_count?: number | null;
-  recent_leads: Array<{
-    id: string;
-    email: string;
-    name: string;
-    status: string;
-    score: number;
-    created_at: string;
-    source?: string;
-  }>;
-}
+// Get HubSpot API key from environment variables
+const HUBSPOT_API_KEY = ENV('HUBSPOT_API_KEY', '');
+
+// Check if the HubSpot integration is configured
+export const isHubspotConfigured = (): boolean => {
+  return !!HUBSPOT_API_KEY;
+};
 
 /**
- * Fetch Marketing Qualified Leads from HubSpot
- * @param apiKey HubSpot API key
- * @returns MQL data including counts and recent leads
+ * Fetch contacts from HubSpot API
  */
-export async function fetchMQLsFromHubspot(apiKey: string): Promise<HubspotMQLResult> {
+export const fetchHubspotContacts = async (limit = 100): Promise<HubspotContact[]> => {
+  if (!isHubspotConfigured()) {
+    throw new Error('HubSpot API key not configured');
+  }
+
   try {
-    // Fetch MQLs with the MQL status
     const response = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/contacts?properties=hs_lead_status,email,firstname,lastname,createdate,hs_lead_score,source&filterGroups=[{\"filters\":[{\"propertyName\":\"hs_lead_status\",\"operator\":\"EQ\",\"value\":\"MQL\"}]}]", 
+      `https://api.hubapi.com/crm/v3/objects/contacts?limit=${limit}`,
       {
-        method: "GET",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${HUBSPOT_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
       }
     );
-    
+
     if (!response.ok) {
-      throw new Error(`HubSpot API returned ${response.status}: ${await response.text()}`);
+      throw new Error(`HubSpot API error: ${response.status}`);
     }
-    
-    const data = await response.json() as HubspotMQLsResponse;
-    
-    // Transform the response into our data structure
-    const mql_count = data.total || data.results?.length || 0;
-    
-    // Calculate high-quality MQLs (those with lead score > 70)
-    const high_quality_count = data.results?.filter(
-      contact => parseInt(contact.properties.hs_lead_score || '0', 10) > 70
-    ).length || 0;
-    
-    // Fetch SQL count to calculate conversion rate
-    const sqlResponse = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/contacts?properties=hs_lead_status&filterGroups=[{\"filters\":[{\"propertyName\":\"hs_lead_status\",\"operator\":\"EQ\",\"value\":\"SQL\"}]}]&count=1", 
-      {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-    
-    let mql_to_sql_rate = 0;
-    if (sqlResponse.ok) {
-      const sqlData = await sqlResponse.json() as HubspotMQLsResponse;
-      const sql_count = sqlData.total || 0;
-      
-      // Calculate conversion rate as a percentage (avoid divide by zero)
-      mql_to_sql_rate = mql_count > 0 ? Math.round((sql_count / mql_count) * 100) : 0;
-    }
-    
-    // Transform 10 most recent leads for display
-    const recent_leads = data.results?.slice(0, 10).map(contact => ({
+
+    const data = await response.json();
+    return data.results.map((contact: any) => ({
       id: contact.id,
-      email: contact.properties.email,
-      name: `${contact.properties.firstname || ''} ${contact.properties.lastname || ''}`.trim() || 'Unknown',
-      status: contact.properties.hs_lead_status || 'MQL',
-      score: parseInt(contact.properties.hs_lead_score || '0', 10),
-      created_at: contact.properties.createdate || new Date().toISOString(),
-      source: contact.properties.source
-    })) || [];
-    
-    return {
-      mql_count,
-      high_quality_count,
-      mql_to_sql_rate,
-      recent_leads
-    };
+      properties: contact.properties
+    }));
   } catch (error) {
-    console.error("Error fetching MQLs from HubSpot:", error);
+    console.error('Error fetching HubSpot contacts:', error);
     throw error;
   }
 }
 
 /**
- * Format MQL data into KPI records ready to be inserted into the database
- * @param tenant_id The tenant ID
- * @param mqlData MQL data from HubSpot
- * @param previousValues Previous KPI values for comparison
- * @returns Array of KPI objects ready for insertion
+ * Format HubSpot contacts as leads
  */
-export function formatMQLsAsKPIs(
-  tenant_id: string,
-  mqlData: HubspotMQLResult,
-  previousValues: Record<string, number | null> = {}
-): KPI[] {
-  const today = new Date().toISOString().split('T')[0];
-  
-  return [
-    {
-      tenant_id,
-      name: 'Marketing Qualified Leads',
-      value: mqlData.mql_count,
-      previous_value: previousValues['mql_count'] ?? null,
-      category: 'marketing',
+export const formatHubspotContactsAsLeads = (contacts: HubspotContact[]): FormattedLead[] => {
+  return contacts.map(contact => {
+    const { properties } = contact;
+    
+    // Build the name from firstname and lastname
+    const name = [properties.firstname, properties.lastname]
+      .filter(Boolean)
+      .join(' ') || 'Unknown';
+    
+    // Convert HubSpot score to number
+    const scoreAsNumber = properties.hubspot_score 
+      ? parseInt(properties.hubspot_score, 10) 
+      : undefined;
+    
+    return {
+      name,
+      email: properties.email,
+      company: properties.company,
       source: 'hubspot',
-      unit: 'count',
-      date: today,
-      id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      tenant_id,
-      name: 'High Quality MQLs',
-      value: mqlData.high_quality_count,
-      previous_value: previousValues['high_quality'] ?? null,
-      category: 'marketing',
-      source: 'hubspot',
-      unit: 'count',
-      date: today,
-      id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      tenant_id,
-      name: 'MQL to SQL Conversion Rate',
-      value: mqlData.mql_to_sql_rate,
-      previous_value: previousValues['conversion_rate'] ?? null,
-      category: 'marketing',
-      source: 'hubspot',
-      unit: 'percentage',
-      date: today,
-      id: crypto.randomUUID(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      status: properties.hs_lead_status || 'new',
+      score: scoreAsNumber,
+      last_activity: properties.lastmodifieddate,
+      metadata: {
+        hubspot_id: contact.id,
+        lifecycle_stage: properties.lifecyclestage,
+        created_date: properties.createdate
+      }
+    };
+  });
+}
+
+/**
+ * Sync MQLs from HubSpot to our database
+ */
+export const syncHubspotMQLs = async (tenantId: string): Promise<{ success: boolean; added: number; updated: number; errors: number }> => {
+  if (!isHubspotConfigured()) {
+    return { success: false, added: 0, updated: 0, errors: 1 };
+  }
+
+  try {
+    // Log the start of the sync process
+    await logSystemEvent('hubspot', 'info', {
+      description: 'Starting HubSpot MQL sync',
+      tenant_id: tenantId
+    }, tenantId);
+    
+    // Fetch HubSpot contacts
+    const contacts = await fetchHubspotContacts();
+    
+    // Filter for MQLs (marketing qualified leads)
+    const mqlContacts = contacts.filter(
+      contact => contact.properties.lifecyclestage === 'marketingqualifiedlead'
+    );
+    
+    // Format MQLs as leads
+    const leads = formatHubspotContactsAsLeads(mqlContacts);
+    
+    // Initialize counters
+    let added = 0;
+    let updated = 0;
+    let errors = 0;
+    
+    // Process each lead
+    for (const lead of leads) {
+      try {
+        // Check if lead already exists by HubSpot ID
+        const { data: existingLeads } = await supabase
+          .from('leads')
+          .select('id, metadata')
+          .eq('tenant_id', tenantId)
+          .eq('email', lead.email)
+          .single();
+        
+        if (existingLeads) {
+          // Update existing lead
+          const { error: updateError } = await supabase
+            .from('leads')
+            .update({
+              name: lead.name,
+              company: lead.company,
+              status: lead.status,
+              score: lead.score || 0,
+              last_activity: lead.last_activity,
+              metadata: {
+                ...existingLeads.metadata,
+                ...lead.metadata
+              }
+            })
+            .eq('id', existingLeads.id);
+            
+          if (updateError) {
+            throw updateError;
+          }
+          
+          updated++;
+        } else {
+          // Insert new lead
+          const { error: insertError } = await supabase
+            .from('leads')
+            .insert({
+              ...lead,
+              tenant_id: tenantId
+            });
+            
+          if (insertError) {
+            throw insertError;
+          }
+          
+          added++;
+        }
+      } catch (error) {
+        console.error('Error processing lead:', error);
+        errors++;
+      }
     }
-  ];
+    
+    // Log the completion of the sync process
+    await logSystemEvent('hubspot', 'info', {
+      description: 'Completed HubSpot MQL sync',
+      added,
+      updated,
+      errors,
+      tenant_id: tenantId
+    }, tenantId);
+    
+    return {
+      success: true,
+      added,
+      updated,
+      errors
+    };
+  } catch (error) {
+    console.error('Error syncing HubSpot MQLs:', error);
+    
+    // Log the error
+    await logSystemEvent('hubspot', 'error', {
+      description: 'Error syncing HubSpot MQLs',
+      error: String(error),
+      tenant_id: tenantId
+    }, tenantId);
+    
+    return {
+      success: false,
+      added: 0,
+      updated: 0,
+      errors: 1
+    };
+  }
 }
