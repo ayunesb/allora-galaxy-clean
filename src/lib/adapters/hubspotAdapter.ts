@@ -139,46 +139,72 @@ export function formatMQLsAsKPIs(
   
   return [
     {
+      id: crypto.randomUUID(),
       tenant_id,
       name: 'Marketing Qualified Leads',
       value: mqlData.mql_count,
-      previous_value: previousValues['mql_count'] ?? null,
+      trend: calculateTrend(mqlData.mql_count, previousValues['mql_count']),
+      change: calculateChange(mqlData.mql_count, previousValues['mql_count']),
       category: 'marketing',
-      period: 'daily',
-      source: 'hubspot',
       unit: 'count',
+      source: 'hubspot',
       date: today,
-      id: crypto.randomUUID(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     },
     {
+      id: crypto.randomUUID(),
       tenant_id,
       name: 'High Quality MQLs',
       value: mqlData.high_quality_count,
-      previous_value: previousValues['high_quality'] ?? null,
+      trend: calculateTrend(mqlData.high_quality_count, previousValues['high_quality']),
+      change: calculateChange(mqlData.high_quality_count, previousValues['high_quality']),
       category: 'marketing',
-      period: 'daily',
-      source: 'hubspot',
       unit: 'count',
+      source: 'hubspot',
       date: today,
-      id: crypto.randomUUID(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     },
     {
+      id: crypto.randomUUID(),
       tenant_id,
       name: 'MQL to SQL Conversion Rate',
       value: mqlData.mql_to_sql_rate,
-      previous_value: previousValues['conversion_rate'] ?? null,
+      trend: calculateTrend(mqlData.mql_to_sql_rate, previousValues['conversion_rate']),
+      change: calculateChange(mqlData.mql_to_sql_rate, previousValues['conversion_rate']),
       category: 'marketing',
-      period: 'daily',
-      source: 'hubspot',
       unit: 'percentage',
+      source: 'hubspot',
       date: today,
-      id: crypto.randomUUID(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
   ];
+}
+
+/**
+ * Calculate trend direction based on current and previous values
+ */
+function calculateTrend(current: number, previous: number | null | undefined): KPI['trend'] {
+  if (previous === null || previous === undefined) {
+    return 'stable';
+  }
+  if (current > previous) {
+    return 'increasing';
+  }
+  if (current < previous) {
+    return 'decreasing';
+  }
+  return 'stable';
+}
+
+/**
+ * Calculate percentage change between current and previous values
+ */
+function calculateChange(current: number, previous: number | null | undefined): number | undefined {
+  if (previous === null || previous === undefined || previous === 0) {
+    return undefined;
+  }
+  return Math.round(((current - previous) / previous) * 100);
 }
