@@ -14,7 +14,19 @@ export type * from './kpi';
 export type * from './trends';
 export type * from './execution';
 export type * from './evolution';
-export type * from './onboarding';
+
+// Explicitly handle ValidationResult conflict by not re-exporting it directly
+export type { 
+  OnboardingStep, 
+  OnboardingFormData,
+  OnboardingState,
+  OnboardingStore,
+  OnboardingStateActions,
+  PersonaProfile,
+  // Renamed to avoid ambiguity
+  OnboardingValidationResult
+} from './onboarding';
+
 export type * from './notifications';
 export type * from './galaxy';
 
@@ -23,6 +35,3 @@ export interface DateRange {
   from: Date;
   to?: Date;
 }
-
-// Also re-export from shared for backward compatibility
-export type * from './shared';

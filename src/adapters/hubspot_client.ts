@@ -1,115 +1,107 @@
 
 /**
- * HubSpot client for interacting with HubSpot API
+ * HubSpot client for interacting with the HubSpot API
  */
-export interface HubSpotClientConfig {
-  apiKey: string;
-  baseUrl?: string;
+export interface HubSpotContact {
+  properties: {
+    email: string;
+    firstname: string;
+    lastname: string;
+    phone?: string;
+    company?: string;
+    website?: string;
+    mql_count?: number;
+    previous_value?: number;
+    [key: string]: any;
+  };
 }
 
 export class HubSpotClient {
   private apiKey: string;
   private baseUrl: string;
 
-  constructor(config: HubSpotClientConfig) {
-    this.apiKey = config.apiKey;
-    this.baseUrl = config.baseUrl || 'https://api.hubapi.com';
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.hubapi.com';
   }
 
   /**
    * Get contact by email
    */
-  async getContactByEmail(email: string): Promise<Record<string, any>> {
+  async getContactByEmail(email: string): Promise<HubSpotContact | null> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/crm/v3/objects/contacts/search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            filterGroups: [
-              {
-                filters: [
-                  {
-                    propertyName: 'email',
-                    operator: 'EQ',
-                    value: email,
-                  },
-                ],
-              },
-            ],
-            properties: ['email', 'firstname', 'lastname', 'mql_count'],
-            limit: 1,
-          }),
-        }
-      );
+      const url = `${this.baseUrl}/crm/v3/objects/contacts/search`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          filterGroups: [
+            {
+              filters: [
+                {
+                  propertyName: 'email',
+                  operator: 'EQ',
+                  value: email
+                }
+              ]
+            }
+          ],
+          properties: ['email', 'firstname', 'lastname', 'mql_count']
+        })
+      });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch contact: ${response.status}`);
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        return data.results[0].properties || {};
-      }
-
-      return {};
+      return data.results[0] || null;
     } catch (error) {
-      console.error('Error fetching contact by email:', error);
-      throw error;
+      console.error('Error fetching contact from HubSpot:', error);
+      return null;
     }
   }
 
   /**
-   * Create or update contact
+   * Create or update a contact
    */
-  async createOrUpdateContact(contact: any): Promise<void> {
+  async createOrUpdateContact(contact: HubSpotContact): Promise<any> {
     try {
-      const { email } = contact.properties;
-      if (!email) {
-        throw new Error('Email is required for contact operations');
-      }
-
-      // First check if contact exists
+      const email = contact.properties.email;
       const existingContact = await this.getContactByEmail(email);
       
-      let response;
-      if (Object.keys(existingContact).length > 0) {
-        // Update existing contact
-        response = await fetch(
-          `${this.baseUrl}/crm/v3/objects/contacts/${existingContact.id || ''}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ properties: contact.properties }),
-          }
-        );
+      let url;
+      let method;
+      
+      if (existingContact) {
+        url = `${this.baseUrl}/crm/v3/objects/contacts/${existingContact.id}`;
+        method = 'PATCH';
       } else {
-        // Create new contact
-        response = await fetch(
-          `${this.baseUrl}/crm/v3/objects/contacts`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ properties: contact.properties }),
-          }
-        );
+        url = `${this.baseUrl}/crm/v3/objects/contacts`;
+        method = 'POST';
       }
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          properties: contact.properties
+        })
+      });
 
       if (!response.ok) {
-        throw new Error(`Failed to create/update contact: ${response.status}`);
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText}`);
       }
+
+      return await response.json();
     } catch (error) {
-      console.error('Error creating or updating contact:', error);
+      console.error('Error creating/updating contact in HubSpot:', error);
       throw error;
     }
   }

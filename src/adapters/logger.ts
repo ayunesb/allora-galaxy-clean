@@ -11,12 +11,12 @@ export interface LoggerOptions {
 }
 
 export class Logger {
-  private level: LogLevel;
   private context: Record<string, any>;
   private service: string;
+  private logLevel: LogLevel; // Renamed to avoid name collision
 
   constructor(options: LoggerOptions = {}) {
-    this.level = options.level || 'info';
+    this.logLevel = options.level || 'info';
     this.context = options.context || {};
     this.service = options.service || 'allora-os';
   }

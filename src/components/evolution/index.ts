@@ -5,6 +5,8 @@ export { default as PluginEvolutionTab } from './PluginEvolutionTab';
 export { default as StrategyEvolutionTab } from './StrategyEvolutionTab';
 export { default as AuditLog } from './AuditLog';
 export { default as LogDetailDialog } from './logs/LogDetailDialog';
+
+// Export directly from logs folder
 export { default as AuditLogFilters } from './logs/AuditLogFilters';
 
 // Export strategy evolution components

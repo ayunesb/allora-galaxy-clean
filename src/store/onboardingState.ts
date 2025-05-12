@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import type { OnboardingState, OnboardingFormData } from '../types/onboarding';
+import type { OnboardingState, OnboardingFormData, OnboardingStep } from '../types/onboarding';
 
 // Initial form data with required fields
 const initialFormData: OnboardingFormData = {
@@ -29,17 +29,18 @@ const initialState: OnboardingState = {
 export const useOnboardingStore = create<OnboardingState & {
   nextStep: () => void;
   prevStep: () => void;
-  setStep: (n: OnboardingStep) => void;
+  setStep: (step: OnboardingStep) => void;
   updateFormData: (d: Partial<OnboardingFormData>) => void;
   setSubmitting: (b: boolean) => void;
   setComplete: (b: boolean) => void;
   reset: () => void;
-}>(set => ({
+}>((set) => ({
   ...initialState,
-  nextStep: () => set(s => {
+  
+  nextStep: () => set((state) => {
     // Map current step to next step
-    const currentStep = s.step;
-    let nextStep;
+    const currentStep = state.step;
+    let nextStep: OnboardingStep;
     
     switch (currentStep) {
       case 'welcome': nextStep = 'company-info'; break;
@@ -52,10 +53,11 @@ export const useOnboardingStore = create<OnboardingState & {
     
     return { step: nextStep };
   }),
-  prevStep: () => set(s => {
+  
+  prevStep: () => set((state) => {
     // Map current step to previous step
-    const currentStep = s.step;
-    let prevStep;
+    const currentStep = state.step;
+    let prevStep: OnboardingStep;
     
     switch (currentStep) {
       case 'company-info': prevStep = 'welcome'; break;
@@ -67,9 +69,10 @@ export const useOnboardingStore = create<OnboardingState & {
     
     return { step: prevStep };
   }),
-  setStep: n => set({ step: n }),
-  updateFormData: d => set(s => ({ formData: { ...s.formData, ...d } })),
-  setSubmitting: b => set({ isSubmitting: b }),
-  setComplete: b => set({ isComplete: b }),
+  
+  setStep: (step) => set({ step }),
+  updateFormData: (d) => set((s) => ({ formData: { ...s.formData, ...d } })),
+  setSubmitting: (b) => set({ isSubmitting: b }),
+  setComplete: (b) => set({ isComplete: b }),
   reset: () => set(initialState),
 }));

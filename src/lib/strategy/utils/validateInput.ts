@@ -1,12 +1,12 @@
 
-import { ValidationResult } from '@/types/strategy';
+import { StrategyValidationResult } from '@/types/strategy';
 
 /**
  * Validate input for strategy execution
  * @param strategy The strategy data to validate
  * @returns A validation result object
  */
-export function validateInput(strategy: any): ValidationResult {
+export function validateInput(strategy: any): StrategyValidationResult {
   const errors: string[] = [];
   
   if (!strategy) {

@@ -31,7 +31,11 @@ export interface StrategyInput {
   due_date?: string | null;
 }
 
-export interface ValidationResult {
+// Use specific ValidationResult for strategy
+export interface StrategyValidationResult {
   valid: boolean;
   errors: string[];
 }
+
+// Export ValidationResult with StrategyValidationResult alias
+export type ValidationResult = StrategyValidationResult;

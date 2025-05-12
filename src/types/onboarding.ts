@@ -33,11 +33,14 @@ export interface OnboardingState {
   error: string | null;
 }
 
-// Define validation result type
-export interface ValidationResult {
+// Define validation result type - different from the strategy one
+export interface OnboardingValidationResult {
   valid: boolean;
   errors: Record<string, string>;
 }
+
+// Export ValidationResult with OnboardingValidationResult alias
+export type ValidationResult = OnboardingValidationResult;
 
 // Define zustand state actions
 export interface OnboardingStateActions {
