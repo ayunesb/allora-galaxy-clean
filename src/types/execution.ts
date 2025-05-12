@@ -1,49 +1,36 @@
 
-// Execution related types
-export interface Execution {
-  id: string;
-  tenant_id: string;
-  type: string;
-  status: 'success' | 'failure' | 'pending';
-  strategy_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  executed_by?: string;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
-  error?: string;
-  created_at: string;
-  execution_time: number;
-  xp_earned: number;
-}
+export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
-export interface ExecutionParams {
+export interface ExecutionMetric {
+  id: string;
+  start_time: string;
+  end_time?: string;
+  duration_ms?: number;
+  status: ExecutionStatus;
+  success: boolean;
+  error?: string;
+  resource_type: string;
+  resource_id: string;
   tenant_id: string;
-  strategy_id?: string;
   user_id?: string;
-  options?: Record<string, any>;
-}
-
-export interface ExecutionRecordInput {
-  tenantId: string;
-  status: string;
-  type: string;
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  executedBy?: string;
-  input?: any;
-  output?: any;
-  executionTime?: number;
-  xpEarned?: number;
-  error?: string;
-}
-
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'test' | 'system';
-
-export interface BaseEntity {
-  id: string;
-  created_at: string;
+  metadata?: Record<string, any>;
+  created_at?: string;
   updated_at?: string;
-  tenant_id: string;
+}
+
+export interface ExecutionProgress {
+  id: string;
+  execution_id: string;
+  progress: number; // 0-100
+  status?: string;
+  message?: string;
+  timestamp: string;
+}
+
+export interface ExecutionSummary {
+  total: number;
+  success: number;
+  failed: number;
+  averageDuration: number;
+  timeWindow: string;
 }

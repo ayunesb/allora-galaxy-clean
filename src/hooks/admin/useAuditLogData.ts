@@ -1,92 +1,148 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuditLog, SystemEventModule } from '@/types/logs';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { toast } from '@/components/ui/use-toast';
+import { AuditLog } from '@/types/logs';
+import { useToast } from '@/hooks/use-toast';
+import { useTenantId } from '@/hooks/useTenantId';
+import { DateRange } from '@/types/shared';
 
-interface UseAuditLogDataOptions {
-  limit?: number;
-  module?: SystemEventModule;
+export interface AuditLogFilter {
+  searchTerm?: string;
+  module?: string;
+  action?: string;
+  dateRange?: DateRange;
+  userId?: string;
 }
 
-export default function useAuditLogData(options: UseAuditLogDataOptions = {}) {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { currentWorkspace } = useWorkspace();
+export function useAuditLogData() {
+  const { toast } = useToast();
+  const tenantId = useTenantId();
   
-  const fetchLogs = useCallback(async () => {
-    if (!currentWorkspace?.id) {
-      setLogs([]);
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [modules, setModules] = useState<string[]>([]);
+  const [actions, setActions] = useState<string[]>([]);
+  
+  // Filters
+  const [filters, setFilters] = useState<AuditLogFilter>({
+    searchTerm: '',
+  });
+
+  const fetchMetadata = useCallback(async () => {
+    if (!tenantId) return;
     
     try {
-      // Build query
+      // Fetch unique modules
+      const { data: moduleData, error: moduleError } = await supabase
+        .from('audit_logs')
+        .select('module')
+        .eq('tenant_id', tenantId)
+        .order('module');
+      
+      if (moduleError) throw moduleError;
+      
+      // Fetch unique actions
+      const { data: actionData, error: actionError } = await supabase
+        .from('audit_logs')
+        .select('action')
+        .eq('tenant_id', tenantId)
+        .order('action');
+      
+      if (actionError) throw actionError;
+      
+      // Extract unique values
+      const uniqueModules = Array.from(new Set(moduleData.map(item => item.module).filter(Boolean)));
+      const uniqueActions = Array.from(new Set(actionData.map(item => item.action).filter(Boolean)));
+      
+      setModules(uniqueModules);
+      setActions(uniqueActions);
+    } catch (error: any) {
+      console.error('Error fetching metadata:', error);
+    }
+  }, [tenantId]);
+
+  const fetchLogs = useCallback(async () => {
+    if (!tenantId) return;
+    
+    try {
+      setIsLoading(true);
+      
       let query = supabase
-        .from('system_logs')
+        .from('audit_logs')
         .select('*')
-        .eq('tenant_id', currentWorkspace.id)
-        .order('created_at', { ascending: false });
+        .eq('tenant_id', tenantId);
       
-      // Apply limit if provided
-      if (options.limit) {
-        query = query.limit(options.limit);
+      // Apply filters
+      if (filters.searchTerm) {
+        query = query.or(
+          `event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,resource_type.ilike.%${filters.searchTerm}%`
+        );
       }
       
-      // Apply module filter if provided
-      if (options.module) {
-        query = query.eq('module', options.module);
+      if (filters.module) {
+        query = query.eq('module', filters.module);
       }
       
-      const { data, error } = await query;
+      if (filters.action) {
+        query = query.eq('action', filters.action);
+      }
+      
+      if (filters.userId) {
+        query = query.eq('user_id', filters.userId);
+      }
+      
+      if (filters.dateRange?.from) {
+        const fromDate = new Date(filters.dateRange.from);
+        query = query.gte('created_at', fromDate.toISOString());
+        
+        if (filters.dateRange.to) {
+          const toDate = new Date(filters.dateRange.to);
+          query = query.lte('created_at', toDate.toISOString());
+        }
+      }
+      
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(100);
       
       if (error) {
         throw error;
       }
       
-      // Map API data to AuditLog type
-      const auditLogs: AuditLog[] = data.map((item: any) => ({
-        id: item.id,
-        module: item.module,
-        event: item.event,
-        action: item.action || item.event, // Use event as fallback for action
-        user_id: item.user_id,
-        tenant_id: item.tenant_id,
-        created_at: item.created_at,
-        context: item.context,
-        // Handle any additional fields from the API
-        entity_type: item.entity_type as SystemEventModule,
-        entity_id: item.entity_id,
-        event_type: item.event_type,
-        description: item.description,
-        metadata: item.metadata,
-      }));
-      
-      setLogs(auditLogs);
+      setLogs(data || []);
     } catch (error: any) {
-      console.error('Error fetching system logs:', error);
       toast({
-        title: 'Error fetching logs',
+        title: 'Error fetching audit logs',
         description: error.message,
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id, options.limit, options.module]);
-  
-  const handleRefresh = useCallback(() => {
+  }, [tenantId, filters, toast]);
+
+  useEffect(() => {
+    if (tenantId) {
+      fetchLogs();
+      fetchMetadata();
+    }
+  }, [tenantId, fetchLogs, fetchMetadata]);
+
+  const handleFilterChange = (newFilters: AuditLogFilter) => {
+    setFilters(newFilters);
+  };
+
+  const handleRefresh = () => {
     fetchLogs();
-  }, [fetchLogs]);
-  
-  // Fetch logs initially
-  useState(() => {
-    fetchLogs();
-  });
-  
-  return { logs, isLoading, handleRefresh, fetchLogs };
+  };
+
+  return {
+    logs,
+    isLoading,
+    filters,
+    modules,
+    actions,
+    handleFilterChange,
+    handleRefresh,
+  };
 }

@@ -31,7 +31,7 @@ const AdminDashboardContent = () => {
               first_name,
               last_name,
               avatar_url,
-              email:id(email)
+              email(email)
             )
           `)
           .eq('tenant_id', currentWorkspace.id);
@@ -45,7 +45,12 @@ const AdminDashboardContent = () => {
             role: item.role,
             created_at: item.created_at,
             user_id: item.user_id,
-            profiles: item.profiles
+            profiles: {
+              first_name: item.profiles?.first_name,
+              last_name: item.profiles?.last_name,
+              avatar_url: item.profiles?.avatar_url,
+              email: item.profiles?.email ? { email: item.profiles.email.email } : undefined
+            }
           }));
           
           setUsers(typedUsers);

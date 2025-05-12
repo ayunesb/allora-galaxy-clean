@@ -60,7 +60,7 @@ export type {
 export type { User, UserProfile } from './user';
 export type { SystemLog, AuditLog } from './logs';
 export type { Strategy } from './strategy';
-export type { Plugin } from './plugin';
+export type { Plugin, PluginLog } from './plugin';
 export type { Tenant } from './tenant';
 export type { KPI } from './kpi';
 export type { Notification } from './notifications';
