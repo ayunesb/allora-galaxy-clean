@@ -1,50 +1,37 @@
 
-// Central shared type file
-// This file now only contains re-exports of types from their specific domain files
-// to maintain backward compatibility
+import { ReactNode } from 'react';
 
-// Re-export all domain-specific types
-export type { NavigationItem } from './navigation';
-export type { User, Profile, UserRole } from './user';
-export type { Tenant, TenantFeature } from './tenant';
-export type { 
-  Strategy,
-  StrategyFilter
-} from './strategy';
-export type { 
-  Plugin, 
-  AgentVersion,
-  PluginLog,
-  PluginResult,
-  RunPluginChainResult
-} from './plugin';
-export type { 
-  VoteType, 
-  AgentVote 
-} from './voting';
-export type { 
-  SystemLog, 
-  AuditLog, 
-  LogStatus, 
-  SystemEventModule, 
-  SystemEventType 
-} from './logs';
-export type { 
-  KPI,
-  KPITrend
-} from './kpi';
-export type { TrendDirection } from './trends';
-export type { 
-  Execution,
-  ExecutionParams,
-  ExecutionType,
-  BaseEntity
-} from './execution';
-export type { EvolutionFilter } from './evolution';
-export type { OnboardingStep } from './onboarding';
-
-// Add DateRange type that matches react-day-picker's DateRange
 export interface DateRange {
-  from: Date | undefined;
-  to?: Date | undefined;
+  from?: Date;
+  to?: Date;
+}
+
+export interface MenuItem {
+  title: string;
+  href: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  external?: boolean;
+}
+
+export type SystemEventModule = 
+  | 'auth' 
+  | 'strategy' 
+  | 'plugin' 
+  | 'agent' 
+  | 'webhook' 
+  | 'notification' 
+  | 'system'
+  | 'billing'
+  | 'execution'
+  | 'email'
+  | 'onboarding';
+
+export type SystemEventType = string;
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  avatar_url?: string;
 }

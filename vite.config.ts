@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'),
+      '@': path.resolve(__dirname, 'src'),
       // Use our internal shim instead of the external package
       'three-bmfont-text': path.resolve(__dirname, './src/lib/shims/three-bmfont-text.ts'),
     },

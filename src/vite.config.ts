@@ -57,5 +57,5 @@ export default defineConfig(({ mode }) => ({
 export const test = {
   globals: true,
   environment: 'jsdom',
-  setupFiles: './src/test/setup.ts',
+  setupFiles: '../test/setup.ts',
 };
