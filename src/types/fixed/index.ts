@@ -1,9 +1,20 @@
 
-// Re-export necessary types from the main type system
-export * from '../plugin';
+// Export types from the agent module
 export * from '../agent';
+// Export types from the plugin module without PluginResult which would cause ambiguity
+export type { 
+  Plugin, 
+  PluginConfig, 
+  PluginInput, 
+  PluginLog,
+  PluginExecution
+} from '../plugin';
+
+// Re-export strategy types
 export * from '../strategy';
-export * from '../execution';
+
+// Export types related to execution
+export * from './execution';
 
 // Re-export utility functions
 export { camelToSnake, camelToSnakeObject } from '@/lib/utils/dataConversion';
@@ -26,23 +37,15 @@ export interface ExecutionRecordInput {
   error?: string;
 }
 
-// Ensure the VoteType matches the shared type
-export type { PluginResult } from '../plugin';
-
 // We're aligning with the shared.ts definition to ensure consistency
 export type { VoteType } from '../shared';
 
 // Export these directly rather than re-exporting from shared to avoid conflicts
 export type { 
   UserRole,
-  NavigationItem,
   TrendDirection,
   SystemEventModule,
   SystemEventType,
-  OnboardingStep,
-  BaseEntity,
-  ExecutionParams,
-  ExecutionType,
   KPITrend,
-  TenantFeature
+  DateRange
 } from '../shared';

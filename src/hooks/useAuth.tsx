@@ -1,168 +1,226 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
-import { AuthUser, AuthError } from '@/lib/auth/types';
-import { 
-  signInWithEmailAndPassword,
-  signUpWithEmailAndPassword,
-  signOutUser,
-  resetUserPassword,
-  updateUserPassword
-} from '@/lib/auth/authUtils';
+import { supabase } from '@/lib/supabase';
+import { User, Session } from '@/lib/supabase';
+import { AuthContextType, AuthResult, WeakPassword } from '@/lib/auth/types';
 
-const useAuth = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+function useAuth(): AuthContextType {
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<AuthError | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Initialize auth state from Supabase session
+  // Check for weak password
+  const checkPasswordStrength = (password: string): WeakPassword => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasNonalphas = /\W/.test(password);
+    
+    if (password.length < minLength) {
+      return { isWeak: true, message: 'Password should be at least 8 characters long' };
+    }
+    
+    if (!(hasUpperCase && hasLowerCase && hasNumbers && hasNonalphas)) {
+      return { 
+        isWeak: true, 
+        message: 'Password should contain uppercase, lowercase, numbers, and special characters'
+      };
+    }
+    
+    return { isWeak: false };
+  };
+
+  // Fetch the session on component mount
   useEffect(() => {
-    const initializeAuth = async () => {
+    async function fetchSession() {
+      setLoading(true);
       try {
-        // Get current session
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw sessionError;
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          throw error;
         }
         
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
+        setSession(data.session);
+        setIsAuthenticated(!!data.session);
         
-        // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-          setSession(newSession);
-          setUser(newSession?.user || null);
-        });
-        
-        return () => {
-          subscription.unsubscribe();
-        };
+        if (data.session?.user) {
+          setUser(data.session.user);
+        }
       } catch (err: any) {
-        console.error('Error initializing authentication:', err);
-        setError(err);
+        console.error('Error fetching session:', err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
+    }
+    
+    fetchSession();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setIsAuthenticated(!!currentSession);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
     };
-    
-    initializeAuth();
   }, []);
 
-  // Sign in with email and password
-  const signIn = useCallback(async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
-    
-    const response = await signInWithEmailAndPassword(email, password);
-    
-    setLoading(false);
-    return response;
-  }, []);
-
-  // Sign up with email and password
-  const signUp = useCallback(async (email: string, password: string, metadata?: object) => {
-    setLoading(true);
-    setError(null);
-    
-    const response = await signUpWithEmailAndPassword(email, password, metadata);
-    
-    setLoading(false);
-    return response;
-  }, []);
-
-  // Sign out
-  const signOut = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
-    await signOutUser(user?.id);
-    
-    setLoading(false);
-  }, [user]);
-
-  // Reset password
-  const resetPassword = useCallback(async (email: string) => {
-    setLoading(true);
-    setError(null);
-    
-    const response = await resetUserPassword(email);
-    
-    setLoading(false);
-    return response;
-  }, []);
-
-  // Update password
-  const updatePassword = useCallback(async (newPassword: string) => {
-    setLoading(true);
-    setError(null);
-    
-    const response = await updateUserPassword(newPassword);
-    
-    setLoading(false);
-    return response;
-  }, []);
-
-  // Refresh session
-  const refreshSession = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
+  // Sign in function
+  const signIn = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      const { data, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError) {
-        throw refreshError;
-      }
-      
-      setSession(data.session);
-      setUser(data.user);
-    } catch (err: any) {
-      console.error('Error refreshing session:', err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Check if user has a specific role
-  const checkUserRole = useCallback(async (role: string): Promise<boolean> => {
-    if (!user) {
-      return false;
-    }
-
-    try {
-      // First check for global roles in user metadata
-      const userRole = user.app_metadata?.role || 'user';
-      if (userRole === role) {
-        return true;
-      }
-
-      // Then check for tenant-specific roles
-      const { data, error } = await supabase
-        .from('tenant_user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) {
         throw error;
       }
 
-      return data?.role === role;
+      return { success: true, data };
+    } catch (err: any) {
+      console.error('Sign in error:', err);
+      return { success: false, error: err.message || 'Failed to sign in' };
+    }
+  };
+
+  // Sign up function
+  const signUp = async (email: string, password: string, metadata?: Record<string, any>): Promise<AuthResult> => {
+    try {
+      // Check password strength
+      const passwordCheck = checkPasswordStrength(password);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata || {},
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return { 
+        success: true, 
+        data: {
+          ...data,
+          weakPassword: passwordCheck
+        } 
+      };
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      return { success: false, error: err.message || 'Failed to sign up' };
+    }
+  };
+
+  // Sign out function
+  const signOut = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      return { success: true };
+    } catch (err: any) {
+      console.error('Sign out error:', err);
+      return { success: false, error: err.message || 'Failed to sign out' };
+    }
+  };
+
+  // Reset password
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return { success: true };
+    } catch (err: any) {
+      console.error('Reset password error:', err);
+      return { success: false, error: err.message || 'Failed to reset password' };
+    }
+  };
+
+  // Update password
+  const updatePassword = async (password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return { success: true };
+    } catch (err: any) {
+      console.error('Update password error:', err);
+      return { success: false, error: err.message || 'Failed to update password' };
+    }
+  };
+
+  // Refresh session
+  const refreshSession = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        throw error;
+      }
+      
+      setSession(data.session);
+      setUser(data.user);
+      setIsAuthenticated(!!data.session);
+      
+      return { success: true };
+    } catch (err: any) {
+      console.error('Refresh session error:', err);
+      return { success: false, error: err.message || 'Failed to refresh session' };
+    }
+  };
+
+  // Check user role for a specific tenant
+  const checkUserRole = async (tenantId: string): Promise<string | null> => {
+    if (!user) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('tenant_user_roles')
+        .select('role')
+        .eq('tenant_id', tenantId)
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error checking user role:', error);
+        return null;
+      }
+      
+      return data?.role || null;
     } catch (err) {
       console.error('Error checking user role:', err);
-      return false;
+      return null;
     }
-  }, [user]);
+  };
 
   return {
     user,
     session,
     loading,
     error,
+    isAuthenticated,
     signIn,
     signUp,
     signOut,
@@ -171,6 +229,6 @@ const useAuth = () => {
     refreshSession,
     checkUserRole
   };
-};
+}
 
 export default useAuth;

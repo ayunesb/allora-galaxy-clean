@@ -1,47 +1,32 @@
 
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session } from '@/lib/supabase';
 
-export interface AuthUser extends User {}
-
-export interface AuthError {
-  message: string;
-  status?: number;
+export interface WeakPassword {
+  isWeak: boolean;
+  message?: string;
 }
 
-export interface AuthSession {
-  user: AuthUser | null;
-  session: Session | null;
-}
-
-export interface AuthState extends AuthSession {
-  loading: boolean;
-  error: AuthError | null;
-}
-
-export interface SignInCredentials {
-  email: string;
-  password: string;
-}
-
-export interface SignUpCredentials extends SignInCredentials {
-  metadata?: Record<string, any>;
-}
-
-export interface AuthResponse {
-  user: AuthUser | null;
-  error: AuthError | null;
+export interface AuthResult {
+  success: boolean;
+  data?: {
+    user: User;
+    session: Session;
+    weakPassword?: WeakPassword;
+  };
+  error?: string;
 }
 
 export interface AuthContextType {
-  user: AuthUser | null;
+  user: User | null;
   session: Session | null;
   loading: boolean;
-  error: AuthError | null;
-  signIn: (email: string, password: string) => Promise<AuthResponse>;
-  signUp: (email: string, password: string, metadata?: object) => Promise<AuthResponse>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
-  refreshSession: () => Promise<void>;
-  checkUserRole: (role: string) => Promise<boolean>;
+  error: string | null;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<AuthResult>;
+  signOut: () => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updatePassword: (password: string) => Promise<{ success: boolean; error?: string }>;
+  refreshSession: () => Promise<{ success: boolean; error?: string }>;
+  checkUserRole: (tenantId: string) => Promise<string | null>;
 }

@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { VoteButton } from './VoteButton';
 import { CommentSection } from './CommentSection';
 import { useAgentVote } from './useAgentVote';
-import { VoteType } from '@/types/shared';
 
 interface AgentVoteProps {
   agentVersionId: string;
@@ -18,13 +17,11 @@ interface AgentVoteProps {
 const AgentVotePanel: React.FC<AgentVoteProps> = ({
   agentVersionId,
   initialUpvotes = 0,
-  initialDownvotes = 0,
-  userId
+  initialDownvotes = 0
 }) => {
-  const [upvoteCount, setUpvoteCount] = useState(initialUpvotes);
-  const [downvoteCount, setDownvoteCount] = useState(initialDownvotes);
-
   const {
+    upvotes,
+    downvotes,
     userVote,
     comment,
     setComment,
@@ -33,7 +30,11 @@ const AgentVotePanel: React.FC<AgentVoteProps> = ({
     submitting,
     handleVote,
     handleSubmitComment
-  } = useAgentVote({ agentVersionId });
+  } = useAgentVote({ 
+    agentVersionId, 
+    initialUpvotes, 
+    initialDownvotes 
+  });
 
   return (
     <Card>
@@ -43,15 +44,15 @@ const AgentVotePanel: React.FC<AgentVoteProps> = ({
             <h3 className="font-medium">Agent Performance</h3>
             <div className="flex items-center gap-4">
               <VoteButton
-                count={upvoteCount}
-                isActive={userVote?.voteType === 'upvote'}
+                count={upvotes}
+                isActive={userVote === 'up'}
                 type="up"
                 onClick={() => handleVote('upvote')}
                 disabled={submitting}
               />
               <VoteButton
-                count={downvoteCount}
-                isActive={userVote?.voteType === 'downvote'}
+                count={downvotes}
+                isActive={userVote === 'down'}
                 type="down"
                 onClick={() => handleVote('downvote')}
                 disabled={submitting}

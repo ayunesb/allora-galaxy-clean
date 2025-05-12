@@ -5,17 +5,19 @@ import { useToast } from '@/hooks/use-toast';
 import useAuth from '@/hooks/useAuth';
 import { VoteType } from '@/types/shared';
 
-interface UseAgentVoteProps {
+interface UseAgentVoteParams {
   agentVersionId: string;
+  initialUpvotes?: number;
+  initialDownvotes?: number;
 }
 
-export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
+export function useAgentVote({ agentVersionId, initialUpvotes = 0, initialDownvotes = 0 }: UseAgentVoteParams) {
   const [isLoading, setIsLoading] = useState(false);
-  const [userVote, setUserVote] = useState<{ voteType: VoteType; comment?: string } | null>(null);
+  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
   const [comment, setComment] = useState<string>('');
   const [showComment, setShowComment] = useState<boolean>(false);
-  const [upvotes, setUpvotes] = useState<number>(0);
-  const [downvotes, setDownvotes] = useState<number>(0);
+  const [upvotes, setUpvotes] = useState<number>(initialUpvotes);
+  const [downvotes, setDownvotes] = useState<number>(initialDownvotes);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -27,7 +29,10 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
     try {
       const result = await getUserVote(user.id, agentVersionId);
       if (result.success && result.hasVoted && result.vote) {
-        setUserVote(result.vote);
+        setUserVote(result.vote.voteType === 'upvote' ? 'up' : 'down');
+        if (result.vote.comment) {
+          setComment(result.vote.comment);
+        }
       } else {
         setUserVote(null);
       }
@@ -38,7 +43,7 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
     }
   }, [user, agentVersionId]);
 
-  const handleVote = useCallback(async (voteType: VoteType, commentText?: string) => {
+  const handleVote = useCallback(async (voteType: VoteType) => {
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -61,9 +66,9 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
     try {
       let result;
       if (voteType === 'upvote') {
-        result = await upvoteAgentVersion(user.id, agentVersionId, commentText || comment);
+        result = await upvoteAgentVersion(user.id, agentVersionId, comment);
       } else {
-        result = await downvoteAgentVersion(user.id, agentVersionId, commentText || comment);
+        result = await downvoteAgentVersion(user.id, agentVersionId, comment);
       }
 
       if (result.success) {
@@ -71,12 +76,12 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
         setDownvotes(result.downvotes);
         
         // Update user vote in state
-        if (userVote && userVote.voteType === voteType) {
+        if (userVote === (voteType === 'upvote' ? 'up' : 'down')) {
           // User clicked same vote type again, so clear the vote
           setUserVote(null);
         } else {
           // Set or change vote
-          setUserVote({ voteType, comment: commentText || comment });
+          setUserVote(voteType === 'upvote' ? 'up' : 'down');
         }
 
         toast({
@@ -99,10 +104,10 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
 
   const handleSubmitComment = useCallback(() => {
     if (userVote) {
-      handleVote(userVote.voteType, comment);
+      handleVote(userVote === 'up' ? 'upvote' : 'downvote');
     } else if (comment) {
       // If no vote yet but there's a comment, default to upvote
-      handleVote('upvote', comment);
+      handleVote('upvote');
     }
     setShowComment(false);
   }, [userVote, comment, handleVote]);
@@ -128,3 +133,5 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
     fetchUserVote
   };
 }
+
+export default useAgentVote;

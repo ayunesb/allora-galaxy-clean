@@ -6,7 +6,7 @@ export interface Strategy {
   id: string;
   title: string;
   description: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived';
+  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived' | 'in_progress' | 'completed';
   created_by: string;
   created_at: string;
   updated_at: string | null;
@@ -41,7 +41,7 @@ export interface CreateStrategyInput {
 export interface UpdateStrategyInput {
   title?: string;
   description?: string;
-  status?: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived';
+  status?: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived' | 'in_progress' | 'completed';
   priority?: 'high' | 'medium' | 'low' | null;
   tags?: string[] | null;
   due_date?: string | null;

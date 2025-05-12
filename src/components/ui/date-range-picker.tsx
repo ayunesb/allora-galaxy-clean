@@ -1,5 +1,6 @@
 
-import * as React from "react";
+"use client";
+
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "@/types/shared";
@@ -53,8 +54,20 @@ export function DatePickerWithRange({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date}
-            onSelect={setDate}
+            selected={{
+              from: date?.from || undefined,
+              to: date?.to || undefined
+            }}
+            onSelect={(selectedRange) => {
+              if (selectedRange?.from) {
+                setDate({
+                  from: selectedRange.from,
+                  to: selectedRange.to
+                });
+              } else {
+                setDate(undefined);
+              }
+            }}
             numberOfMonths={2}
           />
         </PopoverContent>
