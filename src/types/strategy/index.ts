@@ -5,7 +5,7 @@ export interface Strategy {
   id: string;
   title: string;
   description: string;
-  tenant_id: string;
+  tenant_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   status: string;

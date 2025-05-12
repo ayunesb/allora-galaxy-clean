@@ -1,11 +1,9 @@
 
-import { useNavigate, useLocation } from 'react-router-dom';
-import { User, LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 
 const SomeComponent = () => {
   return (
     <div>
-      <User />
       <LayoutDashboard />
       <input
         type="text"

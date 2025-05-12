@@ -52,7 +52,25 @@ export function useStrategyEvolution(strategyId: string): StrategyEvolutionResul
           
         if (strategyError) throw strategyError;
         
-        setStrategy(strategyData);
+        // Type-safe strategy object
+        const typedStrategy: Strategy = {
+          id: strategyData.id,
+          title: strategyData.title,
+          description: strategyData.description,
+          status: strategyData.status,
+          tenant_id: strategyData.tenant_id,
+          created_at: strategyData.created_at,
+          updated_at: strategyData.updated_at,
+          created_by: strategyData.created_by,
+          approved_by: strategyData.approved_by,
+          due_date: strategyData.due_date,
+          priority: strategyData.priority,
+          tags: strategyData.tags,
+          completion_percentage: strategyData.completion_percentage,
+          metadata: strategyData.metadata
+        };
+        
+        setStrategy(typedStrategy);
         
         // Fetch strategy execution logs
         const { data: executionLogs, error: logsError } = await supabase
@@ -82,7 +100,7 @@ export function useStrategyEvolution(strategyId: string): StrategyEvolutionResul
         if (strategyData?.created_by) userIds.add(strategyData.created_by);
         if (strategyData?.approved_by) userIds.add(strategyData.approved_by);
         
-        executionLogs?.forEach(log => {
+        executionLogs?.forEach((log: any) => {
           if (log.executed_by) userIds.add(log.executed_by);
         });
         
