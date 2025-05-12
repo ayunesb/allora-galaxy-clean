@@ -36,9 +36,18 @@ const AdminDashboardContent = () => {
           
         if (error) throw error;
         
-        // Type assertion to ensure the data matches our User type
-        const typedData = data as User[];
-        setUsers(typedData || []);
+        if (data) {
+          // Transform the data to match the User type
+          const typedUsers: User[] = data.map(item => ({
+            id: item.id,
+            role: item.role,
+            created_at: item.created_at,
+            user_id: item.user_id,
+            profiles: item.profiles
+          }));
+          
+          setUsers(typedUsers);
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
@@ -123,7 +132,9 @@ const AdminDashboardContent = () => {
               <>
                 <p>Name: {currentWorkspace.name}</p>
                 <p>ID: {currentWorkspace.id}</p>
-                <p>Description: {currentWorkspace.description}</p>
+                {currentWorkspace.description && (
+                  <p>Description: {currentWorkspace.description}</p>
+                )}
               </>
             ) : (
               <p>No workspace selected.</p>

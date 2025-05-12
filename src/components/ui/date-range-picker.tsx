@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { DayPickerRangeProps } from "react-day-picker";
 
 interface DateRangePickerProps {
   value?: DateRange;
@@ -38,6 +39,11 @@ export function DateRangePicker({
       onChange(range);
     }
   };
+
+  // Convert our DateRange type to the Calendar component's expected format
+  const selectedDates: { from: Date; to?: Date } | undefined = date
+    ? { from: date.from, to: date.to }
+    : undefined;
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -71,8 +77,18 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={date?.from}
-            selected={date}
-            onSelect={handleSelect}
+            selected={selectedDates}
+            onSelect={(selectedRange) => {
+              if (selectedRange && 'from' in selectedRange) {
+                // Convert to our DateRange type
+                handleSelect({ 
+                  from: selectedRange.from as Date, 
+                  to: selectedRange.to as Date | undefined
+                });
+              } else {
+                handleSelect(undefined);
+              }
+            }}
             numberOfMonths={2}
           />
           <div className="flex justify-end gap-2 p-3">
