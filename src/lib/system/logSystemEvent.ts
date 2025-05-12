@@ -1,161 +1,105 @@
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
 
-// Define the module types for better type safety
-export type SystemEventModule = 
-  | 'auth' 
-  | 'strategy' 
-  | 'plugin' 
-  | 'agent' 
-  | 'webhook' 
-  | 'notification' 
-  | 'system'
-  | 'billing'
-  | 'execution'
-  | 'email'
-  | 'onboarding';
-
-// Define the log levels
-export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
-
-// Type for structured log input
-export interface SystemLogInput {
-  module?: SystemEventModule;
-  event?: string;
-  description?: string;
-  tenant_id?: string;
-  context?: Record<string, any>;
-  [key: string]: any; // For additional properties
-}
+import { supabase } from '@/lib/supabase';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 /**
- * Log a system event to the Supabase system_logs table
- * Supports both string description and structured object input
+ * Log a system event to the database
  * 
- * @param module The system module generating the log
- * @param event The specific event name
- * @param data Description string or structured data object
- * @param tenantId The tenant ID (if applicable)
- * @param context Additional contextual data (will be stored as JSON)
- * @returns Promise with the log result
+ * @param module The system module generating the event
+ * @param event The type of event
+ * @param context Optional context data
+ * @param tenantId Optional tenant ID
+ * @returns Result of the logging operation
  */
 export async function logSystemEvent(
   module: SystemEventModule,
   event: string,
-  data: string | Record<string, any>,
-  tenantId: string = 'system',
-  context: Record<string, any> = {}
-): Promise<{ success: boolean; error?: any }> {
+  context?: Record<string, any>,
+  tenantId?: string
+): Promise<{success: boolean, error?: string, id?: string}> {
   try {
-    // Validate required fields
-    if (!module) {
-      throw new Error('Module is required for system log');
-    }
-    
-    if (!event) {
-      throw new Error('Event is required for system log');
-    }
-    
-    // Process the data parameter to handle both string and object formats
-    let description: string;
-    let combinedContext: Record<string, any> = {};
-    
-    if (typeof data === 'string') {
-      description = data;
-      combinedContext = context;
-    } else {
-      // If data is an object, extract a description and use the object as context
-      description = data.description || data.message || JSON.stringify(data).substring(0, 255);
-      combinedContext = { ...data, ...context };
-      
-      // Remove duplicate description from context if it exists
-      if (combinedContext.description === description) {
-        delete combinedContext.description;
-      }
-    }
-    
-    // Insert log into database
-    const { error } = await supabase
+    // Create the log entry
+    const logEntry = {
+      module,
+      event,
+      context,
+      tenant_id: tenantId
+    };
+
+    // Insert into system_logs table
+    const { data, error } = await supabase
       .from('system_logs')
-      .insert({
-        module,
-        event,
-        description,
-        tenant_id: tenantId,
-        context: combinedContext,
-        created_at: new Date().toISOString()
-      });
-    
+      .insert(logEntry)
+      .select('id')
+      .single();
+
     if (error) {
-      console.error('Failed to log system event:', error);
-      return { success: false, error };
+      console.error('Error logging system event:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to log system event'
+      };
     }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error logging system event:', error);
-    
-    // Try to persist log in localStorage as fallback
-    try {
-      if (typeof window !== 'undefined') {
-        const fallbackLogs = JSON.parse(localStorage.getItem('system_logs_fallback') || '[]');
-        fallbackLogs.push({
-          module,
-          event,
-          description: typeof data === 'string' ? data : JSON.stringify(data).substring(0, 255),
-          tenant_id: tenantId,
-          context: typeof data === 'string' ? context : { ...data, ...context },
-          created_at: new Date().toISOString(),
-          error: error instanceof Error ? error.message : String(error)
-        });
-        
-        // Keep only the latest 100 logs to prevent localStorage from filling up
-        if (fallbackLogs.length > 100) {
-          fallbackLogs.shift();
-        }
-        
-        localStorage.setItem('system_logs_fallback', JSON.stringify(fallbackLogs));
-      }
-    } catch (localStorageError) {
-      console.error('Failed to store log in localStorage:', localStorageError);
-    }
-    
-    return { success: false, error };
+
+    return { 
+      success: true,
+      id: data?.id
+    };
+  } catch (err: any) {
+    console.error('Exception logging system event:', err);
+    return { 
+      success: false, 
+      error: err.message || 'Exception occurred logging system event'
+    };
   }
 }
 
 /**
- * Log a system event and show a toast notification
- * @param module System module
- * @param level Log level
- * @param title Toast title
- * @param description Toast description
- * @param type Toast variant
- * @param contextData Additional context for the log
+ * Log an error event to the system logs
+ * 
+ * @param module The system module generating the error
+ * @param error The error object or message
+ * @param context Additional context data
+ * @param tenantId Optional tenant ID
+ * @returns Result of the logging operation
  */
-export function logSystemEventWithToast(
+export async function logSystemError(
   module: SystemEventModule,
-  level: LogLevel,
-  title: string,
-  description: string,
-  type: 'default' | 'destructive',
-  contextData: Record<string, any> = {}
-) {
-  // Show toast notification
-  toast({
-    title,
-    description,
-    variant: type
-  });
+  error: Error | string,
+  context?: Record<string, any>,
+  tenantId?: string
+): Promise<{success: boolean, error?: string, id?: string}> {
+  const errorMessage = error instanceof Error ? error.message : error;
+  const errorStack = error instanceof Error ? error.stack : undefined;
   
-  // Log event to system logs
-  logSystemEvent(
-    module, 
-    `${level}_${title.toLowerCase().replace(/\s+/g, '_')}`, 
-    description,
-    contextData.tenant_id || 'system',
-    contextData
-  );
+  const errorContext = {
+    ...context,
+    error: errorMessage,
+    stack: errorStack
+  };
+
+  return logSystemEvent(module, 'error', errorContext, tenantId);
 }
 
-export default logSystemEvent;
+/**
+ * Log an info event to the system logs
+ *
+ * @param module The system module generating the info event
+ * @param message The info message
+ * @param context Additional context data
+ * @param tenantId Optional tenant ID
+ * @returns Result of the logging operation
+ */
+export async function logSystemInfo(
+  module: SystemEventModule,
+  message: string,
+  context?: Record<string, any>,
+  tenantId?: string
+): Promise<{success: boolean, error?: string, id?: string}> {
+  const infoContext = {
+    ...context,
+    message
+  };
+
+  return logSystemEvent(module, 'info', infoContext, tenantId);
+}

@@ -1,102 +1,93 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { AuditLog } from '@/types/logs';
+import { supabase } from '@/lib/supabase';
+import { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
+import { AuditLog, SystemEventModule } from '@/types/logs';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
-import { useTenantId } from '@/hooks/useTenantId';
-import { DateRange } from '@/types/shared';
 
-export interface AuditLogFilter {
-  searchTerm?: string;
-  module?: string;
-  action?: string;
-  dateRange?: DateRange;
-  userId?: string;
+export interface AuditLogDataParams {
+  initialFilters?: AuditLogFilter;
+  includeModules?: SystemEventModule[];
+  excludeModules?: SystemEventModule[];
 }
 
-export function useAuditLogData() {
+export const useAuditLogData = (params?: AuditLogDataParams) => {
+  const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
-  const tenantId = useTenantId();
-  
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [modules, setModules] = useState<string[]>([]);
-  const [actions, setActions] = useState<string[]>([]);
+  const [modules, setModules] = useState<SystemEventModule[]>([]);
+  const [filters, setFilters] = useState<AuditLogFilter>(
+    params?.initialFilters || { searchTerm: '' }
+  );
   
-  // Filters
-  const [filters, setFilters] = useState<AuditLogFilter>({
-    searchTerm: '',
-  });
-
-  const fetchMetadata = useCallback(async () => {
-    if (!tenantId) return;
+  const fetchModules = async () => {
+    if (!currentWorkspace?.id) return;
     
     try {
-      // Fetch unique modules
-      const { data: moduleData, error: moduleError } = await supabase
-        .from('audit_logs')
+      let query = supabase
+        .from('system_logs')
         .select('module')
-        .eq('tenant_id', tenantId)
-        .order('module');
+        .eq('tenant_id', currentWorkspace.id);
       
-      if (moduleError) throw moduleError;
+      if (params?.includeModules && params.includeModules.length > 0) {
+        query = query.in('module', params.includeModules);
+      }
       
-      // Fetch unique actions
-      const { data: actionData, error: actionError } = await supabase
-        .from('audit_logs')
-        .select('action')
-        .eq('tenant_id', tenantId)
-        .order('action');
+      if (params?.excludeModules && params.excludeModules.length > 0) {
+        query = query.not('module', 'in', `(${params.excludeModules.join(',')})`);
+      }
       
-      if (actionError) throw actionError;
+      const { data, error } = await query.order('module').limit(100);
       
-      // Extract unique values
-      const uniqueModules = Array.from(new Set(moduleData.map(item => item.module).filter(Boolean)));
-      const uniqueActions = Array.from(new Set(actionData.map(item => item.action).filter(Boolean)));
+      if (error) throw error;
+      
+      // Extract unique modules
+      const uniqueModules = Array.from(
+        new Set(data.map(item => item.module))
+      ) as SystemEventModule[];
       
       setModules(uniqueModules);
-      setActions(uniqueActions);
-    } catch (error: any) {
-      console.error('Error fetching metadata:', error);
+    } catch (error) {
+      console.error('Error fetching log modules:', error);
     }
-  }, [tenantId]);
+  };
 
   const fetchLogs = useCallback(async () => {
-    if (!tenantId) return;
+    if (!currentWorkspace?.id) return;
     
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
       let query = supabase
-        .from('audit_logs')
+        .from('system_logs')
         .select('*')
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', currentWorkspace.id);
       
-      // Apply filters
+      // Apply inclusion/exclusion filters from params
+      if (params?.includeModules && params.includeModules.length > 0) {
+        query = query.in('module', params.includeModules);
+      }
+      
+      if (params?.excludeModules && params.excludeModules.length > 0) {
+        query = query.not('module', 'in', `(${params.excludeModules.join(',')})`);
+      }
+      
+      // Apply user filters
       if (filters.searchTerm) {
-        query = query.or(
-          `event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,resource_type.ilike.%${filters.searchTerm}%`
-        );
+        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
       }
       
       if (filters.module) {
         query = query.eq('module', filters.module);
       }
       
-      if (filters.action) {
-        query = query.eq('action', filters.action);
-      }
-      
-      if (filters.userId) {
-        query = query.eq('user_id', filters.userId);
-      }
-      
       if (filters.dateRange?.from) {
-        const fromDate = new Date(filters.dateRange.from);
+        const fromDate = filters.dateRange.from;
         query = query.gte('created_at', fromDate.toISOString());
         
         if (filters.dateRange.to) {
-          const toDate = new Date(filters.dateRange.to);
+          const toDate = filters.dateRange.to;
           query = query.lte('created_at', toDate.toISOString());
         }
       }
@@ -111,22 +102,25 @@ export function useAuditLogData() {
       
       setLogs(data || []);
     } catch (error: any) {
+      console.error('Error fetching audit logs:', error);
       toast({
-        title: 'Error fetching audit logs',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error fetching logs",
+        description: error.message || "Failed to load log data",
+        variant: "destructive"
       });
+      setLogs([]);
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, filters, toast]);
+  }, [currentWorkspace?.id, filters, params?.includeModules, params?.excludeModules, toast]);
 
+  // Initial data fetching
   useEffect(() => {
-    if (tenantId) {
+    if (currentWorkspace?.id) {
       fetchLogs();
-      fetchMetadata();
+      fetchModules();
     }
-  }, [tenantId, fetchLogs, fetchMetadata]);
+  }, [currentWorkspace?.id, fetchLogs]);
 
   const handleFilterChange = (newFilters: AuditLogFilter) => {
     setFilters(newFilters);
@@ -141,8 +135,8 @@ export function useAuditLogData() {
     isLoading,
     filters,
     modules,
-    actions,
-    handleFilterChange,
+    fetchLogs,
     handleRefresh,
+    handleFilterChange,
   };
-}
+};

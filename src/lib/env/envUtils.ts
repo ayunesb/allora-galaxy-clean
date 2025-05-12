@@ -11,8 +11,8 @@
  * @returns The value of the environment variable or defaultValue
  */
 export function ENV(key: string, defaultValue?: string): string {
+  // Try Deno.env in edge function context (highest priority)
   try {
-    // Try Deno.env in edge function context
     if (typeof globalThis !== 'undefined' && 
         'Deno' in globalThis && 
         typeof (globalThis as any).Deno?.env?.get === 'function') {
@@ -21,25 +21,30 @@ export function ENV(key: string, defaultValue?: string): string {
     }
   } catch (e) {
     // Ignore errors when Deno is not available
-    console.warn(`Error accessing Deno env for ${key}:`, e);
+    console.debug(`Deno env not available for key ${key}`);
   }
   
-  // Try Node.js process.env
-  if (typeof process !== 'undefined' && process.env) {
-    const value = process.env[key];
-    if (value !== undefined) return value;
+  // Try Node.js process.env (second priority)
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      const value = process.env[key];
+      if (value !== undefined && value !== null) return value;
+    }
+  } catch (e) {
+    console.debug(`process.env not available for key ${key}`);
   }
   
-  // Try Vite import.meta.env
+  // Try Vite import.meta.env (third priority)
   try {
     // @ts-ignore - import.meta.env is available in Vite
     if (import.meta && import.meta.env) {
       // @ts-ignore
       const value = import.meta.env[key];
-      if (value !== undefined) return value;
+      if (value !== undefined && value !== null) return value;
     }
   } catch (e) {
     // Ignore errors when import.meta is not available
+    console.debug(`import.meta.env not available for key ${key}`);
   }
   
   return defaultValue || '';
@@ -88,12 +93,13 @@ export function getSafeEnv(key: string, defaultValue: string = "", required: boo
     console.warn(`⚠️ Critical environment variable ${key} is missing!`);
   }
   
-  return value || defaultValue;
+  return value;
 }
 
 // CORS headers for edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+  'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
 };

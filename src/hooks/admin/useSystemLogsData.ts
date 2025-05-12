@@ -2,19 +2,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
-import { AuditLog } from '@/types/logs';
+import { AuditLog, SystemEventModule } from '@/types/logs';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
+import { DateRange } from '@/types/shared';
 
-export const useSystemLogsData = () => {
+export interface SystemLogsDataParams {
+  initialFilters?: SystemLogFilter;
+}
+
+export const useSystemLogsData = (params?: SystemLogsDataParams) => {
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [modules, setModules] = useState<string[]>([]);
-  const [filters, setFilters] = useState<SystemLogFilter>({
-    searchTerm: '',
-  });
+  const [modules, setModules] = useState<SystemEventModule[]>([]);
+  const [filters, setFilters] = useState<SystemLogFilter>(
+    params?.initialFilters || { searchTerm: '' }
+  );
   
   const fetchModules = async () => {
     if (!currentWorkspace?.id) return;
@@ -30,7 +35,7 @@ export const useSystemLogsData = () => {
       if (error) throw error;
       
       // Extract unique modules
-      const uniqueModules = Array.from(new Set(data.map(item => item.module)));
+      const uniqueModules = Array.from(new Set(data.map(item => item.module))) as SystemEventModule[];
       setModules(uniqueModules);
     } catch (error) {
       console.error('Error fetching modules:', error);
@@ -98,6 +103,18 @@ export const useSystemLogsData = () => {
     setFilters(newFilters);
   };
 
+  const setDateRange = (dateRange: DateRange | undefined) => {
+    setFilters(prev => ({ ...prev, dateRange }));
+  };
+
+  const setSearchTerm = (searchTerm: string) => {
+    setFilters(prev => ({ ...prev, searchTerm }));
+  };
+
+  const setModule = (module: SystemEventModule | undefined) => {
+    setFilters(prev => ({ ...prev, module }));
+  };
+
   return {
     logs,
     loading,
@@ -105,5 +122,8 @@ export const useSystemLogsData = () => {
     modules,
     fetchLogs,
     handleFilterChange,
+    setDateRange,
+    setSearchTerm,
+    setModule
   };
 };

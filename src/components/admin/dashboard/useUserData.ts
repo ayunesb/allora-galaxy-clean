@@ -51,6 +51,7 @@ export function useUserData() {
         if (error) throw error;
         
         if (data && Array.isArray(data)) {
+          // Correctly format the profiles data
           const formattedUsers = data.map(item => {
             return {
               id: item.id,
@@ -62,7 +63,9 @@ export function useUserData() {
                 last_name: item.profiles?.last_name || '',
                 avatar_url: item.profiles?.avatar_url || '',
                 email: {
-                  email: item.profiles?.email?.[0]?.email || ''
+                  email: Array.isArray(item.profiles?.email) && item.profiles?.email.length > 0
+                    ? item.profiles.email[0]?.email || ''
+                    : ''
                 }
               }
             };
