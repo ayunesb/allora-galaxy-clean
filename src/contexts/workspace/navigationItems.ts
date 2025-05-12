@@ -1,6 +1,6 @@
+
 import { NavigationItem } from "@/types/shared";
 import * as LucideIcons from "lucide-react";
-import { DashboardIcon, SettingsIcon } from '@radix-ui/react-icons'; // Replace with actual imports
 
 // Type-safe function to get Lucide icon component
 const getIcon = (iconName: string) => {
@@ -11,7 +11,7 @@ export const navigationItems: NavigationItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
-    icon: DashboardIcon,
+    icon: getIcon("LayoutDashboard"),
   },
   {
     title: "Notifications",
@@ -58,7 +58,7 @@ export const navigationItems: NavigationItem[] = [
   {
     title: "Settings",
     href: "/settings",
-    icon: SettingsIcon,
+    icon: getIcon("Settings"),
   },
   {
     title: "Admin",

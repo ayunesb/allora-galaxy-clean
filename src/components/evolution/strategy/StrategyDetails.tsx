@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Strategy } from '@/types/strategy';
 import { supabase } from '@/integrations/supabase/client';
+import { Strategy } from '@/types/strategy';
 import { format } from 'date-fns';
 
 interface StrategyDetailsProps {
@@ -14,7 +15,9 @@ interface StrategyDetailsProps {
 const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [createdByUser, setCreatedByUser] = useState<any>(null);
+  const [approvedByUser, setApprovedByUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStrategyDetails = async () => {
@@ -22,52 +25,67 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
         setLoading(false);
         return;
       }
-
+      
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // Fetch strategy
+        const { data: strategyData, error: strategyError } = await supabase
           .from('strategies')
           .select('*')
           .eq('id', strategyId)
           .single();
-
-        if (error) throw error;
+          
+        if (strategyError) throw strategyError;
+        setStrategy(strategyData);
         
-        // Convert the database result to match our Strategy type
-        const typedStrategy: Strategy = {
-          ...data,
-          // Ensure required fields are present and optional fields are correctly typed
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          status: data.status,
-          tenant_id: data.tenant_id,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          created_by: data.created_by,
-          approved_by: data.approved_by,
-          due_date: data.due_date,
-          priority: data.priority,
-          tags: data.tags,
-          completion_percentage: data.completion_percentage,
-          metadata: data.metadata
-        };
+        // Fetch created by user
+        if (strategyData.created_by) {
+          const { data: createdBy, error: createdByError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', strategyData.created_by)
+            .single();
+            
+          if (!createdByError && createdBy) {
+            setCreatedByUser(createdBy);
+          }
+        }
         
-        setStrategy(typedStrategy);
+        // Fetch approved by user
+        if (strategyData.approved_by) {
+          const { data: approvedBy, error: approvedByError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', strategyData.approved_by)
+            .single();
+            
+          if (!approvedByError && approvedBy) {
+            setApprovedByUser(approvedBy);
+          }
+        }
       } catch (err: any) {
         console.error('Error fetching strategy details:', err);
-        setError(err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchStrategyDetails();
   }, [strategyId]);
 
-  // Helper to render status badges
-  const renderStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'PPp');
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
       case 'approved':
         return <Badge variant="success">Approved</Badge>;
       case 'pending':
@@ -85,25 +103,34 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
     }
   };
 
-  // Format date function
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return 'N/A';
-    try {
-      return format(new Date(dateString), 'PPP');
-    } catch (error) {
-      return dateString;
+  const formatUser = (user: any) => {
+    if (!user) return 'Unknown User';
+    
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`;
     }
+    
+    // Check if user is a string (just the ID)
+    if (typeof user === 'string') {
+      return user.substring(0, 8) + '...';
+    }
+    
+    return user.first_name || user.last_name || user.email || user.id?.substring(0, 8) + '...';
   };
 
   if (loading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
+        <CardHeader>
+          <CardTitle>
             <Skeleton className="h-8 w-64" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
             <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
         </CardContent>
       </Card>
@@ -113,11 +140,17 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
   if (error) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="bg-red-50 p-4 rounded-md text-red-800">
-            <p className="font-medium">Error loading strategy</p>
-            <p className="text-sm mt-1">{error.message}</p>
-          </div>
+        <CardHeader>
+          <CardTitle className="text-destructive">Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Failed to load strategy details: {error}</p>
+          <Button 
+            className="mt-4" 
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );
@@ -126,10 +159,11 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
   if (!strategy) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">
-            Please select a strategy to view details.
-          </p>
+        <CardHeader>
+          <CardTitle>No Strategy Selected</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Please select a strategy to view its details.</p>
         </CardContent>
       </Card>
     );
@@ -137,83 +171,80 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">{strategy.title}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              {renderStatusBadge(strategy.status)}
-              {strategy.priority && (
-                <Badge variant="outline">Priority: {strategy.priority}</Badge>
-              )}
-            </div>
-          </div>
-          <div className="mt-4 md:mt-0 text-sm text-muted-foreground">
-            <p>Created: {formatDate(strategy.created_at)}</p>
-            {strategy.due_date && <p>Due: {formatDate(strategy.due_date)}</p>}
-          </div>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>{strategy.title}</CardTitle>
+        {getStatusBadge(strategy.status)}
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium">Description</h3>
+          <p className="mt-2 text-muted-foreground whitespace-pre-line">{strategy.description}</p>
         </div>
-
-        <div className="space-y-6">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-lg font-medium mb-2">Description</h3>
-            <p className="text-muted-foreground whitespace-pre-line">{strategy.description}</p>
+            <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
+            <p className="mt-1 font-medium">{strategy.status}</p>
           </div>
-
-          {strategy.tags && strategy.tags.length > 0 && (
+          
+          {strategy.priority && (
             <div>
-              <h3 className="text-lg font-medium mb-2">Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {strategy.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary">{tag}</Badge>
-                ))}
-              </div>
+              <h3 className="text-sm font-medium text-muted-foreground">Priority</h3>
+              <p className="mt-1 font-medium capitalize">{strategy.priority}</p>
             </div>
           )}
-
-          {strategy.completion_percentage !== null && strategy.completion_percentage !== undefined && (
-            <div>
-              <h3 className="text-lg font-medium mb-2">Progress</h3>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full" 
-                  style={{ width: `${strategy.completion_percentage}%` }}
-                ></div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground">Created By</h3>
+            <p className="mt-1">{formatUser(createdByUser || strategy.created_by)}</p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground">Created At</h3>
+            <p className="mt-1">{formatDate(strategy.created_at)}</p>
+          </div>
+          
+          {strategy.approved_by && (
+            <>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">Approved By</h3>
+                <p className="mt-1">{formatUser(approvedByUser || strategy.approved_by)}</p>
               </div>
-              <p className="text-xs text-right mt-1">{strategy.completion_percentage}% complete</p>
+              
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">Approved At</h3>
+                <p className="mt-1">{formatDate(strategy.approved_at)}</p>
+              </div>
+            </>
+          )}
+          
+          {strategy.completion_percentage !== undefined && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Completion</h3>
+              <p className="mt-1 font-medium">{strategy.completion_percentage}%</p>
             </div>
           )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {strategy.due_date && (
             <div>
-              <h3 className="text-lg font-medium mb-2">Details</h3>
-              <ul className="space-y-2">
-                <li className="flex">
-                  <span className="text-muted-foreground w-24">ID:</span>
-                  <span className="font-mono text-xs">{strategy.id}</span>
-                </li>
-                {strategy.tenant_id && (
-                  <li className="flex">
-                    <span className="text-muted-foreground w-24">Tenant:</span>
-                    <span className="font-mono text-xs">{strategy.tenant_id}</span>
-                  </li>
-                )}
-                {strategy.created_by && (
-                  <li className="flex">
-                    <span className="text-muted-foreground w-24">Created by:</span>
-                    <span className="font-mono text-xs">{strategy.created_by}</span>
-                  </li>
-                )}
-                {strategy.approved_by && (
-                  <li className="flex">
-                    <span className="text-muted-foreground w-24">Approved by:</span>
-                    <span className="font-mono text-xs">{strategy.approved_by}</span>
-                  </li>
-                )}
-              </ul>
+              <h3 className="text-sm font-medium text-muted-foreground">Due Date</h3>
+              <p className="mt-1">{formatDate(strategy.due_date)}</p>
+            </div>
+          )}
+        </div>
+        
+        {strategy.tags && strategy.tags.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {strategy.tags.map((tag, index) => (
+                <Badge key={index} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
             </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,39 +1,34 @@
 
-import { Json } from '../supabase';
-
 export interface Strategy {
   id: string;
   title: string;
   description: string;
-  tenant_id?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  status: string;
-  created_by?: string | null;
-  approved_by?: string | null;
-  due_date?: string | null;
-  priority?: string | null;
-  tags?: string[] | null;
-  completion_percentage?: number | null;
-  metadata?: Json | null;
-}
-
-export interface StrategyFilter {
-  status?: string[];
-  priority?: string[];
-  tags?: string[];
-  search?: string;
-  dueDate?: Date;
-}
-
-export interface StrategyExecution {
-  id: string;
-  strategy_id: string;
-  status: string;
+  status: 'draft' | 'pending' | 'approved' | 'rejected';
   created_at: string;
-  execution_time?: number;
-  plugins_executed?: number;
-  error?: string | null;
+  updated_at?: string;
+  approved_by?: string;
+  created_by?: string;
+  priority?: string;
+  tags?: string[];
+  tenant_id?: string;
+  due_date?: string;
+  completion_percentage?: number;
+}
+
+export interface StrategyExecutionResult {
+  success: boolean;
+  strategyId?: string;
+  executionId?: string;
+  error?: string;
+  status?: string;
+}
+
+export interface StrategyInput {
+  title: string;
+  description: string;
+  priority?: string;
+  tags?: string[];
+  due_date?: string | null;
 }
 
 export interface ValidationResult {

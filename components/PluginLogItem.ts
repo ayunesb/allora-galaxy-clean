@@ -1,9 +1,0 @@
-// ...existing code...
-switch (status) {
-  case 'failure':
-  case 'error':
-    // Handle failure or error
-    break;
-  // ...existing code...
-}
-// ...existing code...

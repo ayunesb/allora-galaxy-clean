@@ -48,12 +48,12 @@ export const useCookiePreferences = () => {
         console.error('Error fetching cookie preferences:', error);
       } else if (data) {
         setPreferences({
-          ga4_enabled: !!data.ga4_enabled,
-          meta_pixel_enabled: !!data.meta_pixel_enabled,
-          session_analytics_enabled: !!data.session_analytics_enabled,
+          ga4_enabled: data.ga4_enabled,
+          meta_pixel_enabled: data.meta_pixel_enabled,
+          session_analytics_enabled: data.session_analytics_enabled,
           functional: true, // Essential cookies are always enabled
-          marketing: !!data.meta_pixel_enabled,
-          analytics: !!(data.ga4_enabled || data.session_analytics_enabled)
+          marketing: data.meta_pixel_enabled,
+          analytics: data.ga4_enabled || data.session_analytics_enabled
         });
       }
     } catch (error) {
@@ -79,11 +79,11 @@ export const useCookiePreferences = () => {
         ...newPreferences,
         // If we're explicitly setting analytics/marketing, update the underlying specific settings
         ...(newPreferences.analytics !== undefined ? { 
-          ga4_enabled: !!newPreferences.analytics,
-          session_analytics_enabled: !!newPreferences.analytics 
+          ga4_enabled: newPreferences.analytics,
+          session_analytics_enabled: newPreferences.analytics 
         } : {}),
         ...(newPreferences.marketing !== undefined ? { 
-          meta_pixel_enabled: !!newPreferences.marketing 
+          meta_pixel_enabled: newPreferences.marketing 
         } : {})
       };
 

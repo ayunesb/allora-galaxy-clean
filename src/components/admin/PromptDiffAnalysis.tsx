@@ -14,14 +14,6 @@ interface PromptDiffAnalysisProps {
   pluginId?: string;
 }
 
-interface PromptAnalysis {
-  id: string;
-  agent_version_id: string;
-  diff_summary: string;
-  impact_rationale: string;
-  created_at: string;
-}
-
 export const PromptDiffAnalysis: React.FC<PromptDiffAnalysisProps> = ({
   currentPrompt,
   previousPrompt,
@@ -33,46 +25,16 @@ export const PromptDiffAnalysis: React.FC<PromptDiffAnalysisProps> = ({
     queryKey: ['prompt-analysis', agentVersionId],
     queryFn: async () => {
       try {
-        // First check if we have a stored analysis via a custom function call
+        // First check if we have a stored analysis
         if (agentVersionId) {
-          try {
-            const { data: storedAnalysis, error: fetchError } = await supabase.rpc('get_agent_analysis', {
-              version_id: agentVersionId
-            });
-            
-            if (!fetchError && storedAnalysis) {
-              return storedAnalysis;
-            }
-          } catch (rpcError) {
-            console.warn('RPC get_agent_analysis may not exist:', rpcError);
-            // Continue to try direct table access
-          }
-          
-          // Fallback if RPC doesn't exist - check if the table exists first
-          try {
-            // Use a generic approach that works even if the table doesn't exist yet
-            const { data: tableExists } = await supabase
-              .from('system_logs')
-              .select('id', { count: 'exact', head: true });
+          const { data: storedAnalysis, error: fetchError } = await supabase
+            .from('agent_version_analyses')
+            .select('*')
+            .eq('agent_version_id', agentVersionId)
+            .maybeSingle();
 
-            // If we got here, supabase connection works, try direct access
-            // We'll use a try/catch to handle the case where the table doesn't exist
-            try {
-              const { data: directData, error: directError } = await supabase
-                .rpc('get_analysis_by_agent_version', { 
-                  version_id: agentVersionId 
-                });
-                
-              if (!directError && directData) {
-                return directData;
-              }
-            } catch (directFetchError) {
-              console.warn('Analysis table or function may not exist yet:', directFetchError);
-              // Continue to generate new analysis
-            }
-          } catch (tableCheckError) {
-            console.warn('Error checking tables:', tableCheckError);
-            // Continue to generate new analysis
+          if (!fetchError && storedAnalysis) {
+            return storedAnalysis;
           }
         }
 

@@ -1,5 +1,5 @@
 
-import { OnboardingFormData, OnboardingStep, OnboardingValidationResult } from "@/types/onboarding";
+import { OnboardingFormData, OnboardingStep, ValidationResult } from "@/types/onboarding";
 
 /**
  * Validates the onboarding data for a specific step
@@ -7,7 +7,7 @@ import { OnboardingFormData, OnboardingStep, OnboardingValidationResult } from "
 export const validateOnboardingData = (
   formData: OnboardingFormData | string,
   stepId: OnboardingStep
-): OnboardingValidationResult => {
+): ValidationResult => {
   const data = typeof formData === 'string' ? {} as OnboardingFormData : formData;
   const errors: Record<string, string> = {};
   

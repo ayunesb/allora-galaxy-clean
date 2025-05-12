@@ -1,1 +1,0 @@
-type KPITrend = 'increasing' | 'decreasing' | 'stable';

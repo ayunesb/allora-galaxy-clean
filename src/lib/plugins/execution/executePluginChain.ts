@@ -81,13 +81,13 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
       const agentVersion = plugin.agent_versions[0];
       if (!agentVersion) {
         const result: PluginResult = {
-          plugin_id: plugin.id,
+          pluginId: plugin.id,
           success: false,
           status: 'failure',
           output: {},
           error: 'No active agent version found for plugin',
-          execution_time: 0,
-          xp_earned: 0
+          executionTime: 0,
+          xpEarned: 0
         };
         results.push(result);
         continue;
@@ -106,8 +106,8 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
           agentVersionId: agentVersion.id
         });
         
-        const execution_time = Date.now() - startTime;
-        const xp_earned = Math.round(execution_time / 100); // Simple XP calculation
+        const executionTime = Date.now() - startTime;
+        const xpEarned = Math.round(executionTime / 100); // Simple XP calculation
         
         // Record execution log
         await recordLogExecution({
@@ -117,21 +117,21 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
           input: currentInput,
           output: executionResult.output,
           error: executionResult.error,
-          executionTime: execution_time,
-          xpEarned: xp_earned,
+          executionTime,
+          xpEarned,
           strategyId,
           agentVersionId: agentVersion.id
         });
         
         // Add result to results array
         const result: PluginResult = {
-          plugin_id: plugin.id,
+          pluginId: plugin.id,
           success: executionResult.success,
           status: executionResult.success ? 'success' : 'failure',
           output: executionResult.output,
           error: executionResult.error,
-          execution_time,
-          xp_earned,
+          executionTime,
+          xpEarned,
         };
         
         results.push(result);
@@ -152,13 +152,13 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         console.error(`Unexpected error executing plugin ${plugin.name}:`, err);
         
         const result: PluginResult = {
-          plugin_id: plugin.id,
+          pluginId: plugin.id,
           success: false,
           status: 'failure',
           output: {},
           error: errorMessage,
-          execution_time: 0,
-          xp_earned: 0,
+          executionTime: 0,
+          xpEarned: 0,
         };
         
         results.push(result);

@@ -3,11 +3,10 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import { useTenantRole } from '@/hooks/useTenantRole';
-import { UserRole } from '@/types/user';
 
 export interface RequireRoleProps {
   children: React.ReactNode;
-  roles: UserRole[];
+  roles: string[];
 }
 
 export const RequireRole: React.FC<RequireRoleProps> = ({ children, roles }) => {
@@ -26,7 +25,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({ children, roles }) => 
   }
 
   // Check if user has the required role
-  if (role && roles.includes(role as UserRole)) {
+  if (role && roles.includes(role)) {
     return <>{children}</>;
   }
 

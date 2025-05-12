@@ -1,94 +1,50 @@
 
-// Common shared types across the application
+// Central shared type file
+// This file now only contains re-exports of types from their specific domain files
+// to maintain backward compatibility
 
-// Date range type for date pickers
+// Re-export all domain-specific types
+export type { NavigationItem } from './navigation';
+export type { User, Profile, UserRole } from './user';
+export type { Tenant, TenantFeature } from './tenant';
+export type { 
+  Strategy,
+  StrategyFilter
+} from './strategy';
+export type { 
+  Plugin, 
+  AgentVersion, 
+  PluginLog,
+  PluginResult,
+  RunPluginChainResult
+} from './plugin';
+export type { 
+  VoteType, 
+  AgentVote 
+} from './voting';
+export type { 
+  SystemLog, 
+  AuditLog, 
+  LogStatus, 
+  SystemEventModule, 
+  SystemEventType 
+} from './logs';
+export type { 
+  KPI,
+  KPITrend
+} from './kpi';
+export type { TrendDirection } from './trends';
+export type { 
+  Execution,
+  ExecutionParams,
+  ExecutionType,
+  BaseEntity
+} from './execution';
+export type { EvolutionFilter } from './evolution';
+export type { OnboardingStep } from './onboarding';
+
+// Add DateRange type
 export interface DateRange {
-  from: Date | undefined;
-  to?: Date | undefined;
-}
-
-// Vote types used in agent voting
-export type VoteType = 'up' | 'down' | 'upvote' | 'downvote';
-
-// Audit log and system log related types
-export interface BaseLog {
-  id: string;
-  created_at: string;
-  tenant_id?: string;
-}
-
-// Status types
-export type Status = 'active' | 'inactive' | 'pending' | 'approved' | 'rejected' | 'draft' | 'completed';
-
-// Navigation related types
-export interface NavigationItem {
-  title: string;
-  href: string;
-  icon: React.FC;
-  items?: NavigationItem[];
-  adminOnly?: boolean;
-  disabled?: boolean;
-  external?: boolean;
-}
-
-// User related types
-export type UserRole = 'admin' | 'user' | 'guest';
-
-// Trend related types
-export type TrendDirection = 'up' | 'down' | 'neutral';
-export type KPITrend = 'increasing' | 'decreasing' | 'stable';
-
-// System event related types
-export type SystemEventModule = 
-  | 'auth' 
-  | 'strategy' 
-  | 'plugin' 
-  | 'agent' 
-  | 'webhook' 
-  | 'notification' 
-  | 'system'
-  | 'billing'
-  | 'execution'
-  | 'email'
-  | 'onboarding';
-
-export type SystemEventType = string;
-
-// Onboarding related types
-export type OnboardingStep = 'company-info' | 'persona' | 'additional-info' | 'strategy-generation';
-
-// Base entity and execution types
-export interface BaseEntity {
-  id: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface ExecutionParams {
-  [key: string]: any;
-}
-
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
-
-// Tenant related types
-export interface TenantFeature {
-  name: string;
-  enabled: boolean;
-  config?: Record<string, any>;
-}
-
-// KPI related types
-export interface KPI {
-  id: string;
-  name: string;
-  value: number;
-  unit?: string;
-  trend?: KPITrend;
-  change?: number;
-  date?: string;
-  source?: string;
-  tenant_id?: string;
-  category?: string;
-  created_at?: string;
-  updated_at?: string;
+  from: Date;
+  to?: Date;
 }

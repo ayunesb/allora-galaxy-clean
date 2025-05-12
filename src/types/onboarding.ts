@@ -26,34 +26,21 @@ export interface OnboardingFormData {
 // Define onboarding state
 export interface OnboardingState {
   step: OnboardingStep;
-  formData: OnboardingFormData;
-  isSubmitting: boolean;
-  isComplete: boolean;
-  tenantId?: string;
+  data: OnboardingFormData;
+  isLoading: boolean;
   error: string | null;
 }
 
-// Define validation result type - different from the strategy one
-export interface OnboardingValidationResult {
+// Define onboarding actions
+export type OnboardingAction = 
+  | { type: 'SET_STEP'; payload: OnboardingStep }
+  | { type: 'UPDATE_DATA'; payload: Partial<OnboardingFormData> }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'RESET' };
+
+// Define validation result
+export interface ValidationResult {
   valid: boolean;
   errors: Record<string, string>;
 }
-
-// Export ValidationResult with OnboardingValidationResult alias
-export type ValidationResult = OnboardingValidationResult;
-
-// Define zustand state actions
-export interface OnboardingStateActions {
-  nextStep: () => void;
-  prevStep: () => void;
-  setStep: (step: OnboardingStep) => void;
-  updateFormData: (data: Partial<OnboardingFormData>) => void;
-  setField: (key: string, value: any) => void;
-  reset: () => void;
-  setSubmitting: (isSubmitting: boolean) => void;
-  setComplete: (isComplete: boolean, tenantId?: string) => void;
-  validateStep: (step: OnboardingStep) => boolean;
-}
-
-// Combined type for the onboarding store
-export type OnboardingStore = OnboardingState & OnboardingStateActions;

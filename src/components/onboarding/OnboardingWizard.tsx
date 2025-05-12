@@ -30,13 +30,13 @@ const OnboardingWizard: React.FC = () => {
       <OnboardingProgress 
         currentStep={currentStep} 
         onStepClick={handleStepClick}
-        steps={steps}
+        steps={steps.map(s => ({ id: s.id, label: s.label }))}
       />
       
       {/* Form content */}
       <div className="flex-1 overflow-y-auto my-6 px-4 md:px-0">
         <StepContent 
-          step={step}
+          step={step.id}
           formData={formData}
           updateFormData={updateFormData}
           isGenerating={isSubmitting}

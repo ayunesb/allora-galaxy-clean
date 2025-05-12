@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters, { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import { fetchSystemLogs, fetchLogModules, fetchTenants } from '@/lib/admin/systemLogs';
 import { getSystemLogColumns } from '@/lib/admin/systemLogColumns';

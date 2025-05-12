@@ -2,7 +2,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { componentTagger } from 'lovable-tagger';
+import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -11,8 +11,9 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      'react-fast-compare': 'react-fast-compare/index.js', // Keep this alias
+      '@': path.resolve(__dirname, 'src'),
+      // Make sure the shim is properly configured
+      'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.js'),
     },
   },
   build: {
@@ -25,13 +26,13 @@ export default defineConfig(({ mode }) => ({
         'https://esm.sh/@supabase/supabase-js@2',
         'https://esm.sh/stripe@12.0.0?target=deno'
       ],
+      // Add onwarn handler to suppress git clone warnings
       onwarn(warning, warn) {
+        // Suppress git clone warnings for three-bmfont-text
         if (warning.message && (
           warning.message.includes('three-bmfont-text') || 
           warning.message.includes('git+') ||
-          warning.message.includes('git clone') ||
-          warning.message.includes('document-register-element') ||
-          warning.message.includes('debug')
+          warning.message.includes('git clone')
         )) return;
         warn(warning);
       }
@@ -39,27 +40,16 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 8080,
-    host: "::",
-    historyApiFallback: true, // For React Router SPA fallback
-    allowedHosts: [
-      'localhost',
-      '127.0.0.1',
-      '9c3148d9-ab17-4b9a-908f-dd75ce70b6c1.lovableproject.com',
-      '.lovableproject.com'
-    ]
+    host: "::"
   },
   optimizeDeps: {
-    exclude: [
-      'three-bmfont-text', 
-      'document-register-element', 
-      'debug'
-    ],
+    exclude: ['three-bmfont-text'], // Exclude the problematic package from optimization
     esbuildOptions: {
+      // Additional configuration to prevent git clone attempts
       define: {
         global: 'globalThis',
       },
     },
-    include: ['react-helmet-async', '@tanstack/react-query'], // Keep this line
   }
 }));
 

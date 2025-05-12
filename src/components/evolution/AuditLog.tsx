@@ -4,19 +4,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AuditLog as AuditLogType, SystemLog, LogEntry, isSystemLog, getContextPreview } from '@/types/logs';
 import LogDetailDialog from './logs/LogDetailDialog';
+import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
 
 interface AuditLogProps {
   title?: string;
   isLoading?: boolean;
   onRefresh?: () => void;
-  data: LogEntry[];
+  data: (AuditLogType | SystemLog)[];
 }
 
 const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogProps) => {
-  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<AuditLogType | SystemLog | null>(null);
+
+  // Helper to get a short preview of context JSON
+  const getContextPreview = (context?: Record<string, any>) => {
+    if (!context) return 'No data';
+    try {
+      const entries = Object.entries(context);
+      if (entries.length === 0) return 'Empty';
+      
+      const [key, value] = entries[0];
+      const valueStr = typeof value === 'object' 
+        ? JSON.stringify(value).substring(0, 15) + '...' 
+        : String(value).substring(0, 15);
+      
+      return `${key}: ${valueStr}${entries.length > 1 ? ` (+ ${entries.length - 1} more)` : ''}`;
+    } catch (e) {
+      return 'Invalid data';
+    }
+  };
 
   // Format timestamp
   const formatDate = (dateString: string) => {
@@ -31,14 +48,9 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
     }).format(date);
   };
 
-  const handleLogClick = (log: LogEntry) => {
-    setSelectedLog(log);
-    setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedLog(null);
+  // Helper to determine if log is a SystemLog
+  const isSystemLog = (log: AuditLogType | SystemLog): log is SystemLog => {
+    return 'module' in log && 'event' in log && !('entity_type' in log);
   };
 
   return (
@@ -78,12 +90,12 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
               <div
                 key={log.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                onClick={() => handleLogClick(log)}
+                onClick={() => setSelectedLog(log)}
               >
                 <div className="space-y-1">
                   <div className="font-medium flex flex-col sm:flex-row gap-2 sm:items-center">
                     <span>{isSystemLog(log) ? log.event : log.event_type}</span>
-                    {(isSystemLog(log) && log.module) && (
+                    {log.module && (
                       <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         {log.module}
                       </span>
@@ -104,8 +116,8 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
         )}
 
         <LogDetailDialog
-          isOpen={isDialogOpen}
-          onClose={handleCloseDialog}
+          isOpen={!!selectedLog}
+          onClose={() => setSelectedLog(null)}
           log={selectedLog}
         />
       </CardContent>

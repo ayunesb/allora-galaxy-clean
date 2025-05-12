@@ -1,3 +1,0 @@
-type Status = 'success' | 'pending' | 'failure' | 'error';
-
-// ...existing code...

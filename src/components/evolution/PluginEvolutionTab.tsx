@@ -1,214 +1,324 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plugin, PluginLog } from '@/types/plugin';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTenantId } from '@/hooks/useTenantId';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const PluginEvolutionTab = () => {
+interface Plugin {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+  xp: number;
+  roi: number;
+  category?: string;
+  icon?: string;
+  metadata?: any;
+}
+
+interface PluginLog {
+  id: string;
+  plugin_id: string;
+  status: string;
+  input?: any;
+  output?: any;
+  error?: string;
+  created_at: string;
+  execution_time?: number;
+  xp_earned?: number;
+}
+
+const PluginEvolutionTab: React.FC = () => {
+  const [loading, setLoading] = useState(true);
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null);
-  const [pluginLogs, setPluginLogs] = useState<PluginLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [logs, setLogs] = useState<PluginLog[]>([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const tenantId = useTenantId();
 
   useEffect(() => {
-    const fetchPlugins = async () => {
+    const fetchPluginData = async () => {
       try {
-        setIsLoading(true);
-        const { data, error } = await supabase.from('plugins').select('*');
+        setLoading(true);
         
-        if (error) throw error;
+        // Fetch plugins
+        const { data: pluginData, error: pluginError } = await supabase
+          .from('plugins')
+          .select('*')
+          .order('xp', { ascending: false })
+          .limit(20);
+          
+        if (pluginError) throw pluginError;
         
-        // Type conversion for null fields
-        const typedPlugins: Plugin[] = data?.map(p => ({
-          ...p,
-          description: p.description || undefined,
-          xp: p.xp,
-          roi: p.roi,
-          created_at: p.created_at,
-          updated_at: p.updated_at,
-          icon: p.icon || undefined,
-          category: p.category || undefined,
-          metadata: p.metadata,
-          tenant_id: p.tenant_id
-        })) || [];
-        
-        setPlugins(typedPlugins);
-        
-        if (typedPlugins.length > 0) {
-          setSelectedPlugin(typedPlugins[0]);
-          fetchPluginLogs(typedPlugins[0].id);
+        if (pluginData && pluginData.length > 0) {
+          setPlugins(pluginData);
+          setSelectedPlugin(pluginData[0]);
+          
+          // Fetch logs for the first plugin
+          const { data: logData, error: logError } = await supabase
+            .from('plugin_logs')
+            .select('*')
+            .eq('plugin_id', pluginData[0].id)
+            .order('created_at', { ascending: false })
+            .limit(50);
+            
+          if (logError) throw logError;
+          setLogs(logData || []);
         }
-      } catch (err: any) {
-        setError(err?.message || 'Failed to fetch plugins');
+      } catch (error) {
+        console.error('Error fetching plugin data:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
+    
+    if (tenantId) {
+      fetchPluginData();
+    }
+  }, [tenantId]);
 
-    fetchPlugins();
-  }, []);
-
-  const fetchPluginLogs = async (pluginId: string) => {
+  const handlePluginSelect = async (pluginId: string) => {
+    const plugin = plugins.find(p => p.id === pluginId);
+    if (!plugin) return;
+    
+    setSelectedPlugin(plugin);
+    setLoading(true);
+    
     try {
-      setIsLoading(true);
-      const { data, error } = await supabase
+      // Fetch logs for the selected plugin
+      const { data: logData, error: logError } = await supabase
         .from('plugin_logs')
         .select('*')
         .eq('plugin_id', pluginId)
         .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      
-      // Type conversion for null fields
-      const typedLogs: PluginLog[] = data?.map(log => ({
-        ...log,
-        plugin_id: log.plugin_id,
-        strategy_id: log.strategy_id,
-        agent_version_id: log.agent_version_id,
-        tenant_id: log.tenant_id,
-        error: log.error,
-        xp_earned: log.xp_earned,
-        execution_time: log.execution_time,
-        created_at: log.created_at,
-        input: log.input,
-        output: log.output,
-        status: log.status,
-        id: log.id
-      })) || [];
-      
-      setPluginLogs(typedLogs);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to fetch plugin logs');
+        .limit(50);
+        
+      if (logError) throw logError;
+      setLogs(logData || []);
+    } catch (error) {
+      console.error('Error fetching plugin logs:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSelectPlugin = (plugin: Plugin) => {
-    setSelectedPlugin(plugin);
-    fetchPluginLogs(plugin.id);
+  const formatDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), 'MMM dd, yyyy HH:mm:ss');
+    } catch (e) {
+      return dateStr;
+    }
   };
 
-  if (error) {
+  // Generate performance data for the chart
+  const generatePerformanceData = () => {
+    if (logs.length === 0) return [];
+    
+    const dateMap = new Map<string, { count: number, avgTime: number, success: number, failure: number }>();
+    
+    logs.forEach(log => {
+      const date = format(new Date(log.created_at), 'MM/dd');
+      const current = dateMap.get(date) || { count: 0, avgTime: 0, success: 0, failure: 0 };
+      
+      current.count += 1;
+      current.avgTime = ((current.avgTime * (current.count - 1)) + (log.execution_time || 0)) / current.count;
+      
+      if (log.status === 'success') {
+        current.success += 1;
+      } else if (log.status === 'failure' || log.status === 'error') {
+        current.failure += 1;
+      }
+      
+      dateMap.set(date, current);
+    });
+    
+    const sortedDates = Array.from(dateMap.keys()).sort((a, b) => {
+      const dateA = new Date(`2023/${a}`);
+      const dateB = new Date(`2023/${b}`);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    return sortedDates.map(date => {
+      const data = dateMap.get(date);
+      return {
+        date,
+        executions: data?.count || 0,
+        avgTime: data?.avgTime.toFixed(2) || 0,
+        success: data?.success || 0,
+        failure: data?.failure || 0,
+      };
+    });
+  };
+
+  if (loading && !selectedPlugin) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Plugin Evolution</CardTitle>
-          {selectedPlugin && (
-            <CardDescription>
-              Currently viewing: {selectedPlugin.name}
-            </CardDescription>
-          )}
+          <CardTitle className="flex justify-between">
+            <span>Plugin Evolution</span>
+            {selectedPlugin && (
+              <Badge variant={selectedPlugin.status === 'active' ? 'success' : 'secondary'}>
+                {selectedPlugin.status}
+              </Badge>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-[300px] w-full" />
+          {plugins.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              No plugins found.
             </div>
-          ) : plugins.length === 0 ? (
-            <p className="text-center text-muted-foreground">No plugins available.</p>
           ) : (
-            <div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {plugins.map((plugin) => (
-                  <Button
-                    key={plugin.id}
-                    variant={selectedPlugin?.id === plugin.id ? "default" : "outline"}
-                    onClick={() => handleSelectPlugin(plugin)}
-                    className="text-sm"
-                  >
-                    {plugin.name}
-                  </Button>
-                ))}
+            <div className="space-y-6">
+              <div className="w-full max-w-xs">
+                <Select
+                  value={selectedPlugin?.id}
+                  onValueChange={handlePluginSelect}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a plugin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {plugins.map((plugin) => (
+                        <SelectItem key={plugin.id} value={plugin.id}>{plugin.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
+              
               {selectedPlugin && (
-                <Tabs defaultValue="details">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList>
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="history">Logs</TabsTrigger>
-                    <TabsTrigger value="versions">Versions</TabsTrigger>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="executions">Executions</TabsTrigger>
+                    <TabsTrigger value="performance">Performance</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="details">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <dl className="space-y-4">
-                          <div>
-                            <dt className="text-sm font-medium text-muted-foreground">Plugin ID</dt>
-                            <dd>{selectedPlugin.id}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-muted-foreground">Description</dt>
-                            <dd>{selectedPlugin.description || 'No description'}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-muted-foreground">Status</dt>
-                            <dd>{selectedPlugin.status}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-muted-foreground">XP / ROI</dt>
-                            <dd>{selectedPlugin.xp} / {selectedPlugin.roi}</dd>
-                          </div>
-                        </dl>
-                      </CardContent>
-                    </Card>
+                  
+                  <TabsContent value="overview" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-2xl font-bold">{selectedPlugin.xp}</div>
+                          <p className="text-xs text-muted-foreground">Total XP</p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-2xl font-bold">{selectedPlugin.roi}</div>
+                          <p className="text-xs text-muted-foreground">ROI Score</p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="text-2xl font-bold">{logs.length}</div>
+                          <p className="text-xs text-muted-foreground">Execution Logs</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Name</h3>
+                        <p>{selectedPlugin.name}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Category</h3>
+                        <p>{selectedPlugin.category || 'Uncategorized'}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Status</h3>
+                        <p>{selectedPlugin.status}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Created</h3>
+                        <p>{formatDate(selectedPlugin.created_at)}</p>
+                      </div>
+                      
+                      <div className="col-span-2">
+                        <h3 className="text-sm font-medium mb-2">Description</h3>
+                        <p>{selectedPlugin.description || 'No description provided'}</p>
+                      </div>
+                    </div>
                   </TabsContent>
-                  <TabsContent value="history">
-                    {pluginLogs.length === 0 ? (
-                      <p className="text-center text-muted-foreground">No logs available.</p>
+                  
+                  <TabsContent value="executions">
+                    {logs.length === 0 ? (
+                      <div className="text-center py-10 text-muted-foreground">
+                        No execution logs found for this plugin.
+                      </div>
                     ) : (
-                      <div className="space-y-4">
-                        {pluginLogs.map((log) => (
+                      <div className="space-y-4 mt-4">
+                        {logs.slice(0, 10).map((log) => (
                           <Card key={log.id}>
-                            <CardContent className="p-4">
+                            <CardContent className="pt-6">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <p className="text-sm font-medium">
-                                    {log.created_at ? new Date(log.created_at).toLocaleString() : 'Unknown date'}
+                                  <Badge variant={log.status === 'success' ? 'success' : 'destructive'}>
+                                    {log.status}
+                                  </Badge>
+                                  <p className="text-sm mt-2">
+                                    {log.execution_time ? `${log.execution_time.toFixed(2)}s` : 'N/A'} |
+                                    XP: {log.xp_earned || 0}
                                   </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Status: {log.status}
-                                  </p>
+                                  {log.error && (
+                                    <p className="text-sm text-destructive mt-2">{log.error}</p>
+                                  )}
                                 </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">
-                                    Execution time: {log.execution_time}ms
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    XP earned: {log.xp_earned}
-                                  </p>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDate(log.created_at)}
                                 </div>
                               </div>
-                              {log.error && (
-                                <div className="mt-2 p-2 bg-red-50 text-red-700 rounded text-xs">
-                                  {log.error}
-                                </div>
-                              )}
                             </CardContent>
                           </Card>
                         ))}
+                        
+                        {logs.length > 10 && (
+                          <div className="text-center py-4 text-muted-foreground">
+                            Showing 10 of {logs.length} logs
+                          </div>
+                        )}
                       </div>
                     )}
                   </TabsContent>
-                  <TabsContent value="versions">
-                    <p className="text-center text-muted-foreground">Agent version data will appear here.</p>
+                  
+                  <TabsContent value="performance">
+                    <div className="h-80 mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={generatePerformanceData()}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="success" name="Successful" fill="#10b981" />
+                          <Bar dataKey="failure" name="Failed" fill="#ef4444" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </TabsContent>
                 </Tabs>
               )}

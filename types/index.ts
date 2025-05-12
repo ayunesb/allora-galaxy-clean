@@ -1,1 +1,0 @@
-export { SomeType, AnotherType };

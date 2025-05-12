@@ -15,13 +15,10 @@ export interface Plugin {
   roi?: number;
 }
 
-// Plugin log status - include 'error' as a valid status
-export type PluginLogStatus = 'success' | 'failure' | 'pending' | 'error';
-
 export interface PluginLog {
   id: string;
   plugin_id: string;
-  status: PluginLogStatus;
+  status: 'success' | 'failure' | 'pending';
   input?: Record<string, any>;
   output?: Record<string, any>;
   error?: string;
@@ -35,30 +32,19 @@ export interface PluginLog {
 
 // Plugin result type for execution results
 export interface PluginResult {
-  plugin_id: string;
   success: boolean;
-  status: PluginLogStatus;
+  plugin_id: string;
   output?: Record<string, any>;
   error?: string;
+  log_id?: string;
   execution_time?: number;
   xp_earned?: number;
-}
-
-// Agent version type
-export interface AgentVersion {
-  id: string;
-  version: string;
-  plugin_id: string;
-  prompt: string;
-  status: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 // Result of running a plugin chain
 export interface RunPluginChainResult {
   success: boolean;
   results: PluginResult[];
-  output?: Record<string, any>;
-  error?: string;
+  totalXp: number;
+  executionTime: number;
 }
