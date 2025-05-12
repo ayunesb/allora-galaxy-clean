@@ -34,4 +34,4 @@ export const threeBMFontText: BMFontText = {
   createTextGeometry
 };
 
-export default threeBMFontText;
+export default createTextGeometry;

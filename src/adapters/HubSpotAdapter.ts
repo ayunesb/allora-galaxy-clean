@@ -1,73 +1,41 @@
-import { HubSpotClient } from '../clients/HubSpotClient';
-import { HubSpotContact } from '../models/HubSpotContact';
-import { HubSpotDeal } from '../models/HubSpotDeal';
-import { HubSpotEngagement } from '../models/HubSpotEngagement';
-import { HubSpotOwner } from '../models/HubSpotOwner';
-import { HubSpotPipeline } from '../models/HubSpotPipeline';
-import { HubSpotProperty } from '../models/HubSpotProperty';
-import { HubSpotTicket } from '../models/HubSpotTicket';
-import { HubSpotWorkflow } from '../models/HubSpotWorkflow';
-import { HubSpotCompany } from '../models/HubSpotCompany';
-import { HubSpotForm } from '../models/HubSpotForm';
-import { HubSpotEmail } from '../models/HubSpotEmail';
-import { HubSpotTask } from '../models/HubSpotTask';
-import { HubSpotNote } from '../models/HubSpotNote';
-import { HubSpotCall } from '../models/HubSpotCall';
-import { HubSpotMeeting } from '../models/HubSpotMeeting';
-import { HubSpotLineItem } from '../models/HubSpotLineItem';
-import { HubSpotProduct } from '../models/HubSpotProduct';
-import { HubSpotQuote } from '../models/HubSpotQuote';
-import { HubSpotTicketPipeline } from '../models/HubSpotTicketPipeline';
-import { HubSpotTicketStage } from '../models/HubSpotTicketStage';
-import { HubSpotTicketPriority } from '../models/HubSpotTicketPriority';
-import { HubSpotTicketSource } from '../models/HubSpotTicketSource';
-import { HubSpotTicketType } from '../models/HubSpotTicketType';
-import { HubSpotTicketStatus } from '../models/HubSpotTicketStatus';
-import { HubSpotTicketResolution } from '../models/HubSpotTicketResolution';
-import { HubSpotTicketCategory } from '../models/HubSpotTicketCategory';
-import { HubSpotTicketSubCategory } from '../models/HubSpotTicketSubCategory';
-import { HubSpotTicketIssueType } from '../models/HubSpotTicketIssueType';
-import { HubSpotTicketIssueSubType } from '../models/HubSpotTicketIssueSubType';
-import { HubSpotTicketIssueSubSubType } from '../models/HubSpotTicketIssueSubSubType';
-import { HubSpotTicketIssueSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType';
-import { HubSpotTicketIssueSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubSubType } from '../models/HubSpotTicketIssueSubSubSubSubSubSubSub
+
+import { HubSpotClient } from './hubspot_client';
+import { Logger } from './logger';
+
+interface HubSpotContact {
+  properties: {
+    email: string;
+    firstname: string;
+    lastname: string;
+    phone: string;
+    company: string;
+    website: string;
+    mql_count: number | undefined;
+  };
+}
+
+export class HubSpotAdapter {
+  private client: HubSpotClient;
+  private logger: Logger;
+
+  constructor(client: HubSpotClient, logger: Logger) {
+    this.client = client;
+    this.logger = logger;
+  }
+
+  async createOrUpdateContact(contact: HubSpotContact): Promise<void> {
+    try {
+      const previousValues = await this.client.getContactByEmail(contact.properties.email);
+      const updatedContact = {
+        properties: {
+          ...contact.properties,
+          previous_value: previousValues['mql_count'] ?? undefined,
+        },
+      };
+      await this.client.createOrUpdateContact(updatedContact);
+    } catch (error) {
+      this.logger.error('Error creating or updating contact', error);
+      throw error;
+    }
+  }
+}
