@@ -7,14 +7,14 @@ import { ValidationResult } from '@/types/strategy';
  * @returns A validation result object
  */
 export function validateInput(strategy: any): ValidationResult {
-  const errors: string[] = [];
+  const errors: Record<string, string> = {};
   
   if (!strategy) {
-    errors.push('Strategy is required');
+    errors["strategy"] = 'Strategy is required';
   }
   
   return {
-    valid: errors.length === 0,
+    valid: Object.keys(errors).length === 0,
     errors
   };
 }
