@@ -50,10 +50,10 @@ export function createKPITrend(name: string, current: number, previous: number |
   const direction = calculateTrendDirection(current, previous);
 
   return {
-    name,
     value: current,
     previousValue: previous || undefined,
     direction,
+    name,
     unit,
     target
   };
@@ -61,10 +61,10 @@ export function createKPITrend(name: string, current: number, previous: number |
 
 export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
   return {
-    name,
     value: 0,
     previousValue: undefined,
     direction: 'neutral',
+    name,
     unit
   };
 }
@@ -83,10 +83,10 @@ export function analyzeKPITrend(kpi: KPI): KPITrend {
   }
   
   return {
-    name: kpi.name,
     value: kpi.value,
     previousValue: kpi.previous_value || undefined,
     direction,
+    name: kpi.name,
     unit: kpi.unit,
     target: kpi.target || undefined
   };
@@ -120,10 +120,10 @@ export function createMockKPITrend(config: {
   }
   
   return {
-    name,
     value,
     previousValue,
     direction,
+    name,
     unit,
     target
   };

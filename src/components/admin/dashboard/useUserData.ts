@@ -53,18 +53,23 @@ export function useUserData() {
         if (data && Array.isArray(data)) {
           // Correctly format the profiles data
           const formattedUsers = data.map(item => {
+            const profileData = item.profiles || {};
+            
             return {
               id: item.id,
               role: item.role,
               created_at: item.created_at,
               user_id: item.user_id,
               profiles: {
-                first_name: item.profiles?.first_name || '',
-                last_name: item.profiles?.last_name || '',
-                avatar_url: item.profiles?.avatar_url || '',
+                first_name: typeof profileData === 'object' ? profileData.first_name || '' : '',
+                last_name: typeof profileData === 'object' ? profileData.last_name || '' : '',
+                avatar_url: typeof profileData === 'object' ? profileData.avatar_url || '' : '',
                 email: {
-                  email: Array.isArray(item.profiles?.email) && item.profiles?.email.length > 0
-                    ? item.profiles.email[0]?.email || ''
+                  email: typeof profileData === 'object' && 
+                         Array.isArray(profileData.email) && 
+                         profileData.email.length > 0 && 
+                         profileData.email[0]?.email
+                    ? profileData.email[0].email 
                     : ''
                 }
               }

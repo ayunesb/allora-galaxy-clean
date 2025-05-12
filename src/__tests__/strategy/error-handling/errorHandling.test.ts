@@ -6,7 +6,6 @@ import { setupTests } from '../setup/testSetup';
 // Mock dependencies
 vi.mock('@/lib/system/logSystemEvent', () => ({
   logSystemEvent: vi.fn().mockResolvedValue(undefined),
-  __esModule: true,
   default: vi.fn().mockResolvedValue(undefined)
 }));
 
@@ -42,8 +41,8 @@ describe('runStrategy Error Handling', () => {
       userId: 'user-123'
     };
     
-    const logSystemEvent = await import('@/lib/system/logSystemEvent');
-    vi.mocked(logSystemEvent.default).mockImplementationOnce(() => {
+    const logSystemEventModule = await import('@/lib/system/logSystemEvent');
+    vi.mocked(logSystemEventModule.default).mockImplementationOnce(() => {
       throw new Error('Logging failed');
     });
     

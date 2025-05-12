@@ -43,6 +43,8 @@ export interface NavigationItem {
   disabled?: boolean;
   external?: boolean;
   children?: NavigationItem[];
+  items?: NavigationItem[]; // Add support for items
+  adminOnly?: boolean; // Add support for adminOnly flag
 }
 
 // Trend direction types
@@ -62,7 +64,8 @@ export type SystemEventModule =
   | 'billing'
   | 'hubspot' 
   | 'system'
-  | 'ai';
+  | 'ai'
+  | 'onboarding'; // Add onboarding module type
 
 export type SystemEventType = 
   | 'created' 
@@ -81,6 +84,9 @@ export interface KPITrend {
   previousValue?: number;
   change?: number;
   direction: TrendDirection;
+  name?: string; // Add name property
+  unit?: string; // Add unit property
+  target?: number; // Add target property
 }
 
 // Base entity interface for common fields
@@ -114,3 +120,9 @@ export type OnboardingStep =
   | 'additional_info' 
   | 'strategy_generation' 
   | 'complete';
+
+// System log filter type
+export interface SystemLogFilter extends FilterState {
+  module?: SystemEventModule;
+  dateRange?: DateRange;
+}

@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { type SystemEventModule } from '@/lib/system/logSystemEvent';
+import { SystemEventModule } from '@/types/shared';
 
 /**
  * Notify the user with a toast message

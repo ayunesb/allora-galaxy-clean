@@ -103,3 +103,6 @@ export async function logSystemInfo(
 
   return logSystemEvent(module, 'info', infoContext, tenantId);
 }
+
+// Default export for backward compatibility with existing code
+export default logSystemEvent;
