@@ -1,144 +1,83 @@
 
-import { KPI } from '@/types/kpi';
-import { KPITrend, TrendDirection } from '@/types/shared';
+import { KPI } from '@/types';
+import { TrendDirection, KPITrend } from '@/types/shared';
 
 /**
- * Calculate percentage change between two numbers
+ * Analyzes KPI data to determine trend direction and percentage change
+ * @param current Current KPI value
+ * @param previous Previous KPI value
+ * @returns Trend analysis object
  */
-export const calculatePercentChange = (current: number, previous: number): number => {
-  if (previous === 0) {
-    return current > 0 ? 100 : 0;
+export function analyzeTrend(current: number, previous: number): KPITrend {
+  // If no previous value, default to neutral
+  if (previous === 0 || previous === undefined || previous === null) {
+    return {
+      direction: 'neutral',
+      percentage: 0,
+      value: 0
+    };
   }
-  return ((current - previous) / Math.abs(previous)) * 100;
-};
 
-/**
- * Determine trend direction based on percentage change
- */
-export const determineTrendDirection = (percentChange: number): TrendDirection => {
-  if (percentChange > 0) return 'up';
-  if (percentChange < 0) return 'down';
-  return 'neutral'; // Changed from 'flat' to 'neutral' to match TrendDirection type
-};
-
-/**
- * Analyze KPI trend by comparing current and previous values
- */
-export const analyzeKpiTrend = (kpi: KPI): KPITrend => {
-  const currentValue = kpi.value || 0;
-  const previousValue = kpi.previous_value || 0;
+  const difference = current - previous;
+  const percentageChange = (difference / Math.abs(previous)) * 100;
   
-  const percentChange = calculatePercentChange(currentValue, previousValue);
-  const direction = determineTrendDirection(percentChange);
+  let direction: TrendDirection = 'flat';
+  
+  // Determine trend direction
+  if (percentageChange > 1) {
+    direction = 'up';
+  } else if (percentageChange < -1) {
+    direction = 'down';
+  } else {
+    direction = 'flat';
+  }
   
   return {
-    name: kpi.name,
-    value: currentValue,
-    previousValue,
     direction,
-    percentageChange: percentChange
+    percentage: Math.abs(Math.round(percentageChange)),
+    value: difference
   };
-};
+}
 
 /**
- * Group KPIs by name and analyze trends for each group
+ * Calculate trends for a list of KPIs
+ * @param kpis Array of KPI objects
+ * @returns Map of KPI IDs to trend data
  */
-export const groupAndAnalyzeKpis = (kpis: KPI[]): Map<string, KPITrend> => {
-  const kpiTrends = new Map<string, KPITrend>();
+export function calculateKPITrends(kpis: KPI[]): Map<string, KPITrend> {
+  const trends = new Map<string, KPITrend>();
   
   kpis.forEach(kpi => {
-    const trend = analyzeKpiTrend(kpi);
-    kpiTrends.set(kpi.name, trend);
+    trends.set(kpi.id, analyzeTrend(kpi.value, kpi.previous_value || 0));
   });
   
-  return kpiTrends;
-};
+  return trends;
+}
 
 /**
- * Get latest KPI values grouped by name
+ * Calculate the overall trend direction based on multiple KPIs
+ * @param kpis Array of KPI objects
+ * @returns Overall trend direction
  */
-export const getLatestKpiValues = (kpis: KPI[]): Map<string, KPI> => {
-  const latest = new Map<string, KPI>();
-  const kpisByName = new Map<string, KPI[]>();
+export function calculateOverallTrend(kpis: KPI[]): TrendDirection {
+  if (kpis.length === 0) return 'neutral';
   
-  // Group KPIs by name
-  kpis.forEach(kpi => {
-    if (!kpisByName.has(kpi.name)) {
-      kpisByName.set(kpi.name, []);
-    }
-    kpisByName.get(kpi.name)?.push(kpi);
+  const trends = calculateKPITrends(kpis);
+  let upCount = 0;
+  let downCount = 0;
+  
+  trends.forEach(trend => {
+    if (trend.direction === 'up') upCount++;
+    else if (trend.direction === 'down') downCount++;
   });
   
-  // Find latest KPI for each name
-  kpisByName.forEach((kpiGroup, name) => {
-    const sortedKpis = kpiGroup.sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    
-    if (sortedKpis.length > 0) {
-      latest.set(name, sortedKpis[0]);
-    }
-  });
-  
-  return latest;
-};
+  if (upCount > downCount) return 'up';
+  if (downCount > upCount) return 'down';
+  return 'flat';
+}
 
-/**
- * Find KPI by name from a list
- */
-export const findKpiByName = (kpis: KPI[], name: string): KPI | undefined => {
-  return kpis.find(kpi => kpi.name === name);
-};
-
-/**
- * Calculate a composite financial health score based on multiple KPIs
- */
-export const calculateFinancialHealthScore = (kpis: KPI[]): number => {
-  // Find relevant KPIs
-  const mrr = findKpiByName(kpis, 'Monthly Recurring Revenue');
-  const cac = findKpiByName(kpis, 'Customer Acquisition Cost');
-  const churnRate = findKpiByName(kpis, 'Churn Rate');
-  
-  let score = 50; // Default middle score
-  
-  // Adjust score based on MRR trend
-  if (mrr && mrr.previous_value) {
-    const mrrPercentChange = calculatePercentChange(mrr.value, mrr.previous_value);
-    score += mrrPercentChange > 0 ? 10 : -10;
-  }
-  
-  // Adjust score based on CAC
-  if (cac && mrr) {
-    // Lower CAC is better
-    const cacToMrr = cac.value / mrr.value;
-    if (cacToMrr < 0.3) score += 10;
-    else if (cacToMrr > 0.7) score -= 10;
-  }
-  
-  // Adjust score based on churn
-  if (churnRate) {
-    if (churnRate.value < 3) score += 10;
-    else if (churnRate.value > 8) score -= 10;
-  }
-  
-  // Ensure score stays within 0-100 range
-  return Math.max(0, Math.min(100, score));
-};
-
-/**
- * Format KPI trend for display
- */
-export const formatKpiTrendForDisplay = (trend: KPITrend): {
-  displayValue: string;
-  displayChange: string;
-  trendDirection: TrendDirection;
-} => {
-  // Handle null values safely with fallbacks
-  const percentageChange = trend.percentageChange || 0;
-  
-  return {
-    displayValue: trend.value.toLocaleString(),
-    displayChange: `${percentageChange >= 0 ? '+' : ''}${percentageChange.toFixed(1)}%`,
-    trendDirection: trend.direction
-  };
+export default {
+  analyzeTrend,
+  calculateKPITrends,
+  calculateOverallTrend
 };

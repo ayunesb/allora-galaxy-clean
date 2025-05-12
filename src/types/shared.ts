@@ -5,6 +5,7 @@
 
 export type SystemRole = 'user' | 'admin' | 'owner';
 export type WorkspaceRole = 'member' | 'admin' | 'owner';
+export type UserRole = 'user' | 'admin' | 'owner';
 
 /**
  * System event modules
@@ -51,3 +52,83 @@ export type MessageType = 'success' | 'error' | 'warning' | 'info';
  * Workspace user status
  */
 export type UserStatus = 'active' | 'pending' | 'inactive' | 'blocked';
+
+/**
+ * Vote type for agent/plugin voting system
+ */
+export type VoteType = 'upvote' | 'downvote';
+
+/**
+ * Filter state for UI components
+ */
+export interface FilterState {
+  [key: string]: any;
+}
+
+/**
+ * Filter props for filter components
+ */
+export interface FilterProps {
+  filters: FilterState;
+  onFilterChange: (filters: FilterState) => void;
+  isLoading?: boolean;
+  onRefresh?: () => void;
+}
+
+/**
+ * Navigation item for menus
+ */
+export interface NavigationItem {
+  title: string;
+  href: string;
+  icon?: React.ElementType;
+  children?: NavigationItem[];
+  active?: boolean;
+  disabled?: boolean;
+  external?: boolean;
+}
+
+/**
+ * Base entity interface
+ */
+export interface BaseEntity {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * KPI Trend type
+ */
+export interface KPITrend {
+  direction: TrendDirection;
+  percentage: number;
+  value: number;
+}
+
+/**
+ * Execution parameter interface
+ */
+export interface ExecutionParams {
+  [key: string]: any;
+}
+
+/**
+ * Execution type
+ */
+export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
+
+/**
+ * Onboarding step type
+ */
+export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'additional' | 'strategy';
+
+/**
+ * Tenant feature flags
+ */
+export interface TenantFeature {
+  name: string;
+  enabled: boolean;
+  limits?: Record<string, number>;
+  metadata?: Record<string, any>;
+}

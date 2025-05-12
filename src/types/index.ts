@@ -37,7 +37,6 @@ export {
 };
 
 // Also selectively re-export common types for backward compatibility
-// This prevents duplicate export errors while maintaining compatibility
 export type { 
   DateRange,
   FilterState,

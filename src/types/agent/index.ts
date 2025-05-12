@@ -1,5 +1,5 @@
 
-import { VoteType } from "../shared";
+import { VoteType } from '../shared';
 
 export interface AgentVersionData {
   id: string;
@@ -19,7 +19,7 @@ export interface AgentVote {
   id?: string;
   agent_version_id: string;
   user_id: string;
-  vote_type: VoteType;
+  vote_type: 'up' | 'down';
   comment?: string;
   created_at?: string;
 }
@@ -47,6 +47,9 @@ export interface VoteStats {
 export interface UserVoteInfo {
   success: boolean;
   hasVoted: boolean;
-  vote: any | null;
+  vote: {
+    voteType: VoteType;
+    comment?: string;
+  } | null;
   error?: string;
 }

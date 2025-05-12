@@ -2,6 +2,8 @@
 /**
  * System log entry
  */
+import { SystemEventModule, SystemEventType } from './shared';
+
 export interface SystemLog {
   id: string;
   module: SystemEventModule;
@@ -28,5 +30,5 @@ export interface LogFilters {
   searchTerm?: string;
 }
 
-// Re-export SystemEventModule from shared to avoid duplicate declarations
-export { SystemEventModule, SystemEventType } from './shared';
+// Re-export SystemEventModule and SystemEventType from shared using the export type syntax
+export type { SystemEventModule, SystemEventType } from './shared';

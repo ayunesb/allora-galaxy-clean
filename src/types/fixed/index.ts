@@ -30,7 +30,7 @@ export interface ExecutionRecordInput {
 export type { PluginResult } from '../plugin';
 
 // We're aligning with the shared.ts definition to ensure consistency
-export { type VoteType } from '../shared';
+export type { VoteType } from '../shared';
 
 // Export these directly rather than re-exporting from shared to avoid conflicts
 export type { 

@@ -3,74 +3,44 @@ import { supabase } from '@/integrations/supabase/client';
 import { VoteType } from '@/types/shared';
 
 /**
- * Get the current vote statistics for an agent version
- * @param agentVersionId The ID of the agent version to check
- * @returns Object containing upvotes and downvotes count
+ * Updates the vote counts for an agent version
+ * @param agentVersionId - The agent version ID
+ * @param voteType - The type of vote (upvote or downvote)
+ * @param isAdd - Whether to add or remove the vote
  */
-export async function getVoteStats(agentVersionId: string) {
+export async function updateVoteCounts(
+  agentVersionId: string,
+  voteType: VoteType,
+  isAdd: boolean
+) {
   try {
-    // Get counts directly from the agent_versions table
-    const { data, error } = await supabase
+    const field = voteType === 'upvote' ? 'upvotes' : 'downvotes';
+    const increment = isAdd ? 1 : -1;
+
+    const { error } = await supabase
       .from('agent_versions')
-      .select('upvotes, downvotes')
-      .eq('id', agentVersionId)
-      .single();
-    
+      .update({ [field]: supabase.rpc('increment', { inc: increment, row_id: agentVersionId, column_name: field }) })
+      .eq('id', agentVersionId);
+
     if (error) {
-      throw error;
+      console.error(`Error updating ${voteType} count:`, error);
     }
-    
-    return {
-      upvotes: data?.upvotes || 0,
-      downvotes: data?.downvotes || 0
-    };
   } catch (error) {
-    console.error('Error fetching vote stats:', error);
-    return {
-      upvotes: 0,
-      downvotes: 0
-    };
+    console.error('Exception updating vote counts:', error);
   }
 }
 
 /**
- * Get information about a user's vote on an agent version
- * @param agentVersionId The ID of the agent version to check
- * @param userId The ID of the user
- * @returns Object indicating if the user has voted and the vote details
+ * Formats vote statistics for display
+ * @param upvotes - Number of upvotes
+ * @param downvotes - Number of downvotes
  */
-export async function getUserVoteInfo(agentVersionId: string, userId: string) {
-  try {
-    const { data, error } = await supabase
-      .from('agent_votes')
-      .select('vote_type, comment')
-      .eq('agent_version_id', agentVersionId)
-      .eq('user_id', userId)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No vote found for this user
-        return { 
-          hasVoted: false, 
-          vote: null 
-        };
-      }
-      throw error;
-    }
-    
-    return {
-      hasVoted: true,
-      vote: {
-        voteType: data.vote_type as VoteType,
-        comment: data.comment
-      }
-    };
-  } catch (error) {
-    console.error('Error fetching user vote info:', error);
-    return {
-      hasVoted: false,
-      vote: null
-    };
-  }
+export function formatVoteStats(upvotes: number, downvotes: number) {
+  const total = upvotes + downvotes;
+  const ratio = total > 0 ? (upvotes / total) * 100 : 0;
+
+  return {
+    total,
+    ratio: Math.round(ratio),
+  };
 }
