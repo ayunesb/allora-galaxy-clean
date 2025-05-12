@@ -1,5 +1,5 @@
 
-import { SystemEventType } from './shared';
+import { SystemEventModule, SystemEventType } from './shared';
 
 /**
  * System log entry
@@ -29,8 +29,8 @@ export interface AuditLog extends SystemLog {}
 export interface LogFilters {
   module?: SystemEventModule;
   event?: SystemEventType;
-  fromDate?: string;
-  toDate?: string;
+  fromDate?: Date;
+  toDate?: Date;
   tenant_id?: string;
   searchTerm?: string;
 }

@@ -133,9 +133,12 @@ export const formatKpiTrendForDisplay = (trend: KPITrend): {
   displayChange: string;
   trendDirection: TrendDirection;
 } => {
+  // Handle null values safely with fallbacks
+  const percentageChange = trend.percentageChange || 0;
+  
   return {
     displayValue: trend.value.toLocaleString(),
-    displayChange: `${trend.percentageChange >= 0 ? '+' : ''}${trend.percentageChange.toFixed(1)}%`,
+    displayChange: `${percentageChange >= 0 ? '+' : ''}${percentageChange.toFixed(1)}%`,
     trendDirection: trend.direction
   };
 };

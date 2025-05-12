@@ -57,10 +57,10 @@ export const mergeFormData = (
   existing: OnboardingFormData,
   partial: Partial<OnboardingFormData>
 ): OnboardingFormData => {
-  // Clone the existing object to avoid mutation
+  // Create a new object to avoid mutation
   const result = { ...existing };
   
-  // Handle top-level properties
+  // Process top-level properties first
   Object.keys(partial).forEach(key => {
     if (key !== 'companyInfo' && key !== 'persona' && key !== 'additionalInfo') {
       // @ts-ignore - Dynamic keys
@@ -68,7 +68,7 @@ export const mergeFormData = (
     }
   });
   
-  // Handle nested companyInfo
+  // Process nested structures only if they exist in the partial update
   if (partial.companyInfo) {
     result.companyInfo = {
       ...existing.companyInfo,
@@ -76,7 +76,6 @@ export const mergeFormData = (
     };
   }
   
-  // Handle nested persona
   if (partial.persona) {
     result.persona = {
       ...existing.persona,
@@ -84,7 +83,6 @@ export const mergeFormData = (
     };
   }
   
-  // Handle nested additionalInfo
   if (partial.additionalInfo && typeof partial.additionalInfo === 'object') {
     result.additionalInfo = {
       ...existing.additionalInfo,

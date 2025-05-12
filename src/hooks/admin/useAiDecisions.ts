@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemLog, LogFilters } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
+import { formatDate } from '@/lib/utils/date';
 
 export const useAiDecisionsData = () => {
   const [decisions, setDecisions] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Partial<LogFilters>>({});
+  const [filters, setFilters] = useState<LogFilters>({});
   const { tenantId } = useTenantId();
   
   const fetchDecisions = async () => {
@@ -36,11 +37,13 @@ export const useAiDecisionsData = () => {
       }
       
       if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate);
+        const formattedFromDate = formatDate(filters.fromDate.toISOString(), 'yyyy-MM-dd');
+        query = query.gte('created_at', `${formattedFromDate}T00:00:00`);
       }
       
       if (filters.toDate) {
-        query = query.lte('created_at', filters.toDate);
+        const formattedToDate = formatDate(filters.toDate.toISOString(), 'yyyy-MM-dd');
+        query = query.lte('created_at', `${formattedToDate}T23:59:59`);
       }
       
       if (filters.searchTerm) {

@@ -1,24 +1,26 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemLog, LogFilters } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
+import { formatDate } from '@/lib/utils/date';
 
 export const useSystemLogsData = () => {
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Partial<LogFilters>>({});
+  const [filters, setFilters] = useState<LogFilters>({});
   const { tenantId } = useTenantId();
-  
-  const fetchLogs = async () => {
-    setIsLoading(true);
-    setError(null);
-    
+
+  const fetchLogs = useCallback(async () => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       let query = supabase
         .from('system_logs')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
       
       // Apply tenant filter if applicable
       if (tenantId) {
@@ -35,28 +37,24 @@ export const useSystemLogsData = () => {
       }
       
       if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate);
+        const formattedFromDate = formatDate(filters.fromDate.toISOString(), 'yyyy-MM-dd');
+        query = query.gte('created_at', `${formattedFromDate}T00:00:00`);
       }
       
       if (filters.toDate) {
-        query = query.lte('created_at', filters.toDate);
+        const formattedToDate = formatDate(filters.toDate.toISOString(), 'yyyy-MM-dd');
+        query = query.lte('created_at', `${formattedToDate}T23:59:59`);
       }
       
       if (filters.searchTerm) {
+        // Use ilike for case-insensitive search
         query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
       }
       
-      // Order by created_at DESC
-      query = query.order('created_at', { ascending: false });
-      
       // Limit to 100 records
-      query = query.limit(100);
+      const { data, error } = await query.limit(100);
       
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       setLogs(data || []);
     } catch (err: any) {
@@ -65,12 +63,11 @@ export const useSystemLogsData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tenantId, filters]);
   
-  // Fetch logs on mount and when filters change
   useEffect(() => {
     fetchLogs();
-  }, [tenantId, filters]);
+  }, [fetchLogs]);
   
   return {
     logs,

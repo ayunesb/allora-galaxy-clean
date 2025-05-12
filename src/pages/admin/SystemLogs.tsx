@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import SystemLogFilters, { SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import { SystemLog } from '@/types/logs';
 
@@ -19,6 +19,14 @@ const SystemLogs: React.FC = () => {
     setDialogOpen(true);
   };
   
+  const handleFilterChange = (newFilters: SystemLogFilterState) => {
+    // Convert SystemLogFilterState to LogFilters
+    setFilters({
+      ...newFilters,
+      // No conversion needed anymore since we updated LogFilters to use Date
+    });
+  };
+  
   return (
     <div className="container py-6">
       <PageHeader
@@ -27,8 +35,8 @@ const SystemLogs: React.FC = () => {
       />
       
       <SystemLogFilters 
-        filters={filters} 
-        onFilterChange={setFilters} 
+        filters={filters as SystemLogFilterState} 
+        onFilterChange={handleFilterChange} 
         isLoading={isLoading}
         onRefresh={refetch}
       />
