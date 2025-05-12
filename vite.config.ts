@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => ({
       'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.js'),
     },
   },
+  server: {
+    port: 8080,
+    host: "::",
+    allowedHosts: ["9c3148d9-ab17-4b9a-908f-dd75ce70b6c1.lovableproject.com"]
+  },
   build: {
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
@@ -37,10 +42,6 @@ export default defineConfig(({ mode }) => ({
         warn(warning);
       }
     }
-  },
-  server: {
-    port: 8080,
-    host: "::"
   },
   optimizeDeps: {
     exclude: ['three-bmfont-text'], // Exclude the problematic package from optimization

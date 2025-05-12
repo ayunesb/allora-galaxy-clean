@@ -41,6 +41,7 @@ export const navigationItems: NavigationItem[] = [
       {
         title: "Performance",
         href: "/agents/performance",
+        icon: getIcon("LineChart"),
       },
     ],
   },
@@ -52,6 +53,7 @@ export const navigationItems: NavigationItem[] = [
       {
         title: "KPIs",
         href: "/insights/kpis",
+        icon: getIcon("TrendingUp"),
       },
     ],
   },
@@ -69,26 +71,32 @@ export const navigationItems: NavigationItem[] = [
       {
         title: "Dashboard",
         href: "/admin",
+        icon: getIcon("Home"),
       },
       {
         title: "Users",
         href: "/admin/users",
+        icon: getIcon("Users"),
       },
       {
         title: "System Logs",
         href: "/admin/logs",
+        icon: getIcon("FileText"),
       },
       {
         title: "AI Decisions",
         href: "/admin/ai-decisions",
+        icon: getIcon("Brain"),
       },
       {
         title: "Plugin Logs",
         href: "/admin/plugin-logs",
+        icon: getIcon("Database"),
       },
       {
         title: "API Keys",
         href: "/admin/api-keys",
+        icon: getIcon("Key"),
       },
     ],
   },

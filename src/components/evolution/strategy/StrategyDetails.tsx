@@ -34,18 +34,40 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
           .from('strategies')
           .select('*')
           .eq('id', strategyId)
-          .single();
+          .maybeSingle();
           
         if (strategyError) throw strategyError;
-        setStrategy(strategyData);
+
+        if (strategyData) {
+          const typedStrategy: Strategy = {
+            id: strategyData.id,
+            tenant_id: strategyData.tenant_id || '',
+            title: strategyData.title || '',
+            description: strategyData.description || '',
+            status: (strategyData.status as Strategy['status']) || 'draft',
+            created_by: strategyData.created_by || '',
+            created_at: strategyData.created_at || '',
+            approved_by: strategyData.approved_by || null,
+            approved_at: strategyData.approved_at || null,
+            rejected_by: strategyData.rejected_by || null,
+            rejected_at: strategyData.rejected_at || null,
+            priority: strategyData.priority as Strategy['priority'] || null,
+            tags: strategyData.tags || null,
+            completion_percentage: strategyData.completion_percentage || null,
+            due_date: strategyData.due_date || null,
+            updated_at: strategyData.updated_at || null
+          };
+          
+          setStrategy(typedStrategy);
+        }
         
         // Fetch created by user
-        if (strategyData.created_by) {
+        if (strategyData?.created_by) {
           const { data: createdBy, error: createdByError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', strategyData.created_by)
-            .single();
+            .maybeSingle();
             
           if (!createdByError && createdBy) {
             setCreatedByUser(createdBy);
@@ -53,12 +75,12 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
         }
         
         // Fetch approved by user
-        if (strategyData.approved_by) {
+        if (strategyData?.approved_by) {
           const { data: approvedBy, error: approvedByError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', strategyData.approved_by)
-            .single();
+            .maybeSingle();
             
           if (!approvedByError && approvedBy) {
             setApprovedByUser(approvedBy);

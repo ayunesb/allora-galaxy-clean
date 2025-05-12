@@ -6,17 +6,18 @@ export interface Strategy {
   title: string;
   description: string;
   status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed' | 'in_progress';
-  priority?: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high' | null;
   created_by: string;
   created_at: string;
-  approved_by?: string;
-  approved_at?: string;
-  rejected_by?: string;
-  rejected_at?: string;
-  tags?: string[];
-  completion_percentage?: number;
-  due_date?: string;
-  updated_at?: string;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejected_by?: string | null;
+  rejected_at?: string | null;
+  tags?: string[] | null;
+  completion_percentage?: number | null;
+  due_date?: string | null;
+  updated_at?: string | null;
+  metadata?: Record<string, any> | null;
 }
 
 export interface StrategyFilter {
@@ -39,5 +40,5 @@ export interface StrategyExecution {
 // Define validation result
 export interface ValidationResult {
   valid: boolean;
-  errors: Record<string, string>;
+  errors: string[] | Record<string, string>;
 }

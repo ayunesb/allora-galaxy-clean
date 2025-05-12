@@ -38,7 +38,7 @@ export const PromptDiffAnalysis: React.FC<PromptDiffAnalysisProps> = ({
           }
         }
 
-        // Generate new analysis
+        // Generate new analysis using edge function
         const { data, error: invokeError } = await supabase.functions.invoke('analyzePromptDiff', {
           body: {
             current_prompt: currentPrompt,

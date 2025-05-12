@@ -5,7 +5,7 @@
 
 // Re-export all domain-specific types
 export type { NavigationItem } from './navigation';
-export type { User, Profile, UserRole } from './user';
+export type { User, Profile, UserRole, UserRoleType } from './user';
 export type { Tenant, TenantFeature } from './tenant';
 export type { 
   Strategy,

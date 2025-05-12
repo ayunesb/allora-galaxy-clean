@@ -11,11 +11,11 @@ interface AuditLogProps {
   title?: string;
   isLoading?: boolean;
   onRefresh?: () => void;
-  data: (AuditLogType | SystemLog)[];
+  data: any[]; // Use any for flexibility since we handle type checking internally
 }
 
 const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogProps) => {
-  const [selectedLog, setSelectedLog] = useState<AuditLogType | SystemLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
   // Helper to get a short preview of context JSON
   const getContextPreview = (context?: Record<string, any>) => {
@@ -49,7 +49,7 @@ const AuditLog = ({ title = "Audit Log", isLoading, onRefresh, data }: AuditLogP
   };
 
   // Helper to determine if log is a SystemLog
-  const isSystemLog = (log: AuditLogType | SystemLog): log is SystemLog => {
+  const isSystemLog = (log: any): boolean => {
     return 'module' in log && 'event' in log && !('entity_type' in log);
   };
 

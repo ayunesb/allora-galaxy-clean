@@ -48,11 +48,33 @@ export function useStrategyEvolution(strategyId: string): StrategyEvolutionResul
           .from('strategies')
           .select('*')
           .eq('id', strategyId)
-          .single();
+          .maybeSingle();
           
         if (strategyError) throw strategyError;
         
-        setStrategy(strategyData);
+        if (strategyData) {
+          const typedStrategy: Strategy = {
+            id: strategyData.id,
+            tenant_id: strategyData.tenant_id || '',
+            title: strategyData.title || '',
+            description: strategyData.description || '',
+            status: (strategyData.status as Strategy['status']) || 'draft',
+            created_by: strategyData.created_by || '',
+            created_at: strategyData.created_at || '',
+            approved_by: strategyData.approved_by || null,
+            approved_at: strategyData.approved_at || null,
+            rejected_by: strategyData.rejected_by || null,
+            rejected_at: strategyData.rejected_at || null,
+            priority: strategyData.priority as Strategy['priority'] || null,
+            tags: strategyData.tags || null,
+            completion_percentage: strategyData.completion_percentage || null,
+            due_date: strategyData.due_date || null,
+            updated_at: strategyData.updated_at || null,
+            metadata: strategyData.metadata || null
+          };
+          
+          setStrategy(typedStrategy);
+        }
         
         // Fetch strategy execution logs
         const { data: executionLogs, error: logsError } = await supabase
