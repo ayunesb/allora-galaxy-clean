@@ -1,6 +1,8 @@
 
 import { SystemEventModule, SystemEventType } from './shared';
 
+export { SystemEventModule, SystemEventType };
+
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
 export interface SystemLog {

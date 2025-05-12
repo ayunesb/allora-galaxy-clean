@@ -1,15 +1,13 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AuditLog as AuditLogType } from '@/types/logs';
+import { AuditLog as AuditLogType, SystemEventModule } from '@/types/logs';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 import { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
-import { SystemEventModule } from '@/types/logs';
 
 export interface AuditLogProps {
   title: string;

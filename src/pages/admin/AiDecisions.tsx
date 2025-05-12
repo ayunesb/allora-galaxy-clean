@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
-import { AuditLog } from '@/types/logs';
+import { AuditLog, SystemEventModule } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import type { SystemLogFilter as SystemLogFilterType } from '@/components/admin/logs/SystemLogFilters';
