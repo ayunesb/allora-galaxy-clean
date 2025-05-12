@@ -1,39 +1,66 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import useAuth from '@/hooks/useAuth';
-import { useTenantRole } from '@/hooks/useTenantRole';
+import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/types/user';
 
-export interface WithRoleCheckProps {
-  roles: string[];
+interface WithRoleCheckProps {
+  roles: UserRole[];
+  redirectTo?: string;
 }
 
-export const withRoleCheck = <P extends {}>(
+/**
+ * Higher-order component that restricts access based on user roles
+ */
+const withRoleCheck = <P extends object>(
   Component: React.ComponentType<P>,
-  { roles }: WithRoleCheckProps
+  { roles, redirectTo = '/unauthorized' }: WithRoleCheckProps
 ) => {
   const WithRoleCheck: React.FC<P> = (props) => {
-    const { user } = useAuth();
-    const { role, loading } = useTenantRole();
+    const { user, loading, checkUserRole } = useAuth();
     const location = useLocation();
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-    // Show loading state
-    if (loading) {
-      return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    useEffect(() => {
+      const checkPermission = async () => {
+        if (!user) {
+          setHasPermission(false);
+          return;
+        }
+        
+        try {
+          for (const role of roles) {
+            const hasRole = await checkUserRole(role as string);
+            if (hasRole) {
+              setHasPermission(true);
+              return;
+            }
+          }
+          setHasPermission(false);
+        } catch (error) {
+          console.error('Error checking role:', error);
+          setHasPermission(false);
+        }
+      };
+      
+      if (!loading) {
+        checkPermission();
+      }
+    }, [user, loading, roles]);
+
+    if (loading || hasPermission === null) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      );
     }
 
-    // If user is not authenticated, redirect to login
-    if (!user) {
-      return <Navigate to="/auth/login" state={{ from: location }} replace />;
+    if (!hasPermission) {
+      return <Navigate to={redirectTo} state={{ from: location }} replace />;
     }
 
-    // Check if user has the required role
-    if (role && roles.includes(role)) {
-      return <Component {...props} />;
-    }
-
-    // User doesn't have the required role, redirect to unauthorized
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    return <Component {...props} />;
   };
 
   return WithRoleCheck;

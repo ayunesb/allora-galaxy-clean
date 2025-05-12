@@ -107,14 +107,14 @@ const PluginLogs: React.FC = () => {
                 <div key={log.id} className="border rounded-md p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <Badge className={getStatusColor(log.status)}>
+                      <Badge className={getStatusColor(log.status || "")}>
                         {log.status}
                       </Badge>
                       <span className="ml-2 text-sm text-gray-500">
                         {formatDate(log.created_at)}
                       </span>
                     </div>
-                    {log.execution_time !== undefined && (
+                    {log.execution_time !== undefined && log.execution_time !== null && (
                       <span className="text-sm">
                         Execution time: {log.execution_time.toFixed(2)}s
                       </span>

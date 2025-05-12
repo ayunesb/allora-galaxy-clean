@@ -28,7 +28,7 @@ const OnboardingWizard: React.FC = () => {
     <div className="w-full max-w-4xl mx-auto flex flex-col h-full">
       {/* Progress indicators */}
       <OnboardingProgress 
-        currentStep={currentStep} 
+        currentStep={currentStep || 0} 
         onStepClick={handleStepClick}
         steps={steps.map(s => ({ id: s.id, label: s.label }))}
       />
@@ -39,21 +39,21 @@ const OnboardingWizard: React.FC = () => {
           step={step.id}
           formData={formData}
           updateFormData={updateFormData}
-          isGenerating={isSubmitting}
+          isGenerating={isSubmitting || false}
           setFieldValue={setFieldValue}
         />
       </div>
       
       {/* Navigation buttons */}
       <StepNavigation 
-        currentStep={currentStep} 
+        currentStep={currentStep || 0} 
         totalSteps={steps.length}
-        isSubmitting={isSubmitting}
+        isSubmitting={isSubmitting || false}
         isNextDisabled={!isStepValid()}
         onNext={handleNextStep}
         onPrev={handlePrevStep}
         onSubmit={handleSubmit}
-        isGenerating={isSubmitting}
+        isGenerating={isSubmitting || false}
       />
       
       {/* Error dialog */}

@@ -1,5 +1,5 @@
 
-import { KPITrend, TrendDirection, LegacyTrendDirection, mapTrendDirection } from '@/types/shared';
+import { KPITrend, TrendDirection } from '@/types/shared';
 import { calculatePercentChange } from '@/lib/utils';
 
 // Define the KPI interface locally if not exported from shared types
@@ -11,7 +11,6 @@ interface KPI {
   unit: string;
   target?: number | null;
   category: string;
-  period: string;
   source?: string;
   date: string;
   tenant_id: string;
@@ -50,14 +49,13 @@ export function formatKPIValue(value: number, unit: string): string {
 
 export function createKPITrend(name: string, current: number, previous: number | null | undefined, unit: string, target?: number): KPITrend {
   const trend = calculateTrendDirection(current, previous);
-  const percentChange = previous !== null && previous !== undefined ? calculatePercentChange(current, previous) : 0;
+  const trendString = trend === 'up' ? 'increasing' : trend === 'down' ? 'decreasing' : 'stable';
 
   return {
     name,
     value: current,
     previousValue: previous || undefined,
-    trend: mapTrendDirection(trend),
-    percentChange,
+    trend: trendString,
     unit,
     target
   };
@@ -69,14 +67,12 @@ export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
     value: 0,
     previousValue: undefined,
     trend: 'stable',
-    percentChange: 0,
     unit
   };
 }
 
 export function analyzeKPITrend(kpi: KPI): KPITrend {
   let trend: TrendDirection = 'neutral';
-  let percentChange = 0;
   
   if (kpi.previous_value !== null && kpi.previous_value !== undefined) {
     if (kpi.value > kpi.previous_value) {
@@ -86,16 +82,15 @@ export function analyzeKPITrend(kpi: KPI): KPITrend {
     } else {
       trend = 'neutral';
     }
-    
-    percentChange = calculatePercentChange(kpi.value, kpi.previous_value);
   }
+  
+  const trendString = trend === 'up' ? 'increasing' : trend === 'down' ? 'decreasing' : 'stable';
   
   return {
     name: kpi.name,
     value: kpi.value,
     previousValue: kpi.previous_value || undefined,
-    trend: mapTrendDirection(trend),
-    percentChange,
+    trend: trendString,
     unit: kpi.unit,
     target: kpi.target || undefined
   };
@@ -128,14 +123,13 @@ export function createMockKPITrend(config: {
     }
   }
   
-  const percentChange = previousValue ? calculatePercentChange(value, previousValue) : 0;
+  const trendString = trend === 'up' ? 'increasing' : trend === 'down' ? 'decreasing' : 'stable';
   
   return {
     name,
     value,
     previousValue,
-    trend: mapTrendDirection(trend),
-    percentChange,
+    trend: trendString,
     unit,
     target
   };
