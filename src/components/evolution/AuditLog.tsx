@@ -1,115 +1,79 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AuditLog as AuditLogType, SystemEventModule } from '@/types/logs';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import { format } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
+import { AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters';
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
-import { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
+import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 
-export interface AuditLogProps {
-  title: string;
-  data: AuditLogType[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
+interface AuditLogProps {
+  title?: string;
+  subtitle?: string;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({ 
-  title, 
-  data, 
-  isLoading = false,
-  onRefresh
+export const AuditLog: React.FC<AuditLogProps> = ({
+  title = 'Audit Logs',
+  subtitle = 'Track changes across the system'
 }) => {
-  const [open, setOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [filters, setFilters] = useState<AuditLogFilter>({ searchTerm: '' });
+  const [activeTab, setActiveTab] = useState('all');
+  const [filters, setFilters] = useState<AuditLogFilterState>({});
+  
+  const { logs, isLoading, refetch } = useAuditLogData(filters);
 
-  const handleOpen = (log: AuditLogType) => {
-    setSelectedLog(log);
-    setOpen(true);
-  };
-
-  const handleFilterChange = (newFilters: AuditLogFilter) => {
+  const handleFilterChange = (newFilters: AuditLogFilterState) => {
     setFilters(newFilters);
   };
-
-  const filteredLogs = data.filter(log => {
-    const searchTermLower = filters.searchTerm?.toLowerCase() || '';
-    const matchesSearchTerm =
-      log.event.toLowerCase().includes(searchTermLower) ||
-      log.module.toLowerCase().includes(searchTermLower) ||
-      (log.description && log.description.toString().toLowerCase().includes(searchTermLower));
-
-    const matchesModule = !filters.module || log.module === filters.module;
-    
-    const matchesDateRange = !filters.dateRange?.from || (
-      new Date(log.created_at) >= filters.dateRange.from &&
-      (!filters.dateRange.to || new Date(log.created_at) <= filters.dateRange.to)
-    );
-
-    return matchesSearchTerm && matchesModule && matchesDateRange;
-  });
-
-  const modules: SystemEventModule[] = Array.from(new Set(data.map(log => log.module))) as SystemEventModule[];
-
-  const handleRefresh = () => {
-    if (onRefresh) {
-      onRefresh();
-    }
-  };
-
+  
   return (
-    <Card>
-      <CardHeader className="flex items-center justify-between">
+    <Card className="w-full">
+      <CardHeader>
         <CardTitle>{title}</CardTitle>
-        <div className="flex items-center space-x-2">
-          <AuditLogFilters 
-            onFilterChange={handleFilterChange}
-            modules={modules}
-            filters={filters}
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
-          />
-          {onRefresh && (
-            <Button variant="outline" onClick={onRefresh} disabled={isLoading}>
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          )}
-        </div>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
+        <Separator className="my-2" />
+        <AuditLogFilters 
+          filters={filters} 
+          onFilterChange={handleFilterChange}
+          onRefresh={refetch}
+          isLoading={isLoading}
+        />
       </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[450px] w-full overflow-auto">
-          <div className="divide-y divide-border">
-            {filteredLogs.map((log) => (
-              <div
-                key={log.id}
-                className="grid grid-cols-12 items-center gap-4 p-4 hover:bg-secondary"
-                onClick={() => handleOpen(log)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="col-span-2 text-xs text-muted-foreground">
-                  {format(new Date(log.created_at), 'MMM dd, yyyy hh:mm:ss')}
-                </div>
-                <div className="col-span-2">
-                  <Badge variant="secondary">{log.module}</Badge>
-                </div>
-                <div className="col-span-8">{log.event}</div>
-              </div>
-            ))}
-            {filteredLogs.length === 0 && (
-              <div className="p-4 text-center text-muted-foreground">
-                No logs found.
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
       
-      {selectedLog && (
-        <LogDetailDialog log={selectedLog} open={open} onOpenChange={setOpen} />
-      )}
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="mb-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all">All Activity</TabsTrigger>
+              <TabsTrigger value="user">User Events</TabsTrigger>
+              <TabsTrigger value="content">Content Changes</TabsTrigger>
+              <TabsTrigger value="system">System Events</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="all">
+            <SystemLogsList logs={logs} isLoading={isLoading} />
+          </TabsContent>
+          
+          <TabsContent value="user">
+            <SystemLogsList logs={logs.filter(log => 
+              log.module === 'user' || log.module === 'auth'
+            )} isLoading={isLoading} />
+          </TabsContent>
+          
+          <TabsContent value="content">
+            <SystemLogsList logs={logs.filter(log => 
+              log.module === 'strategy' || log.module === 'plugin' || log.module === 'agent'
+            )} isLoading={isLoading} />
+          </TabsContent>
+          
+          <TabsContent value="system">
+            <SystemLogsList logs={logs.filter(log => 
+              log.module === 'system' || log.module === 'billing' || log.module === 'tenant'
+            )} isLoading={isLoading} />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
     </Card>
   );
 };

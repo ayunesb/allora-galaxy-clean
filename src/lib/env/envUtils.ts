@@ -18,9 +18,14 @@ export function getEnv(key: string): string | undefined {
     return import.meta.env[key];
   }
   
-  // Try Deno environment 
-  if (typeof Deno !== 'undefined' && Deno.env && typeof Deno.env.get === 'function') {
-    return Deno.env.get(key);
+  // Try Deno environment - using a type-safe approach
+  try {
+    const deno = (globalThis as any).Deno;
+    if (deno && typeof deno.env?.get === 'function') {
+      return deno.env.get(key);
+    }
+  } catch (e) {
+    // Ignore errors if Deno is not available
   }
 
   // Try Node.js environment
@@ -88,3 +93,49 @@ export function getEnvsByPrefix(prefix: string): Record<string, string> {
   
   return result;
 }
+
+// Environment object for convenient access
+export const ENV = {
+  // Core application environment
+  NODE_ENV: getEnvWithDefault('NODE_ENV', 'development'),
+  APP_URL: getEnvWithDefault('VITE_APP_URL', 'http://localhost:3000'),
+  
+  // Supabase configuration
+  SUPABASE_URL: getEnvWithDefault('VITE_SUPABASE_URL', ''),
+  SUPABASE_ANON_KEY: getEnvWithDefault('VITE_SUPABASE_ANON_KEY', ''),
+  SUPABASE_SERVICE_KEY: getEnvWithDefault('SUPABASE_SERVICE_ROLE_KEY', ''),
+  
+  // Integration APIs
+  STRIPE_PUBLISHABLE_KEY: getEnvWithDefault('VITE_STRIPE_PUBLISHABLE_KEY', ''),
+  OPENAI_API_KEY: getEnvWithDefault('OPENAI_API_KEY', ''),
+  HUBSPOT_API_KEY: getEnvWithDefault('HUBSPOT_API_KEY', ''),
+  
+  // Analytics
+  GA_MEASUREMENT_ID: getEnvWithDefault('VITE_GA_MEASUREMENT_ID', ''),
+};
+
+// CORS headers for edge functions
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
+
+// Get base URL for the current environment
+export function getBaseUrl(): string {
+  return ENV.APP_URL;
+}
+
+// Safe environment variable getter that logs warnings for missing critical variables
+export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
+  const value = getEnv(key) || defaultValue;
+  
+  if (required && (value === defaultValue || value === "")) {
+    console.warn(`⚠️ Critical environment variable ${key} is missing!`);
+  }
+  
+  return value;
+}
+
+// For backward compatibility
+export { getEnvWithDefault as getEnvVar };

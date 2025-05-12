@@ -3,10 +3,10 @@
  * Centralized exports for edge function utilities
  */
 
-// Re-export error handling utilities with fallbacks
+// Re-export error handling utilities
 export { 
   corsHeaders,
-  handleExecutionError,
+  handleEdgeError,
   handleCorsPreflightRequest,
   generateRequestId,
   createSuccessResponse,
@@ -15,6 +15,7 @@ export {
   type SuccessResponseData
 } from './errorHandler';
 
+// Re-export environment variables utilities
 export {
   ENV,
   getEnv,

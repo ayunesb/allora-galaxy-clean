@@ -122,3 +122,73 @@ export const withErrorHandling = (handler: Function) => {
     }
   };
 };
+
+// CORS headers for edge functions
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
+
+// Handle CORS preflight requests
+export const handleCorsPreflightRequest = (req: Request): Response => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  return new Response('Method not allowed', { status: 405 });
+};
+
+// Generate a unique request ID
+export const generateRequestId = (): string => {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
+};
+
+// Interface for error response data
+export interface ErrorResponseData {
+  error: {
+    message: string;
+    code: string;
+    details?: Record<string, any>;
+  };
+}
+
+// Interface for success response data
+export interface SuccessResponseData<T = any> {
+  data: T;
+  meta?: Record<string, any>;
+}
+
+// Create a standardized success response
+export function createSuccessResponse<T = any>(data: T, status: number = 200, meta?: Record<string, any>): Response {
+  const responseBody: SuccessResponseData<T> = {
+    data,
+    ...(meta && { meta })
+  };
+
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders
+    }
+  });
+}
+
+// Create a standardized error response
+export function createErrorResponse(message: string, code: string, status: number = 400, details?: Record<string, any>): Response {
+  const responseBody: ErrorResponseData = {
+    error: {
+      message,
+      code,
+      ...(details && { details })
+    }
+  };
+
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders
+    }
+  });
+}

@@ -104,9 +104,12 @@ export function useUserData() {
 
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
-    const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
-    const email = user.profiles?.email?.[0]?.email?.toLowerCase() || '';
+    if (!user.profiles) return false;
+    
+    const fullName = `${user.profiles.first_name || ''} ${user.profiles.last_name || ''}`.toLowerCase();
+    const email = user.profiles.email?.[0]?.email?.toLowerCase() || '';
     const query = searchQuery.toLowerCase();
+    
     return fullName.includes(query) || email.includes(query);
   });
 

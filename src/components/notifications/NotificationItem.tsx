@@ -3,7 +3,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { NotificationContent } from '@/types/notifications';
+import { NotificationContent, NotificationType } from '@/types/notifications';
 import { 
   Bell, 
   CheckCircle, 

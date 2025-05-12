@@ -20,8 +20,8 @@ export const useNotificationData = (tabFilter: string | null = null) => {
       title: notification.title,
       message: notification.description || '',
       timestamp: notification.created_at,
-      read: notification.is_read || false,
-      type: notification.type,
+      read: !!notification.is_read || !!notification.read_at,
+      type: notification.type as NotificationType,
       action_url: notification.action_url,
       action_label: notification.action_label
     }));
@@ -33,10 +33,10 @@ export const useNotificationData = (tabFilter: string | null = null) => {
     if (!tabFilter || tabFilter === 'all') {
       setFilteredNotifications(transformed);
     } else if (tabFilter === 'unread') {
-      setFilteredNotifications(transformed.filter(n => !n.read));
+      setFilteredNotifications(transformed.filter((n) => !n.read));
     } else {
       // Filter by notification type
-      setFilteredNotifications(transformed.filter(n => n.type === tabFilter));
+      setFilteredNotifications(transformed.filter((n) => n.type === tabFilter));
     }
   }, [notifications, tabFilter, transformNotifications]);
 

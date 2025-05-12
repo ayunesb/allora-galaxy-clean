@@ -1,189 +1,132 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData';
-import { completeOnboarding } from '@/services/onboardingService';
-import { useOnboardingStore } from '@/lib/onboarding/onboardingState';
-import { trackOnboardingStepCompleted, trackOnboardingStepView } from '@/lib/onboarding/onboardingAnalytics';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { useStrategyGeneration } from '@/hooks/useStrategyGeneration';
+import { OnboardingStep } from '@/types/shared';
+import { OnboardingFormData } from '@/types/onboarding';
 
-/**
- * Main hook for managing the onboarding wizard
- */
 export function useOnboardingWizard() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { isGenerating, generateStrategy } = useStrategyGeneration();
+
+  // Current step in the onboarding process
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   
-  // Get state from store
-  const {
-    currentStep,
-    formData,
-    isSubmitting,
-    updateFormData,
-    setField,
-    setStep,
-    nextStep,
-    prevStep,
-    setSubmitting,
-    setComplete
-  } = useOnboardingStore();
-  
-  // Define steps
-  const steps = [
-    { id: 'company-info' as OnboardingStep, label: 'Company Info' },
-    { id: 'persona' as OnboardingStep, label: 'Target Persona' },
-    { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
-    { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
-  ];
-  
-  const step = steps[currentStep ?? 0];
-  
-  // Track step view
-  const trackStepView = useCallback(() => {
-    if (user) {
-      trackOnboardingStepView(user.id, step.id);
+  // Form data state
+  const [formData, setFormData] = useState<OnboardingFormData>({
+    companyInfo: {
+      name: '',
+      industry: '',
+      size: '',
+    },
+    persona: {
+      name: '',
+      goals: [],
+      tone: 'professional',
+    },
+    additionalInfo: {
+      targetAudience: '',
+      keyCompetitors: '',
+      uniqueSellingPoints: '',
     }
-  }, [step?.id, user]);
-  
-  // Validate current step
-  const validateCurrentStep = () => {
-    const stepId = steps[currentStep ?? 0].id;
-    const validation = validateOnboardingData(formData, stepId);
-    
-    if (!validation.valid) {
-      // Show validation errors
-      toast({
-        title: "Validation Error",
-        description: Object.values(validation.errors).join(', '),
-        variant: "destructive"
-      });
-    }
-    
-    return validation;
-  };
-  
-  // Check if current step is valid
-  const isStepValid = () => {
-    const stepId = steps[currentStep ?? 0].id;
-    return validateOnboardingData(formData, stepId).valid;
-  };
-  
-  // Handle step navigation
-  const handleStepClick = (index: number) => {
-    // Only allow going to completed steps or next step
-    if (index <= (currentStep ?? 0) + 1) {
-      setStep(index);
-      trackStepView();
-    }
-  };
-  
-  // Handle next step
-  const handleNextStep = () => {
-    const validation = validateCurrentStep();
-    
-    if (!validation.valid) {
-      return false;
-    }
-    
-    if ((currentStep ?? 0) < steps.length - 1) {
-      // Track step completion
-      if (user) {
-        trackOnboardingStepCompleted(user.id, steps[currentStep ?? 0].id);
+  });
+
+  // Handle form data updates
+  const updateFormData = (
+    section: keyof OnboardingFormData,
+    data: Partial<OnboardingFormData[keyof OnboardingFormData]>
+  ) => {
+    setFormData(prevData => ({
+      ...prevData,
+      [section]: {
+        ...prevData[section],
+        ...data
       }
-      
-      nextStep();
-      trackStepView();
-      return true;
-    }
-    
-    return false;
+    }));
   };
-  
-  // Handle previous step
-  const handlePrevStep = () => {
-    if ((currentStep ?? 0) > 0) {
-      prevStep();
-      trackStepView();
+
+  // Progress to the next step
+  const nextStep = () => {
+    switch (currentStep) {
+      case 'welcome':
+        setCurrentStep('company_info');
+        break;
+      case 'company_info':
+        setCurrentStep('persona');
+        break;
+      case 'persona':
+        setCurrentStep('additional_info');
+        break;
+      case 'additional_info':
+        setCurrentStep('strategy_generation');
+        break;
+      case 'strategy_generation':
+        setCurrentStep('complete');
+        break;
+      case 'complete':
+        navigate('/dashboard');
+        break;
     }
   };
-  
-  // Handle form submission
+
+  // Go back to previous step
+  const prevStep = () => {
+    switch (currentStep) {
+      case 'company_info':
+        setCurrentStep('welcome');
+        break;
+      case 'persona':
+        setCurrentStep('company_info');
+        break;
+      case 'additional_info':
+        setCurrentStep('persona');
+        break;
+      case 'strategy_generation':
+        setCurrentStep('additional_info');
+        break;
+      case 'complete':
+        setCurrentStep('strategy_generation');
+        break;
+    }
+  };
+
+  // Submit onboarding data and generate initial strategy
   const handleSubmit = async () => {
-    if (!user) {
-      setError('User must be logged in to complete onboarding');
-      toast({
-        title: 'Authentication Error',
-        description: 'You must be logged in to complete onboarding',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
     try {
-      setSubmitting(true);
-      setError(null);
+      const result = await generateStrategy(formData);
       
-      // Complete the onboarding process
-      const result = await completeOnboarding(user.id, formData);
-      
-      if (result.success && result.tenantId) {
+      if (result.success) {
         toast({
-          title: 'Welcome to Allora OS!',
-          description: 'Your workspace has been created successfully.',
+          title: 'Onboarding complete!',
+          description: 'Your strategy has been generated successfully',
         });
-        
-        // Mark onboarding as complete
-        setComplete(true, result.tenantId);
-        
-        // Navigate to dashboard
+        nextStep();
         navigate('/dashboard');
       } else {
-        setError(result.error || 'Failed to create workspace');
         toast({
-          title: 'Error',
-          description: result.error || 'Failed to create workspace',
+          title: 'Onboarding failed',
+          description: result.error || 'Something went wrong',
           variant: 'destructive',
         });
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: err.message || 'An unexpected error occurred',
+        description: error.message || 'Failed to complete onboarding',
         variant: 'destructive',
       });
-      console.error('Onboarding error:', err);
-    } finally {
-      setSubmitting(false);
     }
   };
-  
-  const resetError = () => setError(null);
-  
-  // Initialize step tracking
-  useState(() => {
-    trackStepView();
-  });
-  
+
   return {
-    steps,
     currentStep,
-    step,
     formData,
-    error,
-    isSubmitting,
+    isGenerating,
     updateFormData,
-    setFieldValue: setField,
-    handleStepClick,
-    handleNextStep,
-    handlePrevStep,
+    nextStep,
+    prevStep,
     handleSubmit,
-    isStepValid,
-    resetError,
-    validateCurrentStep
   };
 }
