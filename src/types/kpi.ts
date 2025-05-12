@@ -18,9 +18,7 @@ export interface KPITrendObject {
 
 // KPI data structure
 export interface KPI {
-  name: string;
-  current_value: number;
+  value: number;
+  unit: string;
   previous_value?: number;
-  category: string;
-  period: 'daily' | 'monthly' | 'quarterly';
 }

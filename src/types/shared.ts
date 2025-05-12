@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 export interface DateRange {
   from: Date;
-  to: Date;
+  to?: Date;
 }
 
 export interface MenuItem {

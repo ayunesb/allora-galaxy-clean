@@ -36,6 +36,7 @@ export type {
 
 export type * from './notifications';
 export type * from './galaxy';
+export * from './admin';
 
 // DateRange type used for date filters - now defined to match react-day-picker's DateRange
 export interface DateRange {

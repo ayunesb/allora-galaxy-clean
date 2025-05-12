@@ -12,4 +12,11 @@ export default defineConfig({
   rules: {
     // Add your custom rules here if needed
   },
+  ignores: [
+    "node_modules",
+    "dist",
+    ".vite",
+    "build",
+    "coverage"
+  ]
 });

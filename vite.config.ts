@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'three-bmfont-text': path.resolve(__dirname, 'src/lib/shims/three-bmfont-text.ts'),
+      'react-fast-compare': 'react-fast-compare/index.js', // 👈 Add this alias
     },
   },
   build: {
@@ -34,7 +34,8 @@ export default defineConfig({
   },
   server: {
     port: 8080,
-    host: "::"
+    host: "::",
+    historyApiFallback: true, // For React Router SPA fallback
   },
   optimizeDeps: {
     exclude: [
@@ -47,7 +48,7 @@ export default defineConfig({
         global: 'globalThis',
       },
     },
-    include: ['react-helmet-async'],
+    include: ['react-helmet-async', '@tanstack/react-query'], // 👈 Add this line
   }
 });
 

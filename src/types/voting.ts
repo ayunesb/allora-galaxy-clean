@@ -1,6 +1,5 @@
-
 // Voting related types
-export type VoteType = 'upvote' | 'downvote';
+export type VoteType = 'up' | 'down';
 
 export interface AgentVote {
   id: string;
