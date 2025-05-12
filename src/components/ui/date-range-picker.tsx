@@ -11,7 +11,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { DayPickerRangeProps } from "react-day-picker";
 
 interface DateRangePickerProps {
   value?: DateRange;

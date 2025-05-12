@@ -5,9 +5,11 @@ import CronJobsMonitoring from './cron/CronJobsMonitoring';
 import UserTable, { User } from './users/UserTable';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboardContent = () => {
   const { currentWorkspace } = useWorkspace();
+  const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,18 +27,18 @@ const AdminDashboardContent = () => {
             role,
             created_at,
             user_id,
-            profiles:user_id (
+            profiles:user_id(
               first_name,
               last_name,
               avatar_url,
-              email:auth.users!user_id (email)
+              email:id(email)
             )
           `)
           .eq('tenant_id', currentWorkspace.id);
           
         if (error) throw error;
         
-        if (data) {
+        if (data && Array.isArray(data)) {
           // Transform the data to match the User type
           const typedUsers: User[] = data.map(item => ({
             id: item.id,
@@ -48,15 +50,20 @@ const AdminDashboardContent = () => {
           
           setUsers(typedUsers);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching users:', error);
+        toast({
+          title: "Error fetching users",
+          description: error.message || "Failed to load users",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchUsers();
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, toast]);
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
@@ -78,8 +85,18 @@ const AdminDashboardContent = () => {
       setUsers(users.map(user => 
         user.user_id === userId ? { ...user, role: newRole } : user
       ));
-    } catch (error) {
+      
+      toast({
+        title: "Role updated",
+        description: `User role updated to ${newRole}`
+      });
+    } catch (error: any) {
       console.error('Error updating user role:', error);
+      toast({
+        title: "Error updating role",
+        description: error.message || "Failed to update role",
+        variant: "destructive"
+      });
     }
   };
 
@@ -97,8 +114,18 @@ const AdminDashboardContent = () => {
       
       // Update local state
       setUsers(users.filter(user => user.user_id !== userId));
-    } catch (error) {
+      
+      toast({
+        title: "User removed",
+        description: "User has been removed from the workspace"
+      });
+    } catch (error: any) {
       console.error('Error removing user:', error);
+      toast({
+        title: "Error removing user",
+        description: error.message || "Failed to remove user",
+        variant: "destructive"
+      });
     }
   };
 

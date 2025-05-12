@@ -4,7 +4,7 @@ import { OnboardingStep } from '@/types/shared';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 export interface OnboardingStepItem {
-  id: OnboardingStep;
+  id: string;
   label: string;
 }
 

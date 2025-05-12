@@ -47,14 +47,13 @@ export function formatKPIValue(value: number, unit: string): string {
 }
 
 export function createKPITrend(name: string, current: number, previous: number | null | undefined, unit: string, target?: number): KPITrend {
-  const trend = calculateTrendDirection(current, previous);
-  const trendString = trend === 'up' ? 'increasing' : trend === 'down' ? 'decreasing' : 'stable';
+  const direction = calculateTrendDirection(current, previous);
 
   return {
     name,
     value: current,
     previousValue: previous || undefined,
-    trend: trendString,
+    direction,
     unit,
     target
   };
@@ -65,31 +64,29 @@ export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
     name,
     value: 0,
     previousValue: undefined,
-    trend: 'stable',
+    direction: 'neutral',
     unit
   };
 }
 
 export function analyzeKPITrend(kpi: KPI): KPITrend {
-  let trend: TrendDirection = 'neutral';
+  let direction: TrendDirection = 'neutral';
   
   if (kpi.previous_value !== null && kpi.previous_value !== undefined) {
     if (kpi.value > kpi.previous_value) {
-      trend = 'up';
+      direction = 'up';
     } else if (kpi.value < kpi.previous_value) {
-      trend = 'down';
+      direction = 'down';
     } else {
-      trend = 'neutral';
+      direction = 'neutral';
     }
   }
-  
-  const trendString = trend === 'up' ? 'increasing' : trend === 'down' ? 'decreasing' : 'stable';
   
   return {
     name: kpi.name,
     value: kpi.value,
     previousValue: kpi.previous_value || undefined,
-    trend: trendString,
+    direction,
     unit: kpi.unit,
     target: kpi.target || undefined
   };
@@ -99,7 +96,7 @@ export function createMockKPITrend(config: {
   name: string;
   value: number;
   previousValue?: number;
-  trend?: TrendDirection;
+  direction?: TrendDirection;
   unit?: string;
   target?: number;
 }): KPITrend {
@@ -111,24 +108,22 @@ export function createMockKPITrend(config: {
     target
   } = config;
   
-  let trend = config.trend || 'neutral';
-  if (!config.trend) {
+  let direction = config.direction || 'neutral';
+  if (!config.direction) {
     if (value > previousValue) {
-      trend = 'up';
+      direction = 'up';
     } else if (value < previousValue) {
-      trend = 'down';
+      direction = 'down';
     } else {
-      trend = 'neutral';
+      direction = 'neutral';
     }
   }
-  
-  const trendString = trend === 'up' ? 'increasing' : trend === 'down' ? 'decreasing' : 'stable';
   
   return {
     name,
     value,
     previousValue,
-    trend: trendString,
+    direction,
     unit,
     target
   };
