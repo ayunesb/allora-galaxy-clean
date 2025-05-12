@@ -18,5 +18,5 @@ export { default as StrategyLoadingSkeleton } from './strategy/StrategyLoadingSk
 // Export hooks
 export { useStrategyEvolution } from './strategy/useStrategyEvolution';
 
-// Export types
+// Export types from AuditLogFilters
 export type { LogFilter } from './logs/AuditLogFilters';

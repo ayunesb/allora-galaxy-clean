@@ -1,10 +1,8 @@
+
 import { DateRange } from '@/types/shared';
-import React, { useState } from 'react';
 import { DatePicker } from 'antd';
 
 const DateRangePicker = () => {
-  const [dateRange, setDateRange] = useState<Partial<DateRange>>({});
-
   const handleDateChange = (range: Partial<DateRange>) => {
     if (range.from) {
       // Ensure `from` is always defined
@@ -13,17 +11,23 @@ const DateRangePicker = () => {
     if (range.to) {
       console.log('End date:', range.to);
     }
-    setDateRange(range);
   };
 
   return (
     <div>
       <DatePicker.RangePicker
         onChange={(dates) => {
-          handleDateChange({
-            from: dates ? dates[0].toDate() : undefined,
-            to: dates ? dates[1].toDate() : undefined,
-          });
+          if (dates && dates[0] && dates[1]) {
+            handleDateChange({
+              from: dates[0].toDate(),
+              to: dates[1].toDate(),
+            });
+          } else {
+            handleDateChange({
+              from: undefined,
+              to: undefined,
+            });
+          }
         }}
       />
     </div>

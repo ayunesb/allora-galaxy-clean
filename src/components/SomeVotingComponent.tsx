@@ -1,5 +1,6 @@
-import { VoteType } from '@/types/voting';
-import React, { useState } from 'react';
+
+import { VoteType } from '@/types/shared';
+import { useState } from 'react';
 
 const SomeVotingComponent = () => {
   const [vote, setVote] = useState<VoteType | null>(null);

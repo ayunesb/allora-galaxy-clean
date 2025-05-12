@@ -1,48 +1,35 @@
 
-// Logs related types
-export interface SystemLog {
+import { Json } from './supabase';
+import { SystemEventModule, SystemEventType } from './shared';
+
+export interface BaseLog {
   id: string;
-  module: string;
-  event: string;
-  description?: string; 
-  context?: Record<string, any>;
   created_at: string;
-  tenant_id?: string;
-  level?: string;
-  metadata?: Record<string, any>; // Added to ensure compatibility with AuditLog
+  tenant_id?: string | null;
 }
 
-export interface AuditLog {
-  id: string;
+export interface AuditLog extends BaseLog {
+  event_type: string;
   entity_type: string;
   entity_id: string;
-  user_id: string;
-  event_type: string;
-  description: string;
-  metadata?: Record<string, any>;
-  created_at: string;
-  module?: string;
-  tenant_id?: string;
-  event?: string; // For compatibility with SystemLog
-  context?: Record<string, any>; // For compatibility with SystemLog
+  description?: string | null;
+  user_id?: string | null;
+  metadata?: Record<string, any> | null;
 }
 
-// Log status type
-export type LogStatus = 'success' | 'failure' | 'warning' | 'info' | 'error' | 'pending';
+export interface SystemLog extends BaseLog {
+  module: SystemEventModule;
+  event: SystemEventType;
+  description?: string | null;
+  context?: Json | null;
+  tenant_id?: string | null;
+}
 
-// System event module type for logs
-export type SystemEventModule = 
-  | 'auth' 
-  | 'strategy' 
-  | 'plugin' 
-  | 'agent' 
-  | 'webhook' 
-  | 'notification' 
-  | 'system'
-  | 'billing'
-  | 'execution'
-  | 'email'
-  | 'onboarding';
-
-// System event type for logs
-export type SystemEventType = string;
+export interface LogHistoryFilter {
+  module?: string;
+  event_type?: string;
+  entity_type?: string;
+  from_date?: string;
+  to_date?: string;
+  user_id?: string;
+}
