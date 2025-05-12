@@ -1,11 +1,25 @@
 
 /**
  * This is a TypeScript shim for three-bmfont-text to prevent import errors.
- * It provides just enough functionality to avoid breaking builds.
+ * It provides just enough functionality to avoid breaking builds while using
+ * the npm package when available.
  */
 
 // Basic constructor that takes options
 function createTextGeometry(text: string, options: any = {}) {
+  // If the actual package is available, use it
+  try {
+    // Try to use the actual npm package
+    const actualPackage = require('three-bmfont-text');
+    if (typeof actualPackage === 'function') {
+      return actualPackage(text, options);
+    }
+  } catch (e) {
+    // Fallback to our shim implementation
+    console.warn('Using three-bmfont-text shim');
+  }
+
+  // Shim implementation
   return {
     text,
     position: { x: 0, y: 0, z: 0 },
