@@ -1,3 +1,4 @@
+
 // Onboarding step type
 export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
@@ -24,25 +25,26 @@ export interface OnboardingFormData {
 
 // Define onboarding state
 export interface OnboardingState {
-  currentStep: number;
+  step: OnboardingStep;
   formData: OnboardingFormData;
   isSubmitting: boolean;
   isComplete: boolean;
+  tenantId?: string;
   error: string | null;
 }
 
-// Define onboarding actions
-export type OnboardingAction =
-  | { type: 'NEXT_STEP' }
-  | { type: 'PREV_STEP' }
-  | { type: 'SET_STEP'; payload: number }
-  | { type: 'UPDATE_FORM'; payload: Partial<OnboardingFormData> }
-  | { type: 'SET_SUBMITTING'; payload: boolean }
-  | { type: 'SET_COMPLETE'; payload: boolean }
-  | { type: 'RESET' };
-
-// Define validation result
-export interface ValidationResult {
-  valid: boolean;
-  errors: Record<string, string>;
+// Define zustand state actions
+export interface OnboardingStateActions {
+  nextStep: () => void;
+  prevStep: () => void;
+  setStep: (step: OnboardingStep) => void;
+  updateFormData: (data: Partial<OnboardingFormData>) => void;
+  setField: (key: string, value: any) => void;
+  reset: () => void;
+  setSubmitting: (isSubmitting: boolean) => void;
+  setComplete: (isComplete: boolean, tenantId?: string) => void;
+  validateStep: (step: OnboardingStep) => boolean;
 }
+
+// Combined type for the onboarding store
+export type OnboardingStore = OnboardingState & OnboardingStateActions;

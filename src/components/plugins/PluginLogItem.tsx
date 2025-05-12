@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { PluginLog } from '@/types';
+import { PluginLog } from '@/types/plugin';
 
 interface PluginLogItemProps {
   log: PluginLog;
@@ -51,7 +51,7 @@ export const PluginLogItem: React.FC<PluginLogItemProps> = ({ log }) => {
                   Plugin Execution
                 </h4>
                 <Badge 
-                  variant={log.status === 'success' ? 'success' : log.status === 'failure' ? 'destructive' : 'outline'}
+                  variant={log.status === 'success' ? 'success' : log.status === 'failure' || log.status === 'error' ? 'destructive' : 'outline'}
                   className="ml-2"
                 >
                   {log.status}

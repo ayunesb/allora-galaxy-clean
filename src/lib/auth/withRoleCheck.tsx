@@ -3,9 +3,10 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import { useTenantRole } from '@/hooks/useTenantRole';
+import { UserRole } from '@/types/user';
 
 export interface WithRoleCheckProps {
-  roles: string[];
+  roles: UserRole[];
 }
 
 export const withRoleCheck = <P extends {}>(
@@ -28,7 +29,7 @@ export const withRoleCheck = <P extends {}>(
     }
 
     // Check if user has the required role
-    if (role && roles.includes(role)) {
+    if (role && roles.includes(role as UserRole)) {
       return <Component {...props} />;
     }
 

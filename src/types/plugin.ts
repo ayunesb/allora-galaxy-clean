@@ -15,10 +15,13 @@ export interface Plugin {
   roi?: number;
 }
 
+// Plugin log status - include 'error' as a valid status
+export type PluginLogStatus = 'success' | 'failure' | 'pending' | 'error';
+
 export interface PluginLog {
   id: string;
   plugin_id: string;
-  status: 'success' | 'failure' | 'pending';
+  status: PluginLogStatus;
   input?: Record<string, any>;
   output?: Record<string, any>;
   error?: string;

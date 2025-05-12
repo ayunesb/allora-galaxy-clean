@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { OnboardingFormData, OnboardingState, OnboardingAction, OnboardingStep } from '@/types/onboarding';
+import { OnboardingFormData, OnboardingState, OnboardingStep, OnboardingStore } from '@/types/onboarding';
 
 // Initial form data state
 const initialFormData: OnboardingFormData = {
@@ -21,21 +21,68 @@ const initialFormData: OnboardingFormData = {
 
 // Initial onboarding state
 const initialState: OnboardingState = {
-  currentStep: 0,
+  step: 'welcome', // Use an OnboardingStep value
   formData: initialFormData,
   isComplete: false,
   tenantId: undefined,
   isSubmitting: false,
+  error: null
 };
 
 // Create onboarding store
-export const useOnboardingStore = create<OnboardingState & OnboardingAction>((set) => ({
+export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   ...initialState,
   
   // Step navigation
-  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 3) })),
-  prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 0) })),
-  setStep: (step: number) => set({ currentStep: step }),
+  nextStep: () => {
+    const currentStep = get().step;
+    let nextStep: OnboardingStep = 'welcome';
+    
+    switch (currentStep) {
+      case 'welcome':
+        nextStep = 'company-info';
+        break;
+      case 'company-info':
+        nextStep = 'persona';
+        break;
+      case 'persona':
+        nextStep = 'additional-info';
+        break;
+      case 'additional-info':
+        nextStep = 'strategy-generation';
+        break;
+      default:
+        nextStep = 'completed';
+    }
+    
+    set({ step: nextStep });
+  },
+  
+  prevStep: () => {
+    const currentStep = get().step;
+    let prevStep: OnboardingStep = 'welcome';
+    
+    switch (currentStep) {
+      case 'company-info':
+        prevStep = 'welcome';
+        break;
+      case 'persona':
+        prevStep = 'company-info';
+        break;
+      case 'additional-info':
+        prevStep = 'persona';
+        break;
+      case 'strategy-generation':
+        prevStep = 'additional-info';
+        break;
+      default:
+        prevStep = 'welcome';
+    }
+    
+    set({ step: prevStep });
+  },
+  
+  setStep: (step: OnboardingStep) => set({ step }),
   
   // Form data management
   updateFormData: (data: Partial<OnboardingFormData>) => 
@@ -79,7 +126,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingAction>((se
   
   // Validation helpers
   validateStep: (step: OnboardingStep): boolean => {
-    const state = useOnboardingStore.getState();
+    const state = get();
     
     switch (step) {
       case 'company-info':

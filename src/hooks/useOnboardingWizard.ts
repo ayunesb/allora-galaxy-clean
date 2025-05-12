@@ -20,7 +20,7 @@ export function useOnboardingWizard() {
   
   // Get state from store
   const {
-    currentStep,
+    step,
     formData,
     isSubmitting,
     updateFormData,
@@ -40,14 +40,15 @@ export function useOnboardingWizard() {
     { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
   ];
   
-  const step = steps[currentStep];
+  // Get current step index
+  const currentStep = steps.findIndex(s => s.id === step);
   
   // Track step view
   const trackStepView = useCallback(() => {
     if (user) {
-      trackOnboardingStepView(user.id, step.id);
+      trackOnboardingStepView(user.id, step);
     }
-  }, [step.id, user]);
+  }, [step, user]);
   
   // Validate current step
   const validateCurrentStep = () => {
@@ -76,7 +77,7 @@ export function useOnboardingWizard() {
   const handleStepClick = (index: number) => {
     // Only allow going to completed steps or next step
     if (index <= currentStep + 1) {
-      setStep(index);
+      setStep(steps[index].id);
       trackStepView();
     }
   };

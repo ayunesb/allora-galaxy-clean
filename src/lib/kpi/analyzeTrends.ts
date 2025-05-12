@@ -1,43 +1,35 @@
 
-import { KPITrend, TrendDirection } from '@/types/shared';
+import { KPITrendObject, KPI } from '@/types/kpi';
+import { TrendDirection } from '@/types/trends';
 import { calculatePercentChange } from '@/lib/utils';
 
-// Define the KPI interface locally if not exported from shared types
-interface KPI {
-  id: string;
-  name: string;
-  value: number;
-  previous_value?: number | null;
-  unit: string;
-  target?: number | null;
-  category: string;
-  period: string;
-  source?: string;
-  date: string;
-  tenant_id: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: Record<string, any>;
-}
-
+/**
+ * Calculate the trend direction based on current and previous values
+ */
 export function calculateTrendDirection(current: number, previous: number | null | undefined): TrendDirection {
   if (previous === null || previous === undefined) {
     return 'neutral';
   }
   
   if (current > previous) {
-    return 'up';
+    return 'increasing';
   } else if (current < previous) {
-    return 'down';
+    return 'decreasing';
   }
   
-  return 'neutral';
+  return 'stable';
 }
 
+/**
+ * Check if the trend direction is positive
+ */
 export function isPositiveTrend(direction: TrendDirection): boolean {
-  return direction === 'up';
+  return direction === 'up' || direction === 'increasing';
 }
 
+/**
+ * Format a KPI value with appropriate unit
+ */
 export function formatKPIValue(value: number, unit: string): string {
   if (unit === '%') {
     return `${value.toFixed(1)}%`;
@@ -48,7 +40,10 @@ export function formatKPIValue(value: number, unit: string): string {
   return value.toLocaleString();
 }
 
-export function createKPITrend(name: string, current: number, previous: number | null | undefined, unit: string, target?: number): KPITrend {
+/**
+ * Create a KPI trend object from raw values
+ */
+export function createKPITrend(name: string, current: number, previous: number | null | undefined, unit: string, target?: number): KPITrendObject {
   const trend = calculateTrendDirection(current, previous);
   const percentChange = previous !== null && previous !== undefined ? calculatePercentChange(current, previous) : 0;
 
@@ -63,30 +58,29 @@ export function createKPITrend(name: string, current: number, previous: number |
   };
 }
 
-export function createEmptyTrend(name: string, unit: string = ''): KPITrend {
+/**
+ * Create an empty trend object with default values
+ */
+export function createEmptyTrend(name: string, unit: string = ''): KPITrendObject {
   return {
     name,
     value: 0,
     previousValue: undefined,
-    trend: 'neutral',
+    trend: 'stable',
     percentChange: 0,
     unit
   };
 }
 
-export function analyzeKPITrend(kpi: KPI): KPITrend {
+/**
+ * Analyze a KPI object and convert it to a KPITrendObject
+ */
+export function analyzeKPITrend(kpi: KPI): KPITrendObject {
   let trend: TrendDirection = 'neutral';
   let percentChange = 0;
   
   if (kpi.previous_value !== null && kpi.previous_value !== undefined) {
-    if (kpi.value > kpi.previous_value) {
-      trend = 'up';
-    } else if (kpi.value < kpi.previous_value) {
-      trend = 'down';
-    } else {
-      trend = 'neutral';
-    }
-    
+    trend = calculateTrendDirection(kpi.value, kpi.previous_value);
     percentChange = calculatePercentChange(kpi.value, kpi.previous_value);
   }
   
@@ -101,6 +95,9 @@ export function analyzeKPITrend(kpi: KPI): KPITrend {
   };
 }
 
+/**
+ * Create a mock KPI trend for testing/preview
+ */
 export function createMockKPITrend(config: {
   name: string;
   value: number;
@@ -108,7 +105,7 @@ export function createMockKPITrend(config: {
   trend?: TrendDirection;
   unit?: string;
   target?: number;
-}): KPITrend {
+}): KPITrendObject {
   const {
     name,
     value,
@@ -117,15 +114,9 @@ export function createMockKPITrend(config: {
     target
   } = config;
   
-  let trend = config.trend || 'neutral';
+  let trend: TrendDirection = config.trend || 'stable';
   if (!config.trend) {
-    if (value > previousValue) {
-      trend = 'up';
-    } else if (value < previousValue) {
-      trend = 'down';
-    } else {
-      trend = 'neutral';
-    }
+    trend = calculateTrendDirection(value, previousValue);
   }
   
   const percentChange = previousValue ? calculatePercentChange(value, previousValue) : 0;

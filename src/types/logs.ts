@@ -9,6 +9,7 @@ export interface SystemLog {
   created_at: string;
   tenant_id?: string;
   level?: string;
+  metadata?: Record<string, any>; // Added to ensure compatibility with AuditLog
 }
 
 export interface AuditLog {

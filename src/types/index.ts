@@ -18,5 +18,11 @@ export type * from './onboarding';
 export type * from './notifications';
 export type * from './galaxy';
 
+// DateRange type used for date filters
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
+
 // Also re-export from shared for backward compatibility
 export type * from './shared';
