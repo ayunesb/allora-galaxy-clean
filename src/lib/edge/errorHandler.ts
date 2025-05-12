@@ -1,7 +1,10 @@
 
-import { corsHeaders } from './index';
-
-export { corsHeaders };
+// Define CORS headers directly in this file to avoid circular imports
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
 
 export interface ErrorResponseData {
   success: false;

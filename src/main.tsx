@@ -6,6 +6,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { routes } from '@/routes';
 import { AuthContextType } from '@/lib/auth/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 
 // Create the query client
@@ -44,11 +45,13 @@ const Root = () => {
   // This is a placeholder for future implementation
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider value={authState}>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider value={authState}>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 };
 

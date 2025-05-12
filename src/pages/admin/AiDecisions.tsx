@@ -26,9 +26,9 @@ const AiDecisions: React.FC = () => {
       ...filters,
       module: newFilters.module === '' ? null : newFilters.module as any,
       event: newFilters.event === '' ? null : newFilters.event as any,
-      fromDate: newFilters.fromDate,
-      toDate: newFilters.toDate,
-      searchTerm: newFilters.searchTerm
+      fromDate: newFilters.fromDate || null,
+      toDate: newFilters.toDate || null,
+      searchTerm: newFilters.searchTerm || ''
     };
     
     setFilters(updatedFilters);
@@ -47,7 +47,7 @@ const AiDecisions: React.FC = () => {
           event: filters.event || '',
           fromDate: filters.fromDate,
           toDate: filters.toDate,
-          searchTerm: filters.searchTerm
+          searchTerm: filters.searchTerm || ''
         }}
         onFilterChange={handleFilterChange}
         isLoading={isLoading}
