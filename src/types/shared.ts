@@ -1,111 +1,53 @@
 
 /**
- * Shared type definitions for use across the application
+ * Shared types used across the application
  */
 
-// User role types
-export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
+export type SystemRole = 'user' | 'admin' | 'owner';
+export type WorkspaceRole = 'member' | 'admin' | 'owner';
 
-// Navigation item type
-export interface NavigationItem {
-  title: string;
-  href: string;
-  icon?: string;
-  requiresAuth?: boolean;
-  requiresRole?: UserRole[];
-  children?: NavigationItem[];
-}
-
-// KPI trend direction
-export type TrendDirection = 'up' | 'down' | 'neutral';
-
-// System event modules for logging
+/**
+ * System event modules
+ */
 export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
 
-// System event types for logging
+/**
+ * System event types
+ */
 export type SystemEventType = 
-  | 'create' 
-  | 'update' 
-  | 'delete' 
-  | 'login' 
-  | 'logout' 
-  | 'execute'
-  | 'generate'
-  | 'vote'
-  | 'approve'
-  | 'reject'
-  | 'error'
-  | 'success'
-  | 'warning'
-  | 'info';
+  'login' | 'logout' | 'registration' | 'password_reset' | 
+  'error' | 'info' | 'warning' | 'success' | 
+  'create' | 'update' | 'delete' | 'execute' |
+  'verification' | 'invite' | 'join' | 'leave' |
+  'payment' | 'subscription' | 'invoice' |
+  'strategy_created' | 'strategy_updated' | 'strategy_deleted' | 'strategy_executed' | 'strategy_execution_failed' |
+  'plugin_created' | 'plugin_updated' | 'plugin_deleted' | 'plugin_executed' |
+  'agent_created' | 'agent_updated' | 'agent_deleted' | 'agent_vote' | 'agent_evolved';
 
-// Onboarding step type
-export type OnboardingStep = 
-  | 'welcome' 
-  | 'company-info' 
-  | 'persona' 
-  | 'additional-info' 
-  | 'strategy-generation' 
-  | 'completed';
-
-// Base entity interface for common properties
-export interface BaseEntity {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Execution parameters interface
-export interface ExecutionParams {
-  strategy_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  tenant_id: string;
-  user_id?: string;
-  input?: Record<string, any>;
-}
-
-// Execution type
-export type ExecutionType = 'strategy' | 'plugin' | 'agent';
-
-// KPI trend interface
-export interface KPITrend {
-  name: string;
-  value: number;
-  previousValue: number | null;
-  direction: TrendDirection;
-  percentageChange: number | null;
-}
-
-// Tenant feature flags
-export type TenantFeature = 
-  | 'strategy_creation'
-  | 'agent_voting'
-  | 'plugin_management'
-  | 'advanced_analytics'
-  | 'white_label';
-
-// Vote type for agent and plugin voting
-export type VoteType = 'upvote' | 'downvote';
-
-// Generic filter state interface
-export interface FilterState {
-  searchQuery?: string;
-  status?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  page?: number;
-  pageSize?: number;
-}
-
-// Generic filter props interface
-export interface FilterProps<T extends FilterState> {
-  filters: T;
-  onFilterChange: (filters: T) => void;
-}
-
-// Date range for filtering
+/**
+ * Date range type
+ */
 export interface DateRange {
-  from: Date;
+  from?: Date;
   to?: Date;
 }
+
+/**
+ * Chart time range
+ */
+export type TimeRange = '7d' | '30d' | '90d' | '12m' | 'all';
+
+/**
+ * Trend direction for KPIs
+ */
+export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
+
+/**
+ * System message type for notifications and alerts
+ */
+export type MessageType = 'success' | 'error' | 'warning' | 'info';
+
+/**
+ * Workspace user status
+ */
+export type UserStatus = 'active' | 'pending' | 'inactive' | 'blocked';
