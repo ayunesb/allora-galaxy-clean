@@ -1,5 +1,5 @@
 
-import { SystemEventModule, SystemEventType } from './shared';
+import { SystemEventType } from './shared';
 
 /**
  * System log entry
@@ -12,6 +12,11 @@ export interface SystemLog {
   context?: Record<string, any>;
   tenant_id?: string;
 }
+
+/**
+ * System event modules
+ */
+export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
 
 /**
  * Audit log entry (alias for SystemLog for backward compatibility)

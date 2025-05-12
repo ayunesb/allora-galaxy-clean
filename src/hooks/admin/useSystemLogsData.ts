@@ -1,136 +1,104 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { AuditLog, SystemEventModule } from '@/types/logs';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useToast } from '@/hooks/use-toast';
+import { AuditLog, LogFilters, SystemEventModule } from '@/types/logs';
 import { DateRange } from '@/types/shared';
+import { format } from 'date-fns';
 
-export interface SystemLogFilter {
-  searchTerm?: string;
-  module?: SystemEventModule;
-  dateRange?: DateRange;
-  tenant?: string;
-}
-
-export interface SystemLogsDataParams {
-  initialFilters?: SystemLogFilter;
-}
-
-export const useSystemLogsData = (params?: SystemLogsDataParams) => {
-  const { currentWorkspace } = useWorkspace();
-  const { toast } = useToast();
+export function useSystemLogsData(initialFilters: LogFilters = {}) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [modules, setModules] = useState<SystemEventModule[]>([]);
-  const [filters, setFilters] = useState<SystemLogFilter>(
-    params?.initialFilters || { searchTerm: '' }
-  );
-  
-  const fetchModules = async () => {
-    if (!currentWorkspace?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('system_logs')
-        .select('module')
-        .eq('tenant_id', currentWorkspace.id)
-        .order('module')
-        .limit(100);
-      
-      if (error) throw error;
-      
-      // Extract unique modules
-      const uniqueModules = Array.from(new Set(data.map(item => item.module))) as SystemEventModule[];
-      setModules(uniqueModules);
-    } catch (error) {
-      console.error('Error fetching modules:', error);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState<LogFilters>(initialFilters);
 
-  const fetchLogs = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
-    
-    setLoading(true);
+  const fetchLogs = async () => {
+    setIsLoading(true);
     try {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .eq('tenant_id', currentWorkspace.id);
-      
-      // Apply filters
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
-      }
+        .order('created_at', { ascending: false });
       
       if (filters.module) {
         query = query.eq('module', filters.module);
       }
       
-      if (filters.dateRange?.from) {
-        const fromDate = filters.dateRange.from;
-        query = query.gte('created_at', fromDate.toISOString());
-        
-        if (filters.dateRange.to) {
-          const toDate = filters.dateRange.to;
-          query = query.lte('created_at', toDate.toISOString());
-        }
+      if (filters.tenant_id) {
+        query = query.eq('tenant_id', filters.tenant_id);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
-      
-      if (error) {
-        throw error;
+      if (filters.event) {
+        query = query.eq('event', filters.event);
       }
       
-      setLogs(data || []);
-    } catch (error: any) {
+      if (filters.fromDate) {
+        query = query.gte('created_at', filters.fromDate);
+      }
+      
+      if (filters.toDate) {
+        query = query.lte('created_at', filters.toDate);
+      }
+      
+      if (filters.searchTerm) {
+        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
+      }
+      
+      const { data, error } = await query.limit(100);
+      
+      if (error) throw error;
+      
+      setLogs(data as AuditLog[]);
+    } catch (error) {
       console.error('Error fetching system logs:', error);
-      toast({
-        title: "Error fetching system logs",
-        description: error.message || "Failed to load system logs",
-        variant: "destructive"
-      });
-      setLogs([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [currentWorkspace?.id, filters, toast]);
+  };
 
-  // Initial data fetching
   useEffect(() => {
-    if (currentWorkspace?.id) {
-      fetchLogs();
-      fetchModules();
-    }
-  }, [currentWorkspace?.id, fetchLogs]);
+    fetchLogs();
+  }, [
+    filters.module,
+    filters.event,
+    filters.fromDate,
+    filters.toDate,
+    filters.tenant_id,
+    filters.searchTerm
+  ]);
 
-  const handleFilterChange = (newFilters: SystemLogFilter) => {
+  const handleFilterChange = (newFilters: LogFilters) => {
+    setFilters({ ...filters, ...newFilters });
+  };
+
+  const handleDateRangeChange = (dateRange: DateRange | null) => {
+    if (!dateRange) {
+      const { fromDate, toDate, ...rest } = filters;
+      setFilters(rest);
+      return;
+    }
+    
+    const newFilters: LogFilters = { ...filters };
+    
+    if (dateRange.from) {
+      newFilters.fromDate = format(dateRange.from, 'yyyy-MM-dd');
+    }
+    
+    if (dateRange.to) {
+      newFilters.toDate = format(dateRange.to, 'yyyy-MM-dd');
+    }
+    
     setFilters(newFilters);
   };
 
-  const setDateRange = (dateRange: DateRange | undefined) => {
-    setFilters((prev: SystemLogFilter) => ({ ...prev, dateRange }));
-  };
-
-  const setSearchTerm = (searchTerm: string) => {
-    setFilters((prev: SystemLogFilter) => ({ ...prev, searchTerm }));
-  };
-
-  const setModule = (module: SystemEventModule | undefined) => {
-    setFilters((prev: SystemLogFilter) => ({ ...prev, module }));
+  const refetchLogs = () => {
+    fetchLogs();
   };
 
   return {
     logs,
-    loading,
+    isLoading,
     filters,
-    modules,
-    fetchLogs,
-    handleFilterChange,
-    setDateRange,
-    setSearchTerm,
-    setModule,
-    refetch: fetchLogs
+    setFilters: handleFilterChange,
+    refetchLogs,
+    handleDateRangeChange
   };
-};
+}

@@ -57,12 +57,14 @@ export interface FilterProps<T extends FilterState> {
  * Navigation item for menus and sidebars
  */
 export interface NavigationItem {
-  id: string;
   name: string;
+  title: string; // Added title for compatibility
   href: string;
-  icon?: string;
+  icon?: string | any; // Updated to allow LucideIcon
   children?: NavigationItem[];
   roles?: UserRole[];
+  id?: string;
+  adminOnly?: boolean; // Added for compatibility
 }
 
 /**

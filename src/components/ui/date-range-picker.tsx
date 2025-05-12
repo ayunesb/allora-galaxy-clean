@@ -25,8 +25,7 @@ export type DateRangePickerProps = {
   date?: DateRange;
   onDateChange: (date: DateRange) => void;
   align?: "center" | "start" | "end";
-  locale?: Locale;
-  showCompare?: boolean;
+  locale?: any; // Changed from Locale to any to fix the Locale error
 };
 
 export function DateRangePicker({
@@ -34,7 +33,6 @@ export function DateRangePicker({
   onDateChange,
   align = "center",
   locale,
-  showCompare,
 }: DateRangePickerProps) {
   const [selectedPreset, setSelectedPreset] = React.useState<string | undefined>();
 

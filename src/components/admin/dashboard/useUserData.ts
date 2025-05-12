@@ -56,8 +56,8 @@ export function useUserData() {
         
         if (data && Array.isArray(data)) {
           const formattedUsers: User[] = data.map(item => {
-            // Extract profile data correctly, accounting for possible null values
-            const profile = item.profiles || {};
+            // Extract profile data correctly, handle single profile object rather than array
+            const profile = item.profiles as unknown as UserProfile;
             
             return {
               id: item.id,
@@ -65,10 +65,10 @@ export function useUserData() {
               created_at: item.created_at,
               user_id: item.user_id,
               profiles: {
-                first_name: profile.first_name || '',
-                last_name: profile.last_name || '',
-                avatar_url: profile.avatar_url || '',
-                email: Array.isArray(profile.email) 
+                first_name: profile?.first_name || '',
+                last_name: profile?.last_name || '',
+                avatar_url: profile?.avatar_url || '',
+                email: Array.isArray(profile?.email) 
                   ? profile.email 
                   : []
               }

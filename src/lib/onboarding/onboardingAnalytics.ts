@@ -1,96 +1,56 @@
 
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { SystemEventModule } from '@/types/shared';
+import { supabase } from '@/lib/supabase';
+import { OnboardingStep } from '@/types/onboarding';
+import { SystemEventModule } from '@/types/logs';
 
-// Extend SystemEventModule type to include "onboarding"
-type ExtendedEventModule = SystemEventModule | "onboarding";
-
-/**
- * Log onboarding start event
- * @param userId The user ID
- * @param tenantId The tenant ID
- */
-export async function logOnboardingStarted(userId: string, tenantId?: string) {
+// Log onboarding event to analytics
+export const logOnboardingEvent = async (
+  step: OnboardingStep,
+  userId: string,
+  tenantId?: string,
+  details?: Record<string, any>
+) => {
   try {
-    await logSystemEvent(
-      "user" as SystemEventModule, // Use "user" instead of "onboarding"
-      "onboarding_started",
+    const event = `onboarding_${step}`;
+    const module: SystemEventModule = 'user';
+    
+    await supabase.from('system_logs').insert([
       {
-        user_id: userId,
-        timestamp: new Date().toISOString()
-      },
-      tenantId
-    );
+        module,
+        event,
+        tenant_id: tenantId,
+        context: {
+          user_id: userId,
+          step,
+          ...details
+        }
+      }
+    ]);
   } catch (error) {
-    console.error("Failed to log onboarding start event:", error);
+    console.error('Failed to log onboarding event:', error);
   }
-}
+};
 
-/**
- * Log step completion event during onboarding
- * @param userId The user ID
- * @param step The completed step
- * @param tenantId The tenant ID
- */
-export async function logStepCompleted(userId: string, step: string, tenantId?: string) {
+// Track onboarding completion
+export const trackOnboardingCompletion = async (
+  userId: string,
+  tenantId: string,
+  timeSpentSeconds: number
+) => {
   try {
-    await logSystemEvent(
-      "user" as SystemEventModule, // Use "user" instead of "onboarding"
-      "onboarding_step_completed",
+    await supabase.from('system_logs').insert([
       {
-        user_id: userId,
-        step,
-        timestamp: new Date().toISOString()
-      },
-      tenantId
-    );
+        module: 'user',
+        event: 'onboarding_completed',
+        tenant_id: tenantId,
+        context: {
+          user_id: userId,
+          time_spent_seconds: timeSpentSeconds,
+          completed_at: new Date().toISOString()
+        }
+      }
+    ]);
   } catch (error) {
-    console.error(`Failed to log step completion for step ${step}:`, error);
+    console.error('Failed to track onboarding completion:', error);
   }
-}
-
-/**
- * Log onboarding completion event
- * @param userId The user ID
- * @param tenantId The tenant ID
- * @param totalSteps Total number of steps completed
- */
-export async function logOnboardingCompleted(userId: string, tenantId?: string, totalSteps?: number) {
-  try {
-    await logSystemEvent(
-      "user" as SystemEventModule, // Use "user" instead of "onboarding"
-      "onboarding_completed",
-      {
-        user_id: userId,
-        total_steps: totalSteps,
-        timestamp: new Date().toISOString()
-      },
-      tenantId
-    );
-  } catch (error) {
-    console.error("Failed to log onboarding completion event:", error);
-  }
-}
-
-/**
- * Log onboarding abandonment event
- * @param userId The user ID
- * @param lastStep The last step before abandonment
- * @param tenantId The tenant ID
- */
-export async function logOnboardingAbandoned(userId: string, lastStep: string, tenantId?: string) {
-  try {
-    await logSystemEvent(
-      "user" as SystemEventModule, // Use "user" instead of "onboarding"
-      "onboarding_abandoned",
-      {
-        user_id: userId,
-        last_step: lastStep,
-        timestamp: new Date().toISOString()
-      },
-      tenantId
-    );
-  } catch (error) {
-    console.error("Failed to log onboarding abandonment event:", error);
-  }
-}
+};

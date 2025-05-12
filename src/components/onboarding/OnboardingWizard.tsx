@@ -54,11 +54,11 @@ const OnboardingWizard: React.FC = () => {
         <StepContent 
           step={currentStep}
           formData={formData}
-          updateFormData={(section, value) => {
+          updateFormData={(section: keyof typeof formData, value: any) => {
             updateFormData(section, value);
           }}
           isGenerating={isGenerating}
-          setFieldValue={(field, value) => {
+          setFieldValue={(field: string, value: any) => {
             // Extract section and field name
             const [section, fieldName] = field.split('.');
             if (section && fieldName && section in formData) {
