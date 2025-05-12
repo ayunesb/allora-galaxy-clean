@@ -18,7 +18,7 @@ export const JsonView: React.FC<JsonViewProps> = ({ data, className }) => {
   }, [data]);
 
   return (
-    <pre className={cn('text-xs overflow-auto', className)}>
+    <pre className={cn('text-xs overflow-auto bg-background p-2', className)}>
       <code>{formattedJson}</code>
     </pre>
   );

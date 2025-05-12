@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import LogDetailDialog from './logs/LogDetailDialog';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
+import LogDetailDialog from './logs/LogDetailDialog';
 
 interface AuditLogProps {
   title?: string;
