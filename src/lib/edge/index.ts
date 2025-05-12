@@ -3,9 +3,8 @@
  * Centralized exports for edge function utilities
  */
 
-// Import corsHeaders from errorHandler 
+// Import from errorHandler
 import { 
-  corsHeaders,
   handleEdgeError,
   handleCorsPreflightRequest,
   generateRequestId,
@@ -15,17 +14,20 @@ import {
   type SuccessResponseData
 } from './errorHandler';
 
-// Re-export all error handling utilities
+// Re-export error handling utilities
 export { 
   handleEdgeError,
   handleCorsPreflightRequest,
   generateRequestId,
   createSuccessResponse,
   createErrorResponse,
-  corsHeaders,
   type ErrorResponseData,
   type SuccessResponseData
 };
+
+// Import and re-export corsHeaders separately to avoid circular references
+import { corsHeaders as corsHeadersFromEnv } from '../env/environment';
+export const corsHeaders = corsHeadersFromEnv;
 
 // Re-export environment variables utilities
 export {

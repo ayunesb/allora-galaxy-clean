@@ -30,5 +30,5 @@ export interface LogFilters {
   searchTerm?: string;
 }
 
-// Re-export SystemEventModule and SystemEventType from shared using the export type syntax
+// Re-export SystemEventModule and SystemEventType from shared
 export type { SystemEventModule, SystemEventType } from './shared';

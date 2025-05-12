@@ -6,7 +6,7 @@ import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters, { SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
 import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
-import { SystemLog, LogFilters } from '@/types/logs';
+import { SystemLog, LogFilters, SystemEventType } from '@/types/logs';
 
 const AiDecisions: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
@@ -25,7 +25,7 @@ const AiDecisions: React.FC = () => {
     const updatedFilters: LogFilters = {
       ...newFilters,
       module: newFilters.module === '' ? null : newFilters.module,
-      event: newFilters.event === '' ? null : newFilters.event
+      event: newFilters.event === '' ? null : newFilters.event as SystemEventType | null
     };
     
     setFilters(updatedFilters);

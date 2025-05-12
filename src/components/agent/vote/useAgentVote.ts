@@ -1,103 +1,111 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { getUserVote, upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { VoteType } from '@/types/shared';
-import { castVote, getUserVote } from '@/lib/agents/voting';
-import { UseAgentVoteParams, UseAgentVoteReturn } from './types';
 
-export function useAgentVote({
-  agentVersionId,
-  initialUpvotes = 0,
-  initialDownvotes = 0,
-  userId
-}: UseAgentVoteParams): UseAgentVoteReturn {
-  const [upvotes, setUpvotes] = useState<number>(initialUpvotes);
-  const [downvotes, setDownvotes] = useState<number>(initialDownvotes);
-  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
-  const [comment, setComment] = useState<string>('');
-  const [showComment, setShowComment] = useState<boolean>(false);
-  const [submitting, setSubmitting] = useState<boolean>(false);
+interface UseAgentVoteProps {
+  agentVersionId: string;
+}
 
-  // Fetch the user's current vote when component mounts
-  useEffect(() => {
-    const fetchUserVote = async () => {
-      try {
-        const { vote, hasVoted } = await getUserVote(agentVersionId, userId);
-        
-        if (hasVoted && vote) {
-          setUserVote(vote.vote_type === 'upvote' ? 'up' : 'down');
-          if (vote.comment) {
-            setComment(vote.comment);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user vote:', error);
-      }
-    };
-    
-    fetchUserVote();
-  }, [agentVersionId, userId]);
+export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [userVote, setUserVote] = useState<{ voteType: VoteType; comment?: string } | null>(null);
+  const [upvotes, setUpvotes] = useState<number>(0);
+  const [downvotes, setDownvotes] = useState<number>(0);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleVote = async (voteType: VoteType) => {
-    if (submitting) return;
+  const fetchUserVote = useCallback(async () => {
+    if (!user || !agentVersionId) return;
     
-    setSubmitting(true);
-    
+    setIsLoading(true);
     try {
-      const result = await castVote(agentVersionId, voteType);
-      
+      const result = await getUserVote(user.id, agentVersionId);
+      if (result.success && result.hasVoted && result.vote) {
+        setUserVote(result.vote);
+      } else {
+        setUserVote(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user vote:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, agentVersionId]);
+
+  const handleVote = useCallback(async (voteType: VoteType, comment?: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'You must be logged in to vote on agent versions.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!agentVersionId) {
+      toast({
+        title: 'Error',
+        description: 'No agent version specified.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      let result;
+      if (voteType === 'upvote') {
+        result = await upvoteAgentVersion(user.id, agentVersionId, comment);
+      } else {
+        result = await downvoteAgentVersion(user.id, agentVersionId, comment);
+      }
+
       if (result.success) {
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
         
-        // Convert VoteType to UI state
-        if (voteType === 'upvote') {
-          setUserVote('up');
-        } else if (voteType === 'downvote') {
-          setUserVote('down');
+        // Update user vote in state
+        if (userVote && userVote.voteType === voteType) {
+          // User clicked same vote type again, so clear the vote
+          setUserVote(null);
+        } else {
+          // Set or change vote
+          setUserVote({ voteType, comment });
         }
-        
-        // Show comment dialog for new votes or if changing vote type
-        if (!userVote || (userVote === 'up' && voteType === 'downvote') || (userVote === 'down' && voteType === 'upvote')) {
-          setShowComment(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error casting vote:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
-  const handleSubmitComment = async () => {
-    if (!userVote || submitting) return;
-    
-    setSubmitting(true);
-    
-    try {
-      // Convert UI state to VoteType
-      const voteType: VoteType = userVote === 'up' ? 'upvote' : 'downvote';
-      const result = await castVote(agentVersionId, voteType, comment);
-      
-      if (result.success) {
-        setShowComment(false);
+        toast({
+          title: 'Vote recorded',
+          description: `Your ${voteType} has been recorded.`,
+        });
+      } else {
+        throw new Error(result.error);
       }
-    } catch (error) {
-      console.error('Error submitting comment:', error);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to record your vote. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
-  };
+  }, [user, agentVersionId, toast, userVote]);
+
+  useEffect(() => {
+    if (agentVersionId) {
+      fetchUserVote();
+    }
+  }, [fetchUserVote, agentVersionId]);
 
   return {
+    isLoading,
+    userVote,
     upvotes,
     downvotes,
-    userVote,
-    comment,
-    setComment,
-    showComment,
-    setShowComment,
-    submitting,
     handleVote,
-    handleSubmitComment
+    fetchUserVote
   };
 }
