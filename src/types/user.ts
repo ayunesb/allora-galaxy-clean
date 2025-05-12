@@ -1,5 +1,5 @@
 
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface Profile {
   id: string;
@@ -15,6 +15,9 @@ export interface Profile {
 
 export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
 export type UserRoleType = UserRole; // For backward compatibility
+
+// Re-export the User type from Supabase for compatibility
+export type User = SupabaseUser;
 
 export interface UserWithProfile extends User {
   profile?: Profile;

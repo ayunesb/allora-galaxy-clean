@@ -18,6 +18,7 @@ const EvolutionDashboard = () => {
   const { logs, isLoading, handleRefresh } = useAuditLogData();
   const [activeTab, setActiveTab] = useState('logs');
   const { currentWorkspace } = useWorkspace();
+  const [selectedPluginId, setSelectedPluginId] = useState<string | undefined>(undefined);
   const [selectedStrategyId] = useState<string>('default');
 
   const handleTabChange = (value: string) => {
@@ -82,7 +83,7 @@ const EvolutionDashboard = () => {
 
         <TabsContent value="logs">
           <AuditLog 
-            title="System Activity Logs" 
+            title="System Activity Logs"
             onRefresh={handleRefresh}
             isLoading={isLoading}
             data={logs}
@@ -90,7 +91,7 @@ const EvolutionDashboard = () => {
         </TabsContent>
 
         <TabsContent value="agent">
-          <AgentEvolutionTab />
+          <AgentEvolutionTab pluginId={selectedPluginId} />
         </TabsContent>
 
         <TabsContent value="plugin">

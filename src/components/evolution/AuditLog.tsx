@@ -1,204 +1,109 @@
-
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { SystemLog } from '@/types/logs';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import AuditLogFilters, { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
-import { RefreshCw, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AuditLog } from '@/types/logs';
+import LogDetailDialog from './LogDetailDialog';
+import { format } from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import AuditLogFilters, { AuditLogFilters as AuditLogFiltersType } from './logs/AuditLogFilters';
+import { SystemEventModule } from '@/types/logs';
 
-interface AuditLogProps {
-  resourceId?: string;
-  resourceType?: string;
-  limit?: number;
-  title?: string;
-  description?: string;
-  showFilters?: boolean;
-  moduleFilter?: string;
+export interface AuditLogProps {
+  title: string;
+  data: AuditLog[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 const AuditLog: React.FC<AuditLogProps> = ({ 
-  resourceId,
-  resourceType,
-  limit = 25,
-  title = 'Audit Log',
-  description,
-  showFilters = true,
-  moduleFilter
+  title, 
+  data, 
+  isLoading = false,
+  onRefresh
 }) => {
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<AuditLogFilter>({});
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [filters, setFilters] = useState<AuditLogFiltersType>({ searchTerm: '' });
 
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // Apply resource filters if provided
-      if (resourceId) {
-        query = query.eq('context->resource_id', resourceId);
-      }
-      
-      if (resourceType) {
-        query = query.eq('context->resource_type', resourceType);
-      }
-      
-      // Apply user filters
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
-      }
-      
-      if (filters.module || moduleFilter) {
-        query = query.eq('module', filters.module || moduleFilter);
-      }
-      
-      if (filters.dateRange?.from) {
-        const fromDate = format(filters.dateRange.from, 'yyyy-MM-dd');
-        query = query.gte('created_at', `${fromDate}T00:00:00`);
-      }
-      
-      if (filters.dateRange?.to) {
-        const toDate = format(filters.dateRange.to, 'yyyy-MM-dd');
-        query = query.lte('created_at', `${toDate}T23:59:59`);
-      }
-      
-      const { data, error } = await query.limit(limit);
-      
-      if (error) throw error;
-      setLogs(data || []);
-      
-      // Fetch unique modules if needed
-      if (!modules.length) {
-        const { data: modulesData } = await supabase
-          .from('system_logs')
-          .select('module')
-          .is('module', 'not.null');
-        
-        if (modulesData) {
-          const uniqueModules = Array.from(new Set(
-            modulesData.map(item => item.module)
-          )).filter(Boolean);
-          setModules(uniqueModules);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleOpen = (log: AuditLog) => {
+    setSelectedLog(log);
+    setOpen(true);
   };
 
-  useEffect(() => {
-    fetchLogs();
-  }, [resourceId, resourceType, filters, limit, moduleFilter]);
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedLog(null);
+  };
 
-  const handleFilterChange = (newFilters: AuditLogFilter) => {
+  const handleFilterChange = (newFilters: AuditLogFiltersType) => {
     setFilters(newFilters);
   };
-  
-  const handleLogClick = (log: SystemLog) => {
-    setSelectedLog(log);
-    setDialogOpen(true);
-  };
 
-  const getStatusVariant = (event: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (event.includes('error') || event.includes('failed')) {
-      return 'destructive';
-    } else if (event.includes('warning')) {
-      return 'secondary';
-    } else if (event.includes('success') || event.includes('completed')) {
-      return 'default';
-    }
-    return 'outline';
-  };
+  const filteredLogs = data.filter(log => {
+    const searchTermLower = filters.searchTerm.toLowerCase();
+    const matchesSearchTerm =
+      log.event.toLowerCase().includes(searchTermLower) ||
+      log.module.toLowerCase().includes(searchTermLower) ||
+      (log.description && log.description.toLowerCase().includes(searchTermLower));
+
+    const matchesModule = !filters.module || log.module === filters.module;
+    
+    const matchesDateRange = !filters.dateRange?.from || (
+      new Date(log.created_at) >= filters.dateRange.from &&
+      (!filters.dateRange.to || new Date(log.created_at) <= filters.dateRange.to)
+    );
+
+    return matchesSearchTerm && matchesModule && matchesDateRange;
+  });
+
+  const modules: SystemEventModule[] = Array.from(new Set(data.map(log => log.module)));
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-          <CardTitle>{title}</CardTitle>
-          {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
-        </div>
-        <Button variant="outline" size="icon" onClick={fetchLogs}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {showFilters && (
-          <AuditLogFilters
-            filters={filters}
+      <CardHeader className="flex items-center justify-between">
+        <CardTitle>{title}</CardTitle>
+        <div className="flex items-center space-x-2">
+          <AuditLogFilters 
             onFilterChange={handleFilterChange}
             modules={modules}
           />
-        )}
-        
-        {loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-5 w-24" />
+          {onRefresh && (
+            <Button variant="outline" onClick={onRefresh} disabled={isLoading}>
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[450px] w-full overflow-auto">
+          <div className="divide-y divide-border">
+            {filteredLogs.map((log) => (
+              <div
+                key={log.id}
+                className="grid grid-cols-12 items-center gap-4 p-4 hover:bg-secondary"
+                onClick={() => handleOpen(log)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="col-span-2 text-xs text-muted-foreground">
+                  {format(new Date(log.created_at), 'MMM dd, yyyy hh:mm:ss')}
+                </div>
+                <div className="col-span-2">
+                  <Badge variant="secondary">{log.module}</Badge>
+                </div>
+                <div className="col-span-8">{log.event}</div>
               </div>
             ))}
+            {filteredLogs.length === 0 && (
+              <div className="p-4 text-center text-muted-foreground">
+                No logs found.
+              </div>
+            )}
           </div>
-        ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Search className="h-12 w-12 text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground">No log entries found</p>
-            <p className="text-xs text-muted-foreground/70">
-              Try adjusting your filters or check back later
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Module</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id} className="cursor-pointer" onClick={() => handleLogClick(log)}>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(log.event)}>
-                        {log.module}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{log.event}</TableCell>
-                    <TableCell>{format(new Date(log.created_at), 'dd MMM, HH:mm')}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">Details</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        
-        <LogDetailDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          log={selectedLog}
-        />
+        </ScrollArea>
       </CardContent>
+      
+      <LogDetailDialog log={selectedLog} open={open} onOpenChange={setOpen} />
     </Card>
   );
 };

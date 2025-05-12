@@ -1,72 +1,92 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { AuditLog, SystemLog } from '@/types';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { AuditLog, SystemEventModule } from '@/types/logs';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from '@/components/ui/use-toast';
 
-interface UseAuditLogDataReturn {
-  logs: AuditLog[];
-  isLoading: boolean;
-  handleRefresh: () => void;
+interface UseAuditLogDataOptions {
+  limit?: number;
+  module?: SystemEventModule;
 }
 
-const useAuditLogData = (): UseAuditLogDataReturn => {
+export default function useAuditLogData(options: UseAuditLogDataOptions = {}) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { currentWorkspace } = useWorkspace();
-
+  
   const fetchLogs = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
+    if (!currentWorkspace?.id) {
+      setLogs([]);
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
+    
     try {
-      const { data, error } = await supabase
+      // Build query
+      let query = supabase
         .from('system_logs')
         .select('*')
         .eq('tenant_id', currentWorkspace.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching audit logs:', error);
-        return;
+      // Apply limit if provided
+      if (options.limit) {
+        query = query.limit(options.limit);
       }
       
-      // Transform system_logs data to match AuditLog interface
-      const transformedLogs: AuditLog[] = (data as SystemLog[]).map(log => ({
-        id: log.id,
-        entity_type: log.module || 'system',
-        entity_id: log.id,
-        user_id: log.tenant_id || '',
-        event_type: log.event || 'unknown',
-        description: log.context?.description || '',
-        module: log.module,
-        tenant_id: log.tenant_id,
-        created_at: log.created_at,
-        metadata: log.context,
+      // Apply module filter if provided
+      if (options.module) {
+        query = query.eq('module', options.module);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Map API data to AuditLog type
+      const auditLogs: AuditLog[] = data.map((item: any) => ({
+        id: item.id,
+        module: item.module,
+        event: item.event,
+        action: item.action || item.event, // Use event as fallback for action
+        user_id: item.user_id,
+        tenant_id: item.tenant_id,
+        created_at: item.created_at,
+        context: item.context,
+        // Handle any additional fields from the API
+        entity_type: item.entity_type as SystemEventModule,
+        entity_id: item.entity_id,
+        event_type: item.event_type,
+        description: item.description,
+        metadata: item.metadata,
       }));
       
-      setLogs(transformedLogs);
-    } catch (error) {
-      console.error('Error in fetchLogs:', error);
+      setLogs(auditLogs);
+    } catch (error: any) {
+      console.error('Error fetching system logs:', error);
+      toast({
+        title: 'Error fetching logs',
+        description: error.message,
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
+  }, [currentWorkspace?.id, options.limit, options.module]);
+  
   const handleRefresh = useCallback(() => {
     fetchLogs();
   }, [fetchLogs]);
-
-  return {
-    logs,
-    isLoading,
-    handleRefresh
-  };
-};
-
-export default useAuditLogData;
+  
+  // Fetch logs initially
+  useState(() => {
+    fetchLogs();
+  });
+  
+  return { logs, isLoading, handleRefresh, fetchLogs };
+}
