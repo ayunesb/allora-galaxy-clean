@@ -23,7 +23,7 @@ export interface AuditLog extends SystemLog {}
  */
 export interface LogFilters {
   module?: SystemEventModule | null;
-  event?: string | null;
+  event?: SystemEventType | null;
   fromDate?: Date | null;
   toDate?: Date | null;
   tenant_id?: string;

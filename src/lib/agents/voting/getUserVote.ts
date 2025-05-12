@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { VoteType } from '@/types/shared';
+import { UserVoteInfo } from '@/types/agent';
 
 /**
  * Get the user's vote for a specific agent version
@@ -8,7 +9,7 @@ import { VoteType } from '@/types/shared';
  * @param agentVersionId The agent version ID
  * @returns Object with vote information
  */
-export async function getUserVote(userId: string, agentVersionId: string) {
+export async function getUserVote(userId: string, agentVersionId: string): Promise<UserVoteInfo> {
   try {
     const { data, error } = await supabase
       .from('agent_votes')
