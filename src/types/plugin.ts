@@ -1,36 +1,17 @@
 
-// Plugin related types
 export interface Plugin {
   id: string;
   name: string;
   description?: string;
-  icon?: string;
   category?: string;
-  tags?: string[];
-  status: 'active' | 'inactive' | 'draft' | 'deprecated' | string;
-  xp?: number | null;
-  roi?: number | null;
-  author?: string;
-  version?: string;
-  created_at?: string | null;
-  updated_at?: string | null;
+  icon?: string;
+  status: string;
   tenant_id?: string;
-}
-
-export interface PluginLog {
-  id: string;
-  plugin_id: string | null;
-  strategy_id?: string | null;
-  agent_version_id?: string | null;
-  tenant_id?: string | null;
-  status?: string;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
-  error?: string | null;
-  xp_earned?: number | null;
-  execution_time?: number | null;
-  created_at: string;
-  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  metadata?: Record<string, any>;
+  xp?: number;
+  roi?: number;
 }
 
 export interface AgentVersion {
@@ -39,22 +20,41 @@ export interface AgentVersion {
   version: string;
   prompt: string;
   status: string;
-  xp: number;
-  created_at: string;
-  updated_at?: string;
+  created_at?: string;
   created_by?: string;
+  upvotes?: number;
+  downvotes?: number;
+  xp?: number;
+}
+
+export interface PluginLog {
+  id: string;
   tenant_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  strategy_id?: string;
+  status: string;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  error?: string;
+  execution_time?: number;
+  xp_earned?: number;
+  created_at?: string;
 }
 
 export interface PluginResult {
+  plugin_id: string;
   success: boolean;
-  data?: any;
+  status: 'success' | 'failure' | 'pending';
+  output: any;
   error?: string;
-  meta?: Record<string, any>;
+  executionTime: number;
+  xpEarned: number;
 }
 
 export interface RunPluginChainResult {
   success: boolean;
   results: PluginResult[];
+  output?: Record<string, any>;
   error?: string;
 }

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import withRoleCheck from '@/lib/auth/withRoleCheck';
+import { UserRole } from '@/types/user';
 
 const AlloraBrainDocsPage: React.FC = () => {
   return (
@@ -23,6 +24,6 @@ const AlloraBrainDocsPage: React.FC = () => {
 };
 
 export default withRoleCheck(AlloraBrainDocsPage, {
-  roles: ['admin', 'user', 'owner'],
+  roles: ['admin' as UserRole, 'user' as UserRole, 'owner' as UserRole],
   redirectTo: '/unauthorized'
 });

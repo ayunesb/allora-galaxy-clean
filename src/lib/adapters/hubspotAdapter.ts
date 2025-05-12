@@ -123,7 +123,7 @@ export const syncHubspotMQLs = async (tenantId: string): Promise<{ success: bool
 
   try {
     // Log the start of the sync process
-    await logSystemEvent('hubspot', 'info', {
+    await logSystemEvent('system', 'info', {
       description: 'Starting HubSpot MQL sync',
       tenant_id: tenantId
     }, tenantId);
@@ -199,7 +199,7 @@ export const syncHubspotMQLs = async (tenantId: string): Promise<{ success: bool
     }
     
     // Log the completion of the sync process
-    await logSystemEvent('hubspot', 'info', {
+    await logSystemEvent('system', 'info', {
       description: 'Completed HubSpot MQL sync',
       added,
       updated,
@@ -217,7 +217,7 @@ export const syncHubspotMQLs = async (tenantId: string): Promise<{ success: bool
     console.error('Error syncing HubSpot MQLs:', error);
     
     // Log the error
-    await logSystemEvent('hubspot', 'error', {
+    await logSystemEvent('system', 'error', {
       description: 'Error syncing HubSpot MQLs',
       error: String(error),
       tenant_id: tenantId

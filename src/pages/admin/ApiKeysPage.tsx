@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import withRoleCheck from '@/lib/auth/withRoleCheck';
+import { UserRole } from '@/types/user';
 
 const ApiKeysPage: React.FC = () => {
   return (
@@ -23,6 +24,6 @@ const ApiKeysPage: React.FC = () => {
 };
 
 export default withRoleCheck(ApiKeysPage, {
-  roles: ['admin', 'owner'],
+  roles: ['admin' as UserRole, 'owner' as UserRole],
   redirectTo: '/unauthorized'
 });

@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/types/user';
 
 interface WithRoleCheckProps {
-  roles: UserRole[];
+  roles: UserRole[] | string[];
   redirectTo?: string;
 }
 

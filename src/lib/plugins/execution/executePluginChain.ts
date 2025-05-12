@@ -81,7 +81,7 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
       const agentVersion = plugin.agent_versions[0];
       if (!agentVersion) {
         const result: PluginResult = {
-          pluginId: plugin.id,
+          plugin_id: plugin.id,
           success: false,
           status: 'failure',
           output: {},
@@ -125,13 +125,13 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         
         // Add result to results array
         const result: PluginResult = {
-          pluginId: plugin.id,
+          plugin_id: plugin.id,
           success: executionResult.success,
           status: executionResult.success ? 'success' : 'failure',
           output: executionResult.output,
           error: executionResult.error,
           executionTime,
-          xpEarned,
+          xpEarned
         };
         
         results.push(result);
@@ -152,13 +152,13 @@ export async function executePluginChain(params: ExecutePluginChainParams): Prom
         console.error(`Unexpected error executing plugin ${plugin.name}:`, err);
         
         const result: PluginResult = {
-          pluginId: plugin.id,
+          plugin_id: plugin.id,
           success: false,
           status: 'failure',
           output: {},
           error: errorMessage,
           executionTime: 0,
-          xpEarned: 0,
+          xpEarned: 0
         };
         
         results.push(result);
