@@ -4,6 +4,13 @@ import { OnboardingFormData } from '@/types/onboarding';
 import { completeOnboarding } from '@/services/onboardingService';
 import { useAuth } from '@/context/AuthContext';
 
+interface StrategyGenerationResult {
+  success: boolean;
+  error?: string;
+  tenantId?: string;
+  strategyId?: string;
+}
+
 export const useStrategyGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const { user } = useAuth();
@@ -11,7 +18,7 @@ export const useStrategyGeneration = () => {
   /**
    * Generate an initial strategy based on onboarding data
    */
-  const generateStrategy = async (formData: OnboardingFormData) => {
+  const generateStrategy = async (formData: OnboardingFormData): Promise<StrategyGenerationResult> => {
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }

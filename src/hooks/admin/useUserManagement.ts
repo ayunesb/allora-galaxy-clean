@@ -128,7 +128,7 @@ export const useUserManagement = () => {
   const filteredUsers = users.filter(user => {
     const firstName = user.profiles?.first_name || '';
     const lastName = user.profiles?.last_name || '';
-    const email = user.profiles?.email?.email || '';
+    const email = user.profiles?.email?.[0]?.email || '';
     const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
     
     const query = searchQuery.toLowerCase().trim();

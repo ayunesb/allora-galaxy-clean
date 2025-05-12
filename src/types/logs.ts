@@ -1,7 +1,8 @@
 
 import { SystemEventModule, SystemEventType } from './shared';
 
-export { SystemEventModule, SystemEventType };
+// Re-export types using the correct syntax for isolatedModules
+export type { SystemEventModule, SystemEventType };
 
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
