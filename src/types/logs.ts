@@ -53,5 +53,5 @@ export interface LogFilters {
  */
 export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
-// Re-export from shared
-export { SystemEventModule, SystemEventType } from './shared';
+// Re-export types from shared to fix the isolatedModules issue
+export type { SystemEventModule, SystemEventType } from './shared';
