@@ -10,7 +10,7 @@ import AgentEvolutionTab from './AgentEvolutionTab';
 import PluginEvolutionTab from './PluginEvolutionTab';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
 import { Skeleton } from '@/components/ui/skeleton';
-import useAuditLogData from '@/hooks/admin/useAuditLogData';
+import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
 
 const EvolutionDashboard = () => {
   const { type } = useParams<{ type?: string }>();

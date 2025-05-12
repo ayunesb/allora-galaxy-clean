@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import { AuditLog } from '@/types/logs';
-import AuditLogFilters from '@/components/admin/logs/AuditLogFilters';
+import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 
 const AiDecisions = () => {
   const {

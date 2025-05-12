@@ -7,7 +7,8 @@ import LogDetailDialog from './logs/LogDetailDialog';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import AuditLogFilters, { AuditLogFilters as AuditLogFiltersType } from './logs/AuditLogFilters';
+import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
+import { AuditLogFilters as AuditLogFiltersType } from '@/components/evolution/logs/AuditLogFilters';
 import { SystemEventModule } from '@/types/logs';
 
 export interface AuditLogProps {
@@ -37,7 +38,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
   };
 
   const filteredLogs = data.filter(log => {
-    const searchTermLower = filters.searchTerm.toLowerCase();
+    const searchTermLower = filters.searchTerm?.toLowerCase() || '';
     const matchesSearchTerm =
       log.event.toLowerCase().includes(searchTermLower) ||
       log.module.toLowerCase().includes(searchTermLower) ||
