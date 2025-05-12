@@ -1,4 +1,3 @@
-
 // Onboarding step type
 export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
@@ -25,18 +24,21 @@ export interface OnboardingFormData {
 
 // Define onboarding state
 export interface OnboardingState {
-  step: OnboardingStep;
-  data: OnboardingFormData;
-  isLoading: boolean;
+  currentStep: number;
+  formData: OnboardingFormData;
+  isSubmitting: boolean;
+  isComplete: boolean;
   error: string | null;
 }
 
 // Define onboarding actions
-export type OnboardingAction = 
-  | { type: 'SET_STEP'; payload: OnboardingStep }
-  | { type: 'UPDATE_DATA'; payload: Partial<OnboardingFormData> }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
+export type OnboardingAction =
+  | { type: 'NEXT_STEP' }
+  | { type: 'PREV_STEP' }
+  | { type: 'SET_STEP'; payload: number }
+  | { type: 'UPDATE_FORM'; payload: Partial<OnboardingFormData> }
+  | { type: 'SET_SUBMITTING'; payload: boolean }
+  | { type: 'SET_COMPLETE'; payload: boolean }
   | { type: 'RESET' };
 
 // Define validation result
