@@ -1,87 +1,111 @@
 
-// Common shared types used across the application
-
-export type OnboardingStep = 'welcome' | 'company_info' | 'persona' | 'additional_info' | 'strategy_generation' | 'complete';
-
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
-
-export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
-
-export type SystemEventType = 'create' | 'update' | 'delete' | 'execute' | 'error' | 'login' | 'logout' | 'onboarding_welcome' | 'onboarding_company-info' | 'onboarding_persona' | 'onboarding_additional-info' | 'onboarding_strategy-generation' | 'onboarding_completed';
-
-export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
-
-export type VoteType = 'upvote' | 'downvote' | 'neutral';
-
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
-
-export type TenantFeature = 'ai_generation' | 'analytics' | 'evolution' | 'integrations' | 'export';
-
 /**
- * Date range selection for filtering purposes
+ * Shared type definitions for use across the application
  */
-export interface DateRange {
-  from: Date;
-  to?: Date;
+
+// User role types
+export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
+
+// Navigation item type
+export interface NavigationItem {
+  title: string;
+  href: string;
+  icon?: string;
+  requiresAuth?: boolean;
+  requiresRole?: UserRole[];
+  children?: NavigationItem[];
 }
 
-/**
- * Base entity interface with common properties
- */
+// KPI trend direction
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+// System event modules for logging
+export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
+
+// System event types for logging
+export type SystemEventType = 
+  | 'create' 
+  | 'update' 
+  | 'delete' 
+  | 'login' 
+  | 'logout' 
+  | 'execute'
+  | 'generate'
+  | 'vote'
+  | 'approve'
+  | 'reject'
+  | 'error'
+  | 'success'
+  | 'warning'
+  | 'info';
+
+// Onboarding step type
+export type OnboardingStep = 
+  | 'welcome' 
+  | 'company-info' 
+  | 'persona' 
+  | 'additional-info' 
+  | 'strategy-generation' 
+  | 'completed';
+
+// Base entity interface for common properties
 export interface BaseEntity {
   id: string;
-  created_at: string;
+  created_at?: string;
   updated_at?: string;
 }
 
-/**
- * Filter state for data filtering components
- */
-export interface FilterState {
-  searchTerm?: string;
-  dateRange?: DateRange;
-  [key: string]: any;
+// Execution parameters interface
+export interface ExecutionParams {
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  tenant_id: string;
+  user_id?: string;
+  input?: Record<string, any>;
 }
 
-/**
- * Common props for filtering components
- */
+// Execution type
+export type ExecutionType = 'strategy' | 'plugin' | 'agent';
+
+// KPI trend interface
+export interface KPITrend {
+  name: string;
+  value: number;
+  previousValue: number | null;
+  direction: TrendDirection;
+  percentageChange: number | null;
+}
+
+// Tenant feature flags
+export type TenantFeature = 
+  | 'strategy_creation'
+  | 'agent_voting'
+  | 'plugin_management'
+  | 'advanced_analytics'
+  | 'white_label';
+
+// Vote type for agent and plugin voting
+export type VoteType = 'upvote' | 'downvote';
+
+// Generic filter state interface
+export interface FilterState {
+  searchQuery?: string;
+  status?: string;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+// Generic filter props interface
 export interface FilterProps<T extends FilterState> {
   filters: T;
   onFilterChange: (filters: T) => void;
-  isLoading?: boolean;
-  onRefresh?: () => void;
 }
 
-/**
- * Navigation item for menus and sidebars
- */
-export interface NavigationItem {
-  name: string;
-  title: string; // Added title for compatibility
-  href: string;
-  icon?: string | any; // Updated to allow LucideIcon
-  children?: NavigationItem[];
-  roles?: UserRole[];
-  id?: string;
-  adminOnly?: boolean; // Added for compatibility
-}
-
-/**
- * KPI trend information
- */
-export interface KPITrend {
-  currentValue: number;
-  previousValue: number;
-  percentChange: number;
-  direction: TrendDirection;
-}
-
-/**
- * Execution parameters for strategies and plugins
- */
-export interface ExecutionParams {
-  tenant_id: string;
-  user_id?: string;
-  options?: Record<string, any>;
+// Date range for filtering
+export interface DateRange {
+  from: Date;
+  to?: Date;
 }

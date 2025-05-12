@@ -34,7 +34,7 @@ export function useOnboardingForm() {
   });
 
   // Update form data - support both direct updates and section updates
-  const updateFormData = (data: Partial<OnboardingFormData> | { [key: string]: any }) => {
+  const updateFormData = (data: Partial<OnboardingFormData>) => {
     setFormData(prev => {
       // Handle the case where a single key-value pair is passed to update nested fields
       if (data && typeof data === 'object' && Object.keys(data).length === 1) {

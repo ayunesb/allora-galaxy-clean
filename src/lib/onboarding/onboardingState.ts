@@ -57,25 +57,40 @@ export const mergeFormData = (
   existing: OnboardingFormData,
   partial: Partial<OnboardingFormData>
 ): OnboardingFormData => {
-  return {
+  // Create a new object with merged properties
+  const merged: OnboardingFormData = {
     ...existing,
     ...partial,
-    // Handle nested objects properly
+    
+    // Handle nested objects properly with default values
     companyInfo: {
+      name: '',
+      industry: '',
+      size: '',
       ...(existing.companyInfo || {}),
       ...(partial.companyInfo || {})
     },
+    
     persona: {
+      name: '',
+      goals: [],
+      tone: '',
       ...(existing.persona || {}),
       ...(partial.persona || {})
     },
+    
     additionalInfo: {
+      targetAudience: '',
+      keyCompetitors: '',
+      uniqueSellingPoints: '',
       ...(existing.additionalInfo && typeof existing.additionalInfo === 'object' 
         ? existing.additionalInfo 
-        : { targetAudience: '', keyCompetitors: '', uniqueSellingPoints: '' }),
+        : {}),
       ...(partial.additionalInfo && typeof partial.additionalInfo === 'object' 
         ? partial.additionalInfo 
         : {})
     }
   };
+  
+  return merged;
 };

@@ -13,8 +13,7 @@ interface AdditionalInfoStepProps {
 
 const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   formData,
-  updateFormData,
-  setFieldValue
+  updateFormData
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>, field: string) => {
     // Ensure additionalInfo is an object

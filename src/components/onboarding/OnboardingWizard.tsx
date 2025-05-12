@@ -38,6 +38,11 @@ const OnboardingWizard: React.FC = () => {
     return false;
   };
   
+  // Create a wrapper for updateFormData to match the expected signature
+  const handleUpdateFormData = (data: Partial<OnboardingFormData>) => {
+    updateFormData(data);
+  };
+  
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col h-full">
       {/* Progress indicators */}
@@ -54,11 +59,10 @@ const OnboardingWizard: React.FC = () => {
         <StepContent 
           step={currentStep}
           formData={formData}
-          updateFormData={updateFormData}
+          updateFormData={handleUpdateFormData}
           isGenerating={isGenerating}
           setFieldValue={(key: string, value: any) => {
-            // Pass to updateFormData which now handles both update patterns
-            updateFormData({ [key]: value });
+            handleUpdateFormData({ [key]: value });
           }}
         />
       </div>

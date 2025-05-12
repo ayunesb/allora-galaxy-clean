@@ -13,7 +13,7 @@ export function useOnboardingWizard() {
   // Current step in the onboarding process
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   
-  // Form data state
+  // Form data state with required fields initialized
   const [formData, setFormData] = useState<OnboardingFormData>({
     companyInfo: {
       name: '',
@@ -33,15 +33,22 @@ export function useOnboardingWizard() {
   });
 
   // Handle form data updates
-  const updateFormData = (
-    section: keyof OnboardingFormData,
-    data: Partial<OnboardingFormData[keyof OnboardingFormData]>
-  ) => {
+  const updateFormData = (data: Partial<OnboardingFormData>) => {
     setFormData(prevData => ({
       ...prevData,
-      [section]: {
-        ...prevData[section],
-        ...data
+      ...data,
+      // Ensure nested objects are properly merged
+      companyInfo: {
+        ...prevData.companyInfo,
+        ...(data.companyInfo || {})
+      },
+      persona: {
+        ...prevData.persona,
+        ...(data.persona || {})
+      },
+      additionalInfo: {
+        ...prevData.additionalInfo,
+        ...(data.additionalInfo || {})
       }
     }));
   };

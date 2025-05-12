@@ -18,14 +18,14 @@ export interface OnboardingFormData {
   revenueRange?: string;
   description?: string;
   goals?: string[];
-  companyInfo?: {
+  companyInfo: {
     name: string;
     industry: string;
     size: string;
     [key: string]: any;
   };
-  persona?: PersonaProfile;
-  additionalInfo?: {
+  persona: PersonaProfile;
+  additionalInfo: {
     targetAudience: string;
     keyCompetitors: string;
     uniqueSellingPoints: string;
