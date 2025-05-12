@@ -9,11 +9,9 @@
 function createTextGeometry(text: string, options: any = {}) {
   // If the actual package is available, use it
   try {
-    // Try to use the actual npm package
-    const actualPackage = require('three-bmfont-text');
-    if (typeof actualPackage === 'function') {
-      return actualPackage(text, options);
-    }
+    // Try to use the actual npm package directly
+    const actualImport = require('three-bmfont-text');
+    return typeof actualImport === 'function' ? actualImport(text, options) : null;
   } catch (e) {
     // Fallback to our shim implementation
     console.warn('Using three-bmfont-text shim');
