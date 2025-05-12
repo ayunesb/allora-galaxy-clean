@@ -1,190 +1,124 @@
 
 /**
- * Error handling utilities for edge functions
+ * Centralized error handling for edge functions
  */
 
-// CORS headers for edge functions
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-  'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
+// Error codes for better categorization
+export enum EdgeErrorCode {
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
+  AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  EXTERNAL_API_ERROR = 'EXTERNAL_API_ERROR',
+  RATE_LIMIT_ERROR = 'RATE_LIMIT_ERROR',
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
+}
+
+// Error class with standardized structure
+export class EdgeError extends Error {
+  code: EdgeErrorCode;
+  status: number;
+  details?: Record<string, any>;
+
+  constructor(message: string, code: EdgeErrorCode, status: number = 500, details?: Record<string, any>) {
+    super(message);
+    this.name = 'EdgeError';
+    this.code = code;
+    this.status = status;
+    this.details = details;
+  }
+
+  // Convert to JSON for response
+  toJSON() {
+    return {
+      error: {
+        message: this.message,
+        code: this.code,
+        ...(this.details && { details: this.details }),
+      },
+    };
+  }
+}
+
+// Common error factory methods
+export const createValidationError = (message: string, details?: Record<string, any>) => {
+  return new EdgeError(message, EdgeErrorCode.VALIDATION_ERROR, 400, details);
 };
 
-// Standard error response interface
-export interface ErrorResponseData {
-  error: string;
-  message?: string;
-  details?: any;
-  status: number;
-  request_id?: string;
-  timestamp?: string;
-  code?: string;
-}
+export const createAuthenticationError = (message: string = 'Authentication required') => {
+  return new EdgeError(message, EdgeErrorCode.AUTHENTICATION_ERROR, 401);
+};
 
-// Standard success response interface
-export interface SuccessResponseData {
-  data: any;
-  status: number;
-  message?: string;
-  request_id?: string;
-  timestamp?: string;
-}
+export const createAuthorizationError = (message: string = 'Permission denied') => {
+  return new EdgeError(message, EdgeErrorCode.AUTHORIZATION_ERROR, 403);
+};
 
-/**
- * Create a standardized error response
- */
-export function createErrorResponse(
-  error: Error | string,
-  status: number = 500,
-  details?: any,
-  requestId?: string
-): Response {
-  const errorMessage = typeof error === 'string' ? error : error.message;
-  
-  const responseBody: ErrorResponseData = {
-    error: errorMessage,
-    status,
-    request_id: requestId || generateRequestId(),
-    timestamp: new Date().toISOString(),
-  };
-  
-  if (details) {
-    responseBody.details = details;
-  }
-  
-  // Add error code if it exists
-  if (typeof error !== 'string' && (error as any).code) {
-    responseBody.code = (error as any).code;
-  }
-  
-  return new Response(JSON.stringify(responseBody), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-    },
-  });
-}
+export const createNotFoundError = (resource: string) => {
+  return new EdgeError(`${resource} not found`, EdgeErrorCode.NOT_FOUND, 404);
+};
 
-/**
- * Create a standardized success response
- */
-export function createSuccessResponse(
-  data: any,
-  status: number = 200,
-  message?: string,
-  requestId?: string
-): Response {
-  const responseBody: SuccessResponseData = {
-    data,
-    status,
-    request_id: requestId || generateRequestId(),
-    timestamp: new Date().toISOString(),
-  };
-  
-  if (message) {
-    responseBody.message = message;
-  }
-  
-  return new Response(JSON.stringify(responseBody), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-    },
-  });
-}
+export const createDatabaseError = (message: string, details?: Record<string, any>) => {
+  return new EdgeError(message, EdgeErrorCode.DATABASE_ERROR, 500, details);
+};
 
-/**
- * Generate a unique request ID
- */
-export function generateRequestId(): string {
-  return crypto.randomUUID();
-}
+export const createExternalApiError = (message: string, details?: Record<string, any>) => {
+  return new EdgeError(message, EdgeErrorCode.EXTERNAL_API_ERROR, 502, details);
+};
 
-/**
- * Handle CORS preflight request
- */
-export function handleCorsPreflightRequest(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      status: 204, 
-      headers: corsHeaders 
+export const createRateLimitError = (message: string = 'Rate limit exceeded') => {
+  return new EdgeError(message, EdgeErrorCode.RATE_LIMIT_ERROR, 429);
+};
+
+export const createInternalServerError = (message: string = 'Internal server error') => {
+  return new EdgeError(message, EdgeErrorCode.INTERNAL_SERVER_ERROR, 500);
+};
+
+// Handle errors in edge functions with consistent response format
+export const handleEdgeError = (error: any): Response => {
+  console.error('Edge function error:', error);
+
+  // Handle EdgeError instances
+  if (error instanceof EdgeError) {
+    return new Response(JSON.stringify(error.toJSON()), {
+      status: error.status,
+      headers: { 'Content-Type': 'application/json' }
     });
   }
-  return null;
-}
 
-/**
- * Universal error handler for edge functions
- */
-export function errorHandler(error: any, requestId?: string): Response {
-  console.error(`Edge function error [${requestId || 'no-id'}]:`, error);
-  
-  const status = error.status || 500;
-  const message = error.message || 'Internal server error';
-  
-  return createErrorResponse(message, status, undefined, requestId);
-}
-
-/**
- * Handle execution errors in edge functions with detailed logging
- */
-export function handleExecutionError(error: any, requestId?: string): Response {
-  console.error(`Execution error [${requestId || 'no-id'}]:`, error);
-  
-  // Determine appropriate status code based on error type/code
-  let status = 500;
-  if (error.status) {
-    status = error.status;
-  } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-token') {
-    status = 401;
-  } else if (error.code === 'auth/permission-denied' || error.code === 'permission-denied') {
-    status = 403;
-  } else if (error.code === 'not-found') {
-    status = 404;
-  } else if (error.code === 'already-exists') {
-    status = 409;
-  } else if (error.code === 'resource-exhausted') {
-    status = 429;
+  // Handle other known error types
+  if (error.name === 'PostgrestError') {
+    return new Response(JSON.stringify({
+      error: {
+        message: error.message || 'Database operation failed',
+        code: EdgeErrorCode.DATABASE_ERROR,
+        details: { code: error.code }
+      }
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-  
-  return createErrorResponse(
-    error.message || 'Execution error',
-    status,
-    error.details || error.stack,
-    requestId
-  );
-}
 
-/**
- * Safe wrapper for edge function execution
- * @param handler The function handler to execute
- * @param requestId Optional request ID for tracking
- * @returns The response from the handler or an error response
- */
-export async function safeExecute<T>(
-  handler: () => Promise<T>, 
-  requestId?: string
-): Promise<T | Response> {
-  try {
-    return await handler();
-  } catch (error) {
-    return handleExecutionError(error, requestId);
-  }
-}
+  // Handle unexpected errors
+  return new Response(JSON.stringify({
+    error: {
+      message: 'An unexpected error occurred',
+      code: EdgeErrorCode.INTERNAL_SERVER_ERROR
+    }
+  }), {
+    status: 500,
+    headers: { 'Content-Type': 'application/json' }
+  });
+};
 
-/**
- * Safely parse JSON request body with error handling
- * @param req The request object
- * @returns Tuple containing [parsed data, error]
- */
-export async function safeParseJsonBody<T>(req: Request): Promise<[T | null, Error | null]> {
-  try {
-    const body = await req.json() as T;
-    return [body, null];
-  } catch (error) {
-    return [null, error instanceof Error ? error : new Error(String(error))];
-  }
-}
+// Error handling middleware for edge functions
+export const withErrorHandling = (handler: Function) => {
+  return async (req: Request) => {
+    try {
+      return await handler(req);
+    } catch (error) {
+      return handleEdgeError(error);
+    }
+  };
+};
