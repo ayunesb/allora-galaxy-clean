@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 import SystemLogFilters, { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import { SystemLog } from '@/types/logs';
+import { SystemLog, SystemEventModule } from '@/types/logs';
 import withRoleCheck from '@/lib/auth/withRoleCheck';
 
 const SystemLogs: React.FC = () => {
@@ -70,6 +70,12 @@ const SystemLogs: React.FC = () => {
     }
     return 'outline';
   };
+
+  // Convert string array to SystemEventModule array
+  const typedModules: SystemEventModule[] = modules.filter((module): module is SystemEventModule => {
+    // Validate that each module is actually a SystemEventModule
+    return ['strategy', 'agent', 'plugin', 'user', 'tenant', 'auth', 'billing', 'hubspot', 'system'].includes(module);
+  });
 
   return (
     <div className="container mx-auto py-8">

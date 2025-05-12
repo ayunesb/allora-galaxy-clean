@@ -33,6 +33,11 @@ const EvolutionDashboard = () => {
     }
   };
 
+  // When a plugin is selected, update the selectedPluginId
+  const handlePluginSelect = (pluginId: string | undefined) => {
+    setSelectedPluginId(pluginId);
+  };
+
   // If a type is provided in the URL, set it as the active tab
   useEffect(() => {
     if (type) {
@@ -95,7 +100,7 @@ const EvolutionDashboard = () => {
         </TabsContent>
 
         <TabsContent value="plugin">
-          <PluginEvolutionTab />
+          <PluginEvolutionTab onPluginSelect={handlePluginSelect} />
         </TabsContent>
 
         <TabsContent value="strategy">

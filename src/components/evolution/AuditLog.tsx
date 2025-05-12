@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AuditLog } from '@/types/logs';
-import LogDetailDialog from './LogDetailDialog';
+import { AuditLog as AuditLogType } from '@/types/logs';
+import LogDetailDialog from './logs/LogDetailDialog';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,7 @@ import { SystemEventModule } from '@/types/logs';
 
 export interface AuditLogProps {
   title: string;
-  data: AuditLog[];
+  data: AuditLogType[];
   isLoading?: boolean;
   onRefresh?: () => void;
 }
@@ -23,17 +24,12 @@ const AuditLog: React.FC<AuditLogProps> = ({
   onRefresh
 }) => {
   const [open, setOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [filters, setFilters] = useState<AuditLogFiltersType>({ searchTerm: '' });
 
-  const handleOpen = (log: AuditLog) => {
+  const handleOpen = (log: AuditLogType) => {
     setSelectedLog(log);
     setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedLog(null);
   };
 
   const handleFilterChange = (newFilters: AuditLogFiltersType) => {
@@ -57,7 +53,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
     return matchesSearchTerm && matchesModule && matchesDateRange;
   });
 
-  const modules: SystemEventModule[] = Array.from(new Set(data.map(log => log.module)));
+  const modules: SystemEventModule[] = Array.from(new Set(data.map(log => log.module))) as SystemEventModule[];
 
   return (
     <Card>
