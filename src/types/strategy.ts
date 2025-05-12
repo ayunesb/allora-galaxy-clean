@@ -1,44 +1,70 @@
 
-// Strategy related types
+/**
+ * Strategy entity interface
+ */
 export interface Strategy {
   id: string;
-  tenant_id: string;
   title: string;
   description: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed' | 'in_progress';
-  priority?: 'low' | 'medium' | 'high' | null;
+  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived';
   created_by: string;
   created_at: string;
-  approved_by?: string | null;
-  approved_at?: string | null;
-  rejected_by?: string | null;
-  rejected_at?: string | null;
+  updated_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  tenant_id: string;
+  priority: 'high' | 'medium' | 'low' | null;
+  tags: string[] | null;
+  due_date: string | null;
+  completion_percentage: number | null;
+  metadata: Record<string, any> | null;
+}
+
+/**
+ * Strategy creation input
+ */
+export interface CreateStrategyInput {
+  title: string;
+  description: string;
+  priority?: 'high' | 'medium' | 'low';
+  tags?: string[];
+  due_date?: string;
+  tenant_id: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Strategy update input
+ */
+export interface UpdateStrategyInput {
+  title?: string;
+  description?: string;
+  status?: 'draft' | 'pending' | 'approved' | 'rejected' | 'archived';
+  priority?: 'high' | 'medium' | 'low' | null;
   tags?: string[] | null;
-  completion_percentage?: number | null;
   due_date?: string | null;
-  updated_at?: string | null;
+  completion_percentage?: number;
   metadata?: Record<string, any> | null;
 }
 
-export interface StrategyFilter {
-  status?: string[];
-  query?: string;
-  tags?: string[];
-  priority?: string[];
-}
-
-export interface StrategyExecution {
-  id: string;
+/**
+ * Strategy approval input
+ */
+export interface ApproveStrategyInput {
   strategy_id: string;
-  status: string;
-  started_at: string;
-  completed_at?: string;
-  executed_by?: string;
-  results?: Record<string, any>;
+  tenant_id: string;
+  user_id: string;
+  comments?: string;
 }
 
-// Define validation result
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[] | Record<string, string>;
+/**
+ * Strategy rejection input
+ */
+export interface RejectStrategyInput {
+  strategy_id: string;
+  tenant_id: string;
+  user_id: string;
+  reason?: string;
 }

@@ -10,7 +10,9 @@ export type SystemEventModule =
   | 'strategy' 
   | 'plugin' 
   | 'product' 
-  | 'marketing';
+  | 'marketing'
+  | 'user'
+  | 'tenant';
 
 export type SystemEventType = 
   | 'login' 
@@ -28,4 +30,14 @@ export type SystemEventType =
 export interface DateRange {
   from: Date;
   to?: Date;
+}
+
+export type UserRole = 'admin' | 'owner' | 'user' | 'viewer';
+
+export type TrendDirection = 'up' | 'down' | 'flat';
+
+export interface KPITrend {
+  direction: TrendDirection;
+  percentage: number;
+  value: number;
 }

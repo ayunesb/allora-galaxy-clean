@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getUserVote, upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import useAuth from '@/hooks/useAuth';
 import { VoteType } from '@/types/shared';
 
 interface UseAgentVoteProps {
@@ -12,8 +12,11 @@ interface UseAgentVoteProps {
 export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [userVote, setUserVote] = useState<{ voteType: VoteType; comment?: string } | null>(null);
+  const [comment, setComment] = useState<string>('');
+  const [showComment, setShowComment] = useState<boolean>(false);
   const [upvotes, setUpvotes] = useState<number>(0);
   const [downvotes, setDownvotes] = useState<number>(0);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -35,7 +38,7 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
     }
   }, [user, agentVersionId]);
 
-  const handleVote = useCallback(async (voteType: VoteType, comment?: string) => {
+  const handleVote = useCallback(async (voteType: VoteType, commentText?: string) => {
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -54,13 +57,13 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
       return;
     }
 
-    setIsLoading(true);
+    setSubmitting(true);
     try {
       let result;
       if (voteType === 'upvote') {
-        result = await upvoteAgentVersion(user.id, agentVersionId, comment);
+        result = await upvoteAgentVersion(user.id, agentVersionId, commentText || comment);
       } else {
-        result = await downvoteAgentVersion(user.id, agentVersionId, comment);
+        result = await downvoteAgentVersion(user.id, agentVersionId, commentText || comment);
       }
 
       if (result.success) {
@@ -73,7 +76,7 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
           setUserVote(null);
         } else {
           // Set or change vote
-          setUserVote({ voteType, comment });
+          setUserVote({ voteType, comment: commentText || comment });
         }
 
         toast({
@@ -90,9 +93,19 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
-  }, [user, agentVersionId, toast, userVote]);
+  }, [user, agentVersionId, toast, userVote, comment]);
+
+  const handleSubmitComment = useCallback(() => {
+    if (userVote) {
+      handleVote(userVote.voteType, comment);
+    } else if (comment) {
+      // If no vote yet but there's a comment, default to upvote
+      handleVote('upvote', comment);
+    }
+    setShowComment(false);
+  }, [userVote, comment, handleVote]);
 
   useEffect(() => {
     if (agentVersionId) {
@@ -105,7 +118,13 @@ export function useAgentVote({ agentVersionId }: UseAgentVoteProps) {
     userVote,
     upvotes,
     downvotes,
+    comment,
+    setComment,
+    showComment,
+    setShowComment,
+    submitting,
     handleVote,
+    handleSubmitComment,
     fetchUserVote
   };
 }

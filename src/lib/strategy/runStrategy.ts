@@ -1,96 +1,132 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { ExecuteStrategyInput, ExecuteStrategyResult } from '@/types/fixed';
-import { camelToSnakeObject } from '@/lib/utils/dataConversion';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Run a strategy with the given parameters
+ * Executes a strategy using the executeStrategy edge function
+ * 
  * @param input Strategy execution input parameters
- * @returns Promise with execution results
+ * @returns Result of the strategy execution
  */
-export async function runStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
+export async function runStrategy(
+  input: ExecuteStrategyInput | undefined
+): Promise<ExecuteStrategyResult> {
   try {
-    // Validate required input
+    // Input validation
+    if (!input) {
+      return {
+        success: false,
+        error: 'Strategy ID is required',
+        executionTime: 0,
+        status: 'error'
+      };
+    }
+
     if (!input.strategyId) {
-      throw new Error('Strategy ID is required');
+      return {
+        success: false,
+        error: 'Strategy ID is required',
+        executionTime: 0,
+        status: 'error'
+      };
     }
-
+    
     if (!input.tenantId) {
-      throw new Error('Tenant ID is required');
+      return {
+        success: false,
+        error: 'Tenant ID is required',
+        executionTime: 0,
+        status: 'error'
+      };
     }
 
-    console.log('Running strategy:', input.strategyId);
+    // Add execution start timestamp
+    const startTime = performance.now();
     
-    // Convert camelCase input to snake_case for the edge function
-    const snakeInput = camelToSnakeObject(input);
+    // Prepare request body
+    const requestBody = {
+      strategy_id: input.strategyId,
+      tenant_id: input.tenantId,
+      user_id: input.userId,
+      options: input.options
+    };
     
-    // Execute the strategy via edge function
+    // Call the edge function
     const { data, error } = await supabase.functions.invoke('executeStrategy', {
-      body: snakeInput
+      body: requestBody
     });
+    
+    // Calculate execution time if not provided by edge function
+    const executionTime = data?.execution_time || (performance.now() - startTime) / 1000;
     
     if (error) {
       console.error('Error executing strategy:', error);
-      throw new Error(`Error executing strategy: ${error.message}`);
+      
+      // Log error
+      await logSystemEvent(
+        'strategy',
+        'error',
+        {
+          description: `Error executing strategy: ${error.message}`,
+          event_type: 'strategy_execution_failed',
+          strategy_id: input.strategyId,
+          tenant_id: input.tenantId,
+          error: error.message
+        },
+        input.tenantId
+      );
+      
+      return {
+        success: false,
+        error: `Error executing strategy: ${error.message}`,
+        executionTime,
+        status: 'error'
+      };
     }
     
     // Log successful execution
     await logSystemEvent(
       'strategy',
-      'info',
+      'execute',
       {
         description: `Strategy ${input.strategyId} executed successfully`,
         event_type: 'strategy_executed',
         strategy_id: input.strategyId,
         tenant_id: input.tenantId,
         user_id: input.userId,
-        success: data.success,
-        execution_id: data.execution_id
+        execution_id: data.execution_id,
+        execution_time: executionTime,
+        plugins_executed: data.plugins_executed,
+        successful_plugins: data.successful_plugins,
+        xp_earned: data.xp_earned
       },
       input.tenantId
     );
     
-    // Return execution result in camelCase format
+    // Return success response
     return {
-      success: data.success,
+      success: true,
       executionId: data.execution_id,
-      executionTime: data.execution_time,
+      executionTime: executionTime,
       status: data.status,
+      pluginsExecuted: data.plugins_executed,
+      successfulPlugins: data.successful_plugins,
+      xpEarned: data.xp_earned,
       results: data.results,
       outputs: data.outputs,
-      error: data.error,
-      logs: data.logs,
-      xpEarned: data.xp_earned,
-      pluginsExecuted: data.plugins_executed,
-      successfulPlugins: data.successful_plugins
+      logs: data.logs
     };
   } catch (err: any) {
     console.error('Error in runStrategy:', err);
-    
-    // Log execution error
-    try {
-      await logSystemEvent(
-        'strategy',
-        'error',
-        {
-          description: `Strategy execution failed: ${err.message}`,
-          event_type: 'strategy_execution_failed',
-          strategy_id: input.strategyId,
-          tenant_id: input.tenantId,
-          error: err.message
-        },
-        input.tenantId
-      );
-    } catch (logErr) {
-      console.error('Failed to log strategy execution error:', logErr);
-    }
     
     return {
       success: false,
       error: err.message || 'Unknown error occurred',
       executionTime: 0,
-      status: 'failed'
+      status: 'error'
     };
   }
 }
+
+export default runStrategy;

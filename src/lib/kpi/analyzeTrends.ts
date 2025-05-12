@@ -1,83 +1,80 @@
 
-import { KPI } from '@/types';
 import { TrendDirection, KPITrend } from '@/types/shared';
 
 /**
- * Analyzes KPI data to determine trend direction and percentage change
- * @param current Current KPI value
- * @param previous Previous KPI value
- * @returns Trend analysis object
+ * Analyzes trend direction based on current and previous values
+ * @param currentValue Current metric value
+ * @param previousValue Previous metric value
+ * @param threshold Optional threshold for considering a change significant (default: 0)
+ * @returns Trend direction ('up', 'down', or 'flat')
  */
-export function analyzeTrend(current: number, previous: number): KPITrend {
-  // If no previous value, default to neutral
-  if (previous === 0 || previous === undefined || previous === null) {
-    return {
-      direction: 'neutral',
-      percentage: 0,
-      value: 0
-    };
+export function analyzeTrendDirection(
+  currentValue: number,
+  previousValue: number | null | undefined,
+  threshold: number = 0
+): TrendDirection {
+  if (previousValue === null || previousValue === undefined) {
+    return 'flat';
   }
 
-  const difference = current - previous;
-  const percentageChange = (difference / Math.abs(previous)) * 100;
+  const diff = currentValue - previousValue;
   
-  let direction: TrendDirection = 'flat';
-  
-  // Determine trend direction
-  if (percentageChange > 1) {
-    direction = 'up';
-  } else if (percentageChange < -1) {
-    direction = 'down';
-  } else {
-    direction = 'flat';
+  if (Math.abs(diff) <= threshold) {
+    return 'flat';
   }
   
+  return diff > 0 ? 'up' : 'down';
+}
+
+/**
+ * Calculates percentage change between current and previous values
+ * @param currentValue Current metric value
+ * @param previousValue Previous metric value
+ * @returns Percentage change (positive for increase, negative for decrease)
+ */
+export function calculatePercentageChange(
+  currentValue: number,
+  previousValue: number | null | undefined
+): number {
+  if (previousValue === null || previousValue === undefined || previousValue === 0) {
+    return 0;
+  }
+  
+  return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+}
+
+/**
+ * Analyzes KPI trend comprehensively
+ * @param currentValue Current metric value
+ * @param previousValue Previous metric value
+ * @param threshold Optional threshold for considering a change significant (default: 0)
+ * @returns KPITrend object with direction, percentage change and absolute change
+ */
+export function analyzeKpiTrend(
+  currentValue: number,
+  previousValue: number | null | undefined,
+  threshold: number = 0
+): KPITrend {
+  const direction = analyzeTrendDirection(currentValue, previousValue, threshold);
+  const percentage = calculatePercentageChange(currentValue, previousValue);
+  const value = previousValue !== null && previousValue !== undefined 
+    ? currentValue - previousValue 
+    : 0;
+    
   return {
     direction,
-    percentage: Math.abs(Math.round(percentageChange)),
-    value: difference
+    percentage,
+    value
   };
 }
 
 /**
- * Calculate trends for a list of KPIs
- * @param kpis Array of KPI objects
- * @returns Map of KPI IDs to trend data
+ * Formats percentage change for display
+ * @param percentage Percentage change value
+ * @param precision Number of decimal places (default: 1)
+ * @returns Formatted percentage string with + or - prefix
  */
-export function calculateKPITrends(kpis: KPI[]): Map<string, KPITrend> {
-  const trends = new Map<string, KPITrend>();
-  
-  kpis.forEach(kpi => {
-    trends.set(kpi.id, analyzeTrend(kpi.value, kpi.previous_value || 0));
-  });
-  
-  return trends;
+export function formatPercentageChange(percentage: number, precision: number = 1): string {
+  const prefix = percentage > 0 ? '+' : '';
+  return `${prefix}${percentage.toFixed(precision)}%`;
 }
-
-/**
- * Calculate the overall trend direction based on multiple KPIs
- * @param kpis Array of KPI objects
- * @returns Overall trend direction
- */
-export function calculateOverallTrend(kpis: KPI[]): TrendDirection {
-  if (kpis.length === 0) return 'neutral';
-  
-  const trends = calculateKPITrends(kpis);
-  let upCount = 0;
-  let downCount = 0;
-  
-  trends.forEach(trend => {
-    if (trend.direction === 'up') upCount++;
-    else if (trend.direction === 'down') downCount++;
-  });
-  
-  if (upCount > downCount) return 'up';
-  if (downCount > upCount) return 'down';
-  return 'flat';
-}
-
-export default {
-  analyzeTrend,
-  calculateKPITrends,
-  calculateOverallTrend
-};
