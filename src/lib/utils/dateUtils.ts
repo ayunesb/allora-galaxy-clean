@@ -44,11 +44,10 @@ export function formatDisplayDate(date?: Date | string | null): string {
  * @param date Date to format
  * @returns Formatted date string in ISO format
  */
-export function formatForDatabase<T extends Date | null>(date: T): string | null {
+export function formatForDatabase(date: Date | null): string | null {
   if (!date) return null;
   
   try {
-    // Use toString() instead of direct indexing for the generic type
     return date.toISOString();
   } catch (error) {
     console.error('Error formatting date for database:', error);
@@ -141,11 +140,11 @@ export function formatObjectDates<T extends Record<string, any>>(
 ): T {
   if (!obj) return obj;
 
-  const result = { ...obj };
+  const result = { ...obj } as T;
   
   for (const field of dateFields) {
     if (obj[field]) {
-      result[field] = formatDate(obj[field], formatString) as any;
+      result[field as keyof T] = formatDate(obj[field], formatString) as any;
     }
   }
   

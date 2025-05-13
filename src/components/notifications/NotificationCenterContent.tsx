@@ -1,3 +1,4 @@
+
 import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useEffect } from 'react';
@@ -6,7 +7,6 @@ import { Notification } from '@/types/notifications';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
-import NotificationList from './NotificationList';
 import useAuth from '@/hooks/useAuth';
 import NotificationCenterTabs from './NotificationCenterTabs';
 

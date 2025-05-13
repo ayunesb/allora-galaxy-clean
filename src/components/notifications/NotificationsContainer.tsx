@@ -16,9 +16,9 @@ interface NotificationsContainerProps {
 const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter, setFilter }) => {
   const { 
     notifications, 
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
+    markAsRead: originalMarkAsRead,
+    markAllAsRead: originalMarkAllAsRead,
+    deleteNotification: originalDeleteNotification,
     loading,
     refreshNotifications
   } = useNotifications();
@@ -70,8 +70,17 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter,
     return true;
   });
   
+  // Wrap the notification actions to ensure they return Promise<void>
+  const markAsRead = async (id: string): Promise<void> => {
+    await originalMarkAsRead(id);
+  };
+  
+  const deleteNotification = async (id: string): Promise<void> => {
+    await originalDeleteNotification(id);
+  };
+  
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    await originalMarkAllAsRead();
   };
   
   const handleSearch = (query: string) => {

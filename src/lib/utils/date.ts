@@ -1,3 +1,4 @@
+
 import { format, formatDistance, formatRelative as formatRelativeDate, isDate } from "date-fns";
 
 /**
@@ -36,5 +37,27 @@ export function formatForDatabase<T extends Date | null>(date: T): string | null
   } catch (error) {
     console.error('Error formatting date for database:', error);
     return null;
+  }
+}
+
+/**
+ * Format a date for display in the UI
+ * @param date The date to format
+ * @returns Formatted date string
+ */
+export function formatDisplayDate(date: Date | string | null): string {
+  if (!date) return '';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (!isDate(dateObj) || isNaN(dateObj.getTime())) {
+    return 'Invalid date';
+  }
+  
+  try {
+    return format(dateObj, 'PPP');
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return '';
   }
 }
