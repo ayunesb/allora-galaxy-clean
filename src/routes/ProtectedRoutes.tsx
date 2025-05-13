@@ -1,19 +1,32 @@
-import React from 'react';
+
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import MainLayout from '@/components/layout/MainLayout';
-import Dashboard from '@/pages/Dashboard';
-import LaunchPage from '@/pages/LaunchPage';
-import GalaxyPage from '@/pages/GalaxyPage';
-import Evolution from '@/pages/Evolution';
-import PluginsPage from '@/pages/plugins/index';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+
+// Import dashboard and main pages
+import Dashboard from '@/pages/dashboard/Dashboard';
+import LaunchPage from '@/pages/launch/LaunchPage';
+import GalaxyPage from '@/pages/galaxy/GalaxyPage';
+import Evolution from '@/pages/evolution/Evolution';
+
+// Import plugins pages
+import PluginsPage from '@/pages/plugins';
 import PluginDetailPage from '@/pages/plugins/PluginDetailPage';
 import PluginEvolutionPage from '@/pages/plugins/PluginEvolutionPage';
 import PluginsLeaderboard from '@/pages/plugins/PluginsLeaderboard';
+
+// Import agents pages
 import AgentPerformance from '@/pages/agents/AgentPerformance';
+
+// Import insights pages
 import KpiDashboard from '@/pages/insights/KpiDashboard';
+
+// Import settings pages
 import SettingsPage from '@/pages/settings/SettingsPage';
 import ProfileSettings from '@/pages/settings/ProfileSettings';
+
+// Import admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import UserManagement from '@/pages/admin/UserManagement';
 import SystemLogs from '@/pages/admin/SystemLogs';
@@ -22,20 +35,29 @@ import AiDecisions from '@/pages/admin/AiDecisions';
 import ApiKeysPage from '@/pages/admin/ApiKeysPage';
 import CronJobsPage from '@/pages/admin/CronJobsPage';
 import DeletionRequestsPage from '@/pages/admin/DeletionRequestsPage';
+
+// Import notifications pages
 import NotificationsPage from '@/pages/notifications/NotificationsPage';
-import ExplorePage from '@/pages/ExplorePage';
+
+// Import exploration page
+import ExplorePage from '@/pages/explore/ExplorePage';
+
+// Import Allora Brain pages
 import AlloraBrainPage from '@/pages/allora-brain/AlloraBrainPage';
 import AlloraBrainDocsPage from '@/pages/allora-brain/AlloraBrainDocsPage';
+
+// Import legal pages
 import TermsPage from '@/pages/legal/TermsPage';
 import PrivacyPage from '@/pages/legal/PrivacyPage';
 import DeletionRequestPage from '@/pages/legal/DeletionRequestPage';
-import Unauthorized from '@/pages/auth/Unauthorized';
+
+// Import error pages
+import Unauthorized from '@/pages/errors/Unauthorized';
 import NotFound from '@/pages/NotFound';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 const ProtectedRoutes = () => {
   const { currentWorkspace } = useWorkspace();
-
+  
   return (
     <Routes>
       <Route

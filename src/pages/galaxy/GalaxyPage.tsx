@@ -1,11 +1,16 @@
 
 import React from 'react';
+import { PageHeader } from '@/components/ui/page-header';
 
 const GalaxyPage: React.FC = () => {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Galaxy View</h1>
-      <p className="text-muted-foreground">Graph visualization of strategies and plugins</p>
+    <div className="container py-6">
+      <PageHeader
+        title="Galaxy"
+        description="Visualize your strategy and plugin ecosystem"
+      />
+      
+      {/* Galaxy visualization will be implemented in next phase */}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { useWorkspace } from "@/context/WorkspaceContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface UseTenantIdResult {
   tenantId: string | undefined;
