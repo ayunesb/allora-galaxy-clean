@@ -1,6 +1,16 @@
 
+/**
+ * Notification type definitions for Allora OS
+ */
+
+/**
+ * Available notification types
+ */
 export type NotificationType = 'system' | 'campaign' | 'user' | 'strategy' | 'plugin' | 'agent' | 'info' | 'success' | 'warning' | 'error';
 
+/**
+ * Core notification interface
+ */
 export interface Notification {
   id: string;
   title: string;
@@ -18,7 +28,10 @@ export interface Notification {
   metadata?: Record<string, any>;
 }
 
-export interface NotificationContent {
+/**
+ * Normalized notification for UI display
+ */
+export interface NotificationDisplay {
   id: string;
   title: string;
   message: string;
@@ -29,8 +42,12 @@ export interface NotificationContent {
   action_label?: string;
   userId?: string;
   tenantId?: string;
+  metadata?: Record<string, any>;
 }
 
+/**
+ * Notification context value interface
+ */
 export interface NotificationsContextValue {
   notifications: Notification[];
   unreadCount: number;
@@ -42,6 +59,9 @@ export interface NotificationsContextValue {
   error: Error | null;
 }
 
+/**
+ * Input for creating a notification
+ */
 export interface CreateNotificationInput {
   title: string;
   description?: string;
@@ -53,6 +73,9 @@ export interface CreateNotificationInput {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Filter options for notifications
+ */
 export interface NotificationFilter {
   type?: string | string[];
   read?: boolean;

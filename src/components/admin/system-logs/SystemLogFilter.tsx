@@ -1,123 +1,153 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
-import { SystemLogFilterState } from '@/types/logs';
-import { useLogModules, useLogEvents } from '@/services/logService';
-import { useTenantId } from '@/hooks/useTenantId';
+import { Button } from '@/components/ui/button';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { LogFilters } from '@/types/logs';
 
 interface SystemLogFilterProps {
-  filters: SystemLogFilterState;
-  onFilterChange: (filters: SystemLogFilterState) => void;
-  onReset: () => void;
+  onChange: (filters: LogFilters) => void;
+  initialFilters?: LogFilters;
+  className?: string;
 }
 
-const SystemLogFilter = ({ filters, onFilterChange, onReset }: SystemLogFilterProps) => {
-  const { tenantId } = useTenantId();
-  const { data: modules = [], isLoading: isLoadingModules } = useLogModules(tenantId);
-  const { data: events = [], isLoading: isLoadingEvents } = useLogEvents(tenantId);
-  const [filterState, setFilterState] = useState<SystemLogFilterState>(filters);
-  
-  const handleChange = (name: keyof SystemLogFilterState, value: any) => {
-    setFilterState(prev => ({ ...prev, [name]: value }));
+const SystemLogFilter: React.FC<SystemLogFilterProps> = ({
+  onChange,
+  initialFilters = {},
+  className = '',
+}) => {
+  const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm || '');
+  const [module, setModule] = useState(initialFilters.module || '');
+  const [event, setEvent] = useState(initialFilters.event || '');
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(
+    initialFilters.fromDate || initialFilters.toDate
+      ? { from: initialFilters.fromDate || undefined, to: initialFilters.toDate || undefined }
+      : undefined
+  );
+
+  // Fetch modules
+  const { data: modules = [] } = useQuery({
+    queryKey: ['logModules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('module')
+        .order('module')
+        .distinct();
+      if (error) throw error;
+      return data.map(item => item.module);
+    }
+  });
+
+  // Fetch events
+  const { data: events = [] } = useQuery({
+    queryKey: ['logEvents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('event')
+        .order('event')
+        .distinct();
+      if (error) throw error;
+      return data.map(item => item.event);
+    }
+  });
+
+  const handleSearch = () => {
+    onChange({
+      searchTerm,
+      module,
+      event,
+      fromDate: dateRange?.from || null,
+      toDate: dateRange?.to || null,
+    });
   };
-  
-  const handleApplyFilters = () => {
-    onFilterChange(filterState);
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setModule('');
+    setEvent('');
+    setDateRange(undefined);
+    onChange({});
   };
-  
-  const handleResetFilters = () => {
-    const defaultFilters = {
-      module: '',
-      event: '',
-      searchTerm: '',
-      fromDate: null,
-      toDate: null
-    };
-    setFilterState(defaultFilters);
-    onReset();
+
+  const handleModuleChange = (value: string) => {
+    setModule(value);
   };
-  
+
+  const handleEventChange = (value: string) => {
+    setEvent(value);
+  };
+
   return (
-    <div className="space-y-4 p-4 bg-muted/40 rounded-lg">
-      <h3 className="text-lg font-medium">Filter Logs</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Module</label>
-          <Select
-            value={filterState.module}
-            onValueChange={(value) => handleChange('module', value)}
-            disabled={isLoadingModules}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All modules" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All modules</SelectItem>
-              {modules.map((module) => (
-                <SelectItem key={module} value={module}>{module}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Event</label>
-          <Select
-            value={filterState.event}
-            onValueChange={(value) => handleChange('event', value)}
-            disabled={isLoadingEvents}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All events" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All events</SelectItem>
-              {events.map((event) => (
-                <SelectItem key={event} value={event}>{event}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Search</label>
+    <Card className={`p-4 space-y-4 ${className}`}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div>
           <Input
             placeholder="Search logs..."
-            value={filterState.searchTerm}
-            onChange={(e) => handleChange('searchTerm', e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
           />
         </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium">From Date</label>
-          <DatePicker
-            date={filterState.fromDate}
-            onDateChange={(date) => handleChange('fromDate', date)}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium">To Date</label>
-          <DatePicker
-            date={filterState.toDate}
-            onDateChange={(date) => handleChange('toDate', date)}
-          />
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Select value={module} onValueChange={handleModuleChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by module" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Modules</SelectItem>
+              {modules.map((mod: string) => (
+                <SelectItem key={mod} value={mod}>
+                  {mod}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={event} onValueChange={handleEventChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by event" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Events</SelectItem>
+              {events.map((evt: string) => (
+                <SelectItem key={evt} value={evt}>
+                  {evt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
-      
-      <div className="flex space-x-2">
-        <Button variant="default" onClick={handleApplyFilters}>
-          Apply Filters
-        </Button>
-        <Button variant="outline" onClick={handleResetFilters}>
-          Reset
-        </Button>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <DateRangePicker
+          date={dateRange}
+          onDateChange={setDateRange}
+          align="start"
+          locale="en-US"
+        />
+
+        <div className="flex items-center justify-end space-x-2">
+          <Button variant="outline" onClick={handleReset}>
+            Reset
+          </Button>
+          <Button onClick={handleSearch}>Apply Filters</Button>
+        </div>
       </div>
-    </div>
+    </Card>
   );
 };
 

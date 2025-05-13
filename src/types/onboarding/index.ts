@@ -1,3 +1,3 @@
 
-// Re-export from onboarding with namespace to avoid conflicts
+// Re-export from onboarding types
 export type * from './types';

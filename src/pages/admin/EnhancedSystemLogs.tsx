@@ -1,246 +1,151 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { SystemLog, AuditLog, SystemLogFilterState } from '@/types/logs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { SystemLogFilter } from '@/components/admin/system-logs';
-import { SystemLogsList, LogTypeSelector, CombinedLogView } from '@/components/admin/logs';
-import LogTransformationDialog from '@/components/evolution/LogTransformationDialog';
-import { LogDetailDialog } from '@/components/evolution/logs';
+import { useQueryClient } from '@tanstack/react-query';
 import PageHelmet from '@/components/PageHelmet';
-import { useLogFilterOptions } from '@/services/logService';
-import { filterLogsBySearchTerm } from '@/lib/utils/logTransformations';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SystemLog, AuditLog, LogFilters } from '@/types';
+import { useSystemLogs, useAuditLogs, useLogModules, useLogEvents } from '@/services/logService';
+import { LogsList } from '@/components/evolution/logs';
+import { LogDetailView } from '@/components/admin/logs';
+import { LogFilterBar } from '@/components/admin/logs';
+import { Card, CardContent } from '@/components/ui/card';
+import { DateRange } from 'react-day-picker';
 
 const EnhancedSystemLogs: React.FC = () => {
-  const navigate = useNavigate();
-  const [logType, setLogType] = useState<'system' | 'audit' | 'combined'>('system');
+  // State for filters
+  const [activeTab, setActiveTab] = useState<string>('system');
   const [selectedLog, setSelectedLog] = useState<SystemLog | AuditLog | null>(null);
-  const [selectedLogType, setSelectedLogType] = useState<'system' | 'audit'>('system');
-  const [transformDialogOpen, setTransformDialogOpen] = useState(false);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  
-  // Filters state
-  const [filters, setFilters] = useState<SystemLogFilterState>({
+  const [filters, setFilters] = useState<LogFilters>({
+    searchTerm: '',
     module: '',
     event: '',
-    searchTerm: '',
     fromDate: null,
-    toDate: null
+    toDate: null,
+    limit: 50
   });
   
-  // Get filter options
-  const { modules, events } = useLogFilterOptions();
+  const queryClient = useQueryClient();
   
-  // Fetch system logs
+  // Fetch log data based on active tab and filters
   const { 
-    logs: systemLogs, 
-    isLoading: systemLogsLoading, 
-    refetch: refetchSystemLogs 
-  } = useSystemLogsData();
+    data: systemLogs = [], 
+    isLoading: systemLogsLoading,
+    refetch: refetchSystemLogs
+  } = useSystemLogs(activeTab === 'system' ? filters : { limit: 0 });
   
-  // Fetch audit logs
   const { 
-    logs: auditLogs, 
-    isLoading: auditLogsLoading, 
-    refetch: refetchAuditLogs 
-  } = useAuditLogData();
+    data: auditLogs = [], 
+    isLoading: auditLogsLoading,
+    refetch: refetchAuditLogs
+  } = useAuditLogs(activeTab === 'audit' ? filters : { limit: 0 });
   
-  // Apply frontend filtering
-  const filteredSystemLogs = React.useMemo(() => {
-    let filtered = systemLogs;
-    
-    if (filters.module) {
-      filtered = filtered.filter(log => log.module === filters.module);
-    }
-    
-    if (filters.event) {
-      filtered = filtered.filter(log => log.event === filters.event);
-    }
-    
-    if (filters.fromDate || filters.toDate) {
-      filtered = filtered.filter(log => {
-        const logDate = new Date(log.created_at);
-        if (filters.fromDate && logDate < filters.fromDate) return false;
-        if (filters.toDate) {
-          const toDateEnd = new Date(filters.toDate);
-          toDateEnd.setHours(23, 59, 59, 999);
-          if (logDate > toDateEnd) return false;
-        }
-        return true;
-      });
-    }
-    
-    if (filters.searchTerm) {
-      filtered = filterLogsBySearchTerm(filtered, filters.searchTerm);
-    }
-    
-    return filtered;
-  }, [systemLogs, filters]);
+  // Fetch filter options
+  const { data: modules = [] } = useLogModules();
+  const { data: events = [] } = useLogEvents();
   
-  // Apply similar filtering to audit logs
-  const filteredAuditLogs = React.useMemo(() => {
-    let filtered = auditLogs;
-    
-    if (filters.module) {
-      filtered = filtered.filter(log => log.module === filters.module || log.entity_type === filters.module);
-    }
-    
-    if (filters.event) {
-      filtered = filtered.filter(log => log.event === filters.event || log.action === filters.event);
-    }
-    
-    if (filters.fromDate || filters.toDate) {
-      filtered = filtered.filter(log => {
-        const logDate = new Date(log.created_at);
-        if (filters.fromDate && logDate < filters.fromDate) return false;
-        if (filters.toDate) {
-          const toDateEnd = new Date(filters.toDate);
-          toDateEnd.setHours(23, 59, 59, 999);
-          if (logDate > toDateEnd) return false;
-        }
-        return true;
-      });
-    }
-    
-    if (filters.searchTerm) {
-      filtered = filterLogsBySearchTerm(filtered, filters.searchTerm);
-    }
-    
-    return filtered;
-  }, [auditLogs, filters]);
+  // Determine which logs to show based on active tab
+  const isLoading = activeTab === 'system' ? systemLogsLoading : auditLogsLoading;
+  const logs = activeTab === 'system' ? systemLogs : auditLogs;
   
-  const handleFilterChange = (newFilters: SystemLogFilterState) => {
-    setFilters(newFilters);
-  };
-  
-  const handleResetFilters = () => {
-    setFilters({
-      module: '',
-      event: '',
-      searchTerm: '',
-      fromDate: null,
-      toDate: null
-    });
-  };
-  
-  const handleViewSystemLog = (log: SystemLog) => {
+  // Handle log selection
+  const handleSelectLog = (log: SystemLog | AuditLog) => {
     setSelectedLog(log);
-    setSelectedLogType('system');
-    setDetailsDialogOpen(true);
   };
   
-  const handleViewAuditLog = (log: AuditLog) => {
-    setSelectedLog(log);
-    setSelectedLogType('audit');
-    setDetailsDialogOpen(true);
+  // Handle filter changes
+  const handleFilterChange = (key: keyof LogFilters, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setSelectedLog(null); // Reset selected log when filters change
   };
   
-  const handleViewCombinedLog = (log: SystemLog | AuditLog, type: 'system' | 'audit') => {
-    setSelectedLog(log);
-    setSelectedLogType(type);
-    setDetailsDialogOpen(true);
+  // Handle date range changes
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setFilters(prev => ({
+      ...prev,
+      fromDate: range?.from || null,
+      toDate: range?.to || null
+    }));
+    setSelectedLog(null);
   };
   
-  const isLoading = systemLogsLoading || auditLogsLoading;
+  // Handle refresh
+  const handleRefresh = () => {
+    if (activeTab === 'system') {
+      queryClient.invalidateQueries({ queryKey: ['systemLogs'] });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  };
   
   return (
     <>
       <PageHelmet
         title="System Logs"
-        description="View and filter system logs"
+        description="View and analyze system and audit logs"
       />
       
-      <div className="container py-8">
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold">System Logs</h1>
-          <LogTypeSelector
-            value={logType}
-            onChange={(value) => setLogType(value as 'system' | 'audit' | 'combined')}
-            disabled={isLoading}
-          />
-        </div>
-        
-        <SystemLogFilter
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={handleResetFilters}
-        />
-        
-        <div className="mt-6">
-          {logType === 'system' && (
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle>System Logs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SystemLogsList
-                  logs={filteredSystemLogs}
-                  isLoading={systemLogsLoading}
-                  onViewLog={handleViewSystemLog}
-                />
-              </CardContent>
-            </Card>
-          )}
+      <div className="container mx-auto py-6">
+        <div className="flex flex-col space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">System Logs</h1>
+            <p className="text-muted-foreground">
+              View and analyze system and audit logs to monitor application health
+            </p>
+          </div>
           
-          {logType === 'audit' && (
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle>Audit Logs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SystemLogsList
-                  logs={filteredAuditLogs.map(log => ({
-                    id: log.id,
-                    module: log.entity_type || log.module || '',
-                    event: log.action || log.event || '',
-                    description: log.description || log.details?.message || '',
-                    context: log.context || log.details,
-                    created_at: log.created_at,
-                    tenant_id: log.tenant_id,
-                    user_id: log.user_id
-                  }))}
-                  isLoading={auditLogsLoading}
-                  onViewLog={(log) => {
-                    // Find the original audit log
-                    const originalLog = auditLogs.find(l => l.id === log.id);
-                    if (originalLog) {
-                      handleViewAuditLog(originalLog);
-                    }
-                  }}
-                />
-              </CardContent>
-            </Card>
-          )}
-          
-          {logType === 'combined' && (
-            <CombinedLogView
-              systemLogs={filteredSystemLogs}
-              auditLogs={filteredAuditLogs}
-              isLoading={isLoading}
-              onViewLog={handleViewCombinedLog}
-            />
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="system">System Logs</TabsTrigger>
+              <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+            </TabsList>
+            
+            <div className="mb-4">
+              <LogFilterBar
+                searchTerm={filters.searchTerm || ''}
+                onSearchChange={(value) => handleFilterChange('searchTerm', value)}
+                module={filters.module || ''}
+                onModuleChange={(value) => handleFilterChange('module', value)}
+                event={filters.event || ''}
+                onEventChange={(value) => handleFilterChange('event', value)}
+                dateRange={
+                  filters.fromDate || filters.toDate
+                    ? { from: filters.fromDate || undefined, to: filters.toDate || undefined }
+                    : null
+                }
+                onDateRangeChange={handleDateRangeChange}
+                modules={modules}
+                events={events}
+                onRefresh={handleRefresh}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-0">
+                  <LogsList
+                    logs={logs}
+                    onSelectLog={handleSelectLog}
+                    selectedLogId={selectedLog?.id}
+                    isLoading={isLoading}
+                  />
+                </CardContent>
+              </Card>
+              
+              <div>
+                {selectedLog ? (
+                  <LogDetailView log={selectedLog} />
+                ) : (
+                  <Card className="h-full flex items-center justify-center text-muted-foreground">
+                    <CardContent>
+                      Select a log to view details
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </Tabs>
         </div>
       </div>
-      
-      {selectedLog && (
-        <LogDetailDialog
-          log={selectedLog as AuditLog}
-          open={detailsDialogOpen}
-          onOpenChange={setDetailsDialogOpen}
-        />
-      )}
-      
-      {selectedLog && (
-        <LogTransformationDialog
-          log={selectedLog}
-          type={selectedLogType}
-          open={transformDialogOpen}
-          onOpenChange={setTransformDialogOpen}
-        />
-      )}
     </>
   );
 };

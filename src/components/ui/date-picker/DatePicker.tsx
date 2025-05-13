@@ -1,4 +1,5 @@
 
+import * as React from 'react';
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,25 +12,27 @@ import {
 } from "@/components/ui/popover";
 
 export interface DatePickerProps {
-  date?: Date | null;
-  onDateChange?: (date: Date | null) => void;
+  date: Date | undefined;
+  onSelect: (date: Date | null) => void;
+  disabled?: boolean;
   placeholder?: string;
   className?: string;
-  disabled?: boolean;
+  popoverWidth?: boolean;
 }
 
 export function DatePicker({
   date,
-  onDateChange,
+  onSelect,
+  disabled = false,
   placeholder = "Pick a date",
   className,
-  disabled = false
+  popoverWidth = true,
 }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground",
@@ -41,13 +44,12 @@ export function DatePicker({
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className={popoverWidth ? "w-auto" : ""} align="start">
         <Calendar
           mode="single"
-          selected={date || undefined}
-          onSelect={(day) => onDateChange && onDateChange(day)}
+          selected={date || null}
+          onSelect={onSelect}
           initialFocus
-          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>

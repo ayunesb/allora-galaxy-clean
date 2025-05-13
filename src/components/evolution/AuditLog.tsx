@@ -1,88 +1,182 @@
 
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { AuditLog as AuditLogType, LogFilters } from '@/types';
+import { LogFilterBar } from '@/components/admin/logs';
+import { LogsList, LogDetailDialog } from '@/components/evolution/logs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { AuditLogFilters } from '@/components/evolution/logs';
-import { SystemLogsList } from '@/components/admin/logs';
-import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
-import { LogDetailDialog } from '@/components/evolution/logs';
-import { AuditLogFilterState } from '@/types/logs';
-import { auditLogToSystemLog, systemLogToAuditLog } from '@/lib/utils/logTransformations';
 
 interface AuditLogProps {
-  className?: string;
-  data?: AuditLogType[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
+  tenantId?: string;
+  entityId?: string;
+  entityType?: string;
+  limit?: number;
+  showHeader?: boolean;
   title?: string;
 }
 
-export const AuditLog: React.FC<AuditLogProps> = ({ 
-  className,
-  data,
-  isLoading,
-  onRefresh,
-  title = "Audit Logs" 
+const AuditLog: React.FC<AuditLogProps> = ({
+  tenantId,
+  entityId,
+  entityType,
+  limit = 20,
+  showHeader = true,
+  title = 'Audit Log'
 }) => {
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [filters, setFilters] = useState<AuditLogFilterState>({
-    module: '',
-    event: '',
-    fromDate: null,
-    toDate: null,
-    searchTerm: ''
+  const [filters, setFilters] = useState<LogFilters>({
+    module: entityType || '',
+    searchTerm: '',
+    limit
   });
 
-  const { logs, isLoading: fetchingLogs, refetch } = useAuditLogData();
-
-  // Use provided data or fetched logs
-  const displayLogs = data || logs;
-  const loading = isLoading !== undefined ? isLoading : fetchingLogs;
-  const refreshData = onRefresh || refetch;
-
-  const handleViewLog = (log: SystemLog) => {
-    // Since we're displaying SystemLogs but tracking AuditLogs
-    // Find the matching audit log from our data
-    const auditLog = displayLogs?.find(aLog => aLog.id === log.id);
-    setSelectedLog(auditLog || systemLogToAuditLog(log));
-    setDialogOpen(true);
+  // Query to fetch audit logs
+  const {
+    data: logs = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['auditLogs', tenantId, entityId, entityType, filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
+      
+      if (entityId) {
+        query = query.eq('entity_id', entityId);
+      }
+      
+      if (entityType) {
+        query = query.eq('entity_type', entityType);
+      }
+      
+      if (filters.module) {
+        query = query.eq('entity_type', filters.module);
+      }
+      
+      if (filters.event) {
+        query = query.eq('action', filters.event);
+      }
+      
+      if (filters.searchTerm) {
+        query = query.or(`action.ilike.%${filters.searchTerm}%,entity_type.ilike.%${filters.searchTerm}%`);
+      }
+      
+      if (filters.fromDate) {
+        query = query.gte('created_at', filters.fromDate.toISOString());
+      }
+      
+      if (filters.toDate) {
+        const endDate = new Date(filters.toDate);
+        endDate.setDate(endDate.getDate() + 1);
+        query = query.lt('created_at', endDate.toISOString());
+      }
+      
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data as AuditLogType[];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+  
+  // Get unique entity types for filtering
+  const { data: entityTypes = [] } = useQuery({
+    queryKey: ['auditLogEntityTypes', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('entity_type')
+        .order('entity_type')
+        .distinct();
+        
+      if (error) throw error;
+      return data.map(item => item.entity_type);
+    },
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+  
+  // Get unique actions for filtering
+  const { data: actions = [] } = useQuery({
+    queryKey: ['auditLogActions', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('action')
+        .order('action')
+        .distinct();
+        
+      if (error) throw error;
+      return data.map(item => item.action);
+    },
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+  
+  const handleFilterChange = (key: keyof LogFilters, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
-
-  const handleFilterChange = (newFilters: AuditLogFilterState) => {
-    setFilters(newFilters);
-    // Apply filters logic would go here
+  
+  const handleDateRangeChange = (range: { from?: Date; to?: Date } | null) => {
+    setFilters(prev => ({
+      ...prev,
+      fromDate: range?.from || null,
+      toDate: range?.to || null
+    }));
   };
-
+  
   return (
-    <div className={className}>
+    <>
       <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AuditLogFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            isLoading={loading}
-            onRefresh={refreshData}
+        {showHeader && (
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+        )}
+        
+        <CardContent className="space-y-4">
+          <LogFilterBar
+            searchTerm={filters.searchTerm || ''}
+            onSearchChange={(value) => handleFilterChange('searchTerm', value)}
+            module={filters.module || ''}
+            onModuleChange={(value) => handleFilterChange('module', value)}
+            event={filters.event || ''}
+            onEventChange={(value) => handleFilterChange('event', value)}
+            dateRange={
+              filters.fromDate || filters.toDate
+                ? { from: filters.fromDate || undefined, to: filters.toDate || undefined }
+                : null
+            }
+            onDateRangeChange={handleDateRangeChange}
+            modules={entityTypes}
+            events={actions}
+            onRefresh={() => refetch()}
           />
-          <Separator className="my-4" />
-          <SystemLogsList
-            logs={(displayLogs || []).map(auditLogToSystemLog)}
-            isLoading={loading}
-            onViewLog={handleViewLog}
+          
+          <LogsList
+            logs={logs}
+            onSelectLog={(log) => setSelectedLog(log as AuditLogType)}
+            isLoading={isLoading}
+            selectedLogId={selectedLog?.id}
           />
         </CardContent>
       </Card>
-
+      
       <LogDetailDialog
         log={selectedLog}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
       />
-    </div>
+    </>
   );
 };
 

@@ -1,116 +1,188 @@
-import { useState, useEffect } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { SystemLog, AuditLog, LogFilters } from '@/types';
 
 /**
- * Hook to get log filter options from the database
- * @returns Object containing modules and events arrays
+ * Fetch system logs with optional filters
  */
-export function useLogFilterOptions() {
-  const [modules, setModules] = useState<string[]>([]);
-  const [events, setEvents] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchFilterOptions() {
-      try {
-        setLoading(true);
-        
-        // Fetch distinct modules
-        const { data: moduleData, error: moduleError } = await supabase
-          .from('system_logs')
-          .select('module')
-          .is('module', 'not.null')
-          .order('module')
-          .limit(100);
-          
-        if (moduleError) {
-          console.error('Error fetching modules:', moduleError);
-        } else {
-          const uniqueModules = Array.from(
-            new Set(moduleData.map(item => item.module))
-          ).filter(Boolean);
-          setModules(uniqueModules);
-        }
-        
-        // Fetch distinct events
-        const { data: eventData, error: eventError } = await supabase
-          .from('system_logs')
-          .select('event')
-          .is('event', 'not.null')
-          .order('event')
-          .limit(100);
-          
-        if (eventError) {
-          console.error('Error fetching events:', eventError);
-        } else {
-          const uniqueEvents = Array.from(
-            new Set(eventData.map(item => item.event))
-          ).filter(Boolean);
-          setEvents(uniqueEvents);
-        }
-      } catch (error) {
-        console.error('Error in useLogFilterOptions:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
+export const fetchSystemLogs = async (filters: LogFilters = {}) => {
+  let query = supabase
+    .from('system_logs')
+    .select('*')
+    .order('created_at', { ascending: false });
     
-    fetchFilterOptions();
-  }, []);
-  
-  return { modules, events, loading };
-}
-
-/**
- * Filter logs by search term
- * @param logs Array of logs to filter
- * @param searchTerm Search term to filter by
- * @returns Filtered logs array
- */
-export function filterLogsBySearchTerm(logs: any[], searchTerm: string) {
-  if (!searchTerm.trim()) return logs;
-  
-  const lowerSearchTerm = searchTerm.toLowerCase();
-  
-  return logs.filter(log => {
-    // Search in common fields
-    if (log.id?.toLowerCase().includes(lowerSearchTerm)) return true;
-    if (log.module?.toLowerCase().includes(lowerSearchTerm)) return true;
-    if (log.event?.toLowerCase().includes(lowerSearchTerm)) return true;
-    if (log.description?.toLowerCase().includes(lowerSearchTerm)) return true;
-    if (log.user_id?.toLowerCase().includes(lowerSearchTerm)) return true;
-    
-    // Search in context object if it exists
-    if (log.context) {
-      const contextStr = JSON.stringify(log.context).toLowerCase();
-      if (contextStr.includes(lowerSearchTerm)) return true;
-    }
-    
-    // Search in entity-specific fields for audit logs
-    if (log.entity_type?.toLowerCase().includes(lowerSearchTerm)) return true;
-    if (log.entity_id?.toLowerCase().includes(lowerSearchTerm)) return true;
-    if (log.action?.toLowerCase().includes(lowerSearchTerm)) return true;
-    
-    return false;
-  });
-}
-
-/**
- * Format log context for display
- * @param context Log context object
- * @returns Formatted context string
- */
-export function formatLogContext(context: any): string {
-  if (!context) return '';
-  
-  try {
-    if (typeof context === 'string') {
-      return context;
-    }
-    
-    return JSON.stringify(context, null, 2);
-  } catch (error) {
-    console.error('Error formatting log context:', error);
-    return String(context);
+  if (filters.module) {
+    query = query.eq('module', filters.module);
   }
-}
+  
+  if (filters.event) {
+    query = query.eq('event', filters.event);
+  }
+  
+  if (filters.tenant_id) {
+    query = query.eq('tenant_id', filters.tenant_id);
+  }
+  
+  if (filters.searchTerm) {
+    query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`);
+  }
+  
+  if (filters.date_from) {
+    query = query.gte('created_at', filters.date_from.toISOString());
+  }
+  
+  if (filters.date_to) {
+    // Add 1 day to include the entire day
+    const endDate = new Date(filters.date_to);
+    endDate.setDate(endDate.getDate() + 1);
+    query = query.lt('created_at', endDate.toISOString());
+  }
+  
+  if (filters.limit) {
+    query = query.limit(filters.limit);
+  }
+  
+  if (filters.offset) {
+    query = query.range(filters.offset, filters.offset + (filters.limit || 20) - 1);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    throw new Error(`Error fetching system logs: ${error.message}`);
+  }
+  
+  return data as SystemLog[];
+};
+
+/**
+ * Fetch audit logs with optional filters
+ */
+export const fetchAuditLogs = async (filters: LogFilters = {}) => {
+  let query = supabase
+    .from('audit_logs')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (filters.module) {
+    query = query.eq('entity_type', filters.module);
+  }
+  
+  if (filters.event) {
+    query = query.eq('action', filters.event);
+  }
+  
+  if (filters.tenant_id) {
+    query = query.eq('tenant_id', filters.tenant_id);
+  }
+  
+  if (filters.searchTerm) {
+    query = query.or(`action.ilike.%${filters.searchTerm}%,entity_type.ilike.%${filters.searchTerm}%`);
+  }
+  
+  if (filters.date_from) {
+    query = query.gte('created_at', filters.date_from.toISOString());
+  }
+  
+  if (filters.date_to) {
+    // Add 1 day to include the entire day
+    const endDate = new Date(filters.date_to);
+    endDate.setDate(endDate.getDate() + 1);
+    query = query.lt('created_at', endDate.toISOString());
+  }
+  
+  if (filters.limit) {
+    query = query.limit(filters.limit);
+  }
+  
+  if (filters.offset) {
+    query = query.range(filters.offset, filters.offset + (filters.limit || 20) - 1);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    throw new Error(`Error fetching audit logs: ${error.message}`);
+  }
+  
+  return data as AuditLog[];
+};
+
+/**
+ * Get unique log modules
+ */
+export const fetchLogModules = async () => {
+  const { data, error } = await supabase
+    .from('system_logs')
+    .select('module')
+    .order('module')
+    .distinct();
+    
+  if (error) {
+    throw new Error(`Error fetching log modules: ${error.message}`);
+  }
+  
+  return data.map(item => item.module);
+};
+
+/**
+ * Get unique log events
+ */
+export const fetchLogEvents = async () => {
+  const { data, error } = await supabase
+    .from('system_logs')
+    .select('event')
+    .order('event')
+    .distinct();
+    
+  if (error) {
+    throw new Error(`Error fetching log events: ${error.message}`);
+  }
+  
+  return data.map(item => item.event);
+};
+
+/**
+ * Hook to fetch system logs with optional filters
+ */
+export const useSystemLogs = (filters: LogFilters = {}) => {
+  return useQuery({
+    queryKey: ['systemLogs', filters],
+    queryFn: () => fetchSystemLogs(filters),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+/**
+ * Hook to fetch audit logs with optional filters
+ */
+export const useAuditLogs = (filters: LogFilters = {}) => {
+  return useQuery({
+    queryKey: ['auditLogs', filters],
+    queryFn: () => fetchAuditLogs(filters),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+/**
+ * Hook to fetch unique log modules
+ */
+export const useLogModules = () => {
+  return useQuery({
+    queryKey: ['logModules'],
+    queryFn: fetchLogModules,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+};
+
+/**
+ * Hook to fetch unique log events
+ */
+export const useLogEvents = () => {
+  return useQuery({
+    queryKey: ['logEvents'],
+    queryFn: fetchLogEvents,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+};

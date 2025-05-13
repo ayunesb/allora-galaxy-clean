@@ -1,20 +1,30 @@
 
+/**
+ * Core onboarding types for Allora OS
+ */
+
 export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
+/**
+ * Persona profile definition used in onboarding
+ */
 export interface PersonaProfile {
   name: string;
   goals: string[];
   tone: string;
 }
 
+/**
+ * Main form data structure for the onboarding process
+ */
 export interface OnboardingFormData {
-  companyName?: string;
-  industry?: string;
-  companySize?: string;
+  companyName: string;
+  industry: string;
+  companySize: string;
   website?: string;
   revenueRange?: string;
   description?: string;
-  goals?: string[];
+  goals: string[];
   companyInfo: {
     name: string;
     industry: string;
@@ -31,19 +41,9 @@ export interface OnboardingFormData {
   [key: string]: any;
 }
 
-// Added OnboardingData interface for backward compatibility
-export interface OnboardingData {
-  companyName: string;
-  industry: string;
-  companySize: string;
-  goals: string[];
-  persona: string;
-  tonePreference: string;
-  targeting: string[];
-  aggressiveness: 'low' | 'moderate' | 'high';
-  [key: string]: any;
-}
-
+/**
+ * State management for onboarding
+ */
 export interface OnboardingState {
   step: OnboardingStep;
   formData: OnboardingFormData;
@@ -55,6 +55,9 @@ export interface OnboardingState {
   isComplete?: boolean;
 }
 
+/**
+ * Actions for onboarding store
+ */
 export interface OnboardingStoreActions {
   nextStep: () => void;
   prevStep: () => void;
@@ -67,8 +70,14 @@ export interface OnboardingStoreActions {
   validateStep: (step: OnboardingStep) => boolean;
 }
 
+/**
+ * Combined type for the onboarding store
+ */
 export type OnboardingStore = OnboardingState & OnboardingStoreActions;
 
+/**
+ * Form validation result
+ */
 export interface ValidationResult {
   valid: boolean;
   errors: Record<string, string>;
