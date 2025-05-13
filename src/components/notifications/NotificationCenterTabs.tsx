@@ -11,7 +11,6 @@ interface NotificationCenterTabsProps {
   unreadCount: number;
   value?: string;
   onValueChange?: (value: string) => void;
-  userId: string;
 }
 
 const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
@@ -21,7 +20,6 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   unreadCount,
   value = 'all',
   onValueChange,
-  userId
 }) => {
   const handleTabChange = (newValue: string) => {
     if (onValueChange) {

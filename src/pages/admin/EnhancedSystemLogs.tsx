@@ -10,7 +10,6 @@ import { SystemLogsList, LogTypeSelector, CombinedLogView } from '@/components/a
 import LogTransformationDialog from '@/components/evolution/LogTransformationDialog';
 import { LogDetailDialog } from '@/components/evolution/logs';
 import PageHelmet from '@/components/PageHelmet';
-import { DateRange } from '@/types/shared';
 import { useLogFilterOptions } from '@/services/logService';
 import { filterLogsBySearchTerm } from '@/lib/utils/logTransformations';
 
@@ -213,7 +212,7 @@ const EnhancedSystemLogs: React.FC = () => {
                     id: log.id,
                     module: log.entity_type || log.module || '',
                     event: log.action || log.event || '',
-                    description: log.details?.message || '',
+                    description: log.description || log.details?.message || '',
                     context: log.context || log.details,
                     created_at: log.created_at,
                     tenant_id: log.tenant_id,
@@ -243,18 +242,22 @@ const EnhancedSystemLogs: React.FC = () => {
         </div>
       </div>
       
-      <LogDetailDialog
-        log={selectedLog as AuditLog}
-        open={detailsDialogOpen}
-        onOpenChange={setDetailsDialogOpen}
-      />
+      {selectedLog && (
+        <LogDetailDialog
+          log={selectedLog as AuditLog}
+          open={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
+        />
+      )}
       
-      <LogTransformationDialog
-        log={selectedLog}
-        type={selectedLogType}
-        open={transformDialogOpen}
-        onOpenChange={setTransformDialogOpen}
-      />
+      {selectedLog && (
+        <LogTransformationDialog
+          log={selectedLog}
+          type={selectedLogType}
+          open={transformDialogOpen}
+          onOpenChange={setTransformDialogOpen}
+        />
+      )}
     </>
   );
 };

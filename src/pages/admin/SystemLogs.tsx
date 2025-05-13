@@ -4,10 +4,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import { useSystemLogs } from '@/services/logService';
 import { SystemLogFilterState } from '@/types/logs';
 import { SystemLogFilter, SystemLogTable } from '@/components/admin/system-logs';
 import { useTenantId } from '@/hooks/useTenantId';
+import { useSystemLogs } from '@/services/logService';
 
 const SystemLogs = () => {
   const { tenantId } = useTenantId();

@@ -1,5 +1,5 @@
 
-import * as React from "react";
+import * as React from 'react';
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,41 +10,30 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { SelectSingleEventHandler } from "react-day-picker";
 
 export interface DatePickerProps {
-  date: Date | null;
-  onSelect?: (date: Date | null) => void;
-  onDateChange?: (date: Date | null) => void; // Alternative prop name for compatibility
+  date?: Date | null;
+  onDateChange?: (date: Date | null) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ 
-  date, 
-  onSelect,
+export function DatePicker({
+  date,
   onDateChange,
   placeholder = "Pick a date",
   className,
   disabled = false
-}) => {
-  // Handle date changes through either prop
-  const handleDateChange: SelectSingleEventHandler = (selectedDate) => {
-    const newDate = selectedDate || null;
-    if (onSelect) onSelect(newDate);
-    if (onDateChange) onDateChange(newDate);
-  };
-
+}: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant={"outline"}
+          variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground",
-            disabled && "opacity-50 cursor-not-allowed",
             className
           )}
           disabled={disabled}
@@ -57,13 +46,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={handleDateChange}
+          onSelect={onDateChange}
           initialFocus
-          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>
   );
-};
-
-export default DatePicker;
+}

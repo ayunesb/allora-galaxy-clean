@@ -23,6 +23,7 @@ export interface AuditLog {
   // Fields needed for compatibility with SystemLog
   module: string;
   event: string;
+  description?: string;
   context?: Record<string, any>;
 }
 

@@ -108,7 +108,6 @@ const NotificationCenterContent = ({
           unreadCount={unreadCount}
           value={activeFilter}
           onValueChange={setActiveFilter}
-          userId={userId || ''}
         />
       </div>
     </div>

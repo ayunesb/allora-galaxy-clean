@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import PageHelmet from '@/components/PageHelmet';
 import LogTransformationDialog from '@/components/evolution/LogTransformationDialog';
-import { auditLogToSystemLog, systemLogToAuditLog } from '@/lib/utils/logTransformations';
 
 const LogDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -204,13 +203,13 @@ const LogDetailsPage: React.FC = () => {
               
               {/* Description/Message */}
               {((isSystemLog && (logData as SystemLog).description) || 
-                (!isSystemLog && (logData as AuditLog).details?.message)) && (
+                (!isSystemLog && ((logData as AuditLog).description || (logData as AuditLog).details?.message))) && (
                 <div className="mb-6">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
                   <p className="text-sm bg-muted p-3 rounded-md">
                     {isSystemLog 
                       ? (logData as SystemLog).description 
-                      : (logData as AuditLog).details?.message}
+                      : (logData as AuditLog).description || (logData as AuditLog).details?.message}
                   </p>
                 </div>
               )}
@@ -238,12 +237,14 @@ const LogDetailsPage: React.FC = () => {
         </Card>
       </div>
       
-      <LogTransformationDialog
-        open={transformDialogOpen}
-        onOpenChange={setTransformDialogOpen}
-        log={logData}
-        type={logType as 'system' | 'audit'}
-      />
+      {logData && logType && (
+        <LogTransformationDialog
+          open={transformDialogOpen}
+          onOpenChange={setTransformDialogOpen}
+          log={logData}
+          type={logType as 'system' | 'audit'}
+        />
+      )}
     </>
   );
 };

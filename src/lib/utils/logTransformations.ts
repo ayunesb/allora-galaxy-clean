@@ -18,6 +18,7 @@ export const systemLogToAuditLog = (log: SystemLog): AuditLog => {
     created_at: log.created_at,
     module: log.module,
     event: log.event,
+    description: log.description,
     context: log.context
   };
 };
@@ -33,7 +34,7 @@ export const auditLogToSystemLog = (log: AuditLog): SystemLog => {
     module: log.module || log.entity_type,
     event: log.event || log.action,
     level: log.details?.level || (log.event === 'error' ? 'error' : 'info'),
-    description: log.details?.message || '',
+    description: log.description || log.details?.message || '',
     context: log.context || log.details,
     tenant_id: log.tenant_id,
     created_at: log.created_at,
@@ -78,7 +79,8 @@ export const filterLogsBySearchTerm = <T extends SystemLog | AuditLog>(logs: T[]
     if ('entity_type' in log && log.entity_type?.toLowerCase().includes(term)) return true;
     
     // Common fields in context/details
-    const contextDetails = ('context' in log ? log.context : log.details) || {};
+    const contextDetails = ('context' in log && log.context) ? log.context : 
+                           ('details' in log && log.details) ? log.details : {};
     if (JSON.stringify(contextDetails).toLowerCase().includes(term)) return true;
     
     return false;
