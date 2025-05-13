@@ -1,21 +1,20 @@
 
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { OnboardingFormData } from '@/types/onboarding';
-import { useOnboardingSubmission as useOnboardingMutation } from '@/services/onboardingService';
-import { useAuth } from '@/hooks/useAuth';
+import { OnboardingData } from '@/types/onboarding/types';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
+import useAuth from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export const useOnboardingSubmission = () => {
-  const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const onboardingMutation = useOnboardingMutation();
-  
-  const submitOnboardingData = async (data: OnboardingFormData) => {
+  const submitOnboarding = async (data: OnboardingData) => {
     if (!user) {
+      setError('User not authenticated');
       toast({
         title: 'Authentication Error',
         description: 'You must be logged in to complete onboarding.',
@@ -23,49 +22,97 @@ export const useOnboardingSubmission = () => {
       });
       return false;
     }
-    
-    setIsSubmitting(true);
-    
+
     try {
-      // Add user ID to the form data
-      const formDataWithUser = {
-        ...data,
-        userId: user.id
-      };
-      
-      // Submit onboarding data
-      const result = await onboardingMutation.mutateAsync(formDataWithUser);
-      
-      if (!result.success) {
-        throw new Error(result.error);
+      setLoading(true);
+      setError(null);
+
+      // Create tenant record
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .insert({
+          name: data.companyName,
+          owner_id: user.id,
+          created_by: user.id,
+          active: true
+        })
+        .select('id')
+        .single();
+
+      if (tenantError) {
+        throw new Error(`Error creating tenant: ${tenantError.message}`);
       }
-      
-      // Show success toast
+
+      const tenantId = tenantData.id;
+
+      // Add user as owner of tenant
+      const { error: roleError } = await supabase
+        .from('tenant_user_roles')
+        .insert({
+          tenant_id: tenantId,
+          user_id: user.id,
+          role: 'owner',
+          created_by: user.id,
+        });
+
+      if (roleError) {
+        throw new Error(`Error assigning role: ${roleError.message}`);
+      }
+
+      // Create company profile
+      const { error: profileError } = await supabase
+        .from('company_profiles')
+        .insert({
+          tenant_id: tenantId,
+          name: data.companyName,
+          industry: data.industry,
+          size: data.companySize,
+          goals: data.goals,
+          created_by: user.id,
+        });
+
+      if (profileError) {
+        throw new Error(`Error creating profile: ${profileError.message}`);
+      }
+
+      // Mark onboarding as complete
+      const { error: userError } = await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', user.id);
+
+      if (userError) {
+        throw new Error(`Error updating profile: ${userError.message}`);
+      }
+
+      // Success, redirect to dashboard
       toast({
         title: 'Onboarding Complete',
-        description: 'Your workspace has been created successfully.',
+        description: 'Your workspace is ready!',
       });
-      
-      // Redirect to dashboard
+
       navigate('/dashboard');
-      return result.tenantId;
-    } catch (error: any) {
-      console.error('Onboarding submission error:', error);
+      return true;
+    } catch (err: any) {
+      console.error('Onboarding submission error:', err);
+      setError(err.message);
+      
       toast({
-        title: 'Onboarding Failed',
-        description: error.message || 'There was an error processing your onboarding information.',
+        title: 'Onboarding Error',
+        description: err.message || 'An error occurred during onboarding.',
         variant: 'destructive',
       });
+      
       return false;
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
-  
+
   return {
-    submitOnboardingData,
-    isSubmitting: isSubmitting || onboardingMutation.isPending,
-    error: onboardingMutation.error
+    submitOnboarding,
+    loading,
+    error,
   };
 };
 

@@ -1,7 +1,20 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { StrategyInput, StrategyExecutionResult } from '@/lib/strategy/types';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+
+/**
+ * Interface for executing a strategy
+ */
+interface StrategyInput {
+  strategy_id?: string;
+  strategyId?: string;
+  plugins?: any[];
+  tenant_id?: string;
+  tenantId?: string;
+  user_id?: string;
+  userId?: string;
+  input_data?: Record<string, any>;
+}
 
 /**
  * Execute a strategy with the given input parameters
@@ -10,9 +23,13 @@ import { logSystemEvent } from '@/lib/system/logSystemEvent';
  * @param input Strategy execution input parameters
  * @returns Promise with execution result
  */
-export async function executeStrategy(input: StrategyInput): Promise<StrategyExecutionResult> {
+export async function executeStrategy(input: StrategyInput): Promise<any> {
   try {
-    const { strategy_id, plugins = [], tenant_id, user_id, input_data } = input;
+    const strategy_id = input.strategy_id || input.strategyId;
+    const plugins = input.plugins || [];
+    const tenant_id = input.tenant_id || input.tenantId;
+    const user_id = input.user_id || input.userId;
+    const input_data = input.input_data || {};
     
     // Prepare the execution payload
     const payload = {
@@ -71,18 +88,37 @@ export async function executeStrategy(input: StrategyInput): Promise<StrategyExe
       'execution_error',
       {
         error: err.message,
-        strategy_id: input.strategy_id,
-        tenant_id: input.tenant_id
+        strategy_id: input.strategy_id || input.strategyId,
+        tenant_id: input.tenant_id || input.tenantId
       },
-      input.tenant_id
+      input.tenant_id || input.tenantId
     );
     
     return {
       success: false,
-      error: err.message,
-      status: 'error'
+      error: err.message
     };
   }
+}
+
+/**
+ * Process the execution response from the edge function
+ */
+export function processExecutionResponse(response: any): any {
+  if (!response) return { success: false, error: 'No response received' };
+  
+  return {
+    success: response.success,
+    strategy_id: response.strategy_id,
+    execution_id: response.execution_id,
+    status: response.status || 'unknown',
+    error: response.error,
+    execution_time: response.execution_time_ms ? response.execution_time_ms / 1000 : undefined,
+    plugins_executed: response.plugins_executed,
+    successful_plugins: response.successful_plugins,
+    xp_earned: response.xp_earned,
+    outputs: response.outputs
+  };
 }
 
 export default executeStrategy;

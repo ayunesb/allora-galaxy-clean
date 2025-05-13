@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { SystemLog, SystemLogFilterState } from '@/types/logs';
+import { SystemLogFilterState } from '@/types/logs';
 import { useSystemLogs, useLogModules, useLogEvents } from '@/services/logService';
 import { useTenantId } from '@/hooks/useTenantId';
 

@@ -1,16 +1,17 @@
 
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { NotificationContent } from '@/types/notifications';
+import { Notification } from '@/types/notifications';
 import NotificationList from './NotificationList';
 
 interface NotificationTabsProps {
   selectedTab: string;
   setSelectedTab: (tab: string) => void;
-  notifications: NotificationContent[];
+  notifications: Notification[];
   loading?: boolean;
   markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  userId: string;
 }
 
 const NotificationTabs: React.FC<NotificationTabsProps> = ({
@@ -19,10 +20,11 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   notifications,
   loading,
   markAsRead,
-  onDelete
+  onDelete,
+  userId
 }) => {
   // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.read_at).length;
   // Count system notifications
   const systemCount = notifications.filter(n => n.type === 'system').length;
 
@@ -47,16 +49,18 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
+          userId={userId}
         />
       </TabsContent>
       
       <TabsContent value="unread" className="max-h-[500px] overflow-y-auto">
         <NotificationList 
-          notifications={notifications.filter(n => !n.read)} 
+          notifications={notifications.filter(n => !n.read_at)} 
           filter="unread"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
+          userId={userId}
         />
       </TabsContent>
       
@@ -67,6 +71,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
+          userId={userId}
         />
       </TabsContent>
     </Tabs>

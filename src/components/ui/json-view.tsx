@@ -10,8 +10,8 @@ interface JsonViewProps {
   maxDepth?: number;
 }
 
-export const JsonView = ({ data, initialExpanded = true, maxDepth = 2 }: JsonViewProps) => {
-  const { copy, copied } = useCopy();
+export const JsonView = ({ data, maxDepth = 2 }: JsonViewProps) => {
+  const { copy } = useCopy();
   const [expandedState, setExpandedState] = useState<Record<string, boolean>>({});
   
   const isExpanded = (path: string): boolean => {

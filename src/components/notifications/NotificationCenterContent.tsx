@@ -7,7 +7,7 @@ import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import NotificationList from './NotificationList';
-import { useAuth } from '@/hooks/useAuth';
+import useAuth from '@/hooks/useAuth';
 
 interface NotificationCenterContentProps {
   activeFilter: string;

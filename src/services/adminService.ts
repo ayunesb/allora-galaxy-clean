@@ -1,89 +1,61 @@
-
 import { supabase } from '@/lib/supabase';
-import { useQuery } from '@tanstack/react-query';
 import { AiDecision } from '@/components/admin/ai-decisions/types';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { useQuery } from '@tanstack/react-query';
 
 /**
- * Interface for AI decision filters
+ * Filter type for AI decisions
  */
 export interface AiDecisionFilters {
   tenant_id?: string;
   decision_type?: string;
   reviewed?: boolean;
   review_outcome?: string;
+  date_from?: Date | null;
+  date_to?: Date | null;
   search?: string;
   limit?: number;
   offset?: number;
 }
 
 /**
- * Fetch users associated with a tenant
- * @param tenantId The tenant ID
- * @returns Promise with users data
- */
-export async function fetchTenantUsers(tenantId: string) {
-  try {
-    const { data, error } = await supabase
-      .from('tenant_user_roles')
-      .select(`
-        id,
-        role,
-        user_id,
-        created_at,
-        profiles:user_id (
-          first_name,
-          last_name,
-          avatar_url,
-          email:id(email)
-        )
-      `)
-      .eq('tenant_id', tenantId);
-
-    if (error) {
-      console.error('Error fetching tenant users:', error);
-      throw error;
-    }
-
-    return data || [];
-  } catch (err: any) {
-    console.error('Error in fetchTenantUsers:', err);
-    // Log the error
-    await logSystemEvent(
-      'admin',
-      'error',
-      { message: 'Failed to fetch tenant users', error: err.message },
-      tenantId
-    );
-    return [];
-  }
-}
-
-/**
- * Fetch AI decisions (agent executions and votes)
- * @param filters Filter options
- * @returns Promise with AI decisions data
+ * Fetch AI decisions based on filters
+ * @param filters Object containing filter parameters
+ * @returns Promise with array of AiDecision objects
  */
 export async function fetchAiDecisions(filters: AiDecisionFilters = {}): Promise<AiDecision[]> {
   try {
-    // First get executions
     let query = supabase
-      .from('executions')
-      .select(`
-        *,
-        agent_versions:agent_version_id (
-          id,
-          version,
-          prompt,
-          plugin_id,
-          plugins:plugin_id (name)
-        )
-      `)
-      .eq('type', 'agent')
+      .from('ai_decisions')
+      .select('*')
       .order('created_at', { ascending: false });
-      
+    
+    // Apply filters if provided
     if (filters.tenant_id) {
       query = query.eq('tenant_id', filters.tenant_id);
+    }
+    
+    if (filters.decision_type) {
+      query = query.eq('decision_type', filters.decision_type);
+    }
+    
+    if (filters.reviewed !== undefined) {
+      query = query.eq('reviewed', filters.reviewed);
+    }
+    
+    if (filters.review_outcome) {
+      query = query.eq('review_outcome', filters.review_outcome);
+    }
+    
+    if (filters.search) {
+      query = query.or(`context.ilike.%${filters.search}%,module.ilike.%${filters.search}%`);
+    }
+    
+    if (filters.date_from) {
+      query = query.gte('created_at', filters.date_from.toISOString());
+    }
+    
+    if (filters.date_to) {
+      query = query.lte('created_at', filters.date_to.toISOString());
     }
     
     if (filters.limit) {
@@ -91,83 +63,107 @@ export async function fetchAiDecisions(filters: AiDecisionFilters = {}): Promise
     }
     
     if (filters.offset) {
-      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+      query = query.range(filters.offset, filters.offset + (filters.limit || 20) - 1);
     }
-
-    const { data: executions, error: executionsError } = await query;
-
-    if (executionsError) {
-      console.error('Error fetching AI decisions:', executionsError);
-      throw executionsError;
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      throw error;
     }
-
-    // Transform to AiDecision type
-    const decisions: AiDecision[] = (executions || []).map(execution => {
-      const pluginName = execution.agent_versions?.plugins?.name || 'Unknown Plugin';
-      const agentVersion = execution.agent_versions?.version || 'Unknown Version';
-      
-      return {
-        id: execution.id,
-        module: 'agent',
-        event: 'execution',
-        created_at: execution.created_at,
-        tenant_id: execution.tenant_id,
-        context: {
-          execution_id: execution.id,
-          plugin_id: execution.plugin_id,
-          agent_version_id: execution.agent_version_id,
-          input: execution.input,
-          output: execution.output,
-          execution_time: execution.execution_time,
-          status: execution.status,
-          error: execution.error
-        },
-        decision_type: `${pluginName} v${agentVersion}`,
-        reviewed: false, // Default value, would need to be updated from a reviews table
-        review_outcome: null,
-        review_comment: null,
-        reviewer_id: null,
-        review_date: null
-      };
-    });
-
-    return decisions;
-  } catch (err: any) {
-    console.error('Error in fetchAiDecisions:', err);
-    // Log the error
-    await logSystemEvent(
-      'admin',
-      'error',
-      { message: 'Failed to fetch AI decisions', error: err.message },
-      filters.tenant_id
-    );
+    
+    // Transform raw data to proper AiDecision objects
+    return (data || []).map((item: any): AiDecision => ({
+      id: item.id,
+      module: item.module || 'ai',
+      event: item.event || 'decision',
+      created_at: item.created_at,
+      tenant_id: item.tenant_id,
+      context: {
+        execution_id: item.context?.execution_id,
+        plugin_id: item.context?.plugin_id,
+        agent_version_id: item.context?.agent_version_id,
+        input: item.context?.input,
+        output: item.context?.output,
+        execution_time: item.context?.execution_time,
+        status: item.context?.status,
+        error: item.context?.error
+      },
+      decision_type: item.decision_type,
+      confidence: item.confidence,
+      confidence_score: item.confidence_score,
+      reviewed: item.reviewed || false,
+      review_outcome: item.review_outcome,
+      reviewer_id: item.reviewer_id,
+      reviewed_by: item.reviewed_by,
+      reviewed_at: item.reviewed_at,
+      review_date: item.review_date,
+      input: item.input,
+      output: item.output,
+      model: item.model,
+      prompt: item.prompt,
+      completion: item.completion,
+      tokens_used: item.tokens_used,
+      strategy_id: item.strategy_id,
+      plugin_id: item.plugin_id,
+      alternatives: item.alternatives,
+      metadata: item.metadata
+    }));
+    
+  } catch (error) {
+    console.error('Error fetching AI decisions:', error);
     return [];
   }
 }
 
 /**
- * Custom hook to fetch tenant users with React Query
- * @param tenantId The tenant ID
- * @returns Query result object
+ * Update an AI decision review
+ * @param id ID of the decision to update
+ * @param reviewData Review data to update
+ * @returns Promise with success status
  */
-export function useTenantUsers(tenantId: string | undefined) {
-  return useQuery({
-    queryKey: ['tenant_users', tenantId],
-    queryFn: () => tenantId ? fetchTenantUsers(tenantId) : Promise.resolve([]),
-    enabled: !!tenantId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+export async function updateAiDecisionReview(
+  id: string,
+  reviewData: {
+    reviewed: boolean;
+    review_outcome?: 'approved' | 'rejected' | 'modified';
+    reviewer_id: string;
+    review_comment?: string;
+  }
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('ai_decisions')
+      .update({
+        reviewed: reviewData.reviewed,
+        review_outcome: reviewData.review_outcome,
+        reviewer_id: reviewData.reviewer_id,
+        review_comment: reviewData.review_comment,
+        review_date: new Date().toISOString()
+      })
+      .eq('id', id);
+    
+    if (error) {
+      throw error;
+    }
+    
+    return true;
+    
+  } catch (error) {
+    console.error('Error updating AI decision review:', error);
+    return false;
+  }
 }
 
 /**
  * Custom hook to fetch AI decisions with React Query
- * @param filters Filter options
+ * @param filters Filter parameters
  * @returns Query result object
  */
 export function useAiDecisions(filters: AiDecisionFilters = {}) {
   return useQuery({
-    queryKey: ['ai_decisions', filters],
+    queryKey: ['ai-decisions', filters],
     queryFn: () => fetchAiDecisions(filters),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000 // 60 seconds
   });
 }

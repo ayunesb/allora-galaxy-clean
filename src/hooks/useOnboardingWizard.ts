@@ -1,138 +1,128 @@
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { useStrategyGeneration } from '@/hooks/useStrategyGeneration';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { OnboardingData } from '@/types/onboarding/types';
+import { useStrategyGeneration } from './useStrategyGeneration';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
 
-export function useOnboardingWizard() {
-  const { toast } = useToast();
+export const useOnboardingWizard = () => {
   const navigate = useNavigate();
-  const { isGenerating, generateStrategy } = useStrategyGeneration();
-
-  // Current step in the onboarding process
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  
-  // Form data state with required fields initialized
-  const [formData, setFormData] = useState<OnboardingFormData>({
-    companyInfo: {
-      name: '',
-      industry: '',
-      size: '',
-    },
-    persona: {
-      name: '',
-      goals: [],
-      tone: 'professional',
-    },
-    additionalInfo: {
-      targetAudience: '',
-      keyCompetitors: '',
-      uniqueSellingPoints: '',
-    }
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [formData, setFormData] = useState<OnboardingData>({
+    companyName: '',
+    industry: '',
+    companySize: '',
+    goals: [],
+    persona: '',
+    tonePreference: '',
+    targeting: [],
+    aggressiveness: 'moderate',
   });
+  
+  const [isGeneratingComplete, setIsGeneratingComplete] = useState(false);
+  const { generateStrategies, isGenerating, error } = useStrategyGeneration();
 
-  // Handle form data updates
-  const updateFormData = (data: Partial<OnboardingFormData>) => {
-    setFormData(prevData => ({
-      ...prevData,
-      ...data,
-      // Ensure nested objects are properly merged
-      companyInfo: {
-        ...prevData.companyInfo,
-        ...(data.companyInfo || {})
-      },
-      persona: {
-        ...prevData.persona,
-        ...(data.persona || {})
-      },
-      additionalInfo: {
-        ...prevData.additionalInfo,
-        ...(data.additionalInfo || {})
+  // Function to go to next step
+  const nextStep = useCallback(() => {
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+  }, []);
+
+  // Function to go to previous step
+  const prevStep = useCallback(() => {
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  }, []);
+
+  // Function to update form data
+  const updateFormData = useCallback((data: Partial<OnboardingData>) => {
+    setFormData(prev => ({ ...prev, ...data }));
+  }, []);
+
+  // Generate strategy when reaching the strategy step
+  useEffect(() => {
+    const generateStrategyOnStep = async () => {
+      if (currentStep === 3 && !isGeneratingComplete) {
+        try {
+          // Get tenant ID for the current user
+          const { data: tenantData, error: tenantError } = await supabase
+            .from('tenants')
+            .select('id')
+            .eq('owner_id', supabase.auth.getUser())
+            .limit(1);
+            
+          if (tenantError || !tenantData || tenantData.length === 0) {
+            throw new Error('Could not find tenant for current user');
+          }
+          
+          const tenantId = tenantData[0].id;
+          
+          // Generate strategies based on goals and industry
+          const result = await generateStrategies(
+            tenantId, 
+            formData.goals,
+            formData.industry
+          );
+          
+          if (!result) {
+            throw new Error('Strategy generation failed');
+          }
+          
+          setIsGeneratingComplete(true);
+          
+        } catch (err: any) {
+          console.error('Error generating strategy:', err);
+          toast({
+            title: 'Strategy Generation Error',
+            description: err.message || 'Failed to generate strategy',
+            variant: 'destructive',
+          });
+        }
       }
-    }));
-  };
+    };
+    
+    generateStrategyOnStep();
+  }, [currentStep, formData.goals, formData.industry, isGeneratingComplete, generateStrategies]);
 
-  // Progress to the next step
-  const nextStep = () => {
-    switch (currentStep) {
-      case 'welcome':
-        setCurrentStep('company-info');
-        break;
-      case 'company-info':
-        setCurrentStep('persona');
-        break;
-      case 'persona':
-        setCurrentStep('additional-info');
-        break;
-      case 'additional-info':
-        setCurrentStep('strategy-generation');
-        break;
-      case 'strategy-generation':
-        setCurrentStep('completed');
-        break;
-      case 'completed':
-        navigate('/dashboard');
-        break;
-    }
-  };
-
-  // Go back to previous step
-  const prevStep = () => {
-    switch (currentStep) {
-      case 'company-info':
-        setCurrentStep('welcome');
-        break;
-      case 'persona':
-        setCurrentStep('company-info');
-        break;
-      case 'additional-info':
-        setCurrentStep('persona');
-        break;
-      case 'strategy-generation':
-        setCurrentStep('additional-info');
-        break;
-      case 'completed':
-        setCurrentStep('strategy-generation');
-        break;
-    }
-  };
-
-  // Submit onboarding data and generate initial strategy
-  const handleSubmit = async () => {
+  // Function to complete onboarding
+  const completeOnboarding = useCallback(async () => {
     try {
-      const result = await generateStrategy(formData);
-      
-      if (result.success) {
-        toast({
-          title: 'Onboarding complete!',
-          description: 'Your strategy has been generated successfully',
-        });
-        nextStep();
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: 'Onboarding failed',
-          description: result.error || 'Something went wrong',
-          variant: 'destructive',
-        });
+      const userSession = await supabase.auth.getSession();
+      if (!userSession.data.session) {
+        throw new Error('User not authenticated');
       }
-    } catch (error: any) {
+      
+      const userId = userSession.data.session.user.id;
+      
+      // Mark onboarding as complete
+      await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', userId);
+        
+      // Redirect to dashboard
+      navigate('/dashboard');
+      
+    } catch (err: any) {
+      console.error('Error completing onboarding:', err);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to complete onboarding',
+        description: 'Failed to complete onboarding',
         variant: 'destructive',
       });
     }
-  };
+  }, [navigate]);
 
   return {
     currentStep,
-    formData,
-    isGenerating,
-    updateFormData,
     nextStep,
     prevStep,
-    handleSubmit,
+    formData,
+    updateFormData,
+    isGenerating,
+    isGeneratingComplete,
+    error,
+    completeOnboarding,
   };
-}
+};
+
+export default useOnboardingWizard;

@@ -1,191 +1,215 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { useMutation } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { OnboardingFormData } from '@/types/onboarding';
 
 /**
- * Submit the onboarding data to create a new tenant and related records
- * 
- * @param data The onboarding form data
- * @returns Result object with success status and tenant ID
+ * Create a new company profile during onboarding
+ * @param data Company profile data
+ * @param tenantId Tenant ID
+ * @param userId User ID
+ * @returns Promise with the created company profile
  */
-export async function submitOnboardingData(data: OnboardingFormData) {
+export async function createCompanyProfile(
+  data: Record<string, any>,
+  tenantId: string,
+  userId: string
+) {
   try {
+    // Validate required fields
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (!data?.companyName) {
+      throw new Error('Company name is required');
+    }
+    
     // Create the company profile
-    const { data: companyData, error: companyError } = await supabase
+    const { data: company, error } = await supabase
       .from('company_profiles')
       .insert({
+        tenant_id: tenantId,
         name: data.companyName,
-        industry: data.industry,
-        description: data.companyDescription
+        industry: data.industry || null,
+        size: data.companySize || null,
+        website: data.website || null,
+        description: data.description || null,
+        goals: data.goals || [],
+        created_by: userId
       })
-      .select('id')
+      .select()
       .single();
-
-    if (companyError) {
-      throw new Error(`Error creating company profile: ${companyError.message}`);
+    
+    if (error) {
+      throw error;
     }
-
-    // Create the tenant
-    const { data: tenantData, error: tenantError } = await supabase
-      .from('tenants')
-      .insert({
-        name: data.companyName,
-        slug: data.companyName.toLowerCase().replace(/\s+/g, '-'),
-        metadata: {
-          companyProfileId: companyData.id,
-          goals: data.goals
-        }
-      })
-      .select('id')
-      .single();
-
-    if (tenantError) {
-      throw new Error(`Error creating tenant: ${tenantError.message}`);
-    }
-
-    // Create the tenant user role
-    const { error: roleError } = await supabase
-      .from('tenant_user_roles')
-      .insert({
-        tenant_id: tenantData.id,
-        user_id: data.userId,
-        role: 'owner'
-      });
-
-    if (roleError) {
-      throw new Error(`Error creating tenant user role: ${roleError.message}`);
-    }
-
-    // Create persona profile
-    const { error: personaError } = await supabase
-      .from('persona_profiles')
-      .insert({
-        tenant_id: tenantData.id,
-        name: 'Default Persona',
-        goals: data.goals,
-        tone: data.tone || 'professional'
-      });
-
-    if (personaError) {
-      throw new Error(`Error creating persona profile: ${personaError.message}`);
-    }
-
-    // Log the successful onboarding
+    
+    // Log the event
     await logSystemEvent(
       'onboarding',
-      'completed',
+      'company_profile_created',
       {
-        tenant_id: tenantData.id,
-        company_name: data.companyName
+        company_id: company.id,
+        tenant_id: tenantId,
       },
-      tenantData.id
+      tenantId
     );
-
-    return {
-      success: true,
-      tenantId: tenantData.id
-    };
-  } catch (error: any) {
-    console.error('Onboarding error:', error);
-    // Log the error
+    
+    return company;
+    
+  } catch (err: any) {
+    console.error('Error creating company profile:', err);
+    // Log the error event
     await logSystemEvent(
       'onboarding',
       'error',
       {
-        error: error.message,
-        data: { companyName: data.companyName }
-      }
-    );
-    
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Generate initial strategies for a tenant using AI
- * 
- * @param tenantId The tenant ID
- * @param goals Array of business goals
- * @param industry The company industry
- * @returns Result object with success status
- */
-export async function generateInitialStrategies(tenantId: string, goals: string[], industry: string) {
-  try {
-    // Simulate strategy generation (in a real implementation, this would call an AI service)
-    const strategies = goals.map((goal, index) => ({
-      title: `Strategy for ${goal}`,
-      description: `AI-generated strategy to achieve ${goal} for a business in the ${industry} industry.`,
-      status: 'draft',
-      priority: index === 0 ? 'high' : 'medium',
-      tenant_id: tenantId,
-      tags: [industry, goal.toLowerCase().replace(/\s+/g, '-')],
-      completion_percentage: 0
-    }));
-
-    // Insert the generated strategies
-    const { error } = await supabase
-      .from('strategies')
-      .insert(strategies);
-
-    if (error) {
-      throw new Error(`Error creating strategies: ${error.message}`);
-    }
-
-    // Log the successful strategy generation
-    await logSystemEvent(
-      'strategy',
-      'generation_complete',
-      {
-        tenant_id: tenantId,
-        strategy_count: strategies.length
-      },
-      tenantId
-    );
-
-    return {
-      success: true,
-      tenantId: tenantId
-    };
-  } catch (error: any) {
-    console.error('Strategy generation error:', error);
-    // Log the error
-    await logSystemEvent(
-      'strategy',
-      'generation_error',
-      {
-        error: error.message,
+        message: 'Failed to create company profile',
+        error: err.message,
         tenant_id: tenantId
       },
       tenantId
     );
     
-    return {
-      success: false,
-      error: error.message
-    };
+    throw err;
   }
 }
 
 /**
- * Custom hook for submitting onboarding data with React Query
+ * Create a new user persona during onboarding
+ * @param data User persona data
+ * @param tenantId Tenant ID
+ * @param userId User ID
+ * @returns Promise with the created user persona
  */
-export function useOnboardingSubmission() {
-  return useMutation({
-    mutationFn: submitOnboardingData,
-  });
+export async function createUserPersona(
+  data: Record<string, any>,
+  tenantId: string,
+  userId: string
+) {
+  try {
+    // Validate required fields
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (!data?.persona) {
+      throw new Error('Persona is required');
+    }
+    
+    // Create the user persona
+    const { data: persona, error } = await supabase
+      .from('user_personas')
+      .insert({
+        tenant_id: tenantId,
+        persona: data.persona,
+        tone_preference: data.tonePreference || null,
+        targeting: data.targeting || [],
+        aggressiveness: data.aggressiveness || 'moderate',
+        created_by: userId
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Log the event
+    await logSystemEvent(
+      'onboarding',
+      'user_persona_created',
+      {
+        persona_id: persona.id,
+        tenant_id: tenantId,
+      },
+      tenantId
+    );
+    
+    return persona;
+    
+  } catch (err: any) {
+    console.error('Error creating user persona:', err);
+    // Log the error event
+    await logSystemEvent(
+      'onboarding',
+      'error',
+      {
+        message: 'Failed to create user persona',
+        error: err.message,
+        tenant_id: tenantId
+      },
+      tenantId
+    );
+    
+    throw err;
+  }
 }
 
 /**
- * Custom hook for generating initial strategies with React Query
+ * Complete the onboarding process
+ * @param tenantId Tenant ID
+ * @param userId User ID
+ * @returns Promise with success status
  */
-export function useStrategyGeneration() {
-  return useMutation({
-    mutationFn: ({ tenantId, goals, industry }: { tenantId: string, goals: string[], industry: string }) => 
-      generateInitialStrategies(tenantId, goals, industry),
-  });
+export async function completeOnboarding(
+  tenantId: string,
+  userId: string
+): Promise<boolean> {
+  try {
+    // Validate required fields
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    // Mark onboarding as complete
+    const { error } = await supabase
+      .from('profiles')
+      .update({ onboarding_completed: true })
+      .eq('id', userId);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Log the event
+    await logSystemEvent(
+      'onboarding',
+      'onboarding_completed',
+      {
+        tenant_id: tenantId,
+        user_id: userId,
+      },
+      tenantId
+    );
+    
+    return true;
+    
+  } catch (err: any) {
+    console.error('Error completing onboarding:', err);
+    // Log the error event
+    await logSystemEvent(
+      'onboarding',
+      'error',
+      {
+        message: 'Failed to complete onboarding',
+        error: err.message,
+        tenant_id: tenantId
+      },
+      tenantId
+    );
+    
+    return false;
+  }
 }

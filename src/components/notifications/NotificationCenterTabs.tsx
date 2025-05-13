@@ -1,16 +1,17 @@
 
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { NotificationContent } from '@/types/notifications';
+import { Notification } from '@/types/notifications';
 import NotificationList from './NotificationList';
 
 interface NotificationCenterTabsProps {
-  notifications: NotificationContent[];
+  notifications: Notification[];
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   unreadCount: number;
   value?: string;
   onValueChange?: (value: string) => void;
+  userId: string;
 }
 
 const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
@@ -19,7 +20,8 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
   onDelete,
   unreadCount,
   value = 'all',
-  onValueChange
+  onValueChange,
+  userId
 }) => {
   const handleTabChange = (newValue: string) => {
     if (onValueChange) {
@@ -45,15 +47,17 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           filter="all"
           onMarkAsRead={onMarkAsRead}
           onDelete={onDelete}
+          userId={userId}
         />
       </TabsContent>
       
       <TabsContent value="unread" className="max-h-[300px] overflow-y-auto">
         <NotificationList 
-          notifications={notifications.filter(n => !n.read)} 
+          notifications={notifications.filter(n => !n.read_at)} 
           filter="unread"
           onMarkAsRead={onMarkAsRead}
           onDelete={onDelete}
+          userId={userId}
         />
       </TabsContent>
       
@@ -63,6 +67,7 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           filter="system"
           onMarkAsRead={onMarkAsRead}
           onDelete={onDelete}
+          userId={userId}
         />
       </TabsContent>
     </Tabs>

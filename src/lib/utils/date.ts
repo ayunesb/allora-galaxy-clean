@@ -1,108 +1,122 @@
 
-import { format, parse, isValid, parseISO } from 'date-fns';
+import { format, parse, formatDistance, formatRelative, parseISO } from 'date-fns';
 
 /**
- * Format a date with a specified format string
- * @param date The date to format
- * @param formatStr Format string (default: 'yyyy-MM-dd')
+ * Format a date using the provided format string
+ * @param date Date to format
+ * @param formatString Format string
  * @returns Formatted date string
  */
-export function formatDate(date: Date | null | undefined, formatStr = 'yyyy-MM-dd'): string {
+export const formatDate = (
+  date: Date | string | null | undefined,
+  formatString: string = 'PP'
+): string => {
   if (!date) return '';
-  return format(date, formatStr);
-}
-
-/**
- * Format a date with a time component
- * @param date The date to format
- * @returns Formatted date string with time
- */
-export function formatDateTime(date: Date | null | undefined): string {
-  if (!date) return '';
-  return format(date, 'yyyy-MM-dd HH:mm:ss');
-}
-
-/**
- * Format a date for display in UI
- * @param date The date to format
- * @returns User-friendly formatted date
- */
-export function formatDisplayDate(date: Date | null | undefined): string {
-  if (!date) return '';
-  return format(date, 'PPP');
-}
-
-/**
- * Format a date for database insertion
- * @param date The date to format
- * @returns ISO formatted date string
- */
-export function formatForDatabase(date: Date | null | undefined): string | null {
-  if (!date) return null;
-  return date.toISOString();
-}
-
-/**
- * Parse a date string with a specified format
- * @param dateStr Date string to parse
- * @param formatStr Format string (default: 'yyyy-MM-dd')
- * @returns Parsed Date object or null if invalid
- */
-export function parseDate(dateStr: string | null | undefined, formatStr = 'yyyy-MM-dd'): Date | null {
-  if (!dateStr) return null;
   
   try {
-    // Try parsing with the specified format
-    const parsedDate = parse(dateStr, formatStr, new Date());
-    if (isValid(parsedDate)) return parsedDate;
-    
-    // Try parsing as ISO date
-    const isoDate = parseISO(dateStr);
-    if (isValid(isoDate)) return isoDate;
-    
-    // Failed to parse
-    return null;
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, formatString);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '';
+  }
+};
+
+/**
+ * Parse a date string using the provided format
+ * @param dateString Date string to parse
+ * @param formatString Format of the date string
+ * @returns Parsed Date object
+ */
+export const parseDate = (
+  dateString: string,
+  formatString: string = 'yyyy-MM-dd'
+): Date => {
+  try {
+    return parse(dateString, formatString, new Date());
   } catch (error) {
     console.error('Error parsing date:', error);
-    return null;
+    return new Date();
   }
-}
+};
 
 /**
- * Safely parse a date string in ISO format
- * @param dateStr ISO date string
- * @returns Parsed Date object or null if invalid
+ * Format a date as relative time (e.g., "5 minutes ago")
+ * @param date Date to format
+ * @param baseDate Base date to compare against
+ * @returns Formatted relative time string
  */
-export function parseISODate(dateStr: string | null | undefined): Date | null {
-  if (!dateStr) return null;
+export const formatRelativeTime = (
+  date: Date | string | null | undefined,
+  baseDate: Date = new Date()
+): string => {
+  if (!date) return '';
   
   try {
-    const date = parseISO(dateStr);
-    return isValid(date) ? date : null;
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return formatDistance(dateObj, baseDate, { addSuffix: true });
+  } catch (error) {
+    console.error('Error formatting relative time:', error);
+    return '';
+  }
+};
+
+/**
+ * Format a date relative to a base date (e.g., "yesterday", "last Friday")
+ * @param date Date to format
+ * @param baseDate Base date to compare against
+ * @returns Formatted relative date string
+ */
+export const formatRelativeDate = (
+  date: Date | string | null | undefined,
+  baseDate: Date = new Date()
+): string => {
+  if (!date) return '';
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return formatRelative(dateObj, baseDate);
+  } catch (error) {
+    console.error('Error formatting relative date:', error);
+    return '';
+  }
+};
+
+/**
+ * Safely parse an ISO date string
+ * @param dateString ISO date string to parse
+ * @returns Date object or null if parsing fails
+ */
+export const parseISOSafe = (dateString: string | null | undefined): Date | null => {
+  if (!dateString) return null;
+  
+  try {
+    return parseISO(dateString);
   } catch (error) {
     console.error('Error parsing ISO date:', error);
     return null;
   }
-}
+};
 
 /**
- * Convert a date object to a date string with specified format
- * @param obj Object containing date fields
- * @param fieldNames Names of date fields to convert
- * @returns New object with converted date fields
+ * Format object dates based on a filter
+ * @param obj Object containing dates to format
+ * @param dateFields Fields to format as dates
+ * @param formatString Format string for the dates
+ * @returns New object with formatted dates
  */
-export function convertDatesToStrings<T extends Record<string, any>>(
+export function formatObjectDates<T extends Record<string, any>>(
   obj: T,
-  fieldNames: (keyof T)[]
-): Record<string, any> {
+  dateFields: string[],
+  formatString: string = 'PP'
+): T {
   if (!obj) return obj;
-  
+
   const result = { ...obj };
   
-  for (const fieldName of fieldNames) {
-    const value = obj[fieldName as string];
-    if (value instanceof Date) {
-      result[fieldName as string] = formatForDatabase(value);
+  for (const field of dateFields) {
+    if (obj[field]) {
+      result[field] = formatDate(obj[field], formatString);
     }
   }
   
