@@ -1,59 +1,44 @@
 
-// Validation utilities for executeStrategy function
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { parseAndValidate } from "../_shared/edgeUtils/index.ts";
+
+// Re-export CORS headers
+export { corsHeaders } from "../_shared/edgeUtils/cors.ts";
+
+// Define the execute strategy input schema
+export const ExecuteStrategySchema = z.object({
+  strategy_id: z.string().uuid({
+    message: "strategy_id must be a valid UUID",
+  }),
+  tenant_id: z.string().uuid({
+    message: "tenant_id must be a valid UUID",
+  }),
+  user_id: z.string().uuid({
+    message: "user_id must be a valid UUID",
+  }).optional(),
+  options: z.record(z.any()).optional(),
+});
+
+// Define typescript types from schema
+export type ExecuteStrategyInput = z.infer<typeof ExecuteStrategySchema>;
 
 /**
- * Cors headers
+ * Validate the execute strategy request input
+ * @param req The incoming request
+ * @returns Tuple of [validated data, error message]
  */
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-/**
- * Request body structure for executeStrategy
- */
-export interface ExecuteRequest {
-  strategy_id: string;
-  tenant_id: string;
-  user_id?: string;
-  options?: Record<string, any>;
+export async function validateExecuteStrategyRequest(
+  req: Request
+): Promise<[ExecuteStrategyInput | null, string | null]> {
+  return parseAndValidate(req, ExecuteStrategySchema);
 }
 
 /**
- * Helper function to safely get environment variables with fallbacks
+ * Check if a strategy status is valid for execution
+ * @param status The strategy status to check
+ * @returns boolean indicating if the strategy can be executed
  */
-export function getEnv(name: string, fallback: string = ""): string {
-  try {
-    // First try Deno.env if available
-    if (typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env) {
-      return Deno.env.get(name) ?? fallback;
-    }
-    // Fallback to process.env for non-Deno environments
-    return process.env[name] || fallback;
-  } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
-    return fallback;
-  }
-}
-
-/**
- * Function to validate input
- */
-export function validateInput(input: any): { valid: boolean; errors?: string[] } {
-  const errors: string[] = [];
-  
-  if (!input) {
-    errors.push("Request body is required");
-    return { valid: false, errors };
-  }
-  
-  if (!input.strategy_id) {
-    errors.push("strategy_id is required");
-  }
-  
-  if (!input.tenant_id) {
-    errors.push("tenant_id is required");
-  }
-  
-  return { valid: errors.length === 0, errors };
+export function isValidExecutionStatus(status: string): boolean {
+  const validStatuses = ['approved', 'pending'];
+  return validStatuses.includes(status);
 }

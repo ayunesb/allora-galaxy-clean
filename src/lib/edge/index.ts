@@ -3,9 +3,9 @@
  * Centralized exports for edge function utilities
  */
 
-// Import and re-export error handling utilities from errorHandler
+// Import and re-export error handling utilities from errorUtils
 import { 
-  handleEdgeError,
+  handleEdgeFunctionError as handleEdgeError,
   handleCorsPreflightRequest,
   generateRequestId,
   createSuccessResponse,
@@ -13,7 +13,7 @@ import {
   corsHeaders,
   type ErrorResponseData,
   type SuccessResponseData
-} from './errorHandler';
+} from './errorUtils';
 
 // Re-export error handling utilities and CORS headers
 export { 

@@ -1,6 +1,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
+import { processExecutionResponse } from '@/edge/executeStrategy';
 
 // Mock Supabase functions invoke
 vi.mock('@/integrations/supabase/client', () => ({
@@ -51,6 +52,19 @@ vi.mock('@/integrations/supabase/client', () => ({
               kpis_analyzed: 42,
               agents_evolved: 2,
               benchmarks_updated: 3
+            },
+            error: null
+          });
+        }
+
+        if (functionName === 'syncMQLs') {
+          return Promise.resolve({
+            data: {
+              success: true,
+              mql_count: 25,
+              high_quality_count: 12,
+              mql_to_sql_rate: 18,
+              leads_count: 10
             },
             error: null
           });
@@ -151,6 +165,37 @@ describe('Edge Functions Integration', () => {
       expect(error).toBeDefined();
       expect(error?.message).toContain('Strategy ID is required');
     });
+
+    it('should process response correctly', () => {
+      // Mock response data
+      const responseData = {
+        success: true,
+        strategy_id: 'strategy-123',
+        execution_id: 'exec-123',
+        status: 'success',
+        plugins_executed: 3,
+        successful_plugins: 3,
+        execution_time_ms: 1500,
+        xp_earned: 30
+      };
+      
+      // Process the response
+      const result = processExecutionResponse(responseData);
+      
+      // Assertions
+      expect(result).toEqual({
+        success: true,
+        strategy_id: 'strategy-123',
+        execution_id: 'exec-123',
+        status: 'success',
+        error: undefined,
+        execution_time: 1.5,
+        plugins_executed: 3,
+        successful_plugins: 3,
+        xp_earned: 30,
+        outputs: undefined
+      });
+    });
   });
   
   describe('scheduledIntelligence', () => {
@@ -190,6 +235,31 @@ describe('Edge Functions Integration', () => {
       expect(invokeSpy).toHaveBeenCalledWith(
         'scheduledIntelligence',
         { body: { tenant_id: 'specific-tenant' } }
+      );
+    });
+  });
+  
+  describe('syncMQLs', () => {
+    it('should invoke the syncMQLs function and return MQL stats', async () => {
+      // Call the syncMQLs function
+      const { data, error } = await supabase.functions.invoke('syncMQLs', {
+        body: { tenant_id: 'tenant-123' }
+      });
+      
+      // Assertions
+      expect(error).toBeNull();
+      expect(data).toEqual({
+        success: true,
+        mql_count: 25,
+        high_quality_count: 12,
+        mql_to_sql_rate: 18,
+        leads_count: 10
+      });
+      
+      // Verify function was called with correct parameters
+      expect(supabase.functions.invoke).toHaveBeenCalledWith(
+        'syncMQLs',
+        { body: { tenant_id: 'tenant-123' } }
       );
     });
   });

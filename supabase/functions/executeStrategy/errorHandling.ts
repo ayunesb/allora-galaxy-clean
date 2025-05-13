@@ -1,46 +1,15 @@
 
-import { corsHeaders } from "./validation.ts";
+import { createErrorResponse, createSuccessResponse, corsHeaders } from "../_shared/edgeUtils/index.ts";
+
+export { createErrorResponse, createSuccessResponse, corsHeaders };
 
 /**
- * Creates a standardized error response
- */
-export function createErrorResponse(
-  message: string, 
-  details?: any, 
-  status: number = 400
-): Response {
-  return new Response(
-    JSON.stringify({
-      success: false,
-      error: message,
-      details,
-      timestamp: new Date().toISOString()
-    }),
-    {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    }
-  );
-}
-
-/**
- * Creates a standardized success response
- */
-export function createSuccessResponse(data: any): Response {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      ...data,
-      timestamp: new Date().toISOString()
-    }),
-    {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    }
-  );
-}
-
-/**
- * Safely handle unhandled errors in the execution
+ * Handle unexpected errors in the execution process
+ * @param error The error that occurred
+ * @param startTime Performance measurement start time
+ * @param executionId Optional execution ID for tracking
+ * @param strategyId Optional strategy ID for context
+ * @returns Standardized error response
  */
 export function handleExecutionError(
   error: any, 
@@ -48,7 +17,7 @@ export function handleExecutionError(
   executionId?: string,
   strategyId?: string
 ): Response {
-  console.error("Unexpected error:", error);
+  console.error("Unexpected error in strategy execution:", error);
   
   // Calculate total request duration
   const requestDuration = (performance.now() - startTime) / 1000;

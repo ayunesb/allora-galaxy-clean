@@ -1,7 +1,10 @@
 
 import { corsHeaders } from '@/lib/env/environment';
 
-export interface ErrorResponse {
+/**
+ * Standard error response format for edge functions
+ */
+export interface ErrorResponseData {
   success: false;
   error: string;
   details?: any;
@@ -11,7 +14,10 @@ export interface ErrorResponse {
   status: number;
 }
 
-export interface SuccessResponse<T = any> {
+/**
+ * Standard success response format for edge functions
+ */
+export interface SuccessResponseData<T = any> {
   success: true;
   data: T;
   timestamp: string;
@@ -35,7 +41,7 @@ export function handleEdgeFunctionError(err: any, requestId?: string): Response 
   const details = err?.details || undefined;
   
   // Create standardized error response
-  const responseData: ErrorResponse = { 
+  const responseData: ErrorResponseData = { 
     success: false,
     error: message,
     timestamp: new Date().toISOString(),
@@ -75,7 +81,7 @@ export function handleEdgeFunctionError(err: any, requestId?: string): Response 
  * @returns Success response
  */
 export function createSuccessResponse<T>(data: T, status: number = 200, requestId?: string): Response {
-  const responseData: SuccessResponse<T> = {
+  const responseData: SuccessResponseData<T> = {
     success: true,
     data,
     timestamp: new Date().toISOString()
@@ -113,7 +119,7 @@ export function createErrorResponse(
   code?: string,
   requestId?: string
 ): Response {
-  const responseData: ErrorResponse = {
+  const responseData: ErrorResponseData = {
     success: false,
     error: message,
     timestamp: new Date().toISOString(),
