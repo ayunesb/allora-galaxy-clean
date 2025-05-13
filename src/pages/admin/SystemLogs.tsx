@@ -8,8 +8,6 @@ import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { SystemLogFilters, SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
 
 const SystemLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
