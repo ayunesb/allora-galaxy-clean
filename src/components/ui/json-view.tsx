@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { ChevronRight, ChevronDown, Copy } from 'lucide-react';
 import { Button } from './button';
-import { ChevronRight, ChevronDown, Copy, Check } from 'lucide-react';
+import { useCopy } from '@/hooks/useCopy';
 
 interface JsonViewProps {
   data: any;
@@ -9,66 +10,88 @@ interface JsonViewProps {
   maxDepth?: number;
 }
 
-export const JsonView: React.FC<JsonViewProps> = ({ 
-  data, 
-  initialExpanded = false, 
-  maxDepth = 2 
-}) => {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [copied, setCopied] = useState(false);
-
+export const JsonView = ({ data, initialExpanded = true, maxDepth = 2 }: JsonViewProps) => {
+  const { copyToClipboard } = useCopy();
+  const [expandedState, setExpandedState] = useState<Record<string, boolean>>({});
+  
+  const isExpanded = (path: string): boolean => {
+    if (expandedState[path] !== undefined) {
+      return expandedState[path];
+    }
+    // Automatically expand the first few levels
+    const depth = (path.match(/\./g) || []).length;
+    return depth < maxDepth;
+  };
+  
   const toggleExpand = (path: string) => {
-    setExpanded(prev => ({ ...prev, [path]: !prev[path] }));
+    setExpandedState(prev => ({
+      ...prev,
+      [path]: !isExpanded(path)
+    }));
   };
-
-  const isExpanded = (path: string) => {
-    return expanded[path] ?? initialExpanded;
+  
+  const handleCopy = (value: any) => {
+    const stringValue = typeof value === 'object' 
+      ? JSON.stringify(value, null, 2) 
+      : String(value);
+    copyToClipboard(stringValue);
   };
-
-  const handleCopyClick = () => {
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const renderValue = (value: any, path: string, depth: number): JSX.Element => {
-    if (value === null) return <span className="text-gray-500">null</span>;
-    if (value === undefined) return <span className="text-gray-500">undefined</span>;
+  
+  const renderValue = (value: any, path: string, depth: number = 0): JSX.Element => {
+    if (value === null) {
+      return <span className="text-muted-foreground italic">null</span>;
+    }
+    
+    if (value === undefined) {
+      return <span className="text-muted-foreground italic">undefined</span>;
+    }
     
     if (typeof value === 'boolean') {
-      return <span className="text-yellow-600">{value.toString()}</span>;
+      return <span className="text-blue-500">{value.toString()}</span>;
     }
     
     if (typeof value === 'number') {
-      return <span className="text-blue-600">{value}</span>;
+      return <span className="text-blue-500">{value}</span>;
     }
     
     if (typeof value === 'string') {
-      return <span className="text-green-600">"{value}"</span>;
+      return <span className="text-green-500">"{value}"</span>;
     }
     
     if (Array.isArray(value)) {
-      if (depth >= maxDepth) {
-        return <span className="text-gray-500">[...]</span>;
+      if (value.length === 0) {
+        return <span className="text-muted-foreground">[]</span>;
       }
       
-      const isNodeExpanded = isExpanded(path);
+      const expanded = isExpanded(path);
       
       return (
-        <div>
-          <div 
-            className="inline-flex items-center cursor-pointer" 
-            onClick={() => toggleExpand(path)}
-          >
-            {isNodeExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        <div className="ml-4">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              onClick={() => toggleExpand(path)}
+            >
+              {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </Button>
             <span>Array[{value.length}]</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 ml-2"
+              onClick={() => handleCopy(value)}
+            >
+              <Copy size={12} />
+            </Button>
           </div>
           
-          {isNodeExpanded && (
-            <div className="pl-4 border-l border-gray-200 dark:border-gray-700">
+          {expanded && (
+            <div className="ml-4 border-l-2 border-muted pl-4">
               {value.map((item, index) => (
-                <div key={index} className="my-1">
-                  <span className="text-gray-500">{index}: </span>
+                <div key={`${path}.${index}`} className="my-1">
+                  <span className="text-muted-foreground mr-2">{index}:</span>
                   {renderValue(item, `${path}.${index}`, depth + 1)}
                 </div>
               ))}
@@ -79,28 +102,41 @@ export const JsonView: React.FC<JsonViewProps> = ({
     }
     
     if (typeof value === 'object') {
-      if (depth >= maxDepth) {
-        return <span className="text-gray-500">{'{...}'}</span>;
+      const keys = Object.keys(value);
+      
+      if (keys.length === 0) {
+        return <span className="text-muted-foreground">{"{}"}</span>;
       }
       
-      const keys = Object.keys(value);
-      const isNodeExpanded = isExpanded(path);
+      const expanded = isExpanded(path);
       
       return (
-        <div>
-          <div 
-            className="inline-flex items-center cursor-pointer" 
-            onClick={() => toggleExpand(path)}
-          >
-            {isNodeExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            <span>Object{'{'}keys: {keys.length}{'}'}</span>
+        <div className="ml-4">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              onClick={() => toggleExpand(path)}
+            >
+              {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </Button>
+            <span>Object</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 ml-2"
+              onClick={() => handleCopy(value)}
+            >
+              <Copy size={12} />
+            </Button>
           </div>
           
-          {isNodeExpanded && (
-            <div className="pl-4 border-l border-gray-200 dark:border-gray-700">
+          {expanded && (
+            <div className="ml-4 border-l-2 border-muted pl-4">
               {keys.map(key => (
-                <div key={key} className="my-1">
-                  <span className="text-purple-600">{key}: </span>
+                <div key={`${path}.${key}`} className="my-1">
+                  <span className="text-amber-500 mr-2">{key}:</span>
                   {renderValue(value[key], `${path}.${key}`, depth + 1)}
                 </div>
               ))}
@@ -112,25 +148,10 @@ export const JsonView: React.FC<JsonViewProps> = ({
     
     return <span>{String(value)}</span>;
   };
-
+  
   return (
-    <div className="font-mono text-sm p-2 bg-slate-50 dark:bg-slate-900 rounded-md">
-      <div className="flex justify-end mb-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCopyClick}
-          className="h-8 px-2"
-        >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          <span className="ml-1">{copied ? 'Copied' : 'Copy'}</span>
-        </Button>
-      </div>
-      <div className="overflow-x-auto">
-        {renderValue(data, 'root', 0)}
-      </div>
+    <div className="font-mono text-sm bg-muted/30 p-4 rounded-md overflow-x-auto">
+      {renderValue(data, 'root')}
     </div>
   );
 };
-
-export default JsonView;

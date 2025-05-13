@@ -1,79 +1,90 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent } from '@/components/ui/card';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { SystemLog } from '@/types/logs';
-import { SystemLogFilters, SystemLogsList, LogDetailDialog } from '@/components/admin/logs';
-import AdminLayout from '@/components/layout/AdminLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { useSystemLogs } from '@/services/logService';
 import { SystemLogFilterState } from '@/types/logs';
+import { SystemLogFilter, SystemLogTable } from '@/components/admin/system-logs';
+import { useTenantId } from '@/hooks/useTenantId';
 
-const SystemLogs: React.FC = () => {
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+const SystemLogs = () => {
+  const { tenantId } = useTenantId();
+  const [filters, setFilters] = useState<SystemLogFilterState>({
+    module: '',
+    event: '',
+    searchTerm: '',
+    fromDate: null,
+    toDate: null
+  });
   
   const { 
-    logs, 
-    modules, 
-    events, 
+    data: logs = [], 
     isLoading, 
-    error, 
-    filters, 
-    setFilters, 
-    refetch 
-  } = useSystemLogsData();
-  
-  const handleViewLog = (log: SystemLog) => {
-    setSelectedLog(log);
-    setDialogOpen(true);
-  };
+    refetch,
+    isFetching
+  } = useSystemLogs({
+    tenant_id: tenantId,
+    module: filters.module || undefined,
+    event: filters.event || undefined,
+    search: filters.searchTerm || undefined,
+    date_from: filters.fromDate,
+    date_to: filters.toDate,
+    limit: 100
+  });
   
   const handleFilterChange = (newFilters: SystemLogFilterState) => {
     setFilters(newFilters);
   };
   
+  const handleResetFilters = () => {
+    setFilters({
+      module: '',
+      event: '',
+      searchTerm: '',
+      fromDate: null,
+      toDate: null
+    });
+  };
+  
   return (
-    <AdminLayout>
-      <div className="container py-6">
-        <PageHeader
-          title="System Logs"
-          description="View and monitor system events and activity"
+    <div className="container mx-auto py-8">
+      <PageHeader
+        heading="System Logs"
+        description="View and analyze system logs across all components."
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isLoading || isFetching}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
+      
+      <div className="space-y-6">
+        <SystemLogFilter
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
         />
         
-        <div className="mb-6">
-          <SystemLogFilters 
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            isLoading={isLoading}
-            onRefresh={refetch}
-            modules={modules}
-            events={events}
-          />
-        </div>
-        
-        <Card className="mt-6">
-          <CardContent className="p-0 sm:p-6">
-            <SystemLogsList 
+        <Card>
+          <CardHeader>
+            <CardTitle>Log Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SystemLogTable 
               logs={logs} 
-              isLoading={isLoading} 
-              onViewLog={handleViewLog}
+              isLoading={isLoading || isFetching} 
             />
-            
-            {error && (
-              <p className="text-red-500 p-4">
-                Error loading logs: {error}
-              </p>
-            )}
           </CardContent>
         </Card>
-        
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={dialogOpen} 
-          onOpenChange={setDialogOpen} 
-        />
       </div>
-    </AdminLayout>
+    </div>
   );
 };
 

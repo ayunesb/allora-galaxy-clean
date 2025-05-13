@@ -1,76 +1,77 @@
 
-import React from 'react';
-import { Notification, NotificationType } from '@/types/notifications';
+import { useQueryClient } from '@tanstack/react-query';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useEffect } from 'react';
+import { useNotifications, useMarkAllNotificationsAsRead } from '@/services/notificationService';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
+import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
-import { Button } from '@/components/ui/button';
-import NotificationCenterTabs from './NotificationCenterTabs';
-import { NotificationContent } from '@/types/notifications';
+import NotificationList from './NotificationList';
 
-export interface NotificationCenterContentProps {
-  notifications: Notification[];
-  markAsRead: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
-  loading?: boolean;
-  onMarkAllAsRead?: () => Promise<void>;
-  activeFilter: string;
-  setActiveFilter: (filter: string) => void;
-}
-
-const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
-  notifications,
-  markAsRead,
-  onDelete,
-  loading = false,
-  onMarkAllAsRead,
-  activeFilter,
-  setActiveFilter
-}) => {
-  if (loading) {
+const NotificationCenterContent = () => {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const userId = ''; // TODO: Get from auth context
+  
+  const tenantId = currentWorkspace?.id;
+  
+  const {
+    data: notifications = [],
+    isLoading,
+    refetch
+  } = useNotifications({
+    user_id: userId,
+    tenant_id: tenantId,
+    limit: 20
+  });
+  
+  const unreadCount = notifications.filter(n => !n.read_at).length;
+  
+  const markAllAsMutation = useMarkAllNotificationsAsRead();
+  
+  const handleMarkAllAsRead = async () => {
+    if (!userId || !tenantId) return;
+    
+    await markAllAsMutation.mutateAsync({
+      userId,
+      tenantId
+    });
+  };
+  
+  // Refresh notifications when the workspace changes
+  useEffect(() => {
+    if (tenantId) {
+      refetch();
+    }
+  }, [tenantId, refetch]);
+  
+  // Poll for new notifications
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', { user_id: userId, tenant_id: tenantId }] });
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [userId, tenantId, queryClient]);
+  
+  if (isLoading) {
     return <NotificationCenterLoading />;
   }
-
+  
   if (notifications.length === 0) {
     return <NotificationCenterEmptyState />;
   }
-
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  // Map to UI-ready format
-  const notificationItems: NotificationContent[] = notifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.description || '',
-    timestamp: notification.created_at,
-    read: notification.is_read || false,
-    type: notification.type as NotificationType,
-    action_url: notification.action_url,
-    action_label: notification.action_label,
-  }));
-
+  
   return (
-    <div className="space-y-2">
-      {onMarkAllAsRead && unreadCount > 0 && (
-        <div className="flex justify-end p-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => onMarkAllAsRead()}
-          >
-            Mark all as read
-          </Button>
-        </div>
-      )}
-      
-      <NotificationCenterTabs 
-        value={activeFilter}
-        onValueChange={setActiveFilter}
-        notifications={notificationItems}
+    <div className="flex flex-col h-full">
+      <NotificationCenterHeader
         unreadCount={unreadCount}
-        onMarkAsRead={markAsRead}
-        onDelete={onDelete}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        isMarking={markAllAsMutation.isPending}
       />
+      <div className="flex-1 overflow-y-auto">
+        <NotificationList notifications={notifications} userId={userId} />
+      </div>
     </div>
   );
 };
