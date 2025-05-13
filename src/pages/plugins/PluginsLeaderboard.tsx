@@ -9,6 +9,10 @@ import { PluginLeaderboard } from '@/components/plugins/PluginLeaderboard';
 const PluginsLeaderboard: React.FC = () => {
   const { topPlugins, trendingPlugins, loading, plugins } = usePlugins();
 
+  const sortedByRoi = React.useMemo(() => {
+    return [...plugins].sort((a, b) => (b.roi || 0) - (a.roi || 0));
+  }, [plugins]);
+
   return (
     <div className="container py-10">
       <PageHeader
@@ -60,7 +64,7 @@ const PluginsLeaderboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <PluginLeaderboard 
-                plugins={plugins.slice().sort((a, b) => (b.roi || 0) - (a.roi || 0))} 
+                plugins={sortedByRoi.slice(0, 10)} 
                 isLoading={loading}
                 metric="roi"
               />

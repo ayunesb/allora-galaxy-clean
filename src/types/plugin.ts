@@ -1,59 +1,35 @@
 
-/**
- * Plugin entity interface
- */
-export interface Plugin {
-  id: string;
+import { BaseEntity } from "./shared";
+
+export interface Plugin extends BaseEntity {
   name: string;
   description?: string;
   icon?: string;
+  status: string;
+  tenant_id?: string;
   category?: string;
-  status: 'active' | 'inactive' | 'deprecated';
+  xp?: number;
+  roi?: number;
+  metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
-  xp: number;
-  roi: number;
-  tenant_id: string;
-  metadata?: Record<string, any>;
 }
 
-/**
- * Plugin log entity interface
- */
 export interface PluginLog {
   id: string;
   plugin_id?: string;
-  tenant_id?: string;
   strategy_id?: string;
   agent_version_id?: string;
+  tenant_id?: string;
   status: string;
+  error?: string;
   input?: Record<string, any>;
   output?: Record<string, any>;
-  error?: string;
-  execution_time: number;
-  xp_earned: number;
-  created_at: string;
+  execution_time?: number;
+  xp_earned?: number;
+  created_at?: string;
 }
 
-/**
- * Plugin result interface
- */
-export interface PluginResult {
-  success: boolean;
-  pluginId: string;
-  status?: string;
-  output?: any;
-  error?: string;
-  executionTime?: number;
-  xp?: number;
-  xpEarned?: number; // Added xpEarned to PluginResult
-}
-
-/**
- * Result of running a chain of plugins
- */
-export interface RunPluginChainResult {
-  success: boolean;
-  results: PluginResult[];
-  error?: string;
+export interface EnhancedPlugin extends Plugin {
+  trend_score?: number;
 }

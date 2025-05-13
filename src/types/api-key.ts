@@ -3,25 +3,21 @@ export interface ApiKey {
   id: string;
   name: string;
   key_prefix: string;
-  tenant_id: string;
-  created_by: string;
-  created_at: string;
-  expires_at: string | null;
-  last_used_at: string | null;
   status: 'active' | 'revoked';
-  scope: string[];
-}
-
-export interface ApiKeyCreateParams {
-  name: string;
-  scope: string[];
+  created_at: string;
   expires_at?: string | null;
+  tenant_id: string;
+  last_used_at?: string | null;
+  metadata?: Record<string, any>;
 }
 
 export interface ApiKeyResponse {
-  id: string;
-  key: string;
-  key_prefix: string;
+  key: ApiKey;
+  fullKey?: string; // Only provided once when created
+}
+
+export interface CreateApiKeyInput {
   name: string;
   scope: string[];
+  expires_at?: string | null;
 }

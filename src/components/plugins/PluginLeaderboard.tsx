@@ -3,11 +3,11 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { plugin } from '@/types/plugin';
+import { Plugin } from '@/types/plugin';
 import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 
 interface PluginLeaderboardProps {
-  plugins: plugin[];
+  plugins: Plugin[];
   isLoading: boolean;
   metric: 'xp' | 'roi' | 'trend';
 }

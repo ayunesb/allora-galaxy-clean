@@ -11,9 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { DateRange as SharedDateRange } from "@/types/shared";
-
-export type DateRange = SharedDateRange;
+import { DateRange } from "@/types/shared";
 
 export interface DatePickerWithRangeProps {
   date: DateRange | undefined;
@@ -71,6 +69,7 @@ export function DatePickerWithRange({
               }
             }}
             numberOfMonths={2}
+            className="p-3 pointer-events-auto"
           />
         </PopoverContent>
       </Popover>

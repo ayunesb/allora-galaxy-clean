@@ -48,8 +48,11 @@ export const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-// Re-export getEnvWithDefault for convenience
-export { getEnvWithDefault } from '@/lib/env';
+// Import getEnvWithDefault from envUtils
+import { getEnvWithDefault } from '@/lib/env/envUtils';
+
+// Re-export for convenience
+export { getEnvWithDefault };
 
 /**
  * Check if we're in a production environment
