@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from './useTenantId';
-import type { Plugin } from '@/types/plugin'; // Using type-only import to avoid unused warning
 
 export interface UsePluginsProps {
   category?: string;

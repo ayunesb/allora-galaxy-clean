@@ -1,6 +1,6 @@
 
 import { createContext, useContext } from 'react';
-import { AuthContextType, AuthResult } from '@/lib/auth/types';
+import { AuthContextType } from '@/lib/auth/types';
 
 /**
  * AuthContext provides authentication state and methods to the React component tree
