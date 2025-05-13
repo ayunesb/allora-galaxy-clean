@@ -25,7 +25,7 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
       <PopoverContent className="w-auto p-0">
         <Calendar
           mode="single"
-          selected={date || undefined}
+          selected={date}
           onSelect={(newDate) => onDateChange(newDate)}
           initialFocus
           className="p-3 pointer-events-auto"
