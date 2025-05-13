@@ -7,16 +7,31 @@ import { SystemLog } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import AdminLayout from '@/components/layout/AdminLayout';
+import { SystemLogFilters, SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 const SystemLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<SystemLogFilterState>({
+    module: '',
+    event: '',
+    fromDate: null,
+    toDate: null,
+    searchTerm: ''
+  });
   
   const { logs, isLoading, error, refetch } = useSystemLogsData();
   
   const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
     setDialogOpen(true);
+  };
+  
+  const handleFilterChange = (newFilters: SystemLogFilterState) => {
+    setFilters(newFilters);
+    // Ideally here we would apply the filters to the useSystemLogsData hook
   };
   
   return (
@@ -26,6 +41,15 @@ const SystemLogs: React.FC = () => {
           title="System Logs"
           description="View and monitor system events and activity"
         />
+        
+        <div className="mb-6">
+          <SystemLogFilters 
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            isLoading={isLoading}
+            onRefresh={refetch}
+          />
+        </div>
         
         <Card className="mt-6">
           <CardContent className="p-0 sm:p-6">
