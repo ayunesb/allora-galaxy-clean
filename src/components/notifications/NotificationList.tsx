@@ -7,7 +7,7 @@ interface NotificationListProps {
   notifications: Notification[];
   userId: string;
   filter?: string;
-  onMarkAsRead?: (id: string) => Promise<void>;
+  markAsRead?: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   loading?: boolean;
 }
@@ -16,7 +16,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   userId,
   filter,
-  onMarkAsRead,
+  markAsRead,
   onDelete,
   loading = false
 }) => {
@@ -37,9 +37,18 @@ const NotificationList: React.FC<NotificationListProps> = ({
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}
-          notification={notification}
+          notification={{
+            id: notification.id,
+            title: notification.title,
+            message: notification.message || notification.description || '',
+            timestamp: notification.created_at,
+            read: !!notification.read_at,
+            type: notification.type as any,
+            action_url: notification.action_url,
+            action_label: notification.action_label
+          }}
           userId={userId}
-          onMarkAsRead={onMarkAsRead}
+          onMarkAsRead={markAsRead}
           onDelete={onDelete}
         />
       ))}

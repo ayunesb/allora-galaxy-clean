@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { OnboardingData } from '@/types/onboarding/types';
+import { OnboardingFormData } from '@/types/onboarding/types';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import useAuth from '@/hooks/useAuth';
@@ -12,7 +12,7 @@ export const useOnboardingSubmission = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submitOnboarding = async (data: OnboardingData) => {
+  const submitOnboarding = async (data: OnboardingFormData) => {
     if (!user) {
       setError('User not authenticated');
       toast({
@@ -31,7 +31,7 @@ export const useOnboardingSubmission = () => {
       const { data: tenantData, error: tenantError } = await supabase
         .from('tenants')
         .insert({
-          name: data.companyName,
+          name: data.companyName || data.companyInfo?.name || 'New Company',
           owner_id: user.id,
           created_by: user.id,
           active: true
@@ -64,10 +64,10 @@ export const useOnboardingSubmission = () => {
         .from('company_profiles')
         .insert({
           tenant_id: tenantId,
-          name: data.companyName,
-          industry: data.industry,
-          size: data.companySize,
-          goals: data.goals,
+          name: data.companyName || data.companyInfo?.name || 'New Company',
+          industry: data.industry || data.companyInfo?.industry || '',
+          size: data.companySize || data.companyInfo?.size || '',
+          goals: data.goals || [],
           created_by: user.id,
         });
 

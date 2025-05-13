@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useEffect } from 'react';
 import { useNotifications, useMarkAllNotificationsAsRead } from '@/services/notificationService';
+import { Notification } from '@/types/notifications';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
@@ -12,11 +13,19 @@ import useAuth from '@/hooks/useAuth';
 interface NotificationCenterContentProps {
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
+  notifications?: Notification[];
+  markAsRead?: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  onMarkAllAsRead?: () => Promise<void>;
 }
 
 const NotificationCenterContent = ({ 
   activeFilter, 
-  setActiveFilter 
+  setActiveFilter,
+  notifications: externalNotifications,
+  markAsRead: externalMarkAsRead,
+  onDelete: externalOnDelete,
+  onMarkAllAsRead: externalOnMarkAllAsRead
 }: NotificationCenterContentProps) => {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
@@ -26,20 +35,29 @@ const NotificationCenterContent = ({
   const userId = user?.id;
   
   const {
-    data: notifications = [],
+    data: fetchedNotifications = [],
     isLoading,
     refetch
   } = useNotifications({
     user_id: userId,
     tenant_id: tenantId,
-    limit: 20
+    limit: 20,
+    enabled: !externalNotifications // Only fetch if not provided externally
   });
+  
+  // Use externally provided notifications or fetched ones
+  const notifications = externalNotifications || fetchedNotifications;
   
   const unreadCount = notifications.filter(n => !n.read_at).length;
   
   const markAllAsMutation = useMarkAllNotificationsAsRead();
   
   const handleMarkAllAsRead = async () => {
+    if (externalOnMarkAllAsRead) {
+      await externalOnMarkAllAsRead();
+      return;
+    }
+    
     if (!userId || !tenantId) return;
     
     await markAllAsMutation.mutateAsync({
@@ -50,21 +68,23 @@ const NotificationCenterContent = ({
   
   // Refresh notifications when the workspace changes
   useEffect(() => {
-    if (tenantId) {
+    if (tenantId && !externalNotifications) {
       refetch();
     }
-  }, [tenantId, refetch]);
+  }, [tenantId, refetch, externalNotifications]);
   
   // Poll for new notifications
   useEffect(() => {
+    if (externalNotifications) return; // Skip polling if notifications are provided externally
+    
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['notifications', { user_id: userId, tenant_id: tenantId }] });
     }, 30000); // Every 30 seconds
     
     return () => clearInterval(interval);
-  }, [userId, tenantId, queryClient]);
+  }, [userId, tenantId, queryClient, externalNotifications]);
   
-  if (isLoading) {
+  if (isLoading && !externalNotifications) {
     return <NotificationCenterLoading />;
   }
   
@@ -83,6 +103,9 @@ const NotificationCenterContent = ({
         <NotificationList 
           notifications={notifications} 
           userId={userId || ''}
+          markAsRead={externalMarkAsRead}
+          onDelete={externalOnDelete}
+          loading={isLoading}
         />
       </div>
     </div>

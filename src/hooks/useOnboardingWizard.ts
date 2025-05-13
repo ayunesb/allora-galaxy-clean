@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { OnboardingData } from '@/types/onboarding/types';
+import { OnboardingFormData } from '@/types/onboarding/types';
 import { useStrategyGeneration } from './useStrategyGeneration';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
@@ -9,15 +9,26 @@ import { toast } from '@/components/ui/use-toast';
 export const useOnboardingWizard = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [formData, setFormData] = useState<OnboardingData>({
+  const [formData, setFormData] = useState<OnboardingFormData>({
     companyName: '',
     industry: '',
     companySize: '',
     goals: [],
-    persona: '',
-    tonePreference: '',
-    targeting: [],
-    aggressiveness: 'moderate',
+    companyInfo: {
+      name: '',
+      industry: '',
+      size: ''
+    },
+    persona: {
+      name: '',
+      goals: [],
+      tone: ''
+    },
+    additionalInfo: {
+      targetAudience: '',
+      keyCompetitors: '',
+      uniqueSellingPoints: ''
+    }
   });
   
   const [isGeneratingComplete, setIsGeneratingComplete] = useState(false);
@@ -34,7 +45,7 @@ export const useOnboardingWizard = () => {
   }, []);
 
   // Function to update form data
-  const updateFormData = useCallback((data: Partial<OnboardingData>) => {
+  const updateFormData = useCallback((data: Partial<OnboardingFormData>) => {
     setFormData(prev => ({ ...prev, ...data }));
   }, []);
 
@@ -44,10 +55,16 @@ export const useOnboardingWizard = () => {
       if (currentStep === 3 && !isGeneratingComplete) {
         try {
           // Get tenant ID for the current user
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+          
           const { data: tenantData, error: tenantError } = await supabase
             .from('tenants')
             .select('id')
-            .eq('owner_id', supabase.auth.getUser())
+            .eq('owner_id', user.id)
             .limit(1);
             
           if (tenantError || !tenantData || tenantData.length === 0) {
@@ -59,8 +76,8 @@ export const useOnboardingWizard = () => {
           // Generate strategies based on goals and industry
           const result = await generateStrategies(
             tenantId, 
-            formData.goals,
-            formData.industry
+            formData.goals || [],
+            formData.industry || formData.companyInfo?.industry || ''
           );
           
           if (!result) {
@@ -81,7 +98,7 @@ export const useOnboardingWizard = () => {
     };
     
     generateStrategyOnStep();
-  }, [currentStep, formData.goals, formData.industry, isGeneratingComplete, generateStrategies]);
+  }, [currentStep, formData.goals, formData.industry, formData.companyInfo, isGeneratingComplete, generateStrategies]);
 
   // Function to complete onboarding
   const completeOnboarding = useCallback(async () => {

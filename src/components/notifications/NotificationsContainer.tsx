@@ -5,6 +5,7 @@ import { useNotificationActions } from '@/hooks/useNotificationActions';
 import NotificationTabs from './NotificationTabs';
 import { NotificationsPageHeader } from './NotificationsPageHeader';
 import NotificationEmptyState from './NotificationEmptyState';
+import { Notification } from '@/types/notifications';
 
 interface NotificationsContainerProps {
   filter?: string | null;
@@ -27,7 +28,20 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Convert to compatible format if needed
+  const formattedNotifications: Notification[] = notifications.map(n => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    description: n.message,
+    user_id: n.user_id || '',
+    tenant_id: n.tenant_id || '',
+    created_at: n.timestamp || new Date().toISOString(),
+    read_at: n.read ? new Date().toISOString() : null,
+    type: n.type || 'info'
+  }));
+
+  const unreadCount = formattedNotifications.filter(n => !n.read_at).length;
 
   // Wrap refresh to match expected Promise<void> return type
   const handleRefresh = async (): Promise<void> => {
@@ -51,11 +65,11 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
         <div className="p-8 flex justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
-      ) : notifications.length > 0 ? (
+      ) : formattedNotifications.length > 0 ? (
         <NotificationTabs 
           selectedTab={selectedTab}
           setSelectedTab={handleTabChange}
-          notifications={notifications} 
+          notifications={formattedNotifications}
           markAsRead={markAsRead}
           onDelete={deleteNotification}
           loading={false}

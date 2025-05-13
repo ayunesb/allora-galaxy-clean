@@ -24,12 +24,15 @@ const OnboardingWizard: React.FC = () => {
     updateFormData,
     nextStep,
     prevStep,
-    handleSubmit
+    completeOnboarding
   } = useOnboardingWizard();
 
   // Helper function to get current step index
   const getCurrentStepIndex = (): number => {
-    return STEPS.findIndex(step => step.id === currentStep);
+    const stepIndex = typeof currentStep === 'number' 
+      ? currentStep 
+      : STEPS.findIndex(step => step.id === currentStep);
+    return stepIndex >= 0 ? stepIndex : 0;
   };
 
   // Helper function to determine if the next button should be disabled
@@ -41,6 +44,11 @@ const OnboardingWizard: React.FC = () => {
   // Create a wrapper for updateFormData to match the expected signature
   const handleUpdateFormData = (data: Partial<OnboardingFormData>) => {
     updateFormData(data);
+  };
+  
+  // Handle submission
+  const handleSubmit = () => {
+    completeOnboarding();
   };
   
   return (
@@ -57,7 +65,7 @@ const OnboardingWizard: React.FC = () => {
       {/* Form content */}
       <div className="flex-1 overflow-y-auto my-6 px-4 md:px-0">
         <StepContent 
-          step={currentStep}
+          step={typeof currentStep === 'number' ? STEPS[currentStep]?.id || 'welcome' : currentStep}
           formData={formData}
           updateFormData={handleUpdateFormData}
           isGenerating={isGenerating}

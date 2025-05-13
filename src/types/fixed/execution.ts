@@ -1,63 +1,47 @@
 
-// Types for the execution module
-
-export interface ExecutionRecord {
-  id: string;
-  tenantId: string;
-  status: string;
-  type: string;
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  executedBy?: string;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
-  executionTime?: number;
-  xpEarned?: number;
-  error?: string;
-  createdAt: string;
-}
-
-export interface ExecutionFilter {
-  tenantId: string;
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
-  status?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-}
-
-export interface ExecutionParams {
-  tenant_id: string;
-  strategy_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  user_id?: string;
-  options?: Record<string, any>;
-}
-
-export interface ExecutionResult {
-  success: boolean;
-  execution_id?: string;
-  status: string;
-  error?: string;
-  execution_time?: number;
-  xp_earned?: number;
-  output?: any;
-}
+// Types for the execution system
 
 export interface ExecuteStrategyInput {
   strategy_id: string;
   tenant_id: string;
-  user_id?: string;
+  user_id: string;
   options?: Record<string, any>;
 }
 
-export interface ExecuteStrategyOptions {
-  dry_run?: boolean;
-  debug?: boolean;
-  max_plugins?: number;
-  timeout?: number;
-  include_details?: boolean;
+export interface ExecuteStrategyInputSnakeCase {
+  strategy_id: string;
+  tenant_id: string;
+  user_id: string;
+  options?: Record<string, any>;
+}
+
+export interface ExecuteStrategyResult {
+  success: boolean;
+  executionId?: string;
+  executionTime: number;
+  status: string;
+  error?: string;
+  pluginsExecuted?: number;
+  successfulPlugins?: number;
+  xpEarned?: number;
+  outputs?: Record<string, any>;
+  results?: Record<string, any>;
+  logs?: Array<any>;
+}
+
+export interface ExecutionRecord {
+  id: string;
+  strategy_id: string;
+  tenant_id: string;
+  user_id: string;
+  status: 'pending' | 'running' | 'success' | 'error' | 'partial_success';
+  started_at: string;
+  completed_at?: string;
+  execution_time?: number;
+  plugins_executed?: number;
+  successful_plugins?: number;
+  xp_earned?: number;
+  outputs?: Record<string, any>;
+  results?: Record<string, any>;
+  logs?: Array<any>;
 }

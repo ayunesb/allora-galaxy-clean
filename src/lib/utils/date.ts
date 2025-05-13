@@ -1,5 +1,5 @@
 
-import { format, parse, formatDistance, formatRelative, parseISO } from 'date-fns';
+import { format, parse, formatDistance, formatRelative, parseISO, isValid } from 'date-fns';
 
 /**
  * Format a date using the provided format string
@@ -19,6 +19,36 @@ export const formatDate = (
   } catch (error) {
     console.error('Error formatting date:', error);
     return '';
+  }
+};
+
+/**
+ * Format a date for display in the UI
+ * @param date The date to format
+ * @returns Formatted date string for display
+ */
+export const formatDisplayDate = (
+  date: Date | string | null | undefined
+): string => {
+  return formatDate(date, 'PPP');
+};
+
+/**
+ * Format a date for database storage
+ * @param date The date to format
+ * @returns ISO string for database storage
+ */
+export const formatForDatabase = (
+  date: Date | null
+): string | null => {
+  if (!date) return null;
+  
+  try {
+    if (!isValid(date)) return null;
+    return date.toISOString();
+  } catch (error) {
+    console.error('Error formatting date for database:', error);
+    return null;
   }
 };
 
@@ -112,11 +142,11 @@ export function formatObjectDates<T extends Record<string, any>>(
 ): T {
   if (!obj) return obj;
 
-  const result = { ...obj };
+  const result = { ...obj } as T;
   
   for (const field of dateFields) {
     if (obj[field]) {
-      result[field] = formatDate(obj[field], formatString);
+      result[field] = formatDate(obj[field], formatString) as any;
     }
   }
   

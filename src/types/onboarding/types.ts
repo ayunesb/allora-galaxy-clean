@@ -31,6 +31,19 @@ export interface OnboardingFormData {
   [key: string]: any;
 }
 
+// Added OnboardingData interface for backward compatibility
+export interface OnboardingData {
+  companyName: string;
+  industry: string;
+  companySize: string;
+  goals: string[];
+  persona: string;
+  tonePreference: string;
+  targeting: string[];
+  aggressiveness: 'low' | 'moderate' | 'high';
+  [key: string]: any;
+}
+
 export interface OnboardingState {
   step: OnboardingStep;
   formData: OnboardingFormData;

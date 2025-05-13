@@ -6,7 +6,6 @@ import {
   ExecuteStrategyInputSnakeCase,
   ExecuteStrategyResult 
 } from '@/types/fixed/execution';
-import { camelToSnakeObject } from '@/lib/utils/dataConversion';
 
 /**
  * Edge function response format
@@ -35,13 +34,8 @@ export async function executeStrategyEdge(
   input: ExecuteStrategyInput
 ): Promise<ExecuteStrategyResult> {
   try {
-    // Convert input to snake_case for API compatibility
-    const payload: ExecuteStrategyInputSnakeCase = {
-      strategy_id: input.strategyId,
-      tenant_id: input.tenantId,
-      user_id: input.userId,
-      options: input.options
-    };
+    // Use input directly as it already uses snake_case
+    const payload = input;
     
     // Log execution start
     await logSystemEvent(

@@ -26,8 +26,18 @@ export function formatDate(dateString?: string | null, formatString: string = 'y
  * @param dateString The date string to format
  * @returns Formatted date string for display
  */
-export function formatDisplayDate(dateString?: string | null): string {
-  return formatDate(dateString, 'PPP');
+export function formatDisplayDate(date?: Date | string | null): string {
+  if (!date) return 'N/A';
+  
+  try {
+    const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    if (!isValid(dateObj)) return 'Invalid Date';
+    
+    return format(dateObj, 'PPP');
+  } catch (error) {
+    console.error('Error formatting display date:', error);
+    return 'Invalid Date';
+  }
 }
 
 /**
@@ -132,11 +142,11 @@ export function formatObjectDates<T extends Record<string, any>>(
 ): T {
   if (!obj) return obj;
 
-  const result = { ...obj };
+  const result = { ...obj } as T;
   
   for (const field of dateFields) {
     if (obj[field]) {
-      result[field] = formatDate(obj[field], formatString);
+      result[field] = formatDate(obj[field], formatString) as any;
     }
   }
   
