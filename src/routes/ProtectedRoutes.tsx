@@ -2,7 +2,6 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import MainLayout from '@/components/layout/MainLayout';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 // Import dashboard and main pages
 import Dashboard from '@/pages/dashboard/Dashboard';
@@ -56,7 +55,7 @@ import Unauthorized from '@/pages/errors/Unauthorized';
 import NotFound from '@/pages/NotFound';
 
 const ProtectedRoutes = () => {
-  const { currentWorkspace } = useWorkspace();
+  // Remove the unused workspace reference
   
   return (
     <Routes>

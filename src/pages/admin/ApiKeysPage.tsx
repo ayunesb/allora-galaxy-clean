@@ -8,18 +8,27 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import { ApiKeysTable } from '@/components/admin/api-keys';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApiKeys } from '@/hooks/admin/useApiKeys';
-import { ApiKey } from '@/types/api-key';
+import { ApiKey, ApiKeyResponse } from '@/types/api-key';
 import { useToast } from '@/hooks/use-toast';
+import { CreateApiKeyForm } from '@/components/admin/api-keys';
 
 const ApiKeysPage: React.FC = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<ApiKey | null>(null);
-  const { apiKeys, isLoading, error, createApiKey, deleteApiKey } = useApiKeys();
+  const { apiKeys, isLoading, error, deleteApiKey } = useApiKeys();
   const { toast } = useToast();
 
   const handleCreateApiKey = () => {
     setCreateDialogOpen(true);
+  };
+
+  const handleCreateSuccess = (response: ApiKeyResponse) => {
+    setCreateDialogOpen(false);
+    toast({
+      title: "API Key created",
+      description: "Your new API key has been created successfully."
+    });
   };
 
   const handleViewApiKey = (id: string) => {
@@ -78,16 +87,16 @@ const ApiKeysPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Create API Key Dialog would go here */}
+        {/* Create API Key Dialog */}
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create API Key</DialogTitle>
             </DialogHeader>
-            {/* CreateApiKeyForm would go here */}
-            <p className="text-center text-muted-foreground py-8">
-              Create API Key form will be implemented in the next phase
-            </p>
+            <CreateApiKeyForm 
+              onSuccess={handleCreateSuccess}
+              onCancel={() => setCreateDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
 

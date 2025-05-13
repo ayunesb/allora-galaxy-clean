@@ -18,11 +18,15 @@ export function getEnvWithDefault(name: string, fallback: string = ""): string {
       if (value !== undefined) return value;
     }
     
-    // Try to access Deno.env (Deno)
-    if (typeof Deno !== 'undefined' && Deno.env) {
+    // Try to access Deno.env (Deno) - with safe type checking
+    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
       try {
-        const value = Deno.env.get(name);
-        if (value !== undefined && value !== null) return value;
+        // Using any type here to avoid TypeScript errors when Deno is not defined
+        const denoEnv = (globalThis as any).Deno?.env;
+        if (denoEnv && typeof denoEnv.get === 'function') {
+          const value = denoEnv.get(name);
+          if (value !== undefined && value !== null) return value;
+        }
       } catch (err) {
         // Ignore Deno permission errors
       }
