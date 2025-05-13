@@ -1,5 +1,5 @@
 
-import { format, formatDistance, formatRelative as formatRelativeDate, isDate } from "date-fns";
+import { format, formatDistance, isDate } from "date-fns";
 
 /**
  * Format a date relative to the current date

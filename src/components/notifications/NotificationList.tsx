@@ -9,7 +9,6 @@ interface NotificationListProps {
   markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   loading?: boolean;
-  userId?: string;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({
@@ -17,8 +16,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   filter,
   markAsRead,
   onDelete,
-  loading = false,
-  userId
+  loading = false
 }) => {
   if (loading) {
     return <div className="p-4 text-center text-muted-foreground">Loading notifications...</div>;

@@ -47,7 +47,6 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           filter="all"
           markAsRead={markAsRead}
           onDelete={onDelete}
-          userId={userId}
         />
       </TabsContent>
       
@@ -57,7 +56,6 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           filter="unread"
           markAsRead={markAsRead}
           onDelete={onDelete}
-          userId={userId}
         />
       </TabsContent>
       
@@ -67,7 +65,6 @@ const NotificationCenterTabs: React.FC<NotificationCenterTabsProps> = ({
           filter="system"
           markAsRead={markAsRead}
           onDelete={onDelete}
-          userId={userId}
         />
       </TabsContent>
     </Tabs>

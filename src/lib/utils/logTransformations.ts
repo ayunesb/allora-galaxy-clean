@@ -1,114 +1,86 @@
 
-import { SystemLog, AuditLog } from '@/types/logs';
-
-/**
- * Convert an AuditLog to a SystemLog format
- * @param auditLog The audit log to convert
- * @returns SystemLog representation
- */
-export function auditLogToSystemLog(auditLog: AuditLog): SystemLog {
-  // Return basic SystemLog properties
-  return {
-    id: auditLog.id,
-    tenant_id: auditLog.tenant_id,
-    module: auditLog.module,
-    event: auditLog.event,
-    context: auditLog.context || auditLog.details || {},
-    created_at: auditLog.created_at
-  };
-}
+import { AuditLog, SystemLog } from '@/types/logs';
 
 /**
  * Convert a SystemLog to an AuditLog format
- * @param systemLog The system log to convert
- * @returns AuditLog representation with default values
+ * @param log The system log to convert
+ * @returns An AuditLog object
  */
-export function systemLogToAuditLog(systemLog: SystemLog): AuditLog {
-  // Extract user_id from context if available
-  const userId = systemLog.context?.user_id || systemLog.user_id || 'system';
-  const resourceId = systemLog.context?.resource_id || '';
-  const resourceType = systemLog.context?.resource_type || systemLog.module;
-  const action = systemLog.context?.action || systemLog.event;
-  
+export const systemLogToAuditLog = (log: SystemLog): AuditLog => {
   return {
-    id: systemLog.id,
-    user_id: userId,
-    action: action,
-    entity_type: resourceType,
-    entity_id: resourceId,
-    tenant_id: systemLog.tenant_id || '',
-    details: systemLog.context || {},
-    created_at: systemLog.created_at,
-    module: systemLog.module,
-    event: systemLog.event,
-    context: systemLog.context
+    id: log.id,
+    action: log.event,
+    entity_type: log.module,
+    entity_id: log.context?.resource_id || log.id,
+    user_id: log.context?.user_id || 'system',
+    tenant_id: log.tenant_id || '',
+    details: log.context || {},
+    created_at: log.created_at,
+    module: log.module,
+    event: log.event,
+    context: log.context
   };
-}
+};
 
 /**
- * Format log context for display
- * @param context The log context object
- * @returns Formatted context with sensitive data masked
+ * Convert an AuditLog to a SystemLog format
+ * @param log The audit log to convert
+ * @returns A SystemLog object
  */
-export function formatLogContext(context: Record<string, any> | undefined): Record<string, any> {
-  if (!context) return {};
-  
-  // Create a copy to avoid modifying original
-  const formatted = { ...context };
-  
-  // Mask sensitive fields
-  const sensitiveFields = ['password', 'token', 'key', 'secret', 'credential'];
-  
-  Object.keys(formatted).forEach(key => {
-    // Check if this is a sensitive field
-    const isSensitive = sensitiveFields.some(field => 
-      key.toLowerCase().includes(field)
-    );
-    
-    if (isSensitive && typeof formatted[key] === 'string') {
-      formatted[key] = '******';
+export const auditLogToSystemLog = (log: AuditLog): SystemLog => {
+  return {
+    id: log.id,
+    module: log.module || log.entity_type,
+    event: log.event || log.action,
+    level: log.details?.level || (log.event === 'error' ? 'error' : 'info'),
+    description: log.details?.message || '',
+    context: log.context || log.details,
+    tenant_id: log.tenant_id,
+    created_at: log.created_at,
+    user_id: log.user_id
+  };
+};
+
+/**
+ * Group logs by date
+ * @param logs The logs to group
+ * @returns Logs grouped by date
+ */
+export const groupLogsByDate = <T extends { created_at: string }>(logs: T[]): Record<string, T[]> => {
+  return logs.reduce((groups, log) => {
+    const date = new Date(log.created_at).toLocaleDateString();
+    if (!groups[date]) {
+      groups[date] = [];
     }
+    groups[date].push(log);
+    return groups;
+  }, {} as Record<string, T[]>);
+};
+
+/**
+ * Filter logs by search term
+ * @param logs The logs to filter
+ * @param searchTerm The search term
+ * @returns Filtered logs
+ */
+export const filterLogsBySearchTerm = <T extends SystemLog | AuditLog>(logs: T[], searchTerm: string): T[] => {
+  if (!searchTerm) return logs;
+  
+  const term = searchTerm.toLowerCase();
+  return logs.filter(log => {
+    // For SystemLog
+    if ('module' in log && log.module?.toLowerCase().includes(term)) return true;
+    if ('event' in log && log.event?.toLowerCase().includes(term)) return true;
+    if ('description' in log && log.description?.toLowerCase().includes(term)) return true;
     
-    // Recursively process nested objects
-    if (formatted[key] && typeof formatted[key] === 'object') {
-      formatted[key] = formatLogContext(formatted[key]);
-    }
+    // For AuditLog
+    if ('action' in log && log.action?.toLowerCase().includes(term)) return true;
+    if ('entity_type' in log && log.entity_type?.toLowerCase().includes(term)) return true;
+    
+    // Common fields in context/details
+    const contextDetails = ('context' in log ? log.context : log.details) || {};
+    if (JSON.stringify(contextDetails).toLowerCase().includes(term)) return true;
+    
+    return false;
   });
-  
-  return formatted;
-}
-
-/**
- * Get a human-readable summary of the log
- * @param log The log to summarize
- * @returns Human-readable summary
- */
-export function getLogSummary(log: SystemLog | AuditLog): string {
-  // Try to extract a summary from context fields
-  const context = 'context' in log ? log.context || {} : 'details' in log ? log.details || {} : {};
-  
-  // Check common message fields
-  if (context.message) return context.message;
-  if (context.description) return context.description;
-  if (context.summary) return context.summary;
-  if (context.detail) return context.detail;
-  
-  // For errors, show error message
-  if ('event' in log && log.event === 'error' && context.error) {
-    return typeof context.error === 'string' 
-      ? context.error
-      : JSON.stringify(context.error).substring(0, 100);
-  }
-  
-  // For audit logs with resource info
-  if ('entity_id' in log && log.entity_id) {
-    return `${log.action} ${log.entity_type} ${log.entity_id.substring(0, 8)}...`;
-  }
-  
-  // Default summary
-  if ('module' in log && 'event' in log) {
-    return `${log.module} ${log.event} event`;
-  }
-  
-  return "Log event";
-}
+};
