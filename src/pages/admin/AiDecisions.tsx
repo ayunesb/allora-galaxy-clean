@@ -45,8 +45,8 @@ const AiDecisions: React.FC = () => {
         filters={{
           module: filters.module || '',
           event: filters.event || '',
-          fromDate: filters.fromDate,
-          toDate: filters.toDate,
+          fromDate: filters.fromDate || null,
+          toDate: filters.toDate || null,
           searchTerm: filters.searchTerm || ''
         }}
         onFilterChange={handleFilterChange}

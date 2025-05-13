@@ -8,6 +8,7 @@ import { AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 
 export interface AuditLogProps {
   title?: string;
@@ -25,6 +26,8 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   onRefresh
 }) => {
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AuditLogFilterState>({
     module: '',
     event: '',
@@ -41,6 +44,11 @@ export const AuditLog: React.FC<AuditLogProps> = ({
 
   const handleFilterChange = (newFilters: AuditLogFilterState) => {
     setFilters(newFilters);
+  };
+
+  const handleViewLog = (log: SystemLog) => {
+    setSelectedLog(log);
+    setDialogOpen(true);
   };
 
   // Convert AuditLogType[] to SystemLog[] for SystemLogsList compatibility
@@ -83,7 +91,11 @@ export const AuditLog: React.FC<AuditLogProps> = ({
           </div>
           
           <TabsContent value="all">
-            <SystemLogsList logs={mappedLogs} isLoading={loading} />
+            <SystemLogsList 
+              logs={mappedLogs} 
+              isLoading={loading} 
+              onViewLog={handleViewLog}
+            />
           </TabsContent>
           
           <TabsContent value="user">
@@ -92,6 +104,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
                 log.module === 'user' || log.module === 'auth'
               )} 
               isLoading={loading} 
+              onViewLog={handleViewLog}
             />
           </TabsContent>
           
@@ -101,6 +114,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
                 log.module === 'strategy' || log.module === 'plugin' || log.module === 'agent'
               )} 
               isLoading={loading} 
+              onViewLog={handleViewLog}
             />
           </TabsContent>
           
@@ -110,10 +124,17 @@ export const AuditLog: React.FC<AuditLogProps> = ({
                 log.module === 'system' || log.module === 'billing' || log.module === 'tenant'
               )} 
               isLoading={loading} 
+              onViewLog={handleViewLog}
             />
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+      />
     </Card>
   );
 };

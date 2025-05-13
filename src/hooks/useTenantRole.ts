@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/shared';
 import { useAuth } from '@/context/AuthContext';
 import { useTenantId } from './useTenantId';
+import { UserRole } from '@/types/user'; // Import from user.ts instead of shared.ts
 
 export function useTenantRole(requiredRole?: UserRole): {
   role: UserRole | null;
