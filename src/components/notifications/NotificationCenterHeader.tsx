@@ -1,36 +1,42 @@
 
 import React from 'react';
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CheckCheck } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 interface NotificationCenterHeaderProps {
-  onClose: () => void;
-  markAllAsRead: () => Promise<void>;
+  unreadCount: number;
+  onMarkAllAsRead: () => Promise<void>;
+  isMarking: boolean;
 }
 
-const NotificationCenterHeader: React.FC<NotificationCenterHeaderProps> = ({ 
-  onClose,
-  markAllAsRead
+const NotificationCenterHeader: React.FC<NotificationCenterHeaderProps> = ({
+  unreadCount,
+  onMarkAllAsRead,
+  isMarking
 }) => {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b">
-      <h2 className="font-semibold text-lg">Notifications</h2>
-      
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={markAllAsRead}
-          className="text-xs h-8"
-        >
-          Mark all as read
-        </Button>
-        
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </Button>
+    <div className="p-4 border-b sticky top-0 bg-background z-10">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Notifications</h2>
+        {unreadCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMarkAllAsRead}
+            disabled={isMarking}
+          >
+            <CheckCheck className="h-4 w-4 mr-2" />
+            Mark all as read
+          </Button>
+        )}
       </div>
+      {unreadCount > 0 && (
+        <div className="mt-2 text-sm text-muted-foreground">
+          You have {unreadCount} unread notifications
+        </div>
+      )}
+      <Separator className="mt-4" />
     </div>
   );
 };

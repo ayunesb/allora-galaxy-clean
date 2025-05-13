@@ -7,13 +7,23 @@ import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import NotificationList from './NotificationList';
+import { useAuth } from '@/hooks/useAuth';
 
-const NotificationCenterContent = () => {
+interface NotificationCenterContentProps {
+  activeFilter: string;
+  setActiveFilter: (filter: string) => void;
+}
+
+const NotificationCenterContent = ({ 
+  activeFilter, 
+  setActiveFilter 
+}: NotificationCenterContentProps) => {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
-  const userId = ''; // TODO: Get from auth context
+  const { user } = useAuth();
   
   const tenantId = currentWorkspace?.id;
+  const userId = user?.id;
   
   const {
     data: notifications = [],
@@ -70,7 +80,10 @@ const NotificationCenterContent = () => {
         isMarking={markAllAsMutation.isPending}
       />
       <div className="flex-1 overflow-y-auto">
-        <NotificationList notifications={notifications} userId={userId} />
+        <NotificationList 
+          notifications={notifications} 
+          userId={userId || ''}
+        />
       </div>
     </div>
   );

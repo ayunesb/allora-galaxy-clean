@@ -1,57 +1,49 @@
 
 import { useState } from 'react';
-import { OnboardingFormData } from '@/types/onboarding';
-import { completeOnboarding } from '@/services/onboardingService';
-import { useAuth } from '@/context/AuthContext';
-
-interface StrategyGenerationResult {
-  success: boolean;
-  error?: string;
-  tenantId?: string;
-  strategyId?: string;
-}
+import { useToast } from '@/hooks/use-toast';
+import { useStrategyGeneration as useStrategyGenerationMutation } from '@/services/onboardingService';
 
 export const useStrategyGeneration = () => {
+  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const { user } = useAuth();
+
+  const strategyGenerationMutation = useStrategyGenerationMutation();
   
-  /**
-   * Generate an initial strategy based on onboarding data
-   */
-  const generateStrategy = async (formData: OnboardingFormData): Promise<StrategyGenerationResult> => {
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-    
+  const generateStrategies = async (tenantId: string, goals: string[], industry: string) => {
     setIsGenerating(true);
     
     try {
-      const result = await completeOnboarding(user.id, formData);
+      const result = await strategyGenerationMutation.mutateAsync({ tenantId, goals, industry });
       
       if (!result.success) {
-        throw new Error(result.error || 'Failed to complete onboarding');
+        throw new Error(result.error);
       }
       
-      // Return the result with strategyId if available
-      return {
-        success: true,
-        tenantId: result.tenantId,
-        strategyId: result.strategyId || undefined
-      };
+      // Show success toast
+      toast({
+        title: 'Strategies Generated',
+        description: 'Initial strategies have been created for your workspace.',
+      });
+      
+      return result.tenantId;
     } catch (error: any) {
       console.error('Strategy generation error:', error);
-      
-      return {
-        success: false,
-        error: error.message || 'Failed to generate strategy'
-      };
+      toast({
+        title: 'Strategy Generation Failed',
+        description: error.message || 'There was an error generating strategies.',
+        variant: 'destructive',
+      });
+      return false;
     } finally {
       setIsGenerating(false);
     }
   };
-
+  
   return {
-    isGenerating,
-    generateStrategy
+    generateStrategies,
+    isGenerating: isGenerating || strategyGenerationMutation.isPending,
+    error: strategyGenerationMutation.error
   };
 };
+
+export default useStrategyGeneration;

@@ -11,7 +11,7 @@ interface JsonViewProps {
 }
 
 export const JsonView = ({ data, initialExpanded = true, maxDepth = 2 }: JsonViewProps) => {
-  const { copyToClipboard } = useCopy();
+  const { copy, copied } = useCopy();
   const [expandedState, setExpandedState] = useState<Record<string, boolean>>({});
   
   const isExpanded = (path: string): boolean => {
@@ -34,7 +34,7 @@ export const JsonView = ({ data, initialExpanded = true, maxDepth = 2 }: JsonVie
     const stringValue = typeof value === 'object' 
       ? JSON.stringify(value, null, 2) 
       : String(value);
-    copyToClipboard(stringValue);
+    copy(stringValue);
   };
   
   const renderValue = (value: any, path: string, depth: number = 0): JSX.Element => {

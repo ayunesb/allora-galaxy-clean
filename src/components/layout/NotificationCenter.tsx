@@ -11,15 +11,11 @@ const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const { 
-    notifications, 
-    unreadCount, 
-    markAllAsRead, 
-    markAsRead 
+    notifications = [], 
+    unreadCount = 0,
+    markAllAsRead,
+    markAsRead
   } = useNotifications();
-
-  const handleMarkAsRead = async (id: string): Promise<void> => {
-    await markAsRead(id);
-  };
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -47,9 +43,7 @@ const NotificationCenter: React.FC = () => {
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md p-0">
-        <NotificationCenterContent 
-          notifications={notifications}
-          markAsRead={handleMarkAsRead}
+        <NotificationCenterContent
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
         />

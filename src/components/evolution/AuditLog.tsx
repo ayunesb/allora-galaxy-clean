@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { AuditLogFilters } from '@/components/evolution/logs';
+import { AuditLogFilters } from './logs';
 import { SystemLogsList } from '@/components/admin/logs';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
-import { LogDetailDialog } from '@/components/evolution/logs';
-import { AuditLogFilterState } from '@/components/evolution/logs/types';
+import { LogDetailDialog } from './logs';
+import { AuditLogFilterState } from '@/types/logs';
 import { auditLogToSystemLog, systemLogToAuditLog } from '@/lib/utils/logTransformations';
 
 interface AuditLogProps {
