@@ -3,23 +3,26 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { AuditLogFilters, type AuditLogFilterState } from '@/components/evolution/logs';
+import { AuditLogFilters } from '@/components/evolution/logs';
 import { SystemLogsList } from '@/components/admin/logs';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
 import { LogDetailDialog } from '@/components/evolution/logs';
+import { AuditLogFilterState } from '@/components/evolution/logs/types';
 
 interface AuditLogProps {
   className?: string;
   data?: AuditLogType[];
   isLoading?: boolean;
   onRefresh?: () => void;
+  title?: string;
 }
 
 export const AuditLog: React.FC<AuditLogProps> = ({ 
   className,
   data,
   isLoading,
-  onRefresh
+  onRefresh,
+  title = "Audit Logs" 
 }) => {
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -38,8 +41,27 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   const loading = isLoading !== undefined ? isLoading : fetchingLogs;
   const refreshData = onRefresh || refetch;
 
-  const handleViewLog = (log: AuditLogType) => {
-    setSelectedLog(log as unknown as AuditLogType);
+  // Convert AuditLog to SystemLog for display
+  const convertToSystemLog = (log: AuditLogType): SystemLog => {
+    return {
+      id: log.id,
+      module: log.module || log.resource_type || 'unknown',
+      event: log.event || log.action || 'unknown',
+      context: {
+        user_id: log.user_id,
+        resource_id: log.resource_id,
+        details: log.details
+      },
+      created_at: log.created_at,
+      tenant_id: log.tenant_id
+    };
+  };
+
+  const handleViewLog = (log: SystemLog) => {
+    // Since we're displaying SystemLogs but tracking AuditLogs
+    // Find the matching audit log from our data
+    const auditLog = displayLogs?.find(aLog => aLog.id === log.id);
+    setSelectedLog(auditLog || null);
     setDialogOpen(true);
   };
 
@@ -52,7 +74,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
     <div className={className}>
       <Card>
         <CardHeader>
-          <CardTitle>Audit Logs</CardTitle>
+          <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
           <AuditLogFilters
@@ -63,7 +85,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
           />
           <Separator className="my-4" />
           <SystemLogsList
-            logs={displayLogs as unknown as SystemLog[]}
+            logs={displayLogs?.map(convertToSystemLog) || []}
             isLoading={loading}
             onViewLog={handleViewLog}
           />
@@ -71,7 +93,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
       </Card>
 
       <LogDetailDialog
-        log={selectedLog as unknown as SystemLog}
+        log={selectedLog ? convertToSystemLog(selectedLog) : null}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />

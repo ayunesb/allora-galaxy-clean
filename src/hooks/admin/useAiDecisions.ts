@@ -3,12 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { SystemLog, LogFilters } from '@/types/logs';
+import { AiDecision } from '@/components/admin/ai-decisions/types';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export function useAiDecisionsData() {
   const { toast } = useToast();
   const { currentWorkspace } = useWorkspace();
-  const [decisions, setDecisions] = useState<SystemLog[]>([]);
+  const [decisions, setDecisions] = useState<AiDecision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<LogFilters>({
     module: 'agent',
@@ -69,12 +70,28 @@ export function useAiDecisionsData() {
         
       if (evolutionError) throw evolutionError;
       
-      // Combine both datasets
+      // Combine both datasets and transform to AiDecision type
       const combinedData = [...(data || []), ...(evolutionData || [])].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       
-      setDecisions(combinedData);
+      // Transform SystemLog to AiDecision by extracting data from context
+      const aiDecisions: AiDecision[] = combinedData.map(log => {
+        const context = log.context || {};
+        return {
+          ...log,
+          decision_type: context.decision_type || log.event,
+          confidence: context.confidence,
+          reviewed: context.reviewed || false,
+          review_outcome: context.review_outcome,
+          input: context.input,
+          output: context.output,
+          reviewer_id: context.reviewer_id,
+          review_date: context.review_date
+        };
+      });
+      
+      setDecisions(aiDecisions);
     } catch (error: any) {
       console.error('Error fetching AI decisions:', error);
       toast({

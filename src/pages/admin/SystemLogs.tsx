@@ -4,7 +4,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import { SystemLog } from '@/types/logs';
-import { SystemLogsList, SystemLogFilters, type SystemLogFilterState } from '@/components/admin/logs';
+import { SystemLogFilters, SystemLogFilterState } from '@/components/admin/logs';
+import { SystemLogsList } from '@/components/admin/logs';
 import { LogDetailDialog } from '@/components/evolution/logs';
 import AdminLayout from '@/components/layout/AdminLayout';
 

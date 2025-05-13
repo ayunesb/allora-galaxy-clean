@@ -88,10 +88,10 @@ const EvolutionDashboard = () => {
 
         <TabsContent value="logs">
           <AuditLog 
-            title="System Activity Logs"
             data={logs}
             isLoading={isLoading}
             onRefresh={refetch}
+            title="System Activity Logs"
           />
         </TabsContent>
 
