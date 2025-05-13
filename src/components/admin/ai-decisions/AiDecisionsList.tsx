@@ -12,22 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Pencil, Eye } from 'lucide-react';
-
-export interface AiDecision {
-  id: string;
-  decision_type: string;
-  input: Record<string, any>;
-  output: Record<string, any>;
-  confidence: number;
-  created_at: string;
-  strategy_id?: string;
-  plugin_id?: string;
-  tenant_id?: string;
-  reviewed: boolean;
-  reviewed_by?: string;
-  reviewed_at?: string;
-  review_outcome?: 'approved' | 'rejected' | 'modified';
-}
+import { AiDecision } from './types';
 
 interface AiDecisionsListProps {
   decisions: AiDecision[];
@@ -42,7 +27,8 @@ export const AiDecisionsList: React.FC<AiDecisionsListProps> = ({
   onViewDecision,
   onReviewDecision
 }) => {
-  const getConfidenceBadge = (confidence: number) => {
+  const getConfidenceBadge = (confidence: number | undefined) => {
+    if (!confidence) return <Badge variant="outline">Unknown</Badge>;
     if (confidence >= 0.85) return <Badge variant="success">{(confidence * 100).toFixed(1)}%</Badge>;
     if (confidence >= 0.7) return <Badge variant="warning">{(confidence * 100).toFixed(1)}%</Badge>;
     return <Badge variant="destructive">{(confidence * 100).toFixed(1)}%</Badge>;

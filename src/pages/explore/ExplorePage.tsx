@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/card';
@@ -19,7 +18,7 @@ const ExplorePage = () => {
           icon={<Rocket className="h-12 w-12 text-muted-foreground" />}
           title="Explore New Features"
           description="This section is under development. Check back soon for new features and integrations."
-          actions={
+          action={
             <Button variant="default">
               Learn More
             </Button>

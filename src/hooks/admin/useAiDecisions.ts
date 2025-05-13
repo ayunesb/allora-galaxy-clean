@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { SystemLog, LogFilters } from '@/types/logs';
+import { LogFilters } from '@/types/logs';
 import { AiDecision } from '@/components/admin/ai-decisions/types';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
