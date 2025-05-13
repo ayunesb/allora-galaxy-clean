@@ -1,5 +1,6 @@
 
-// Re-export all plugin-related types for consistent imports
+// Define the core plugin types with all needed fields
+
 export interface Plugin {
   id: string;
   name: string;
@@ -15,12 +16,35 @@ export interface Plugin {
   xp?: number;
   dependencies?: string[];
   roi?: number;
+  category?: string;
+  icon?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface PluginLog {
+  id: string;
+  plugin_id?: string;
+  tenant_id?: string;
+  strategy_id?: string;
+  agent_version_id?: string;
+  status: string;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  error?: string;
+  execution_time?: number;
+  xp_earned?: number;
+  created_at?: string;
 }
 
 export interface PluginConfig {
   enabled: boolean;
   settings: Record<string, any>;
   credentials?: Record<string, string>;
+  id?: string;
+  name?: string;
+  description?: string;
+  version?: string;
+  parameters?: Record<string, any>;
 }
 
 export interface PluginExecutionOptions {
@@ -29,19 +53,26 @@ export interface PluginExecutionOptions {
   maxRetries?: number;
   backoffStrategy?: 'linear' | 'exponential';
   trackXp?: boolean;
+  logLevel?: 'debug' | 'info' | 'warn' | 'error';
 }
 
 export interface PluginResult {
-  pluginId: string;
   success: boolean;
+  pluginId?: string;
+  status?: string;
   output?: any;
   error?: string;
   executionTime?: number;
   xpEarned?: number;
+  data?: any;
 }
 
 export interface RunPluginChainResult {
   success: boolean;
-  results: PluginResult[];
+  results?: PluginResult[];
+  data?: Record<string, any>;
+  errors?: Record<string, string>;
+  executionTime?: number;
+  xpEarned?: number;
   error?: string;
 }

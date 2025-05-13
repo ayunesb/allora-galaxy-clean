@@ -1,16 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { getEnv } from '@/lib/env/envUtils';
 
-// Create a single supabase client for interacting with your database
-const supabaseUrl = getEnv('SUPABASE_URL');
-const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
+// Access environment variables with proper fallbacks
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ijrnwpgsqsxzqdemtknz.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing required Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
-
-// Re-export types
-export type { User, Session } from '@supabase/supabase-js';
+// Create and export the Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

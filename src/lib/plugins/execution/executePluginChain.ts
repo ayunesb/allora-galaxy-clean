@@ -1,6 +1,6 @@
 
 import { recordLogExecution } from '../logging/recordLogExecution';
-import { PluginResult, RunPluginChainResult } from '@/types/plugin';
+import { PluginResult, RunPluginChainResult } from '@/types/plugin/index';
 import { supabase } from '@/integrations/supabase/client';
 import logSystemEvent from '@/lib/system/logSystemEvent';
 
@@ -86,7 +86,7 @@ async function executePlugin(
       status: 'success',
       output,
       executionTime,
-      xpEarned // Match the property name with the interface
+      xpEarned
     };
   } catch (error: any) {
     console.error(`Error executing plugin ${pluginId}:`, error);
@@ -114,7 +114,7 @@ async function executePlugin(
       pluginId,
       status: 'failure',
       error: error.message,
-      xpEarned: 0 // Match the property name with the interface
+      xpEarned: 0
     };
   }
 }
@@ -187,7 +187,7 @@ export async function executePluginChain(
         pluginId,
         status: 'error',
         error: error.message,
-        xpEarned: 0 // Match the property name with the interface
+        xpEarned: 0
       });
       
       hasError = true;

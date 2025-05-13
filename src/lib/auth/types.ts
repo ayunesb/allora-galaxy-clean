@@ -7,19 +7,21 @@ export interface AuthContextType {
   loading: boolean;
   error: Error | null;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<AuthResponse>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<AuthResponse>;
-  signOut: () => Promise<AuthResponse>;
-  resetPassword: (email: string) => Promise<AuthResponse>;
-  updatePassword: (password: string) => Promise<AuthResponse>;
-  refreshSession: () => Promise<AuthResponse>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, metadata?: any) => Promise<AuthResult>;
+  signOut: () => Promise<AuthResult>;
+  resetPassword: (email: string) => Promise<AuthResult>;
+  updatePassword: (password: string) => Promise<AuthResult>;
+  refreshSession: () => Promise<AuthResult>;
   checkUserRole: (tenantId: string, requiredRoles: string[]) => Promise<boolean | null>;
 }
 
-export interface AuthResponse {
+export interface AuthResult {
   success: boolean;
   error?: string;
   data?: any;
+  user?: User | null;
+  session?: Session | null;
 }
 
 export interface AuthError {
@@ -27,3 +29,11 @@ export interface AuthError {
   status?: number;
   code?: string;
 }
+
+export interface WeakPassword {
+  isWeak: boolean;
+  message?: string;
+}
+
+// Alias for backward compatibility
+export type AuthResponse = AuthResult;

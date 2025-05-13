@@ -3,21 +3,27 @@ import { ComponentType, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useTenantId } from '@/hooks/useTenantId';
+import { UserRole } from '@/types';
 
 export interface WithRoleCheckProps {
   [key: string]: any;
 }
 
+export interface RoleCheckOptions {
+  roles: UserRole[] | string[];
+  redirectTo?: string;
+}
+
 export function withRoleCheck<T extends WithRoleCheckProps>(
   Component: ComponentType<T>,
-  roles: string[],
-  redirectTo = '/unauthorized'
+  options: RoleCheckOptions
 ) {
   return function WithRoleCheck(props: T) {
     const { user, isAuthenticated, checkUserRole } = useAuth();
     const { tenantId } = useTenantId();
     const [hasAccess, setHasAccess] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
+    const { roles, redirectTo = '/unauthorized' } = options;
 
     useEffect(() => {
       const checkAccess = async () => {
@@ -28,7 +34,7 @@ export function withRoleCheck<T extends WithRoleCheckProps>(
         }
 
         try {
-          const hasRole = await checkUserRole(tenantId, roles);
+          const hasRole = await checkUserRole(tenantId, roles as string[]);
           setHasAccess(Boolean(hasRole));
         } catch (error) {
           console.error('Error checking user role:', error);

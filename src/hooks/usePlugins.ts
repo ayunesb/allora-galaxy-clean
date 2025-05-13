@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from './useTenantId';
-import type { Plugin } from '@/types/plugin';
+import type { Plugin } from '@/types/plugin'; // Using type-only import to avoid unused warning
 
 export interface UsePluginsProps {
   category?: string;
@@ -17,6 +17,11 @@ export function usePlugins(props?: UsePluginsProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const { tenantId } = useTenantId();
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('newest');
 
   const categories = [
     'analytics',
@@ -42,8 +47,8 @@ export function usePlugins(props?: UsePluginsProps) {
         query = query.eq('tenant_id', tenantId);
       }
 
-      if (category) {
-        query = query.eq('category', category);
+      if (category || selectedCategory) {
+        query = query.eq('category', category || selectedCategory);
       }
       
       if (status) {
@@ -56,8 +61,16 @@ export function usePlugins(props?: UsePluginsProps) {
       
       if (withXp) {
         query = query.order('xp', { ascending: false });
-      } else {
+      } else if (sortBy === 'newest') {
         query = query.order('created_at', { ascending: false });
+      } else if (sortBy === 'oldest') {
+        query = query.order('created_at', { ascending: true });
+      } else if (sortBy === 'name') {
+        query = query.order('name', { ascending: true });
+      } else if (sortBy === 'xp') {
+        query = query.order('xp', { ascending: false });
+      } else if (sortBy === 'roi') {
+        query = query.order('roi', { ascending: false });
       }
 
       const { data, error } = await query;
@@ -77,13 +90,57 @@ export function usePlugins(props?: UsePluginsProps) {
 
   useEffect(() => {
     fetchPlugins();
-  }, [tenantId, category, status, limit, withXp]);
+  }, [tenantId, category, status, limit, withXp, selectedCategory, sortBy]);
+
+  // Filter plugins based on search query
+  const filteredPlugins = useMemo(() => {
+    if (!searchQuery) return plugins;
+    
+    return plugins.filter(plugin => 
+      plugin.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      plugin.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [plugins, searchQuery]);
+
+  // Generate top plugins based on XP
+  const topPlugins = useMemo(() => {
+    return [...plugins].sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 10);
+  }, [plugins]);
+
+  // Generate trending plugins based on recent activity
+  const trendingPlugins = useMemo(() => {
+    // Mock trending calculation - in a real app, this would use more sophisticated logic
+    return plugins
+      .map(plugin => ({
+        ...plugin,
+        trend_score: Math.floor(Math.random() * 200) - 100 // Random trend score for demonstration
+      }))
+      .sort((a, b) => Math.abs(b.trend_score) - Math.abs(a.trend_score))
+      .slice(0, 10);
+  }, [plugins]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('');
+    setSortBy('newest');
+  };
 
   return {
     plugins,
     loading,
     error,
     fetchPlugins,
-    categories
+    categories,
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    sortBy,
+    setSortBy,
+    filteredPlugins,
+    clearFilters,
+    topPlugins,
+    trendingPlugins
   };
 }
