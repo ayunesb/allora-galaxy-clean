@@ -3,10 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { AuditLogFilterState, AuditLogFilters } from '@/components/evolution/logs/AuditLogFilters';
+import { AuditLogFilters, AuditLogFilterState } from '@/components/evolution/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import { LogDetailDialog } from '@/components/evolution/logs';
 
 export interface AuditLogProps {
   title?: string;
