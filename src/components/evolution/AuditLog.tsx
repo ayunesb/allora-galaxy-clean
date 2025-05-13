@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
@@ -11,9 +10,17 @@ import { LogDetailDialog } from '@/components/evolution/logs';
 
 interface AuditLogProps {
   className?: string;
+  data?: AuditLogType[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
-export const AuditLog: React.FC<AuditLogProps> = ({ className }) => {
+export const AuditLog: React.FC<AuditLogProps> = ({ 
+  className,
+  data,
+  isLoading,
+  onRefresh
+}) => {
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filters, setFilters] = useState<AuditLogFilterState>({
@@ -24,7 +31,12 @@ export const AuditLog: React.FC<AuditLogProps> = ({ className }) => {
     searchTerm: ''
   });
 
-  const { logs, isLoading, refetch } = useAuditLogData();
+  const { logs, isLoading: fetchingLogs, refetch } = useAuditLogData();
+
+  // Use provided data or fetched logs
+  const displayLogs = data || logs;
+  const loading = isLoading !== undefined ? isLoading : fetchingLogs;
+  const refreshData = onRefresh || refetch;
 
   const handleViewLog = (log: AuditLogType) => {
     setSelectedLog(log as unknown as AuditLogType);
@@ -46,13 +58,13 @@ export const AuditLog: React.FC<AuditLogProps> = ({ className }) => {
           <AuditLogFilters
             filters={filters}
             onFilterChange={handleFilterChange}
-            isLoading={isLoading}
-            onRefresh={refetch}
+            isLoading={loading}
+            onRefresh={refreshData}
           />
           <Separator className="my-4" />
           <SystemLogsList
-            logs={logs as unknown as SystemLog[]}
-            isLoading={isLoading}
+            logs={displayLogs as unknown as SystemLog[]}
+            isLoading={loading}
             onViewLog={handleViewLog}
           />
         </CardContent>

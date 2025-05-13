@@ -4,12 +4,18 @@ import PublicRoutes from './PublicRoutes';
 import ProtectedRoutes from './ProtectedRoutes';
 import AuthRoutes from './AuthRoutes';
 import OnboardingRoutes from './OnboardingRoutes';
+import ExplorePage from '../pages/explore/ExplorePage';
 
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: <ProtectedRoutes />,
-    children: []
+    children: [
+      {
+        path: 'explore',
+        element: <ExplorePage />
+      }
+    ]
   },
   {
     path: '/auth/*',
