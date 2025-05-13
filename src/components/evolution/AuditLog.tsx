@@ -1,12 +1,13 @@
+
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { AuditLogFilters, AuditLogFilterState } from '@/components/evolution/logs';
+import { AuditLogFilters, AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
-import { LogDetailDialog } from '@/components/evolution/logs';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 
 export interface AuditLogProps {
   title?: string;
@@ -35,7 +36,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   });
   
   // If data is not provided as props, use the hook to fetch the data
-  const hookData = useAuditLogData(filters as any);
+  const hookData = useAuditLogData();
   const logs = data || hookData.logs;
   const loading = isLoading !== undefined ? isLoading : hookData.isLoading;
   const handleRefresh = onRefresh || hookData.refetch;
