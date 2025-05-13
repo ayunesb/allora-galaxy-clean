@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { routes } from '@/routes';
-import { AuthContextType } from '@/lib/auth/types';
+import { AuthContextType, AuthResponse } from '@/lib/auth/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
 import './index.css';

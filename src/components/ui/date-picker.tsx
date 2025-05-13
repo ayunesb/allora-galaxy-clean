@@ -5,7 +5,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { type SelectSingleEventHandler } from "react-day-picker";
-import { Matcher } from "react-day-picker";
 
 export interface DatePickerProps {
   date: Date | null;
@@ -32,7 +31,7 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={date as Matcher | undefined}
+          selected={date || undefined}
           onSelect={handleSelect}
           initialFocus
           className="p-3 pointer-events-auto"

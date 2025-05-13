@@ -1,35 +1,46 @@
 
-import { BaseEntity } from "./shared";
-
-export interface Plugin extends BaseEntity {
+export interface Plugin {
+  id: string;
   name: string;
   description?: string;
-  icon?: string;
-  status: string;
-  tenant_id?: string;
   category?: string;
+  icon?: string;
+  status: 'active' | 'inactive' | 'deprecated';
   xp?: number;
   roi?: number;
-  metadata?: Record<string, any>;
+  tenant_id?: string;
   created_at?: string;
   updated_at?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface PluginLog {
   id: string;
   plugin_id?: string;
+  tenant_id?: string;
   strategy_id?: string;
   agent_version_id?: string;
-  tenant_id?: string;
   status: string;
-  error?: string;
   input?: Record<string, any>;
   output?: Record<string, any>;
+  error?: string;
   execution_time?: number;
   xp_earned?: number;
   created_at?: string;
 }
 
-export interface EnhancedPlugin extends Plugin {
-  trend_score?: number;
+export interface PluginResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  executionTime?: number;
+  xpEarned?: number;
+}
+
+export interface RunPluginChainResult {
+  success: boolean;
+  data: Record<string, any>;
+  errors?: Record<string, string>;
+  executionTime: number;
+  xpEarned: number;
 }

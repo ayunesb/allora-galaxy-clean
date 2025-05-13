@@ -1,10 +1,10 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { ENV } from './env';
+import { getEnv } from './env/envUtils';
 
 // Create a single supabase client for interacting with your database
-const supabaseUrl = ENV.SUPABASE_URL;
-const supabaseAnonKey = ENV.SUPABASE_ANON_KEY;
+const supabaseUrl = getEnv('SUPABASE_URL');
+const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing required Supabase environment variables');
@@ -12,4 +12,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
-export { User, Session } from '@supabase/supabase-js';
+export type { User, Session } from '@supabase/supabase-js';

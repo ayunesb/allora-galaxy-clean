@@ -1,27 +1,29 @@
 
-import { User as SupabaseUser, Session as SupabaseSession } from '@supabase/supabase-js';
-import { UserRole } from '@/types/shared';
-
-export interface User extends SupabaseUser {
-  role?: UserRole;
-  tenantId?: string;
-}
-
-export type Session = SupabaseSession;
+import { User, Session } from '@supabase/supabase-js';
 
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   error: Error | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, options?: any) => Promise<void>;
-  signInWithOAuth: (provider: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<void>;
-  resetPassword: (password: string) => Promise<void>;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
+  signUp: (email: string, password: string, metadata?: any) => Promise<AuthResponse>;
+  signOut: () => Promise<AuthResponse>;
+  resetPassword: (email: string) => Promise<AuthResponse>;
+  updatePassword: (password: string) => Promise<AuthResponse>;
+  refreshSession: () => Promise<AuthResponse>;
+  checkUserRole: (tenantId: string, requiredRoles: string[]) => Promise<boolean | null>;
 }
 
-export interface AuthProviderProps {
-  children: React.ReactNode;
+export interface AuthResponse {
+  success: boolean;
+  error?: string;
+  data?: any;
+}
+
+export interface AuthError {
+  message: string;
+  status?: number;
+  code?: string;
 }
