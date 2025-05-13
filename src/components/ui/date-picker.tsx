@@ -14,7 +14,7 @@ interface DatePickerProps {
 export function DatePicker({ date, onDateChange }: DatePickerProps) {
   // Create a handler compatible with SelectSingleEventHandler
   const handleSelect: SelectSingleEventHandler = (day) => {
-    onDateChange(day);
+    onDateChange(day || null);
   };
 
   return (
