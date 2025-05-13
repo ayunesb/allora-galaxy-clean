@@ -9,6 +9,7 @@ import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import NotificationList from './NotificationList';
 import useAuth from '@/hooks/useAuth';
+import NotificationCenterTabs from './NotificationCenterTabs';
 
 interface NotificationCenterContentProps {
   activeFilter: string;
@@ -63,6 +64,9 @@ const NotificationCenterContent = ({
       tenantId
     });
   };
+
+  // Ensure externalMarkAsRead is a function
+  const markAsReadHandler = externalMarkAsRead || (async () => {});
   
   // Refresh notifications when the workspace changes
   useEffect(() => {
@@ -98,12 +102,14 @@ const NotificationCenterContent = ({
         isMarking={markAllAsMutation.isPending}
       />
       <div className="flex-1 overflow-y-auto">
-        <NotificationList 
-          notifications={notifications} 
-          userId={userId || ''}
-          markAsRead={externalMarkAsRead}
+        <NotificationCenterTabs
+          notifications={notifications}
+          markAsRead={markAsReadHandler}
           onDelete={externalOnDelete}
-          loading={isLoading}
+          unreadCount={unreadCount}
+          value={activeFilter}
+          onValueChange={setActiveFilter}
+          userId={userId || ''}
         />
       </div>
     </div>

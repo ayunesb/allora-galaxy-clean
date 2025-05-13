@@ -1,24 +1,16 @@
 
 import React from 'react';
-import { format } from 'date-fns';
+import { formatRelative } from '@/lib/utils/date';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { NotificationContent } from '@/types/notifications';
-import { 
-  Bell, 
-  CheckCircle, 
-  AlertCircle, 
-  X, 
-  Info, 
-  AlertTriangle,
-  ExternalLink
-} from 'lucide-react';
+import { Trash2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import { NotificationContent } from '@/types/notifications';
 
-interface NotificationItemProps {
+export interface NotificationItemProps {
   notification: NotificationContent;
   onMarkAsRead: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
@@ -26,127 +18,84 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onMarkAsRead,
   onDelete
 }) => {
-  // Get the appropriate icon based on notification type
-  const getIcon = () => {
-    switch (notification.type) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      case 'info':
-        return <Info className="h-5 w-5 text-blue-500" />;
-      case 'system':
-        return <Bell className="h-5 w-5 text-purple-500" />;
-      default:
-        return <Bell className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const handleMarkAsRead = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleMarkAsRead = async () => {
     if (!notification.read) {
-      await onMarkAsRead(notification.id);
+      try {
+        await onMarkAsRead(notification.id);
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to mark notification as read',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDelete) {
-      await onDelete(notification.id);
-    }
-  };
-
-  const handleActionClick = () => {
-    if (!notification.read) {
-      onMarkAsRead(notification.id);
-    }
-  };
-
-  const formattedDate = (() => {
+    
     try {
-      const date = new Date(notification.timestamp);
-      return format(date, 'MMM d, h:mm a');
+      await onDelete(notification.id);
+      toast({
+        title: 'Success',
+        description: 'Notification deleted',
+      });
     } catch (error) {
-      console.error('Error formatting date:', error);
-      return notification.timestamp;
+      console.error('Failed to delete notification:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete notification',
+        variant: 'destructive',
+      });
     }
-  })();
+  };
 
   return (
-    <Card 
+    <div 
       className={cn(
-        "cursor-pointer transition-colors hover:bg-accent/50",
-        !notification.read && "border-l-4 border-l-primary"
+        "p-4 hover:bg-accent/50 cursor-pointer flex items-start gap-3",
+        !notification.read && "bg-accent/20"
       )}
       onClick={handleMarkAsRead}
     >
-      <CardContent className="p-3">
-        <div className="flex items-start gap-3">
-          <div className="pt-1">
-            {getIcon()}
-          </div>
-          
-          <div className="flex-1">
-            <div className="font-medium leading-tight">
-              {notification.title}
-            </div>
-            <div className="text-sm text-muted-foreground mt-1">
-              {notification.message}
-            </div>
-            
-            {notification.action_url && notification.action_label && (
-              <Button 
-                variant="link" 
-                size="sm" 
-                className="p-0 h-auto mt-1 text-sm flex items-center"
-                onClick={handleActionClick}
-                asChild
-              >
-                <a 
-                  href={notification.action_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  {notification.action_label} <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </Button>
-            )}
-            
-            <div className="text-xs text-muted-foreground mt-1">
-              {formattedDate}
-            </div>
-          </div>
-          
-          <div className="flex gap-1">
-            {!notification.read && (
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-6 w-6"
-                onClick={handleMarkAsRead}
-              >
-                <CheckCircle className="h-4 w-4" />
-                <span className="sr-only">Mark as read</span>
-              </Button>
-            )}
-            
-            {onDelete && (
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-6 w-6 text-destructive"
-                onClick={handleDelete}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Delete</span>
-              </Button>
-            )}
-          </div>
+      {/* Unread indicator */}
+      {!notification.read && (
+        <Circle className="h-2 w-2 mt-1.5 text-primary flex-shrink-0" fill="currentColor" />
+      )}
+      
+      <div className="flex-1">
+        <div className="flex justify-between items-start">
+          <h4 className="font-medium text-foreground">{notification.title}</h4>
+          <span className="text-xs text-muted-foreground">
+            {formatRelative(notification.timestamp)}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        
+        <p className="text-sm text-foreground/80 mt-1">{notification.message}</p>
+        
+        {notification.action_url && notification.action_label && (
+          <a 
+            href={notification.action_url} 
+            className="text-sm text-primary hover:text-primary/80 mt-2 inline-block"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {notification.action_label}
+          </a>
+        )}
+      </div>
+      
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={handleDelete}
+        className="h-7 w-7 opacity-50 hover:opacity-100"
+      >
+        <Trash2 size={16} />
+        <span className="sr-only">Delete notification</span>
+      </Button>
+    </div>
   );
 };
 

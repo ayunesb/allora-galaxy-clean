@@ -25,18 +25,23 @@ export function auditLogToSystemLog(auditLog: AuditLog): SystemLog {
  */
 export function systemLogToAuditLog(systemLog: SystemLog): AuditLog {
   // Extract user_id from context if available
-  const userId = systemLog.context?.user_id || 'system';
-  const resourceId = systemLog.context?.resource_id;
+  const userId = systemLog.context?.user_id || systemLog.user_id || 'system';
+  const resourceId = systemLog.context?.resource_id || '';
   const resourceType = systemLog.context?.resource_type || systemLog.module;
   const action = systemLog.context?.action || systemLog.event;
   
   return {
-    ...systemLog,
+    id: systemLog.id,
     user_id: userId,
     action: action,
-    resource_type: resourceType,
-    resource_id: resourceId,
-    details: systemLog.context
+    entity_type: resourceType,
+    entity_id: resourceId,
+    tenant_id: systemLog.tenant_id || '',
+    details: systemLog.context || {},
+    created_at: systemLog.created_at,
+    module: systemLog.module,
+    event: systemLog.event,
+    context: systemLog.context
   };
 }
 
@@ -80,7 +85,7 @@ export function formatLogContext(context: Record<string, any> | undefined): Reco
  */
 export function getLogSummary(log: SystemLog | AuditLog): string {
   // Try to extract a summary from context fields
-  const context = log.context || {};
+  const context = 'context' in log ? log.context || {} : 'details' in log ? log.details || {} : {};
   
   // Check common message fields
   if (context.message) return context.message;
@@ -89,17 +94,21 @@ export function getLogSummary(log: SystemLog | AuditLog): string {
   if (context.detail) return context.detail;
   
   // For errors, show error message
-  if (log.event === 'error' && context.error) {
+  if ('event' in log && log.event === 'error' && context.error) {
     return typeof context.error === 'string' 
       ? context.error
       : JSON.stringify(context.error).substring(0, 100);
   }
   
   // For audit logs with resource info
-  if ('resource_id' in log && log.resource_id) {
-    return `${log.action} ${log.resource_type} ${log.resource_id.substring(0, 8)}...`;
+  if ('entity_id' in log && log.entity_id) {
+    return `${log.action} ${log.entity_type} ${log.entity_id.substring(0, 8)}...`;
   }
   
   // Default summary
-  return `${log.module} ${log.event} event`;
+  if ('module' in log && 'event' in log) {
+    return `${log.module} ${log.event} event`;
+  }
+  
+  return "Log event";
 }

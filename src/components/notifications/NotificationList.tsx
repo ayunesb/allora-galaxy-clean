@@ -47,9 +47,8 @@ const NotificationList: React.FC<NotificationListProps> = ({
             action_url: notification.action_url,
             action_label: notification.action_label
           }}
-          userId={userId}
           onMarkAsRead={markAsRead}
-          onDelete={onDelete || (() => Promise.resolve())}
+          onDelete={onDelete || (async () => {})}
         />
       ))}
     </div>

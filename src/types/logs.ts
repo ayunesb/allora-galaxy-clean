@@ -20,6 +20,10 @@ export interface AuditLog {
   tenant_id: string;
   details: Record<string, any>;
   created_at: string;
+  // Fields needed for compatibility with SystemLog
+  module: string;
+  event: string;
+  context?: Record<string, any>;
 }
 
 export interface LogFilters {
@@ -37,6 +41,14 @@ export interface LogFilters {
 }
 
 export interface SystemLogFilterState {
+  module: string;
+  event: string;
+  searchTerm: string;
+  fromDate: Date | null;
+  toDate: Date | null;
+}
+
+export interface AuditLogFilterState {
   module: string;
   event: string;
   searchTerm: string;

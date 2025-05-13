@@ -5,7 +5,7 @@ import { useNotificationActions } from '@/hooks/useNotificationActions';
 import NotificationTabs from './NotificationTabs';
 import { NotificationsPageHeader } from './NotificationsPageHeader';
 import NotificationEmptyState from './NotificationEmptyState';
-import { Notification } from '@/types/notifications';
+import { Notification, NotificationContent } from '@/types/notifications';
 
 interface NotificationsContainerProps {
   filter?: string | null;
@@ -38,7 +38,9 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     tenant_id: n.tenantId || '',
     created_at: n.timestamp || new Date().toISOString(),
     read_at: n.read ? new Date().toISOString() : null,
-    type: n.type || 'info'
+    type: n.type || 'info',
+    action_url: n.action_url,
+    action_label: n.action_label
   }));
 
   const unreadCount = formattedNotifications.filter(n => !n.read_at).length;

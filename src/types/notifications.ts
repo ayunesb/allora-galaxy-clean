@@ -27,6 +27,8 @@ export interface NotificationContent {
   type: NotificationType;
   action_url?: string;
   action_label?: string;
+  userId?: string;
+  tenantId?: string;
 }
 
 export interface NotificationsContextValue {

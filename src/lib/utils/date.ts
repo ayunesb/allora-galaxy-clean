@@ -142,7 +142,7 @@ export function formatObjectDates<T extends Record<string, any>>(
 ): T {
   if (!obj) return obj;
 
-  const result = { ...obj };
+  const result = { ...obj } as T;
   
   for (const field of dateFields) {
     if (obj[field]) {

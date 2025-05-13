@@ -27,8 +27,8 @@ export const useSystemLogsData = () => {
     module: filters.module || undefined,
     event: filters.event || undefined,
     search: filters.searchTerm || undefined,
-    date_from: filters.fromDate,
-    date_to: filters.toDate,
+    date_from: filters.fromDate || undefined,
+    date_to: filters.toDate || undefined,
     limit: 100
   });
 

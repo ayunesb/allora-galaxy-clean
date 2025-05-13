@@ -1,19 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { SystemLog, AuditLogFilterState } from '@/types/logs';
+import { SystemLog, AuditLog, AuditLogFilterState } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
 import { supabase } from '@/lib/supabase';
 import { formatForDatabase } from '@/lib/utils/date';
-
-// Create an interface for Audit Logs in this file directly
-interface AuditLog extends SystemLog {
-  user_id: string;
-  action: string;
-  resource_type: string;
-  resource_id?: string;
-  details?: Record<string, any>;
-}
 
 export const useAuditLogData = () => {
   const { tenantId } = useTenantId();
@@ -86,9 +77,9 @@ export const useAuditLogData = () => {
         id: log.id,
         user_id: log.context?.user_id || 'system',
         action: log.event,
-        resource_type: log.module,
-        resource_id: log.context?.resource_id,
-        details: log.context,
+        entity_type: log.module,
+        entity_id: log.context?.resource_id || '',
+        details: log.context || {},
         created_at: log.created_at,
         tenant_id: log.tenant_id,
         module: log.module,
