@@ -3,7 +3,6 @@
 
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "@/types/shared";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -12,8 +11,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { DateRange as SharedDateRange } from "@/types/shared";
 
-interface DatePickerWithRangeProps {
+export type DateRange = SharedDateRange;
+
+export interface DatePickerWithRangeProps {
   date: DateRange | undefined;
   setDate: (date: DateRange | undefined) => void;
 }

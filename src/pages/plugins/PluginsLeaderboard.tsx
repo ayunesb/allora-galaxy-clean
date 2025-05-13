@@ -60,7 +60,7 @@ const PluginsLeaderboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <PluginLeaderboard 
-                plugins={plugins.slice().sort((a: Plugin, b: Plugin) => (b.roi || 0) - (a.roi || 0))} 
+                plugins={plugins.slice().sort((a, b) => (b.roi || 0) - (a.roi || 0))} 
                 isLoading={loading}
                 metric="roi"
               />

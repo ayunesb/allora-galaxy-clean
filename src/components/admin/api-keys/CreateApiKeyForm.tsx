@@ -113,7 +113,7 @@ const CreateApiKeyForm: React.FC<CreateApiKeyFormProps> = ({ onSuccess, onCancel
                   <FormLabel>Expiration Date (Optional)</FormLabel>
                   <DatePicker
                     date={field.value || null}
-                    onSelect={field.onChange}
+                    onDateChange={field.onChange}
                   />
                   <FormMessage />
                 </FormItem>

@@ -1,98 +1,103 @@
 
-import { Plugin } from '@/types/plugin';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Star, TrendingUp } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { plugin } from '@/types/plugin';
+import { ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
 
 interface PluginLeaderboardProps {
-  plugins: Plugin[];
-  isLoading?: boolean;
-  metric?: 'xp' | 'roi' | 'trend';
+  plugins: plugin[];
+  isLoading: boolean;
+  metric: 'xp' | 'roi' | 'trend';
 }
 
-export const PluginLeaderboard = ({ plugins, isLoading = false, metric = 'xp' }: PluginLeaderboardProps) => {
-  const navigate = useNavigate();
-
-  const handlePluginClick = (plugin: Plugin) => {
-    navigate(`/plugins/${plugin.id}`);
-  };
-
+export const PluginLeaderboard: React.FC<PluginLeaderboardProps> = ({ 
+  plugins, 
+  isLoading,
+  metric
+}) => {
   if (isLoading) {
     return (
-      <div className="border rounded-md overflow-hidden">
-        <div className="bg-muted/50 p-3">
-          <Skeleton className="h-6 w-full" />
-        </div>
-        <div className="p-4 space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center space-x-4 p-2">
+            <Skeleton className="h-4 w-6" />
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-4 w-32 flex-1" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!plugins || plugins.length === 0) {
+    return (
+      <div className="py-6 text-center">
+        <p className="text-sm text-muted-foreground">No plugins found</p>
       </div>
     );
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
-      <table className="min-w-full">
-        <thead>
-          <tr className="bg-muted/50">
-            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rank</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Plugin</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</th>
-            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">XP</th>
-            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">ROI</th>
-            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {plugins.map((plugin, index) => (
-            <tr key={plugin.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-              <td className="px-4 py-3 text-sm font-semibold">
-                {index + 1}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center">
-                  <div>
-                    <div className="text-sm font-medium">{plugin.name}</div>
-                    <div className="text-xs text-muted-foreground line-clamp-1">
-                      {plugin.description || 'No description available'}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                {plugin.category && (
-                  <Badge variant="outline">{plugin.category}</Badge>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-12">#</TableHead>
+          <TableHead>Plugin</TableHead>
+          <TableHead className="text-right">
+            {metric === 'xp' ? 'XP' : metric === 'roi' ? 'ROI' : 'Trend'}
+          </TableHead>
+          <TableHead className="text-right">Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {plugins.map((plugin, index) => (
+          <TableRow key={plugin.id}>
+            <TableCell className="font-medium">{index + 1}</TableCell>
+            <TableCell>
+              <div className="flex items-center space-x-2">
+                {plugin.icon ? (
+                  <span className="w-6 h-6 flex items-center justify-center rounded-full bg-muted">
+                    {plugin.icon}
+                  </span>
+                ) : (
+                  <span className="w-6 h-6 flex items-center justify-center rounded-full bg-muted">
+                    P
+                  </span>
                 )}
-              </td>
-              <td className="px-4 py-3 text-sm text-center font-medium">
-                <div className="flex items-center justify-center">
-                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                  {plugin.xp || 0}
+                <span>{plugin.name}</span>
+              </div>
+            </TableCell>
+            <TableCell className="text-right">
+              {metric === 'xp' && plugin.xp ? (
+                <span>{plugin.xp.toLocaleString()} XP</span>
+              ) : metric === 'roi' && plugin.roi ? (
+                <span>{plugin.roi}%</span>
+              ) : metric === 'trend' ? (
+                <div className="flex items-center justify-end">
+                  {(plugin as any).trend_score > 0 ? (
+                    <ArrowUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                  ) : (
+                    <ArrowDownIcon className="h-4 w-4 text-red-500 mr-1" />
+                  )}
+                  <span>{Math.abs((plugin as any).trend_score || 0)}</span>
                 </div>
-              </td>
-              <td className="px-4 py-3 text-sm text-center font-medium">
-                <div className="flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-emerald-500 mr-1" />
-                  {plugin.roi || 0}%
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm text-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handlePluginClick(plugin)}
-                >
-                  View Details
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              ) : (
+                <span>-</span>
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              <Badge variant={plugin.status === 'active' ? 'default' : 'secondary'}>
+                {plugin.status}
+              </Badge>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 };
+
+export default PluginLeaderboard;

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ApiKeysTable } from './index';
+import ApiKeysTable from './ApiKeysTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApiKeys } from '@/hooks/admin/useApiKeys';
 import { Button } from '@/components/ui/button';

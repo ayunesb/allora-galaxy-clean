@@ -4,12 +4,12 @@ export interface ApiKey {
   name: string;
   key_prefix: string;
   tenant_id: string;
+  created_by: string;
   created_at: string;
-  expires_at?: string | null;
-  last_used_at?: string | null;
+  expires_at: string | null;
+  last_used_at: string | null;
   status: 'active' | 'revoked';
   scope: string[];
-  created_by: string;
 }
 
 export interface ApiKeyCreateParams {

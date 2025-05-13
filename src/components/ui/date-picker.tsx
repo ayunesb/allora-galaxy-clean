@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { type SelectSingleEventHandler } from "react-day-picker";
 
-interface DatePickerProps {
+export interface DatePickerProps {
   date: Date | null;
   onDateChange: (date: Date | null) => void;
 }
