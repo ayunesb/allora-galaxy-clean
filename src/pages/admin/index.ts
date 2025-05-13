@@ -1,23 +1,9 @@
 
-import SystemLogs from './SystemLogs';
-import AdminDashboard from './AdminDashboard';
-import AiDecisions from './AiDecisions';
-import ApiKeysPage from './ApiKeysPage';
-import CronJobsPage from './CronJobsPage';
-import UserManagement from './UserManagement';
-import PluginLogs from './PluginLogs';
-
-// Default export for lazy loading
-const AdminRoutes = () => null;
-
-export default AdminRoutes;
-
-export {
-  SystemLogs,
-  AdminDashboard,
-  AiDecisions,
-  ApiKeysPage,
-  CronJobsPage,
-  UserManagement,
-  PluginLogs
-};
+export { default as AdminDashboard } from './AdminDashboard';
+export { default as UserManagement } from './UserManagement';
+export { default as SystemLogs } from './SystemLogs';
+export { default as PluginLogs } from './PluginLogs';
+export { default as AiDecisions } from './AiDecisions';
+export { default as ApiKeysPage } from './ApiKeysPage';
+export { default as CronJobsPage } from './CronJobsPage';
+export { default as DeletionRequestsPage } from './DeletionRequestsPage';

@@ -1,85 +1,92 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { SystemLog, LogFilters } from '@/types/logs';
-import { useTenantId } from '@/hooks/useTenantId';
-import { formatDate } from '@/lib/utils/date';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-export const useAiDecisionsData = () => {
+export function useAiDecisionsData() {
+  const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
   const [decisions, setDecisions] = useState<SystemLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<LogFilters>({
-    module: null,
+    module: 'agent',
     event: null,
     fromDate: null,
     toDate: null,
     searchTerm: '',
     limit: 100
   });
-  const { tenantId } = useTenantId();
   
   const fetchDecisions = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+    
     setIsLoading(true);
-    setError(null);
     
     try {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .or('module.eq.agent,module.eq.strategy,event.eq.execute');
+        .eq('tenant_id', currentWorkspace.id)
+        .eq('module', 'agent')
+        .order('created_at', { ascending: false });
       
-      // Apply tenant filter if applicable
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-      
-      // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
+      // Apply event filter if provided
       if (filters.event) {
         query = query.eq('event', filters.event);
       }
       
+      // Apply date range filters if provided
       if (filters.fromDate) {
-        const formattedFromDate = formatDate(filters.fromDate.toISOString(), 'yyyy-MM-dd');
-        query = query.gte('created_at', `${formattedFromDate}T00:00:00`);
+        query = query.gte('created_at', filters.fromDate.toISOString());
       }
       
       if (filters.toDate) {
-        const formattedToDate = formatDate(filters.toDate.toISOString(), 'yyyy-MM-dd');
-        query = query.lte('created_at', `${formattedToDate}T23:59:59`);
+        query = query.lte('created_at', filters.toDate.toISOString());
       }
       
+      // Apply search term if provided
       if (filters.searchTerm) {
-        // Use ilike for case-insensitive search
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
+        query = query.or(`event.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
       }
       
-      // Order by created_at DESC
-      query = query.order('created_at', { ascending: false });
-      
-      // Limit to 100 records or user specified limit
+      // Apply limit if provided
       query = query.limit(filters.limit || 100);
       
       const { data, error } = await query;
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      setDecisions(data || []);
-    } catch (err: any) {
-      console.error('Error fetching AI decisions:', err);
-      setError(err.message);
+      // Also fetch agent evolution events
+      const { data: evolutionData, error: evolutionError } = await supabase
+        .from('system_logs')
+        .select('*')
+        .eq('tenant_id', currentWorkspace.id)
+        .eq('module', 'evolution')
+        .order('created_at', { ascending: false })
+        .limit(20);
+        
+      if (evolutionError) throw evolutionError;
+      
+      // Combine both datasets
+      const combinedData = [...(data || []), ...(evolutionData || [])].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      
+      setDecisions(combinedData);
+    } catch (error: any) {
+      console.error('Error fetching AI decisions:', error);
+      toast({
+        title: 'Error fetching AI decisions',
+        description: error.message || 'Failed to load AI decisions',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, filters]);
+  }, [currentWorkspace?.id, filters, toast]);
   
-  // Fetch decisions on mount and when filters change
   useEffect(() => {
     fetchDecisions();
   }, [fetchDecisions]);
@@ -87,9 +94,8 @@ export const useAiDecisionsData = () => {
   return {
     decisions,
     isLoading,
-    error,
     filters,
     setFilters,
     refetch: fetchDecisions
   };
-};
+}

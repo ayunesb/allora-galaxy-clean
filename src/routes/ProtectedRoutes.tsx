@@ -1,181 +1,102 @@
-
-import React, { Suspense } from 'react';
-import { Navigate, Route, Routes, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import LoadingScreen from '@/components/LoadingScreen';
-
-// Layouts
+import React from 'react';
+import { Route, Routes, Navigate } from 'react-router-dom';
+import { RequireAuth } from '@/components/auth/RequireAuth';
 import MainLayout from '@/components/layout/MainLayout';
-import AdminLayout from '@/components/layout/AdminLayout';
-
-// Routes
-import OnboardingRoutes from './OnboardingRoutes';
-
-// Pages
-import Dashboard from '@/pages/dashboard/Dashboard';
-import { lazy } from 'react';
-import { useOnboardingRedirect } from '@/hooks/useOnboardingRedirect';
+import Dashboard from '@/pages/Dashboard';
+import LaunchPage from '@/pages/LaunchPage';
+import GalaxyPage from '@/pages/GalaxyPage';
+import Evolution from '@/pages/Evolution';
+import PluginsPage from '@/pages/plugins/index';
+import PluginDetailPage from '@/pages/plugins/PluginDetailPage';
+import PluginEvolutionPage from '@/pages/plugins/PluginEvolutionPage';
+import PluginsLeaderboard from '@/pages/plugins/PluginsLeaderboard';
+import AgentPerformance from '@/pages/agents/AgentPerformance';
+import KpiDashboard from '@/pages/insights/KpiDashboard';
+import SettingsPage from '@/pages/settings/SettingsPage';
+import ProfileSettings from '@/pages/settings/ProfileSettings';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import UserManagement from '@/pages/admin/UserManagement';
+import SystemLogs from '@/pages/admin/SystemLogs';
+import PluginLogs from '@/pages/admin/PluginLogs';
+import AiDecisions from '@/pages/admin/AiDecisions';
+import ApiKeysPage from '@/pages/admin/ApiKeysPage';
+import CronJobsPage from '@/pages/admin/CronJobsPage';
+import DeletionRequestsPage from '@/pages/admin/DeletionRequestsPage';
 import NotificationsPage from '@/pages/notifications/NotificationsPage';
-import Unauthorized from '@/pages/unauthorized';
+import ExplorePage from '@/pages/ExplorePage';
+import AlloraBrainPage from '@/pages/allora-brain/AlloraBrainPage';
+import AlloraBrainDocsPage from '@/pages/allora-brain/AlloraBrainDocsPage';
+import TermsPage from '@/pages/legal/TermsPage';
+import PrivacyPage from '@/pages/legal/PrivacyPage';
+import DeletionRequestPage from '@/pages/legal/DeletionRequestPage';
+import Unauthorized from '@/pages/auth/Unauthorized';
+import NotFound from '@/pages/NotFound';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-// Admin pages
-import { 
-  SystemLogs, 
-  AdminDashboard, 
-  AiDecisions, 
-  ApiKeysPage, 
-  CronJobsPage,
-  UserManagement,
-  PluginLogs
-} from '@/pages/admin';
-
-// Lazy-loaded pages
-const GalaxyPage = lazy(() => import('@/pages/galaxy/GalaxyPage'));
-const LaunchPage = lazy(() => import('@/pages/launch/LaunchPage'));
-const PluginsPage = lazy(() => import('@/pages/plugins/PluginsPage'));
-const PluginEvolutionPage = lazy(() => import('@/pages/plugins/PluginEvolutionPage'));
-const PluginDetailPage = lazy(() => import('@/pages/plugins/PluginDetailPage'));
-const AgentPerformance = lazy(() => import('@/pages/agents/AgentPerformance'));
-const KpiDashboard = lazy(() => import('@/pages/insights/KpiDashboard'));
-const StrategyBuilder = lazy(() => import('@/pages/launch/StrategyBuilder'));
-const StrategyEngine = lazy(() => import('@/pages/strategy/StrategyEngine'));
-const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
-const ProfileSettings = lazy(() => import('@/pages/settings/ProfileSettings'));
-const BillingPage = lazy(() => import('@/pages/billing/BillingPage'));
-const ExplorePage = lazy(() => import('@/pages/explore/ExplorePage'));
-
-/**
- * ProtectedRoutes component that handles authentication and onboarding redirects
- */
-const ProtectedRoutes: React.FC = () => {
-  const { user, loading } = useAuth();
-  const { shouldRedirectToOnboarding, loading: onboardingLoading } = useOnboardingRedirect();
-
-  // Show loading screen while checking authentication
-  if (loading || onboardingLoading) {
-    return <LoadingScreen />;
-  }
-
-  // Redirect to login page if user is not authenticated
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Redirect to onboarding if needed
-  if (shouldRedirectToOnboarding) {
-    return <Navigate to="/onboarding" replace />;
-  }
+const ProtectedRoutes = () => {
+  const { currentWorkspace } = useWorkspace();
 
   return (
     <Routes>
-      {/* Onboarding routes */}
-      <Route path="/onboarding/*" element={<OnboardingRoutes />} />
-      
-      {/* Main app routes wrapped in MainLayout */}
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
+      <Route
+        element={
+          <RequireAuth>
+            <MainLayout />
+          </RequireAuth>
+        }
+      >
+        {/* Dashboard and main routes */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/launch" element={<LaunchPage />} />
+        <Route path="/galaxy" element={<GalaxyPage />} />
+        <Route path="/evolution" element={<Evolution />} />
         
-        <Route path="notifications" element={<NotificationsPage />} />
+        {/* Plugins section */}
+        <Route path="/plugins" element={<PluginsPage />} />
+        <Route path="/plugins/:id" element={<PluginDetailPage />} />
+        <Route path="/plugins/:id/evolution" element={<PluginEvolutionPage />} />
+        <Route path="/plugins/leaderboard" element={<PluginsLeaderboard />} />
         
-        {/* Galaxy routes */}
-        <Route path="galaxy" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <GalaxyPage />
-          </Suspense>
-        } />
+        {/* Agents section */}
+        <Route path="/agents/performance" element={<AgentPerformance />} />
         
-        {/* Launch routes */}
-        <Route path="launch" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <LaunchPage />
-          </Suspense>
-        } />
-        <Route path="launch/new" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <StrategyBuilder />
-          </Suspense>
-        } />
+        {/* Insights section */}
+        <Route path="/insights/kpis" element={<KpiDashboard />} />
         
-        {/* Strategy routes */}
-        <Route path="strategies/:strategyId" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <StrategyEngine />
-          </Suspense>
-        } />
+        {/* Settings */}
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/profile" element={<ProfileSettings />} />
         
-        {/* Plugin routes */}
-        <Route path="plugins" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <PluginsPage />
-          </Suspense>
-        } />
-        <Route path="plugins/:pluginId" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <PluginDetailPage />
-          </Suspense>
-        } />
-        <Route path="plugins/:pluginId/evolution" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <PluginEvolutionPage />
-          </Suspense>
-        } />
+        {/* Admin section */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UserManagement />} />
+        <Route path="/admin/system-logs" element={<SystemLogs />} />
+        <Route path="/admin/plugin-logs" element={<PluginLogs />} />
+        <Route path="/admin/ai-decisions" element={<AiDecisions />} />
+        <Route path="/admin/api-keys" element={<ApiKeysPage />} />
+        <Route path="/admin/cron-jobs" element={<CronJobsPage />} />
+        <Route path="/admin/deletion-requests" element={<DeletionRequestsPage />} />
         
-        {/* Agent routes */}
-        <Route path="agents/performance" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <AgentPerformance />
-          </Suspense>
-        } />
+        {/* Notifications */}
+        <Route path="/notifications" element={<NotificationsPage />} />
         
-        {/* Explore route */}
-        <Route path="explore" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <ExplorePage />
-          </Suspense>
-        } />
+        {/* Exploration */}
+        <Route path="/explore" element={<ExplorePage />} />
         
-        {/* Insights routes */}
-        <Route path="insights/kpis" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <KpiDashboard />
-          </Suspense>
-        } />
+        {/* Allora Brain */}
+        <Route path="/allora-brain" element={<AlloraBrainPage />} />
+        <Route path="/allora-brain/docs" element={<AlloraBrainDocsPage />} />
         
-        {/* Settings routes */}
-        <Route path="settings" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <SettingsPage />
-          </Suspense>
-        } />
-        <Route path="settings/profile" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <ProfileSettings />
-          </Suspense>
-        } />
-        <Route path="settings/billing" element={
-          <Suspense fallback={<LoadingScreen />}>
-            <BillingPage />
-          </Suspense>
-        } />
+        {/* Legal pages */}
+        <Route path="/legal/terms" element={<TermsPage />} />
+        <Route path="/legal/privacy" element={<PrivacyPage />} />
+        <Route path="/legal/deletion-request" element={<DeletionRequestPage />} />
         
-        {/* Unauthorized access page */}
-        <Route path="unauthorized" element={<Unauthorized />} />
+        {/* Fallbacks */}
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
-      
-      {/* Admin routes wrapped in AdminLayout */}
-      <Route path="/admin" element={<AdminLayout><Outlet /></AdminLayout>}>
-        <Route index element={<AdminDashboard />} />
-        <Route path="logs" element={<SystemLogs />} />
-        <Route path="users" element={<UserManagement />} />
-        <Route path="ai-decisions" element={<AiDecisions />} />
-        <Route path="cron-jobs" element={<CronJobsPage />} />
-        <Route path="api-keys" element={<ApiKeysPage />} />
-        <Route path="plugin-logs" element={<PluginLogs />} />
-      </Route>
-      
-      {/* Fallback route */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };

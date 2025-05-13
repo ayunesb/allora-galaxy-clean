@@ -1,4 +1,3 @@
-
 // Shared types used across the application
 
 // Generic type for date ranges
@@ -18,55 +17,29 @@ export type UserRole = 'admin' | 'user' | 'guest';
 
 // Generic type for system event module
 export type SystemEventModule = 
-  | 'auth'
-  | 'user'
-  | 'tenant'
-  | 'strategy'
-  | 'plugin'
-  | 'agent'
-  | 'billing'
-  | 'system'
-  | 'kpi'
-  | 'trend'
-  | 'execution'
-  | 'evolution'
-  | 'onboarding'
-  | 'notification'
-  | 'galaxy';
+  | 'system' 
+  | 'auth' 
+  | 'tenant' 
+  | 'strategy' 
+  | 'plugin' 
+  | 'agent' 
+  | 'user' 
+  | 'webhook' 
+  | 'billing';
 
 // Generic type for system event type
 export type SystemEventType = 
-  | 'create' 
-  | 'update' 
-  | 'delete' 
-  | 'execute' 
+  | 'created' 
+  | 'updated' 
+  | 'deleted' 
+  | 'executed' 
   | 'error' 
-  | 'info'
-  | 'login'
-  | 'logout'
-  | 'signup'
-  | 'password_reset'
-  | 'password_update'
-  | 'vote'
-  | 'comment'
-  | 'share'
-  | 'view'
-  | 'download'
-  | 'upload'
-  | 'deploy'
-  | 'sync'
-  | 'schedule'
-  | 'cancel'
-  | 'approve'
-  | 'reject'
-  | 'complete'
-  | 'fail'
-  | 'start'
-  | 'end'
-  | 'pause'
-  | 'resume'
-  | 'connect'
-  | 'disconnect';
+  | 'warning' 
+  | 'success' 
+  | 'login' 
+  | 'logout' 
+  | 'invited' 
+  | 'role_changed';
 
 // Generic type for KPI trend
 export type KPITrend = {
