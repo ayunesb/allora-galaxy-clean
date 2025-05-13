@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const { notifications, unreadCount = 0, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount = 0, markAsRead, markAllAsRead } = useNotifications();
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -42,7 +42,7 @@ const NotificationCenter: React.FC = () => {
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
           notifications={notifications}
-          markAsRead={(id: string) => markAllAsRead()}
+          markAsRead={markAsRead}
           onMarkAllAsRead={markAllAsRead}
         />
       </SheetContent>

@@ -51,7 +51,7 @@ const SystemLogs = () => {
   return (
     <div className="container mx-auto py-8">
       <PageHeader
-        heading="System Logs"
+        title="System Logs"
         description="View and analyze system logs across all components."
         actions={
           <Button

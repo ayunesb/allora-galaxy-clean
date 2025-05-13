@@ -7,7 +7,7 @@ interface NotificationListProps {
   notifications: Notification[];
   userId: string;
   filter?: string;
-  markAsRead?: (id: string) => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   loading?: boolean;
 }
@@ -49,7 +49,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
           }}
           userId={userId}
           onMarkAsRead={markAsRead}
-          onDelete={onDelete}
+          onDelete={onDelete || (() => Promise.resolve())}
         />
       ))}
     </div>

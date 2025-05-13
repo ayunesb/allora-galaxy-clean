@@ -46,9 +46,9 @@ const OnboardingWizard: React.FC = () => {
     updateFormData(data);
   };
   
-  // Handle submission
-  const handleSubmit = () => {
-    completeOnboarding();
+  // Handle submission with Promise wrapper
+  const handleSubmit = async (): Promise<void> => {
+    await Promise.resolve(completeOnboarding());
   };
   
   return (

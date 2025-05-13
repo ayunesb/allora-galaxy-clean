@@ -40,9 +40,7 @@ const NotificationCenterContent = ({
     refetch
   } = useNotifications({
     user_id: userId,
-    tenant_id: tenantId,
-    limit: 20,
-    enabled: !externalNotifications // Only fetch if not provided externally
+    tenant_id: tenantId
   });
   
   // Use externally provided notifications or fetched ones

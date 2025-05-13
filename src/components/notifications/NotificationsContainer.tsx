@@ -34,8 +34,8 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     title: n.title,
     message: n.message,
     description: n.message,
-    user_id: n.user_id || '',
-    tenant_id: n.tenant_id || '',
+    user_id: n.userId || '',
+    tenant_id: n.tenantId || '',
     created_at: n.timestamp || new Date().toISOString(),
     read_at: n.read ? new Date().toISOString() : null,
     type: n.type || 'info'
@@ -73,6 +73,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
           markAsRead={markAsRead}
           onDelete={deleteNotification}
           loading={false}
+          userId={formattedNotifications[0]?.user_id || ''}
         />
       ) : (
         <NotificationEmptyState 

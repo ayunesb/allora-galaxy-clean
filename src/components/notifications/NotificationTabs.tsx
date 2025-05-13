@@ -46,7 +46,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
         <NotificationList 
           notifications={notifications} 
           filter="all"
-          onMarkAsRead={markAsRead}
+          markAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
           userId={userId}
@@ -57,7 +57,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
         <NotificationList 
           notifications={notifications.filter(n => !n.read_at)} 
           filter="unread"
-          onMarkAsRead={markAsRead}
+          markAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
           userId={userId}
@@ -68,7 +68,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
         <NotificationList 
           notifications={notifications.filter(n => n.type === 'system')} 
           filter="system"
-          onMarkAsRead={markAsRead}
+          markAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
           userId={userId}
