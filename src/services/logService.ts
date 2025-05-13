@@ -1,17 +1,31 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { SystemLog, AuditLog, LogFilters } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { LogFilters, SystemLog } from '@/types/logs';
+
+// Cache for module and event lists
+let cachedModules: string[] | null = null;
+let cachedEvents: string[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Fetch system logs with optional filters
+ * Fetches system logs with optimized querying
  */
-export const fetchSystemLogs = async (filters: LogFilters = {}) => {
+export const fetchSystemLogs = async (filters: LogFilters = {}): Promise<SystemLog[]> => {
   let query = supabase
     .from('system_logs')
-    .select('*')
-    .order('created_at', { ascending: false });
-    
+    .select('*');
+
+  // Apply sorting consistently
+  query = query.order('created_at', { ascending: false });
+  
+  // Apply filters efficiently using appropriate operators
+  if (filters.searchTerm) {
+    // Use or() for multiple column search
+    query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,context.message.ilike.%${filters.searchTerm}%`);
+  }
+  
   if (filters.module) {
     query = query.eq('module', filters.module);
   }
@@ -24,167 +38,125 @@ export const fetchSystemLogs = async (filters: LogFilters = {}) => {
     query = query.eq('tenant_id', filters.tenant_id);
   }
   
-  if (filters.searchTerm) {
-    query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`);
-  }
-  
+  // Date range filtering
   if (filters.fromDate) {
-    query = query.gte('created_at', filters.fromDate.toISOString());
+    const fromDate = typeof filters.fromDate === 'string' 
+      ? filters.fromDate 
+      : format(filters.fromDate, 'yyyy-MM-dd');
+    
+    query = query.gte('created_at', `${fromDate}T00:00:00`);
   }
   
   if (filters.toDate) {
-    // Add 1 day to include the entire day
-    const endDate = new Date(filters.toDate);
-    endDate.setDate(endDate.getDate() + 1);
-    query = query.lt('created_at', endDate.toISOString());
+    const toDate = typeof filters.toDate === 'string'
+      ? filters.toDate
+      : format(filters.toDate, 'yyyy-MM-dd');
+    
+    query = query.lte('created_at', `${toDate}T23:59:59`);
   }
   
-  if (filters.limit) {
-    query = query.limit(filters.limit);
-  }
+  // Pagination with default limits
+  const limit = filters.limit || 20;
+  query = query.limit(limit);
   
   if (filters.offset) {
-    query = query.range(filters.offset, filters.offset + (filters.limit || 20) - 1);
+    query = query.range(filters.offset, filters.offset + limit - 1);
   }
   
   const { data, error } = await query;
   
   if (error) {
-    throw new Error(`Error fetching system logs: ${error.message}`);
+    console.error('Error fetching system logs:', error);
+    throw error;
   }
   
   return data as SystemLog[];
 };
 
 /**
- * Fetch audit logs with optional filters
+ * Fetch log modules with caching
  */
-export const fetchAuditLogs = async (filters: LogFilters = {}) => {
-  let query = supabase
-    .from('audit_logs')
-    .select('*')
-    .order('created_at', { ascending: false });
+export const fetchLogModules = async (): Promise<string[]> => {
+  const now = Date.now();
+  
+  // Return cached data if valid
+  if (cachedModules && (now - cacheTimestamp) < CACHE_TTL) {
+    return cachedModules;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('module')
+      .order('module');
     
-  if (filters.module) {
-    query = query.eq('entity_type', filters.module);
+    if (error) {
+      throw error;
+    }
+    
+    // Extract unique module names
+    const uniqueModules = Array.from(new Set(data.map(item => item.module).filter(Boolean)));
+    
+    // Update cache
+    cachedModules = uniqueModules;
+    cacheTimestamp = now;
+    
+    return uniqueModules;
+  } catch (error) {
+    console.error('Error fetching log modules:', error);
+    // Return cached data even if expired in case of error
+    return cachedModules || [];
   }
-  
-  if (filters.event) {
-    query = query.eq('action', filters.event);
-  }
-  
-  if (filters.tenant_id) {
-    query = query.eq('tenant_id', filters.tenant_id);
-  }
-  
-  if (filters.searchTerm) {
-    query = query.or(`action.ilike.%${filters.searchTerm}%,entity_type.ilike.%${filters.searchTerm}%`);
-  }
-  
-  if (filters.fromDate) {
-    query = query.gte('created_at', filters.fromDate.toISOString());
-  }
-  
-  if (filters.toDate) {
-    // Add 1 day to include the entire day
-    const endDate = new Date(filters.toDate);
-    endDate.setDate(endDate.getDate() + 1);
-    query = query.lt('created_at', endDate.toISOString());
-  }
-  
-  if (filters.limit) {
-    query = query.limit(filters.limit);
-  }
-  
-  if (filters.offset) {
-    query = query.range(filters.offset, filters.offset + (filters.limit || 20) - 1);
-  }
-  
-  const { data, error } = await query;
-  
-  if (error) {
-    throw new Error(`Error fetching audit logs: ${error.message}`);
-  }
-  
-  return data as AuditLog[];
 };
 
 /**
- * Get unique log modules
+ * Fetch log events with caching
  */
-export const fetchLogModules = async () => {
+export const fetchLogEvents = async (): Promise<string[]> => {
+  const now = Date.now();
+  
+  // Return cached data if valid
+  if (cachedEvents && (now - cacheTimestamp) < CACHE_TTL) {
+    return cachedEvents;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('event')
+      .order('event');
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Extract unique event names
+    const uniqueEvents = Array.from(new Set(data.map(item => item.event).filter(Boolean)));
+    
+    // Update cache
+    cachedEvents = uniqueEvents;
+    cacheTimestamp = now;
+    
+    return uniqueEvents;
+  } catch (error) {
+    console.error('Error fetching log events:', error);
+    // Return cached data even if expired in case of error
+    return cachedEvents || [];
+  }
+};
+
+/**
+ * Fetch tenants (no caching as tenant list may change frequently)
+ */
+export const fetchTenants = async () => {
   const { data, error } = await supabase
-    .from('system_logs')
-    .select('module');
+    .from('tenants')
+    .select('id, name');
     
   if (error) {
-    throw new Error(`Error fetching log modules: ${error.message}`);
+    console.error('Error fetching tenants:', error);
+    throw error;
   }
   
-  // Extract unique module names
-  const modules = data.map(item => item.module);
-  const uniqueModules = Array.from(new Set(modules)).filter(Boolean);
-  return uniqueModules;
-};
-
-/**
- * Get unique log events
- */
-export const fetchLogEvents = async () => {
-  const { data, error } = await supabase
-    .from('system_logs')
-    .select('event');
-    
-  if (error) {
-    throw new Error(`Error fetching log events: ${error.message}`);
-  }
-  
-  // Extract unique event names
-  const events = data.map(item => item.event);
-  const uniqueEvents = Array.from(new Set(events)).filter(Boolean);
-  return uniqueEvents;
-};
-
-/**
- * Hook to fetch system logs with optional filters
- */
-export const useSystemLogs = (filters: LogFilters = {}) => {
-  return useQuery({
-    queryKey: ['systemLogs', filters],
-    queryFn: () => fetchSystemLogs(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
-/**
- * Hook to fetch audit logs with optional filters
- */
-export const useAuditLogs = (filters: LogFilters = {}) => {
-  return useQuery({
-    queryKey: ['auditLogs', filters],
-    queryFn: () => fetchAuditLogs(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
-/**
- * Hook to fetch unique log modules
- */
-export const useLogModules = () => {
-  return useQuery({
-    queryKey: ['logModules'],
-    queryFn: fetchLogModules,
-    staleTime: 1000 * 60 * 15, // 15 minutes
-  });
-};
-
-/**
- * Hook to fetch unique log events
- */
-export const useLogEvents = () => {
-  return useQuery({
-    queryKey: ['logEvents'],
-    queryFn: fetchLogEvents,
-    staleTime: 1000 * 60 * 15, // 15 minutes
-  });
+  return data;
 };

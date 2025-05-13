@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback, memo } from 'react';
 import { Notification } from '@/types/notifications';
 import NotificationItem from './NotificationItem';
 
@@ -18,6 +18,16 @@ const NotificationList: React.FC<NotificationListProps> = ({
   onDelete,
   loading = false
 }) => {
+  // Memoized handler function for marking notifications as read
+  const handleMarkAsRead = useCallback((id: string) => {
+    return markAsRead(id);
+  }, [markAsRead]);
+  
+  // Memoized handler function for deleting notifications
+  const handleDelete = useCallback((id: string) => {
+    return onDelete ? onDelete(id) : Promise.resolve();
+  }, [onDelete]);
+  
   if (loading) {
     return <div className="p-4 text-center text-muted-foreground">Loading notifications...</div>;
   }
@@ -33,7 +43,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   return (
     <div className="divide-y">
       {notifications.map((notification) => (
-        <NotificationItem
+        <MemoizedNotificationItem
           key={notification.id}
           notification={{
             id: notification.id,
@@ -45,12 +55,15 @@ const NotificationList: React.FC<NotificationListProps> = ({
             action_url: notification.action_url,
             action_label: notification.action_label
           }}
-          onMarkAsRead={markAsRead}
-          onDelete={onDelete || (async () => {})}
+          onMarkAsRead={handleMarkAsRead}
+          onDelete={handleDelete}
         />
       ))}
     </div>
   );
 };
 
-export default NotificationList;
+// Memoize the NotificationItem component to prevent unnecessary re-renders
+const MemoizedNotificationItem = memo(NotificationItem);
+
+export default memo(NotificationList);

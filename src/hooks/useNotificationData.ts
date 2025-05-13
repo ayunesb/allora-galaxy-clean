@@ -1,18 +1,20 @@
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
 export const useNotificationData = (limit = 20) => {
   const { tenantId } = useTenantId();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const subscriptionRef = useRef<{ subscription: any; teardown: () => void } | null>(null);
   
-  // Fetch notifications
+  // Fetch notifications with proper caching
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['notifications', tenantId],
+    queryKey: ['notifications', tenantId, limit],
     queryFn: async () => {
       if (!tenantId) return { notifications: [], unreadCount: 0 };
       
@@ -38,8 +40,46 @@ export const useNotificationData = (limit = 20) => {
         unreadCount: count || 0
       };
     },
+    staleTime: 30000, // 30 seconds
+    gcTime: 300000,   // 5 minutes
     enabled: !!tenantId
   });
+  
+  // Set up realtime subscription for notifications
+  useEffect(() => {
+    if (tenantId && !subscriptionRef.current) {
+      const subscription = supabase
+        .channel('notifications-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `tenant_id=eq.${tenantId}`
+          },
+          (payload) => {
+            // Invalidate the query to trigger a refetch
+            queryClient.invalidateQueries({ queryKey: ['notifications', tenantId] });
+          }
+        )
+        .subscribe();
+      
+      subscriptionRef.current = {
+        subscription,
+        teardown: () => {
+          subscription.unsubscribe();
+          subscriptionRef.current = null;
+        }
+      };
+
+      return () => {
+        if (subscriptionRef.current) {
+          subscriptionRef.current.teardown();
+        }
+      };
+    }
+  }, [tenantId, queryClient]);
   
   // Update state when data changes
   useEffect(() => {
@@ -49,9 +89,15 @@ export const useNotificationData = (limit = 20) => {
     }
   }, [data]);
   
-  // Mark notification as read
-  const markAsRead = async (id: string) => {
+  // Mark notification as read with optimistic update
+  const markAsRead = useCallback(async (id: string) => {
     if (!tenantId) return;
+    
+    // Optimistically update UI
+    setNotifications(prev => 
+      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
     
     const { error } = await supabase
       .from('notifications')
@@ -61,19 +107,20 @@ export const useNotificationData = (limit = 20) => {
       
     if (error) {
       console.error('Error marking notification as read:', error);
-      return;
+      // Revert optimistic update on error
+      refetch();
     }
+  }, [tenantId, refetch]);
+  
+  // Mark all notifications as read with optimistic update
+  const markAllAsRead = useCallback(async () => {
+    if (!tenantId) return;
     
     // Optimistically update UI
     setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
+      prev.map(n => ({ ...n, read: true }))
     );
-    setUnreadCount(prev => Math.max(0, prev - 1));
-  };
-  
-  // Mark all notifications as read
-  const markAllAsRead = async () => {
-    if (!tenantId) return;
+    setUnreadCount(0);
     
     const { error } = await supabase
       .from('notifications')
@@ -83,15 +130,10 @@ export const useNotificationData = (limit = 20) => {
       
     if (error) {
       console.error('Error marking all notifications as read:', error);
-      return;
+      // Revert optimistic update on error
+      refetch();
     }
-    
-    // Optimistically update UI
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, read: true }))
-    );
-    setUnreadCount(0);
-  };
+  }, [tenantId, refetch]);
   
   return {
     notifications,

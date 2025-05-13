@@ -1,4 +1,5 @@
 
+import React, { useState, useCallback, useMemo } from 'react'; 
 import { 
   Table, 
   TableBody, 
@@ -11,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { SystemLog } from '@/types/logs';
-import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { formatDisplayDate } from '@/lib/utils/date';
 import { JsonView } from '@/components/ui/json-view';
@@ -25,12 +25,20 @@ interface SystemLogTableProps {
 const SystemLogTable = ({ logs, isLoading, onViewDetails }: SystemLogTableProps) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   
-  const toggleRow = (id: string) => {
+  // Memoized toggle function
+  const toggleRow = useCallback((id: string) => {
     setExpandedRows(prev => ({
       ...prev,
       [id]: !prev[id]
     }));
-  };
+  }, []);
+  
+  // Memoized view details handler
+  const handleViewDetails = useCallback((log: SystemLog) => {
+    if (onViewDetails) {
+      onViewDetails(log);
+    }
+  }, [onViewDetails]);
   
   if (isLoading) {
     return (
@@ -62,8 +70,8 @@ const SystemLogTable = ({ logs, isLoading, onViewDetails }: SystemLogTableProps)
       </TableHeader>
       <TableBody>
         {logs.map((log) => (
-          <>
-            <TableRow key={log.id}>
+          <React.Fragment key={log.id}>
+            <TableRow>
               <TableCell>
                 <Button
                   variant="ghost"
@@ -93,7 +101,7 @@ const SystemLogTable = ({ logs, isLoading, onViewDetails }: SystemLogTableProps)
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onViewDetails(log)}
+                    onClick={() => handleViewDetails(log)}
                     title="View details"
                   >
                     <Eye size={16} />
@@ -111,11 +119,12 @@ const SystemLogTable = ({ logs, isLoading, onViewDetails }: SystemLogTableProps)
                 </TableCell>
               </TableRow>
             )}
-          </>
+          </React.Fragment>
         ))}
       </TableBody>
     </Table>
   );
 };
 
-export default SystemLogTable;
+// Use React.memo to prevent unnecessary re-renders
+export default React.memo(SystemLogTable);
