@@ -1,88 +1,122 @@
 
-import { useState } from 'react';
-import { useNotificationData } from '@/hooks/useNotificationData';
-import { useNotificationActions } from '@/hooks/useNotificationActions';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { useNotifications } from '@/lib/notifications/useNotifications';
+import NotificationsPageHeader from './NotificationsPageHeader';
+import NotificationFilters from './NotificationFilters';
 import NotificationTabs from './NotificationTabs';
-import { NotificationsPageHeader } from './NotificationsPageHeader';
+import { Notification } from '@/types/notifications';
 import NotificationEmptyState from './NotificationEmptyState';
-import { Notification, NotificationContent } from '@/types/notifications';
 
 interface NotificationsContainerProps {
-  filter?: string | null;
-  setFilter?: (filter: string) => void;
+  filter: string | null;
+  setFilter: (value: string) => void;
 }
 
-const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ 
-  filter: externalFilter,
-  setFilter: setExternalFilter
-}) => {
-  const [selectedTab, setSelectedTab] = useState(externalFilter || 'all');
-  const { notifications, loading, refresh } = useNotificationData(selectedTab);
-  const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
+const NotificationsContainer: React.FC<NotificationsContainerProps> = ({ filter, setFilter }) => {
+  const { 
+    notifications, 
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    loading,
+    refreshNotifications
+  } = useNotifications();
   
-  // Sync with external filter if provided
-  const handleTabChange = (tab: string) => {
-    setSelectedTab(tab);
-    if (setExternalFilter) {
-      setExternalFilter(tab);
+  const [timeFilter, setTimeFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Apply filters to notifications
+  const filteredNotifications = notifications.filter(notification => {
+    // Type filter
+    if (filter && filter !== 'all' && notification.type !== filter) {
+      return false;
     }
-  };
-
-  // Convert to compatible format if needed
-  const formattedNotifications: Notification[] = notifications.map(n => ({
-    id: n.id,
-    title: n.title,
-    message: n.message,
-    description: n.message,
-    user_id: n.userId || '',
-    tenant_id: n.tenantId || '',
-    created_at: n.timestamp || new Date().toISOString(),
-    read_at: n.read ? new Date().toISOString() : null,
-    type: n.type || 'info',
-    action_url: n.action_url,
-    action_label: n.action_label
-  }));
-
-  const unreadCount = formattedNotifications.filter(n => !n.read_at).length;
-
-  // Wrap refresh to match expected Promise<void> return type
-  const handleRefresh = async (): Promise<void> => {
-    try {
-      await refresh();
-    } catch (error) {
-      console.error('Error refreshing notifications:', error);
+    
+    // Search filter
+    if (searchQuery && !notification.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
+        !(notification.message && notification.message.toLowerCase().includes(searchQuery.toLowerCase()))) {
+      return false;
     }
+    
+    // Time filter
+    if (timeFilter !== 'all') {
+      const notificationDate = new Date(notification.created_at);
+      const now = new Date();
+      
+      switch (timeFilter) {
+        case 'today':
+          if (notificationDate.toDateString() !== now.toDateString()) {
+            return false;
+          }
+          break;
+        case 'week':
+          const oneWeekAgo = new Date();
+          oneWeekAgo.setDate(now.getDate() - 7);
+          if (notificationDate < oneWeekAgo) {
+            return false;
+          }
+          break;
+        case 'month':
+          const oneMonthAgo = new Date();
+          oneMonthAgo.setMonth(now.getMonth() - 1);
+          if (notificationDate < oneMonthAgo) {
+            return false;
+          }
+          break;
+      }
+    }
+    
+    return true;
+  });
+  
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
   };
-
+  
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+  
+  const handleTimeFilterChange = (value: string) => {
+    setTimeFilter(value);
+  };
+  
   return (
-    <div className="bg-background rounded-lg border shadow-sm">
-      <NotificationsPageHeader
-        activeFilter={selectedTab}
-        onFilterChange={handleTabChange}
-        onMarkAllAsRead={markAllAsRead}
-        unreadCount={unreadCount}
+    <div className="space-y-6">
+      <NotificationsPageHeader 
+        totalCount={notifications.length} 
+        onMarkAllAsRead={handleMarkAllAsRead}
       />
       
-      {loading ? (
-        <div className="p-8 flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      ) : formattedNotifications.length > 0 ? (
-        <NotificationTabs 
-          selectedTab={selectedTab}
-          setSelectedTab={handleTabChange}
-          notifications={formattedNotifications}
-          markAsRead={markAsRead}
-          onDelete={deleteNotification}
-          loading={false}
-          userId={formattedNotifications[0]?.user_id || ''}
-        />
-      ) : (
-        <NotificationEmptyState 
-          filter={selectedTab} 
-          onRefresh={handleRefresh}
-        />
-      )}
+      <Card>
+        <CardContent className="p-6">
+          <NotificationFilters
+            onSearch={handleSearch}
+            searchQuery={searchQuery}
+            typeFilter={filter || 'all'}
+            onTypeFilterChange={setFilter}
+            timeFilter={timeFilter}
+            onTimeFilterChange={handleTimeFilterChange}
+            onRefresh={refreshNotifications}
+            isLoading={loading}
+          />
+          
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <NotificationEmptyState />
+          ) : (
+            <NotificationTabs
+              notifications={filteredNotifications as Notification[]}
+              onMarkAsRead={markAsRead}
+              onDelete={deleteNotification}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

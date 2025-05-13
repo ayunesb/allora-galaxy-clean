@@ -5,7 +5,6 @@ import NotificationItem from './NotificationItem';
 
 interface NotificationListProps {
   notifications: Notification[];
-  userId: string;
   filter?: string;
   markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
@@ -14,7 +13,6 @@ interface NotificationListProps {
 
 const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
-  userId,
   filter,
   markAsRead,
   onDelete,

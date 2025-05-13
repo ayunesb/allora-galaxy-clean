@@ -1,77 +1,57 @@
 
-import React from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Notification } from '@/types/notifications';
 import NotificationList from './NotificationList';
 
 interface NotificationTabsProps {
-  selectedTab: string;
-  setSelectedTab: (tab: string) => void;
   notifications: Notification[];
-  loading?: boolean;
-  markAsRead: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
-  userId: string;
+  onMarkAsRead: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 const NotificationTabs: React.FC<NotificationTabsProps> = ({
-  selectedTab,
-  setSelectedTab,
   notifications,
-  loading,
-  markAsRead,
+  onMarkAsRead,
   onDelete,
-  userId
 }) => {
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.read_at).length;
-  // Count system notifications
-  const systemCount = notifications.filter(n => n.type === 'system').length;
-
+  const [tabValue, setTabValue] = useState<string>('all');
+  
+  const unreadNotifications = notifications.filter(n => !n.read_at);
+  const readNotifications = notifications.filter(n => n.read_at);
+  
   return (
-    <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-      <div className="border-b px-4 py-2">
-        <TabsList className="w-full">
-          <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
-          <TabsTrigger value="unread" className="flex-1">
-            Unread {unreadCount > 0 && `(${unreadCount})`}
-          </TabsTrigger>
-          <TabsTrigger value="system" className="flex-1">
-            System {systemCount > 0 && `(${systemCount})`}
-          </TabsTrigger>
-        </TabsList>
-      </div>
+    <Tabs value={tabValue} onValueChange={setTabValue} className="mt-6">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="all">All ({notifications.length})</TabsTrigger>
+        <TabsTrigger value="unread">Unread ({unreadNotifications.length})</TabsTrigger>
+        <TabsTrigger value="read">Read ({readNotifications.length})</TabsTrigger>
+      </TabsList>
       
-      <TabsContent value="all" className="max-h-[500px] overflow-y-auto">
-        <NotificationList 
-          notifications={notifications} 
+      <TabsContent value="all">
+        <NotificationList
+          notifications={notifications}
           filter="all"
-          markAsRead={markAsRead}
+          markAsRead={onMarkAsRead}
           onDelete={onDelete}
-          loading={loading}
-          userId={userId}
         />
       </TabsContent>
       
-      <TabsContent value="unread" className="max-h-[500px] overflow-y-auto">
-        <NotificationList 
-          notifications={notifications.filter(n => !n.read_at)} 
+      <TabsContent value="unread">
+        <NotificationList
+          notifications={unreadNotifications}
           filter="unread"
-          markAsRead={markAsRead}
+          markAsRead={onMarkAsRead}
           onDelete={onDelete}
-          loading={loading}
-          userId={userId}
         />
       </TabsContent>
       
-      <TabsContent value="system" className="max-h-[500px] overflow-y-auto">
-        <NotificationList 
-          notifications={notifications.filter(n => n.type === 'system')} 
-          filter="system"
-          markAsRead={markAsRead}
+      <TabsContent value="read">
+        <NotificationList
+          notifications={readNotifications}
+          filter="read"
+          markAsRead={onMarkAsRead}
           onDelete={onDelete}
-          loading={loading}
-          userId={userId}
         />
       </TabsContent>
     </Tabs>

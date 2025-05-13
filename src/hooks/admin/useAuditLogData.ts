@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { SystemLog, AuditLog, AuditLogFilterState } from '@/types/logs';
+import { AuditLog, AuditLogFilterState } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
 import { supabase } from '@/lib/supabase';
 import { formatForDatabase } from '@/lib/utils/date';

@@ -1,4 +1,3 @@
-
 import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 
 /**
@@ -42,14 +41,14 @@ export function formatDisplayDate(date?: Date | string | null): string {
 
 /**
  * Format a date for database storage
- * @param date The date to format
- * @returns ISO string for database storage
+ * @param date Date to format
+ * @returns Formatted date string in ISO format
  */
-export function formatForDatabase(date: Date | null): string | null {
+export function formatForDatabase<T extends Date | null>(date: T): string | null {
   if (!date) return null;
   
   try {
-    if (!isValid(date)) return null;
+    // Use toString() instead of direct indexing for the generic type
     return date.toISOString();
   } catch (error) {
     console.error('Error formatting date for database:', error);
