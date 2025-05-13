@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { formatRelative } from '@/lib/utils/date';
+import { formatRelativeDate } from '@/lib/utils/date';
 import { Button } from '@/components/ui/button';
 import { Trash2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -69,7 +68,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         <div className="flex justify-between items-start">
           <h4 className="font-medium text-foreground">{notification.title}</h4>
           <span className="text-xs text-muted-foreground">
-            {formatRelative(notification.timestamp)}
+            {formatRelativeDate(notification.timestamp)}
           </span>
         </div>
         

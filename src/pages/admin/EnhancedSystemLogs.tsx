@@ -115,11 +115,6 @@ const EnhancedSystemLogs: React.FC = () => {
     setFilters(newFilters);
   };
   
-  const handleRefresh = () => {
-    refetchSystemLogs();
-    refetchAuditLogs();
-  };
-  
   const handleResetFilters = () => {
     setFilters({
       module: '',
@@ -146,18 +141,6 @@ const EnhancedSystemLogs: React.FC = () => {
     setSelectedLog(log);
     setSelectedLogType(type);
     setDetailsDialogOpen(true);
-  };
-  
-  const handleTransformLog = () => {
-    if (selectedLog) {
-      setTransformDialogOpen(true);
-    }
-  };
-  
-  const handleViewDetailPage = () => {
-    if (selectedLog) {
-      navigate(`/admin/logs/${selectedLog.id}`);
-    }
   };
   
   const isLoading = systemLogsLoading || auditLogsLoading;

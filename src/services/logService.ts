@@ -1,151 +1,116 @@
-
-import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useTenantId } from '@/hooks/useTenantId';
-import { SystemLog, LogFilters } from '@/types/logs';
-import { formatForDatabase } from '@/lib/utils/date';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 /**
- * Hook to fetch system logs with filters
+ * Hook to get log filter options from the database
+ * @returns Object containing modules and events arrays
  */
-export const useSystemLogs = (filters: LogFilters) => {
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['system-logs', filters],
-    queryFn: async () => {
-      // Create query
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // Apply filters
-      if (filters.tenant_id) {
-        query = query.eq('tenant_id', filters.tenant_id);
-      }
-      
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-      
-      if (filters.search) {
-        query = query.or(
-          `module.ilike.%${filters.search}%,event.ilike.%${filters.search}%,context.ilike.%${filters.search}%`
-        );
-      }
-      
-      if (filters.date_from) {
-        const fromDate = formatForDatabase(filters.date_from);
-        if (fromDate) {
-          query = query.gte('created_at', fromDate);
+export function useLogFilterOptions() {
+  const [modules, setModules] = useState<string[]>([]);
+  const [events, setEvents] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchFilterOptions() {
+      try {
+        setLoading(true);
+        
+        // Fetch distinct modules
+        const { data: moduleData, error: moduleError } = await supabase
+          .from('system_logs')
+          .select('module')
+          .is('module', 'not.null')
+          .order('module')
+          .limit(100);
+          
+        if (moduleError) {
+          console.error('Error fetching modules:', moduleError);
+        } else {
+          const uniqueModules = Array.from(
+            new Set(moduleData.map(item => item.module))
+          ).filter(Boolean);
+          setModules(uniqueModules);
         }
-      }
-      
-      if (filters.date_to) {
-        const toDate = formatForDatabase(filters.date_to);
-        if (toDate) {
-          query = query.lte('created_at', toDate);
+        
+        // Fetch distinct events
+        const { data: eventData, error: eventError } = await supabase
+          .from('system_logs')
+          .select('event')
+          .is('event', 'not.null')
+          .order('event')
+          .limit(100);
+          
+        if (eventError) {
+          console.error('Error fetching events:', eventError);
+        } else {
+          const uniqueEvents = Array.from(
+            new Set(eventData.map(item => item.event))
+          ).filter(Boolean);
+          setEvents(uniqueEvents);
         }
+      } catch (error) {
+        console.error('Error in useLogFilterOptions:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-      
-      if (filters.offset) {
-        query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      return data as SystemLog[];
     }
-  });
+    
+    fetchFilterOptions();
+  }, []);
   
-  return { data, isLoading, error, refetch, isFetching };
-};
+  return { modules, events, loading };
+}
 
 /**
- * Hook to fetch available log modules
+ * Filter logs by search term
+ * @param logs Array of logs to filter
+ * @param searchTerm Search term to filter by
+ * @returns Filtered logs array
  */
-export const useLogModules = (tenantId?: string) => {
-  return useQuery({
-    queryKey: ['log-modules', tenantId],
-    queryFn: async () => {
-      let query = supabase
-        .from('system_logs')
-        .select('module')
-        .order('module');
-      
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Use Set to get unique values
-      const uniqueModules = new Set<string>();
-      data.forEach((item) => {
-        if (item.module) uniqueModules.add(item.module);
-      });
-      
-      return Array.from(uniqueModules);
-    }
-  });
-};
-
-/**
- * Hook to fetch available log events
- */
-export const useLogEvents = (tenantId?: string) => {
-  return useQuery({
-    queryKey: ['log-events', tenantId],
-    queryFn: async () => {
-      let query = supabase
-        .from('system_logs')
-        .select('event')
-        .order('event');
-      
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Use Set to get unique values
-      const uniqueEvents = new Set<string>();
-      data.forEach((item) => {
-        if (item.event) uniqueEvents.add(item.event);
-      });
-      
-      return Array.from(uniqueEvents);
-    }
-  });
-};
-
-/**
- * Hook to get filter options for logs
- */
-export const useLogFilterOptions = () => {
-  const { tenantId } = useTenantId();
-  const { data: modules = [] } = useLogModules(tenantId);
-  const { data: events = [] } = useLogEvents(tenantId);
+export function filterLogsBySearchTerm(logs: any[], searchTerm: string) {
+  if (!searchTerm.trim()) return logs;
   
-  return { modules, events };
-};
+  const lowerSearchTerm = searchTerm.toLowerCase();
+  
+  return logs.filter(log => {
+    // Search in common fields
+    if (log.id?.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (log.module?.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (log.event?.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (log.description?.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (log.user_id?.toLowerCase().includes(lowerSearchTerm)) return true;
+    
+    // Search in context object if it exists
+    if (log.context) {
+      const contextStr = JSON.stringify(log.context).toLowerCase();
+      if (contextStr.includes(lowerSearchTerm)) return true;
+    }
+    
+    // Search in entity-specific fields for audit logs
+    if (log.entity_type?.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (log.entity_id?.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (log.action?.toLowerCase().includes(lowerSearchTerm)) return true;
+    
+    return false;
+  });
+}
+
+/**
+ * Format log context for display
+ * @param context Log context object
+ * @returns Formatted context string
+ */
+export function formatLogContext(context: any): string {
+  if (!context) return '';
+  
+  try {
+    if (typeof context === 'string') {
+      return context;
+    }
+    
+    return JSON.stringify(context, null, 2);
+  } catch (error) {
+    console.error('Error formatting log context:', error);
+    return String(context);
+  }
+}

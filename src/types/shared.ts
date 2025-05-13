@@ -8,7 +8,7 @@ export type VoteType = 'upvote' | 'downvote';
 
 export type UserRole = 'admin' | 'user' | 'viewer' | 'owner';
 
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type TrendDirection = 'up' | 'down' | 'flat' | 'neutral';
 
 export type SystemEventModule = 
   | 'auth'
@@ -37,6 +37,8 @@ export type SystemEventType =
 export type KPITrend = {
   direction: TrendDirection;
   percentage: number;
+  value: number; // Added missing value property
+  previousValue?: number; // Added for consistency
 };
 
 export type OnboardingStep = 

@@ -1,5 +1,4 @@
 
-import * as React from 'react';
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,8 +45,9 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={onDateChange}
+          onSelect={(day) => onDateChange && onDateChange(day)}
           initialFocus
+          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>
