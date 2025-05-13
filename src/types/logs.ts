@@ -1,56 +1,36 @@
 
+import { SystemEventType } from './shared';
+
+/**
+ * System log entry
+ */
 export interface SystemLog {
   id: string;
-  module: string;
+  module: SystemEventModule;
   event: string;
-  level?: string;
-  description?: string;
+  created_at: string;
   context?: Record<string, any>;
   tenant_id?: string;
-  created_at: string;
-  user_id?: string;
 }
 
-export interface AuditLog {
-  id: string;
-  action: string;
-  entity_type: string;
-  entity_id: string;
-  user_id: string;
-  tenant_id: string;
-  details: Record<string, any>;
-  created_at: string;
-  // Fields needed for compatibility with SystemLog
-  module: string;
-  event: string;
-  description?: string;
-  context?: Record<string, any>;
-}
+/**
+ * System event modules
+ */
+export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
 
+/**
+ * Audit log entry (alias for SystemLog for backward compatibility)
+ */
+export interface AuditLog extends SystemLog {}
+
+/**
+ * Log filters for querying logs
+ */
 export interface LogFilters {
-  searchTerm?: string;
-  module?: string;
-  event?: string;
+  module?: SystemEventModule;
+  event?: SystemEventType;
+  fromDate?: string;
+  toDate?: string;
   tenant_id?: string;
-  fromDate?: Date | null;
-  toDate?: Date | null;
-  limit?: number;
-  offset?: number;
-  search?: string;
-}
-
-export interface SystemLogFilterState {
-  module: string;
-  event: string;
-  searchTerm: string;
-  fromDate: Date | null;
-  toDate: Date | null;
-}
-
-export interface AuditLogFilterState {
-  module: string;
-  event: string;
-  searchTerm: string;
-  fromDate: Date | null;
-  toDate: Date | null;
+  searchTerm?: string;
 }

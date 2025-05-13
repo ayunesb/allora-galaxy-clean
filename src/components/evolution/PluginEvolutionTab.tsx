@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { Plugin } from '@/types/plugin';
+import { supabase } from '@/lib/supabase';
+import { Plugin } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface PluginEvolutionTabProps {

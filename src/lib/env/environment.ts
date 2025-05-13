@@ -1,57 +1,104 @@
 
 /**
- * Environment configuration for the application
+ * A centralized utility for managing environment variables across the application
  */
 
-// Get environment variables
-import { getEnv } from './envUtils';
+/**
+ * Get an environment variable with a default fallback
+ * @param key The environment variable key
+ * @param defaultValue Optional default value if environment variable is not found
+ */
+export function getEnvironmentVariable(key: string, defaultValue: string = ''): string {
+  try {
+    // First try Deno environment (Edge Functions)
+    // @ts-ignore - Deno may be available in edge functions
+    if (typeof globalThis !== 'undefined' && globalThis.Deno?.env?.get) {
+      // @ts-ignore
+      const denoValue = globalThis.Deno.env.get(key);
+      if (denoValue !== undefined) return denoValue;
+    }
+    
+    // Then try Node.js process.env
+    if (typeof process !== 'undefined' && process?.env) {
+      const nodeValue = process.env[key];
+      if (nodeValue !== undefined) return nodeValue;
+    }
+    
+    // Finally try Vite's import.meta.env
+    try {
+      // @ts-ignore - import.meta is available in Vite
+      if (import.meta?.env && import.meta.env[key] !== undefined) {
+        // @ts-ignore
+        return import.meta.env[key];
+      }
+    } catch (e) {
+      // Ignore errors accessing import.meta (not available in all contexts)
+    }
+    
+    // Return default if none of the above worked
+    return defaultValue;
+  } catch (err) {
+    console.warn(`Error accessing environment variable ${key}:`, err);
+    return defaultValue;
+  }
+}
 
-// CORS headers for edge functions
+/**
+ * Environment configuration with type safety
+ */
+export const ENV = {
+  // Core application environment
+  NODE_ENV: getEnvironmentVariable('NODE_ENV', 'development'),
+  APP_URL: getEnvironmentVariable('VITE_APP_URL', 'http://localhost:3000'),
+  
+  // Supabase configuration
+  SUPABASE_URL: getEnvironmentVariable('VITE_SUPABASE_URL', ''),
+  SUPABASE_ANON_KEY: getEnvironmentVariable('VITE_SUPABASE_ANON_KEY', ''),
+  SUPABASE_SERVICE_KEY: getEnvironmentVariable('SUPABASE_SERVICE_ROLE_KEY', ''),
+  
+  // Integration APIs
+  STRIPE_PUBLISHABLE_KEY: getEnvironmentVariable('VITE_STRIPE_PUBLISHABLE_KEY', ''),
+  OPENAI_API_KEY: getEnvironmentVariable('OPENAI_API_KEY', ''),
+  HUBSPOT_API_KEY: getEnvironmentVariable('HUBSPOT_API_KEY', ''),
+  
+  // Analytics
+  GA_MEASUREMENT_ID: getEnvironmentVariable('VITE_GA_MEASUREMENT_ID', ''),
+};
+
+/**
+ * Check if the application is running in a production environment
+ */
+export function isProduction(): boolean {
+  return ENV.NODE_ENV === 'production';
+}
+
+/**
+ * Get base URL for the current environment
+ */
+export function getBaseUrl(): string {
+  return ENV.APP_URL;
+}
+
+/**
+ * CORS headers for edge functions
+ */
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-// Core environment variables
-export const ENVIRONMENT = {
-  NODE_ENV: getEnv('NODE_ENV', 'development'),
-  SUPABASE_URL: getEnv('SUPABASE_URL', ''),
-  SUPABASE_ANON_KEY: getEnv('SUPABASE_ANON_KEY', ''),
-  SUPABASE_SERVICE_ROLE_KEY: getEnv('SUPABASE_SERVICE_ROLE_KEY', ''),
-};
-
-// Environment type
-export type Environment = 'development' | 'test' | 'production';
-
 /**
- * Get an environment variable
- * @param name Variable name
- * @param required Whether the variable is required
- * @returns Variable value or empty string
+ * Validate that required environment variables are set
+ * @returns Object with validation result and list of missing variables
  */
-export function getEnvironmentVariable(name: string, required: boolean = false): string {
-  const value = getEnv(name);
-
-  if (required && !value) {
-    console.error(`Required environment variable ${name} is not defined!`);
-  }
-
-  return value;
+export function validateEnvironment(requiredVars: string[]): { valid: boolean; missing: string[] } {
+  const missing = requiredVars.filter(key => !getEnvironmentVariable(key));
+  return {
+    valid: missing.length === 0,
+    missing
+  };
 }
 
-/**
- * Validate that required environment variables are defined
- * @param requiredVariables Array of required variable names
- * @returns True if all required variables are defined
- */
-export function validateEnvironment(requiredVariables: string[]): boolean {
-  let isValid = true;
-
-  for (const variable of requiredVariables) {
-    if (!getEnvironmentVariable(variable, true)) {
-      isValid = false;
-    }
-  }
-
-  return isValid;
-}
+// For backward compatibility
+export { getEnvironmentVariable as getEnv };

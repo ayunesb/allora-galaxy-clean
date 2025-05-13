@@ -1,116 +1,162 @@
 
-/**
- * Custom error for when a requested resource is not found
- */
-export class NotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'NotFoundError';
-  }
+import { corsHeaders } from '@/lib/env/environment';
+
+export interface ErrorResponse {
+  success: false;
+  error: string;
+  details?: any;
+  timestamp: string;
+  code?: string;
+  requestId?: string;
+  status: number;
+}
+
+export interface SuccessResponse<T = any> {
+  success: true;
+  data: T;
+  timestamp: string;
+  requestId?: string;
 }
 
 /**
- * Custom error for validation failures
+ * Error handler for edge functions
+ * @param err The error object
+ * @param requestId Optional request ID for tracking
+ * @returns A JSON response with the error message
  */
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
+export function handleEdgeFunctionError(err: any, requestId?: string): Response {
+  // Log the error for debugging
+  console.error(`Edge Function Error${requestId ? ` [${requestId}]` : ''}:`, err);
+  
+  // Extract error details
+  const message = err?.message || 'Internal Server Error';
+  const status = err?.status || 500;
+  const code = err?.code || 'INTERNAL_ERROR';
+  const details = err?.details || undefined;
+  
+  // Create standardized error response
+  const responseData: ErrorResponse = { 
+    success: false,
+    error: message,
+    timestamp: new Date().toISOString(),
+    status
+  };
+  
+  if (details) {
+    responseData.details = details;
   }
-}
-
-/**
- * Creates a standardized error response for edge functions
- */
-export function createErrorResponse(message: string, status = 400, details?: any) {
+  
+  if (code) {
+    responseData.code = code;
+  }
+  
+  if (requestId) {
+    responseData.requestId = requestId;
+  }
+  
+  // Return formatted error response
   return new Response(
-    JSON.stringify({
-      error: message,
-      details: details || null,
-      success: false
-    }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    }
-  );
-}
-
-/**
- * Handle various error types and return an appropriate response
- */
-export function handleEdgeError(error: unknown): Response {
-  if (error instanceof NotFoundError) {
-    return createErrorResponse(error.message, 404);
-  }
-  
-  if (error instanceof ValidationError) {
-    return createErrorResponse(error.message, 400);
-  }
-  
-  // For unknown errors, log them and return a generic error message
-  console.error('Unexpected error in edge function:', error);
-  
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-  
-  return createErrorResponse(
-    'An internal server error occurred',
-    500,
-    { originalError: errorMessage }
-  );
-}
-
-// Edge function utils that were missing from the exports
-export function handleEdgeFunctionError(error: unknown): Response {
-  return handleEdgeError(error);
-}
-
-export function handleCorsPreflightRequest(request: Request): Response | null {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
-  }
-  return null;
-}
-
-export function generateRequestId(): string {
-  return `req_${Math.random().toString(36).substring(2, 15)}`;
-}
-
-export function createSuccessResponse(data: any, status = 200): Response {
-  return new Response(
-    JSON.stringify({
-      data,
-      success: true
-    }),
-    {
+    JSON.stringify(responseData),
+    { 
       status,
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders
-      },
+      }
     }
   );
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-};
-
-export interface ErrorResponseData {
-  error: string;
-  details: any;
-  success: false;
+/**
+ * Create a standardized success response for edge functions
+ * @param data Response data
+ * @param status HTTP status code
+ * @param requestId Optional request ID for tracking
+ * @returns Success response
+ */
+export function createSuccessResponse<T>(data: T, status: number = 200, requestId?: string): Response {
+  const responseData: SuccessResponse<T> = {
+    success: true,
+    data,
+    timestamp: new Date().toISOString()
+  };
+  
+  if (requestId) {
+    responseData.requestId = requestId;
+  }
+  
+  return new Response(
+    JSON.stringify(responseData),
+    { 
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
 }
 
-export interface SuccessResponseData<T> {
-  data: T;
-  success: true;
+/**
+ * Create a standardized error response for edge functions
+ * @param message Error message
+ * @param details Additional error details
+ * @param status HTTP status code
+ * @param code Error code
+ * @param requestId Optional request ID for tracking
+ * @returns Error response
+ */
+export function createErrorResponse(
+  message: string, 
+  details?: any, 
+  status: number = 500,
+  code?: string,
+  requestId?: string
+): Response {
+  const responseData: ErrorResponse = {
+    success: false,
+    error: message,
+    timestamp: new Date().toISOString(),
+    status
+  };
+  
+  if (details !== undefined) {
+    responseData.details = details;
+  }
+  
+  if (code) {
+    responseData.code = code;
+  }
+  
+  if (requestId) {
+    responseData.requestId = requestId;
+  }
+  
+  return new Response(
+    JSON.stringify(responseData),
+    { 
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
 }
+
+/**
+ * Helper to create a unique request ID
+ */
+export function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
+ * Middleware to handle CORS preflight requests
+ */
+export function handleCorsPreflightRequest(): Response | null {
+  return new Response(null, { headers: corsHeaders });
+}
+
+// Export CORS headers for convenience
+export { corsHeaders };

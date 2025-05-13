@@ -1,18 +1,9 @@
 
-// Export types from the agent module
+// Re-export necessary types from the main type system
+export * from '../plugin';
 export * from '../agent';
-
-// Export types from the plugin module without PluginResult which would cause ambiguity
-export type { 
-  Plugin, 
-  PluginLog
-} from '../plugin';
-
-// Re-export strategy types
 export * from '../strategy';
-
-// Export types related to execution
-export * from './execution';
+export * from '../execution';
 
 // Re-export utility functions
 export { camelToSnake, camelToSnakeObject } from '@/lib/utils/dataConversion';
@@ -35,46 +26,23 @@ export interface ExecutionRecordInput {
   error?: string;
 }
 
+// Ensure the VoteType matches the shared type
+export type { PluginResult } from '../plugin';
+
 // We're aligning with the shared.ts definition to ensure consistency
-export type { VoteType } from '../shared';
+export { type VoteType } from '../shared';
 
 // Export these directly rather than re-exporting from shared to avoid conflicts
 export type { 
   UserRole,
+  NavigationItem,
   TrendDirection,
   SystemEventModule,
   SystemEventType,
+  OnboardingStep,
+  BaseEntity,
+  ExecutionParams,
+  ExecutionType,
   KPITrend,
-  DateRange
+  TenantFeature
 } from '../shared';
-
-// Define ExecuteStrategyInput interface
-export interface ExecuteStrategyInput {
-  strategyId: string;
-  tenantId: string;
-  userId?: string;
-  options?: Record<string, any>;
-}
-
-// Define the snake_case version for API compatibility
-export interface ExecuteStrategyInputSnakeCase {
-  strategy_id: string;
-  tenant_id: string;
-  user_id?: string;
-  options?: Record<string, any>;
-}
-
-// Define ExecuteStrategyResult interface
-export interface ExecuteStrategyResult {
-  success: boolean;
-  executionId?: string;
-  executionTime: number;
-  status: 'success' | 'partial' | 'failure' | 'error' | string;
-  error?: string;
-  pluginsExecuted?: number;
-  successfulPlugins?: number;
-  xpEarned?: number;
-  results?: any;
-  outputs?: any;
-  logs?: any[];
-}

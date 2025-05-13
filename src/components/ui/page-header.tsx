@@ -6,7 +6,6 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   actions?: React.ReactNode;
-  heading?: string; // For backwards compatibility
   className?: string;
 }
 
@@ -14,16 +13,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   description,
   actions,
-  heading,
   className,
 }) => {
-  // Use heading prop if title is not provided (for backward compatibility)
-  const displayTitle = title || heading;
-  
   return (
     <div className={cn('flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0', className)}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{displayTitle}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {description && (
           <p className="text-muted-foreground">{description}</p>
         )}

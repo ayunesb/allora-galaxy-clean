@@ -70,7 +70,7 @@ const EvolutionDashboard = () => {
         <div className="space-x-2">
           <Button
             variant="outline"
-            onClick={() => refetch()}
+            onClick={refetch}
             disabled={isLoading}
           >
             {isLoading ? 'Refreshing...' : 'Refresh'}
@@ -88,10 +88,10 @@ const EvolutionDashboard = () => {
 
         <TabsContent value="logs">
           <AuditLog 
+            title="System Activity Logs"
             data={logs}
             isLoading={isLoading}
-            onRefresh={() => refetch()}
-            title="System Activity Logs"
+            onRefresh={refetch}
           />
         </TabsContent>
 

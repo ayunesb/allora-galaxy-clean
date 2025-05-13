@@ -1,92 +1,57 @@
 
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { OnboardingFormData } from '@/types/onboarding';
+import { completeOnboarding } from '@/services/onboardingService';
+import { useAuth } from '@/context/AuthContext';
 
-// Mock service function until actual service is implemented
-const generateStrategiesService = async ({ tenantId, goals, industry }: { 
-  tenantId: string; 
-  goals: string[]; 
-  industry: string; 
-}) => {
-  // This would typically call a service function instead
-  try {
-    const { data, error } = await supabase.functions.invoke('generateStrategy', {
-      body: {
-        tenant_id: tenantId,
-        goals,
-        industry
-      }
-    });
-    
-    if (error) throw error;
-    
-    return { 
-      success: true, 
-      tenantId, 
-      data 
-    };
-  } catch (error: any) {
-    return { 
-      success: false, 
-      error: error.message || 'Failed to generate strategies' 
-    };
-  }
-};
+interface StrategyGenerationResult {
+  success: boolean;
+  error?: string;
+  tenantId?: string;
+  strategyId?: string;
+}
 
 export const useStrategyGeneration = () => {
-  const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-
-  const strategyGenerationMutation = useMutation({
-    mutationFn: generateStrategiesService,
-    onError: (error: any) => {
-      console.error('Strategy generation error:', error);
-      toast({
-        title: 'Strategy Generation Error',
-        description: error.message || 'Failed to generate strategies',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  });
+  const { user } = useAuth();
   
-  const generateStrategies = async (tenantId: string, goals: string[], industry: string) => {
+  /**
+   * Generate an initial strategy based on onboarding data
+   */
+  const generateStrategy = async (formData: OnboardingFormData): Promise<StrategyGenerationResult> => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+    
     setIsGenerating(true);
     
     try {
-      const result = await strategyGenerationMutation.mutateAsync({ tenantId, goals, industry });
+      const result = await completeOnboarding(user.id, formData);
       
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Failed to complete onboarding');
       }
       
-      // Show success toast
-      toast({
-        title: 'Strategies Generated',
-        description: 'Initial strategies have been created for your workspace.',
-      });
-      
-      return result.tenantId;
+      // Return the result with strategyId if available
+      return {
+        success: true,
+        tenantId: result.tenantId,
+        strategyId: result.strategyId || undefined
+      };
     } catch (error: any) {
       console.error('Strategy generation error:', error);
-      toast({
-        title: 'Strategy Generation Failed',
-        description: error.message || 'There was an error generating strategies.',
-        variant: 'destructive',
-      });
-      return false;
+      
+      return {
+        success: false,
+        error: error.message || 'Failed to generate strategy'
+      };
     } finally {
       setIsGenerating(false);
     }
   };
-  
+
   return {
-    generateStrategies,
-    isGenerating: isGenerating || strategyGenerationMutation.isPending,
-    error: strategyGenerationMutation.error
+    isGenerating,
+    generateStrategy
   };
 };
-
-export default useStrategyGeneration;

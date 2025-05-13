@@ -1,27 +1,18 @@
 
 import React from 'react';
-import { Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { BellOff } from 'lucide-react';
 
-interface NotificationCenterEmptyStateProps {
-  onRefresh?: () => Promise<void>;
-}
-
-const NotificationCenterEmptyState: React.FC<NotificationCenterEmptyStateProps> = ({ onRefresh }) => {
+const NotificationCenterEmptyState: React.FC = () => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Bell className="h-6 w-6 text-muted-foreground" />
+    <div className="flex flex-col items-center justify-center p-12 text-center">
+      <div className="rounded-full bg-muted p-3 mb-4">
+        <BellOff className="h-6 w-6 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-medium mb-2">No notifications</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="font-medium">No notifications</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-[250px]">
         You don't have any notifications at the moment.
+        New notifications will appear here.
       </p>
-      {onRefresh && (
-        <Button variant="outline" size="sm" onClick={onRefresh}>
-          Refresh
-        </Button>
-      )}
     </div>
   );
 };

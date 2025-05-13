@@ -1,39 +1,47 @@
 
 import { User, Session } from '@supabase/supabase-js';
 
-export interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  error: Error | null;
-  isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<AuthResult>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<AuthResult>;
-  signOut: () => Promise<AuthResult>;
-  resetPassword: (email: string) => Promise<AuthResult>;
-  updatePassword: (password: string) => Promise<AuthResult>;
-  refreshSession: () => Promise<AuthResult>;
-  checkUserRole: (tenantId: string, requiredRoles: string[]) => Promise<boolean | null>;
-}
-
-export interface AuthResult {
-  success: boolean;
-  error?: string;
-  data?: any;
-  user?: User | null;
-  session?: Session | null;
-}
+export interface AuthUser extends User {}
 
 export interface AuthError {
   message: string;
   status?: number;
-  code?: string;
 }
 
-export interface WeakPassword {
-  isWeak: boolean;
-  message?: string;
+export interface AuthSession {
+  user: AuthUser | null;
+  session: Session | null;
 }
 
-// Alias for backward compatibility
-export type AuthResponse = AuthResult;
+export interface AuthState extends AuthSession {
+  loading: boolean;
+  error: AuthError | null;
+}
+
+export interface SignInCredentials {
+  email: string;
+  password: string;
+}
+
+export interface SignUpCredentials extends SignInCredentials {
+  metadata?: Record<string, any>;
+}
+
+export interface AuthResponse {
+  user: AuthUser | null;
+  error: AuthError | null;
+}
+
+export interface AuthContextType {
+  user: AuthUser | null;
+  session: Session | null;
+  loading: boolean;
+  error: AuthError | null;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
+  signUp: (email: string, password: string, metadata?: object) => Promise<AuthResponse>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
+  refreshSession: () => Promise<void>;
+  checkUserRole: (role: string) => Promise<boolean>;
+}

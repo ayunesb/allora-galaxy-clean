@@ -2,9 +2,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { AuthResult } from './types';
+import { AuthResponse, AuthError } from './types';
 
-export async function signInWithEmailAndPassword(email: string, password: string): Promise<AuthResult> {
+export async function signInWithEmailAndPassword(email: string, password: string): Promise<AuthResponse> {
   try {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
@@ -26,7 +26,7 @@ export async function signInWithEmailAndPassword(email: string, password: string
       description: `Welcome back, ${data.user?.email}`,
     });
     
-    return { success: true, data, user: data.user, session: data.session };
+    return { user: data.user, error: null };
   } catch (err: any) {
     console.error('Error signing in:', err);
     
@@ -36,7 +36,7 @@ export async function signInWithEmailAndPassword(email: string, password: string
       variant: 'destructive',
     });
     
-    return { success: false, error: err.message || 'Failed to sign in' };
+    return { user: null, error: err };
   }
 }
 
@@ -44,7 +44,7 @@ export async function signUpWithEmailAndPassword(
   email: string, 
   password: string, 
   metadata?: object
-): Promise<AuthResult> {
+): Promise<AuthResponse> {
   try {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -69,7 +69,7 @@ export async function signUpWithEmailAndPassword(
       description: 'Please check your email to verify your account',
     });
     
-    return { success: true, data, user: data.user, session: data.session };
+    return { user: data.user, error: null };
   } catch (err: any) {
     console.error('Error signing up:', err);
     
@@ -79,11 +79,11 @@ export async function signUpWithEmailAndPassword(
       variant: 'destructive',
     });
     
-    return { success: false, error: err.message || 'Failed to sign up' };
+    return { user: null, error: err };
   }
 }
 
-export async function signOutUser(userId?: string): Promise<AuthResult> {
+export async function signOutUser(userId?: string): Promise<{ error: AuthError | null }> {
   try {
     const { error: signOutError } = await supabase.auth.signOut();
     
@@ -104,7 +104,7 @@ export async function signOutUser(userId?: string): Promise<AuthResult> {
       description: 'You have been signed out',
     });
     
-    return { success: true };
+    return { error: null };
   } catch (err: any) {
     console.error('Error signing out:', err);
     
@@ -114,11 +114,11 @@ export async function signOutUser(userId?: string): Promise<AuthResult> {
       variant: 'destructive',
     });
     
-    return { success: false, error: err.message || 'Failed to sign out' };
+    return { error: err };
   }
 }
 
-export async function resetUserPassword(email: string): Promise<AuthResult> {
+export async function resetUserPassword(email: string): Promise<{ error: AuthError | null }> {
   try {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/update-password`
@@ -133,7 +133,7 @@ export async function resetUserPassword(email: string): Promise<AuthResult> {
       description: 'Please check your email to reset your password',
     });
     
-    return { success: true };
+    return { error: null };
   } catch (err: any) {
     console.error('Error resetting password:', err);
     
@@ -143,11 +143,11 @@ export async function resetUserPassword(email: string): Promise<AuthResult> {
       variant: 'destructive',
     });
     
-    return { success: false, error: err.message || 'Failed to reset password' };
+    return { error: err };
   }
 }
 
-export async function updateUserPassword(newPassword: string): Promise<AuthResult> {
+export async function updateUserPassword(newPassword: string): Promise<{ error: AuthError | null }> {
   try {
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword
@@ -162,7 +162,7 @@ export async function updateUserPassword(newPassword: string): Promise<AuthResul
       description: 'Your password has been updated successfully',
     });
     
-    return { success: true };
+    return { error: null };
   } catch (err: any) {
     console.error('Error updating password:', err);
     
@@ -172,6 +172,6 @@ export async function updateUserPassword(newPassword: string): Promise<AuthResul
       variant: 'destructive',
     });
     
-    return { success: false, error: err.message || 'Failed to update password' };
+    return { error: err };
   }
 }

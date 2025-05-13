@@ -1,35 +1,50 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckCheck } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface NotificationsPageHeaderProps {
-  totalCount: number;
-  onMarkAllAsRead: () => Promise<void>;
+  activeFilter: string;
+  onFilterChange: (value: string) => void;
+  onMarkAllAsRead?: () => Promise<void>;
+  unreadCount?: number;
 }
 
-const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
-  totalCount,
-  onMarkAllAsRead
+export const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
+  activeFilter,
+  onFilterChange,
+  onMarkAllAsRead,
+  unreadCount = 0
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
-        <p className="text-muted-foreground mt-1">
-          You have {totalCount} {totalCount === 1 ? 'notification' : 'notifications'}
-        </p>
-      </div>
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b">
+      <Tabs value={activeFilter} onValueChange={onFilterChange} className="w-full sm:w-auto">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="unread">
+            Unread
+            {unreadCount > 0 && (
+              <span className="ml-1 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                {unreadCount}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
+        </TabsList>
+      </Tabs>
       
-      <Button 
-        variant="outline" 
-        onClick={onMarkAllAsRead}
-        disabled={totalCount === 0}
-        className="shrink-0"
-      >
-        <CheckCheck className="mr-2 h-4 w-4" />
-        Mark all as read
-      </Button>
+      {onMarkAllAsRead && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onMarkAllAsRead}
+          disabled={unreadCount === 0}
+          className="mt-4 sm:mt-0"
+        >
+          Mark all as read
+        </Button>
+      )}
     </div>
   );
 };

@@ -38,7 +38,24 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
         if (strategyError) throw strategyError;
 
         if (strategyData) {
-          const typedStrategy: Strategy = formatStrategy(strategyData);
+          const typedStrategy: Strategy = {
+            id: strategyData.id,
+            tenant_id: strategyData.tenant_id || '',
+            title: strategyData.title || '',
+            description: strategyData.description || '',
+            status: (strategyData.status as Strategy['status']) || 'draft',
+            created_by: strategyData.created_by || '',
+            created_at: strategyData.created_at || '',
+            approved_by: strategyData.approved_by || null,
+            approved_at: strategyData.approved_at || null,
+            rejected_by: strategyData.rejected_by || null,
+            rejected_at: strategyData.rejected_at || null,
+            priority: strategyData.priority as Strategy['priority'] || null,
+            tags: strategyData.tags || null,
+            completion_percentage: strategyData.completion_percentage || null,
+            due_date: strategyData.due_date || null,
+            updated_at: strategyData.updated_at || null
+          };
           
           setStrategy(typedStrategy);
         }
@@ -121,28 +138,6 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
     }
     
     return user.first_name || user.last_name || user.email || user.id?.substring(0, 8) + '...';
-  };
-
-  const formatStrategy = (strategy: any): Strategy => {
-    return {
-      id: strategy.id,
-      tenant_id: strategy.tenant_id,
-      title: strategy.title,
-      description: strategy.description,
-      status: strategy.status,
-      created_by: strategy.created_by,
-      created_at: strategy.created_at,
-      updated_at: strategy.updated_at,
-      approved_by: strategy.approved_by,
-      approved_at: strategy.approved_at,
-      rejected_by: strategy.rejected_by,
-      rejected_at: strategy.rejected_at,
-      priority: strategy.priority,
-      tags: strategy.tags,
-      due_date: strategy.due_date,
-      completion_percentage: strategy.completion_percentage,
-      metadata: {} // Add empty metadata to satisfy the type
-    };
   };
 
   if (loading) {

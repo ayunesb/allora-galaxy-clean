@@ -1,52 +1,60 @@
 
 /**
- * Safely get environment variables in a Deno Edge Function environment
- * with proper fallbacks for non-edge contexts
+ * Utilities for safely accessing environment variables in edge functions
  */
 
 /**
  * Safely get a Deno environment variable with fallback
- * @param name Environment variable name
- * @param fallback Fallback value if not found
- * @returns Environment variable value or fallback
+ * @param key Environment variable name
+ * @param defaultValue Default value if not found
+ * @returns The environment variable value or default
  */
-export function safeGetDenoEnv(name: string, fallback: string = ""): string {
+export function safeGetDenoEnv(key: string, defaultValue: string = ""): string {
   try {
-    // Use globalThis for safer Deno access
-    if (typeof globalThis !== "undefined" && 
-        typeof (globalThis as any).Deno !== "undefined" && 
-        typeof (globalThis as any).Deno.env !== "undefined" && 
-        (globalThis as any).Deno.env) {
-      return (globalThis as any).Deno.env.get(name) ?? fallback;
+    // First try Deno environment if available
+    if (typeof globalThis !== 'undefined') {
+      // Check if Deno exists before trying to access .env
+      // @ts-ignore - Accessing potential Deno property
+      const deno = globalThis.Deno;
+      // @ts-ignore - Deno is not recognized in TypeScript
+      if (deno?.env?.get) {
+        // @ts-ignore - Access Deno env
+        const value = deno.env.get(key);
+        if (value !== undefined) return value;
+      }
     }
     
-    // Fallback to process.env for non-Deno environments
-    // @ts-ignore - process.env may not exist in all contexts
-    return typeof process !== "undefined" && process.env ? (process.env[name] || fallback) : fallback;
+    // Fall back to process.env for Node environments
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+      return process.env[key] as string;
+    }
+    
+    return defaultValue;
   } catch (err) {
-    console.warn(`Error accessing env variable ${name}:`, err);
-    return fallback;
+    console.warn(`Error accessing environment variable ${key}:`, err);
+    return defaultValue;
   }
 }
 
 /**
- * Get environment variable for edge function with consistent fallback handling
- * @param name Environment variable name
- * @param fallback Fallback value if not found
- * @returns Environment variable value or fallback
+ * Get edge function environment variables
+ * @returns Environment variables object
  */
-export function getEdgeEnv(name: string, fallback: string = ""): string {
-  return safeGetDenoEnv(name, fallback);
+export function getEdgeEnv() {
+  return {
+    SUPABASE_URL: safeGetDenoEnv('SUPABASE_URL'),
+    SUPABASE_ANON_KEY: safeGetDenoEnv('SUPABASE_ANON_KEY'),
+    SUPABASE_SERVICE_KEY: safeGetDenoEnv('SUPABASE_SERVICE_ROLE_KEY'),
+  };
 }
 
 /**
- * Get the current edge function environment (development, test, production)
- * @returns Current environment name
+ * Get the current edge function environment (dev, staging, prod)
  */
-export function getEdgeEnvironment(): 'development' | 'test' | 'production' {
-  const env = safeGetDenoEnv("NODE_ENV", "development");
+export function getEdgeEnvironment(): 'development' | 'staging' | 'production' {
+  const envMode = safeGetDenoEnv('MODE', safeGetDenoEnv('NODE_ENV', 'development'));
   
-  if (env === 'test') return 'test';
-  if (env === 'production') return 'production';
+  if (envMode === 'production') return 'production';
+  if (envMode === 'staging') return 'staging';
   return 'development';
 }

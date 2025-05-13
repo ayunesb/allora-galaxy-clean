@@ -1,52 +1,85 @@
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { AiDecision } from '@/components/admin/ai-decisions/types';
-import { fetchAiDecisions } from '@/services/adminService';
+import { supabase } from '@/integrations/supabase/client';
+import { SystemLog, LogFilters } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
 
 export const useAiDecisionsData = () => {
-  const { tenantId } = useTenantId();
-  const { toast } = useToast();
-  const [decisions, setDecisions] = useState<AiDecision[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [decisions, setDecisions] = useState<SystemLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Fetch decisions data
-  const fetchData = async () => {
-    if (!tenantId) return;
-    
+  const [filters, setFilters] = useState<Partial<LogFilters>>({});
+  const { tenantId } = useTenantId();
+  
+  const fetchDecisions = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const data = await fetchAiDecisions({ tenant_id: tenantId, limit: 100 });
-      setDecisions(data);
+      let query = supabase
+        .from('system_logs')
+        .select('*')
+        .or('module.eq.agent,module.eq.strategy,event.eq.execute');
+      
+      // Apply tenant filter if applicable
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
+      
+      // Apply filters
+      if (filters.module) {
+        query = query.eq('module', filters.module);
+      }
+      
+      if (filters.event) {
+        query = query.eq('event', filters.event);
+      }
+      
+      if (filters.fromDate) {
+        query = query.gte('created_at', filters.fromDate);
+      }
+      
+      if (filters.toDate) {
+        query = query.lte('created_at', filters.toDate);
+      }
+      
+      if (filters.searchTerm) {
+        // Use ilike for case-insensitive search
+        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
+      }
+      
+      // Order by created_at DESC
+      query = query.order('created_at', { ascending: false });
+      
+      // Limit to 100 records
+      query = query.limit(100);
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      setDecisions(data || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch AI decisions');
-      toast({
-        title: 'Error loading AI decisions',
-        description: 'There was a problem loading the AI decisions data.',
-        variant: 'destructive',
-      });
+      console.error('Error fetching AI decisions:', err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Initial data fetch
+  
+  // Fetch decisions on mount and when filters change
   useEffect(() => {
-    if (tenantId) {
-      fetchData();
-    }
-  }, [tenantId]);
-
+    fetchDecisions();
+  }, [tenantId, filters]);
+  
   return {
     decisions,
     isLoading,
     error,
-    refetch: fetchData
+    filters,
+    setFilters,
+    refetch: fetchDecisions
   };
 };
-
-export default useAiDecisionsData;

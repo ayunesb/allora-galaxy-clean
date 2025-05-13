@@ -1,71 +1,146 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, AlertCircle, Check, Info, Zap } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Notification, NotificationType } from '@/types/notifications';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatRelativeDate } from '@/lib/utils/date';
+import { NotificationContent } from '@/types/notifications';
+import { 
+  Bell, 
+  CheckCircle, 
+  AlertCircle, 
+  X, 
+  Info, 
+  AlertTriangle,
+  ExternalLink
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NotificationItemProps {
-  notification: Notification;
-  onMarkAsRead: (id: string) => void;
+  notification: NotificationContent;
+  onMarkAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
+  onDelete
 }) => {
-  const { id, title, message, type, read, createdAt, action } = notification;
-
-  const Icon = () => {
-    switch (type) {
-      case NotificationType.Strategy:
-        return <Zap className="h-4 w-4" />;
-      case NotificationType.Agent:
-        return <Info className="h-4 w-4" />;
-      case NotificationType.Error:
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case NotificationType.Update:
-        return <Check className="h-4 w-4 text-green-500" />;
+  // Get the appropriate icon based on notification type
+  const getIcon = () => {
+    switch (notification.type) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'error':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'info':
+        return <Info className="h-5 w-5 text-blue-500" />;
+      case 'system':
+        return <Bell className="h-5 w-5 text-purple-500" />;
       default:
-        return <Bell className="h-4 w-4" />;
+        return <Bell className="h-5 w-5 text-gray-500" />;
     }
   };
 
+  const handleMarkAsRead = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!notification.read) {
+      await onMarkAsRead(notification.id);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      await onDelete(notification.id);
+    }
+  };
+
+  const handleActionClick = () => {
+    if (!notification.read) {
+      onMarkAsRead(notification.id);
+    }
+  };
+
+  const formattedDate = (() => {
+    try {
+      const date = new Date(notification.timestamp);
+      return format(date, 'MMM d, h:mm a');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return notification.timestamp;
+    }
+  })();
+
   return (
-    <Card className={`mb-2 ${!read ? 'border-l-4 border-l-primary' : ''}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-4">
-            <div className="mt-1">
-              <Icon />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <h4 className="font-semibold">{title}</h4>
-                {!read && <Badge variant="outline">New</Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground">{message}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatRelativeDate(new Date(createdAt))}
-              </p>
-            </div>
+    <Card 
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-accent/50",
+        !notification.read && "border-l-4 border-l-primary"
+      )}
+      onClick={handleMarkAsRead}
+    >
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <div className="pt-1">
+            {getIcon()}
           </div>
-          <div className="flex space-x-2">
-            {action && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={action.url}>{action.label}</Link>
+          
+          <div className="flex-1">
+            <div className="font-medium leading-tight">
+              {notification.title}
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {notification.message}
+            </div>
+            
+            {notification.action_url && notification.action_label && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="p-0 h-auto mt-1 text-sm flex items-center"
+                onClick={handleActionClick}
+                asChild
+              >
+                <a 
+                  href={notification.action_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  {notification.action_label} <ExternalLink className="ml-1 h-3 w-3" />
+                </a>
               </Button>
             )}
-            {!read && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onMarkAsRead(id)}
+            
+            <div className="text-xs text-muted-foreground mt-1">
+              {formattedDate}
+            </div>
+          </div>
+          
+          <div className="flex gap-1">
+            {!notification.read && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-6 w-6"
+                onClick={handleMarkAsRead}
               >
-                Mark Read
+                <CheckCircle className="h-4 w-4" />
+                <span className="sr-only">Mark as read</span>
+              </Button>
+            )}
+            
+            {onDelete && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-6 w-6 text-destructive"
+                onClick={handleDelete}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
               </Button>
             )}
           </div>

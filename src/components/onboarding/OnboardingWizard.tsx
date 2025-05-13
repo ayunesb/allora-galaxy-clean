@@ -4,7 +4,7 @@ import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { OnboardingStep } from '@/types/onboarding';
 
 // Define steps for the onboarding process
 const STEPS = [
@@ -24,15 +24,12 @@ const OnboardingWizard: React.FC = () => {
     updateFormData,
     nextStep,
     prevStep,
-    completeOnboarding
+    handleSubmit
   } = useOnboardingWizard();
 
   // Helper function to get current step index
   const getCurrentStepIndex = (): number => {
-    const stepIndex = typeof currentStep === 'number' 
-      ? currentStep 
-      : STEPS.findIndex(step => step.id === currentStep);
-    return stepIndex >= 0 ? stepIndex : 0;
+    return STEPS.findIndex(step => step.id === currentStep);
   };
 
   // Helper function to determine if the next button should be disabled
@@ -44,11 +41,6 @@ const OnboardingWizard: React.FC = () => {
   // Create a wrapper for updateFormData to match the expected signature
   const handleUpdateFormData = (data: Partial<OnboardingFormData>) => {
     updateFormData(data);
-  };
-  
-  // Handle submission with Promise wrapper
-  const handleSubmit = async (): Promise<void> => {
-    await Promise.resolve(completeOnboarding());
   };
   
   return (
@@ -65,7 +57,7 @@ const OnboardingWizard: React.FC = () => {
       {/* Form content */}
       <div className="flex-1 overflow-y-auto my-6 px-4 md:px-0">
         <StepContent 
-          step={typeof currentStep === 'number' ? STEPS[currentStep]?.id || 'welcome' : currentStep}
+          step={currentStep}
           formData={formData}
           updateFormData={handleUpdateFormData}
           isGenerating={isGenerating}

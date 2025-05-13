@@ -1,69 +1,54 @@
 
-import React, { useCallback, memo } from 'react';
-import { Notification } from '@/types/notifications';
+import React from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { NotificationContent } from '@/types/notifications';
 import NotificationItem from './NotificationItem';
 
 interface NotificationListProps {
-  notifications: Notification[];
-  filter?: string;
-  markAsRead: (id: string) => Promise<void>;
+  notifications: NotificationContent[];
+  onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  filter?: string;
   loading?: boolean;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
-  filter,
-  markAsRead,
+  onMarkAsRead,
   onDelete,
-  loading = false
+  filter,
+  loading
 }) => {
-  // Memoized handler function for marking notifications as read
-  const handleMarkAsRead = useCallback((id: string) => {
-    return markAsRead(id);
-  }, [markAsRead]);
-  
-  // Memoized handler function for deleting notifications
-  const handleDelete = useCallback((id: string) => {
-    return onDelete ? onDelete(id) : Promise.resolve();
-  }, [onDelete]);
-  
   if (loading) {
-    return <div className="p-4 text-center text-muted-foreground">Loading notifications...</div>;
-  }
-  
-  if (notifications.length === 0) {
     return (
-      <div className="p-4 text-center text-muted-foreground">
-        No {filter !== 'all' ? filter + ' ' : ''}notifications found
+      <div className="p-8 flex justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
-  
+
+  if (notifications.length === 0) {
+    return (
+      <div className="py-6 text-center text-muted-foreground">
+        <p>No {filter !== 'all' ? filter : ''} notifications</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="divide-y">
-      {notifications.map((notification) => (
-        <MemoizedNotificationItem
-          key={notification.id}
-          notification={{
-            id: notification.id,
-            title: notification.title,
-            message: notification.message || notification.description || '',
-            timestamp: notification.created_at,
-            read: !!notification.read_at,
-            type: notification.type as any,
-            action_url: notification.action_url,
-            action_label: notification.action_label
-          }}
-          onMarkAsRead={handleMarkAsRead}
-          onDelete={handleDelete}
-        />
-      ))}
-    </div>
+    <ScrollArea className="max-h-[500px]">
+      <div className="divide-y">
+        {notifications.map((notification) => (
+          <NotificationItem
+            key={notification.id}
+            notification={notification}
+            onMarkAsRead={onMarkAsRead}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    </ScrollArea>
   );
 };
 
-// Memoize the NotificationItem component to prevent unnecessary re-renders
-const MemoizedNotificationItem = memo(NotificationItem);
-
-export default memo(NotificationList);
+export default NotificationList;

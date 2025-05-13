@@ -1,120 +1,76 @@
 
 import React from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useEffect } from 'react';
-import { useNotifications, useMarkAllNotificationsAsRead } from '@/services/notificationService';
-import { Notification } from '@/types/notifications';
+import { Notification, NotificationType } from '@/types/notifications';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
-import NotificationCenterHeader from './NotificationCenterHeader';
 import NotificationCenterLoading from './NotificationCenterLoading';
-import useAuth from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 import NotificationCenterTabs from './NotificationCenterTabs';
+import { NotificationContent } from '@/types/notifications';
 
-interface NotificationCenterContentProps {
+export interface NotificationCenterContentProps {
+  notifications: Notification[];
+  markAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  loading?: boolean;
+  onMarkAllAsRead?: () => Promise<void>;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
-  notifications?: Notification[];
-  markAsRead?: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
-  onMarkAllAsRead?: () => Promise<void>;
 }
 
-const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({ 
-  activeFilter, 
-  setActiveFilter,
-  notifications: externalNotifications,
-  markAsRead: externalMarkAsRead,
-  onDelete: externalOnDelete,
-  onMarkAllAsRead: externalOnMarkAllAsRead
+const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
+  notifications,
+  markAsRead,
+  onDelete,
+  loading = false,
+  onMarkAllAsRead,
+  activeFilter,
+  setActiveFilter
 }) => {
-  const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
-  const { user } = useAuth();
-  
-  const tenantId = currentWorkspace?.id;
-  const userId = user?.id;
-  
-  const {
-    data: fetchedNotifications = [],
-    isLoading,
-    refetch
-  } = useNotifications({
-    user_id: userId,
-    tenant_id: tenantId
-  });
-  
-  // Use externally provided notifications or fetched ones
-  const notifications = externalNotifications || fetchedNotifications;
-  
-  const unreadCount = notifications.filter(n => !n.read_at).length;
-  
-  const markAllAsMutation = useMarkAllNotificationsAsRead();
-  
-  const handleMarkAllAsRead = async () => {
-    if (externalOnMarkAllAsRead) {
-      await externalOnMarkAllAsRead();
-      return;
-    }
-    
-    if (!userId || !tenantId) return;
-    
-    await markAllAsMutation.mutateAsync({
-      userId,
-      tenantId
-    });
-  };
-
-  // Ensure externalMarkAsRead is a function with the right signature
-  const markAsReadHandler = async (id: string): Promise<void> => {
-    if (externalMarkAsRead) {
-      return externalMarkAsRead(id);
-    }
-  };
-  
-  // Refresh notifications when the workspace changes
-  useEffect(() => {
-    if (tenantId && !externalNotifications) {
-      refetch();
-    }
-  }, [tenantId, refetch, externalNotifications]);
-  
-  // Poll for new notifications
-  useEffect(() => {
-    if (externalNotifications) return; // Skip polling if notifications are provided externally
-    
-    const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', { user_id: userId, tenant_id: tenantId }] });
-    }, 30000); // Every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, [userId, tenantId, queryClient, externalNotifications]);
-  
-  if (isLoading && !externalNotifications) {
+  if (loading) {
     return <NotificationCenterLoading />;
   }
-  
+
   if (notifications.length === 0) {
-    return <NotificationCenterEmptyState onRefresh={refetch} />;
+    return <NotificationCenterEmptyState />;
   }
-  
+
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  // Map to UI-ready format
+  const notificationItems: NotificationContent[] = notifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.description || '',
+    timestamp: notification.created_at,
+    read: notification.is_read || false,
+    type: notification.type as NotificationType,
+    action_url: notification.action_url,
+    action_label: notification.action_label,
+  }));
+
   return (
-    <div className="flex flex-col h-full">
-      <NotificationCenterHeader
+    <div className="space-y-2">
+      {onMarkAllAsRead && unreadCount > 0 && (
+        <div className="flex justify-end p-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onMarkAllAsRead()}
+          >
+            Mark all as read
+          </Button>
+        </div>
+      )}
+      
+      <NotificationCenterTabs 
+        value={activeFilter}
+        onValueChange={setActiveFilter}
+        notifications={notificationItems}
         unreadCount={unreadCount}
-        onMarkAllAsRead={handleMarkAllAsRead}
-        isMarking={markAllAsMutation.isPending}
+        onMarkAsRead={markAsRead}
+        onDelete={onDelete}
       />
-      <div className="flex-1 overflow-y-auto">
-        <NotificationCenterTabs
-          notifications={notifications}
-          markAsRead={markAsReadHandler}
-          onDelete={externalOnDelete}
-          unreadCount={unreadCount}
-          value={activeFilter}
-          onValueChange={setActiveFilter}
-        />
-      </div>
     </div>
   );
 };

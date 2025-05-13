@@ -1,7 +1,18 @@
 
-import { corsHeaders } from "./errorHandling.ts";
+// Validation utilities for executeStrategy function
 
-export interface ExecuteStrategyInput {
+/**
+ * Cors headers
+ */
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+/**
+ * Request body structure for executeStrategy
+ */
+export interface ExecuteRequest {
   strategy_id: string;
   tenant_id: string;
   user_id?: string;
@@ -9,26 +20,31 @@ export interface ExecuteStrategyInput {
 }
 
 /**
- * Validate and parse the execute strategy request
- * @param req Request object
- * @returns Tuple of [parsed input, error message]
+ * Helper function to safely get environment variables with fallbacks
  */
-export async function validateExecuteStrategyRequest(
-  req: Request
-): Promise<[ExecuteStrategyInput | null, string | null]> {
-  // Parse request body
-  let input: ExecuteStrategyInput;
+export function getEnv(name: string, fallback: string = ""): string {
   try {
-    input = await req.json();
-  } catch (parseError) {
-    return [null, "Invalid JSON in request body"];
+    // First try Deno.env if available
+    if (typeof Deno !== "undefined" && typeof Deno.env !== "undefined" && Deno.env) {
+      return Deno.env.get(name) ?? fallback;
+    }
+    // Fallback to process.env for non-Deno environments
+    return process.env[name] || fallback;
+  } catch (err) {
+    console.error(`Error accessing env variable ${name}:`, err);
+    return fallback;
   }
-  
-  // Validate input
+}
+
+/**
+ * Function to validate input
+ */
+export function validateInput(input: any): { valid: boolean; errors?: string[] } {
   const errors: string[] = [];
   
   if (!input) {
-    return [null, "Request body is required"];
+    errors.push("Request body is required");
+    return { valid: false, errors };
   }
   
   if (!input.strategy_id) {
@@ -39,11 +55,5 @@ export async function validateExecuteStrategyRequest(
     errors.push("tenant_id is required");
   }
   
-  if (errors.length > 0) {
-    return [null, errors.join(", ")];
-  }
-  
-  return [input, null];
+  return { valid: errors.length === 0, errors };
 }
-
-export { corsHeaders };

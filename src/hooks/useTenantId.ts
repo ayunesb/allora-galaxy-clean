@@ -1,5 +1,5 @@
 
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspace } from "@/context/WorkspaceContext";
 
 interface UseTenantIdResult {
   tenantId: string | undefined;
@@ -7,10 +7,10 @@ interface UseTenantIdResult {
 }
 
 export function useTenantId(): UseTenantIdResult {
-  const { currentWorkspace, loading } = useWorkspace();
+  const { currentTenant, loading } = useWorkspace();
   
   return {
-    tenantId: currentWorkspace?.id,
+    tenantId: currentTenant?.id,
     isLoading: loading
   };
 }

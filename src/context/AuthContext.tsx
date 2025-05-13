@@ -1,33 +1,28 @@
 
-import { createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
+import useAuthHook from '@/hooks/useAuth';
 import { AuthContextType } from '@/lib/auth/types';
 
-/**
- * AuthContext provides authentication state and methods to the React component tree
- */
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  loading: true,
-  error: null,
-  isAuthenticated: false,
-  signIn: async () => ({ success: false, error: 'Not implemented' }),
-  signUp: async () => ({ success: false, error: 'Not implemented' }),
-  signOut: async () => ({ success: false, error: 'Not implemented' }),
-  resetPassword: async () => ({ success: false, error: 'Not implemented' }),
-  updatePassword: async () => ({ success: false, error: 'Not implemented' }),
-  refreshSession: async () => ({ success: false, error: 'Not implemented' }),
-  checkUserRole: async () => null
-});
+// Create the context with undefined as initial value
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * AuthProvider component to wrap the app and provide authentication context
- */
-export const AuthProvider = AuthContext.Provider;
+// Custom hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-/**
- * useAuth hook to access the authentication context
- */
-export const useAuth = (): AuthContextType => {
-  return useContext(AuthContext);
+// Auth provider component
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Use the implementation from hooks/useAuth.tsx
+  const auth = useAuthHook();
+  
+  return (
+    <AuthContext.Provider value={auth}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

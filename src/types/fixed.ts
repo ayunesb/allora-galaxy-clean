@@ -1,8 +1,4 @@
-
-/**
- * Types for strategy execution
- */
-
+// Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
   tenantId: string;
@@ -10,6 +6,23 @@ export interface ExecuteStrategyInput {
   options?: Record<string, any>;
 }
 
+// Define the result interface for a strategy execution (camelCase version)
+export interface ExecuteStrategyResult {
+  success: boolean;
+  error?: string;
+  executionId?: string;
+  executionTime?: number;
+  outputs?: Record<string, any>;
+  results?: Record<string, any>;
+  logs?: Array<any>;
+  status?: string;
+  details?: any;
+  xpEarned?: number;
+  pluginsExecuted?: number;
+  successfulPlugins?: number;
+}
+
+// Define snake case versions for edge functions
 export interface ExecuteStrategyInputSnakeCase {
   strategy_id: string;
   tenant_id: string;
@@ -17,52 +30,23 @@ export interface ExecuteStrategyInputSnakeCase {
   options?: Record<string, any>;
 }
 
-export interface ExecuteStrategyResult {
+export interface ExecuteStrategyResultSnakeCase {
   success: boolean;
-  executionId?: string;
-  executionTime: number;
-  status: 'success' | 'partial' | 'failure' | 'error' | string;
   error?: string;
-  pluginsExecuted?: number;
-  successfulPlugins?: number;
-  xpEarned?: number;
-  results?: any;
-  outputs?: any;
-  logs?: any[];
-}
-
-/**
- * Types for strategy execution options
- */
-export interface StrategyExecutionOptions {
-  dryRun?: boolean;
-  debug?: boolean;
-  context?: Record<string, any>;
-  maxPlugins?: number;
-  timeout?: number;
-}
-
-/**
- * Types for plugin execution
- */
-export interface PluginExecutionResult {
-  success: boolean;
-  plugin_id: string;
+  execution_id?: string;
   execution_time?: number;
+  outputs?: Record<string, any>;
+  results?: Record<string, any>;
+  logs?: Array<any>;
+  status?: string;
+  details?: any;
   xp_earned?: number;
-  output?: any;
-  error?: string;
+  plugins_executed?: number;
+  successful_plugins?: number;
 }
 
-/**
- * Types for agent execution
- */
-export interface AgentExecutionResult {
-  success: boolean;
-  agent_id: string;
-  agent_version_id: string;
-  execution_time?: number;
-  xp_earned?: number;
-  output?: any;
-  error?: string;
+// Add DateRange type for our filters
+export interface DateRange {
+  from: Date;
+  to?: Date;
 }

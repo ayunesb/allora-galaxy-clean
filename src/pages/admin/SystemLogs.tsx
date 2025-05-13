@@ -1,99 +1,53 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { SystemLogFilterState, LogFilters } from '@/types/logs';
-import { SystemLogFilter, SystemLogTable } from '@/components/admin/system-logs';
-import { useTenantId } from '@/hooks/useTenantId';
-import { useSystemLogs } from '@/services/logService';
+import { Card, CardContent } from '@/components/ui/card';
+import SystemLogsList from '@/components/admin/logs/SystemLogsList';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
+import { SystemLog } from '@/types/logs';
 
-const SystemLogs = () => {
-  const { tenantId } = useTenantId();
-  const [filters, setFilters] = useState<SystemLogFilterState>({
-    module: '',
-    event: '',
-    searchTerm: '',
-    fromDate: null,
-    toDate: null
-  });
+const SystemLogs: React.FC = () => {
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   
-  const logFilters: LogFilters = {
-    tenant_id: tenantId,
-    module: filters.module || undefined,
-    event: filters.event || undefined,
-    searchTerm: filters.searchTerm || undefined,
-    fromDate: filters.fromDate || undefined,
-    toDate: filters.toDate || undefined,
-    limit: 100
-  };
+  const { logs, isLoading, filters, setFilters, refetch } = useSystemLogsData();
   
-  const { 
-    data: logs = [], 
-    isLoading, 
-    refetch,
-    isFetching
-  } = useSystemLogs(logFilters);
-  
-  const handleFilterChange = (newFilters: SystemLogFilterState) => {
-    setFilters(newFilters);
-  };
-  
-  const handleResetFilters = () => {
-    setFilters({
-      module: '',
-      event: '',
-      searchTerm: '',
-      fromDate: null,
-      toDate: null
-    });
+  const handleViewLog = (log: SystemLog) => {
+    setSelectedLog(log);
+    setDialogOpen(true);
   };
   
   return (
-    <div className="container mx-auto py-8">
+    <div className="container py-6">
       <PageHeader
         title="System Logs"
-        description="View and analyze system logs across all components."
-        actions={
-          <Button
-            variant="outline"
-            onClick={() => refetch()}
-            disabled={isLoading || isFetching}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        }
+        description="View and filter system events and activities"
       />
       
-      <div className="space-y-6">
-        <SystemLogFilter
-          onChange={(newFilters: LogFilters) => {
-            // Convert LogFilters to SystemLogFilterState
-            handleFilterChange({
-              module: newFilters.module || '',
-              event: newFilters.event || '',
-              searchTerm: newFilters.searchTerm || '',
-              fromDate: newFilters.fromDate || null,
-              toDate: newFilters.toDate || null
-            });
-          }}
-          initialFilters={logFilters}
-        />
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Log Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SystemLogTable 
-              logs={logs} 
-              isLoading={isLoading || isFetching} 
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <SystemLogFilters 
+        filters={filters} 
+        onFilterChange={setFilters} 
+        isLoading={isLoading}
+        onRefresh={refetch}
+      />
+      
+      <Card className="mt-6">
+        <CardContent className="p-0 sm:p-6">
+          <SystemLogsList 
+            logs={logs} 
+            isLoading={isLoading} 
+            onViewLog={handleViewLog}
+          />
+        </CardContent>
+      </Card>
+      
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+      />
     </div>
   );
 };

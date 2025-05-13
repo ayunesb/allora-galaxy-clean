@@ -1,119 +1,90 @@
 
 import { useState } from 'react';
-import { OnboardingFormData } from '@/types/onboarding/types';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/components/ui/use-toast';
-import useAuth from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { OnboardingFormData } from '@/types/onboarding';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { sendNotification } from '@/lib/notifications/sendNotification';
+import { completeOnboarding } from '@/services/onboardingService';
 
-export const useOnboardingSubmission = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+/**
+ * Hook for managing onboarding form submission
+ */
+export function useOnboardingSubmission() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const submitOnboarding = async (data: OnboardingFormData) => {
+  const handleSubmit = async (formData: OnboardingFormData) => {
     if (!user) {
-      setError('User not authenticated');
+      setError('User must be logged in to complete onboarding');
       toast({
         title: 'Authentication Error',
-        description: 'You must be logged in to complete onboarding.',
-        variant: 'destructive',
+        description: 'You must be logged in to complete onboarding',
+        variant: 'destructive'
       });
       return false;
     }
 
     try {
-      setLoading(true);
+      setIsSubmitting(true);
       setError(null);
-
-      // Create tenant record
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name: data.companyName || data.companyInfo?.name || 'New Company',
-          owner_id: user.id,
-          created_by: user.id,
-          active: true
-        })
-        .select('id')
-        .single();
-
-      if (tenantError) {
-        throw new Error(`Error creating tenant: ${tenantError.message}`);
-      }
-
-      const tenantId = tenantData.id;
-
-      // Add user as owner of tenant
-      const { error: roleError } = await supabase
-        .from('tenant_user_roles')
-        .insert({
-          tenant_id: tenantId,
-          user_id: user.id,
-          role: 'owner',
-          created_by: user.id,
-        });
-
-      if (roleError) {
-        throw new Error(`Error assigning role: ${roleError.message}`);
-      }
-
-      // Create company profile
-      const { error: profileError } = await supabase
-        .from('company_profiles')
-        .insert({
-          tenant_id: tenantId,
-          name: data.companyName || data.companyInfo?.name || 'New Company',
-          industry: data.industry || data.companyInfo?.industry || '',
-          size: data.companySize || data.companyInfo?.size || '',
-          goals: data.goals || [],
-          created_by: user.id,
-        });
-
-      if (profileError) {
-        throw new Error(`Error creating profile: ${profileError.message}`);
-      }
-
-      // Mark onboarding as complete
-      const { error: userError } = await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', user.id);
-
-      if (userError) {
-        throw new Error(`Error updating profile: ${userError.message}`);
-      }
-
-      // Success, redirect to dashboard
-      toast({
-        title: 'Onboarding Complete',
-        description: 'Your workspace is ready!',
-      });
-
-      navigate('/dashboard');
-      return true;
-    } catch (err: any) {
-      console.error('Onboarding submission error:', err);
-      setError(err.message);
       
+      // Complete the onboarding process
+      const result = await completeOnboarding(user.id, formData);
+      
+      if (result.success && result.tenantId) {
+        // Send notification
+        await sendNotification({
+          title: 'Welcome to Allora OS',
+          description: 'Your workspace is ready! We\'ve created your initial strategy.',
+          type: 'success',
+          tenant_id: result.tenantId,
+          user_id: user.id,
+          action_label: 'View Dashboard',
+          action_url: '/dashboard'
+        }).catch(err => {
+          console.warn('Failed to send welcome notification:', err);
+          // Non-critical error, continue with onboarding success
+        });
+        
+        toast({
+          title: 'Welcome to Allora OS!',
+          description: 'Your workspace has been created successfully.',
+        });
+        
+        return true;
+      } else {
+        setError(result.error || 'Failed to create workspace');
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to create workspace',
+          variant: 'destructive',
+        });
+        return false;
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
       toast({
-        title: 'Onboarding Error',
-        description: err.message || 'An error occurred during onboarding.',
+        title: 'Error',
+        description: err.message || 'An unexpected error occurred',
         variant: 'destructive',
       });
-      
+      console.error('Onboarding error:', err);
       return false;
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  return {
-    submitOnboarding,
-    loading,
-    error,
+  const resetError = () => {
+    setError(null);
   };
-};
 
-export default useOnboardingSubmission;
+  return {
+    isSubmitting,
+    error,
+    handleSubmit,
+    resetError
+  };
+}

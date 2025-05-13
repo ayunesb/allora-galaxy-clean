@@ -51,44 +51,46 @@ export const validateStep = (formData: OnboardingFormData, step: string): boolea
 };
 
 /**
- * Merge partial form data with existing data without duplicating properties
+ * Merge partial form data with existing data
  */
 export const mergeFormData = (
   existing: OnboardingFormData,
   partial: Partial<OnboardingFormData>
 ): OnboardingFormData => {
-  // Create a new object to avoid mutation
-  const result = { ...existing };
-  
-  // Process top-level properties first
-  Object.keys(partial).forEach(key => {
-    if (key !== 'companyInfo' && key !== 'persona' && key !== 'additionalInfo') {
-      // @ts-ignore - Dynamic keys
-      result[key] = partial[key];
+  // Create a new object with merged properties
+  const merged: OnboardingFormData = {
+    ...existing,
+    ...partial,
+    
+    // Handle nested objects properly with default values
+    companyInfo: {
+      name: '',
+      industry: '',
+      size: '',
+      ...(existing.companyInfo || {}),
+      ...(partial.companyInfo || {})
+    },
+    
+    persona: {
+      name: '',
+      goals: [],
+      tone: '',
+      ...(existing.persona || {}),
+      ...(partial.persona || {})
+    },
+    
+    additionalInfo: {
+      targetAudience: '',
+      keyCompetitors: '',
+      uniqueSellingPoints: '',
+      ...(existing.additionalInfo && typeof existing.additionalInfo === 'object' 
+        ? existing.additionalInfo 
+        : {}),
+      ...(partial.additionalInfo && typeof partial.additionalInfo === 'object' 
+        ? partial.additionalInfo 
+        : {})
     }
-  });
+  };
   
-  // Process nested structures only if they exist in the partial update
-  if (partial.companyInfo) {
-    result.companyInfo = {
-      ...existing.companyInfo,
-      ...partial.companyInfo
-    };
-  }
-  
-  if (partial.persona) {
-    result.persona = {
-      ...existing.persona,
-      ...partial.persona
-    };
-  }
-  
-  if (partial.additionalInfo && typeof partial.additionalInfo === 'object') {
-    result.additionalInfo = {
-      ...existing.additionalInfo,
-      ...partial.additionalInfo
-    };
-  }
-  
-  return result;
+  return merged;
 };

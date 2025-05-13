@@ -1,27 +1,30 @@
 
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
-interface UseCopyResult {
-  copy: (text: string) => void;
-  copied: boolean;
-}
-
-export function useCopy(resetInterval = 2000): UseCopyResult {
+export const useCopy = () => {
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback((text: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => {
+    if (!navigator.clipboard) {
+      console.error('Clipboard API not available');
+      toast.error('Clipboard API not available in your browser');
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
         setCopied(true);
-        setTimeout(() => setCopied(false), resetInterval);
-      },
-      (err) => {
-        console.error('Failed to copy text: ', err);
-      }
-    );
-  }, [resetInterval]);
+        toast.success('Copied to clipboard');
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        toast.error('Could not copy to clipboard');
+      });
+  }, []);
 
   return { copy, copied };
-}
+};
 
 export default useCopy;
