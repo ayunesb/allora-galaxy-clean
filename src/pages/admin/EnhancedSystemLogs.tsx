@@ -14,15 +14,11 @@ const EnhancedSystemLogs: React.FC = () => {
   const {
     logs,
     isLoading,
-    refetch
+    refetch: refreshLogs
   } = useSystemLogs(filters);
   
   const handleFilterChange = (newFilters: LogFilters) => {
     setFilters(newFilters);
-  };
-  
-  const handleResetFilters = () => {
-    setFilters({ limit: 100 });
   };
   
   const handleViewDetails = (log: SystemLog) => {

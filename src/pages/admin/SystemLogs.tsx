@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import { SystemLogFilterState } from '@/types/logs';
+import { SystemLogFilterState, LogFilters } from '@/types/logs';
 import { SystemLogFilter, SystemLogTable } from '@/components/admin/system-logs';
 import { useTenantId } from '@/hooks/useTenantId';
 import { useSystemLogs } from '@/services/logService';
@@ -19,20 +19,22 @@ const SystemLogs = () => {
     toDate: null
   });
   
+  const logFilters: LogFilters = {
+    tenant_id: tenantId,
+    module: filters.module || undefined,
+    event: filters.event || undefined,
+    searchTerm: filters.searchTerm || undefined,
+    fromDate: filters.fromDate || undefined,
+    toDate: filters.toDate || undefined,
+    limit: 100
+  };
+  
   const { 
     data: logs = [], 
     isLoading, 
     refetch,
     isFetching
-  } = useSystemLogs({
-    tenant_id: tenantId,
-    module: filters.module || undefined,
-    event: filters.event || undefined,
-    search: filters.searchTerm || undefined,
-    date_from: filters.fromDate || undefined,
-    date_to: filters.toDate || undefined,
-    limit: 100
-  });
+  } = useSystemLogs(logFilters);
   
   const handleFilterChange = (newFilters: SystemLogFilterState) => {
     setFilters(newFilters);
@@ -67,9 +69,17 @@ const SystemLogs = () => {
       
       <div className="space-y-6">
         <SystemLogFilter
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={handleResetFilters}
+          onChange={(newFilters: LogFilters) => {
+            // Convert LogFilters to SystemLogFilterState
+            handleFilterChange({
+              module: newFilters.module || '',
+              event: newFilters.event || '',
+              searchTerm: newFilters.searchTerm || '',
+              fromDate: newFilters.fromDate || null,
+              toDate: newFilters.toDate || null
+            });
+          }}
+          initialFilters={logFilters}
         />
         
         <Card>

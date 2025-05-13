@@ -62,3 +62,55 @@ export function handleEdgeError(error: unknown): Response {
     { originalError: errorMessage }
   );
 }
+
+// Edge function utils that were missing from the exports
+export function handleEdgeFunctionError(error: unknown): Response {
+  return handleEdgeError(error);
+}
+
+export function handleCorsPreflightRequest(request: Request): Response | null {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: corsHeaders,
+    });
+  }
+  return null;
+}
+
+export function generateRequestId(): string {
+  return `req_${Math.random().toString(36).substring(2, 15)}`;
+}
+
+export function createSuccessResponse(data: any, status = 200): Response {
+  return new Response(
+    JSON.stringify({
+      data,
+      success: true
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      },
+    }
+  );
+}
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+export interface ErrorResponseData {
+  error: string;
+  details: any;
+  success: false;
+}
+
+export interface SuccessResponseData<T> {
+  data: T;
+  success: true;
+}

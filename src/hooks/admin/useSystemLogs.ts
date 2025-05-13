@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchSystemLogs, fetchLogModules, fetchLogEvents } from '@/services/logService';
-import { SystemLog, LogFilters } from '@/types/logs';
+import { LogFilters } from '@/types/logs';
 
 export const useSystemLogs = (initialFilters: LogFilters = {}) => {
   const [filters, setFilters] = useState<LogFilters>(initialFilters);

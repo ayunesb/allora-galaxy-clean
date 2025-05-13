@@ -6,7 +6,10 @@ export enum NotificationType {
   Strategy = 'strategy',
   Agent = 'agent',
   Update = 'update',
-  Error = 'error'
+  Error = 'error',
+  Info = 'info',
+  Success = 'success',
+  Warning = 'warning'
 }
 
 export enum NotificationPriority {
@@ -27,6 +30,14 @@ export interface Notification {
   action?: NotificationAction;
   metadata?: Record<string, any>;
   tenant_id?: string;
+  user_id?: string;
+  // Legacy fields for backward compatibility
+  read_at?: string | null;
+  is_read?: boolean;
+  created_at?: string;
+  action_url?: string;
+  action_label?: string;
+  description?: string;
 }
 
 export interface NotificationAction {
@@ -47,7 +58,7 @@ export interface NotificationState {
   };
 }
 
-export interface NotificationContextType {
+export interface NotificationsContextValue {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
@@ -65,4 +76,33 @@ export interface NotificationContextType {
 
 export interface NotificationProviderProps {
   children: ReactNode;
+}
+
+export interface NotificationDisplay {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: NotificationType;
+  action?: {
+    label: string;
+    url: string;
+  };
+}
+
+export interface NotificationFilter {
+  type?: NotificationType | 'all';
+  read?: boolean | 'all';
+}
+
+export interface CreateNotificationInput {
+  title: string;
+  message: string;
+  type: NotificationType;
+  tenant_id: string;
+  user_id: string;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
 }

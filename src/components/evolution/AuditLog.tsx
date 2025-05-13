@@ -42,7 +42,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
   const {
     data: fetchedLogs = [],
     isLoading: internalLoading,
-    refetch: internalRefetch,
+    refetch,
   } = useQuery({
     queryKey: ['auditLogs', tenantId, entityId, entityType, filters],
     queryFn: async () => {
@@ -148,7 +148,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
 
   const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
   const logs = data || fetchedLogs;
-  const refetch = externalRefresh || internalRefresh;
+  const refreshFn = externalRefresh || refetch;
   
   return (
     <>
@@ -175,7 +175,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
             onDateRangeChange={handleDateRangeChange}
             modules={entityTypes}
             events={actions}
-            onRefresh={() => refetch()}
+            onRefresh={() => refreshFn()}
           />
           
           <LogsList
