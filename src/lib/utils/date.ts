@@ -1,116 +1,56 @@
 
-import { format, formatDistance, formatRelative } from 'date-fns';
+import { format, formatDistance, formatRelative as fpFormatRelative } from 'date-fns';
 
-/**
- * Format a date into a readable string
- * @param date The date to format
- * @param formatString The format string to use
- * @returns Formatted date string
- */
-export const formatDate = (date: Date | string | number, formatString = 'PP'): string => {
+// Format a date for display (human readable format)
+export const formatDisplayDate = (
+  date: Date | string | null | undefined,
+  formatStr = 'MMM dd, yyyy HH:mm:ss'
+): string => {
+  if (!date) return 'N/A';
   try {
-    if (!date) return '';
-    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    return format(dateObj, formatString);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid date';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, formatStr);
+  } catch (err) {
+    console.error('Date format error:', err);
+    return String(date);
   }
 };
 
-/**
- * Format a date into a readable time
- * @param date The date to format
- * @returns Formatted time string
- */
-export const formatTime = (date: Date | string | number): string => {
+// Format a date for relative display (e.g., "2 hours ago")
+export const formatRelativeDate = (
+  date: Date | string | null | undefined,
+  baseDate: Date = new Date()
+): string => {
+  if (!date) return 'N/A';
   try {
-    if (!date) return '';
-    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    return format(dateObj, 'p');
-  } catch (error) {
-    console.error('Error formatting time:', error);
-    return 'Invalid time';
-  }
-};
-
-/**
- * Format a date into a readable datetime
- * @param date The date to format
- * @returns Formatted datetime string
- */
-export const formatDatetime = (date: Date | string | number): string => {
-  try {
-    if (!date) return '';
-    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    return format(dateObj, 'PPp');
-  } catch (error) {
-    console.error('Error formatting datetime:', error);
-    return 'Invalid datetime';
-  }
-};
-
-/**
- * Format a date as a relative time string
- * @param date The date to format
- * @param baseDate The base date to compare against (defaults to now)
- * @returns Relative date string
- */
-export const formatRelativeDate = (date: Date | string | number, baseDate = new Date()): string => {
-  try {
-    if (!date) return '';
-    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     return formatDistance(dateObj, baseDate, { addSuffix: true });
-  } catch (error) {
-    console.error('Error formatting relative date:', error);
-    return 'Invalid date';
+  } catch (err) {
+    console.error('Relative date format error:', err);
+    return String(date);
   }
 };
 
-/**
- * Format a date for input elements
- * @param date The date to format
- * @returns Formatted date string for inputs
- */
-export const formatDateForInput = (date: Date | string | number | null): string => {
+// Format a date for database operations (ISO format)
+export const formatForDatabase = (
+  date: Date | null | undefined
+): string | null => {
+  if (!date) return null;
   try {
-    if (!date) return '';
-    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    return format(dateObj, 'yyyy-MM-dd');
-  } catch (error) {
-    console.error('Error formatting date for input:', error);
-    return '';
+    return date.toISOString();
+  } catch (err) {
+    console.error('Database date format error:', err);
+    return null;
   }
 };
 
-/**
- * Format a time for input elements
- * @param date The date to format
- * @returns Formatted time string for inputs
- */
-export const formatTimeForInput = (date: Date | string | number | null): string => {
+// Parse a string date into a Date object
+export const parseDate = (dateStr: string): Date | null => {
   try {
-    if (!date) return '';
-    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    return format(dateObj, 'HH:mm');
-  } catch (error) {
-    console.error('Error formatting time for input:', error);
-    return '';
-  }
-};
-
-/**
- * Parse a date from an input element
- * @param dateString The date string to parse
- * @returns Parsed Date object
- */
-export const parseDateFromInput = (dateString: string): Date | null => {
-  try {
-    if (!dateString) return null;
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  } catch (error) {
-    console.error('Error parsing date from input:', error);
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  } catch (err) {
+    console.error('Date parsing error:', err);
     return null;
   }
 };

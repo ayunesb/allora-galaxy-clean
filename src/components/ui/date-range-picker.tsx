@@ -1,78 +1,75 @@
 
-"use client";
-
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import * as React from "react";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { DateRange } from "@/types/shared";
+import { DateRange } from "react-day-picker";
 
-export interface DatePickerWithRangeProps {
+export interface DateRangePickerProps {
   date: DateRange | undefined;
-  setDate: (date: DateRange | undefined) => void;
+  onDateChange: (date: DateRange | undefined) => void;
+  align?: "start" | "end" | "center";
+  className?: string;
+  locale?: string;
 }
 
-export function DatePickerWithRange({
+export function DateRangePicker({
   date,
-  setDate,
-}: DatePickerWithRangeProps) {
+  onDateChange,
+  align = "start",
+  className,
+  locale = "en-US"
+}: DateRangePickerProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const handleSelect = (range: DateRange | undefined) => {
+    onDateChange(range);
+    if (range?.from && range.to) {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div className="grid gap-2">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(date.from, "LLL dd, y")
-              )
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id="date"
+          variant={"outline"}
+          size="sm"
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !date && "text-muted-foreground",
+            className
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {date?.from ? (
+            date.to ? (
+              <>
+                {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+              </>
             ) : (
-              <span>Pick a date range</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={date?.from}
-            selected={{
-              from: date?.from || undefined,
-              to: date?.to || undefined
-            }}
-            onSelect={(selectedRange) => {
-              if (selectedRange?.from) {
-                setDate({
-                  from: selectedRange.from,
-                  to: selectedRange.to
-                });
-              } else {
-                setDate(undefined);
-              }
-            }}
-            numberOfMonths={2}
-            className="p-3 pointer-events-auto"
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
+              format(date.from, "LLL dd, y")
+            )
+          ) : (
+            <span>Pick a date range</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align={align}>
+        <Calendar
+          initialFocus
+          mode="range"
+          defaultMonth={date?.from}
+          selected={date}
+          onSelect={handleSelect}
+          numberOfMonths={2}
+          locale={locale === "en-US" ? undefined : require(`date-fns/locale/${locale}`)}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

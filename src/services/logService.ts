@@ -28,13 +28,13 @@ export const fetchSystemLogs = async (filters: LogFilters = {}) => {
     query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`);
   }
   
-  if (filters.date_from) {
-    query = query.gte('created_at', filters.date_from.toISOString());
+  if (filters.dateRange?.from) {
+    query = query.gte('created_at', filters.dateRange.from.toISOString());
   }
   
-  if (filters.date_to) {
+  if (filters.dateRange?.to) {
     // Add 1 day to include the entire day
-    const endDate = new Date(filters.date_to);
+    const endDate = new Date(filters.dateRange.to);
     endDate.setDate(endDate.getDate() + 1);
     query = query.lt('created_at', endDate.toISOString());
   }
@@ -81,13 +81,13 @@ export const fetchAuditLogs = async (filters: LogFilters = {}) => {
     query = query.or(`action.ilike.%${filters.searchTerm}%,entity_type.ilike.%${filters.searchTerm}%`);
   }
   
-  if (filters.date_from) {
-    query = query.gte('created_at', filters.date_from.toISOString());
+  if (filters.dateRange?.from) {
+    query = query.gte('created_at', filters.dateRange.from.toISOString());
   }
   
-  if (filters.date_to) {
+  if (filters.dateRange?.to) {
     // Add 1 day to include the entire day
-    const endDate = new Date(filters.date_to);
+    const endDate = new Date(filters.dateRange.to);
     endDate.setDate(endDate.getDate() + 1);
     query = query.lt('created_at', endDate.toISOString());
   }
@@ -115,15 +115,16 @@ export const fetchAuditLogs = async (filters: LogFilters = {}) => {
 export const fetchLogModules = async () => {
   const { data, error } = await supabase
     .from('system_logs')
-    .select('module')
-    .order('module')
-    .distinct();
+    .select('module');
     
   if (error) {
     throw new Error(`Error fetching log modules: ${error.message}`);
   }
   
-  return data.map(item => item.module);
+  // Extract unique module names
+  const modules = data.map(item => item.module);
+  const uniqueModules = Array.from(new Set(modules)).filter(Boolean);
+  return uniqueModules;
 };
 
 /**
@@ -132,15 +133,16 @@ export const fetchLogModules = async () => {
 export const fetchLogEvents = async () => {
   const { data, error } = await supabase
     .from('system_logs')
-    .select('event')
-    .order('event')
-    .distinct();
+    .select('event');
     
   if (error) {
     throw new Error(`Error fetching log events: ${error.message}`);
   }
   
-  return data.map(item => item.event);
+  // Extract unique event names
+  const events = data.map(item => item.event);
+  const uniqueEvents = Array.from(new Set(events)).filter(Boolean);
+  return uniqueEvents;
 };
 
 /**

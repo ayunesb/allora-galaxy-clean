@@ -1,79 +1,86 @@
 
 import React, { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import PageHelmet from '@/components/PageHelmet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SystemLog, AuditLog, LogFilters } from '@/types';
-import { useSystemLogs, useAuditLogs, useLogModules, useLogEvents } from '@/services/logService';
-import { LogsList } from '@/components/evolution/logs';
-import { LogDetailView } from '@/components/admin/logs';
-import { LogFilterBar } from '@/components/admin/logs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SystemLog, AuditLog } from '@/types';
+import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
+import { useAuditLogs, useLogModules, useLogEvents } from '@/services/logService';
 import { Card, CardContent } from '@/components/ui/card';
 import { DateRange } from 'react-day-picker';
+import { LogFilterBar } from '@/components/admin/logs';
+import { LogsList } from '@/components/evolution/logs';
+import { LogDetailView } from '@/components/admin/logs';
 
 const EnhancedSystemLogs: React.FC = () => {
-  // State for filters
+  // State for active tab and selected log
   const [activeTab, setActiveTab] = useState<string>('system');
   const [selectedLog, setSelectedLog] = useState<SystemLog | AuditLog | null>(null);
-  const [filters, setFilters] = useState<LogFilters>({
-    searchTerm: '',
-    module: '',
-    event: '',
-    fromDate: null,
-    toDate: null,
-    limit: 50
-  });
   
-  const queryClient = useQueryClient();
-  
-  // Fetch log data based on active tab and filters
-  const { 
-    data: systemLogs = [], 
+  // System logs data hook
+  const {
+    logs: systemLogs,
     isLoading: systemLogsLoading,
-    refetch: refetchSystemLogs
-  } = useSystemLogs(activeTab === 'system' ? filters : { limit: 0 });
+    filters: systemFilters,
+    setFilters: setSystemFilters,
+    resetFilters: resetSystemFilters,
+    refetch: refreshSystemLogs,
+    modules,
+    events
+  } = useSystemLogsData();
   
+  // Audit logs query
   const { 
     data: auditLogs = [], 
     isLoading: auditLogsLoading,
-    refetch: refetchAuditLogs
-  } = useAuditLogs(activeTab === 'audit' ? filters : { limit: 0 });
-  
-  // Fetch filter options
-  const { data: modules = [] } = useLogModules();
-  const { data: events = [] } = useLogEvents();
+    refetch: refreshAuditLogs
+  } = useAuditLogs(
+    activeTab === 'audit' 
+      ? {
+          searchTerm: systemFilters.searchTerm,
+          module: systemFilters.module,
+          event: systemFilters.event,
+          dateRange: systemFilters.fromDate || systemFilters.toDate
+            ? { from: systemFilters.fromDate, to: systemFilters.toDate }
+            : undefined,
+          limit: 50
+        } 
+      : { limit: 0 }
+  );
   
   // Determine which logs to show based on active tab
   const isLoading = activeTab === 'system' ? systemLogsLoading : auditLogsLoading;
   const logs = activeTab === 'system' ? systemLogs : auditLogs;
+  
+  // Handle changing filters
+  const handleFilterChange = (key: string, value: any) => {
+    setSelectedLog(null);
+    setSystemFilters({
+      ...systemFilters,
+      [key]: value
+    });
+  };
+  
+  // Handle date range changes
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setSelectedLog(null);
+    setSystemFilters({
+      ...systemFilters,
+      fromDate: range?.from || null,
+      toDate: range?.to || null
+    });
+  };
   
   // Handle log selection
   const handleSelectLog = (log: SystemLog | AuditLog) => {
     setSelectedLog(log);
   };
   
-  // Handle filter changes
-  const handleFilterChange = (key: keyof LogFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setSelectedLog(null); // Reset selected log when filters change
-  };
-  
-  // Handle date range changes
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    setFilters(prev => ({
-      ...prev,
-      fromDate: range?.from || null,
-      toDate: range?.to || null
-    }));
-    setSelectedLog(null);
-  };
-  
   // Handle refresh
   const handleRefresh = () => {
     if (activeTab === 'system') {
-      queryClient.invalidateQueries({ queryKey: ['systemLogs'] });
+      refreshSystemLogs();
     } else {
-      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+      refreshAuditLogs();
     }
   };
   
@@ -101,21 +108,22 @@ const EnhancedSystemLogs: React.FC = () => {
             
             <div className="mb-4">
               <LogFilterBar
-                searchTerm={filters.searchTerm || ''}
+                searchTerm={systemFilters.searchTerm}
                 onSearchChange={(value) => handleFilterChange('searchTerm', value)}
-                module={filters.module || ''}
+                module={systemFilters.module}
                 onModuleChange={(value) => handleFilterChange('module', value)}
-                event={filters.event || ''}
+                event={systemFilters.event}
                 onEventChange={(value) => handleFilterChange('event', value)}
                 dateRange={
-                  filters.fromDate || filters.toDate
-                    ? { from: filters.fromDate || undefined, to: filters.toDate || undefined }
-                    : null
+                  systemFilters.fromDate || systemFilters.toDate
+                    ? { from: systemFilters.fromDate || undefined, to: systemFilters.toDate || undefined }
+                    : undefined
                 }
                 onDateRangeChange={handleDateRangeChange}
                 modules={modules}
                 events={events}
                 onRefresh={handleRefresh}
+                onReset={resetSystemFilters}
               />
             </div>
             

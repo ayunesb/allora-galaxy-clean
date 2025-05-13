@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuditLog, AuditLogFilterState } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
 import { supabase } from '@/lib/supabase';
-import { formatForDatabase } from '@/lib/utils/date';
 
 export const useAuditLogData = () => {
   const { tenantId } = useTenantId();
@@ -51,17 +51,13 @@ export const useAuditLogData = () => {
       }
       
       if (filters.fromDate) {
-        const fromDate = formatForDatabase(filters.fromDate);
-        if (fromDate) {
-          query = query.gte('created_at', fromDate);
-        }
+        query = query.gte('created_at', filters.fromDate.toISOString());
       }
       
       if (filters.toDate) {
-        const toDate = formatForDatabase(filters.toDate);
-        if (toDate) {
-          query = query.lte('created_at', toDate);
-        }
+        const endDate = new Date(filters.toDate);
+        endDate.setDate(endDate.getDate() + 1);
+        query = query.lte('created_at', endDate.toISOString());
       }
       
       // Execute query

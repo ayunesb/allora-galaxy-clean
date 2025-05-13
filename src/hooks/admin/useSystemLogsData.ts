@@ -1,99 +1,96 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 import { SystemLog, LogFilters } from '@/types';
+import { fetchSystemLogs, fetchLogModules, fetchLogEvents } from '@/services/logService';
 
-export const useSystemLogsData = (initialFilters: LogFilters = {}) => {
-  const [filters, setFilters] = useState<LogFilters>(initialFilters);
-  
-  // Fetch system logs
+export type SystemLogFilterState = {
+  module: string;
+  event: string;
+  fromDate: Date | null;
+  toDate: Date | null;
+  searchTerm: string;
+};
+
+export const useSystemLogsData = () => {
+  const { toast } = useToast();
+  const [filters, setFilters] = useState<SystemLogFilterState>({
+    module: '',
+    event: '',
+    fromDate: null,
+    toDate: null,
+    searchTerm: ''
+  });
+
+  // Query for system logs with current filters
   const {
-    data: logs,
+    data: logs = [],
     isLoading,
-    error,
+    error: fetchError,
     refetch
   } = useQuery({
     queryKey: ['systemLogs', filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-      
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`);
-      }
-      
-      if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate.toISOString());
-      }
-      
-      if (filters.toDate) {
-        // Add 1 day to include the entire day
-        const endDate = new Date(filters.toDate);
-        endDate.setDate(endDate.getDate() + 1);
-        query = query.lt('created_at', endDate.toISOString());
-      }
-      
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data as SystemLog[];
-    },
+    queryFn: () => fetchSystemLogs({
+      module: filters.module || undefined,
+      searchTerm: filters.searchTerm || undefined,
+      dateRange: filters.fromDate || filters.toDate ? {
+        from: filters.fromDate,
+        to: filters.toDate
+      } : undefined
+    }),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-  
-  // Fetch modules for filter
+
+  // Query for unique log modules (for filtering)
   const { data: modules = [] } = useQuery({
     queryKey: ['logModules'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_logs')
-        .select('module')
-        .order('module')
-        .distinct();
-      if (error) throw error;
-      return data.map(item => item.module);
-    },
+    queryFn: fetchLogModules,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
-  
-  // Fetch events for filter
+
+  // Query for unique log events (for filtering)
   const { data: events = [] } = useQuery({
     queryKey: ['logEvents'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_logs')
-        .select('event')
-        .order('event')
-        .distinct();
-      if (error) throw error;
-      return data.map(item => item.event);
-    },
+    queryFn: fetchLogEvents,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
-  
+
+  // Handle errors
+  if (fetchError) {
+    toast({
+      title: 'Error loading logs',
+      description: 'There was a problem loading the system logs.',
+      variant: 'destructive',
+    });
+  }
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters: SystemLogFilterState) => {
+    setFilters(newFilters);
+  };
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setFilters({
+      module: '',
+      event: '',
+      fromDate: null,
+      toDate: null,
+      searchTerm: ''
+    });
+  };
+
   return {
-    logs,
+    logs: logs as SystemLog[],
     isLoading,
-    error,
     filters,
-    setFilters,
-    refetch,
     modules,
-    events
+    events,
+    setFilters: handleFilterChange,
+    resetFilters: handleResetFilters,
+    refetch
   };
 };
+
+export default useSystemLogsData;

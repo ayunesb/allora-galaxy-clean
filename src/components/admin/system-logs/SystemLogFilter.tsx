@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { LogFilters } from '@/types/logs';
+import { DateRange } from 'react-day-picker';
 
 interface SystemLogFilterProps {
   onChange: (filters: LogFilters) => void;
@@ -29,7 +30,7 @@ const SystemLogFilter: React.FC<SystemLogFilterProps> = ({
   const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm || '');
   const [module, setModule] = useState(initialFilters.module || '');
   const [event, setEvent] = useState(initialFilters.event || '');
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
     initialFilters.fromDate || initialFilters.toDate
       ? { from: initialFilters.fromDate || undefined, to: initialFilters.toDate || undefined }
       : undefined
@@ -42,10 +43,12 @@ const SystemLogFilter: React.FC<SystemLogFilterProps> = ({
       const { data, error } = await supabase
         .from('system_logs')
         .select('module')
-        .order('module')
-        .distinct();
+        .order('module');
       if (error) throw error;
-      return data.map(item => item.module);
+      
+      // Extract and deduplicate module values
+      const moduleValues = data.map((item: { module: string }) => item.module);
+      return Array.from(new Set(moduleValues)).filter(Boolean);
     }
   });
 
@@ -56,10 +59,12 @@ const SystemLogFilter: React.FC<SystemLogFilterProps> = ({
       const { data, error } = await supabase
         .from('system_logs')
         .select('event')
-        .order('event')
-        .distinct();
+        .order('event');
       if (error) throw error;
-      return data.map(item => item.event);
+      
+      // Extract and deduplicate event values
+      const eventValues = data.map((item: { event: string }) => item.event);
+      return Array.from(new Set(eventValues)).filter(Boolean);
     }
   });
 
@@ -137,7 +142,6 @@ const SystemLogFilter: React.FC<SystemLogFilterProps> = ({
           date={dateRange}
           onDateChange={setDateRange}
           align="start"
-          locale="en-US"
         />
 
         <div className="flex items-center justify-end space-x-2">

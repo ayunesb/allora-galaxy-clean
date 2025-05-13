@@ -6,6 +6,7 @@ import { AuditLog as AuditLogType, LogFilters } from '@/types';
 import { LogFilterBar } from '@/components/admin/logs';
 import { LogsList, LogDetailDialog } from '@/components/evolution/logs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateRange } from 'react-day-picker';
 
 interface AuditLogProps {
   tenantId?: string;
@@ -14,6 +15,9 @@ interface AuditLogProps {
   limit?: number;
   showHeader?: boolean;
   title?: string;
+  data?: AuditLogType[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 const AuditLog: React.FC<AuditLogProps> = ({
@@ -22,7 +26,10 @@ const AuditLog: React.FC<AuditLogProps> = ({
   entityType,
   limit = 20,
   showHeader = true,
-  title = 'Audit Log'
+  title = 'Audit Log',
+  data,
+  isLoading: externalLoading,
+  onRefresh: externalRefresh
 }) => {
   const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
   const [filters, setFilters] = useState<LogFilters>({
@@ -31,11 +38,11 @@ const AuditLog: React.FC<AuditLogProps> = ({
     limit
   });
 
-  // Query to fetch audit logs
+  // Query to fetch audit logs if not provided externally
   const {
-    data: logs = [],
-    isLoading,
-    refetch,
+    data: fetchedLogs = [],
+    isLoading: internalLoading,
+    refetch: internalRefetch,
   } = useQuery({
     queryKey: ['auditLogs', tenantId, entityId, entityType, filters],
     queryFn: async () => {
@@ -88,6 +95,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
       return data as AuditLogType[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !data // Only run query if data is not provided externally
   });
   
   // Get unique entity types for filtering
@@ -97,11 +105,13 @@ const AuditLog: React.FC<AuditLogProps> = ({
       const { data, error } = await supabase
         .from('audit_logs')
         .select('entity_type')
-        .order('entity_type')
-        .distinct();
+        .order('entity_type');
         
       if (error) throw error;
-      return data.map(item => item.entity_type);
+      
+      // Extract and deduplicate values
+      const typeValues = data.map((item: { entity_type: string }) => item.entity_type);
+      return Array.from(new Set(typeValues)).filter(Boolean);
     },
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
@@ -113,11 +123,13 @@ const AuditLog: React.FC<AuditLogProps> = ({
       const { data, error } = await supabase
         .from('audit_logs')
         .select('action')
-        .order('action')
-        .distinct();
+        .order('action');
         
       if (error) throw error;
-      return data.map(item => item.action);
+      
+      // Extract and deduplicate values
+      const actionValues = data.map((item: { action: string }) => item.action);
+      return Array.from(new Set(actionValues)).filter(Boolean);
     },
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
@@ -126,13 +138,17 @@ const AuditLog: React.FC<AuditLogProps> = ({
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  const handleDateRangeChange = (range: { from?: Date; to?: Date } | null) => {
+  const handleDateRangeChange = (range: DateRange | undefined) => {
     setFilters(prev => ({
       ...prev,
       fromDate: range?.from || null,
       toDate: range?.to || null
     }));
   };
+
+  const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
+  const logs = data || fetchedLogs;
+  const refetch = externalRefresh || internalRefetch;
   
   return (
     <>
@@ -154,7 +170,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
             dateRange={
               filters.fromDate || filters.toDate
                 ? { from: filters.fromDate || undefined, to: filters.toDate || undefined }
-                : null
+                : undefined
             }
             onDateRangeChange={handleDateRangeChange}
             modules={entityTypes}

@@ -73,7 +73,7 @@ const SystemLogTable = ({ logs, isLoading, onViewDetails }: SystemLogTableProps)
                   {expandedRows[log.id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </Button>
               </TableCell>
-              <TableCell>{formatDisplayDate(new Date(log.created_at))}</TableCell>
+              <TableCell>{formatDisplayDate(log.created_at)}</TableCell>
               <TableCell>
                 <Badge variant="outline">{log.module}</Badge>
               </TableCell>

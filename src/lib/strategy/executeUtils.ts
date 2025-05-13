@@ -1,47 +1,46 @@
 
-import { ExecuteStrategyInput } from '@/types/fixed/execution';
+import { supabase } from '@/lib/supabase';
+import { ExecuteStrategyInput, Strategy } from '@/types';
+import { NotFoundError, ValidationError } from '../edge/errorUtils';
 
-// Define types for the strategy execution
-export interface ExecutionResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-  logs?: any[];
-}
-
-// Utility function to handle errors in strategy execution
-export function handleExecutionError(error: any): ExecutionResult {
-  console.error('Error executing strategy:', error);
-  return {
-    success: false,
-    error: error.message || 'Unknown error occurred during strategy execution'
-  };
-}
-
-// Utility function to validate strategy input
-export function validateStrategyInput(input: ExecuteStrategyInput): { valid: boolean; error?: string } {
-  if (!input.strategy_id) {
-    return { valid: false, error: 'Strategy ID is required' };
+/**
+ * Verifies that the given strategy exists and is valid for execution
+ * 
+ * @param input The strategy execution input
+ * @returns The validated strategy
+ */
+export const verifyStrategy = async (input: ExecuteStrategyInput): Promise<Strategy> => {
+  const strategyId = input.strategyId;
+  const tenantId = input.tenantId;
+  
+  if (!strategyId) {
+    throw new ValidationError('Strategy ID is required');
   }
   
-  if (!input.tenant_id) {
-    return { valid: false, error: 'Tenant ID is required' };
+  if (!tenantId) {
+    throw new ValidationError('Tenant ID is required');
   }
   
-  return { valid: true };
-}
-
-// Format the execution result for response
-export function formatExecutionResult(result: any): ExecutionResult {
-  return {
-    success: true,
-    data: result
-  };
-}
-
-// Record the execution progress
-export function recordProgress(strategyId: string, progress: number): Promise<void> {
-  console.log(`Recording progress for strategy ${strategyId}: ${progress}%`);
-  // Implementation to update progress in database would go here
-  return Promise.resolve();
-}
+  // Fetch the strategy
+  const { data, error } = await supabase
+    .from('strategies')
+    .select('*')
+    .eq('id', strategyId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  
+  if (error) {
+    throw new Error(`Error fetching strategy: ${error.message}`);
+  }
+  
+  if (!data) {
+    throw new NotFoundError(`Strategy with ID ${strategyId} not found for tenant ${tenantId}`);
+  }
+  
+  // Check if the strategy is approved
+  if (input.requireApproval !== false && data.status !== 'approved') {
+    throw new ValidationError(`Strategy must be approved before execution (current status: ${data.status})`);
+  }
+  
+  return data as Strategy;
+};
