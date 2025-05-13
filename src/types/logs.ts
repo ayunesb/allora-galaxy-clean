@@ -55,3 +55,20 @@ export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
 // Re-export types from shared to fix the isolatedModules issue
 export type { SystemEventModule, SystemEventType } from './shared';
+
+// Export SystemLogFilterState and AuditLogFilterState
+export interface SystemLogFilterState {
+  module: string;
+  event: string;
+  fromDate: Date | null;
+  toDate: Date | null;
+  searchTerm: string;
+}
+
+export interface AuditLogFilterState {
+  module: string;
+  event: string;
+  fromDate: Date | null;
+  toDate: Date | null;
+  searchTerm: string;
+}
