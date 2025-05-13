@@ -1,53 +1,67 @@
 
-import React, { useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
+import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
+import { AuditLog } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
-import { SystemLog } from '@/types/logs';
+import { SystemLogFilter as SystemLogFilterType } from '@/types/shared';
 
-const AiDecisions: React.FC = () => {
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
-  const { decisions, isLoading, filters, setFilters, refetch } = useAiDecisionsData();
-  
-  const handleViewLog = (log: SystemLog) => {
-    setSelectedLog(log);
-    setDialogOpen(true);
+const AiDecisions = () => {
+  const initialFilters: SystemLogFilterType = { 
+    searchTerm: '',
+    module: 'ai' 
   };
+
+  const {
+    logs,
+    loading,
+    filters,
+    modules,
+    fetchLogs,
+    handleFilterChange,
+  } = useSystemLogsData({ initialFilters });
   
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
+
+  const handleOpenLogDetail = (log: AuditLog) => {
+    setSelectedLog(log);
+    setShowLogDetail(true);
+  };
+
   return (
-    <div className="container py-6">
-      <PageHeader
-        title="AI Decisions"
-        description="Monitor and audit AI-generated decisions and recommendations"
-      />
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">AI Decisions</h1>
       
-      <SystemLogFilters 
-        filters={filters} 
-        onFilterChange={setFilters} 
-        isLoading={isLoading}
-        onRefresh={refetch}
-      />
-      
-      <Card className="mt-6">
-        <CardContent className="p-0 sm:p-6">
-          <SystemLogsList 
-            logs={decisions} 
-            isLoading={isLoading} 
-            onViewLog={handleViewLog}
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Activities & Decisions</CardTitle>
+          <SystemLogFilter 
+            onFilterChange={handleFilterChange}
+            filters={filters}
+            modules={modules}
+            onRefresh={fetchLogs}
+            isLoading={loading}
+          />
+        </CardHeader>
+        <CardContent className="p-0">
+          <SystemLogsList
+            logs={logs}
+            isLoading={loading}
+            onLogClick={handleOpenLogDetail}
           />
         </CardContent>
       </Card>
       
-      <LogDetailDialog 
-        log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-      />
+      {selectedLog && (
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={showLogDetail} 
+          onOpenChange={setShowLogDetail} 
+        />
+      )}
     </div>
   );
 };

@@ -4,15 +4,11 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-interface UserEmail {
-  email: string;
-}
-
 interface UserProfile {
   first_name: string;
   last_name: string;
   avatar_url: string;
-  email: UserEmail[];
+  email: { email: string };
 }
 
 export interface User {
@@ -55,9 +51,9 @@ export function useUserData() {
         if (error) throw error;
         
         if (data && Array.isArray(data)) {
-          const formattedUsers: User[] = data.map(item => {
-            // Extract profile data correctly, handle single profile object rather than array
-            const profile = item.profiles as unknown as UserProfile;
+          // Correctly format the profiles data
+          const formattedUsers = data.map(item => {
+            const profileData = item.profiles || {};
             
             return {
               id: item.id,
@@ -65,12 +61,17 @@ export function useUserData() {
               created_at: item.created_at,
               user_id: item.user_id,
               profiles: {
-                first_name: profile?.first_name || '',
-                last_name: profile?.last_name || '',
-                avatar_url: profile?.avatar_url || '',
-                email: Array.isArray(profile?.email) 
-                  ? profile.email 
-                  : []
+                first_name: typeof profileData === 'object' ? profileData.first_name || '' : '',
+                last_name: typeof profileData === 'object' ? profileData.last_name || '' : '',
+                avatar_url: typeof profileData === 'object' ? profileData.avatar_url || '' : '',
+                email: {
+                  email: typeof profileData === 'object' && 
+                         Array.isArray(profileData.email) && 
+                         profileData.email.length > 0 && 
+                         profileData.email[0]?.email
+                    ? profileData.email[0].email 
+                    : ''
+                }
               }
             };
           });
@@ -108,12 +109,9 @@ export function useUserData() {
 
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
-    if (!user.profiles) return false;
-    
-    const fullName = `${user.profiles.first_name || ''} ${user.profiles.last_name || ''}`.toLowerCase();
-    const email = user.profiles.email?.[0]?.email?.toLowerCase() || '';
+    const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
+    const email = user.profiles?.email?.email?.toLowerCase() || '';
     const query = searchQuery.toLowerCase();
-    
     return fullName.includes(query) || email.includes(query);
   });
 

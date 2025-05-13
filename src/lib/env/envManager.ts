@@ -23,9 +23,9 @@ export function getEnv(key: string, defaultValue?: string): string | undefined {
   }
   
   // Try from env utility (which may connect to Deno.env)
-  if (typeof ENV === 'object' && key in ENV) {
-    // @ts-ignore - We've checked that key exists in ENV
-    return ENV[key];
+  const value = ENV(key);
+  if (value !== undefined) {
+    return value;
   }
   
   // Log missing env in development

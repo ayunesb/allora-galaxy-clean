@@ -3,10 +3,10 @@
  * Centralized exports for edge function utilities
  */
 
-// Re-export error handling utilities
+// Re-export error handling utilities with fallbacks
 export { 
   corsHeaders,
-  handleEdgeError,
+  handleExecutionError,
   handleCorsPreflightRequest,
   generateRequestId,
   createSuccessResponse,
@@ -15,17 +15,13 @@ export {
   type SuccessResponseData
 } from './errorHandler';
 
-// Re-export environment variables utilities
 export {
-  getEnv,
-  getEnvWithDefault,
-  isEnvTrue,
-  isDevelopment,
-  isProduction,
-  isTest,
-  getEnvsByPrefix,
   ENV,
+  getEnv,
+  getEnvVar,
+  getEnvWithDefault,
   corsHeaders as envCorsHeaders,
+  isProduction,
   getBaseUrl,
   getSafeEnv
 } from '../env/envUtils';
@@ -36,3 +32,6 @@ export {
   getEdgeEnv,
   getEdgeEnvironment
 } from '../env/safeEdgeEnv';
+
+// Export safe environment getter for edge functions
+export { getDenoEnv } from '../strategy/utils/environmentUtils';

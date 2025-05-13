@@ -1,93 +1,103 @@
 
-import {
-  BarChart3,
-  LayoutDashboard,
-  Rocket,
-  Network,
-  ChevronRight,
-  Settings,
-  Users,
-  History,
-  AlertCircle,
-  Clock,
-  Key
-} from "lucide-react";
-import { NavigationItem } from "@/types/navigation";
+import { NavigationItem } from "@/types/shared";
+import * as LucideIcons from "lucide-react";
 
-export const mainNavigationItems: NavigationItem[] = [
+// Type-safe function to get Lucide icon component
+const getIcon = (iconName: string) => {
+  return (LucideIcons as any)[iconName] || undefined;
+};
+
+export const navigationItems: NavigationItem[] = [
   {
-    name: "Dashboard", // For backward compatibility
     title: "Dashboard",
     href: "/dashboard",
-    icon: LayoutDashboard,
+    icon: getIcon("LayoutDashboard"),
   },
   {
-    name: "Launch",
-    title: "Launch",
-    href: "/launch",
-    icon: Rocket,
+    title: "Notifications",
+    href: "/notifications",
+    icon: getIcon("Bell"),
   },
   {
-    name: "Galaxy",
     title: "Galaxy",
     href: "/galaxy",
-    icon: Network,
+    icon: getIcon("Globe"),
   },
   {
-    name: "Analytics",
-    title: "Analytics",
-    href: "/insights/kpis",
-    icon: BarChart3,
+    title: "Launch",
+    href: "/launch",
+    icon: getIcon("Rocket"),
   },
   {
-    name: "Evolution",
-    title: "Evolution",
-    href: "/evolution",
-    icon: ChevronRight,
+    title: "Plugins",
+    href: "/plugins",
+    icon: getIcon("Package"),
   },
   {
-    name: "Settings",
+    title: "Agents",
+    href: "/agents",
+    icon: getIcon("Users"),
+    items: [
+      {
+        title: "Performance",
+        href: "/agents/performance",
+        icon: getIcon("LineChart"),
+      },
+    ],
+  },
+  {
+    title: "Insights",
+    href: "/insights",
+    icon: getIcon("BarChart"),
+    items: [
+      {
+        title: "KPIs",
+        href: "/insights/kpis",
+        icon: getIcon("TrendingUp"),
+      },
+    ],
+  },
+  {
     title: "Settings",
     href: "/settings",
-    icon: Settings,
-  }
-];
-
-export const adminNavigationItems: NavigationItem[] = [
+    icon: getIcon("Settings"),
+  },
   {
-    name: "Admin Dashboard",
-    title: "Admin Dashboard",
+    title: "Admin",
     href: "/admin",
-    icon: LayoutDashboard,
+    icon: getIcon("Layers"),
+    adminOnly: true,
+    items: [
+      {
+        title: "Dashboard",
+        href: "/admin",
+        icon: getIcon("Home"),
+      },
+      {
+        title: "Users",
+        href: "/admin/users",
+        icon: getIcon("Users"),
+      },
+      {
+        title: "System Logs",
+        href: "/admin/logs",
+        icon: getIcon("FileText"),
+      },
+      {
+        title: "AI Decisions",
+        href: "/admin/ai-decisions",
+        icon: getIcon("Brain"),
+      },
+      {
+        title: "Plugin Logs",
+        href: "/admin/plugin-logs",
+        icon: getIcon("Database"),
+      },
+      {
+        title: "API Keys",
+        href: "/admin/api-keys",
+        icon: getIcon("Key"),
+      },
+    ],
   },
-  {
-    name: "Users",
-    title: "Users",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    name: "System Logs",
-    title: "System Logs",
-    href: "/admin/system-logs",
-    icon: History,
-  },
-  {
-    name: "AI Decisions",
-    title: "AI Decisions",
-    href: "/admin/ai-decisions",
-    icon: AlertCircle,
-  },
-  {
-    name: "CRON Jobs",
-    title: "CRON Jobs",
-    href: "/admin/cron-jobs",
-    icon: Clock,
-  },
-  {
-    name: "API Keys",
-    title: "API Keys",
-    href: "/admin/api-keys",
-    icon: Key,
-  }
 ];

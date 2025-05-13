@@ -1,111 +1,128 @@
 
-/**
- * Shared type definitions for use across the application
- */
+import { DateRange as DayPickerDateRange } from 'react-day-picker';
 
-// User role types
-export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
-
-// Navigation item type
-export interface NavigationItem {
-  title: string;
-  href: string;
-  icon?: string;
-  requiresAuth?: boolean;
-  requiresRole?: UserRole[];
-  children?: NavigationItem[];
+export interface FilterState {
+  searchTerm?: string;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  status?: string;
+  category?: string;
+  dateRange?: DateRange;
+  [key: string]: any;
 }
 
-// KPI trend direction
+export interface FilterProps<T = FilterState> {
+  filters: T;
+  onFilterChange: (filters: T) => void;
+  onRefresh?: () => void;
+  isLoading?: boolean;
+}
+
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
+
+// Convert from react-day-picker DateRange to our DateRange
+export function convertDateRange(dayPickerRange?: DayPickerDateRange): DateRange | undefined {
+  if (!dayPickerRange || !dayPickerRange.from) return undefined;
+  return {
+    from: dayPickerRange.from,
+    to: dayPickerRange.to
+  };
+}
+
+// User role types
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
+
+// Navigation item structure
+export interface NavigationItem {
+  title: string;
+  href?: string;
+  icon?: React.ComponentType<any> | string;
+  disabled?: boolean;
+  external?: boolean;
+  children?: NavigationItem[];
+  items?: NavigationItem[]; // Add support for items
+  adminOnly?: boolean; // Add support for adminOnly flag
+}
+
+// Trend direction types
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
-// System event modules for logging
-export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
+// Voting types
+export type VoteType = 'upvote' | 'downvote';
 
-// System event types for logging
+// System event types
+export type SystemEventModule = 
+  | 'strategy'
+  | 'agent'
+  | 'plugin'
+  | 'user'
+  | 'tenant'
+  | 'auth'
+  | 'billing'
+  | 'hubspot' 
+  | 'system'
+  | 'ai'
+  | 'onboarding'; // Add onboarding module type
+
 export type SystemEventType = 
-  | 'create' 
-  | 'update' 
-  | 'delete' 
-  | 'login' 
-  | 'logout' 
-  | 'execute'
-  | 'generate'
-  | 'vote'
-  | 'approve'
-  | 'reject'
+  | 'created' 
+  | 'updated' 
+  | 'deleted' 
+  | 'executed' 
+  | 'approved' 
+  | 'rejected'
   | 'error'
-  | 'success'
-  | 'warning'
-  | 'info';
+  | 'info'
+  | 'warning';
 
-// Onboarding step type
-export type OnboardingStep = 
-  | 'welcome' 
-  | 'company-info' 
-  | 'persona' 
-  | 'additional-info' 
-  | 'strategy-generation' 
-  | 'completed';
+// KPI trend types
+export interface KPITrend {
+  value: number;
+  previousValue?: number;
+  change?: number;
+  direction: TrendDirection;
+  name?: string; // Add name property
+  unit?: string; // Add unit property
+  target?: number; // Add target property
+}
 
-// Base entity interface for common properties
+// Base entity interface for common fields
 export interface BaseEntity {
   id: string;
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
 }
 
 // Execution parameters interface
 export interface ExecutionParams {
-  strategy_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  tenant_id: string;
-  user_id?: string;
-  input?: Record<string, any>;
+  strategyId?: string;
+  pluginId?: string;
+  agentVersionId?: string;
+  tenantId: string;
+  userId?: string;
+  options?: Record<string, any>;
 }
 
 // Execution type
 export type ExecutionType = 'strategy' | 'plugin' | 'agent';
 
-// KPI trend interface
-export interface KPITrend {
-  name: string;
-  value: number;
-  previousValue: number | null;
-  direction: TrendDirection;
-  percentageChange: number | null;
-}
+// Tenant features
+export type TenantFeature = 'ai_assistant' | 'analytics' | 'custom_plugins' | 'auto_optimization';
 
-// Tenant feature flags
-export type TenantFeature = 
-  | 'strategy_creation'
-  | 'agent_voting'
-  | 'plugin_management'
-  | 'advanced_analytics'
-  | 'white_label';
+// Onboarding steps
+export type OnboardingStep = 
+  | 'welcome' 
+  | 'company_info' 
+  | 'persona' 
+  | 'additional_info' 
+  | 'strategy_generation' 
+  | 'complete';
 
-// Vote type for agent and plugin voting
-export type VoteType = 'upvote' | 'downvote';
-
-// Generic filter state interface
-export interface FilterState {
-  searchQuery?: string;
-  status?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  page?: number;
-  pageSize?: number;
-}
-
-// Generic filter props interface
-export interface FilterProps<T extends FilterState> {
-  filters: T;
-  onFilterChange: (filters: T) => void;
-}
-
-// Date range for filtering
-export interface DateRange {
-  from: Date;
-  to?: Date;
+// System log filter type
+export interface SystemLogFilter extends FilterState {
+  module?: SystemEventModule;
+  dateRange?: DateRange;
 }

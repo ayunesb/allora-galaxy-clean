@@ -1,5 +1,31 @@
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'alert' | 'system';
 
-export type NotificationType = 'system' | 'campaign' | 'user' | 'strategy' | 'plugin' | 'agent' | 'info' | 'success' | 'warning' | 'error';
+export interface CreateNotificationInput {
+  title: string;
+  description?: string;
+  type?: NotificationType;
+  tenant_id: string;
+  user_id: string;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  user_id: string;
+  tenant_id: string;
+  created_at: string;
+  read_at: string | null;
+  is_read: boolean;
+  description?: string;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
+}
 
 export interface NotificationContent {
   id: string;
@@ -10,42 +36,16 @@ export interface NotificationContent {
   type: NotificationType;
   action_url?: string;
   action_label?: string;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  description?: string;
-  user_id: string;
-  tenant_id: string;
-  is_read?: boolean;
-  created_at: string;
-  updated_at?: string;
-  read_at?: string;
-  type: string;
-  action_url?: string;
-  action_label?: string;
   metadata?: Record<string, any>;
 }
 
 export interface NotificationsContextValue {
   notifications: Notification[];
   unreadCount: number;
+  loading: boolean;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
   refreshNotifications: () => Promise<void>;
-  loading: boolean;
   error: Error | null;
-}
-
-export interface CreateNotificationInput {
-  title: string;
-  description?: string;
-  tenant_id: string;
-  user_id: string;
-  type?: string;
-  action_url?: string;
-  action_label?: string;
-  metadata?: Record<string, any>;
 }

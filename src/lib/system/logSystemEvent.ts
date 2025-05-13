@@ -1,6 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { SystemEventModule } from '@/types/shared';
+import { supabase } from '@/lib/supabase';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
 /**
  * Log a system event to the database

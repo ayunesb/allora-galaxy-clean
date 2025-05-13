@@ -1,9 +1,29 @@
 
-import { SystemEventType } from './shared';
+export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
 
-/**
- * System log entry
- */
+export type SystemEventModule = 
+  | 'strategy'
+  | 'agent'
+  | 'plugin'
+  | 'user'
+  | 'tenant'
+  | 'auth'
+  | 'billing'
+  | 'hubspot' 
+  | 'system'
+  | 'ai';
+
+export type SystemEventType = 
+  | 'created' 
+  | 'updated' 
+  | 'deleted' 
+  | 'executed' 
+  | 'approved' 
+  | 'rejected'
+  | 'error'
+  | 'info'
+  | 'warning';
+
 export interface SystemLog {
   id: string;
   module: SystemEventModule;
@@ -13,24 +33,17 @@ export interface SystemLog {
   tenant_id?: string;
 }
 
-/**
- * System event modules
- */
-export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
-
-/**
- * Audit log entry (alias for SystemLog for backward compatibility)
- */
-export interface AuditLog extends SystemLog {}
-
-/**
- * Log filters for querying logs
- */
-export interface LogFilters {
-  module?: SystemEventModule;
-  event?: SystemEventType;
-  fromDate?: string;
-  toDate?: string;
-  tenant_id?: string;
-  searchTerm?: string;
+export interface AuditLog extends SystemLog {
+  user_id?: string;
+  action?: string;
+  details?: Record<string, any>;
+  resource_type?: string;
+  resource_id?: string;
+  error?: string;
+  // Add these fields for backward compatibility with data from API
+  entity_type?: SystemEventModule; 
+  entity_id?: string;
+  event_type?: string;
+  description?: any;
+  metadata?: Record<string, any>;
 }

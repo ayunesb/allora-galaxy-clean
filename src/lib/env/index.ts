@@ -1,33 +1,32 @@
 
 /**
- * Centralized environment variables handling
- * This file re-exports all environment utilities from their respective modules
+ * Centralized environment variable management
+ * This file exports a unified interface for accessing environment variables
+ * across different environments (browser, edge functions, Node.js)
  */
 
-// Re-export from envUtils with explicit naming to avoid ambiguity
-export { 
-  getEnv,
-  getEnvWithDefault,
-  isEnvTrue,
-  isDevelopment,
-  isTest,
-  isProduction,
-  getEnvsByPrefix,
-  getSafeEnv,
+// Export all environment utilities from envUtils
+export {
   ENV,
+  getEnv,
+  getEnvVar,
+  getEnvWithDefault,
   corsHeaders,
-  getBaseUrl
+  isProduction,
+  getBaseUrl,
+  getSafeEnv
 } from './envUtils';
 
-// Re-export from environment with explicit naming
 export {
-  getEnvironmentVariable,
-  validateEnvironment
-} from './environment';
+  validateCoreEnv,
+  validateAllEnv,
+  getCoreEnvValues,
+  getAllEnvValues,
+  ENV_NAMES
+} from './config';
 
-// Re-export from safeEdgeEnv
-export {
-  safeGetDenoEnv,
-  getEdgeEnv,
-  getEdgeEnvironment
-} from './safeEdgeEnv';
+// Export edge environment utilities
+export { safeGetDenoEnv, getEdgeEnv, getEdgeEnvironment } from './safeEdgeEnv';
+
+// Export specific environment configurations for different contexts
+export { getEnvironmentVariable, ENV as ENV_VARS } from './environment';

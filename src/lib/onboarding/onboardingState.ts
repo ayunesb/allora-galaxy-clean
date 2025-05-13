@@ -1,96 +1,109 @@
 
-import { OnboardingFormData } from '@/types/onboarding';
+import { create } from 'zustand';
+import { 
+  OnboardingFormData, 
+  OnboardingState, 
+  OnboardingStep,
+  OnboardingStore
+} from '@/types/onboarding';
 
-/**
- * Initial state for the onboarding form
- */
-export const initialOnboardingState: OnboardingFormData = {
+// Initial form data state
+const initialFormData: OnboardingFormData = {
   companyName: '',
   industry: '',
   companySize: '',
   revenueRange: '',
   website: '',
   description: '',
-  goals: [],
-  companyInfo: {
-    name: '',
-    industry: '',
-    size: ''
-  },
+  goals: [] as string[],
+  additionalInfo: '',
   persona: {
     name: '',
-    goals: [],
+    goals: [] as string[],
     tone: ''
-  },
-  additionalInfo: {
-    targetAudience: '',
-    keyCompetitors: '',
-    uniqueSellingPoints: ''
   }
 };
 
-/**
- * Validates that the required fields for a step are filled
- */
-export const validateStep = (formData: OnboardingFormData, step: string): boolean => {
-  switch (step) {
-    case 'company-info':
-      return Boolean(formData.companyInfo?.name && formData.companyInfo?.industry);
-    case 'persona':
-      return Boolean(formData.persona?.name && formData.persona?.goals?.length);
-    case 'additional-info':
-      return Boolean(
-        formData.additionalInfo && 
-        typeof formData.additionalInfo === 'object' &&
-        formData.additionalInfo.targetAudience &&
-        formData.additionalInfo.keyCompetitors
-      );
-    default:
-      return true;
-  }
+// Initial onboarding state
+const initialState: OnboardingState = {
+  step: 'welcome',
+  formData: initialFormData,
+  isLoading: false,
+  error: null,
+  currentStep: 0,
+  isSubmitting: false,
+  isComplete: false,
+  tenantId: undefined
 };
 
-/**
- * Merge partial form data with existing data
- */
-export const mergeFormData = (
-  existing: OnboardingFormData,
-  partial: Partial<OnboardingFormData>
-): OnboardingFormData => {
-  // Create a new object with merged properties
-  const merged: OnboardingFormData = {
-    ...existing,
-    ...partial,
-    
-    // Handle nested objects properly with default values
-    companyInfo: {
-      name: '',
-      industry: '',
-      size: '',
-      ...(existing.companyInfo || {}),
-      ...(partial.companyInfo || {})
-    },
-    
-    persona: {
-      name: '',
-      goals: [],
-      tone: '',
-      ...(existing.persona || {}),
-      ...(partial.persona || {})
-    },
-    
-    additionalInfo: {
-      targetAudience: '',
-      keyCompetitors: '',
-      uniqueSellingPoints: '',
-      ...(existing.additionalInfo && typeof existing.additionalInfo === 'object' 
-        ? existing.additionalInfo 
-        : {}),
-      ...(partial.additionalInfo && typeof partial.additionalInfo === 'object' 
-        ? partial.additionalInfo 
-        : {})
-    }
-  };
+// Create onboarding store
+export const useOnboardingStore = create<OnboardingStore>((set) => ({
+  ...initialState,
   
-  return merged;
-};
+  // Step navigation
+  nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep !== undefined ? state.currentStep + 1 : 1, 3) })),
+  prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep !== undefined ? state.currentStep - 1 : 0, 0) })),
+  setStep: (step: number) => set({ currentStep: step }),
+  
+  // Form data management
+  updateFormData: (data: Partial<OnboardingFormData>) => 
+    set((state) => ({ formData: { ...state.formData, ...data } })),
+  
+  setField: (key: string, value: any) => set((state) => {
+    // Handle nested keys like 'persona.name'
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      return {
+        formData: {
+          ...state.formData,
+          [parent]: {
+            ...(state.formData[parent as keyof OnboardingFormData] as Record<string, any>),
+            [child]: value
+          }
+        }
+      };
+    }
+    
+    // Handle regular keys
+    return {
+      formData: {
+        ...state.formData,
+        [key]: value
+      }
+    };
+  }),
+  
+  // Reset to initial state
+  reset: () => set(initialState),
+  
+  // Status management
+  setSubmitting: (isSubmitting: boolean) => set({ isSubmitting }),
+  
+  // Completion
+  setComplete: (isComplete: boolean, tenantId?: string) => set({ 
+    isComplete, 
+    tenantId: tenantId || undefined 
+  }),
+  
+  // Validation helpers
+  validateStep: (step: OnboardingStep): boolean => {
+    const state = useOnboardingStore.getState();
+    
+    switch (step) {
+      case 'company-info':
+        return !!state.formData.companyName && !!state.formData.industry;
+      
+      case 'persona':
+        return !!state.formData.persona?.name;
+      
+      case 'additional-info':
+        return true; // Optional step
+      
+      case 'strategy-generation':
+        return true; // Just confirmation step
+      
+      default:
+        return false;
+    }
+  }
+}));

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { NavigationItem } from '@/types/navigation';
+import { NavigationItem } from '@/types/shared';
 import * as LucideIcons from 'lucide-react';
 
 interface SidebarNavProps {

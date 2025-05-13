@@ -1,56 +1,78 @@
 
-import { supabase } from '@/lib/supabase';
-import { OnboardingStep } from '@/types/onboarding';
-import { SystemEventModule } from '@/types/logs';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-// Log onboarding event to analytics
-export const logOnboardingEvent = async (
-  step: OnboardingStep,
+/**
+ * Track when a user views an onboarding step
+ * @param userId User ID
+ * @param stepId Step ID
+ * @param additionalData Additional data to log
+ */
+export function trackOnboardingStepView(
   userId: string,
-  tenantId?: string,
-  details?: Record<string, any>
-) => {
-  try {
-    const event = `onboarding_${step}`;
-    const module: SystemEventModule = 'user';
-    
-    await supabase.from('system_logs').insert([
-      {
-        module,
-        event,
-        tenant_id: tenantId,
-        context: {
-          user_id: userId,
-          step,
-          ...details
-        }
-      }
-    ]);
-  } catch (error) {
-    console.error('Failed to log onboarding event:', error);
-  }
-};
+  stepId: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'info', {
+    event_type: 'step_view',
+    user_id: userId,
+    step_id: stepId,
+    ...additionalData,
+  });
+}
 
-// Track onboarding completion
-export const trackOnboardingCompletion = async (
+/**
+ * Track when a user completes an onboarding step
+ * @param userId User ID
+ * @param stepId Step ID
+ * @param additionalData Additional data to log
+ */
+export function trackOnboardingStepCompleted(
+  userId: string,
+  stepId: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'info', {
+    event_type: 'step_completed',
+    user_id: userId,
+    step_id: stepId,
+    ...additionalData,
+  });
+}
+
+/**
+ * Track when onboarding is complete
+ * @param userId User ID
+ * @param tenantId Tenant ID
+ * @param additionalData Additional data to log
+ */
+export function trackOnboardingComplete(
   userId: string,
   tenantId: string,
-  timeSpentSeconds: number
-) => {
-  try {
-    await supabase.from('system_logs').insert([
-      {
-        module: 'user',
-        event: 'onboarding_completed',
-        tenant_id: tenantId,
-        context: {
-          user_id: userId,
-          time_spent_seconds: timeSpentSeconds,
-          completed_at: new Date().toISOString()
-        }
-      }
-    ]);
-  } catch (error) {
-    console.error('Failed to track onboarding completion:', error);
-  }
-};
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'info', {
+    event_type: 'onboarding_completed',
+    user_id: userId,
+    tenant_id: tenantId,
+    ...additionalData,
+  });
+}
+
+/**
+ * Track onboarding errors
+ * @param userId User ID
+ * @param errorMessage Error message
+ * @param additionalData Additional data to log
+ */
+export function trackOnboardingError(
+  userId: string,
+  errorMessage: string,
+  additionalData: Record<string, any> = {}
+): Promise<any> {
+  return logSystemEvent('onboarding', 'error', {
+    event_type: 'onboarding_error',
+    user_id: userId,
+    error: errorMessage,
+    ...additionalData,
+  });
+}

@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { mainNavigationItems } from '@/contexts/workspace/navigationItems';
+import { navigationItems } from '@/contexts/workspace/navigationItems';
 import { WorkspaceProvider } from '@/contexts/workspace/WorkspaceContext';
 
 const MainLayout: React.FC = () => {
@@ -18,7 +18,7 @@ const MainLayout: React.FC = () => {
         <Navbar />
         
         <div className="flex flex-1">
-          {!isMobile && <Sidebar items={mainNavigationItems} />}
+          {!isMobile && <Sidebar items={navigationItems} />}
           
           <main className="flex-1 bg-background">
             <div className="container mx-auto py-6">

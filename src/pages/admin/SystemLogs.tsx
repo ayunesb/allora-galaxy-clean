@@ -1,53 +1,61 @@
 
-import React, { useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
+import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
+import { AuditLog } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { SystemLog } from '@/types/logs';
 
-const SystemLogs: React.FC = () => {
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+const SystemLogs = () => {
+  const {
+    logs,
+    loading,
+    filters,
+    modules,
+    fetchLogs,
+    handleFilterChange,
+  } = useSystemLogsData();
   
-  const { logs, isLoading, filters, setFilters, refetch } = useSystemLogsData();
-  
-  const handleViewLog = (log: SystemLog) => {
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
+
+  const handleOpenLogDetail = (log: AuditLog) => {
     setSelectedLog(log);
-    setDialogOpen(true);
+    setShowLogDetail(true);
   };
-  
+
   return (
-    <div className="container py-6">
-      <PageHeader
-        title="System Logs"
-        description="View and filter system events and activities"
-      />
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">System Logs</h1>
       
-      <SystemLogFilters 
-        filters={filters} 
-        onFilterChange={setFilters} 
-        isLoading={isLoading}
-        onRefresh={refetch}
-      />
-      
-      <Card className="mt-6">
-        <CardContent className="p-0 sm:p-6">
-          <SystemLogsList 
-            logs={logs} 
-            isLoading={isLoading} 
-            onViewLog={handleViewLog}
+      <Card>
+        <CardHeader>
+          <CardTitle>System Activity Logs</CardTitle>
+          <SystemLogFilter 
+            onFilterChange={handleFilterChange}
+            filters={filters}
+            modules={modules}
+            onRefresh={fetchLogs}
+            isLoading={loading}
+          />
+        </CardHeader>
+        <CardContent className="p-0">
+          <SystemLogsList
+            logs={logs}
+            isLoading={loading}
+            onLogClick={handleOpenLogDetail}
           />
         </CardContent>
       </Card>
       
-      <LogDetailDialog 
-        log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-      />
+      {selectedLog && (
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={showLogDetail} 
+          onOpenChange={setShowLogDetail} 
+        />
+      )}
     </div>
   );
 };

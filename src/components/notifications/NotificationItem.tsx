@@ -126,9 +126,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
                 variant="ghost" 
                 className="h-6 w-6"
                 onClick={handleMarkAsRead}
+                title="Mark as read"
               >
-                <CheckCircle className="h-4 w-4" />
-                <span className="sr-only">Mark as read</span>
+                <CheckCircle className="h-3.5 w-3.5" />
               </Button>
             )}
             
@@ -136,11 +136,11 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-6 w-6 text-destructive"
+                className="h-6 w-6 text-destructive hover:text-destructive"
                 onClick={handleDelete}
+                title="Delete notification"
               >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Delete</span>
+                <X className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>

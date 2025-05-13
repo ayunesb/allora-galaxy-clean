@@ -1,197 +1,148 @@
 
 import { supabase } from '@/lib/supabase';
-import { OnboardingFormData } from '@/types/onboarding';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-interface OnboardingResponse {
-  success: boolean;
-  error?: string;
-  tenantId?: string;
-  strategyId?: string;
+/**
+ * Validates a company name
+ * @param name Company name to validate
+ * @returns True if valid
+ */
+export function validateCompanyName(name: string): boolean {
+  return name.length >= 2 && name.length <= 100;
 }
 
 /**
- * Generate a URL-friendly slug from a company name
- * @param companyName Company name to slugify
- */
-const generateSlug = (companyName: string): string => {
-  return companyName
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-};
-
-/**
- * Create a new tenant for the user
- * @param userId User ID
+ * Creates a company profile
+ * @param tenantId Tenant ID
  * @param companyName Company name
+ * @param industry Industry
+ * @param size Company size
+ * @param goals Company goals
+ * @param userId User ID of the creator
+ * @returns Result of the operation
  */
-const createTenant = async (userId: string, companyName: string) => {
-  const slug = generateSlug(companyName);
-  
-  const { data, error } = await supabase
-    .from('tenants')
-    .insert([{
-      name: companyName,
-      slug,
-      owner_id: userId
-    }])
-    .select()
-    .single();
-  
-  if (error) throw error;
-  
-  return data;
-};
-
-/**
- * Assign the user as an owner of the tenant
- * @param userId User ID
- * @param tenantId Tenant ID
- */
-const assignUserToTenant = async (userId: string, tenantId: string) => {
-  const { error } = await supabase
-    .from('tenant_user_roles')
-    .insert([{
-      tenant_id: tenantId,
-      user_id: userId,
-      role: 'owner'
-    }]);
-  
-  if (error) throw error;
-};
-
-/**
- * Create a company profile
- * @param tenantId Tenant ID
- * @param formData Onboarding form data
- */
-const createCompanyProfile = async (tenantId: string, formData: OnboardingFormData) => {
-  const companyData = {
-    tenant_id: tenantId,
-    name: formData.companyName || formData.companyInfo?.name || 'Untitled Company',
-    industry: formData.industry || formData.companyInfo?.industry,
-    size: formData.companySize || formData.companyInfo?.size,
-    website: formData.website,
-    revenue_range: formData.revenueRange,
-    description: formData.description
-  };
-  
-  const { data, error } = await supabase
-    .from('company_profiles')
-    .insert([companyData])
-    .select();
-  
-  if (error) throw error;
-  
-  return data[0];
-};
-
-/**
- * Create a persona profile
- * @param tenantId Tenant ID
- * @param formData Onboarding form data
- */
-const createPersonaProfile = async (tenantId: string, formData: OnboardingFormData) => {
-  if (!formData.persona) return null;
-  
-  const { data, error } = await supabase
-    .from('persona_profiles')
-    .insert([{
-      tenant_id: tenantId,
-      name: formData.persona.name,
-      goals: formData.persona.goals,
-      tone: formData.persona.tone
-    }])
-    .select();
-  
-  if (error) throw error;
-  
-  return data[0];
-};
-
-/**
- * Update user profile to mark onboarding as completed
- * @param userId User ID
- */
-const markOnboardingCompleted = async (userId: string) => {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ onboarding_completed: true })
-    .eq('id', userId);
-  
-  if (error) throw error;
-};
-
-/**
- * Create an initial strategy based on onboarding data
- */
-const generateStrategy = async (tenantId: string, userId: string, formData: OnboardingFormData) => {
-  const companyName = formData.companyName || formData.companyInfo?.name || 'Your Company';
-  
-  const { data, error } = await supabase
-    .from('strategies')
-    .insert([{
-      title: `${companyName} Growth Strategy`,
-      description: `Initial growth strategy for ${companyName} based on onboarding information.`,
-      status: 'draft',
-      tenant_id: tenantId,
-      created_by: userId,
-      tags: formData.goals || ['growth', 'marketing']
-    }])
-    .select();
-  
-  if (error) throw error;
-  
-  return data[0];
-};
-
-/**
- * Complete the onboarding process
- * @param userId User ID
- * @param formData Onboarding form data
- */
-export const completeOnboarding = async (userId: string, formData: OnboardingFormData): Promise<OnboardingResponse> => {
+export async function createCompanyProfile(
+  tenantId: string,
+  companyName: string,
+  industry: string,
+  size: string,
+  goals: string[],
+  userId: string
+) {
   try {
-    // Get company name from either direct property or nested object
-    const companyName = formData.companyName || formData.companyInfo?.name || '';
+    const { data, error } = await supabase
+      .from('company_profiles')
+      .insert({
+        tenant_id: tenantId,
+        name: companyName,
+        industry,
+        size,
+        goals,
+        created_by: userId
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
     
-    if (!companyName) {
-      return { success: false, error: 'Company name is required' };
-    }
+    // Log the successful profile creation
+    await logSystemEvent('tenant', 'created', {
+      event_type: 'company_profile_created',
+      tenant_id: tenantId,
+      company_name: companyName
+    }, tenantId);
     
-    // Create a new tenant
-    const tenant = await createTenant(userId, companyName);
-    
-    // Assign the user as an owner
-    await assignUserToTenant(userId, tenant.id);
-    
-    // Create company profile
-    await createCompanyProfile(tenant.id, formData);
-    
-    // Create persona profile if available
-    if (formData.persona) {
-      await createPersonaProfile(tenant.id, formData);
-    }
-    
-    // Mark onboarding as completed in user profile
-    await markOnboardingCompleted(userId);
-    
-    // Generate an initial strategy
-    const strategy = await generateStrategy(tenant.id, userId, formData);
-    
-    return { 
-      success: true,
-      tenantId: tenant.id,
-      strategyId: strategy.id
-    };
-    
-  } catch (error: any) {
-    console.error('Onboarding error:', error);
-    return { 
-      success: false,
-      error: error.message || 'Failed to complete onboarding'
-    };
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('Error creating company profile:', err);
+    return { success: false, error: err.message || 'Failed to create company profile' };
   }
-};
+}
+
+/**
+ * Creates a persona profile
+ * @param tenantId Tenant ID
+ * @param targetAudience Target audience
+ * @param audienceNeeds Audience needs
+ * @param businessModel Business model
+ * @param tonePreference Tone preference
+ * @param userId User ID of the creator
+ * @returns Result of the operation
+ */
+export async function createPersonaProfile(
+  tenantId: string,
+  targetAudience: string[],
+  audienceNeeds: string[],
+  businessModel: string,
+  tonePreference: string,
+  userId: string
+) {
+  try {
+    const { data, error } = await supabase
+      .from('persona_profiles')
+      .insert({
+        tenant_id: tenantId,
+        target_audience: targetAudience,
+        audience_needs: audienceNeeds,
+        business_model: businessModel,
+        tone_preference: tonePreference,
+        created_by: userId
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    // Log the successful persona creation
+    await logSystemEvent('tenant', 'created', {
+      event_type: 'persona_profile_created',
+      tenant_id: tenantId
+    }, tenantId);
+    
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('Error creating persona profile:', err);
+    return { success: false, error: err.message || 'Failed to create persona profile' };
+  }
+}
+
+/**
+ * Completes the onboarding process
+ * @param tenantId Tenant ID
+ * @param userId User ID
+ * @returns Result of the operation
+ */
+export async function completeOnboarding(tenantId: string, userId: string) {
+  try {
+    // Update the tenant record to mark onboarding as completed
+    const { error: tenantError } = await supabase
+      .from('tenants')
+      .update({ 
+        onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString()
+      })
+      .eq('id', tenantId);
+
+    if (tenantError) throw tenantError;
+    
+    // Update the user profile to mark onboarding as completed
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ onboarding_completed: true })
+      .eq('id', userId);
+      
+    if (profileError) throw profileError;
+    
+    // Log the onboarding completion
+    await logSystemEvent('tenant', 'info', {
+      event_type: 'onboarding_completed',
+      tenant_id: tenantId,
+      user_id: userId
+    }, tenantId);
+    
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error completing onboarding:', err);
+    return { success: false, error: err.message || 'Failed to complete onboarding' };
+  }
+}

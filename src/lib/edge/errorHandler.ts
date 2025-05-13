@@ -1,165 +1,190 @@
 
-import { corsHeaders } from '@/lib/env/environment';
+/**
+ * Error handling utilities for edge functions
+ */
 
+// CORS headers for edge functions
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+  'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
+};
+
+// Standard error response interface
 export interface ErrorResponseData {
-  success: false;
   error: string;
+  message?: string;
   details?: any;
-  timestamp: string;
-  code?: string;
-  requestId?: string;
   status: number;
+  request_id?: string;
+  timestamp?: string;
+  code?: string;
 }
 
-export interface SuccessResponseData<T = any> {
-  success: true;
-  data: T;
-  timestamp: string;
-  requestId?: string;
+// Standard success response interface
+export interface SuccessResponseData {
+  data: any;
+  status: number;
+  message?: string;
+  request_id?: string;
+  timestamp?: string;
 }
 
 /**
- * Error handler for edge functions
- * @param err The error object
- * @param requestId Optional request ID for tracking
- * @returns A JSON response with the error message
+ * Create a standardized error response
  */
-export function handleEdgeError(err: any, requestId?: string): Response {
-  // Log the error for debugging
-  console.error(`Edge Function Error${requestId ? ` [${requestId}]` : ''}:`, err);
+export function createErrorResponse(
+  error: Error | string,
+  status: number = 500,
+  details?: any,
+  requestId?: string
+): Response {
+  const errorMessage = typeof error === 'string' ? error : error.message;
   
-  // Extract error details
-  const message = err?.message || 'Internal Server Error';
-  const status = err?.status || 500;
-  const code = err?.code || 'INTERNAL_ERROR';
-  const details = err?.details || undefined;
-  
-  // Create standardized error response
-  const responseData: ErrorResponseData = { 
-    success: false,
-    error: message,
+  const responseBody: ErrorResponseData = {
+    error: errorMessage,
+    status,
+    request_id: requestId || generateRequestId(),
     timestamp: new Date().toISOString(),
-    status
   };
   
   if (details) {
-    responseData.details = details;
+    responseBody.details = details;
   }
   
-  if (code) {
-    responseData.code = code;
+  // Add error code if it exists
+  if (typeof error !== 'string' && (error as any).code) {
+    responseBody.code = (error as any).code;
   }
   
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
-  // Return formatted error response
-  return new Response(
-    JSON.stringify(responseData),
-    { 
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
 }
 
 /**
- * Create a standardized success response for edge functions
- * @param data Response data
- * @param status HTTP status code
- * @param requestId Optional request ID for tracking
- * @returns Success response
+ * Create a standardized success response
  */
-export function createSuccessResponse<T>(data: T, status: number = 200, requestId?: string): Response {
-  const responseData: SuccessResponseData<T> = {
-    success: true,
-    data,
-    timestamp: new Date().toISOString()
-  };
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
-  return new Response(
-    JSON.stringify(responseData),
-    { 
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
-}
-
-/**
- * Create a standardized error response for edge functions
- * @param message Error message
- * @param details Additional error details
- * @param status HTTP status code
- * @param code Error code
- * @param requestId Optional request ID for tracking
- * @returns Error response
- */
-export function createErrorResponse(
-  message: string, 
-  details?: any, 
-  status: number = 500,
-  code?: string,
+export function createSuccessResponse(
+  data: any,
+  status: number = 200,
+  message?: string,
   requestId?: string
 ): Response {
-  const responseData: ErrorResponseData = {
-    success: false,
-    error: message,
+  const responseBody: SuccessResponseData = {
+    data,
+    status,
+    request_id: requestId || generateRequestId(),
     timestamp: new Date().toISOString(),
-    status
   };
   
-  if (details !== undefined) {
-    responseData.details = details;
+  if (message) {
+    responseBody.message = message;
   }
   
-  if (code) {
-    responseData.code = code;
-  }
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
-  return new Response(
-    JSON.stringify(responseData),
-    { 
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
 }
 
 /**
- * Helper to create a unique request ID
+ * Generate a unique request ID
  */
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  return crypto.randomUUID();
 }
 
 /**
- * Middleware to handle CORS preflight requests
+ * Handle CORS preflight request
  */
 export function handleCorsPreflightRequest(req: Request): Response | null {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204, 
+      headers: corsHeaders 
+    });
   }
   return null;
 }
 
-// Export CORS headers for convenience
-export { corsHeaders };
+/**
+ * Universal error handler for edge functions
+ */
+export function errorHandler(error: any, requestId?: string): Response {
+  console.error(`Edge function error [${requestId || 'no-id'}]:`, error);
+  
+  const status = error.status || 500;
+  const message = error.message || 'Internal server error';
+  
+  return createErrorResponse(message, status, undefined, requestId);
+}
+
+/**
+ * Handle execution errors in edge functions with detailed logging
+ */
+export function handleExecutionError(error: any, requestId?: string): Response {
+  console.error(`Execution error [${requestId || 'no-id'}]:`, error);
+  
+  // Determine appropriate status code based on error type/code
+  let status = 500;
+  if (error.status) {
+    status = error.status;
+  } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-token') {
+    status = 401;
+  } else if (error.code === 'auth/permission-denied' || error.code === 'permission-denied') {
+    status = 403;
+  } else if (error.code === 'not-found') {
+    status = 404;
+  } else if (error.code === 'already-exists') {
+    status = 409;
+  } else if (error.code === 'resource-exhausted') {
+    status = 429;
+  }
+  
+  return createErrorResponse(
+    error.message || 'Execution error',
+    status,
+    error.details || error.stack,
+    requestId
+  );
+}
+
+/**
+ * Safe wrapper for edge function execution
+ * @param handler The function handler to execute
+ * @param requestId Optional request ID for tracking
+ * @returns The response from the handler or an error response
+ */
+export async function safeExecute<T>(
+  handler: () => Promise<T>, 
+  requestId?: string
+): Promise<T | Response> {
+  try {
+    return await handler();
+  } catch (error) {
+    return handleExecutionError(error, requestId);
+  }
+}
+
+/**
+ * Safely parse JSON request body with error handling
+ * @param req The request object
+ * @returns Tuple containing [parsed data, error]
+ */
+export async function safeParseJsonBody<T>(req: Request): Promise<[T | null, Error | null]> {
+  try {
+    const body = await req.json() as T;
+    return [body, null];
+  } catch (error) {
+    return [null, error instanceof Error ? error : new Error(String(error))];
+  }
+}

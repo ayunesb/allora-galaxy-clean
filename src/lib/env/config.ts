@@ -1,5 +1,5 @@
 
-import { getEnv } from './envUtils';
+import { ENV } from './envUtils';
 
 // Define types for our environment variables
 interface EnvVariable {
@@ -77,7 +77,7 @@ export function getCoreEnvValues(): Record<string, string> {
   const result: Record<string, string> = {};
   
   for (const envVar of coreEnvVars) {
-    result[envVar.name] = getEnv(envVar.name) || envVar.default || '';
+    result[envVar.name] = ENV(envVar.name) || envVar.default || '';
   }
   
   return result;
@@ -90,7 +90,7 @@ export function getAllEnvValues(): Record<string, string> {
   const result: Record<string, string> = {};
   
   for (const envVar of [...coreEnvVars, ...integrationEnvVars]) {
-    result[envVar.name] = getEnv(envVar.name) || envVar.default || '';
+    result[envVar.name] = ENV(envVar.name) || envVar.default || '';
   }
   
   return result;
@@ -104,7 +104,7 @@ function validateEnv(envVars: EnvVariable[]): { valid: boolean; missing: string[
   
   for (const envVar of envVars) {
     if (envVar.required) {
-      const value = getEnv(envVar.name);
+      const value = ENV(envVar.name);
       if (!value && !envVar.default) {
         missing.push(`${envVar.name}: ${envVar.description || 'No description'}`);
       }

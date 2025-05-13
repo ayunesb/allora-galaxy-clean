@@ -15,15 +15,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 
-export interface UserEmail {
-  email: string;
-}
-
 export interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  email: UserEmail[];
+  email: {
+    email: string;
+  };
 }
 
 export interface User {
@@ -142,7 +140,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {user.profiles?.email?.[0]?.email || "No email"}
+                  {user.profiles?.email?.email || "No email"}
                 </TableCell>
                 <TableCell>
                   {getRoleBadge(user.role)}

@@ -1,83 +1,129 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { SystemLog, LogFilters } from '@/types/logs';
-import { useTenantId } from '@/hooks/useTenantId';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
+import { AuditLog, SystemEventModule } from '@/types/logs';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useToast } from '@/hooks/use-toast';
+import { DateRange } from '@/types/shared';
 
-export const useSystemLogsData = () => {
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Partial<LogFilters>>({});
-  const { tenantId } = useTenantId();
+export interface SystemLogsDataParams {
+  initialFilters?: SystemLogFilter;
+}
+
+export const useSystemLogsData = (params?: SystemLogsDataParams) => {
+  const { currentWorkspace } = useWorkspace();
+  const { toast } = useToast();
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [modules, setModules] = useState<SystemEventModule[]>([]);
+  const [filters, setFilters] = useState<SystemLogFilter>(
+    params?.initialFilters || { searchTerm: '' }
+  );
   
-  const fetchLogs = async () => {
-    setIsLoading(true);
-    setError(null);
+  const fetchModules = async () => {
+    if (!currentWorkspace?.id) return;
     
+    try {
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('module')
+        .eq('tenant_id', currentWorkspace.id)
+        .order('module')
+        .limit(100);
+      
+      if (error) throw error;
+      
+      // Extract unique modules
+      const uniqueModules = Array.from(new Set(data.map(item => item.module))) as SystemEventModule[];
+      setModules(uniqueModules);
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+    }
+  };
+
+  const fetchLogs = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+    
+    setLoading(true);
     try {
       let query = supabase
         .from('system_logs')
-        .select('*');
-      
-      // Apply tenant filter if applicable
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
+        .select('*')
+        .eq('tenant_id', currentWorkspace.id);
       
       // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-      
-      if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate);
-      }
-      
-      if (filters.toDate) {
-        query = query.lte('created_at', filters.toDate);
-      }
-      
       if (filters.searchTerm) {
         query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
       }
       
-      // Order by created_at DESC
-      query = query.order('created_at', { ascending: false });
+      if (filters.module) {
+        query = query.eq('module', filters.module);
+      }
       
-      // Limit to 100 records
-      query = query.limit(100);
+      if (filters.dateRange?.from) {
+        const fromDate = filters.dateRange.from;
+        query = query.gte('created_at', fromDate.toISOString());
+        
+        if (filters.dateRange.to) {
+          const toDate = filters.dateRange.to;
+          query = query.lte('created_at', toDate.toISOString());
+        }
+      }
       
-      const { data, error } = await query;
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
       
       if (error) {
         throw error;
       }
       
       setLogs(data || []);
-    } catch (err: any) {
-      console.error('Error fetching system logs:', err);
-      setError(err.message);
+    } catch (error: any) {
+      console.error('Error fetching system logs:', error);
+      toast({
+        title: "Error fetching system logs",
+        description: error.message || "Failed to load system logs",
+        variant: "destructive"
+      });
+      setLogs([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-  
-  // Fetch logs on mount and when filters change
+  }, [currentWorkspace?.id, filters, toast]);
+
+  // Initial data fetching
   useEffect(() => {
-    fetchLogs();
-  }, [tenantId, filters]);
-  
+    if (currentWorkspace?.id) {
+      fetchLogs();
+      fetchModules();
+    }
+  }, [currentWorkspace?.id, fetchLogs]);
+
+  const handleFilterChange = (newFilters: SystemLogFilter) => {
+    setFilters(newFilters);
+  };
+
+  const setDateRange = (dateRange: DateRange | undefined) => {
+    setFilters(prev => ({ ...prev, dateRange }));
+  };
+
+  const setSearchTerm = (searchTerm: string) => {
+    setFilters(prev => ({ ...prev, searchTerm }));
+  };
+
+  const setModule = (module: SystemEventModule | undefined) => {
+    setFilters(prev => ({ ...prev, module }));
+  };
+
   return {
     logs,
-    isLoading,
-    error,
+    loading,
     filters,
-    setFilters,
-    refetch: fetchLogs
+    modules,
+    fetchLogs,
+    handleFilterChange,
+    setDateRange,
+    setSearchTerm,
+    setModule
   };
 };
