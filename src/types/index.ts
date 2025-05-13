@@ -17,6 +17,7 @@ import * as EvolutionTypes from './evolution';
 import * as OnboardingTypes from './onboarding';
 import * as NotificationTypes from './notifications';
 import * as GalaxyTypes from './galaxy';
+import * as FixedTypes from './fixed';
 
 // Export the namespaces to allow importing like: import { UserTypes } from '@/types'
 export { 
@@ -33,7 +34,8 @@ export {
   EvolutionTypes,
   OnboardingTypes,
   NotificationTypes,
-  GalaxyTypes
+  GalaxyTypes,
+  FixedTypes
 };
 
 // Also selectively re-export common types for backward compatibility
@@ -60,4 +62,6 @@ export type { Strategy } from './strategy';
 export type { Plugin, PluginLog } from './plugin';
 export type { Tenant } from './tenant';
 export type { KPI } from './kpi';
-export type { Notification } from './notifications';
+export type { Notification, NotificationType } from './notifications';
+export type { OnboardingFormData, ValidationResult } from './onboarding';
+export type { ExecutionRecord, ExecuteStrategyInput } from './fixed/execution';

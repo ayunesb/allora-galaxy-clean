@@ -1,6 +1,23 @@
 
 export type NotificationType = 'system' | 'campaign' | 'user' | 'strategy' | 'plugin' | 'agent' | 'info' | 'success' | 'warning' | 'error';
 
+export interface Notification {
+  id: string;
+  title: string;
+  description?: string;
+  message?: string; // For backward compatibility
+  user_id: string;
+  tenant_id: string;
+  is_read?: boolean;
+  created_at: string;
+  updated_at?: string;
+  read_at?: string | null;
+  type: NotificationType | string;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface NotificationContent {
   id: string;
   title: string;
@@ -10,22 +27,6 @@ export interface NotificationContent {
   type: NotificationType;
   action_url?: string;
   action_label?: string;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  description?: string;
-  user_id: string;
-  tenant_id: string;
-  is_read?: boolean;
-  created_at: string;
-  updated_at?: string;
-  read_at?: string;
-  type: string;
-  action_url?: string;
-  action_label?: string;
-  metadata?: Record<string, any>;
 }
 
 export interface NotificationsContextValue {
@@ -48,4 +49,11 @@ export interface CreateNotificationInput {
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
+}
+
+export interface NotificationFilter {
+  type?: string | string[];
+  read?: boolean;
+  fromDate?: Date;
+  toDate?: Date;
 }

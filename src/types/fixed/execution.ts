@@ -27,3 +27,37 @@ export interface ExecutionFilter {
   dateFrom?: Date;
   dateTo?: Date;
 }
+
+export interface ExecutionParams {
+  tenant_id: string;
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  user_id?: string;
+  options?: Record<string, any>;
+}
+
+export interface ExecutionResult {
+  success: boolean;
+  execution_id?: string;
+  status: string;
+  error?: string;
+  execution_time?: number;
+  xp_earned?: number;
+  output?: any;
+}
+
+export interface ExecuteStrategyInput {
+  strategy_id: string;
+  tenant_id: string;
+  user_id?: string;
+  options?: Record<string, any>;
+}
+
+export interface ExecuteStrategyOptions {
+  dry_run?: boolean;
+  debug?: boolean;
+  max_plugins?: number;
+  timeout?: number;
+  include_details?: boolean;
+}

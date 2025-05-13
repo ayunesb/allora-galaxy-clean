@@ -16,14 +16,18 @@ export interface DatePickerProps {
   date: Date | null;
   onSelect?: (date: Date | null) => void;
   onDateChange?: (date: Date | null) => void; // Alternative prop name for compatibility
-  placeholder?: string; // Added placeholder prop
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({ 
   date, 
   onSelect,
   onDateChange,
-  placeholder = "Pick a date" 
+  placeholder = "Pick a date",
+  className,
+  disabled = false
 }) => {
   // Handle date changes through either prop
   const handleDateChange: SelectSingleEventHandler = (selectedDate) => {
@@ -39,8 +43,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground"
+            !date && "text-muted-foreground",
+            disabled && "opacity-50 cursor-not-allowed",
+            className
           )}
+          disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? format(date, "PPP") : <span>{placeholder}</span>}

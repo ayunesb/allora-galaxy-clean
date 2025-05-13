@@ -22,6 +22,32 @@ export function formatDate(dateString?: string | null, formatString: string = 'y
 }
 
 /**
+ * Format a date for display in the UI
+ * @param dateString The date string to format
+ * @returns Formatted date string for display
+ */
+export function formatDisplayDate(dateString?: string | null): string {
+  return formatDate(dateString, 'PPP');
+}
+
+/**
+ * Format a date for database storage
+ * @param date The date to format
+ * @returns ISO string for database storage
+ */
+export function formatForDatabase(date: Date | null): string | null {
+  if (!date) return null;
+  
+  try {
+    if (!isValid(date)) return null;
+    return date.toISOString();
+  } catch (error) {
+    console.error('Error formatting date for database:', error);
+    return null;
+  }
+}
+
+/**
  * Format a date string to a relative format
  * @param dateString The date string to format
  * @param addSuffix Whether to add a suffix (e.g., "ago")
@@ -68,4 +94,51 @@ export function safeParseDate(dateString?: string | null): Date | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Get a date with time set to the start of the day
+ * @param date The date to modify
+ * @returns Date with time set to 00:00:00
+ */
+export function startOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+/**
+ * Get a date with time set to the end of the day
+ * @param date The date to modify
+ * @returns Date with time set to 23:59:59
+ */
+export function endOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
+/**
+ * Format object dates based on a filter
+ * @param obj Object containing dates to format
+ * @param dateFields Fields to format as dates
+ * @param formatString Format string for the dates
+ * @returns New object with formatted dates
+ */
+export function formatObjectDates<T extends Record<string, any>>(
+  obj: T,
+  dateFields: string[],
+  formatString: string = 'PPP'
+): T {
+  if (!obj) return obj;
+
+  const result = { ...obj };
+  
+  for (const field of dateFields) {
+    if (obj[field]) {
+      result[field] = formatDate(obj[field], formatString);
+    }
+  }
+  
+  return result;
 }
