@@ -56,7 +56,7 @@ export const AiDecisionDetail: React.FC<AiDecisionDetailProps> = ({
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="font-semibold text-lg">AI Decision: {decision.decision_type}</span>
+            <span className="font-semibold text-lg">AI Decision: {decision.decision_type || 'Unknown'}</span>
             <div className="ml-auto flex items-center gap-2">
               {getConfidenceBadge(decision.confidence)}
               {getReviewStatusBadge(decision)}

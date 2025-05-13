@@ -81,13 +81,24 @@ export function useAiDecisionsData() {
         return {
           ...log,
           decision_type: context.decision_type || log.event,
-          confidence: context.confidence,
+          confidence: context.confidence || context.confidence_score,
+          confidence_score: context.confidence_score,
           reviewed: context.reviewed || false,
           review_outcome: context.review_outcome,
           input: context.input,
           output: context.output,
           reviewer_id: context.reviewer_id,
-          review_date: context.review_date
+          reviewed_by: context.reviewed_by,
+          reviewed_at: context.reviewed_at || context.review_date,
+          review_date: context.review_date,
+          plugin_id: context.plugin_id,
+          strategy_id: context.strategy_id,
+          model: context.model,
+          prompt: context.prompt,
+          completion: context.completion,
+          tokens_used: context.tokens_used,
+          alternatives: context.alternatives,
+          metadata: context.metadata
         };
       });
       

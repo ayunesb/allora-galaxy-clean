@@ -23,7 +23,7 @@ const AiDecisionsPage: React.FC = () => {
   const filteredDecisions = decisions.filter(decision => {
     // Search query filter
     const matchesSearch = searchQuery === '' || 
-      decision.decision_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (decision.decision_type && decision.decision_type.toLowerCase().includes(searchQuery.toLowerCase())) ||
       decision.id.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Type filter
@@ -52,7 +52,9 @@ const AiDecisionsPage: React.FC = () => {
   };
 
   // Get unique decision types for filter dropdown
-  const decisionTypes = ['all', ...new Set(decisions.map(d => d.decision_type))];
+  const decisionTypes = ['all', ...new Set(decisions
+    .map(d => d.decision_type)
+    .filter(Boolean) as string[])];
 
   return (
     <AdminLayout>

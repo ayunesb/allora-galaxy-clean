@@ -8,7 +8,26 @@ export interface AiDecision extends SystemLog {
   completion?: string;
   tokens_used?: number;
   decision_type?: string;
+  confidence?: number;
   confidence_score?: number;
   alternatives?: string[];
   metadata?: Record<string, any>;
+  reviewed?: boolean;
+  review_outcome?: 'approved' | 'rejected' | 'modified';
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  reviewer_id?: string;
+  review_date?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  strategy_id?: string;
+  plugin_id?: string;
+}
+
+export interface AiDecisionFilterState {
+  type: string;
+  status: string;
+  fromDate: Date | null;
+  toDate: Date | null;
+  searchTerm: string;
 }

@@ -1,3 +1,5 @@
 
 // Re-export the DatePicker from the component directory for backward compatibility
-export { DatePicker, type DatePickerProps } from './date-picker';
+import { DatePicker, DatePickerProps } from './date-picker/DatePicker';
+
+export { DatePicker, DatePickerProps };

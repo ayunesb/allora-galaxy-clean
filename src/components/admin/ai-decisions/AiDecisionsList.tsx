@@ -75,7 +75,7 @@ export const AiDecisionsList: React.FC<AiDecisionsListProps> = ({
               {decisions.map((decision) => (
                 <TableRow key={decision.id}>
                   <TableCell>
-                    <div className="font-medium">{decision.decision_type}</div>
+                    <div className="font-medium">{decision.decision_type || 'Unknown'}</div>
                     <div className="text-xs text-muted-foreground">
                       ID: {decision.id.substring(0, 8)}...
                     </div>
