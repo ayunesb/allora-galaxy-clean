@@ -1,129 +1,98 @@
 
-// Define CORS headers directly in this file to avoid circular imports
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-};
+import { toast } from '@/hooks/use-toast';
 
-export interface ErrorResponseData {
-  success: false;
-  error: string;
-  details?: any;
-  status?: number;
-  execution_time?: number;
-  request_id?: string;
-}
-
-export interface SuccessResponseData<T = any> {
-  success: true;
-  data: T;
-  execution_time?: number;
-  request_id?: string;
+/**
+ * Standard error types for edge functions
+ */
+export enum EdgeErrorType {
+  VALIDATION = 'validation_error',
+  AUTHENTICATION = 'authentication_error',
+  AUTHORIZATION = 'authorization_error',
+  NOT_FOUND = 'not_found',
+  SERVER_ERROR = 'server_error',
+  RATE_LIMIT = 'rate_limit_error',
+  DEPENDENCY_ERROR = 'dependency_error',
 }
 
 /**
- * Generate a unique request ID for tracking
- * @returns string - A unique ID
+ * Standard error response format for edge functions
  */
-export function generateRequestId(): string {
-  return crypto.randomUUID();
+export interface EdgeErrorResponse {
+  error: {
+    type: EdgeErrorType;
+    message: string;
+    details?: Record<string, any>;
+  };
 }
 
 /**
- * Handle CORS preflight requests
- * @param req - The incoming request
- * @returns Response object if it's a preflight request, null otherwise
+ * Standard options for handling errors
  */
-export function handleCorsPreflightRequest(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+export interface ErrorHandlerOptions {
+  logToConsole?: boolean;
+  logToSystem?: boolean;
+  showToast?: boolean;
+}
+
+/**
+ * Handles errors from edge functions in a standardized way
+ */
+export function handleEdgeError(
+  error: any,
+  options: ErrorHandlerOptions = { 
+    logToConsole: true,
+    logToSystem: true,
+    showToast: true
   }
-  return null;
-}
+): EdgeErrorResponse {
+  const { logToConsole, showToast } = options;
+  
+  // Determine the error type
+  let errorType = EdgeErrorType.SERVER_ERROR;
+  let errorMessage = 'An unexpected error occurred';
+  let errorDetails = {};
+  
+  if (error instanceof Response) {
+    // Handle Response objects
+    errorType = EdgeErrorType.DEPENDENCY_ERROR;
+    errorMessage = `API returned status ${error.status}`;
+  } else if (error instanceof Error) {
+    // Handle standard Error objects
+    errorMessage = error.message;
+    errorDetails = { 
+      name: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    };
+  } else if (typeof error === 'string') {
+    // Handle string errors
+    errorMessage = error;
+  } else if (error && typeof error === 'object') {
+    // Handle object errors with properties
+    errorMessage = error.message || 'Unknown error';
+    if (error.type) errorType = error.type;
+    errorDetails = { ...error };
+  }
 
-/**
- * Create a standardized error response
- * @param message - Error message
- * @param status - HTTP status code
- * @param details - Optional error details
- * @param requestId - Optional request ID for tracking
- * @param startTime - Optional start time for calculating execution time
- * @returns Response object
- */
-export function createErrorResponse(
-  message: string,
-  status: number = 500,
-  details?: any,
-  requestId?: string,
-  startTime?: number
-): Response {
-  const executionTime = startTime ? (performance.now() - startTime) / 1000 : undefined;
-  
-  const errorBody: ErrorResponseData = {
-    success: false,
-    error: message,
-    details,
-    status,
-    execution_time: executionTime,
-    request_id: requestId || generateRequestId()
-  };
-  
-  return new Response(JSON.stringify(errorBody), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-/**
- * Create a standardized success response
- * @param data - Response data
- * @param requestId - Optional request ID for tracking
- * @param startTime - Optional start time for calculating execution time
- * @returns Response object
- */
-export function createSuccessResponse<T = any>(
-  data: T,
-  requestId?: string,
-  startTime?: number
-): Response {
-  const executionTime = startTime ? (performance.now() - startTime) / 1000 : undefined;
-  
-  const successBody: SuccessResponseData<T> = {
-    success: true,
-    data,
-    execution_time: executionTime,
-    request_id: requestId || generateRequestId()
-  };
-  
-  return new Response(JSON.stringify(successBody), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
-}
-
-/**
- * Handle edge function errors in a consistent way
- * @param error - The error to handle
- * @param requestId - Optional request ID for tracking
- * @param startTime - Optional start time for calculating execution time
- * @returns Response object
- */
-export function handleEdgeError(error: any, requestId?: string, startTime?: number): Response {
-  console.error('Edge function error:', error);
-  
-  // Determine appropriate status code
-  let status = 500;
-  if (error.statusCode) {
-    status = error.statusCode;
-  } else if (error.status) {
-    status = error.status;
+  // Log to console if needed
+  if (logToConsole) {
+    console.error('[Edge Error]', errorType, errorMessage, error);
   }
   
-  // Extract error message
-  const message = error.message || error.toString() || 'Unknown error';
-  
-  // Extract error details
-  const details = error.details || error.data || undefined;
-  
-  return createErrorResponse(message, status, details, requestId, startTime);
+  // Show toast if needed
+  if (showToast) {
+    toast({
+      variant: 'destructive',
+      title: 'Operation failed',
+      description: errorMessage
+    });
+  }
+
+  // Return standardized error response
+  return {
+    error: {
+      type: errorType,
+      message: errorMessage,
+      details: errorDetails
+    }
+  };
 }
