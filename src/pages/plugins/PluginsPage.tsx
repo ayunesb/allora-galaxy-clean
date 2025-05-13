@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RequireAuth } from '@/components/auth/RequireAuth';
@@ -7,7 +6,7 @@ import { usePlugins } from '@/hooks/usePlugins';
 import { PluginFilters } from '@/components/plugins/PluginFilters';
 import { FilteredPluginsDisplay } from '@/components/plugins/FilteredPluginsDisplay';
 
-const PluginsPage: React.FC = () => {
+const PluginsPage = () => {
   const navigate = useNavigate();
   const {
     loading,

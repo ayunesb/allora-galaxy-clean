@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Plugin } from '@/types/plugin';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

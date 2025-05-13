@@ -1,9 +1,11 @@
 
-import React from 'react';
 import { Plugin } from '@/types/plugin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PluginGrid } from './PluginGrid';
-import { PluginLeaderboard } from './PluginLeaderboard';
+import { AllPluginsTab } from './tabs/AllPluginsTab';
+import { ActivePluginsTab } from './tabs/ActivePluginsTab';
+import { TopPerformersTab } from './tabs/TopPerformersTab';
+import { TrendingPluginsTab } from './tabs/TrendingPluginsTab';
+import { LeaderboardTab } from './tabs/LeaderboardTab';
 
 interface FilteredPluginsDisplayProps {
   filteredPlugins: Plugin[];
@@ -17,6 +19,9 @@ export const FilteredPluginsDisplay = ({
   onClearFilters 
 }: FilteredPluginsDisplayProps) => {
   
+  // Get active plugins
+  const activePlugins = filteredPlugins.filter(p => p.status === 'active');
+
   // Get top performers by ROI
   const topPerformers = [...filteredPlugins]
     .sort((a, b) => (b.roi || 0) - (a.roi || 0))
@@ -27,9 +32,6 @@ export const FilteredPluginsDisplay = ({
     .sort((a, b) => (b.xp || 0) - (a.xp || 0))
     .slice(0, 6);
 
-  // Get active plugins
-  const activePlugins = filteredPlugins.filter(p => p.status === 'active');
-
   return (
     <Tabs defaultValue="all" className="w-full">
       <TabsList>
@@ -39,36 +41,41 @@ export const FilteredPluginsDisplay = ({
         <TabsTrigger value="trending">Trending</TabsTrigger>
         <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
       </TabsList>
+      
       <TabsContent value="all">
-        <PluginGrid 
+        <AllPluginsTab 
           plugins={filteredPlugins} 
           loading={loading} 
           onClearFilters={onClearFilters} 
         />
       </TabsContent>
+      
       <TabsContent value="active">
-        <PluginGrid 
+        <ActivePluginsTab 
           plugins={activePlugins} 
           loading={loading} 
           onClearFilters={onClearFilters} 
         />
       </TabsContent>
+      
       <TabsContent value="top-performers">
-        <PluginGrid 
+        <TopPerformersTab 
           plugins={topPerformers} 
           loading={loading} 
           onClearFilters={onClearFilters} 
         />
       </TabsContent>
+      
       <TabsContent value="trending">
-        <PluginGrid 
+        <TrendingPluginsTab 
           plugins={trendingPlugins} 
           loading={loading} 
           onClearFilters={onClearFilters} 
         />
       </TabsContent>
+      
       <TabsContent value="leaderboard">
-        <PluginLeaderboard plugins={filteredPlugins} />
+        <LeaderboardTab plugins={filteredPlugins} />
       </TabsContent>
     </Tabs>
   );
