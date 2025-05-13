@@ -8,6 +8,7 @@ import { SystemLogsList } from '@/components/admin/logs';
 import { AuditLog as AuditLogType, SystemLog } from '@/types/logs';
 import { LogDetailDialog } from '@/components/evolution/logs';
 import { AuditLogFilterState } from '@/components/evolution/logs/types';
+import { auditLogToSystemLog, systemLogToAuditLog } from '@/lib/utils/logTransformations';
 
 interface AuditLogProps {
   className?: string;
@@ -41,27 +42,11 @@ export const AuditLog: React.FC<AuditLogProps> = ({
   const loading = isLoading !== undefined ? isLoading : fetchingLogs;
   const refreshData = onRefresh || refetch;
 
-  // Convert AuditLog to SystemLog for display
-  const convertToSystemLog = (log: AuditLogType): SystemLog => {
-    return {
-      id: log.id,
-      module: log.module || log.resource_type || 'unknown',
-      event: log.event || log.action || 'unknown',
-      context: {
-        user_id: log.user_id,
-        resource_id: log.resource_id,
-        details: log.details
-      },
-      created_at: log.created_at,
-      tenant_id: log.tenant_id
-    };
-  };
-
   const handleViewLog = (log: SystemLog) => {
     // Since we're displaying SystemLogs but tracking AuditLogs
     // Find the matching audit log from our data
     const auditLog = displayLogs?.find(aLog => aLog.id === log.id);
-    setSelectedLog(auditLog || null);
+    setSelectedLog(auditLog || systemLogToAuditLog(log));
     setDialogOpen(true);
   };
 
@@ -85,7 +70,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
           />
           <Separator className="my-4" />
           <SystemLogsList
-            logs={displayLogs?.map(convertToSystemLog) || []}
+            logs={displayLogs?.map(auditLogToSystemLog) || []}
             isLoading={loading}
             onViewLog={handleViewLog}
           />
@@ -93,7 +78,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({
       </Card>
 
       <LogDetailDialog
-        log={selectedLog ? convertToSystemLog(selectedLog) : null}
+        log={selectedLog}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />

@@ -16,7 +16,7 @@ export interface DatePickerProps {
   date: Date | null;
   onSelect?: (date: Date | null) => void;
   onDateChange?: (date: Date | null) => void; // Alternative prop name for compatibility
-  placeholder?: string;
+  placeholder?: string; // Added placeholder prop
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({ 

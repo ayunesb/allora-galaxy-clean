@@ -10,6 +10,10 @@ export interface AiDecision extends SystemLog {
   output?: Record<string, any>;
   reviewer_id?: string;
   review_date?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  strategy_id?: string;
+  plugin_id?: string;
 }
 
 export interface AiDecisionFilterState {

@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
-import { AiDecision } from './AiDecisionsList';
+import { AiDecision } from './types';
 
 interface AiDecisionDetailProps {
   decision: AiDecision | null;
@@ -29,7 +29,8 @@ export const AiDecisionDetail: React.FC<AiDecisionDetailProps> = ({
     }
   };
 
-  const getConfidenceBadge = (confidence: number) => {
+  const getConfidenceBadge = (confidence: number | undefined) => {
+    if (!confidence) return <Badge variant="outline">Unknown</Badge>;
     if (confidence >= 0.85) return <Badge variant="success">{(confidence * 100).toFixed(1)}%</Badge>;
     if (confidence >= 0.7) return <Badge variant="warning">{(confidence * 100).toFixed(1)}%</Badge>;
     return <Badge variant="destructive">{(confidence * 100).toFixed(1)}%</Badge>;
