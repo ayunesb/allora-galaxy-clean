@@ -1,14 +1,15 @@
 
 import { renderHook, act } from '@/tests/test-utils';
 import { useSystemLogs } from './useSystemLogs';
+import { vi } from 'vitest';
 import * as logService from '@/services/logService';
 import { createMockSystemLog, createMockLogFilters } from '@/tests/test-utils';
 
 // Mock the logService
-jest.mock('@/services/logService', () => ({
-  fetchSystemLogs: jest.fn(),
-  fetchLogModules: jest.fn(),
-  fetchLogEvents: jest.fn(),
+vi.mock('@/services/logService', () => ({
+  fetchSystemLogs: vi.fn(),
+  fetchLogModules: vi.fn(),
+  fetchLogEvents: vi.fn(),
 }));
 
 describe('useSystemLogs hook', () => {
@@ -21,10 +22,10 @@ describe('useSystemLogs hook', () => {
   const mockEvents = ['login', 'logout', 'error'];
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (logService.fetchSystemLogs as jest.Mock).mockResolvedValue(mockLogs);
-    (logService.fetchLogModules as jest.Mock).mockResolvedValue(mockModules);
-    (logService.fetchLogEvents as jest.Mock).mockResolvedValue(mockEvents);
+    vi.clearAllMocks();
+    (logService.fetchSystemLogs as any).mockResolvedValue(mockLogs);
+    (logService.fetchLogModules as any).mockResolvedValue(mockModules);
+    (logService.fetchLogEvents as any).mockResolvedValue(mockEvents);
   });
 
   it('should fetch logs with initial filters', async () => {
@@ -92,7 +93,7 @@ describe('useSystemLogs hook', () => {
     await waitForNextUpdate();
     
     // Clear previous calls
-    (logService.fetchSystemLogs as jest.Mock).mockClear();
+    (logService.fetchSystemLogs as any).mockClear();
     
     act(() => {
       result.current.refetch();

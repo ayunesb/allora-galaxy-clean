@@ -3,14 +3,15 @@ import { renderHook, act } from '@/tests/test-utils';
 import { useLogDetails } from './useLogDetails';
 import { supabase } from '@/lib/supabase';
 import { createMockSystemLog, createMockAuditLog } from '@/tests/test-utils';
+import { vi } from 'vitest';
 
 // Mock the Supabase client
-jest.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn(),
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn(),
   },
 }));
 
@@ -19,15 +20,15 @@ describe('useLogDetails hook', () => {
   const mockAuditLog = createMockAuditLog();
   
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
   
   it('should fetch a system log correctly', async () => {
     // Set up mocks for a system log fetch
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
-    (supabase.eq as jest.Mock).mockReturnThis();
-    (supabase.maybeSingle as jest.Mock)
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
+    (supabase.eq as any).mockReturnThis();
+    (supabase.maybeSingle as any)
       .mockResolvedValueOnce({ data: mockSystemLog, error: null })
       .mockResolvedValueOnce({ data: null, error: { message: 'Not found' } });
     
@@ -45,10 +46,10 @@ describe('useLogDetails hook', () => {
   
   it('should fetch an audit log correctly', async () => {
     // Set up mocks for an audit log fetch
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
-    (supabase.eq as jest.Mock).mockReturnThis();
-    (supabase.maybeSingle as jest.Mock)
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
+    (supabase.eq as any).mockReturnThis();
+    (supabase.maybeSingle as any)
       .mockResolvedValueOnce({ data: null, error: { message: 'Not found' } })
       .mockResolvedValueOnce({ data: mockAuditLog, error: null });
     
@@ -67,10 +68,10 @@ describe('useLogDetails hook', () => {
   
   it('should handle the case when no log is found', async () => {
     // Set up mocks for no log found
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
-    (supabase.eq as jest.Mock).mockReturnThis();
-    (supabase.maybeSingle as jest.Mock)
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
+    (supabase.eq as any).mockReturnThis();
+    (supabase.maybeSingle as any)
       .mockResolvedValueOnce({ data: null, error: { message: 'Not found' } })
       .mockResolvedValueOnce({ data: null, error: { message: 'Not found' } });
     
@@ -86,10 +87,10 @@ describe('useLogDetails hook', () => {
   
   it('should toggle view correctly', async () => {
     // Set up mocks for a system log fetch
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
-    (supabase.eq as jest.Mock).mockReturnThis();
-    (supabase.maybeSingle as jest.Mock)
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
+    (supabase.eq as any).mockReturnThis();
+    (supabase.maybeSingle as any)
       .mockResolvedValueOnce({ data: mockSystemLog, error: null })
       .mockResolvedValueOnce({ data: null, error: { message: 'Not found' } });
     
@@ -108,10 +109,10 @@ describe('useLogDetails hook', () => {
   
   it('should handle transform dialog correctly', async () => {
     // Set up mocks for a system log fetch
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
-    (supabase.eq as jest.Mock).mockReturnThis();
-    (supabase.maybeSingle as jest.Mock)
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
+    (supabase.eq as any).mockReturnThis();
+    (supabase.maybeSingle as any)
       .mockResolvedValueOnce({ data: mockSystemLog, error: null })
       .mockResolvedValueOnce({ data: null, error: { message: 'Not found' } });
     

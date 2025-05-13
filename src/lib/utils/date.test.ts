@@ -1,5 +1,6 @@
 
-import { formatDisplayDate, formatRelativeDate } from './date';
+import { describe, it, expect } from 'vitest';
+import { formatDisplayDate, formatRelativeDate, formatDateWithTZ } from './date';
 import { addDays, subDays, subHours } from 'date-fns';
 
 describe('Date Utilities', () => {
@@ -49,6 +50,15 @@ describe('Date Utilities', () => {
       const twoDaysLater = addDays(now, 2);
       const result = formatRelativeDate(twoDaysLater, now);
       expect(result).toBe('in 2 days');
+    });
+  });
+
+  describe('formatDateWithTZ', () => {
+    it('formats a date with specified timezone', () => {
+      const date = new Date('2023-05-10T14:30:00.000Z');
+      const result = formatDateWithTZ(date, 'yyyy-MM-dd', 'UTC');
+      // We can only check the format since timezone specific output will vary by environment
+      expect(result).toMatch(/[A-Za-z]{3} \d{2}, \d{4} \d{2}:\d{2}:\d{2}/);
     });
   });
 });

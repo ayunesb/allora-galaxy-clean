@@ -4,19 +4,20 @@ import { render, screen, fireEvent, waitFor } from '@/tests/test-utils';
 import AuditLog from './AuditLog';
 import { createMockAuditLog } from '@/tests/test-utils';
 import { supabase } from '@/lib/supabase';
+import { vi } from 'vitest';
 
 // Mock the Supabase client
-jest.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    or: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
   },
 }));
 
@@ -30,14 +31,14 @@ describe('AuditLog Component', () => {
   const mockActions = ['create', 'update', 'delete'];
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (supabase.from as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockReturnThis();
-    (supabase.order as jest.Mock).mockReturnThis();
-    (supabase.eq as jest.Mock).mockReturnThis();
-    (supabase.or as jest.Mock).mockReturnThis();
-    (supabase.limit as jest.Mock).mockReturnThis();
-    (supabase.select as jest.Mock).mockImplementation(() => {
+    vi.clearAllMocks();
+    (supabase.from as any).mockReturnThis();
+    (supabase.select as any).mockReturnThis();
+    (supabase.order as any).mockReturnThis();
+    (supabase.eq as any).mockReturnThis();
+    (supabase.or as any).mockReturnThis();
+    (supabase.limit as any).mockReturnThis();
+    (supabase.select as any).mockImplementation(() => {
       return {
         order: () => ({
           eq: () => ({
@@ -61,7 +62,7 @@ describe('AuditLog Component', () => {
 
   it('fetches data if not provided', async () => {
     // Mock the fetch responses
-    (supabase.from as jest.Mock).mockImplementation((table) => {
+    (supabase.from as any).mockImplementation((table: string) => {
       if (table === 'audit_logs') {
         return {
           select: () => ({
@@ -150,7 +151,7 @@ describe('AuditLog Component', () => {
   });
 
   it('calls external refresh function when provided', async () => {
-    const mockRefresh = jest.fn();
+    const mockRefresh = vi.fn();
     render(<AuditLog onRefresh={mockRefresh} />);
     
     // Wait for component to render
