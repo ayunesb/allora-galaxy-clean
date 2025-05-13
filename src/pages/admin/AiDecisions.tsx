@@ -6,7 +6,7 @@ import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
 import { SystemLog, LogFilters } from '@/types/logs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import SystemLogFilters, { SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
+import { SystemLogFilters, SystemLogFilterState } from '@/components/admin/logs/SystemLogFilters';
 
 const AiDecisions: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);

@@ -25,8 +25,8 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
       <PopoverContent className="w-auto p-0">
         <Calendar
           mode="single"
-          selected={date || undefined}
-          onSelect={(day) => onDateChange(day)}
+          selected={date}
+          onSelect={onDateChange}
           initialFocus
         />
       </PopoverContent>
