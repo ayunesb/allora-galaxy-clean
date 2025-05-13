@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useEffect } from 'react';
@@ -19,14 +20,14 @@ interface NotificationCenterContentProps {
   onMarkAllAsRead?: () => Promise<void>;
 }
 
-const NotificationCenterContent = ({ 
+const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({ 
   activeFilter, 
   setActiveFilter,
   notifications: externalNotifications,
   markAsRead: externalMarkAsRead,
   onDelete: externalOnDelete,
   onMarkAllAsRead: externalOnMarkAllAsRead
-}: NotificationCenterContentProps) => {
+}) => {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -64,8 +65,12 @@ const NotificationCenterContent = ({
     });
   };
 
-  // Ensure externalMarkAsRead is a function
-  const markAsReadHandler = externalMarkAsRead || (async () => {});
+  // Ensure externalMarkAsRead is a function with the right signature
+  const markAsReadHandler = async (id: string): Promise<void> => {
+    if (externalMarkAsRead) {
+      return externalMarkAsRead(id);
+    }
+  };
   
   // Refresh notifications when the workspace changes
   useEffect(() => {
@@ -90,7 +95,7 @@ const NotificationCenterContent = ({
   }
   
   if (notifications.length === 0) {
-    return <NotificationCenterEmptyState />;
+    return <NotificationCenterEmptyState onRefresh={refetch} />;
   }
   
   return (

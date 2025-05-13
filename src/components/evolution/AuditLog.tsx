@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { AuditLog as AuditLogType, LogFilters } from '@/types';
+import { AuditLog as AuditLogType, LogFilters } from '@/types/logs';
 import { LogFilterBar } from '@/components/admin/logs';
 import { LogsList, LogDetailDialog } from '@/components/evolution/logs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,7 +134,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
   
-  const handleFilterChange = (key: keyof LogFilters, value: any) => {
+  const handleFilterChange = (key: keyof LogFilters, value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
