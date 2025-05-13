@@ -4,66 +4,79 @@
  */
 
 /**
- * Safely get a Deno environment variable with fallback
- * @param key - Environment variable name
- * @param defaultValue - Default value if not found
- * @returns The environment variable value or default
+ * Safely get environment variable with fallback
+ * @param name Environment variable name
+ * @param fallback Default value if environment variable doesn't exist
+ * @returns Environment variable value or fallback
  */
-export function safeGetEnv(key: string, defaultValue: string = ''): string {
+export function safeGetEnv(name: string, fallback: string = ""): string {
   try {
-    return Deno.env.get(key) ?? defaultValue;
+    return Deno.env.get(name) ?? fallback;
   } catch (err) {
-    console.warn(`Error accessing env variable ${key}:`, err);
-    return defaultValue;
+    console.warn(`Error accessing env variable ${name}:`, err);
+    return fallback;
   }
 }
 
 /**
- * Get required environment variables or throw error
- * @param keys - Array of required environment variable names
- * @returns Object with key-value pairs of environment variables
- * @throws Error if any required variables are missing
+ * Interface for required environment variables
  */
-export function getRequiredEnvs(keys: string[]): Record<string, string> {
-  const missingKeys: string[] = [];
-  const values: Record<string, string> = {};
-  
-  for (const key of keys) {
-    const value = safeGetEnv(key);
-    if (!value) {
-      missingKeys.push(key);
-    } else {
-      values[key] = value;
+export interface EnvVar {
+  name: string;
+  required: boolean;
+  description: string;
+  fallback?: string;
+}
+
+/**
+ * Get required environment variables with validation
+ * @param requiredEnvs List of required environment variables
+ * @returns Object with environment variables
+ * @throws Error if required environment variable is missing
+ */
+export function getRequiredEnvs(requiredEnvs: EnvVar[]): Record<string, string> {
+  const envVars: Record<string, string> = {};
+  const missingVars: string[] = [];
+
+  for (const env of requiredEnvs) {
+    const value = safeGetEnv(env.name, env.fallback || "");
+    envVars[env.name] = value;
+    
+    if (env.required && !value) {
+      missingVars.push(`${env.name}: ${env.description}`);
     }
   }
-  
-  if (missingKeys.length > 0) {
-    throw new Error(`Missing required environment variables: ${missingKeys.join(', ')}`);
+
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(", ")}`);
   }
-  
-  return values;
+
+  return envVars;
 }
 
 /**
- * Check if environment is development
- * @returns boolean indicating if in development environment
+ * Check if the environment is development
+ * @returns true if development environment
  */
 export function isDevelopment(): boolean {
-  return safeGetEnv('ENVIRONMENT', 'development').toLowerCase() === 'development';
+  const environment = safeGetEnv("ENVIRONMENT", "");
+  return environment.toLowerCase() === "development";
 }
 
 /**
- * Check if environment is production
- * @returns boolean indicating if in production environment
+ * Check if the environment is production
+ * @returns true if production environment
  */
 export function isProduction(): boolean {
-  return safeGetEnv('ENVIRONMENT', 'development').toLowerCase() === 'production';
+  const environment = safeGetEnv("ENVIRONMENT", "");
+  return environment.toLowerCase() === "production";
 }
 
 /**
- * Check if environment is test
- * @returns boolean indicating if in test environment
+ * Check if the environment is test
+ * @returns true if test environment
  */
 export function isTest(): boolean {
-  return safeGetEnv('ENVIRONMENT', 'development').toLowerCase() === 'test';
+  const environment = safeGetEnv("ENVIRONMENT", "");
+  return environment.toLowerCase() === "test";
 }

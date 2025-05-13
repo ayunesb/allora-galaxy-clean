@@ -1,95 +1,194 @@
 
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
-
 /**
- * Parse and validate request body using Zod schema
- * @param req The request object
- * @param schema Zod schema for validation
- * @returns [parsed data, error message]
+ * Validation utilities for Supabase Edge Functions
  */
-export async function parseAndValidate<T>(
-  req: Request, 
-  schema: z.ZodType<T>
-): Promise<[T | null, string | null]> {
-  try {
-    const body = await req.json();
-    const result = schema.safeParse(body);
-    
-    if (result.success) {
-      return [result.data, null];
-    } else {
-      const errorMessages = result.error.issues
-        .map(issue => `${issue.path.join('.')}: ${issue.message}`)
-        .join(', ');
-      
-      return [null, errorMessages];
-    }
-  } catch (error) {
-    return [null, `Invalid JSON in request body: ${error.message}`];
-  }
-}
 
 /**
- * Validate input against a schema without parsing request body
- * @param input Object to validate
- * @param schema Zod schema for validation
- * @returns [is valid, error message]
- */
-export function validateInput<T>(
-  input: unknown, 
-  schema: z.ZodType<T>
-): [boolean, string | null] {
-  const result = schema.safeParse(input);
-  
-  if (result.success) {
-    return [true, null];
-  } else {
-    const errorMessages = result.error.issues
-      .map(issue => `${issue.path.join('.')}: ${issue.message}`)
-      .join(', ');
-    
-    return [false, errorMessages];
-  }
-}
-
-/**
- * Basic validation schema builders
+ * Object with validation functions for common types
  */
 export const schemaBuilders = {
-  /**
-   * Create a UUID field schema
-   */
-  uuid: (fieldName: string = "id") => z.string().uuid({ 
-    message: `${fieldName} must be a valid UUID`
+  string: (field: string, options: { required?: boolean; minLength?: number; maxLength?: number } = {}) => ({
+    validate: (value: unknown): string | null => {
+      if (value === undefined || value === null) {
+        return options.required ? `${field} is required` : null;
+      }
+      
+      if (typeof value !== 'string') {
+        return `${field} must be a string`;
+      }
+      
+      if (options.minLength !== undefined && value.length < options.minLength) {
+        return `${field} must be at least ${options.minLength} characters`;
+      }
+      
+      if (options.maxLength !== undefined && value.length > options.maxLength) {
+        return `${field} must be at most ${options.maxLength} characters`;
+      }
+      
+      return null;
+    }
   }),
   
-  /**
-   * Create a required string field schema
-   */
-  requiredString: (fieldName: string) => z.string().min(1, {
-    message: `${fieldName} is required`
+  number: (field: string, options: { required?: boolean; min?: number; max?: number } = {}) => ({
+    validate: (value: unknown): string | null => {
+      if (value === undefined || value === null) {
+        return options.required ? `${field} is required` : null;
+      }
+      
+      if (typeof value !== 'number' || isNaN(value)) {
+        return `${field} must be a number`;
+      }
+      
+      if (options.min !== undefined && value < options.min) {
+        return `${field} must be at least ${options.min}`;
+      }
+      
+      if (options.max !== undefined && value > options.max) {
+        return `${field} must be at most ${options.max}`;
+      }
+      
+      return null;
+    }
   }),
   
-  /**
-   * Create a required object field schema
-   */
-  requiredObject: (fieldName: string) => z.object({}).passthrough().refine(
-    obj => Object.keys(obj).length > 0, 
-    { message: `${fieldName} must not be empty` }
-  ),
-  
-  /**
-   * Create a tenant ID field schema
-   */
-  tenantId: () => z.string().uuid({
-    message: "tenant_id must be a valid UUID"
+  boolean: (field: string, options: { required?: boolean } = {}) => ({
+    validate: (value: unknown): string | null => {
+      if (value === undefined || value === null) {
+        return options.required ? `${field} is required` : null;
+      }
+      
+      if (typeof value !== 'boolean') {
+        return `${field} must be a boolean`;
+      }
+      
+      return null;
+    }
   }),
   
-  /**
-   * Create a pagination params schema
-   */
-  paginationParams: () => z.object({
-    page: z.coerce.number().int().positive().optional().default(1),
-    limit: z.coerce.number().int().positive().max(100).optional().default(20)
+  array: (field: string, options: { required?: boolean; minItems?: number; maxItems?: number } = {}) => ({
+    validate: (value: unknown): string | null => {
+      if (value === undefined || value === null) {
+        return options.required ? `${field} is required` : null;
+      }
+      
+      if (!Array.isArray(value)) {
+        return `${field} must be an array`;
+      }
+      
+      if (options.minItems !== undefined && value.length < options.minItems) {
+        return `${field} must have at least ${options.minItems} items`;
+      }
+      
+      if (options.maxItems !== undefined && value.length > options.maxItems) {
+        return `${field} must have at most ${options.maxItems} items`;
+      }
+      
+      return null;
+    }
+  }),
+  
+  email: (field: string, options: { required?: boolean } = {}) => ({
+    validate: (value: unknown): string | null => {
+      if (value === undefined || value === null || value === '') {
+        return options.required ? `${field} is required` : null;
+      }
+      
+      if (typeof value !== 'string') {
+        return `${field} must be a string`;
+      }
+      
+      // Simple email validation regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        return `${field} must be a valid email address`;
+      }
+      
+      return null;
+    }
+  }),
+  
+  uuid: (field: string, options: { required?: boolean } = {}) => ({
+    validate: (value: unknown): string | null => {
+      if (value === undefined || value === null || value === '') {
+        return options.required ? `${field} is required` : null;
+      }
+      
+      if (typeof value !== 'string') {
+        return `${field} must be a string`;
+      }
+      
+      // UUID validation regex
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        return `${field} must be a valid UUID`;
+      }
+      
+      return null;
+    }
   })
 };
+
+/**
+ * Parse and validate request body
+ * @param req Request object
+ * @param validators Object with validation functions
+ * @returns Validated data and errors
+ */
+export async function parseAndValidate<T>(
+  req: Request,
+  validators: Record<string, { validate: (value: unknown) => string | null }>
+): Promise<{ data: Partial<T>; errors: Record<string, string> }> {
+  let body: any;
+  
+  try {
+    body = await req.json();
+  } catch (error) {
+    return {
+      data: {},
+      errors: { _error: 'Invalid JSON body' }
+    };
+  }
+  
+  const data: Partial<T> = {};
+  const errors: Record<string, string> = {};
+  
+  for (const [field, validator] of Object.entries(validators)) {
+    const value = body[field];
+    const error = validator.validate(value);
+    
+    if (error === null) {
+      // Only add the field to data if it's not undefined or null
+      if (value !== undefined && value !== null) {
+        data[field as keyof T] = value;
+      }
+    } else {
+      errors[field] = error;
+    }
+  }
+  
+  return { data, errors };
+}
+
+/**
+ * Validate input object against validators
+ * @param input Input object to validate
+ * @param validators Object with validation functions
+ * @returns Array of validation errors
+ */
+export function validateInput<T>(
+  input: Record<string, any>,
+  validators: Record<string, { validate: (value: unknown) => string | null }>
+): string[] {
+  const errors: string[] = [];
+  
+  for (const [field, validator] of Object.entries(validators)) {
+    const value = input[field];
+    const error = validator.validate(value);
+    
+    if (error !== null) {
+      errors.push(error);
+    }
+  }
+  
+  return errors;
+}

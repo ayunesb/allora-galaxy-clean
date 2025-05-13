@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 import { processExecutionResponse } from '@/edge/executeStrategy';
+import { StrategyExecutionResponse } from '@/lib/strategy/types';
 
 // Mock Supabase functions invoke
 vi.mock('@/integrations/supabase/client', () => ({
@@ -168,7 +169,7 @@ describe('Edge Functions Integration', () => {
 
     it('should process response correctly', () => {
       // Mock response data
-      const responseData = {
+      const responseData: StrategyExecutionResponse = {
         success: true,
         strategy_id: 'strategy-123',
         execution_id: 'exec-123',
