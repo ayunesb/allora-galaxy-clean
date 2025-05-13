@@ -1,28 +1,31 @@
 
-export type StrategyExecutionStatus = 'pending' | 'success' | 'partial' | 'failure';
-
-export interface ExecuteStrategyResult {
-  success: boolean;
-  strategy_id: string;
-  execution_id?: string;
-  status: StrategyExecutionStatus;
-  error?: string;
-  execution_time?: number;
-  plugins_executed?: number;
-  successful_plugins?: number;
-  xp_earned?: number;
-  outputs?: Record<string, any>;
+export interface StrategyInput {
+  id: string;
+  tenant_id: string;
+  user_id?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface StrategyExecutionResponse {
   success: boolean;
-  strategy_id?: string;
+  strategy_id: string;
   execution_id?: string;
-  status: StrategyExecutionStatus;
   error?: string;
-  execution_time_ms?: number;
-  plugins_executed?: number;
-  successful_plugins?: number;
-  xp_earned?: number;
-  data?: Record<string, any>;
+  result?: any;
+  plugins_used?: number;
+  execution_time?: number;
 }
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+export interface StrategyVerificationResult {
+  valid: boolean;
+  errors: string[];
+  strategy?: any;
+}
+
+// Re-export for backward compatibility
+export type StrategyExecutionResult = StrategyExecutionResponse;

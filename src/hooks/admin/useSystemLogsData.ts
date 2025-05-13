@@ -1,87 +1,101 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { SystemLog, LogFilters } from '@/types/logs';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { SystemLog, SystemLogFilterState } from '@/types/logs';
+import { fetchSystemLogs, fetchLogModules, fetchLogEvents } from '@/services/logService';
 import { useTenantId } from '@/hooks/useTenantId';
-import { formatDate } from '@/lib/utils/date';
 
 export const useSystemLogsData = () => {
+  const { tenantId } = useTenantId();
+  const { toast } = useToast();
   const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [modules, setModules] = useState<string[]>([]);
+  const [events, setEvents] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<LogFilters>({
-    module: null,
-    event: null,
+  const [filters, setFilters] = useState<SystemLogFilterState>({
+    module: '',
+    event: '',
     fromDate: null,
     toDate: null,
-    searchTerm: '',
-    limit: 100
+    searchTerm: ''
   });
-  const { tenantId } = useTenantId();
 
-  const fetchLogs = useCallback(async () => {
+  // Fetch logs with current filters
+  const fetchLogs = async () => {
+    if (!tenantId) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      setError(null);
+      const data = await fetchSystemLogs({
+        tenant_id: tenantId,
+        module: filters.module || undefined,
+        event: filters.event || undefined,
+        date_from: filters.fromDate,
+        date_to: filters.toDate,
+        search: filters.searchTerm || undefined,
+        limit: 100
+      });
       
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      // Apply tenant filter if applicable
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-      
-      // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-      
-      if (filters.fromDate) {
-        const formattedFromDate = formatDate(filters.fromDate.toISOString(), 'yyyy-MM-dd');
-        query = query.gte('created_at', `${formattedFromDate}T00:00:00`);
-      }
-      
-      if (filters.toDate) {
-        const formattedToDate = formatDate(filters.toDate.toISOString(), 'yyyy-MM-dd');
-        query = query.lte('created_at', `${formattedToDate}T23:59:59`);
-      }
-      
-      if (filters.searchTerm) {
-        // Use ilike for case-insensitive search
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
-      }
-      
-      // Limit to 100 records or user specified limit
-      const { data, error } = await query.limit(filters.limit || 100);
-      
-      if (error) throw error;
-      
-      setLogs(data || []);
+      setLogs(data);
     } catch (err: any) {
-      console.error('Error fetching system logs:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to fetch logs');
+      toast({
+        title: 'Error loading logs',
+        description: 'There was a problem loading the system logs.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, filters]);
-  
+  };
+
+  // Fetch available modules and events for filters
+  const fetchMetadata = async () => {
+    if (!tenantId) return;
+    
+    try {
+      const moduleData = await fetchLogModules(tenantId);
+      setModules(moduleData);
+      
+      const eventData = await fetchLogEvents(tenantId);
+      setEvents(eventData);
+    } catch (err) {
+      console.error('Error fetching log metadata:', err);
+    }
+  };
+
+  // Initial data fetch
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-  
+    if (tenantId) {
+      fetchLogs();
+      fetchMetadata();
+    }
+  }, [tenantId]);
+
+  // Refetch when filters change
+  useEffect(() => {
+    if (tenantId) {
+      fetchLogs();
+    }
+  }, [filters, tenantId]);
+
+  const handleFilterChange = (newFilters: SystemLogFilterState) => {
+    setFilters(newFilters);
+  };
+
   return {
     logs,
+    modules,
+    events,
     isLoading,
     error,
     filters,
-    setFilters,
+    setFilters: handleFilterChange,
     refetch: fetchLogs
   };
 };
+
+export default useSystemLogsData;

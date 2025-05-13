@@ -4,23 +4,24 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
 import { SystemLog } from '@/types/logs';
-import { SystemLogFilters, SystemLogsList } from '@/components/admin/logs';
-import { LogDetailDialog } from '@/components/admin/logs';
+import { SystemLogFilters, SystemLogsList, LogDetailDialog } from '@/components/admin/logs';
 import AdminLayout from '@/components/layout/AdminLayout';
-import { SystemLogFilterState } from '@/components/admin/logs/types';
+import { SystemLogFilterState } from '@/types/logs';
 
 const SystemLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [filters, setFilters] = useState<SystemLogFilterState>({
-    module: '',
-    event: '',
-    fromDate: null,
-    toDate: null,
-    searchTerm: ''
-  });
   
-  const { logs, isLoading, error, refetch } = useSystemLogsData();
+  const { 
+    logs, 
+    modules, 
+    events, 
+    isLoading, 
+    error, 
+    filters, 
+    setFilters, 
+    refetch 
+  } = useSystemLogsData();
   
   const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
@@ -29,7 +30,6 @@ const SystemLogs: React.FC = () => {
   
   const handleFilterChange = (newFilters: SystemLogFilterState) => {
     setFilters(newFilters);
-    // Ideally here we would apply the filters to the useSystemLogsData hook
   };
   
   return (
@@ -46,6 +46,8 @@ const SystemLogs: React.FC = () => {
             onFilterChange={handleFilterChange}
             isLoading={isLoading}
             onRefresh={refetch}
+            modules={modules}
+            events={events}
           />
         </div>
         

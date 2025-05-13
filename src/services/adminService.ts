@@ -1,12 +1,28 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
+import { AiDecision } from '@/components/admin/ai-decisions/types';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+
+/**
+ * Interface for AI decision filters
+ */
+export interface AiDecisionFilters {
+  tenant_id?: string;
+  decision_type?: string;
+  reviewed?: boolean;
+  review_outcome?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
 
 /**
  * Fetch users associated with a tenant
  * @param tenantId The tenant ID
  * @returns Promise with users data
  */
-export const fetchTenantUsers = async (tenantId: string) => {
+export async function fetchTenantUsers(tenantId: string) {
   try {
     const { data, error } = await supabase
       .from('tenant_user_roles')
@@ -26,87 +42,32 @@ export const fetchTenantUsers = async (tenantId: string) => {
 
     if (error) {
       console.error('Error fetching tenant users:', error);
-      return [];
+      throw error;
     }
 
     return data || [];
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error in fetchTenantUsers:', err);
+    // Log the error
+    await logSystemEvent(
+      'admin',
+      'error',
+      { message: 'Failed to fetch tenant users', error: err.message },
+      tenantId
+    );
     return [];
   }
-};
-
-/**
- * Fetch system logs
- * @param tenantId The tenant ID
- * @param limit Number of logs to fetch
- * @param offset Offset for pagination
- * @returns Promise with system logs data
- */
-export const fetchSystemLogs = async (tenantId: string, limit = 50, offset = 0) => {
-  try {
-    const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      console.error('Error fetching system logs:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (err) {
-    console.error('Error in fetchSystemLogs:', err);
-    return [];
-  }
-};
-
-/**
- * Fetch plugin logs
- * @param tenantId The tenant ID
- * @param limit Number of logs to fetch
- * @param offset Offset for pagination
- * @returns Promise with plugin logs data
- */
-export const fetchPluginLogs = async (tenantId: string, limit = 50, offset = 0) => {
-  try {
-    const { data, error } = await supabase
-      .from('plugin_logs')
-      .select(`
-        *,
-        plugins:plugin_id (name),
-        strategies:strategy_id (title)
-      `)
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      console.error('Error fetching plugin logs:', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (err) {
-    console.error('Error in fetchPluginLogs:', err);
-    return [];
-  }
-};
+}
 
 /**
  * Fetch AI decisions (agent executions and votes)
- * @param tenantId The tenant ID
- * @param limit Number of records to fetch
- * @param offset Offset for pagination
+ * @param filters Filter options
  * @returns Promise with AI decisions data
  */
-export const fetchAiDecisions = async (tenantId: string, limit = 50, offset = 0) => {
+export async function fetchAiDecisions(filters: AiDecisionFilters = {}): Promise<AiDecision[]> {
   try {
     // First get executions
-    const { data: executions, error: executionsError } = await supabase
+    let query = supabase
       .from('executions')
       .select(`
         *,
@@ -118,19 +79,95 @@ export const fetchAiDecisions = async (tenantId: string, limit = 50, offset = 0)
           plugins:plugin_id (name)
         )
       `)
-      .eq('tenant_id', tenantId)
       .eq('type', 'agent')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
+      
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
+    }
+    
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    if (filters.offset) {
+      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+    }
+
+    const { data: executions, error: executionsError } = await query;
 
     if (executionsError) {
       console.error('Error fetching AI decisions:', executionsError);
-      return [];
+      throw executionsError;
     }
 
-    return executions || [];
-  } catch (err) {
+    // Transform to AiDecision type
+    const decisions: AiDecision[] = (executions || []).map(execution => {
+      const pluginName = execution.agent_versions?.plugins?.name || 'Unknown Plugin';
+      const agentVersion = execution.agent_versions?.version || 'Unknown Version';
+      
+      return {
+        id: execution.id,
+        module: 'agent',
+        event: 'execution',
+        created_at: execution.created_at,
+        tenant_id: execution.tenant_id,
+        context: {
+          execution_id: execution.id,
+          plugin_id: execution.plugin_id,
+          agent_version_id: execution.agent_version_id,
+          input: execution.input,
+          output: execution.output,
+          execution_time: execution.execution_time,
+          status: execution.status,
+          error: execution.error
+        },
+        decision_type: `${pluginName} v${agentVersion}`,
+        reviewed: false, // Default value, would need to be updated from a reviews table
+        review_outcome: null,
+        review_comment: null,
+        reviewer_id: null,
+        review_date: null
+      };
+    });
+
+    return decisions;
+  } catch (err: any) {
     console.error('Error in fetchAiDecisions:', err);
+    // Log the error
+    await logSystemEvent(
+      'admin',
+      'error',
+      { message: 'Failed to fetch AI decisions', error: err.message },
+      filters.tenant_id
+    );
     return [];
   }
-};
+}
+
+/**
+ * Custom hook to fetch tenant users with React Query
+ * @param tenantId The tenant ID
+ * @returns Query result object
+ */
+export function useTenantUsers(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant_users', tenantId],
+    queryFn: () => tenantId ? fetchTenantUsers(tenantId) : Promise.resolve([]),
+    enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Custom hook to fetch AI decisions with React Query
+ * @param filters Filter options
+ * @returns Query result object
+ */
+export function useAiDecisions(filters: AiDecisionFilters = {}) {
+  return useQuery({
+    queryKey: ['ai_decisions', filters],
+    queryFn: () => fetchAiDecisions(filters),
+    staleTime: 60 * 1000, // 1 minute
+  });
+}

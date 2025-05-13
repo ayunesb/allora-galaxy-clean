@@ -1,129 +1,52 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { LogFilters } from '@/types/logs';
 import { AiDecision } from '@/components/admin/ai-decisions/types';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { fetchAiDecisions } from '@/services/adminService';
+import { useTenantId } from '@/hooks/useTenantId';
 
-export function useAiDecisionsData() {
+export const useAiDecisionsData = () => {
+  const { tenantId } = useTenantId();
   const { toast } = useToast();
-  const { currentWorkspace } = useWorkspace();
   const [decisions, setDecisions] = useState<AiDecision[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<LogFilters>({
-    module: 'agent',
-    event: null,
-    fromDate: null,
-    toDate: null,
-    searchTerm: '',
-    limit: 100
-  });
-  
-  const fetchDecisions = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch decisions data
+  const fetchData = async () => {
+    if (!tenantId) return;
     
     setIsLoading(true);
+    setError(null);
     
     try {
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .eq('tenant_id', currentWorkspace.id)
-        .eq('module', 'agent')
-        .order('created_at', { ascending: false });
-      
-      // Apply event filter if provided
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-      
-      // Apply date range filters if provided
-      if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate.toISOString());
-      }
-      
-      if (filters.toDate) {
-        query = query.lte('created_at', filters.toDate.toISOString());
-      }
-      
-      // Apply search term if provided
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
-      }
-      
-      // Apply limit if provided
-      query = query.limit(filters.limit || 100);
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Also fetch agent evolution events
-      const { data: evolutionData, error: evolutionError } = await supabase
-        .from('system_logs')
-        .select('*')
-        .eq('tenant_id', currentWorkspace.id)
-        .eq('module', 'evolution')
-        .order('created_at', { ascending: false })
-        .limit(20);
-        
-      if (evolutionError) throw evolutionError;
-      
-      // Combine both datasets and transform to AiDecision type
-      const combinedData = [...(data || []), ...(evolutionData || [])].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      
-      // Transform SystemLog to AiDecision by extracting data from context
-      const aiDecisions: AiDecision[] = combinedData.map(log => {
-        const context = log.context || {};
-        return {
-          ...log,
-          decision_type: context.decision_type || log.event,
-          confidence: context.confidence || context.confidence_score,
-          confidence_score: context.confidence_score,
-          reviewed: context.reviewed || false,
-          review_outcome: context.review_outcome,
-          input: context.input,
-          output: context.output,
-          reviewer_id: context.reviewer_id,
-          reviewed_by: context.reviewed_by,
-          reviewed_at: context.reviewed_at || context.review_date,
-          review_date: context.review_date,
-          plugin_id: context.plugin_id,
-          strategy_id: context.strategy_id,
-          model: context.model,
-          prompt: context.prompt,
-          completion: context.completion,
-          tokens_used: context.tokens_used,
-          alternatives: context.alternatives,
-          metadata: context.metadata
-        };
-      });
-      
-      setDecisions(aiDecisions);
-    } catch (error: any) {
-      console.error('Error fetching AI decisions:', error);
+      const data = await fetchAiDecisions({ tenant_id: tenantId, limit: 100 });
+      setDecisions(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch AI decisions');
       toast({
-        title: 'Error fetching AI decisions',
-        description: error.message || 'Failed to load AI decisions',
-        variant: 'destructive'
+        title: 'Error loading AI decisions',
+        description: 'There was a problem loading the AI decisions data.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id, filters, toast]);
-  
+  };
+
+  // Initial data fetch
   useEffect(() => {
-    fetchDecisions();
-  }, [fetchDecisions]);
-  
+    if (tenantId) {
+      fetchData();
+    }
+  }, [tenantId]);
+
   return {
     decisions,
     isLoading,
-    filters,
-    setFilters,
-    refetch: fetchDecisions
+    error,
+    refetch: fetchData
   };
-}
+};
+
+export default useAiDecisionsData;

@@ -1,197 +1,294 @@
 
 import { supabase } from '@/lib/supabase';
-import { OnboardingFormData } from '@/types/onboarding';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { useMutation } from '@tanstack/react-query';
 
-interface OnboardingResponse {
-  success: boolean;
-  error?: string;
-  tenantId?: string;
-  strategyId?: string;
+/**
+ * Interface for tenant creation data
+ */
+export interface TenantCreateInput {
+  name: string;
+  slug: string;
+  owner_id: string;
+  metadata?: Record<string, any>;
 }
 
 /**
- * Generate a URL-friendly slug from a company name
- * @param companyName Company name to slugify
+ * Interface for company profile creation data
  */
-const generateSlug = (companyName: string): string => {
-  return companyName
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-};
+export interface CompanyProfileInput {
+  tenant_id: string;
+  name: string;
+  industry?: string;
+  size?: string;
+  revenue_range?: string;
+  website?: string;
+  description?: string;
+}
 
 /**
- * Create a new tenant for the user
- * @param userId User ID
- * @param companyName Company name
+ * Interface for persona profile creation data
  */
-const createTenant = async (userId: string, companyName: string) => {
-  const slug = generateSlug(companyName);
-  
-  const { data, error } = await supabase
-    .from('tenants')
-    .insert([{
-      name: companyName,
-      slug,
-      owner_id: userId
-    }])
-    .select()
-    .single();
-  
-  if (error) throw error;
-  
-  return data;
-};
+export interface PersonaProfileInput {
+  tenant_id: string;
+  name: string;
+  tone?: string;
+  goals?: string[];
+}
 
 /**
- * Assign the user as an owner of the tenant
- * @param userId User ID
- * @param tenantId Tenant ID
+ * Interface for onboarding completion data
  */
-const assignUserToTenant = async (userId: string, tenantId: string) => {
-  const { error } = await supabase
-    .from('tenant_user_roles')
-    .insert([{
-      tenant_id: tenantId,
-      user_id: userId,
-      role: 'owner'
-    }]);
-  
-  if (error) throw error;
-};
+export interface OnboardingCompleteInput {
+  user_id: string;
+}
 
 /**
- * Create a company profile
- * @param tenantId Tenant ID
- * @param formData Onboarding form data
+ * Create a new tenant
+ * @param tenant Tenant data
+ * @returns Promise resolving to the created tenant ID or null
  */
-const createCompanyProfile = async (tenantId: string, formData: OnboardingFormData) => {
-  const companyData = {
-    tenant_id: tenantId,
-    name: formData.companyName || formData.companyInfo?.name || 'Untitled Company',
-    industry: formData.industry || formData.companyInfo?.industry,
-    size: formData.companySize || formData.companyInfo?.size,
-    website: formData.website,
-    revenue_range: formData.revenueRange,
-    description: formData.description
-  };
-  
-  const { data, error } = await supabase
-    .from('company_profiles')
-    .insert([companyData])
-    .select();
-  
-  if (error) throw error;
-  
-  return data[0];
-};
-
-/**
- * Create a persona profile
- * @param tenantId Tenant ID
- * @param formData Onboarding form data
- */
-const createPersonaProfile = async (tenantId: string, formData: OnboardingFormData) => {
-  if (!formData.persona) return null;
-  
-  const { data, error } = await supabase
-    .from('persona_profiles')
-    .insert([{
-      tenant_id: tenantId,
-      name: formData.persona.name,
-      goals: formData.persona.goals,
-      tone: formData.persona.tone
-    }])
-    .select();
-  
-  if (error) throw error;
-  
-  return data[0];
-};
-
-/**
- * Update user profile to mark onboarding as completed
- * @param userId User ID
- */
-const markOnboardingCompleted = async (userId: string) => {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ onboarding_completed: true })
-    .eq('id', userId);
-  
-  if (error) throw error;
-};
-
-/**
- * Create an initial strategy based on onboarding data
- */
-const generateStrategy = async (tenantId: string, userId: string, formData: OnboardingFormData) => {
-  const companyName = formData.companyName || formData.companyInfo?.name || 'Your Company';
-  
-  const { data, error } = await supabase
-    .from('strategies')
-    .insert([{
-      title: `${companyName} Growth Strategy`,
-      description: `Initial growth strategy for ${companyName} based on onboarding information.`,
-      status: 'draft',
-      tenant_id: tenantId,
-      created_by: userId,
-      tags: formData.goals || ['growth', 'marketing']
-    }])
-    .select();
-  
-  if (error) throw error;
-  
-  return data[0];
-};
-
-/**
- * Complete the onboarding process
- * @param userId User ID
- * @param formData Onboarding form data
- */
-export const completeOnboarding = async (userId: string, formData: OnboardingFormData): Promise<OnboardingResponse> => {
+export async function createTenant(tenant: TenantCreateInput): Promise<string | null> {
   try {
-    // Get company name from either direct property or nested object
-    const companyName = formData.companyName || formData.companyInfo?.name || '';
+    const { data, error } = await supabase
+      .from('tenants')
+      .insert(tenant)
+      .select('id')
+      .single();
     
-    if (!companyName) {
-      return { success: false, error: 'Company name is required' };
+    if (error) {
+      console.error('Error creating tenant:', error);
+      throw error;
     }
     
-    // Create a new tenant
-    const tenant = await createTenant(userId, companyName);
+    // Create tenant_user_role entry for owner
+    const roleData = {
+      tenant_id: data.id,
+      user_id: tenant.owner_id,
+      role: 'owner'
+    };
     
-    // Assign the user as an owner
-    await assignUserToTenant(userId, tenant.id);
+    const { error: roleError } = await supabase
+      .from('tenant_user_roles')
+      .insert(roleData);
     
-    // Create company profile
-    await createCompanyProfile(tenant.id, formData);
-    
-    // Create persona profile if available
-    if (formData.persona) {
-      await createPersonaProfile(tenant.id, formData);
+    if (roleError) {
+      console.error('Error assigning owner role:', roleError);
+      throw roleError;
     }
     
-    // Mark onboarding as completed in user profile
-    await markOnboardingCompleted(userId);
+    // Log the tenant creation
+    await logSystemEvent(
+      'onboarding',
+      'tenant_created',
+      { tenant_id: data.id, name: tenant.name },
+      data.id
+    );
     
-    // Generate an initial strategy
-    const strategy = await generateStrategy(tenant.id, userId, formData);
+    return data.id;
     
-    return { 
-      success: true,
-      tenantId: tenant.id,
-      strategyId: strategy.id
-    };
-    
-  } catch (error: any) {
-    console.error('Onboarding error:', error);
-    return { 
-      success: false,
-      error: error.message || 'Failed to complete onboarding'
-    };
+  } catch (err: any) {
+    console.error('Error in createTenant:', err);
+    // Log the error
+    await logSystemEvent(
+      'onboarding',
+      'error',
+      { message: 'Failed to create tenant', error: err.message }
+    );
+    return null;
   }
-};
+}
+
+/**
+ * Create a company profile for a tenant
+ * @param profile Company profile data
+ * @returns Promise resolving to success status
+ */
+export async function createCompanyProfile(profile: CompanyProfileInput): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('company_profiles')
+      .insert(profile);
+    
+    if (error) {
+      console.error('Error creating company profile:', error);
+      throw error;
+    }
+    
+    // Log the profile creation
+    await logSystemEvent(
+      'onboarding',
+      'company_profile_created',
+      { tenant_id: profile.tenant_id, name: profile.name },
+      profile.tenant_id
+    );
+    
+    return true;
+    
+  } catch (err: any) {
+    console.error('Error in createCompanyProfile:', err);
+    // Log the error
+    await logSystemEvent(
+      'onboarding',
+      'error',
+      { message: 'Failed to create company profile', error: err.message },
+      profile.tenant_id
+    );
+    return false;
+  }
+}
+
+/**
+ * Create a persona profile for a tenant
+ * @param profile Persona profile data
+ * @returns Promise resolving to success status
+ */
+export async function createPersonaProfile(profile: PersonaProfileInput): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('persona_profiles')
+      .insert(profile);
+    
+    if (error) {
+      console.error('Error creating persona profile:', error);
+      throw error;
+    }
+    
+    // Log the profile creation
+    await logSystemEvent(
+      'onboarding',
+      'persona_profile_created',
+      { tenant_id: profile.tenant_id, name: profile.name },
+      profile.tenant_id
+    );
+    
+    return true;
+    
+  } catch (err: any) {
+    console.error('Error in createPersonaProfile:', err);
+    // Log the error
+    await logSystemEvent(
+      'onboarding',
+      'error',
+      { message: 'Failed to create persona profile', error: err.message },
+      profile.tenant_id
+    );
+    return false;
+  }
+}
+
+/**
+ * Check if a tenant slug is available
+ * @param slug Tenant slug to check
+ * @returns Promise resolving to boolean indicating availability
+ */
+export async function checkSlugAvailability(slug: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking slug availability:', error);
+      throw error;
+    }
+    
+    // Slug is available if no tenant with that slug exists
+    return data === null;
+    
+  } catch (err) {
+    console.error('Error in checkSlugAvailability:', err);
+    // Default to false to prevent potential slug conflicts
+    return false;
+  }
+}
+
+/**
+ * Mark onboarding as complete for a user
+ * @param data User ID
+ * @returns Promise resolving to success status
+ */
+export async function completeOnboarding(data: OnboardingCompleteInput): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ onboarding_completed: true })
+      .eq('id', data.user_id);
+    
+    if (error) {
+      console.error('Error marking onboarding as complete:', error);
+      throw error;
+    }
+    
+    // Log the onboarding completion
+    await logSystemEvent(
+      'onboarding',
+      'completed',
+      { user_id: data.user_id }
+    );
+    
+    return true;
+    
+  } catch (err: any) {
+    console.error('Error in completeOnboarding:', err);
+    // Log the error
+    await logSystemEvent(
+      'onboarding',
+      'error',
+      { message: 'Failed to mark onboarding as complete', user_id: data.user_id, error: err.message }
+    );
+    return false;
+  }
+}
+
+/**
+ * Custom hook to create a tenant with React Query
+ * @returns Mutation result object
+ */
+export function useCreateTenant() {
+  return useMutation({
+    mutationFn: createTenant
+  });
+}
+
+/**
+ * Custom hook to create a company profile with React Query
+ * @returns Mutation result object
+ */
+export function useCreateCompanyProfile() {
+  return useMutation({
+    mutationFn: createCompanyProfile
+  });
+}
+
+/**
+ * Custom hook to create a persona profile with React Query
+ * @returns Mutation result object
+ */
+export function useCreatePersonaProfile() {
+  return useMutation({
+    mutationFn: createPersonaProfile
+  });
+}
+
+/**
+ * Custom hook to check slug availability with React Query
+ * @returns Mutation result object
+ */
+export function useCheckSlugAvailability() {
+  return useMutation({
+    mutationFn: checkSlugAvailability
+  });
+}
+
+/**
+ * Custom hook to complete onboarding with React Query
+ * @returns Mutation result object
+ */
+export function useCompleteOnboarding() {
+  return useMutation({
+    mutationFn: completeOnboarding
+  });
+}
