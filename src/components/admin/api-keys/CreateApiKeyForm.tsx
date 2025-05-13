@@ -41,11 +41,13 @@ const CreateApiKeyForm: React.FC<CreateApiKeyFormProps> = ({ onSuccess, onCancel
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await createApiKey({
-        name: values.name,
-        scope: values.scope,
-        expires_at: values.expires_at,
-      });
+      // Convert Date to string if present
+      const formattedValues = {
+        ...values,
+        expires_at: values.expires_at ? values.expires_at.toISOString() : null,
+      };
+      
+      const response = await createApiKey(formattedValues);
       
       if (response && onSuccess) {
         onSuccess(response);
@@ -110,7 +112,7 @@ const CreateApiKeyForm: React.FC<CreateApiKeyFormProps> = ({ onSuccess, onCancel
                 <FormItem className="flex flex-col">
                   <FormLabel>Expiration Date (Optional)</FormLabel>
                   <DatePicker
-                    date={field.value}
+                    date={field.value || null}
                     onSelect={field.onChange}
                   />
                   <FormMessage />

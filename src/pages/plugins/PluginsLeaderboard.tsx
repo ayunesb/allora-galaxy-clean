@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PluginLeaderboard } from '@/components/plugins/PluginLeaderboard';
 
 const PluginsLeaderboard: React.FC = () => {
-  const { topPlugins, trendingPlugins, isLoading } = usePlugins();
+  const { topPlugins, trendingPlugins, loading, plugins } = usePlugins();
 
   return (
     <div className="container py-10">
@@ -31,7 +31,7 @@ const PluginsLeaderboard: React.FC = () => {
             <CardContent>
               <PluginLeaderboard 
                 plugins={topPlugins} 
-                isLoading={isLoading}
+                isLoading={loading}
                 metric="xp"
               />
             </CardContent>
@@ -46,7 +46,7 @@ const PluginsLeaderboard: React.FC = () => {
             <CardContent>
               <PluginLeaderboard 
                 plugins={trendingPlugins} 
-                isLoading={isLoading}
+                isLoading={loading}
                 metric="trend"
               />
             </CardContent>
@@ -60,8 +60,8 @@ const PluginsLeaderboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <PluginLeaderboard 
-                plugins={topPlugins.slice().sort((a, b) => (b.roi || 0) - (a.roi || 0))} 
-                isLoading={isLoading}
+                plugins={plugins.slice().sort((a: Plugin, b: Plugin) => (b.roi || 0) - (a.roi || 0))} 
+                isLoading={loading}
                 metric="roi"
               />
             </CardContent>

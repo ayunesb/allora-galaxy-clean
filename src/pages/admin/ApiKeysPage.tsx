@@ -23,7 +23,7 @@ const ApiKeysPage: React.FC = () => {
     setCreateDialogOpen(true);
   };
 
-  const handleCreateSuccess = (response: ApiKeyResponse) => {
+  const handleCreateSuccess = (_: ApiKeyResponse) => {
     setCreateDialogOpen(false);
     toast({
       title: "API Key created",

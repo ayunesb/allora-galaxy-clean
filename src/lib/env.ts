@@ -1,70 +1,83 @@
 
 /**
- * Environment utilities for safely accessing environment variables
- * Works with both Vite and Deno environments
+ * Environment variable utilities for both browser and edge runtime environments.
+ * This module abstracts the differences between Deno.env and process.env,
+ * allowing for safer environment variable access in edge functions and browser code.
  */
 
+interface EnvManager {
+  get: (key: string) => string | undefined;
+  isDeno: boolean;
+  isNode: boolean;
+  isBrowser: boolean;
+}
+
 /**
- * Safely get an environment variable with a fallback value
- * @param name The name of the environment variable
- * @param fallback Optional fallback value if the environment variable is not found
- * @returns The environment variable value or the fallback value
+ * Safe environment variable getter that works across browser, Node.js and Deno.
+ * Falls back to process.env if Deno.env is not available.
  */
-export function getEnvWithDefault(name: string, fallback: string = ""): string {
+const getEnvValue = (key: string): string | undefined => {
   try {
-    // Try to access import.meta.env (Vite)
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      const value = import.meta.env[name];
-      if (value !== undefined) return value;
+    // Check if running in Deno environment
+    // @ts-ignore - Deno might not be defined in all environments
+    if (typeof Deno !== 'undefined' && Deno?.env?.get) {
+      // @ts-ignore - Deno might not be defined in all environments
+      return Deno.env.get(key);
     }
     
-    // Try to access Deno.env (Deno) - with safe type checking
-    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
-      try {
-        // Using any type here to avoid TypeScript errors when Deno is not defined
-        const denoEnv = (globalThis as any).Deno?.env;
-        if (denoEnv && typeof denoEnv.get === 'function') {
-          const value = denoEnv.get(name);
-          if (value !== undefined && value !== null) return value;
-        }
-      } catch (err) {
-        // Ignore Deno permission errors
-      }
-    }
-
-    // Try to access process.env (Node.js)
+    // Check if running in Node.js environment
     if (typeof process !== 'undefined' && process.env) {
-      const value = process.env[name];
-      if (value !== undefined) return value;
+      return process.env[key];
     }
-    
-    // Return fallback if not found in any environment
-    return fallback;
-  } catch (err) {
-    console.error(`Error accessing env variable ${name}:`, err);
-    return fallback;
+  } catch (e) {
+    // Silently fail if neither environment is available
+    console.warn(`Failed to access environment variable: ${key}`);
   }
-}
+  
+  return undefined;
+};
 
 /**
- * Boolean environment variable helper
- * @param name The name of the environment variable
- * @param fallback Optional fallback value if the environment variable is not found
- * @returns Boolean representation of the environment variable
+ * Environment manager that provides a consistent API for accessing environment
+ * variables across different JavaScript runtimes.
  */
-export function getBoolEnv(name: string, fallback: boolean = false): boolean {
-  const value = getEnvWithDefault(name, fallback ? 'true' : 'false');
-  return value === 'true' || value === '1' || value === 'yes';
-}
+export const envManager: EnvManager = {
+  get: getEnvValue,
+  // @ts-ignore - Deno might not be defined in all environments
+  isDeno: typeof Deno !== 'undefined',
+  isNode: typeof process !== 'undefined' && process.env !== undefined,
+  isBrowser: typeof window !== 'undefined',
+};
 
 /**
- * Number environment variable helper
- * @param name The name of the environment variable
- * @param fallback Optional fallback value if the environment variable is not found
- * @returns Numeric representation of the environment variable
+ * Get an environment variable with type safety.
+ * @param key The environment variable key
+ * @param defaultValue Optional default value if environment variable is not set
  */
-export function getNumEnv(name: string, fallback: number = 0): number {
-  const value = getEnvWithDefault(name, String(fallback));
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? fallback : parsed;
-}
+export const getEnv = (key: string, defaultValue?: string): string | undefined => {
+  const value = envManager.get(key);
+  return value !== undefined ? value : defaultValue;
+};
+
+/**
+ * Get a boolean environment variable.
+ * @param key The environment variable key
+ * @param defaultValue Optional default value if environment variable is not set
+ */
+export const getBoolEnv = (key: string, defaultValue = false): boolean => {
+  const value = envManager.get(key);
+  if (value === undefined) return defaultValue;
+  return value.toLowerCase() === 'true';
+};
+
+/**
+ * Get a numeric environment variable.
+ * @param key The environment variable key
+ * @param defaultValue Optional default value if environment variable is not set
+ */
+export const getNumEnv = (key: string, defaultValue?: number): number | undefined => {
+  const value = envManager.get(key);
+  if (value === undefined) return defaultValue;
+  const num = Number(value);
+  return isNaN(num) ? defaultValue : num;
+};

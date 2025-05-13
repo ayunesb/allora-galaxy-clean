@@ -74,6 +74,15 @@ export const usePlugins = () => {
     return matchesSearchTerm && matchesCategory;
   });
 
+  // Get top plugins by XP
+  const topPlugins = [...plugins].sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 10);
+  
+  // Get trending plugins
+  const trendingPlugins = [...plugins]
+    .filter(plugin => plugin.trend_score !== undefined && plugin.trend_score !== null)
+    .sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0))
+    .slice(0, 10);
+
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
@@ -82,6 +91,7 @@ export const usePlugins = () => {
   return {
     plugins,
     loading,
+    isLoading: loading,
     categories,
     searchQuery,
     setSearchQuery,
@@ -90,6 +100,8 @@ export const usePlugins = () => {
     sortBy,
     setSortBy,
     filteredPlugins,
-    clearFilters
+    clearFilters,
+    topPlugins,
+    trendingPlugins
   };
 };

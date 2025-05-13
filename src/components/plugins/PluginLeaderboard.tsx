@@ -4,17 +4,35 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PluginLeaderboardProps {
   plugins: Plugin[];
+  isLoading?: boolean;
+  metric?: 'xp' | 'roi' | 'trend';
 }
 
-export const PluginLeaderboard = ({ plugins }: PluginLeaderboardProps) => {
+export const PluginLeaderboard = ({ plugins, isLoading = false, metric = 'xp' }: PluginLeaderboardProps) => {
   const navigate = useNavigate();
 
   const handlePluginClick = (plugin: Plugin) => {
     navigate(`/plugins/${plugin.id}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="border rounded-md overflow-hidden">
+        <div className="bg-muted/50 p-3">
+          <Skeleton className="h-6 w-full" />
+        </div>
+        <div className="p-4 space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border rounded-md overflow-hidden">
