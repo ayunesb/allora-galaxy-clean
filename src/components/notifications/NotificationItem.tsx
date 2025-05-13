@@ -1,100 +1,77 @@
-import React from 'react';
-import { formatRelativeDate } from '@/lib/utils/date';
-import { Button } from '@/components/ui/button';
-import { Trash2, Circle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
-import { NotificationContent } from '@/types/notifications';
 
-export interface NotificationItemProps {
-  notification: NotificationContent;
-  onMarkAsRead: (id: string) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Bell, AlertCircle, Check, Info, Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Notification, NotificationType } from '@/types/notifications';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatRelativeDate } from '@/lib/utils/date';
+
+interface NotificationItemProps {
+  notification: Notification;
+  onMarkAsRead: (id: string) => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
-  onDelete
 }) => {
-  const handleMarkAsRead = async () => {
-    if (!notification.read) {
-      try {
-        await onMarkAsRead(notification.id);
-      } catch (error) {
-        console.error('Failed to mark notification as read:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to mark notification as read',
-          variant: 'destructive',
-        });
-      }
-    }
-  };
+  const { id, title, message, type, read, createdAt, action } = notification;
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    try {
-      await onDelete(notification.id);
-      toast({
-        title: 'Success',
-        description: 'Notification deleted',
-      });
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete notification',
-        variant: 'destructive',
-      });
+  const Icon = () => {
+    switch (type) {
+      case NotificationType.Strategy:
+        return <Zap className="h-4 w-4" />;
+      case NotificationType.Agent:
+        return <Info className="h-4 w-4" />;
+      case NotificationType.Error:
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case NotificationType.Update:
+        return <Check className="h-4 w-4 text-green-500" />;
+      default:
+        return <Bell className="h-4 w-4" />;
     }
   };
 
   return (
-    <div 
-      className={cn(
-        "p-4 hover:bg-accent/50 cursor-pointer flex items-start gap-3",
-        !notification.read && "bg-accent/20"
-      )}
-      onClick={handleMarkAsRead}
-    >
-      {/* Unread indicator */}
-      {!notification.read && (
-        <Circle className="h-2 w-2 mt-1.5 text-primary flex-shrink-0" fill="currentColor" />
-      )}
-      
-      <div className="flex-1">
-        <div className="flex justify-between items-start">
-          <h4 className="font-medium text-foreground">{notification.title}</h4>
-          <span className="text-xs text-muted-foreground">
-            {formatRelativeDate(notification.timestamp)}
-          </span>
+    <Card className={`mb-2 ${!read ? 'border-l-4 border-l-primary' : ''}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-4">
+            <div className="mt-1">
+              <Icon />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <h4 className="font-semibold">{title}</h4>
+                {!read && <Badge variant="outline">New</Badge>}
+              </div>
+              <p className="text-sm text-muted-foreground">{message}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatRelativeDate(new Date(createdAt))}
+              </p>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            {action && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={action.url}>{action.label}</Link>
+              </Button>
+            )}
+            {!read && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onMarkAsRead(id)}
+              >
+                Mark Read
+              </Button>
+            )}
+          </div>
         </div>
-        
-        <p className="text-sm text-foreground/80 mt-1">{notification.message}</p>
-        
-        {notification.action_url && notification.action_label && (
-          <a 
-            href={notification.action_url} 
-            className="text-sm text-primary hover:text-primary/80 mt-2 inline-block"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {notification.action_label}
-          </a>
-        )}
-      </div>
-      
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={handleDelete}
-        className="h-7 w-7 opacity-50 hover:opacity-100"
-      >
-        <Trash2 size={16} />
-        <span className="sr-only">Delete notification</span>
-      </Button>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

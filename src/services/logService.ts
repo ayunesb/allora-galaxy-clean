@@ -28,13 +28,13 @@ export const fetchSystemLogs = async (filters: LogFilters = {}) => {
     query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`);
   }
   
-  if (filters.dateRange?.from) {
-    query = query.gte('created_at', filters.dateRange.from.toISOString());
+  if (filters.fromDate) {
+    query = query.gte('created_at', filters.fromDate.toISOString());
   }
   
-  if (filters.dateRange?.to) {
+  if (filters.toDate) {
     // Add 1 day to include the entire day
-    const endDate = new Date(filters.dateRange.to);
+    const endDate = new Date(filters.toDate);
     endDate.setDate(endDate.getDate() + 1);
     query = query.lt('created_at', endDate.toISOString());
   }
@@ -81,13 +81,13 @@ export const fetchAuditLogs = async (filters: LogFilters = {}) => {
     query = query.or(`action.ilike.%${filters.searchTerm}%,entity_type.ilike.%${filters.searchTerm}%`);
   }
   
-  if (filters.dateRange?.from) {
-    query = query.gte('created_at', filters.dateRange.from.toISOString());
+  if (filters.fromDate) {
+    query = query.gte('created_at', filters.fromDate.toISOString());
   }
   
-  if (filters.dateRange?.to) {
+  if (filters.toDate) {
     // Add 1 day to include the entire day
-    const endDate = new Date(filters.dateRange.to);
+    const endDate = new Date(filters.toDate);
     endDate.setDate(endDate.getDate() + 1);
     query = query.lt('created_at', endDate.toISOString());
   }

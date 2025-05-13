@@ -32,8 +32,6 @@ export interface LogFilters {
   module?: string;
   event?: string;
   tenant_id?: string;
-  date_from?: Date;
-  date_to?: Date;
   fromDate?: Date | null;
   toDate?: Date | null;
   limit?: number;

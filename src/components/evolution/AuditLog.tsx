@@ -148,7 +148,7 @@ const AuditLog: React.FC<AuditLogProps> = ({
 
   const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
   const logs = data || fetchedLogs;
-  const refetch = externalRefresh || internalRefetch;
+  const refetch = externalRefresh || internalRefresh;
   
   return (
     <>

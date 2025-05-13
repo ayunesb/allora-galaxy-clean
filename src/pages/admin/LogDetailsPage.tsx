@@ -1,15 +1,13 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCw } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHelmet from '@/components/PageHelmet';
 import LogTransformationDialog from '@/components/evolution/LogTransformationDialog';
 import { useLogDetails } from '@/hooks/admin/useLogDetails';
 import { LogDetailView } from '@/components/admin/logs';
-import { JsonView } from '@/components/ui/json-view';
 
 // Loading skeleton component
 const LogLoadingSkeleton = () => (
@@ -23,9 +21,6 @@ const LogLoadingSkeleton = () => (
 // Not found component
 const LogNotFoundCard = ({ onBack }: { onBack: () => void }) => (
   <Card>
-    <CardHeader>
-      <CardTitle>Log Not Found</CardTitle>
-    </CardHeader>
     <CardContent>
       <p className="text-muted-foreground">
         The requested log could not be found. It may have been deleted or you may not have permission to view it.
@@ -79,10 +74,7 @@ const LogDetailsPage: React.FC = () => {
     logData,
     logType,
     isLoading,
-    error,
     refetch,
-    currentView,
-    toggleView,
     transformDialogOpen,
     openTransformDialog,
     closeTransformDialog
@@ -119,29 +111,8 @@ const LogDetailsPage: React.FC = () => {
         />
         
         <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>
-                Log Details
-              </CardTitle>
-              
-              <Tabs value={currentView} onValueChange={(v) => toggleView(v as 'details' | 'raw')}>
-                <TabsList>
-                  <TabsTrigger value="details">Formatted</TabsTrigger>
-                  <TabsTrigger value="raw">Raw JSON</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardHeader>
-          
-          <CardContent>
-            {currentView === 'details' ? (
-              <LogDetailView log={logData} />
-            ) : (
-              <div className="border rounded-md p-4 bg-muted/20">
-                <JsonView data={logData} />
-              </div>
-            )}
+          <CardContent className="pt-6">
+            <LogDetailView log={logData} />
           </CardContent>
         </Card>
       </div>

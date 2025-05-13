@@ -1,84 +1,68 @@
 
-/**
- * Notification type definitions for Allora OS
- */
+import { ReactNode } from 'react';
 
-/**
- * Available notification types
- */
-export type NotificationType = 'system' | 'campaign' | 'user' | 'strategy' | 'plugin' | 'agent' | 'info' | 'success' | 'warning' | 'error';
+export enum NotificationType {
+  System = 'system',
+  Strategy = 'strategy',
+  Agent = 'agent',
+  Update = 'update',
+  Error = 'error'
+}
 
-/**
- * Core notification interface
- */
+export enum NotificationPriority {
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Critical = 'critical'
+}
+
 export interface Notification {
   id: string;
   title: string;
-  description?: string;
-  message?: string; // For backward compatibility
-  user_id: string;
-  tenant_id: string;
-  is_read?: boolean;
-  created_at: string;
-  updated_at?: string;
-  read_at?: string | null;
-  type: NotificationType | string;
-  action_url?: string;
-  action_label?: string;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Normalized notification for UI display
- */
-export interface NotificationDisplay {
-  id: string;
-  title: string;
   message: string;
-  timestamp: string;
-  read: boolean;
   type: NotificationType;
-  action_url?: string;
-  action_label?: string;
-  userId?: string;
-  tenantId?: string;
+  priority?: NotificationPriority;
+  read: boolean;
+  createdAt: string;
+  action?: NotificationAction;
   metadata?: Record<string, any>;
+  tenant_id?: string;
 }
 
-/**
- * Notification context value interface
- */
-export interface NotificationsContextValue {
+export interface NotificationAction {
+  label: string;
+  url: string;
+}
+
+// Alias for backward compatibility
+export type NotificationContent = Notification;
+
+export interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
+  isLoading: boolean;
+  filters: {
+    type: NotificationType | 'all';
+    read: boolean | 'all';
+  };
+}
+
+export interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+  filters: {
+    type: NotificationType | 'all';
+    read: boolean | 'all';
+  };
+  setFilters: (filters: Partial<NotificationState['filters']>) => void;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
+  clearNotifications: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
-  loading: boolean;
-  error: Error | null;
+  showToast: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
 }
 
-/**
- * Input for creating a notification
- */
-export interface CreateNotificationInput {
-  title: string;
-  description?: string;
-  tenant_id: string;
-  user_id: string;
-  type?: string;
-  action_url?: string;
-  action_label?: string;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Filter options for notifications
- */
-export interface NotificationFilter {
-  type?: string | string[];
-  read?: boolean;
-  fromDate?: Date;
-  toDate?: Date;
+export interface NotificationProviderProps {
+  children: ReactNode;
 }

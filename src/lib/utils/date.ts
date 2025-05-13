@@ -1,56 +1,46 @@
 
-import { format, formatDistance, formatRelative as fpFormatRelative } from 'date-fns';
+import { format, formatDistance, formatRelative } from 'date-fns';
+import { zonedTimeToUtc, format as formatTZ } from 'date-fns-tz';
 
-// Format a date for display (human readable format)
-export const formatDisplayDate = (
-  date: Date | string | null | undefined,
-  formatStr = 'MMM dd, yyyy HH:mm:ss'
-): string => {
-  if (!date) return 'N/A';
+/**
+ * Format a date for display
+ */
+export function formatDisplayDate(date: string | Date, formatStr = 'MMM d, yyyy HH:mm'): string {
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     return format(dateObj, formatStr);
-  } catch (err) {
-    console.error('Date format error:', err);
+  } catch (error) {
+    console.error('Error formatting date:', error);
     return String(date);
   }
-};
+}
 
-// Format a date for relative display (e.g., "2 hours ago")
-export const formatRelativeDate = (
-  date: Date | string | null | undefined,
-  baseDate: Date = new Date()
-): string => {
-  if (!date) return 'N/A';
+/**
+ * Format a date for display with timezone
+ */
+export function formatDateWithTZ(
+  date: string | Date, 
+  formatStr = 'MMM d, yyyy HH:mm', 
+  timeZone = 'UTC'
+): string {
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return formatTZ(zonedTimeToUtc(dateObj, timeZone), formatStr, { timeZone });
+  } catch (error) {
+    console.error('Error formatting date with timezone:', error);
+    return String(date);
+  }
+}
+
+/**
+ * Format a date relative to now (e.g. "2 hours ago")
+ */
+export function formatRelativeDate(date: Date | string, baseDate = new Date()): string {
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     return formatDistance(dateObj, baseDate, { addSuffix: true });
-  } catch (err) {
-    console.error('Relative date format error:', err);
+  } catch (error) {
+    console.error('Error formatting relative date:', error);
     return String(date);
   }
-};
-
-// Format a date for database operations (ISO format)
-export const formatForDatabase = (
-  date: Date | null | undefined
-): string | null => {
-  if (!date) return null;
-  try {
-    return date.toISOString();
-  } catch (err) {
-    console.error('Database date format error:', err);
-    return null;
-  }
-};
-
-// Parse a string date into a Date object
-export const parseDate = (dateStr: string): Date | null => {
-  try {
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date;
-  } catch (err) {
-    console.error('Date parsing error:', err);
-    return null;
-  }
-};
+}

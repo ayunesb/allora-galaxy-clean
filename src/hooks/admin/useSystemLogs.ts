@@ -1,160 +1,46 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { SystemEventModule, SystemEventType } from '@/types/shared';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { fetchSystemLogs, fetchLogModules, fetchLogEvents } from '@/services/logService';
+import { SystemLog, LogFilters } from '@/types/logs';
 
-interface Log {
-  id: string;
-  module: SystemEventModule;
-  event: SystemEventType;
-  created_at: string;
-  context?: Record<string, any>;
-  tenant_id?: string;
-}
+export const useSystemLogs = (initialFilters: LogFilters = {}) => {
+  const [filters, setFilters] = useState<LogFilters>(initialFilters);
 
-export function useSystemLogs(tenantId: string | null) {
-  const [logs, setLogs] = useState<Log[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Filters
-  const [selectedModule, setSelectedModule] = useState<SystemEventModule | ''>('');
-  const [selectedEvent, setSelectedEvent] = useState<SystemEventType | ''>('');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Metadata
-  const [modules, setModules] = useState<SystemEventModule[]>([]);
-  const [events, setEvents] = useState<SystemEventType[]>([]);
+  const { data: logs = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['system-logs', filters],
+    queryFn: () => fetchSystemLogs(filters),
+  });
 
-  const fetchLogs = useCallback(async () => {
-    if (!tenantId) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-      
-      // Apply filters
-      if (selectedModule) {
-        query = query.eq('module', selectedModule);
-      }
-      
-      if (selectedEvent) {
-        query = query.eq('event', selectedEvent);
-      }
-      
-      if (selectedDate) {
-        const startDate = new Date(selectedDate);
-        startDate.setHours(0, 0, 0, 0);
-        
-        const endDate = new Date(selectedDate);
-        endDate.setHours(23, 59, 59, 999);
-        
-        query = query
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
-      }
-      
-      if (searchTerm) {
-        query = query.or(
-          `event.ilike.%${searchTerm}%,module.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`
-        );
-      }
-      
-      const { data, error: fetchError } = await query.limit(100);
-      
-      if (fetchError) {
-        throw fetchError;
-      }
-      
-      setLogs(data || []);
-    } catch (err: any) {
-      console.error('Error fetching system logs:', err);
-      setError(err.message || 'Failed to load system logs');
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm]);
-  
-  const fetchModulesAndEvents = useCallback(async () => {
-    if (!tenantId) return;
-    
-    try {
-      // For modules, use a direct approach without distinct
-      const { data: moduleData, error: moduleError } = await supabase
-        .from('system_logs')
-        .select('module')
-        .eq('tenant_id', tenantId);
-      
-      if (moduleError) throw moduleError;
-      
-      // For events, use a direct approach without distinct
-      const { data: eventData, error: eventError } = await supabase
-        .from('system_logs')
-        .select('event')
-        .eq('tenant_id', tenantId);
-      
-      if (eventError) throw eventError;
-      
-      // Use Set to get unique values
-      const uniqueModules = new Set<SystemEventModule>();
-      moduleData.forEach((item: { module: SystemEventModule }) => {
-        if (item.module) uniqueModules.add(item.module);
-      });
-      
-      const uniqueEvents = new Set<SystemEventType>();
-      eventData.forEach((item: { event: SystemEventType }) => {
-        if (item.event) uniqueEvents.add(item.event);
-      });
-      
-      setModules(Array.from(uniqueModules));
-      setEvents(Array.from(uniqueEvents));
-    } catch (err: any) {
-      console.error('Error fetching filters:', err);
-    }
-  }, [tenantId]);
-  
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-  
-  useEffect(() => {
-    fetchModulesAndEvents();
-  }, [fetchModulesAndEvents]);
-  
-  const resetFilters = useCallback(() => {
-    setSelectedModule('');
-    setSelectedEvent('');
-    setSelectedDate(null);
-    setSearchTerm('');
-  }, []);
-  
-  const refreshLogs = useCallback(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-  
+  const { data: modules = [] } = useQuery({
+    queryKey: ['log-modules'],
+    queryFn: fetchLogModules,
+  });
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['log-events'],
+    queryFn: fetchLogEvents,
+  });
+
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  const resetFilters = () => {
+    setFilters({});
+  };
+
   return {
     logs,
-    loading,
+    isLoading,
     error,
-    selectedModule,
-    setSelectedModule,
-    selectedEvent,
-    setSelectedEvent,
-    selectedDate,
-    setSelectedDate,
-    searchTerm,
-    setSearchTerm,
     modules,
     events,
+    filters,
+    updateFilters,
     resetFilters,
-    refreshLogs
+    refetch,
   };
-}
+};
+
+export default useSystemLogs;
