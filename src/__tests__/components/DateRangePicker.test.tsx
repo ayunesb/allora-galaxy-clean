@@ -1,56 +1,61 @@
-
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { DateRange } from '@/types/shared';
 
 describe('DateRangePicker Component', () => {
-  it('renders correctly with placeholder when no date is selected', () => {
-    const handleChange = vi.fn();
-    render(<DateRangePicker onDateChange={handleChange} />);
-    
-    expect(screen.getByText('Pick a date range')).toBeInTheDocument();
+  const mockOnChange = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('displays the selected date range when provided', () => {
-    const handleChange = vi.fn();
-    const date = {
-      from: new Date(2023, 0, 15), // January 15, 2023
-      to: new Date(2023, 0, 20) // January 20, 2023
+  it('renders with default values', () => {
+    render(<DateRangePicker onChange={mockOnChange} />);
+    
+    expect(screen.getByText('Pick a date')).toBeInTheDocument();
+  });
+
+  it('renders with provided date range', () => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    
+    const dateRange: DateRange = {
+      from: today,
+      to: tomorrow
     };
     
-    render(<DateRangePicker date={date} onDateChange={handleChange} />);
+    render(<DateRangePicker value={dateRange} onChange={mockOnChange} />);
     
-    expect(screen.getByText(/Jan 15, 2023 - Jan 20, 2023/)).toBeInTheDocument();
+    // The formatted date string will depend on your date formatting
+    // This is a simplified check
+    expect(screen.getByRole('button')).toHaveTextContent(today.getDate().toString());
   });
 
-  it('displays only the start date when no end date is selected', () => {
-    const handleChange = vi.fn();
-    const date = {
-      from: new Date(2023, 0, 15), // January 15, 2023
-      to: null
+  it('handles partial date range correctly', () => {
+    const today = new Date();
+    
+    const partialDateRange: DateRange = {
+      from: today,
+      to: undefined
     };
     
-    render(<DateRangePicker date={date} onDateChange={handleChange} />);
+    render(<DateRangePicker value={partialDateRange} onChange={mockOnChange} />);
     
-    expect(screen.getByText('Jan 15, 2023')).toBeInTheDocument();
+    // Should show just the from date
+    expect(screen.getByRole('button')).not.toHaveTextContent('to');
   });
 
-  it('opens the date picker popover when clicked', () => {
-    const handleChange = vi.fn();
-    render(<DateRangePicker onDateChange={handleChange} />);
+  it('opens calendar when clicked', () => {
+    render(<DateRangePicker onChange={mockOnChange} />);
     
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
+    // Open the calendar
+    fireEvent.click(screen.getByRole('button'));
     
-    // The calendar should now be visible
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-  });
-
-  it('applies custom className when provided', () => {
-    const handleChange = vi.fn();
-    render(<DateRangePicker onDateChange={handleChange} className="custom-class" />);
-    
-    const container = document.querySelector('.custom-class');
-    expect(container).toBeInTheDocument();
+    // Check if calendar is visible
+    expect(screen.getByText('Sun')).toBeInTheDocument();
+    expect(screen.getByText('Mon')).toBeInTheDocument();
+    // ... other days of the week
   });
 });

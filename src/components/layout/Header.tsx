@@ -1,25 +1,25 @@
 
-import { useState } from 'react';
-import { Menu, Bell, Sun, Moon, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useTheme } from '@/hooks/useTheme';
-import MobileSidebar from './MobileSidebar';
-import { NotificationCenter } from './NotificationCenter';
-import { useNavigate } from 'react-router-dom';
-import { navigationItems } from '@/contexts/workspace/navigationItems';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { BellIcon, MenuIcon, Sun, Moon } from "lucide-react";
+import { NotificationCenter } from "./NotificationCenter";
+import { useNotifications } from "@/hooks/useNotifications";
+import { Badge } from "@/components/ui/badge";
+import { getNavigationItems } from "@/contexts/workspace/navigationItems";
+import MobileSidebar from "./MobileSidebar";
+import { useTheme } from "@/hooks/useTheme";
+import { useRBAC } from "@/hooks/useRBAC";
 
 interface HeaderProps {
   title?: string;
 }
 
-export default function Header({ title = 'Galaxy Command Center' }: HeaderProps) {
-  const { theme, setTheme } = useTheme();
+export function Header({ title = "Allora OS" }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const navigate = useNavigate();
-
-  const handleProfileClick = () => {
-    navigate('/settings/profile');
-  };
+  const { notifications, unreadCount } = useNotifications();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const { isAdmin } = useRBAC();
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -29,65 +29,61 @@ export default function Header({ title = 'Galaxy Command Center' }: HeaderProps)
     setShowNotifications(!showNotifications);
   };
 
-  const closeNotifications = () => {
-    setShowNotifications(false);
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  const handleMobileItemClick = () => {
+    setMobileMenuOpen(false);
+  };
+
+  const navigationItems = getNavigationItems(isAdmin());
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
-      <div className="flex flex-1 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MobileSidebar items={navigationItems} onItemClick={() => {}} />
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-          <span className="text-lg font-semibold">{title}</span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="relative"
-            aria-label="Toggle Theme"
+    <header className="sticky top-0 z-40 border-b bg-background">
+      <div className="container flex h-16 items-center justify-between py-4">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleMobileMenu}
+            className="md:hidden"
           >
-            {theme === 'dark' ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-            <span className="sr-only">Toggle Theme</span>
+            <MenuIcon className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
           </Button>
-          
+          <h1 className="text-xl font-bold">{title}</h1>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
           <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleNotifications}
-              className="relative"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={toggleNotifications}>
+              <BellIcon className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
               <span className="sr-only">Notifications</span>
             </Button>
+
             {showNotifications && (
-              <NotificationCenter onClose={closeNotifications} />
+              <NotificationCenter onClose={() => setShowNotifications(false)} />
             )}
           </div>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleProfileClick}
-            aria-label="User Profile"
-          >
-            <User className="h-5 w-5" />
-            <span className="sr-only">User Profile</span>
-          </Button>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <MobileSidebar onItemClick={handleMobileItemClick} />
+      )}
     </header>
   );
 }
+
+export default Header;

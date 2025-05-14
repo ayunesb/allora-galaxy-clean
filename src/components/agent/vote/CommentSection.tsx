@@ -1,80 +1,94 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { CommentSectionProps } from './types';
-import { format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { Comment } from '@/types/shared';
 
 const CommentSection: React.FC<CommentSectionProps> = ({
-  comments,
-  onSubmitComment,
-  isSubmitting = false
+  agentVersionId,
+  comments = [],
+  onAddComment,
+  loading = false,
+  maxHeight = '400px'
 }) => {
-  const [commentValue, setCommentValue] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    if (onSubmitComment && commentValue.trim()) {
-      await onSubmitComment(commentValue);
-      setCommentValue('');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim() || !onAddComment) return;
+
+    setIsSubmitting(true);
+    try {
+      await onAddComment(commentText);
+      setCommentText('');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    setCommentValue('');
-  };
-
   return (
-    <div className="space-y-4">
-      {onSubmitComment && (
-        <div className="space-y-3">
-          <Textarea
-            placeholder="Share your feedback..."
-            value={commentValue}
-            onChange={(e) => setCommentValue(e.target.value)}
-            className="resize-none"
-            rows={3}
-            disabled={isSubmitting}
-          />
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !commentValue.trim()}
-            >
-              Submit
-            </Button>
-          </div>
+    <div className="space-y-4 w-full">
+      <h3 className="text-lg font-medium">Comments</h3>
+      
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <Textarea
+          placeholder="Add your comment..."
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          className="min-h-[80px]"
+          disabled={isSubmitting}
+        />
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={!commentText.trim() || isSubmitting}
+            size="sm"
+          >
+            {isSubmitting ? 'Posting...' : 'Post Comment'}
+          </Button>
         </div>
-      )}
-
-      {comments.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-lg font-medium">Comments</h3>
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="p-3 bg-secondary/30 rounded-md">
-                <div className="flex justify-between items-start">
-                  <p className="text-sm">{comment.comment}</p>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(comment.created_at), 'MMM d, yyyy')}
-                  </span>
-                </div>
+      </form>
+      
+      <div 
+        className="space-y-4 mt-4 overflow-y-auto" 
+        style={{ maxHeight }}
+      >
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin h-6 w-6 border-t-2 border-primary rounded-full" />
+          </div>
+        ) : comments.length > 0 ? (
+          comments.map((comment) => (
+            <div key={comment.id} className="border rounded-md p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={`https://avatar.vercel.sh/${comment.user?.id || 'user'}?size=32`} />
+                  <AvatarFallback>
+                    {comment.user?.first_name?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-sm">
+                  {comment.user?.first_name || 'Anonymous'}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">No comments yet.</p>
-      )}
+              <p className="text-sm">{comment.content}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-muted-foreground text-sm py-4">
+            No comments yet. Be the first to share your thoughts!
+          </p>
+        )}
+      </div>
     </div>
   );
 };

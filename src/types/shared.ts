@@ -39,6 +39,25 @@ export type SystemLogFilter = {
   search?: string;
 };
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
 export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'generate' | 'complete';
+
+// Calendar & DateRange related types
+export interface DateRange {
+  from: Date;
+  to?: Date | undefined;
+}
+
+// Navigation types
+export interface NavigationItem {
+  id?: string;
+  title: string;
+  href: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  items?: NavigationItem[];
+  adminOnly?: boolean;
+  badge?: string | number;
+  isNew?: boolean;
+  isExternal?: boolean;
+}

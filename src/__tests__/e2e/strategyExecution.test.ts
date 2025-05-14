@@ -1,152 +1,57 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { runStrategy } from '@/lib/strategy/runStrategy';
-import { recordExecution } from '@/lib/executions/recordExecution';
+import { test, expect } from '@playwright/test';
 
-// Mock dependencies
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    functions: {
-      invoke: vi.fn().mockResolvedValue({
-        data: {
-          success: true,
-          execution_id: 'exec-123',
-          status: 'complete',
-          plugins_executed: 2,
-          successful_plugins: 2,
-          execution_time: 1.5
-        },
-        error: null
-      })
-    },
-    from: vi.fn(() => ({
-      insert: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { id: 'execution-record-123' },
-            error: null
-          })
-        })
-      })
-    }))
-  }
-}));
-
-vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn().mockResolvedValue(true),
-  __esModule: true,
-  default: vi.fn().mockResolvedValue(true)
-}));
-
-vi.mock('@/lib/executions/recordExecution', () => ({
-  recordExecution: vi.fn().mockResolvedValue({
-    success: true,
-    data: { id: 'execution-record-123' }
-  })
-}));
-
-describe('Strategy Execution End-to-End Flow', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('should execute strategy and record the results', async () => {
-    // Call the runStrategy function
-    const result = await runStrategy({
-      strategyId: 'strategy-123',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
-    });
-
-    // Verify edge function invocation
-    expect(result.success).toBe(true);
-    expect(result.executionId).toBe('exec-123');
+test.describe('Strategy Execution Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Sign in before each test
+    await page.goto('/auth/login');
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'password123');
+    await page.click('button[type="submit"]');
     
-    // Verify execution recording
-    expect(recordExecution).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant-123',
-        strategyId: 'strategy-123',
-        executedBy: 'user-123',
-        status: 'success'
-      })
-    );
+    // Wait for redirect to dashboard
+    await page.waitForURL('/dashboard');
   });
 
-  it('should handle failures in the execution process', async () => {
-    // Mock edge function failure
-    const supabase = await import('@/integrations/supabase/client');
-    vi.mocked(supabase.supabase.functions.invoke).mockResolvedValueOnce({
-      data: null,
-      error: { message: 'Strategy execution failed' }
-    });
-
-    // Call the runStrategy function
-    const result = await runStrategy({
-      strategyId: 'failed-strategy',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
-    });
-
-    // Verify failure handling
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
+  test('Complete strategy execution flow', async ({ page }) => {
+    // Navigate to strategies page
+    await page.click('a[href="/strategies"]');
+    await page.waitForURL('/strategies');
     
-    // Verify failure was recorded
-    expect(recordExecution).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant-123',
-        strategyId: 'failed-strategy',
-        status: 'failure',
-        error: expect.any(String)
-      })
-    );
-  });
-
-  it('should handle edge cases in the strategy execution flow', async () => {
-    // Test with partial execution success
-    const supabase = await import('@/integrations/supabase/client');
-    vi.mocked(supabase.supabase.functions.invoke).mockResolvedValueOnce({
-      data: {
-        success: true,
-        execution_id: 'partial-exec-123',
-        status: 'partial',
-        plugins_executed: 3,
-        successful_plugins: 1,
-        failed_plugins: 2,
-        execution_time: 2.5
-      },
-      error: null
-    });
-
-    // Call the runStrategy function
-    const result = await runStrategy({
-      strategyId: 'partial-strategy',
-      tenantId: 'tenant-123',
-      userId: 'user-123'
-    });
-
-    // Verify partial success handling
-    expect(result.success).toBe(true);
-    expect(result.executionId).toBe('partial-exec-123');
-    expect(result.status).toBe('partial');
+    // Create a new strategy
+    await page.click('button:has-text("New Strategy")');
+    await page.fill('input[name="title"]', 'E2E Test Strategy');
+    await page.fill('textarea[name="description"]', 'This is a test strategy created by E2E tests');
+    await page.click('button[type="submit"]');
     
-    // Verify partial success was recorded correctly
-    expect(recordExecution).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tenantId: 'tenant-123',
-        strategyId: 'partial-strategy',
-        status: 'success', // The overall execution is still successful
-        output: expect.objectContaining({
-          successful_plugins: 1,
-          failed_plugins: 2
-        })
-      })
-    );
+    // Wait for strategy to be created and navigate to its detail page
+    await page.waitForSelector('text=E2E Test Strategy');
+    await page.click('text=E2E Test Strategy');
+    
+    // Execute the strategy
+    await page.click('button:has-text("Execute")');
+    
+    // Confirm execution
+    await page.click('button:has-text("Confirm")');
+    
+    // Wait for execution to complete
+    await page.waitForSelector('text=Execution completed successfully', { timeout: 30000 });
+    
+    // Verify result on page
+    const resultText = await page.textContent('.execution-result');
+    expect(resultText).toContain('Success');
+    
+    // Check logs for execution
+    await page.click('a[href="/logs"]');
+    await page.waitForURL('/logs');
+    
+    // Filter logs for the strategy
+    await page.fill('input[placeholder="Search logs..."]', 'E2E Test Strategy');
+    await page.click('button:has-text("Apply Filters")');
+    
+    // Verify log entry exists
+    await page.waitForSelector('text=Strategy executed');
+    const logEntry = await page.textContent('.log-entry');
+    expect(logEntry).toContain('E2E Test Strategy');
   });
 });

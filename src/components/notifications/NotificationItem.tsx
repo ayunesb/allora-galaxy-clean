@@ -1,9 +1,11 @@
 
+import React from "react";
 import { Check, Bell, AlertCircle, Info, X, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { NotificationContent } from "@/types/notifications";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { NotificationType } from "@/types/shared";
 
 interface NotificationItemProps {
   notification: NotificationContent;
@@ -19,11 +21,20 @@ export function NotificationItem({
   const { id, title, message, type, timestamp, read } = notification;
   
   const getIconForType = () => {
-    if (type === "info") return <Info className="h-5 w-5 text-blue-500" />;
-    if (type === "success") return <Check className="h-5 w-5 text-green-500" />;
-    if (type === "warning") return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-    if (type === "error") return <AlertCircle className="h-5 w-5 text-red-500" />;
-    return <Bell className="h-5 w-5 text-gray-500" />;
+    switch (type) {
+      case "info":
+        return <Info className="h-5 w-5 text-blue-500" />;
+      case "success":
+        return <Check className="h-5 w-5 text-green-500" />;
+      case "warning":
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case "error":
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case "system":
+        return <Bell className="h-5 w-5 text-gray-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-gray-500" />;
+    }
   };
 
   const timeAgo = timestamp 
@@ -50,8 +61,8 @@ export function NotificationItem({
               className="h-5 w-5"
               onClick={() => onDelete(id)}
             >
-              <X className="h-3.5 w-3.5" />
-              <span className="sr-only">Delete notification</span>
+              <X className="h-3 w-3" />
+              <span className="sr-only">Delete</span>
             </Button>
           </div>
         </div>
@@ -60,9 +71,10 @@ export function NotificationItem({
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 h-8 rounded-md"
+            className="mt-2 h-7 px-2"
             onClick={() => onMarkAsRead(id)}
           >
+            <Check className="mr-1 h-3 w-3" />
             Mark as read
           </Button>
         )}
@@ -70,3 +82,5 @@ export function NotificationItem({
     </div>
   );
 }
+
+export default NotificationItem;

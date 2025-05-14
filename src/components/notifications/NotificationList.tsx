@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NotificationContent } from '@/types/notifications';
-import NotificationItem from './NotificationItem';
+import { NotificationItem } from './NotificationItem';
 
 interface NotificationListProps {
   notifications: NotificationContent[];
@@ -15,7 +15,7 @@ interface NotificationListProps {
 const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   onMarkAsRead,
-  onDelete,
+  onDelete = async () => {},
   filter,
   isLoading = false
 }) => {

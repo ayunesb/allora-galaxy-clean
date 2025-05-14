@@ -1,104 +1,122 @@
-
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { NavigationItem } from '@/types/shared';
-import { Badge } from '@/components/ui/badge';
-import { useTenantRole } from '@/hooks/useTenantRole';
+import { cn } from "@/lib/utils";
+import { useTenantRole } from "@/hooks/useTenantRole";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { NavigationItem } from "@/types/shared";
 
 interface SidebarNavProps {
   items: NavigationItem[];
+  className?: string;
 }
 
-export default function SidebarNav({ items }: SidebarNavProps) {
-  const { pathname } = useLocation();
-  const { role } = useTenantRole();
+export function SidebarNav({ items, className }: SidebarNavProps) {
+  const location = useLocation();
+  const { hasRole } = useTenantRole();
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
   
-  const isAdmin = role === 'admin' || role === 'owner';
+  const isAdmin = hasRole(['admin', 'owner']);
 
-  const filteredItems = React.useMemo(() => {
-    return items.filter(item => !item.adminOnly || isAdmin);
-  }, [items, isAdmin]);
-  
-  return (
-    <nav className="space-y-1 px-2 py-3">
-      {filteredItems.map((item) => {
-        // Check if this item or any child is active
-        const isActive = pathname === item.href || 
-                        (item.items?.some(child => pathname === child.href));
-        
-        if (item.items?.length) {
-          return (
-            <div key={item.id || item.href} className="space-y-1">
-              <div className={cn(
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
-              )}>
-                {item.icon && <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />}
-                <span>{item.title}</span>
-              </div>
-              
-              <div className="space-y-1 pl-10">
-                {item.items.map((child) => (
-                  <Link
-                    key={child.id || child.href}
-                    to={child.href}
-                    className={cn(
-                      'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
-                      pathname === child.href
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
-                    )}
-                  >
-                    <span>{child.title}</span>
-                    {child.badge && (
-                      <Badge 
-                        variant="secondary"
-                        className="ml-auto py-0.5"
-                      >
-                        {child.badge}
-                      </Badge>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          );
-        }
-        
-        return (
-          <Link
-            key={item.id || item.href}
-            to={item.href}
+  const toggleItem = (href: string) => {
+    setOpenItems((prev) => ({
+      ...prev,
+      [href]: !prev[href],
+    }));
+  };
+
+  const renderNavItem = (item: NavigationItem) => {
+    // Skip admin-only items for non-admin users
+    if (item.adminOnly && !isAdmin) {
+      return null;
+    }
+
+    const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+    const hasChildren = item.items && item.items.length > 0;
+    const isOpen = openItems[item.href];
+
+    // If there are child items, render a collapsible menu
+    if (hasChildren) {
+      return (
+        <div key={item.href} className="space-y-1">
+          <button
+            onClick={() => toggleItem(item.href)}
             className={cn(
-              'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
-              pathname === item.href
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+              "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-muted hover:text-accent-foreground",
+              isActive ? "bg-accent text-accent-foreground" : "transparent",
+              className
             )}
           >
-            {item.icon && <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />}
-            <span>{item.title}</span>
-            {item.badge && (
-              <Badge 
-                variant="secondary"
-                className="ml-auto py-0.5"
-              >
-                {item.badge}
-              </Badge>
-            )}
-            {item.isNew && (
-              <Badge 
-                className="ml-auto bg-green-500 text-white"
-              >
-                New
-              </Badge>
-            )}
-          </Link>
-        );
-      })}
+            <span className="flex items-center">
+              {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+              {item.title}
+              {item.badge && (
+                <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                  {item.badge}
+                </span>
+              )}
+              {item.isNew && (
+                <span className="ml-2 rounded-full bg-green-500 px-2 py-0.5 text-xs text-white">
+                  New
+                </span>
+              )}
+            </span>
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")}
+            />
+          </button>
+
+          {isOpen && (
+            <div className="pl-6 space-y-1">
+              {item.items.map((child) =>
+                renderNavItem(child)
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Otherwise render a single nav item
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        target={item.isExternal ? "_blank" : undefined}
+        rel={item.isExternal ? "noopener noreferrer" : undefined}
+        className={cn(
+          "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-muted hover:text-accent-foreground",
+          isActive ? "bg-accent text-accent-foreground" : "transparent",
+          className
+        )}
+      >
+        <span className="flex items-center">
+          {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+          {item.title}
+        </span>
+        <span className="flex items-center">
+          {item.badge && (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+              {item.badge}
+            </span>
+          )}
+          {item.isNew && (
+            <span className="rounded-full bg-green-500 px-2 py-0.5 text-xs text-white">
+              New
+            </span>
+          )}
+          {item.isExternal && (
+            <span className="ml-1 h-1 w-1 rounded-full bg-foreground" />
+          )}
+        </span>
+      </Link>
+    );
+  };
+
+  return (
+    <nav className={cn("space-y-1", className)}>
+      {items.map((item) => renderNavItem(item))}
     </nav>
   );
 }
+
+export default SidebarNav;

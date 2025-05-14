@@ -16,7 +16,7 @@ export interface Notification {
   user_id: string;
   title?: string;
   message?: string;
-  type?: string;
+  type?: NotificationType;
   read_at?: string | null;
   created_at: string;
   data?: any;
@@ -27,7 +27,7 @@ export const convertToNotificationContent = (notification: Notification): Notifi
     id: notification.id,
     title: notification.title || '',
     message: notification.message || '',
-    type: (notification.type as NotificationType) || 'info',
+    type: notification.type || 'info',
     timestamp: notification.created_at,
     read: !!notification.read_at
   };

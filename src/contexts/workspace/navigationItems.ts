@@ -1,97 +1,89 @@
 
-import { LayoutDashboard, Settings, User, Users, LineChart, Folder, Cog, Bell } from 'lucide-react';
-import { NavigationItem } from '@/types/shared';
+import {
+  BarChart2,
+  Globe,
+  Home,
+  LayoutDashboard,
+  Settings,
+  PackageOpen,
+  Code,
+  Users,
+  Bell,
+  Database,
+  Bot,
+} from "lucide-react";
+import { NavigationItem } from "@/types/shared";
 
-// Define navigation items for each user role
-export const getNavigationItems = (role?: string): NavigationItem[] => {
-  // Base navigation available to all roles
+export const getNavigationItems = (isAdmin: boolean = false): NavigationItem[] => {
   const baseNavigation: NavigationItem[] = [
     {
-      id: 'dashboard',
-      title: 'Dashboard',
-      href: '/dashboard',
+      id: "dashboard",
+      title: "Dashboard",
+      href: "/dashboard",
       icon: LayoutDashboard,
     },
     {
-      id: 'strategies',
-      title: 'Strategies',
-      href: '/strategies',
-      icon: Folder,
+      id: "strategies",
+      title: "Strategies",
+      href: "/strategies",
+      icon: BarChart2,
     },
     {
-      id: 'evolution',
-      title: 'Evolution',
-      href: '/evolution',
-      icon: LineChart,
+      id: "plugins",
+      title: "Plugins",
+      href: "/plugins",
+      icon: PackageOpen,
     },
     {
-      id: 'notifications',
-      title: 'Notifications',
-      href: '/notifications',
-      icon: Bell,
+      id: "agents",
+      title: "Agents",
+      href: "/agents",
+      icon: Bot,
+    },
+    {
+      id: "galaxy",
+      title: "Galaxy Explorer",
+      href: "/galaxy",
+      icon: Globe,
+      isNew: true,
     }
   ];
 
-  // Navigation items only available to admins and owners
   const adminNavigation: NavigationItem[] = [
     {
-      id: 'admin',
-      title: 'Admin',
-      href: '/admin',
-      icon: Cog,
+      id: "admin",
+      title: "Admin",
+      href: "/admin",
+      icon: Settings,
+      adminOnly: true,
       items: [
         {
-          id: 'admin-dashboard',
-          title: 'Dashboard',
-          href: '/admin',
-          icon: LayoutDashboard,
-        },
-        {
-          id: 'user-management',
-          title: 'User Management',
-          href: '/admin/users',
+          id: "team",
+          title: "Team Management",
+          href: "/admin/team",
           icon: Users,
         },
         {
-          id: 'api-keys',
-          title: 'API Keys',
-          href: '/admin/api-keys',
-          icon: Cog,
+          id: "logs",
+          title: "System Logs",
+          href: "/admin/logs",
+          icon: Database,
         },
         {
-          id: 'system-logs',
-          title: 'System Logs',
-          href: '/admin/logs',
-          icon: Folder,
-        }
-      ],
-    },
-  ];
-
-  // Settings navigation available to all users
-  const settingsNavigation: NavigationItem[] = [
-    {
-      id: 'settings',
-      title: 'Settings',
-      href: '/settings',
-      icon: Settings,
-      items: [
+          id: "notifications",
+          title: "Notifications",
+          href: "/admin/notifications",
+          icon: Bell,
+        },
         {
-          id: 'profile',
-          title: 'Profile',
-          href: '/settings/profile',
-          icon: User,
+          id: "developer",
+          title: "Developer Tools",
+          href: "/admin/developer",
+          icon: Code,
         }
-      ],
-    },
+      ]
+    }
   ];
 
-  // Combine navigation based on role
-  if (role === 'owner' || role === 'admin') {
-    return [...baseNavigation, ...adminNavigation, ...settingsNavigation];
-  }
-
-  return [...baseNavigation, ...settingsNavigation];
+  return isAdmin ? [...baseNavigation, ...adminNavigation] : baseNavigation;
 };
-
-export default getNavigationItems;

@@ -1,45 +1,34 @@
 
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { NavigationItem } from '@/types/navigation';
-import { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
+import SidebarNav from './SidebarNav';
+import { getNavigationItems } from '@/contexts/workspace/navigationItems';
+import { useRBAC } from '@/hooks/useRBAC';
 
-export interface MobileSidebarProps {
-  items: NavigationItem[];
-  onItemClick?: () => void; // Add this optional prop
+interface MobileSidebarProps {
+  onItemClick: () => void;
 }
 
-export default function MobileSidebar({ items, onItemClick }: MobileSidebarProps) {
-  const [open, setOpen] = useState(false);
-
-  const handleItemClick = () => {
-    setOpen(false);
-    // Call the passed onItemClick handler if it exists
-    if (onItemClick) {
-      onItemClick();
-    }
-  };
-
+const MobileSidebar: React.FC<MobileSidebarProps> = ({ onItemClick }) => {
+  const { isAdmin } = useRBAC();
+  const navigationItems = getNavigationItems(isAdmin());
+  
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent side="left" className="w-[240px] sm:w-[300px]">
-        <nav className="flex flex-col gap-2 mt-4">
-          {items.map((item, index) => (
-            <Button 
-              key={index}
-              variant="ghost" 
-              className="justify-start"
-              asChild
-              onClick={handleItemClick}
-            >
-              <a href={item.href}>
-                {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-                {item.title}
-              </a>
-            </Button>
-          ))}
-        </nav>
-      </SheetContent>
-    </Sheet>
+    <div className="fixed inset-0 top-16 z-50 flex h-[calc(100vh-4rem)] w-full flex-col bg-background shadow-xl animate-in slide-in-from-left">
+      <div className="container flex items-center justify-between py-4">
+        <h2 className="text-lg font-medium">Navigation</h2>
+        <Button variant="ghost" size="sm" onClick={onItemClick}>
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </Button>
+      </div>
+      
+      <div className="container pb-12 pt-4">
+        <SidebarNav items={navigationItems} className="px-1" />
+      </div>
+    </div>
   );
-}
+};
+
+export default MobileSidebar;

@@ -1,25 +1,37 @@
 
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { navigationItems } from '@/contexts/workspace/navigationItems';
-import MobileSidebar from './MobileSidebar';
+import { getNavigationItems } from '@/contexts/workspace/navigationItems';
+import { useRBAC } from '@/hooks/useRBAC';
 
 interface MainLayoutProps {
   children: ReactNode;
+  showHeader?: boolean;
+  showSidebar?: boolean;
+  title?: string;
 }
 
-export default function MainLayout({ children }: MainLayoutProps) {
+const MainLayout: React.FC<MainLayoutProps> = ({
+  children,
+  showHeader = true,
+  showSidebar = true,
+  title,
+}) => {
+  const { isAdmin } = useRBAC();
+  const navigationItems = getNavigationItems(isAdmin());
+
   return (
-    <div className="flex h-screen flex-col">
-      <Header />
+    <div className="flex min-h-screen flex-col">
+      {showHeader && <Header title={title} />}
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
-      </div>
-      <div className="md:hidden">
-        <MobileSidebar items={navigationItems} />
+        {showSidebar && (
+          <Sidebar items={navigationItems} className="w-64 flex-shrink-0 border-r hidden md:block" />
+        )}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
       </div>
     </div>
   );
-}
+};
+
+export default MainLayout;

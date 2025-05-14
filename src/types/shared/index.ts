@@ -3,11 +3,11 @@
 
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
-export type VoteType = 'up' | 'down';
+export type VoteType = 'up' | 'down' | 'neutral';
 
 export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
-export type NotificationType = 'system' | 'strategy' | 'alert' | 'update' | 'info';
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
 export interface FilterState {
   module?: string[];
@@ -55,3 +55,25 @@ export interface SystemLog {
   metadata?: Record<string, any>;
   status?: string;
 }
+
+// Calendar & DateRange related types
+export interface DateRange {
+  from: Date;
+  to?: Date | undefined;
+}
+
+// Navigation item type
+export interface NavigationItem {
+  id?: string;
+  title: string;
+  href: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  items?: NavigationItem[];
+  adminOnly?: boolean;
+  badge?: string | number;
+  isNew?: boolean;
+  isExternal?: boolean;
+}
+
+// Export UserRole type
+export type UserRole = 'admin' | 'owner' | 'member' | 'guest';

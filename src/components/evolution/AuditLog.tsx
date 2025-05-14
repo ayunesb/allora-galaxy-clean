@@ -1,188 +1,199 @@
 
-import { useState, useEffect } from 'react';
-import { Pagination } from '@/components/ui/pagination';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FilterState } from '@/types/shared';
+import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
+import { formatDistanceToNow } from 'date-fns';
 import { SystemLog } from '@/types/logs';
 import AuditLogFilters from './logs/AuditLogFilters';
 import LogDetailDialog from './logs/LogDetailDialog';
-import { formatDistanceToNow } from 'date-fns';
-import { Filter, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-interface AuditLogProps {
-  logs: SystemLog[];
-  isLoading?: boolean;
-  totalPages?: number;
-  currentPage?: number;
-  onPageChange?: (page: number) => void;
-  onRefresh?: () => void;
-  onFilterChange?: (filter: FilterState) => void;
+export interface AuditLogProps {
+  onFetchData: (filters: any) => Promise<SystemLog[]>;
 }
 
-function getSeverityColor(severity: string): string {
-  switch (severity) {
-    case 'error':
-      return 'destructive';
-    case 'warn':
-      return 'warning';
-    case 'info':
-      return 'secondary';
-    case 'debug':
-      return 'outline';
-    default:
-      return 'secondary';
-  }
-}
+const LOGS_PER_PAGE = 10;
 
-export default function AuditLog({
-  logs,
-  isLoading = false,
-  totalPages = 1,
-  currentPage = 1,
-  onPageChange,
-  onRefresh,
-  onFilterChange
-}: AuditLogProps) {
-  const [showFilters, setShowFilters] = useState(false);
+const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [filters, setFilters] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalLogs, setTotalLogs] = useState(0);
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [filter, setFilter] = useState<FilterState>({});
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
 
+  // Calculate total pages
+  const totalPages = Math.max(1, Math.ceil(totalLogs / LOGS_PER_PAGE));
+
+  // Fetch data with new filters
+  const fetchData = async (newFilters = filters, page = currentPage) => {
+    setLoading(true);
+    try {
+      // In a real app, pagination would be server-side
+      // For now, we'll simulate it by slicing client-side
+      const results = await onFetchData(newFilters);
+      
+      setTotalLogs(results.length);
+      
+      // Calculate pagination slice
+      const startIndex = (page - 1) * LOGS_PER_PAGE;
+      const endIndex = startIndex + LOGS_PER_PAGE;
+      setLogs(results.slice(startIndex, endIndex));
+      
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+    fetchData(newFilters, 1);
+  };
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchData(filters, page);
+  };
+
+  // View log details
   const handleViewDetails = (log: SystemLog) => {
     setSelectedLog(log);
+    setShowDetailDialog(true);
   };
 
-  const handleCloseDetails = () => {
-    setSelectedLog(null);
-  };
-
-  const handleApplyFilter = (newFilter: FilterState) => {
-    setFilter(newFilter);
-    if (onFilterChange) {
-      onFilterChange(newFilter);
+  // Get badge variant based on module
+  const getModuleBadgeVariant = (module: string) => {
+    switch (module?.toLowerCase()) {
+      case 'error':
+        return 'destructive';
+      case 'warning':
+        return 'warning';
+      case 'strategy':
+        return 'default';
+      case 'plugin':
+        return 'secondary';
+      case 'auth':
+        return 'outline';
+      default:
+        return 'secondary';
     }
-    setShowFilters(false);
   };
 
-  const handleResetFilter = () => {
-    const emptyFilter: FilterState = {};
-    setFilter(emptyFilter);
-    if (onFilterChange) {
-      onFilterChange(emptyFilter);
-    }
-  };
-
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
-  };
+  // Initial data fetch
+  React.useEffect(() => {
+    fetchData();
+  }, []);
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xl">System Audit Log</CardTitle>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={toggleFilters}>
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-          {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          )}
-        </div>
+    <Card className="shadow-md">
+      <CardHeader>
+        <CardTitle>System Activity</CardTitle>
+        <CardDescription>
+          View and filter system logs and activity records
+        </CardDescription>
       </CardHeader>
-
-      <div className="px-6">
-        {showFilters && (
-          <div className="mb-4">
-            <AuditLogFilters 
-              initialFilter={filter} 
-              onApply={handleApplyFilter} 
-              onReset={handleResetFilter}
-            />
-          </div>
-        )}
-      </div>
-
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      
+      <CardContent className="space-y-6">
+        <AuditLogFilters onFilterChange={handleFilterChange} />
+        
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : logs.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead>
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Module
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Event
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Severity
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-background">
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span className="font-medium">{log.module}</span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm max-w-xs truncate">
-                      {log.event}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <Badge variant={getSeverityColor(log.severity) as any}>
-                        {log.severity}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                      <Button variant="ghost" size="sm" onClick={() => handleViewDetails(log)}>
-                        View
-                      </Button>
-                    </td>
+          <div className="space-y-4">
+            <div className="rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-4 py-3 text-left font-medium">Event</th>
+                    <th className="px-4 py-3 text-left font-medium">Module</th>
+                    <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Time</th>
+                    <th className="px-4 py-3 text-right font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr 
+                      key={log.id} 
+                      className="border-b hover:bg-muted/50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <div>{log.event}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={getModuleBadgeVariant(log.module)}>
+                          {log.module}
+                        </Badge>
+                      </td>
+                      <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
+                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleViewDetails(log)}
+                        >
+                          Details
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing <strong>{Math.min((currentPage - 1) * LOGS_PER_PAGE + 1, totalLogs)}</strong> to{" "}
+                <strong>{Math.min(currentPage * LOGS_PER_PAGE, totalLogs)}</strong> of{" "}
+                <strong>{totalLogs}</strong> logs
+              </div>
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No logs found. Try adjusting your filters.
+          <div className="py-32 text-center">
+            <div className="text-muted-foreground">No logs found</div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try adjusting your filters or check back later.
+            </p>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setFilters({});
+                fetchData({}, 1);
+              }}
+              className="mt-4"
+            >
+              Reset Filters
+            </Button>
           </div>
         )}
-
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-4">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={onPageChange || (() => {})}
-            />
-          </div>
+        
+        {selectedLog && (
+          <LogDetailDialog
+            log={selectedLog}
+            open={showDetailDialog}
+            onClose={() => setShowDetailDialog(false)}
+          />
         )}
       </CardContent>
-
-      <LogDetailDialog 
-        isOpen={!!selectedLog} 
-        onClose={handleCloseDetails} 
-        log={selectedLog} 
-      />
     </Card>
   );
-}
+};
+
+export default AuditLog;
