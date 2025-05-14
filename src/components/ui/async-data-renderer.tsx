@@ -15,6 +15,8 @@ interface AsyncDataRendererProps<T> {
   renderData: (data: T) => React.ReactNode;
   showEmptyState?: boolean;
   className?: string;
+  preserveHeight?: boolean; // Added for compatibility
+  loadingText?: string; // Added for compatibility
 }
 
 /**
@@ -32,6 +34,8 @@ export function AsyncDataRenderer<T>({
   renderData,
   showEmptyState = true,
   className,
+  preserveHeight = false, // Default value for new prop
+  loadingText = "Loading...", // Default value for new prop
 }: AsyncDataRendererProps<T>) {
   // Handle loading state
   if (isLoading) {
@@ -42,7 +46,7 @@ export function AsyncDataRenderer<T>({
       <div className={`flex justify-center items-center p-4 ${className}`}>
         <div className="flex flex-col items-center space-y-2">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{loadingText}</p>
         </div>
       </div>
     );

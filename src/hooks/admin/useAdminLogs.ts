@@ -1,87 +1,89 @@
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { AuditLog } from '@/types/logs';
-import { SystemEventModule } from '@/types/shared';
-import { DateRange } from '@/types/shared';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { Log, LogFilters, AuditLog } from '@/types/logs';
+import { DateRange } from '@/types/logs';
 
-interface AdminLogFilters {
-  searchTerm: string;
-  dateRange?: DateRange;
-  module?: SystemEventModule;
-}
-
-export function useAdminLogs() {
-  const { toast } = useToast();
+export const useAdminLogs = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<AdminLogFilters>({
-    searchTerm: '',
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState<LogFilters>({
+    startDate: undefined,
+    endDate: undefined,
+    module: undefined,
+    status: undefined,
   });
 
-  useEffect(() => {
-    fetchSystemLogs();
-  }, [filters]);
-
-  const fetchSystemLogs = async () => {
-    setIsLoading(true);
+  const fetchLogs = async () => {
+    setLoading(true);
+    setError(null);
     
     try {
+      // Example for how this might be implemented
       let query = supabase
         .from('system_logs')
         .select('*')
         .order('created_at', { ascending: false });
-        
-      // Apply module filter if provided
-      if (filters.module && filters.module !== 'system') {
-        query = query.eq('module', filters.module);
-      }
-        
-      // Apply search filter if provided
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
+      
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate);
       }
       
-      // Apply date range filter if provided
-      if (filters.dateRange?.from) {
-        const fromDate = filters.dateRange.from.toISOString();
-        query = query.gte('created_at', fromDate);
-        
-        if (filters.dateRange.to) {
-          const toDate = filters.dateRange.to.toISOString();
-          query = query.lte('created_at', toDate);
-        }
+      if (filters.endDate) {
+        query = query.lte('created_at', filters.endDate);
+      }
+      
+      if (filters.module) {
+        query = query.eq('module', filters.module);
+      }
+      
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      
+      if (filters.search) {
+        query = query.ilike('description', `%${filters.search}%`);
       }
       
       const { data, error } = await query;
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      setLogs(data as AuditLog[]);
-    } catch (error: any) {
-      console.error('Error fetching system logs:', error);
-      toast({
-        title: 'Error fetching system logs',
-        description: error.message || 'Failed to load system logs',
-        variant: 'destructive'
-      });
+      setLogs(data as unknown as AuditLog[]);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error'));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const refetchLogs = () => {
-    fetchSystemLogs();
+  
+  // Re-fetch logs when filters change
+  useEffect(() => {
+    fetchLogs();
+  }, [filters]);
+  
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
   };
-
+  
+  const updateDateRange = (dateRange: DateRange) => {
+    setFilters(prev => ({
+      ...prev,
+      startDate: dateRange.from.toISOString(),
+      endDate: dateRange.to?.toISOString(),
+    }));
+  };
+  
   return {
     logs,
-    isLoading,
+    loading,
+    error,
     filters,
-    setFilters,
-    refetchLogs
+    updateFilters,
+    updateDateRange,
+    refetch: fetchLogs,
   };
-}
+};
+
+export default useAdminLogs;

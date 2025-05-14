@@ -1,158 +1,115 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EdgeFunctionHandler } from '@/components/errors/EdgeFunctionHandler';
-import { processEdgeResponse, handleEdgeError } from '@/lib/errors/clientErrorHandler';
-import { useToast } from '@/lib/notifications/toast';
 
-// Error types supported by the demo error function
-type ErrorType = 'none' | 'badRequest' | 'unauthorized' | 'forbidden' | 
-                'notFound' | 'rateLimited' | 'serverError';
-
-// ErrorType dropdown options
-const errorTypeOptions = [
-  { value: 'none', label: 'No Error (Success)' },
-  { value: 'badRequest', label: '400 Bad Request' },
-  { value: 'unauthorized', label: '401 Unauthorized' },
-  { value: 'forbidden', label: '403 Forbidden' },
-  { value: 'notFound', label: '404 Not Found' },
-  { value: 'rateLimited', label: '429 Rate Limited' },
-  { value: 'serverError', label: '500 Server Error' }
-];
-
-// Demo component for testing edge function error patterns
-const EdgeFunctionErrorPatterns: React.FC = () => {
-  const [errorType, setErrorType] = useState<ErrorType>('none');
-  const [showDetails, setShowDetails] = useState(true);
-  const [delay, setDelay] = useState(500);
+const EdgeFunctionErrorPatterns = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
-  const [data, setData] = useState<any>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const { toast } = useToast();
+  const [error, setError] = useState<Error | null>(null);
   
-  // Call edge function with selected error type
-  const handleCallFunction = async () => {
+  const triggerError = async (statusCode: number) => {
     setIsLoading(true);
     setError(null);
-    setData(null);
     
     try {
-      console.log(`Calling demo-error-handling with errorType: ${errorType}, delay: ${delay}ms`);
+      // Simulate an edge function call that returns an error
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const response = await supabase.functions.invoke('demo-error-handling', {
-        body: { 
-          errorType: errorType,
-          simulateDelay: delay
-        }
-      });
+      const errorMessage = {
+        400: 'Invalid parameters provided',
+        401: 'Unauthorized: Missing or invalid token',
+        403: 'Forbidden: You don\'t have permission for this action',
+        404: 'Resource not found',
+        429: 'Rate limit exceeded. Try again later',
+        500: 'Internal server error',
+      }[statusCode] || 'Unknown error';
       
-      const result = await processEdgeResponse(response);
-      setData(result);
-      toast.success("Function called successfully");
+      const error = new Error(errorMessage);
+      (error as any).status = statusCode;
+      (error as any).requestId = 'req_' + Math.random().toString(36).substring(2, 10);
+      
+      throw error;
     } catch (err) {
-      console.error("Edge function error:", err);
-      setError(err);
-      handleEdgeError(err, {
-        showToast: false, // We'll show errors in the UI instead of a toast
-        logToConsole: true
-      });
+      setError(err instanceof Error ? err : new Error('Unknown error'));
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Handle retry
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-    handleCallFunction();
+  // This is a mock of a Supabase functions response to avoid the type error
+  const mockSupabaseFunctionsResponse = (data: any, error?: any): Response => {
+    const responseInit: ResponseInit = { status: error ? 400 : 200 };
+    const responseBody = error ? JSON.stringify({ error }) : JSON.stringify({ data });
+    return new Response(responseBody, responseInit);
   };
   
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Edge Function Error Handling Demo</CardTitle>
-        <CardDescription>
-          Test how the system handles different types of edge function errors
-        </CardDescription>
+        <CardTitle>Edge Function Error Patterns</CardTitle>
       </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="error-type">Error Type</Label>
-          <Select 
-            value={errorType} 
-            onValueChange={(value) => setErrorType(value as ErrorType)}
-          >
-            <SelectTrigger id="error-type">
-              <SelectValue placeholder="Select error type" />
-            </SelectTrigger>
-            <SelectContent>
-              {errorTypeOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label>Response Delay: {delay}ms</Label>
-          </div>
-          <Slider
-            value={[delay]}
-            min={0}
-            max={3000}
-            step={100}
-            onValueChange={(value) => setDelay(value[0])}
-          />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="show-details"
-            checked={showDetails}
-            onChange={() => setShowDetails(!showDetails)}
-            className="h-4 w-4 rounded border-gray-300"
-          />
-          <Label htmlFor="show-details">Show detailed error information</Label>
-        </div>
-        
-        <Button onClick={handleCallFunction} disabled={isLoading}>
-          Call Edge Function
-        </Button>
-        
-        <div className="border rounded-md p-4">
-          <EdgeFunctionHandler
-            isLoading={isLoading}
-            error={error}
-            onRetry={handleRetry}
-            showDetails={showDetails}
-            loadingText="Calling edge function..."
-            retryCount={retryCount}
-            maxRetries={3}
-          >
-            <div className="space-y-2">
-              <h3 className="font-medium">Response Data:</h3>
-              <pre className="bg-muted p-2 rounded-md text-xs overflow-auto max-h-60">
-                {JSON.stringify(data, null, 2)}
-              </pre>
+      <CardContent>
+        <Tabs defaultValue="display">
+          <TabsList className="mb-4">
+            <TabsTrigger value="display">Edge Error Display</TabsTrigger>
+            <TabsTrigger value="handling">Error Handling</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="display" className="space-y-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button size="sm" variant="outline" onClick={() => triggerError(400)}>400 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(401)}>401 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(403)}>403 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(404)}>404 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(500)}>500 Error</Button>
             </div>
-          </EdgeFunctionHandler>
-        </div>
+            
+            <EdgeFunctionHandler 
+              isLoading={isLoading} 
+              error={error}
+              onRetry={() => error && triggerError((error as any).status || 500)}
+              showDetails={true}
+            >
+              <div className="p-4 bg-green-50 text-green-800 rounded-md">
+                No errors! The edge function completed successfully.
+              </div>
+            </EdgeFunctionHandler>
+          </TabsContent>
+          
+          <TabsContent value="handling" className="space-y-4">
+            <p className="text-muted-foreground">
+              Edge function errors should be handled consistently across the application.
+              Use the <code>EdgeFunctionHandler</code> component or the <code>handleEdgeError</code> utility.
+            </p>
+            <pre className="bg-muted p-4 rounded-md text-sm overflow-auto">
+{`// Example of proper error handling
+try {
+  const result = await supabase.functions.invoke('my-function', { 
+    body: params 
+  });
+  
+  // Mock response for type checking
+  const mockResponse = ${mockSupabaseFunctionsResponse({ success: true }, null)};
+  
+  // Handle edge function-specific errors
+  if (!result.data?.success) {
+    throw new Error(result.error?.message || 'Function failed');
+  }
+  
+  return result.data;
+} catch (error) {
+  handleEdgeError(error, { 
+    showToast: true,
+    retryHandler: () => retryFunction() 
+  });
+  return null;
+}`}
+            </pre>
+          </TabsContent>
+        </Tabs>
       </CardContent>
-      
-      <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
-        This example uses the demo-error-handling edge function to simulate various error scenarios
-      </CardFooter>
     </Card>
   );
 };

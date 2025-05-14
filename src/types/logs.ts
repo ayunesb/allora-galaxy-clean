@@ -55,6 +55,11 @@ export interface LogFilters {
   status?: string;
   limit?: number;
   page?: number;
+  event?: string; // Added for compatibility with hooks
+  fromDate?: string; // Added for compatibility with hooks
+  toDate?: string; // Added for compatibility with hooks
+  searchTerm?: string; // Added for compatibility with hooks
+  tenant_id?: string; // Added for compatibility with hooks
 }
 
 // Add LogGroup interface for ErrorGroupsList
@@ -63,7 +68,7 @@ export interface LogGroup {
   count: number;
   first_seen: string;
   last_seen: string;
-  last_occurred?: string; // Added for ErrorGroupsList
+  last_occurred?: string; // Changed to match what ErrorGroupsList is expecting
   error_type: string;
   message: string;
   status: string;
@@ -71,3 +76,19 @@ export interface LogGroup {
   module: string;
   context?: Record<string, any>;
 }
+
+// Export AuditLog interface for compatibility
+export interface AuditLog extends Log {
+  user_id?: string;
+  action?: string;
+  resource_type?: string;
+  resource_id?: string;
+}
+
+// Add shared types
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
+
+export type SystemEventType = 'info' | 'warning' | 'error' | 'audit' | 'system' | 'user' | string;

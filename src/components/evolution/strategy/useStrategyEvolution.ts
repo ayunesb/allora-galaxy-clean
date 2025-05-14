@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { usePartialDataFetch } from '@/hooks/supabase';
 import { Strategy } from '@/types/strategy';
 import { format } from 'date-fns';
+import { Log } from '@/types/logs';
 
 export const useStrategyEvolution = (strategyId: string) => {
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export const useStrategyEvolution = (strategyId: string) => {
             description: 'A mock strategy for development',
             created_by: 'user-1',
             created_at: new Date().toISOString(),
-          } as unknown as Strategy;
+          } as Strategy;
         }
       },
       logs: {
@@ -78,7 +79,7 @@ export const useStrategyEvolution = (strategyId: string) => {
     setIsLogModalOpen(false);
   };
 
-  const selectedLog = data?.logs?.find(log => log.id === selectedLogId) || null;
+  const selectedLog = data?.logs?.find((log: Log) => log.id === selectedLogId) || null;
   
   // Create a userMap for lookup
   const userMap: Record<string, any> = {};

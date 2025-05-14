@@ -1,35 +1,43 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { SystemLog, LogFilters } from '@/types/logs';
+import { LogFilters, SystemLog } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
 
-export const useAiDecisionsData = () => {
-  const [decisions, setDecisions] = useState<SystemLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Partial<LogFilters>>({});
-  const { tenantId } = useTenantId();
-  
+interface AIDecision extends SystemLog {
+  decision: string;
+  confidence: number;
+  model: string;
+  reasoning?: string;
+}
+
+export const useAiDecisions = () => {
+  const { id: tenantId } = useTenantId();
+  const [decisions, setDecisions] = useState<AIDecision[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState<Partial<LogFilters>>({
+    module: 'ai-decision-maker',
+    startDate: undefined,
+    endDate: undefined,
+    search: '',
+  });
+
+  useEffect(() => {
+    fetchDecisions();
+  }, [filters, tenantId]);
+
   const fetchDecisions = async () => {
+    if (!tenantId) return;
+    
     setIsLoading(true);
-    setError(null);
     
     try {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .or('module.eq.agent,module.eq.strategy,event.eq.execute');
-      
-      // Apply tenant filter if applicable
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-      
-      // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
+        .eq('module', 'ai-decision-maker')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
       
       if (filters.event) {
         query = query.eq('event', filters.event);
@@ -44,42 +52,47 @@ export const useAiDecisionsData = () => {
       }
       
       if (filters.searchTerm) {
-        // Use ilike for case-insensitive search
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
+        query = query.or(`description.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
       }
-      
-      // Order by created_at DESC
-      query = query.order('created_at', { ascending: false });
-      
-      // Limit to 100 records
-      query = query.limit(100);
       
       const { data, error } = await query;
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      setDecisions(data || []);
-    } catch (err: any) {
+      // Transform data to AIDecision format
+      const aiDecisions: AIDecision[] = (data || []).map(log => {
+        const metadata = log.metadata || {};
+        return {
+          ...log,
+          timestamp: log.created_at,
+          decision: metadata.decision || 'Unknown',
+          confidence: metadata.confidence || 0,
+          model: metadata.model || 'Unknown',
+          reasoning: metadata.reasoning,
+          level: log.level || 'info',
+          event_type: log.event_type || 'info',
+        };
+      });
+      
+      setDecisions(aiDecisions);
+    } catch (err) {
       console.error('Error fetching AI decisions:', err);
-      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Fetch decisions on mount and when filters change
-  useEffect(() => {
-    fetchDecisions();
-  }, [tenantId, filters]);
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
   
   return {
     decisions,
     isLoading,
-    error,
     filters,
-    setFilters,
-    refetch: fetchDecisions
+    updateFilters,
+    refetch: fetchDecisions,
   };
 };
+
+export default useAiDecisions;

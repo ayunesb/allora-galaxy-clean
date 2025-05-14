@@ -1,153 +1,107 @@
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorHandler';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EdgeFunctionHandler } from '@/components/errors/EdgeFunctionHandler';
 
-export default function EdgeFunctionErrorPatterns() {
-  const [activePattern, setActivePattern] = useState<string | null>(null);
+const EdgeFunctionErrorPatterns = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   
-  // Example error patterns and their solutions
-  const errorPatterns = {
-    validation: {
-      problem: `{
-  "error": "Validation Error: 'tenantId' is required",
-  "code": "VALIDATION_ERROR",
-  "status": 400
-}`,
-      solution: `// Client-side validation
-const schema = z.object({
-  tenantId: z.string().uuid(),
-  data: z.object({ ... })
-});
-
-// Validate before sending
-const validated = schema.safeParse(input);
-if (!validated.success) {
-  return handleValidationError(validated.error);
-}`
-    },
-    authorization: {
-      problem: `{
-  "error": "Unauthorized: Missing or invalid token",
-  "code": "UNAUTHORIZED",
-  "status": 401
-}`,
-      solution: `// Edge function protection
-export const handler = async (req, res) => {
-  const token = req.headers.get('authorization')?.split(' ')[1];
-  
-  if (!token) {
-    return createErrorResponse(
-      "Unauthorized: Missing token", 
-      401, 
-      "UNAUTHORIZED"
-    );
-  }
-  
-  // Verify token and proceed
-  // ...
-}`
-    },
-    notFound: {
-      problem: `{
-  "error": "Resource not found: Tenant with ID '123' does not exist",
-  "code": "NOT_FOUND",
-  "status": 404
-}`,
-      solution: `// Check existence before operations
-const { data: tenant, error } = await supabase
-  .from('tenants')
-  .select('id')
-  .eq('id', tenantId)
-  .single();
-
-if (error || !tenant) {
-  return createErrorResponse(
-    \`Resource not found: Tenant with ID '\${tenantId}' does not exist\`,
-    404,
-    "NOT_FOUND"
-  );
-}`
+  const triggerError = async (statusCode: number) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Simulate an edge function call that returns an error
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const errorMessage = {
+        400: 'Invalid parameters provided',
+        401: 'Unauthorized: Missing or invalid token',
+        403: 'Forbidden: You don\'t have permission for this action',
+        404: 'Resource not found',
+        429: 'Rate limit exceeded. Try again later',
+        500: 'Internal server error',
+      }[statusCode] || 'Unknown error';
+      
+      const error = new Error(errorMessage);
+      (error as any).status = statusCode;
+      (error as any).requestId = 'req_' + Math.random().toString(36).substring(2, 10);
+      
+      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error'));
+    } finally {
+      setIsLoading(false);
     }
   };
   
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader>
         <CardTitle>Edge Function Error Patterns</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <p className="text-muted-foreground">
-          Common edge function error patterns and how to handle them properly.
-          Click on a pattern to see examples.
-        </p>
-        
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            variant={activePattern === 'validation' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setActivePattern('validation')}
-          >
-            Validation Errors
-          </Button>
-          <Button 
-            variant={activePattern === 'authorization' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setActivePattern('authorization')}
-          >
-            Auth Errors
-          </Button>
-          <Button 
-            variant={activePattern === 'notFound' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setActivePattern('notFound')}
-          >
-            Not Found Errors
-          </Button>
-        </div>
-        
-        {activePattern && (
-          <div className="space-y-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error Pattern</AlertTitle>
-              <AlertDescription>
-                <pre className="mt-2 whitespace-pre-wrap text-xs">
-                  {errorPatterns[activePattern as keyof typeof errorPatterns].problem}
-                </pre>
-              </AlertDescription>
-            </Alert>
-            
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Recommended Solution</h3>
-              <pre className="bg-muted p-3 rounded-md overflow-auto text-xs">
-                {errorPatterns[activePattern as keyof typeof errorPatterns].solution}
-              </pre>
+      <CardContent>
+        <Tabs defaultValue="display">
+          <TabsList className="mb-4">
+            <TabsTrigger value="display">Edge Error Display</TabsTrigger>
+            <TabsTrigger value="handling">Error Handling</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="display" className="space-y-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button size="sm" variant="outline" onClick={() => triggerError(400)}>400 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(401)}>401 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(403)}>403 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(404)}>404 Error</Button>
+              <Button size="sm" variant="outline" onClick={() => triggerError(500)}>500 Error</Button>
             </div>
-          </div>
-        )}
-        
-        {!activePattern && (
-          <div className="text-center p-8 border rounded-md">
+            
+            <EdgeFunctionHandler 
+              isLoading={isLoading} 
+              error={error}
+              onRetry={() => error && triggerError((error as any).status || 500)}
+              showDetails={true}
+            >
+              <div className="p-4 bg-green-50 text-green-800 rounded-md">
+                No errors! The edge function completed successfully.
+              </div>
+            </EdgeFunctionHandler>
+          </TabsContent>
+          
+          <TabsContent value="handling" className="space-y-4">
             <p className="text-muted-foreground">
-              Select an error pattern above to view details
+              Edge function errors should be handled consistently across the application.
+              Use the <code>EdgeFunctionHandler</code> component or the <code>handleEdgeError</code> utility.
             </p>
-          </div>
-        )}
-        
-        <div className="text-xs text-muted-foreground">
-          <p>Best practices for edge function error handling:</p>
-          <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>Use standardized error response structures</li>
-            <li>Include helpful error messages and codes</li>
-            <li>Validate input data early</li>
-            <li>Handle authentication and authorization correctly</li>
-            <li>Provide client-friendly error messages</li>
-          </ul>
-        </div>
+            <pre className="bg-muted p-4 rounded-md text-sm overflow-auto">
+{`// Example of proper error handling
+try {
+  const result = await supabase.functions.invoke('my-function', { 
+    body: params 
+  });
+  
+  // Handle edge function-specific errors
+  if (!result.data?.success) {
+    throw new Error(result.error?.message || 'Function failed');
+  }
+  
+  return result.data;
+} catch (error) {
+  handleEdgeError(error, { 
+    showToast: true,
+    retryHandler: () => retryFunction() 
+  });
+  return null;
+}`}
+            </pre>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
-}
+};
+
+export default EdgeFunctionErrorPatterns;

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Search, UserPlus } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -149,7 +150,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                   {getRoleBadge(user.role)}
                 </TableCell>
                 <TableCell>
-                  {formatDate(user.created_at)}
+                  {user.created_at ? formatDate(user.created_at) : "Unknown"}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -160,19 +161,19 @@ export const UserTable: React.FC<UserTableProps> = ({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => onUpdateRole(user.user_id, 'admin')}>
+                      <DropdownMenuItem onClick={() => user.user_id && onUpdateRole(user.user_id, 'admin')}>
                         Set as Admin
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onUpdateRole(user.user_id, 'member')}>
+                      <DropdownMenuItem onClick={() => user.user_id && onUpdateRole(user.user_id, 'member')}>
                         Set as Member
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onUpdateRole(user.user_id, 'viewer')}>
+                      <DropdownMenuItem onClick={() => user.user_id && onUpdateRole(user.user_id, 'viewer')}>
                         Set as Viewer
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         className="text-destructive focus:text-destructive" 
-                        onClick={() => onRemoveUser(user.user_id)}
+                        onClick={() => user.user_id && onRemoveUser(user.user_id)}
                       >
                         Remove User
                       </DropdownMenuItem>

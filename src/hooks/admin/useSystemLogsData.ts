@@ -1,80 +1,98 @@
 
-import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchSystemLogs, SystemLogFilter } from '@/lib/admin/systemLogs';
-import { LogFilters } from '@/types/logs';
-import { addDays } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
+import { SystemLog, LogFilters } from '@/types/logs';
+import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Hook for managing system logs data with filtering and error handling
- */
-export const useSystemLogsData = (initialFilters: LogFilters = {}) => {
-  const [filters, setFilters] = useState<LogFilters>(initialFilters);
-  
-  // Add default date range if not provided
-  const dateRange = {
-    from: new Date(initialFilters.fromDate || addDays(new Date(), -30).toISOString()),
-    to: initialFilters.toDate ? new Date(initialFilters.toDate) : new Date(),
-  };
-
-  // Convert LogFilters to SystemLogFilter
-  const getSystemLogFilter = useCallback((): SystemLogFilter => {
-    return {
-      searchTerm: filters.search,
-      module: filters.module?.[0],
-      tenant: filters.tenant_id,
-      dateRange: {
-        from: filters.fromDate ? new Date(filters.fromDate) : undefined, 
-        to: filters.toDate ? new Date(filters.toDate) : undefined
-      }
-    };
-  }, [filters]);
-
-  // Fetch logs with current filters
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['system-logs', filters],
-    queryFn: async () => {
-      try {
-        return await fetchSystemLogs(getSystemLogFilter());
-      } catch (err) {
-        console.error('Error fetching system logs:', err);
-        throw err;
-      }
-    }
+export const useSystemLogsData = () => {
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState<LogFilters>({
+    search: '',
+    startDate: undefined,
+    endDate: undefined,
+    module: undefined,
+    status: undefined,
+    limit: 50,
+    page: 1,
   });
 
-  // Update filters
-  const updateFilters = useCallback((newFilters: LogFilters) => {
+  const fetchLogs = useCallback(async () => {
+    setIsLoading(true);
+    
+    try {
+      // Create date range condition
+      let startDate = filters.startDate || filters.fromDate;
+      let endDate = filters.endDate || filters.toDate;
+      
+      // Build the query
+      let query = supabase
+        .from('system_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(filters.limit || 50);
+      
+      // Add filter conditions if provided
+      if (filters.tenant_id) {
+        query = query.eq('tenant_id', filters.tenant_id);
+      }
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate);
+      }
+      
+      if (endDate) {
+        query = query.lte('created_at', endDate);
+      }
+      
+      if (filters.module) {
+        query = query.eq('module', filters.module);
+      }
+      
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      
+      if (filters.search) {
+        query = query.or(`description.ilike.%${filters.search}%,message.ilike.%${filters.search}%`);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error("Error fetching system logs:", error);
+        throw error;
+      }
+      
+      // Transform the data to match SystemLog interface
+      const transformedLogs: SystemLog[] = (data || []).map(item => ({
+        ...item,
+        timestamp: item.created_at, // Ensure timestamp is set
+        message: item.message || item.description, // Ensure message is set
+        event_type: item.event_type || 'info', // Default event_type
+      }));
+      
+      setLogs(transformedLogs);
+    } catch (err) {
+      console.error("Failed to fetch logs:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters]);
+  
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+  
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-  }, []);
-
-  // Filter logs by error type (used for error monitoring)
-  const errorLogs = (data || []).filter(log => 
-    log.level === 'error' || 
-    log.event === 'error' || 
-    log.event?.includes('error') || 
-    log.event?.includes('exception')
-  );
-
-  // Calculate error statistics
-  const errorStats = {
-    totalErrors: errorLogs.length,
-    criticalErrors: errorLogs.filter(log => log.severity === 'critical').length,
-    highErrors: errorLogs.filter(log => log.severity === 'high').length,
-    mediumErrors: errorLogs.filter(log => log.severity === 'medium').length,
-    lowErrors: errorLogs.filter(log => log.severity === 'low').length,
   };
-
+  
   return {
-    logs: data || [],
-    errorLogs,
-    errorStats,
+    logs,
     isLoading,
-    error,
     filters,
     updateFilters,
-    dateRange,
-    refetch
+    refetch: fetchLogs
   };
 };
 

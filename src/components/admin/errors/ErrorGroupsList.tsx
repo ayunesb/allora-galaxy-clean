@@ -77,7 +77,7 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(logs[0].lastOccurred).toLocaleString()}
+                    {new Date(logs[0].last_occurred || logs[0].last_seen).toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Button 
