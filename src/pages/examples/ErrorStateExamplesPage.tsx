@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ErrorStateExamples from '@/components/examples/ErrorStateExamples';
 import EdgeErrorHandlingExamples from '@/examples/edge-error-handling';
 import LoadingErrorStatesExample from '@/components/examples/LoadingErrorStatesExample';
-import { PageErrorBoundary, ErrorBoundary } from '@/lib/errors';
+import { ErrorBoundary } from '@/components/errors';
+import { PageErrorBoundary } from '@/lib/errors';
 
 const ErrorStateExamplesPage: React.FC = () => {
   return (

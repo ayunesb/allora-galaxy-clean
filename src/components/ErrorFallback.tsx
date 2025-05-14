@@ -1,7 +1,5 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import ErrorState from '@/components/errors/ErrorState';
 

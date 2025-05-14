@@ -1,17 +1,9 @@
 
-// Export all edge error handling examples
-import EdgeFunctionErrorPatterns from '../error-handling-examples/EdgeFunctionErrorPatterns';
-import RetryMechanismExample from '../error-handling-examples/RetryMechanismExample';
-import CustomErrorBoundaryExample from '../error-handling-examples/CustomErrorBoundaryExample';
+import EdgeErrorHandlingExamples from './index.tsx';
 
-export {
-  EdgeFunctionErrorPatterns,
-  RetryMechanismExample,
-  CustomErrorBoundaryExample
-};
+export default EdgeErrorHandlingExamples;
 
-export default {
-  EdgeFunctionErrorPatterns,
-  RetryMechanismExample,
-  CustomErrorBoundaryExample
-};
+// Also export specific examples as named exports
+export { default as EdgeFunctionErrorPatterns } from './EdgeFunctionErrorPatterns';
+export { default as RetryMechanismExample } from './RetryMechanismExample';
+export { default as CustomErrorBoundaryExample } from './CustomErrorBoundaryExample';
