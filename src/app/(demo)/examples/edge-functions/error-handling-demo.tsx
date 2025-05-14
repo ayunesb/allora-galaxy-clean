@@ -1,12 +1,13 @@
-import { Button, Card, CardContent } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; 
-import { EdgeFunctionErrorDisplay } from "@/components/errors/EdgeFunctionErrorDisplay";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { EdgeFunctionErrorDisplay } from "@/components/errors/EdgeFunctionErrorHandler";
 import { useState } from "react";
 
 export default function ErrorHandlingDemo() {
   const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [setRequestId] = useState<string | null>(null);
   
   const triggerError = async (errorType: string) => {
     setLoading(true);

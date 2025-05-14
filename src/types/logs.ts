@@ -3,55 +3,39 @@ export interface SystemLog {
   id: string;
   created_at: string;
   tenant_id?: string;
-  user_id?: string;
-  level: 'info' | 'warning' | 'error';
   module: string;
-  description: string;
-  event?: string;
-  error?: string;
+  event_type: string;
+  user_id?: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  // Adding properties that were missing
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
+  message?: string;
+  type?: string;
   error_type?: string;
-  error_code?: string;
-  context?: any;
-  metadata?: any;
-  request_id?: string;
-  source_ip?: string;
-}
-
-export interface PluginLog {
-  id: string;
-  created_at: string;
-  plugin_id: string;
-  execution_id: string;
-  tenant_id?: string;
-  status?: 'success' | 'error' | 'warning';
-  message: string;
-  data?: any;
-  execution_time?: number;
-  error?: string;
 }
 
 export interface LogFilters {
   search?: string;
-  level?: string[];
   module?: string[];
-  fromDate?: string;
-  toDate?: string;
-  tenant_id?: string[];
-  user_id?: string[];
-  event?: string[];
-  error_code?: string[];
+  event_type?: string[];
+  date_range?: { from: Date; to: Date | null };
+  user_id?: string;
+  tenant_id?: string;
+  // Adding missing property
+  severity?: string[];
 }
 
 export interface ErrorGroup {
-  isGroup: boolean;
-  relatedLogs: SystemLog[];
   id: string;
   message: string;
   count: number;
   firstSeen: string;
   lastSeen: string;
-  errorType: string;
-  severity: string;
   module: string;
-  user_facing: boolean;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  errorType: string;
+  tenant_id?: string;
 }

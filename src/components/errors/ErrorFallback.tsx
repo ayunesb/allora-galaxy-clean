@@ -1,11 +1,10 @@
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorInfo } from 'react';
-import ErrorState from '@/components/ui/error-state';
+import { Button } from '@/components/ui/button';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -42,7 +41,8 @@ export function ErrorFallback({
 
   const handleReportError = () => {
     toast({
-      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
+      title: "Error Reported",
+      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`
     });
   };
 

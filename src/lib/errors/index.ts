@@ -66,5 +66,12 @@ export {
   notifyAndLog
 } from '@/lib/notifications/toast';
 
-// Export EdgeFunctionError component
-export { EdgeFunctionError, withEdgeFunctionErrorHandling } from '@/components/errors/EdgeFunctionErrorHandler';
+// Export EdgeFunction error components
+export { 
+  EdgeFunctionError, 
+  EdgeFunctionErrorDisplay, 
+  EdgeFunctionHandler 
+} from '@/components/errors/EdgeFunctionErrorHandler';
+export { 
+  withEdgeFunctionErrorHandling 
+} from '@/components/errors/withEdgeFunctionErrorHandling';

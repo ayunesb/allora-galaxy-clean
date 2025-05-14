@@ -1,7 +1,7 @@
 
 import React from 'react';
-import EdgeFunctionErrorDisplay from './EdgeFunctionErrorDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EdgeFunctionErrorDisplay } from '@/components/errors/EdgeFunctionErrorHandler';
 
 interface WithEdgeFunctionErrorHandlingProps {
   isLoading?: boolean;

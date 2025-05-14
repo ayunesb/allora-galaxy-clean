@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, LineChart, Settings, History } from 'lucide-react';
-import { EdgeFunctionErrorHandler } from '@/lib/errors';
+import { EdgeFunctionError } from '@/lib/errors';
 
 interface Strategy {
   id: string;
@@ -42,7 +41,7 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
   });
 
   return (
-    <EdgeFunctionErrorHandler
+    <EdgeFunctionError
       isLoading={isLoading}
       error={error}
     >
@@ -127,7 +126,7 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
           </div>
         </TabsContent>
       </Tabs>
-    </EdgeFunctionErrorHandler>
+    </EdgeFunctionError>
   );
 };
 
