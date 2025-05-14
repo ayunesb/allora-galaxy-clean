@@ -21,7 +21,7 @@ import ErrorBoundary from './components/errors/ErrorBoundary';
 
 function App() {
   return (
-    <ErrorBoundary level="app">
+    <ErrorBoundary level="section">
       <Providers>
         <PageErrorBoundary>
           <Routes>
@@ -68,7 +68,12 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           
-          <Toaster />
+          <Toaster 
+            position="bottom-right" 
+            closeButton={true} 
+            richColors={true}
+            duration={5000} 
+          />
           <CookieConsent />
         </PageErrorBoundary>
       </Providers>

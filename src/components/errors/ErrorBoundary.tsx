@@ -1,106 +1,107 @@
-
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { handleError } from '@/lib/errors/ErrorHandler';
+import React, { Component, ErrorInfo } from 'react';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import ErrorFallback from './ErrorFallback';
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: ReactNode | ((error: Error, resetError: () => void) => ReactNode);
+interface Props {
+  children: React.ReactNode;
+  level?: 'section' | 'component' | 'page';
+  fallback?: React.ReactElement;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  module?: string;
   tenantId?: string;
-  showNotification?: boolean;
-  logToSystem?: boolean;
-  level?: 'page' | 'section' | 'component';
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+/**
+ * ErrorBoundary component to catch JavaScript errors in child component tree
+ * and display a fallback UI instead of the component tree that crashed.
+ */
+class ErrorBoundary extends Component<Props, State> {
+  public static defaultProps: Partial<Props> = {
+    level: 'component',
+    tenantId: 'system',
+  };
+
+  constructor(props: Props) {
     super(props);
-    this.state = { 
-      hasError: false, 
-      error: null, 
-      errorInfo: null 
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
     };
   }
 
-  static defaultProps = {
-    showNotification: true,
-    logToSystem: true,
-    level: 'component',
-    module: 'ui'
-  };
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { 
-      hasError: true, 
-      error, 
-      errorInfo: null 
-    };
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    // Update state so the next render will show the fallback UI
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Update state with errorInfo
+    // Log the error to the system logs
+    const { level = 'component', tenantId = 'system', onError } = this.props;
+    
+    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    
+    // Update state with error details
     this.setState({ errorInfo });
     
-    // Call custom error handler if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+    // Call optional onError callback
+    if (onError) {
+      onError(error, errorInfo);
     }
     
-    // Log the error using our error handling system
-    handleError(error, {
-      context: {
-        componentStack: errorInfo.componentStack,
-        level: this.props.level
+    // Log to system
+    logSystemEvent(
+      'system',
+      'error',
+      {
+        description: `React error boundary caught an error: ${error.message}`,
+        error_message: error.message,
+        error_name: error.name,
+        error_stack: error.stack,
+        component_stack: errorInfo.componentStack,
+        boundary_level: level,
       },
-      showNotification: this.props.showNotification,
-      logToSystem: this.props.logToSystem,
-      tenantId: this.props.tenantId,
-      module: this.props.module
+      tenantId
+    ).catch(logError => {
+      console.error('Failed to log error to system:', logError);
     });
   }
-
-  resetError = (): void => {
-    this.setState({ 
-      hasError: false, 
-      error: null, 
-      errorInfo: null 
+  
+  resetErrorBoundary = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null
     });
-  }
+  };
 
-  render(): ReactNode {
+  render(): React.ReactNode {
+    const { children, fallback, level = 'component', tenantId = 'system' } = this.props;
     const { hasError, error, errorInfo } = this.state;
-    
+
     if (hasError && error) {
-      // Custom fallback prop as a function
-      if (typeof this.props.fallback === 'function') {
-        return this.props.fallback(error, this.resetError);
+      // Use custom fallback if provided
+      if (fallback) {
+        return fallback;
       }
       
-      // Custom fallback prop as a component
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-      
-      // Default error fallback
+      // Otherwise use default error fallback
       return (
         <ErrorFallback
           error={error}
           errorInfo={errorInfo}
-          resetErrorBoundary={this.resetError}
-          tenant_id={this.props.tenantId}
+          resetErrorBoundary={this.resetErrorBoundary}
+          tenantId={tenantId}
         />
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
 

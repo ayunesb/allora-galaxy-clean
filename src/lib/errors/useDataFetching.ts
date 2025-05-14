@@ -1,235 +1,146 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useErrorHandler } from './useErrorHandler';
-import { NetworkError, TimeoutError } from './errorTypes';
+import { useState, useEffect, useCallback } from 'react';
+import { handleError } from './ErrorHandler';
+import { AlloraError } from './errorTypes';
 import { withRetry } from './retryUtils';
-import { toast } from '@/components/ui/BetterToast';
-
-interface UseDataFetchingOptions<T> {
-  fetchFn: () => Promise<T>;
-  dependencies?: any[];
-  initialData?: T;
-  onSuccess?: (data: T) => void;
-  onError?: (error: Error) => void;
-  autoLoad?: boolean;
-  retryOnError?: boolean;
-  maxRetries?: number;
-  retryDelay?: number;
-  shouldRetry?: (error: Error, retryCount: number) => boolean;
-  tenantId?: string;
-  module?: string;
-  showRetryToast?: boolean;
-  preserveData?: boolean;
-  circuitBreaker?: {
-    failureThreshold?: number;
-    resetTimeout?: number;
-  };
-}
+import { notifyError } from '@/lib/notifications/toast';
 
 /**
- * Hook for handling data fetching with retries and error handling
+ * Enhanced hook for data fetching with error handling and retry logic
  */
-export function useDataFetching<T>({
-  fetchFn,
-  dependencies = [],
-  initialData,
-  onSuccess,
-  onError,
-  autoLoad = true,
-  retryOnError = true,
-  maxRetries = 3,
-  retryDelay = 1000,
-  shouldRetry,
-  tenantId = 'system',
-  module = 'data',
-  showRetryToast = true,
-  preserveData = true,
-  circuitBreaker,
-}: UseDataFetchingOptions<T>) {
+export function useDataFetching<T = any>(
+  fetchFn: () => Promise<T>,
+  options: {
+    onError?: (error: AlloraError) => void;
+    onSuccess?: (data: T) => void;
+    initialData?: T;
+    dependencies?: any[];
+    immediate?: boolean;
+    retry?: boolean;
+    maxRetries?: number;
+    retryDelay?: number;
+    shouldRetry?: (error: Error) => boolean;
+    showErrorNotification?: boolean;
+    silent?: boolean;
+    preserveDataOnError?: boolean;
+  } = {}
+) {
+  const {
+    onError,
+    onSuccess,
+    initialData,
+    dependencies = [],
+    immediate = true,
+    retry = false,
+    maxRetries = 3,
+    retryDelay = 1000,
+    shouldRetry = () => true,
+    showErrorNotification = true,
+    silent = false,
+    preserveDataOnError = false
+  } = options;
+
   const [data, setData] = useState<T | undefined>(initialData);
-  const [isLoading, setIsLoading] = useState(autoLoad);
-  const [retryCount, setRetryCount] = useState(0);
-  const timerRef = useRef<number | null>(null);
-  const isMountedRef = useRef(true);
-  const contextRef = useRef<Record<string, any>>({});
-  
-  const { error, handleError, clearError } = useErrorHandler<Error>({
-    tenantId,
-    module,
-    showNotification: false, // We'll handle notifications manually
-  });
-  
-  // Default shouldRetry function
-  const defaultShouldRetry = useCallback((error: Error, retryCount: number) => {
-    // Only retry on network or timeout errors
-    return (
-      retryOnError &&
-      retryCount < maxRetries &&
-      (error instanceof NetworkError || error instanceof TimeoutError)
-    );
-  }, [retryOnError, maxRetries]);
-  
-  // The actual retry function
-  const shouldRetryFn = shouldRetry || defaultShouldRetry;
-  
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
-  
-  // The fetch function with retry logic
-  const fetchData = useCallback(async (manuallyTriggered = false) => {
-    // Clear any existing errors
-    clearError();
-    
-    // Store context information for debugging
-    contextRef.current = {
-      ...contextRef.current,
-      manuallyTriggered,
-      lastFetchAttempt: new Date().toISOString(),
-      fetchCount: (contextRef.current.fetchCount || 0) + 1
-    };
-    
-    // Set loading state
+  const [error, setError] = useState<AlloraError | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(immediate);
+  const [retryCount, setRetryCount] = useState<number>(0);
+
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
-    
+    setError(null);
+
     try {
-      // Execute the fetch function using our retry utility
-      const result = await withRetry(
-        () => fetchFn(),
-        {
-          maxRetries,
-          initialDelay: retryDelay,
-          retryableErrors: shouldRetryFn,
-          onRetry: (error, attempt, delay) => {
-            setRetryCount(attempt);
-            if (showRetryToast) {
-              toast({
-                title: "Retrying...",
-                description: `Attempt ${attempt} of ${maxRetries}. Please wait.`,
-                duration: delay - 500 // Toast disappears just before next try
-              });
-            }
-          },
-          context: contextRef.current,
-          tenantId,
-          module,
-          circuitBreaker
-        }
-      );
+      let fetchFunction = fetchFn;
       
-      // Update state with result
-      if (isMountedRef.current) {
-        setData(result);
-        setRetryCount(0);
-        
-        // Call success callback if provided
-        if (onSuccess) {
-          onSuccess(result);
-        }
+      // Apply retry logic if requested
+      if (retry) {
+        fetchFunction = () => withRetry(fetchFn, {
+          maxRetries,
+          delayMs: retryDelay,
+          shouldRetry: (error) => shouldRetry(error),
+          onRetry: () => {
+            setRetryCount(prev => prev + 1);
+          }
+        });
+      }
+
+      const result = await fetchFunction();
+      setData(result);
+      setIsLoading(false);
+      
+      if (onSuccess) {
+        onSuccess(result);
       }
       
       return result;
-    } catch (err: any) {
-      // Handle the error
+    } catch (err) {
       const alloraError = await handleError(err, {
-        context: {
-          ...contextRef.current,
-          retryCount
-        },
+        showNotification: showErrorNotification,
+        silent,
       });
       
-      // Call error callback if provided
+      setError(alloraError);
+      setIsLoading(false);
+      
+      if (!preserveDataOnError) {
+        setData(initialData);
+      }
+      
       if (onError) {
-        onError(err);
+        onError(alloraError);
       }
       
       throw alloraError;
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
     }
-  }, [
-    fetchFn,
-    maxRetries,
-    retryDelay,
-    shouldRetryFn,
-    onSuccess,
-    onError,
-    handleError,
-    clearError,
-    tenantId,
-    module,
-    showRetryToast,
-    circuitBreaker
-  ]);
-  
-  // Auto-fetch data when dependencies change
+  }, [fetchFn, ...dependencies]);
+
   useEffect(() => {
-    if (autoLoad) {
-      fetchData(false).catch(() => {
-        // Error already handled in fetchData
+    if (immediate) {
+      fetchData().catch(err => {
+        if (!silent && showErrorNotification) {
+          notifyError("Data fetching failed", { 
+            description: err.message || "Failed to load data" 
+          });
+        }
       });
     }
-  }, [...dependencies]);
-  
-  // Function to manually retry after an error
-  const retry = useCallback(() => {
-    return fetchData(true);
-  }, [fetchData]);
-  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [immediate, ...dependencies]);
+
   return {
     data,
     isLoading,
     error,
-    fetchData: () => fetchData(true),
-    retry,
+    refetch: fetchData,
+    setData,
     retryCount,
-    isRetrying: retryCount > 0,
-    reset: clearError
   };
 }
 
 /**
- * Enhanced version that preserves previous data during refreshes
+ * Enhanced hook for stable data fetching that won't trigger multiple fetches
  */
-export function useStableFetching<T>(options: UseDataFetchingOptions<T>) {
-  const [stableData, setStableData] = useState<T | undefined>(options.initialData);
+export function useStableFetching<T = any>(
+  fetchFn: () => Promise<T>,
+  options: {
+    onError?: (error: AlloraError) => void;
+    onSuccess?: (data: T) => void;
+    initialData?: T;
+    dependencies?: any[];
+    immediate?: boolean;
+    retry?: boolean;
+    maxRetries?: number;
+    retryDelay?: number;
+    shouldRetry?: (error: Error) => boolean;
+    showErrorNotification?: boolean;
+    silent?: boolean;
+  } = {}
+) {
+  // Use a stable serialized version of the dependencies
+  const serializedDependencies = JSON.stringify(options.dependencies || []);
   
-  const {
-    data,
-    isLoading,
-    error,
-    fetchData,
-    retry,
-    retryCount,
-    isRetrying,
-    reset
-  } = useDataFetching<T>({
+  return useDataFetching(fetchFn, {
     ...options,
-    onSuccess: (newData) => {
-      setStableData(newData);
-      if (options.onSuccess) {
-        options.onSuccess(newData);
-      }
-    }
+    dependencies: [serializedDependencies],
   });
-  
-  return {
-    // Return stable data that doesn't reset during loading
-    data: options.preserveData ? (stableData || data) : data,
-    isLoading,
-    error,
-    fetchData,
-    retry,
-    retryCount,
-    isRetrying,
-    reset
-  };
 }

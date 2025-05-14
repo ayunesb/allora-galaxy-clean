@@ -52,6 +52,8 @@ const NotificationCenter: React.FC = () => {
           markAsRead={handleMarkAsRead}
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
+          onDelete={() => {}}
+          onMarkAllAsRead={markAllAsRead}
         />
       </SheetContent>
     </Sheet>

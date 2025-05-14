@@ -33,10 +33,14 @@ export { default as PageErrorBoundary } from '@/components/errors/PageErrorBound
 export { default as ErrorState } from '@/components/ui/error-state';
 export { default as AsyncButton } from '@/components/ui/async-button';
 
-// Re-export BetterToast for convenience
+// Re-export toast notifications for convenience
 export { 
+  notify,
   notifySuccess, 
   notifyError, 
-  notifyInfo, 
-  notifyWarning 
-} from '@/components/ui/BetterToast';
+  notifyWarning,
+  notifyInfo,
+  notifyPromise,
+  notifyAndLog,
+  useToast
+} from '@/lib/notifications/toast';

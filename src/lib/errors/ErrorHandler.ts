@@ -6,12 +6,10 @@ import {
   NetworkError, 
   NotFoundError, 
   PermissionError, 
-  ValidationError, 
-  ExternalServiceError,
-  TimeoutError
+  ValidationError 
 } from './errorTypes';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { notifyError, notifyWarning } from '@/components/ui/BetterToast';
+import { notifyError, notifyWarning } from '@/lib/notifications/toast';
 
 /**
  * Centralized error handler for the application
@@ -49,7 +47,6 @@ export class ErrorHandler {
     const enhancedContext = {
       ...alloraError.context,
       ...context,
-      errorType: alloraError.constructor.name,
       timestamp: alloraError.timestamp
     };
     
@@ -173,9 +170,9 @@ export class ErrorHandler {
     const message = error.userMessage || error.message;
     
     if (isCritical) {
-      notifyError('Error', message);
+      notifyError(message);
     } else {
-      notifyWarning('Warning', message);
+      notifyWarning(message);
     }
   }
 
