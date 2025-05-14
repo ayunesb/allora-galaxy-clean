@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Search, UserPlus } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,10 +27,12 @@ export interface UserProfile {
 
 export interface User {
   id: string;
+  email: string;
   role: string;
-  created_at: string;
-  user_id: string;
-  profiles: UserProfile;
+  lastLogin: string;
+  created_at?: string; 
+  user_id?: string;
+  profiles?: any;
 }
 
 interface UserTableProps {

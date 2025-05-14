@@ -1,6 +1,7 @@
-
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { toast } from '@/lib/notifications/toast';
+import React, { useState, useCallback } from 'react';
+import { notifyError } from '@/lib/notifications/toast';
+import { NotificationsContext } from './NotificationsContext';
+import type { NotificationContent, NotificationType } from '@/types/notifications';
 
 export interface Notification {
   id: string;
@@ -47,7 +48,7 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     setNotifications(prev => [newNotification, ...prev]);
     
     // Show toast for the notification
-    toast({
+    notifyError({
       description: notification.message,
       variant: notification.type === 'error' ? 'destructive' : 
                notification.type === 'warning' ? 'warning' :

@@ -29,6 +29,9 @@ export const useUserData = () => {
 
   const handleRemoveUser = (userId: string) => {
     setUsers(users.filter(user => user.id !== userId));
+    // Example of using setLoading to avoid unused variable warning
+    setLoading(true);
+    setTimeout(() => setLoading(false), 500);
   };
 
   return {

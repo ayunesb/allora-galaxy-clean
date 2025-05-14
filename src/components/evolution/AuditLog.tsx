@@ -5,15 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import LogDetailDialog from './LogDetailDialog';
-
-export interface Log {
-  id: string;
-  created_at: string;
-  event_type: string;
-  status: string;
-  tenant_id: string;
-  metadata: any;
-}
+import { Log } from '@/types/logs';
 
 export interface AuditLogProps {
   logs: Log[];
@@ -87,7 +79,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading = false }) => {
                 {logs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap">
-                      {new Date(log.created_at).toLocaleTimeString()}
+                      {new Date(log.timestamp).toLocaleTimeString()}
                     </TableCell>
                     <TableCell>{log.event_type}</TableCell>
                     <TableCell>
@@ -113,8 +105,8 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading = false }) => {
             </Table>
             
             <LogDetailDialog
-              isOpen={isDialogOpen}
-              onClose={() => setIsDialogOpen(false)}
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
               log={selectedLog}
             />
           </>

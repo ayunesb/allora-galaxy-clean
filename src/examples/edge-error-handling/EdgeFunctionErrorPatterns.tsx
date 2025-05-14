@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorHandler';
 
 export default function EdgeFunctionErrorPatterns() {
   const [activePattern, setActivePattern] = useState<string | null>(null);

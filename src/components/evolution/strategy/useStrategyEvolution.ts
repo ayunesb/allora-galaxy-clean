@@ -2,18 +2,18 @@
 import { useState } from 'react';
 import { usePartialDataFetch } from '@/hooks/supabase';
 import { Strategy } from '@/types/strategy';
+import { format } from 'date-fns';
 
 export const useStrategyEvolution = (strategyId: string) => {
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   const {
-    results: data,
+    data,
     isLoading,
-    isPartialLoading,
-    refetch,
     failedQueries,
-    retryQueries
+    refetch,
+    isPartialData
   } = usePartialDataFetch({
     queries: {
       strategy: {
@@ -22,7 +22,12 @@ export const useStrategyEvolution = (strategyId: string) => {
           return {
             id: strategyId,
             name: `Strategy ${strategyId}`,
-            status: 'active'
+            status: 'active',
+            tenant_id: 'tenant-1',
+            title: `Strategy ${strategyId}`,
+            description: 'A mock strategy for development',
+            created_by: 'user-1',
+            created_at: new Date().toISOString(),
           } as Strategy;
         }
       },
@@ -33,7 +38,8 @@ export const useStrategyEvolution = (strategyId: string) => {
             id: `log-${i}`,
             timestamp: new Date().toISOString(),
             message: `Log entry ${i}`,
-            status: i % 3 === 0 ? 'error' : i % 3 === 1 ? 'warning' : 'success'
+            status: i % 3 === 0 ? 'error' : i % 3 === 1 ? 'warning' : 'success',
+            event_type: i % 3 === 0 ? 'error' : i % 3 === 1 ? 'warning' : 'info'
           }));
         }
       },
@@ -73,20 +79,43 @@ export const useStrategyEvolution = (strategyId: string) => {
   };
 
   const selectedLog = data?.logs?.find(log => log.id === selectedLogId) || null;
+  
+  // Create a userMap for lookup
+  const userMap: Record<string, any> = {};
+  if (data?.users?.owner) {
+    userMap[data.users.owner.id] = data.users.owner;
+  }
+  if (data?.users?.contributors) {
+    data.users.contributors.forEach((user: any) => {
+      userMap[user.id] = user;
+    });
+  }
+  
+  // Format date helper function
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+  };
+  
+  // Extract error from failed queries
+  const error = failedQueries.length > 0 ? new Error(`Failed to load: ${failedQueries.join(', ')}`) : undefined;
 
   return {
     strategy: data?.strategy,
     logs: data?.logs || [],
     history: data?.history || [],
     users: data?.users,
-    isLoading: isLoading,
-    isPartialLoading,
+    isLoading,
+    loading: isLoading, // Alias for backward compatibility
+    isPartialLoading: isPartialData,
     failedQueries,
-    retryQueries,
+    retryQueries: refetch,
     refetch,
     selectedLog,
     isLogModalOpen,
     handleLogClick,
-    handleCloseLogModal
+    handleCloseLogModal,
+    userMap, // Added for StrategyEvolutionTab
+    formatDate, // Added for StrategyEvolutionTab
+    error // Added for error handling
   };
 };

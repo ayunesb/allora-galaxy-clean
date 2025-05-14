@@ -3,6 +3,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 interface ErrorStateProps {
   title?: string;
@@ -11,6 +12,8 @@ interface ErrorStateProps {
   retry?: () => void;
   showDetails?: boolean;
   children?: React.ReactNode;
+  className?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const ErrorState: React.FC<ErrorStateProps> = ({
@@ -20,12 +23,21 @@ const ErrorState: React.FC<ErrorStateProps> = ({
   retry,
   showDetails = false,
   children,
+  className,
+  size = 'md',
 }) => {
   const errorMessage = typeof error === 'string' ? error : error?.message;
   
+  // Determine max width based on size prop
+  const maxWidthClass = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+  }[size];
+  
   return (
-    <div className="w-full p-4 flex flex-col items-center justify-center">
-      <Alert variant="destructive" className="mb-4 w-full max-w-md">
+    <div className={cn("w-full p-4 flex flex-col items-center justify-center", className)}>
+      <Alert variant="destructive" className={cn("mb-4 w-full", maxWidthClass)}>
         <AlertTriangle className="h-4 w-4 mr-2" />
         <AlertTitle>{title}</AlertTitle>
         <AlertDescription className="mt-2">

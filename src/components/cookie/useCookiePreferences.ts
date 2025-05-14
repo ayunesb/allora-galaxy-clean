@@ -1,72 +1,53 @@
+import { useState, useEffect, useCallback } from 'react';
+import { getCookie, setCookie } from 'cookies-next';
 
-import { useState, useEffect } from 'react';
-import { CookiePreferences, CookiePreferencesState, defaultCookiePreferences } from '@/types/cookiePreferences';
-import { getCookie, setCookie } from '@/lib/utils/cookies';
+export interface CookiePreferencesState {
+  necessary: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  updatePreferences: (prefs: {
+    necessary?: boolean;
+    analytics?: boolean;
+    marketing?: boolean;
+  }) => void;
+}
 
-const COOKIE_NAME = 'cookie-preferences';
-const COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year
+const defaultPreferences = {
+  necessary: true,
+  analytics: false,
+  marketing: false,
+};
 
-/**
- * Hook to manage cookie preferences
- */
-export function useCookiePreferences(): CookiePreferencesState {
-  const [preferences, setPreferences] = useState<CookiePreferences>(defaultCookiePreferences);
-  const [hasConsented, setHasConsented] = useState<boolean>(false);
+export const useCookiePreferences = (): CookiePreferencesState => {
+  const [preferences, setPreferences] = useState(defaultPreferences);
 
-  // Load preferences from cookie on mount
   useEffect(() => {
-    const savedPreferences = getCookie<CookiePreferences>(COOKIE_NAME);
-    if (savedPreferences) {
-      setPreferences(savedPreferences);
-      setHasConsented(true);
+    const storedPreferences = getCookie('cookie_preferences');
+    if (storedPreferences) {
+      try {
+        setPreferences(JSON.parse(storedPreferences as string));
+      } catch (e) {
+        console.error('Error parsing cookie preferences:', e);
+        // If parsing fails, reset to default preferences
+        setPreferences(defaultPreferences);
+      }
     }
   }, []);
 
-  // Update a single preference
-  const updatePreference = (type: keyof CookiePreferences, value: boolean) => {
-    const newPreferences = { ...preferences, [type]: value };
+  const updatePreferences = useCallback((prefs: {
+    necessary?: boolean;
+    analytics?: boolean;
+    marketing?: boolean;
+  }) => {
+    const newPreferences = { ...preferences, ...prefs };
     setPreferences(newPreferences);
-    setCookie(COOKIE_NAME, newPreferences, COOKIE_MAX_AGE);
-    setHasConsented(true);
-  };
-
-  // Set all preferences at once
-  const setAllPreferences = (newPreferences: CookiePreferences) => {
-    setPreferences(newPreferences);
-    setCookie(COOKIE_NAME, newPreferences, COOKIE_MAX_AGE);
-    setHasConsented(true);
-  };
-
-  // Accept all cookies
-  const acceptAll = () => {
-    const allEnabled: CookiePreferences = {
-      sessionAnalyticsEnabled: true,
-      ga4Enabled: true,
-      metaPixelEnabled: true
-    };
-    setPreferences(allEnabled);
-    setCookie(COOKIE_NAME, allEnabled, COOKIE_MAX_AGE);
-    setHasConsented(true);
-  };
-
-  // Reject all optional cookies
-  const rejectAll = () => {
-    const allDisabled: CookiePreferences = {
-      sessionAnalyticsEnabled: false,
-      ga4Enabled: false,
-      metaPixelEnabled: false
-    };
-    setPreferences(allDisabled);
-    setCookie(COOKIE_NAME, allDisabled, COOKIE_MAX_AGE);
-    setHasConsented(true);
-  };
+    setCookie('cookie_preferences', JSON.stringify(newPreferences), {
+      maxAge: 365 * 24 * 60 * 60, // 1 year
+    });
+  }, [preferences]);
 
   return {
-    preferences,
-    hasConsented,
-    updatePreference,
-    setAllPreferences,
-    acceptAll,
-    rejectAll
+    ...preferences,
+    updatePreferences,
   };
-}
+};

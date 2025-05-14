@@ -14,6 +14,8 @@ export interface SystemLog {
   context: string;
   tenant_id?: string; // Added for compatibility
   status?: 'success' | 'error' | 'warning'; // Added for compatibility
+  severity?: 'critical' | 'high' | 'medium' | 'low'; // Added for ErrorTrendsChart
+  error_type?: string; // Added for ErrorTrendsChart
 }
 
 export interface Log {
@@ -28,6 +30,8 @@ export interface Log {
   status: 'success' | 'error' | 'warning';
   metadata?: Record<string, any>;
   context?: string;
+  created_at?: string; // Added for AuditLog compatibility
+  tenant_id?: string; // Added for AuditLog compatibility
 }
 
 export interface PluginLog {
@@ -51,4 +55,18 @@ export interface LogFilters {
   status?: string;
   limit?: number;
   page?: number;
+}
+
+// Add LogGroup interface for ErrorGroupsList
+export interface LogGroup {
+  id: string;
+  count: number;
+  first_seen: string;
+  last_seen: string;
+  error_type: string;
+  message: string;
+  status: string;
+  severity: string;
+  module: string;
+  context?: Record<string, any>;
 }

@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RetryableErrorBoundary } from '@/components/errors';
+import { RetryableErrorBoundary, ErrorState } from '@/lib/errors';
 
 // Component that throws an error
 const BuggyCounter = () => {
