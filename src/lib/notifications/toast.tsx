@@ -16,6 +16,10 @@ export interface ToastOptions {
     label: string;
     onClick: () => void;
   };
+  cancel?: {
+    label: string;
+    onClick?: () => void;
+  };
 }
 
 type LoggedToastOptions = ToastOptions & {
@@ -39,13 +43,22 @@ export const notify = (
     duration,
     position,
     action,
+    cancel,
     ...restOptions
   } = options || {};
   
   // Show the toast notification
-  return sonnerToast[type] ? 
-    sonnerToast[type](title, { description, duration, position, action }) : 
-    sonnerToast(title, { description, duration, position, action });
+  if (type === 'success' && sonnerToast.success) {
+    return sonnerToast.success(title, { description, duration, position, action, cancel });
+  } else if (type === 'error' && sonnerToast.error) {
+    return sonnerToast.error(title, { description, duration, position, action, cancel });
+  } else if (type === 'warning' && sonnerToast.warning) {
+    return sonnerToast.warning(title, { description, duration, position, action, cancel });
+  } else if (type === 'info' && sonnerToast.info) {
+    return sonnerToast.info(title, { description, duration, position, action, cancel });
+  } else {
+    return sonnerToast(title, { description, duration, position, action, cancel });
+  }
 };
 
 /**

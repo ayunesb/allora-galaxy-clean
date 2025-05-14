@@ -1,79 +1,70 @@
+"use client";
 
-import { useEffect } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { useToast } from '@/hooks/use-toast';
-import { ErrorInfo } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { toast } from "@/components/ui/use-toast"
+import { useRouter } from 'next/navigation';
 
 interface ErrorFallbackProps {
   error: Error;
-  errorInfo?: ErrorInfo;
-  resetErrorBoundary: () => void;
-  supportEmail?: string;
+  reset: () => void;
 }
 
-export function ErrorFallback({ 
-  error, 
-  errorInfo, 
-  resetErrorBoundary, 
-  supportEmail
-}: ErrorFallbackProps) {
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // Log the error to our system
-    const tenantIdValue = 'system';
-    
-    logSystemEvent(
-      'system',
-      'error',
-      {
-        description: `React Error Boundary: ${error.message}`,
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo?.componentStack,
-        react_error_boundary: true
-      },
-      tenantIdValue
-    ).catch(console.error);
-  }, [error, errorInfo]);
-
-  const handleReportError = () => {
-    toast({
-      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
-      title: "Error Reported"
-    });
-  };
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, reset }) => {
+  const router = useRouter();
 
   return (
-    <div className="p-6 max-w-2xl mx-auto mt-10">
-      <Alert variant="destructive" className="mb-6">
-        <AlertTitle>Something went wrong</AlertTitle>
-        <AlertDescription>
-          An error has occurred in the application. You can try reloading the page or report this issue.
-        </AlertDescription>
-      </Alert>
-
-      <div className="bg-muted p-4 rounded-md mb-6 overflow-auto max-h-60">
-        <p className="font-mono text-sm">{error.message}</p>
-        {errorInfo && (
-          <pre className="text-xs mt-2 text-muted-foreground">
-            {errorInfo.componentStack}
-          </pre>
-        )}
-      </div>
-
-      <div className="flex gap-4">
-        <Button onClick={resetErrorBoundary} variant="default">
+    <div className="flex flex-col items-center justify-center h-full text-center">
+      <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong.</h1>
+      <p className="text-red-500 mb-4">{error.message || 'An unexpected error occurred.'}</p>
+      <div className="space-x-4">
+        <Button onClick={() => {
+          toast.error("Error reported", {
+            description: "Thank you for reporting this error. Our team has been notified."
+          });
+        }}>
+          Report Error
+        </Button>
+        <Button variant="outline" onClick={() => router.refresh()}>
           Try Again
         </Button>
-        <Button onClick={handleReportError} variant="outline">
-          Report Issue
-        </Button>
       </div>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" className="mt-4">
+            Reset App State
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will reset the entire application state.
+              All unsaved data will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              reset();
+              router.refresh();
+            }}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-}
+};
 
 export default ErrorFallback;

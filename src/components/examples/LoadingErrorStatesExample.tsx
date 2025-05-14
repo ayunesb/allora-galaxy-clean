@@ -1,239 +1,130 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from "@/components/ui/skeleton";
+import { DataStateHandler } from '@/components/ui/data-state-handler';
+import { notifyError } from '@/lib/notifications/toast';
+import { api } from '@/lib/api';
 
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataStateHandler } from "@/components/ui/data-state-handler";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/lib/notifications/toast";
-import { useErrorHandler } from "@/lib/errors/useErrorHandler";
-import { EmptyStateRenderer } from '@/components/errors';
+interface MockData {
+  id: number;
+  name: string;
+  description: string;
+  status: 'loading' | 'success' | 'error';
+  message?: string;
+}
 
 const LoadingErrorStatesExample: React.FC = () => {
-  // Example state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<any[] | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
-  const { handleError } = useErrorHandler();
-  
-  const simulateLoading = () => {
-    setLoading(true);
-    setError(null);
-    setData(null);
-    
-    // Simulate fetch
-    setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-  };
-  
-  const simulateSuccess = () => {
-    setLoading(true);
-    setError(null);
-    
-    // Simulate fetch
-    setTimeout(() => {
-      setData([
-        { id: 1, name: "Item 1" },
-        { id: 2, name: "Item 2" },
-        { id: 3, name: "Item 3" }
-      ]);
-      setLoading(false);
-    }, 1500);
-  };
-  
-  const simulateError = () => {
-    setLoading(true);
-    setError(null);
-    setData(null);
-    
-    // Simulate fetch
-    setTimeout(() => {
-      const error = new Error("Failed to load data");
-      handleError(error);
-      setError(error);
-      setLoading(false);
-    }, 1500);
-  };
-  
-  const simulateEmptyData = () => {
-    setLoading(true);
-    setError(null);
-    
-    // Simulate fetch
-    setTimeout(() => {
-      setData([]);
-      setLoading(false);
-    }, 1500);
-  };
-  
-  // Reset everything
-  const reset = () => {
-    setLoading(false);
-    setError(null);
-    setData(null);
-    setSearchTerm("");
-  };
-  
-  const DataComponent = ({ data }: { data: any[] }) => (
-    <div className="grid gap-2">
-      {data.map(item => (
-        <div key={item.id} className="p-4 border rounded-md">
-          {item.name}
-        </div>
-      ))}
-    </div>
-  );
-  
-  const loadingStates = [
-    { name: "Loading", action: simulateLoading },
-    { name: "Success", action: simulateSuccess },
-    { name: "Error", action: simulateError },
-    { name: "Empty", action: simulateEmptyData }
-  ];
+  const [data, setData] = useState<MockData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Simulate an API call
+    const fetchData = async () => {
+      try {
+        // Simulate loading state
+        setLoading(true);
+        setError(null);
+        
+        // Simulate API call with a delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Simulate success
+        setData({
+          id: 1,
+          name: 'Example Data',
+          description: 'This is example data loaded from an API.',
+          status: 'success',
+          message: 'Data loaded successfully!'
+        });
+      } catch (e: any) {
+        // Simulate error state
+        setError(e.message || 'Failed to load data.');
+        notifyError(e.message || 'Failed to load data.');
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const [partialData, setPartialData] = useState<MockData | null>(null);
+  const [partialLoading, setPartialLoading] = useState(true);
+  const [partialError, setPartialError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Simulate an API call
+    const fetchPartialData = async () => {
+      try {
+        // Simulate loading state
+        setPartialLoading(true);
+        setPartialError(null);
+        
+        // Simulate API call with a delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Simulate success
+        setPartialData({
+          id: 2,
+          name: 'Partial Data',
+          description: 'This is partial data that might fail to load.',
+          status: 'success',
+          message: 'Partial data loaded successfully!'
+        });
+      } catch (e: any) {
+        // Simulate error state
+        setPartialError(e.message || 'Failed to load partial data.');
+        notifyError(e.message || 'Failed to load partial data.');
+        setPartialData(null);
+      } finally {
+        setPartialLoading(false);
+      }
+    };
+
+    fetchPartialData();
+  }, []);
 
   return (
-    <div className="container py-8 space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Data State Handler Example</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {loadingStates.map((state) => (
-              <Button 
-                key={state.name} 
-                onClick={state.action} 
-                variant="outline"
-                disabled={loading}
-              >
-                {state.name}
-              </Button>
-            ))}
-            <Button 
-              onClick={reset} 
-              variant="ghost"
-            >
-              Reset
-            </Button>
-          </div>
-          
-          <div className="p-4 border rounded-md">
+    <div className="container py-8">
+      <h1 className="text-2xl font-bold mb-6">Loading & Error State Examples</h1>
+      
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Full Data Loading</CardTitle>
+            <CardDescription>Demonstrates a full loading state with potential error.</CardDescription>
+          </CardHeader>
+          <CardContent>
             <DataStateHandler
-              data={data}
               loading={loading}
               error={error}
-              onRetry={simulateSuccess}
-              emptyState={
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No data available</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={simulateSuccess} 
-                    className="mt-2"
-                  >
-                    Add Data
-                  </Button>
-                </div>
-              }
-              loadingMessage="Loading your data..."
-            >
-              {(data) => <DataComponent data={data} />}
-            </DataStateHandler>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="empty">
-        <TabsList>
-          <TabsTrigger value="empty">Empty States</TabsTrigger>
-          <TabsTrigger value="search">Search & Filter</TabsTrigger>
-        </TabsList>
+              data={data}
+              renderLoading={<Skeleton className="w-full h-40" />}
+              renderError={(errorMessage) => <div className="text-red-500">{errorMessage}</div>}
+              renderContent={<div>{data?.message}</div>}
+            />
+          </CardContent>
+        </Card>
         
-        <TabsContent value="empty" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Empty State Variants</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-6">
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium mb-2">No Data</h3>
-                <EmptyStateRenderer
-                  stateType="no-data"
-                  customMessage="There is no data to display right now."
-                  action={() => toast({ title: "Action triggered" })}
-                  actionText="Refresh Data"
-                />
-              </div>
-              
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium mb-2">Card Empty</h3>
-                <EmptyStateRenderer
-                  stateType="card"
-                  title="No Items"
-                  customMessage="No items have been added to your collection yet."
-                  action={() => toast({ title: "Action triggered" })}
-                  actionText="Add Item"
-                />
-              </div>
-              
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium mb-2">List Empty</h3>
-                <EmptyStateRenderer
-                  stateType="list"
-                  title="Empty List"
-                  customMessage="Your list is currently empty."
-                  action={() => toast({ title: "Action triggered" })}
-                  actionText="Create New"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="search" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Search & Filter Examples</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <Label htmlFor="search">Search</Label>
-                <Input
-                  id="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Type to search..."
-                />
-              </div>
-              
-              {searchTerm && (
-                <div className="border rounded-lg p-4">
-                  <EmptyStateRenderer
-                    stateType="no-search-results"
-                    searchTerm={searchTerm}
-                    onClear={() => setSearchTerm("")}
-                  />
-                </div>
-              )}
-              
-              <div className="mt-4 border rounded-lg p-4">
-                <h3 className="text-sm font-medium mb-2">Filter Empty</h3>
-                <EmptyStateRenderer
-                  stateType="filter"
-                  customMessage="No results match your current filters."
-                  onClear={() => toast({ title: "Filters cleared" })}
-                  filterCount={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader>
+            <CardTitle>Partial Data Loading</CardTitle>
+            <CardDescription>Demonstrates a partial loading state within a component.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DataStateHandler
+              loading={partialLoading}
+              error={partialError}
+              data={partialData}
+              renderLoading={<Skeleton className="w-full h-32" />}
+              renderError={(errorMessage) => <div className="text-red-500">{errorMessage}</div>}
+              renderContent={partialData ? <div>{partialData.description}</div> : null}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

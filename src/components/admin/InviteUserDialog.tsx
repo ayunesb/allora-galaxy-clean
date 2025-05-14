@@ -1,4 +1,3 @@
-
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -91,9 +90,8 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
         tenantId
       );
       
-      toast({
-        description: `An invitation has been sent to ${values.email}`,
-        title: "Invitation sent"
+      toast.success("Invitation sent", {
+        description: `An invitation has been sent to ${values.email}.`
       });
       
       form.reset();
@@ -105,10 +103,8 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
       }
     } catch (error: any) {
       console.error('Error inviting user:', error);
-      toast({
-        description: error.message,
-        title: "Failed to invite user",
-        variant: "destructive"
+      toast.error("Error sending invitation", {
+        description: error.message || "Failed to send invitation. Please try again."
       });
     }
   };

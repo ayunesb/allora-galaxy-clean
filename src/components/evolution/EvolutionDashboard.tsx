@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
@@ -6,7 +5,7 @@ import AgentEvolutionTab from './AgentEvolutionTab';
 import PluginEvolutionTab from './PluginEvolutionTab';
 import AuditLog from './AuditLog';
 import { useQuery } from '@tanstack/react-query';
-import { SystemLog } from '@/types/logs';
+import { SystemLog, Log } from '@/types/logs';
 
 // Import from the system lib
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
@@ -61,6 +60,12 @@ const EvolutionDashboard: React.FC = () => {
     setActiveTab(value);
   };
   
+  // Convert SystemLog[] to Log[] by adding the required timestamp property
+  const auditLogs = logsData.map(log => ({
+    ...log,
+    timestamp: log.created_at || new Date().toISOString()
+  })) as unknown as Log[];
+  
   return (
     <div className="container mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">System Evolution Dashboard</h1>
@@ -86,7 +91,7 @@ const EvolutionDashboard: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="audit-log" className="space-y-4">
-          <AuditLog logs={logsData || []} isLoading={isLoading} />
+          <AuditLog logs={auditLogs} isLoading={isLoading} />
         </TabsContent>
       </Tabs>
     </div>

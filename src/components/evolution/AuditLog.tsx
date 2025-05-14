@@ -1,135 +1,124 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
+import { 
+  Card, 
+  CardContent, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogDetailDialog, type LogDetail } from './logs';
+import { LogDetailDialog } from './LogDetailDialog';
+import { Button } from '@/components/ui/button';
+import { formatDistance } from 'date-fns';
 
-interface Log {
+export interface Log {
   id: string;
-  timestamp: string;
-  level: string;
-  message: string;
   module: string;
-  details?: Record<string, any>;
+  event: string;
+  level?: 'info' | 'warning' | 'error' | 'success';
+  context?: any;
+  timestamp: string;
   tenant_id?: string;
-  request_id?: string;
 }
 
-interface AuditLogProps {
-  logs: Log[];
-  title?: string;
-  maxItems?: number;
-  showViewAll?: boolean;
-  onViewAll?: () => void;
-  isLoading?: boolean;
-}
-
-const getLevelColor = (level: string): string => {
-  switch (level.toLowerCase()) {
+// Map level to variant for badge
+const getLevelVariant = (
+  level?: string
+): 'default' | 'secondary' | 'destructive' | 'outline' | undefined => {
+  switch (level) {
     case 'error':
       return 'destructive';
     case 'warning':
-      return 'warning';
+      return 'outline';
     case 'info':
-      return 'info';
+      return 'secondary';
+    case 'success':
+      return 'default';
     default:
       return 'secondary';
   }
 };
 
+interface AuditLogProps {
+  logs: Log[];
+  title?: string;
+  emptyMessage?: string;
+}
+
 const AuditLog: React.FC<AuditLogProps> = ({
   logs,
-  title = 'Audit Log',
-  maxItems = 5,
-  showViewAll = true,
-  onViewAll,
-  isLoading = false,
+  title = 'System Activity',
+  emptyMessage = 'No activity logs found'
 }) => {
-  const [selectedLog, setSelectedLog] = useState<LogDetail | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
-  const visibleLogs = maxItems ? logs.slice(0, maxItems) : logs;
-  
-  const handleLogClick = (log: LogDetail) => {
+  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleViewDetails = (log: Log) => {
     setSelectedLog(log);
-    setDialogOpen(true);
+    setIsDialogOpen(true);
   };
-  
+
   const closeDialog = () => {
-    setDialogOpen(false);
+    setIsDialogOpen(false);
   };
-  
+
   return (
-    <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-12 bg-muted animate-pulse rounded" />
-              ))}
-            </div>
-          ) : logs.length > 0 ? (
-            <>
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-2">
-                  {visibleLogs.map((log) => (
-                    <Button
-                      key={log.id}
-                      variant="ghost"
-                      className="w-full justify-start h-auto py-2 px-3"
-                      onClick={() => handleLogClick(log)}
-                    >
-                      <div className="flex items-center w-full text-left">
-                        <Badge variant={getLevelColor(log.level)} className="mr-2">
-                          {log.level.toUpperCase()}
-                        </Badge>
-                        <div className="flex-1 truncate mr-2">
-                          <span className="block text-sm">{log.message}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                      </div>
-                    </Button>
-                  ))}
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="space-y-2 px-6">
+          {logs.length > 0 ? (
+            logs.map((log) => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between border-b border-border py-2 last:border-0"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getLevelVariant(log.level)}>
+                      {log.module}
+                    </Badge>
+                    <span className="font-medium">{log.event}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {log.timestamp && typeof log.timestamp === 'string'
+                      ? formatDistance(new Date(log.timestamp), new Date(), { addSuffix: true })
+                      : 'Unknown time'}
+                  </div>
                 </div>
-              </ScrollArea>
-              
-              {showViewAll && logs.length > maxItems && (
-                <div className="pt-3 border-t mt-3">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full" 
-                    onClick={onViewAll}
-                  >
-                    View All ({logs.length})
-                  </Button>
-                </div>
-              )}
-            </>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleViewDetails(log)}
+                >
+                  Details
+                </Button>
+              </div>
+            ))
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No log entries available
+            <div className="py-4 text-center text-muted-foreground">
+              {emptyMessage}
             </div>
           )}
-        </CardContent>
-      </Card>
-      
-      <LogDetailDialog 
-        isOpen={dialogOpen} 
-        onClose={closeDialog} 
-        log={selectedLog} 
-      />
-    </>
+        </div>
+      </CardContent>
+      <CardFooter className="border-t border-border px-6 py-4">
+        <div className="text-xs text-muted-foreground">
+          Showing {logs.length} log entries
+        </div>
+      </CardFooter>
+
+      {selectedLog && (
+        <LogDetailDialog
+          open={isDialogOpen}
+          onClose={closeDialog}
+          log={selectedLog}
+        />
+      )}
+    </Card>
   );
 };
 
