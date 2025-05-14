@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -7,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthContext';
 import App from './App';
 import './index.css';
+import './styles/animations.css';
 import { NextThemeProvider } from './providers';
 
 // Create a client for React Query

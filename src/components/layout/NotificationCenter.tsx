@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const { notifications, unreadCount, isLoading } = useNotificationData(activeFilter);
+  const { notifications, isLoading, unreadCount } = useNotificationData(activeFilter);
   const { markAsRead, markAllAsRead } = useNotificationActions();
 
   const handleOpenChange = (open: boolean) => {

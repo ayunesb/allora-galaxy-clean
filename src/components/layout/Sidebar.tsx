@@ -1,23 +1,22 @@
 
+// Remove unused imports
 import React from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { SidebarNav } from './SidebarNav';
-import { NavigationItem } from '@/types/shared';
-import { useSidebar } from '@/components/ui/sidebar/SidebarProvider';
+import { cn } from '@/lib/utils';
+import SidebarNav from './SidebarNav';
 
 interface SidebarProps {
-  items?: NavigationItem[];
-  navigationItems?: NavigationItem[];
+  className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ items, navigationItems: propNavigationItems }) => {
-  const { collapsed } = useSidebar();
-  // Use either provided items, propNavigationItems, or fall back to empty array
-  const navItems = items || propNavigationItems || [];
-
+const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   return (
-    <div className={`bg-background border-r p-3 transition-all duration-300 ease-in-out ${collapsed ? 'w-16' : 'w-64'}`}>
-      <SidebarNav items={navItems} />
+    <div className={cn(
+      "hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-sidebar",
+      className
+    )}>
+      <div className="flex-1 flex flex-col min-h-0">
+        <SidebarNav />
+      </div>
     </div>
   );
 };

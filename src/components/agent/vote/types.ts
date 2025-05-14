@@ -1,26 +1,40 @@
 
-import { Dispatch, SetStateAction } from 'react';
+export type VoteType = 'up' | 'down';
 
-export interface AgentVoteProps {
-  agentVersionId: string;
-  initialUpvotes: number;
-  initialDownvotes: number;
-  userId: string;
+export interface Vote {
+  id: string;
+  agent_version_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  created_at: string;
+}
+
+export interface Comment {
+  id: string;
+  user_id: string;
+  comment: string;
+  created_at: string;
 }
 
 export interface VoteButtonProps {
-  type: 'up' | 'down';
   count: number;
   active: boolean;
-  onClick: () => void;
+  type: VoteType;
   disabled: boolean;
+  onClick: () => void;
 }
 
-export interface CommentSectionProps {
-  comments: string[];
-  commentValue: string;
-  setCommentValue: Dispatch<SetStateAction<string>>;
-  onSubmit: () => Promise<void>;
-  onCancel: () => void;
-  disabled: boolean;
+export interface UseAgentVoteProps {
+  agentVersionId: string;
+}
+
+export interface UseAgentVoteResult {
+  upvotes: number;
+  downvotes: number;
+  userVote: VoteType | null;
+  comments: Comment[];
+  isSubmitting: boolean;
+  handleUpvote: () => Promise<void>;
+  handleDownvote: () => Promise<void>;
+  handleCommentSubmit: (comment: string) => Promise<void>;
 }

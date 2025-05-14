@@ -1,74 +1,76 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { useAgentVote } from './useAgentVote';
+import React, { useState } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import useAgentVote from './useAgentVote';
 import VoteButton from './VoteButton';
 import CommentSection from './CommentSection';
-import { VoteType } from '@/types/voting';
+import { Comment } from './types';
 
 interface AgentVotePanelProps {
   agentVersionId: string;
-  title?: string;
-  description?: string;
-  showComments?: boolean;
-  className?: string;
 }
 
-const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
-  agentVersionId,
-  title = 'Was this agent helpful?',
-  description = 'Help us improve by rating this agent',
-  showComments = true,
-  className = '',
-}) => {
+const AgentVotePanel: React.FC<AgentVotePanelProps> = ({ agentVersionId }) => {
+  const [comment, setComment] = useState('');
+  
   const {
+    upvotes,
+    downvotes,
     userVote,
-    voteStats,
     comments,
     isSubmitting,
     handleUpvote,
     handleDownvote,
-    handleCommentSubmit,
-  } = useAgentVote(agentVersionId);
+    handleCommentSubmit
+  } = useAgentVote({ agentVersionId });
+
+  const handleSubmitComment = async () => {
+    if (comment.trim()) {
+      await handleCommentSubmit(comment);
+      setComment('');
+    }
+  };
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-center space-x-4 py-4">
-          <VoteButton 
-            count={voteStats.upvotes} 
-            active={userVote?.vote_type === 'up'}
-            type="up" 
-            onClick={handleUpvote} 
-          />
-          <VoteButton 
-            count={voteStats.downvotes} 
-            active={userVote?.vote_type === 'down'}
-            type="down" 
-            onClick={handleDownvote} 
-          />
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-center gap-8">
+        <VoteButton
+          count={upvotes}
+          active={userVote === 'up'}
+          type="up"
+          disabled={isSubmitting}
+          onClick={handleUpvote}
+        />
         
-        {showComments && (
-          <>
-            <Separator className="my-4" />
-            <div className="space-y-4">
-              <h4 className="font-medium">Comments</h4>
-              <CommentSection 
-                comments={comments}
-                onSubmit={handleCommentSubmit}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+        <VoteButton
+          count={downvotes}
+          active={userVote === 'down'}
+          type="down"
+          disabled={isSubmitting}
+          onClick={handleDownvote}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Textarea
+          placeholder="Share your thoughts about this agent..."
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+          className="min-h-[100px]"
+        />
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleSubmitComment}
+            disabled={!comment.trim() || isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+          </Button>
+        </div>
+      </div>
+      
+      <CommentSection comments={comments as Comment[]} />
+    </div>
   );
 };
 

@@ -1,72 +1,72 @@
 
-import React from 'react';
+// Remove the unused Tenant import and fix the component
+import React, { useState } from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Loader2 } from 'lucide-react';
-import { Tenant } from '@/types/tenant';
 
-const WorkspaceSwitcher: React.FC<{
-  className?: string;
-  disabled?: boolean;
-}> = ({ className = '', disabled = false }) => {
-  const { 
-    currentWorkspace, 
-    workspaces, 
-    isLoading, 
-    setCurrentWorkspace 
-  } = useWorkspace();
+export function WorkspaceSwitcher() {
+  const { tenant, tenants, setTenant } = useWorkspace();
+  const [open, setOpen] = useState(false);
 
-  // Display loading state
-  if (isLoading || workspaces.length === 0) {
-    return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Loading workspaces...</span>
-      </div>
-    );
-  }
-
-  // Handle workspace change
-  const handleWorkspaceChange = (workspaceId: string) => {
-    const workspace = workspaces.find(w => w.id === workspaceId);
-    if (workspace) {
-      setCurrentWorkspace(workspace);
-    }
-  };
-
-  // If only one workspace, just display it
-  if (workspaces.length === 1) {
-    return (
-      <div className={`text-sm font-medium ${className}`}>
-        {workspaces[0].name}
-      </div>
-    );
+  if (!tenants || tenants.length === 0) {
+    return null;
   }
 
   return (
-    <Select
-      value={currentWorkspace?.id || ''}
-      onValueChange={handleWorkspaceChange}
-      disabled={disabled}
-    >
-      <SelectTrigger className={`h-8 w-[180px] ${className}`}>
-        <SelectValue placeholder="Select workspace" />
-      </SelectTrigger>
-      <SelectContent>
-        {workspaces.map((workspace) => (
-          <SelectItem key={workspace.id} value={workspace.id}>
-            {workspace.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between overflow-hidden"
+        >
+          <span className="truncate">{tenant?.name || "Select workspace"}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0">
+        <Command>
+          <CommandInput placeholder="Search workspace..." />
+          <CommandEmpty>No workspace found.</CommandEmpty>
+          <CommandGroup>
+            {tenants.map((workspace) => (
+              <CommandItem
+                key={workspace.id}
+                onSelect={() => {
+                  setTenant(workspace);
+                  setOpen(false);
+                }}
+                className="text-sm"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    tenant?.id === workspace.id ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                <span className="truncate">{workspace.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
-};
+}
 
 export default WorkspaceSwitcher;

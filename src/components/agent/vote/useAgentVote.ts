@@ -1,341 +1,169 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/hooks/use-toast';
-import { VoteType } from '@/types/shared';
-
-export interface AgentVote {
-  id: string;
-  agent_version_id: string;
-  vote_type: VoteType;
-  user_id: string;
-  comment?: string;
-  created_at: string;
-}
-
-export interface AgentVoteStats {
-  upvotes: number;
-  downvotes: number;
-}
-
-export interface UseAgentVoteProps {
-  agentVersionId: string;
-}
-
-export interface UseAgentVoteResult {
-  userVote: VoteType | null;
-  voteStats: AgentVoteStats;
-  upvote: () => void;
-  downvote: () => void;
-  removeVote: () => void;
-  addComment: (comment: string) => Promise<boolean>;
-  comments: { id: string; user_id: string; comment: string; created_at: string }[];
-  isLoading: boolean;
-}
+import { Vote, Comment, VoteType, UseAgentVoteProps, UseAgentVoteResult } from './types';
 
 export const useAgentVote = ({ agentVersionId }: UseAgentVoteProps): UseAgentVoteResult => {
+  const [upvotes, setUpvotes] = useState(0);
+  const [downvotes, setDownvotes] = useState(0);
   const [userVote, setUserVote] = useState<VoteType | null>(null);
-  const [voteStats, setVoteStats] = useState<AgentVoteStats>({ upvotes: 0, downvotes: 0 });
-  const [comments, setComments] = useState<{ id: string; user_id: string; comment: string; created_at: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchVoteStats = async () => {
+  useEffect(() => {
     if (!agentVersionId) return;
     
-    try {
-      // Get vote counts
-      const { data: versionData, error: versionError } = await supabase
-        .from('agent_versions')
-        .select('upvotes, downvotes')
-        .eq('id', agentVersionId)
-        .single();
+    const fetchVotes = async () => {
+      try {
+        // Fetch vote counts
+        const { data: votes, error } = await supabase
+          .from('agent_votes')
+          .select('vote_type')
+          .eq('agent_version_id', agentVersionId);
+          
+        if (error) throw error;
         
-      if (versionError) throw versionError;
-      
-      if (versionData) {
-        setVoteStats({
-          upvotes: versionData.upvotes || 0,
-          downvotes: versionData.downvotes || 0
-        });
+        const upvoteCount = votes?.filter(vote => vote.vote_type === 'up').length || 0;
+        const downvoteCount = votes?.filter(vote => vote.vote_type === 'down').length || 0;
+        
+        setUpvotes(upvoteCount);
+        setDownvotes(downvoteCount);
+        
+        // Fetch user's vote
+        const { data: userAuth } = await supabase.auth.getUser();
+        if (userAuth?.user) {
+          const { data: userVoteData } = await supabase
+            .from('agent_votes')
+            .select('vote_type')
+            .eq('agent_version_id', agentVersionId)
+            .eq('user_id', userAuth.user.id)
+            .maybeSingle();
+            
+          setUserVote(userVoteData?.vote_type as VoteType || null);
+        }
+        
+        // Fetch comments
+        const { data: commentsData } = await supabase
+          .from('agent_comments')
+          .select('*')
+          .eq('agent_version_id', agentVersionId)
+          .order('created_at', { ascending: false });
+          
+        setComments(commentsData || []);
+      } catch (err) {
+        console.error('Failed to fetch votes:', err);
       }
-    } catch (error) {
-      console.error('Error fetching vote stats:', error);
-    }
-  };
-
-  const fetchUserVote = async () => {
-    if (!agentVersionId) return;
+    };
     
+    fetchVotes();
+  }, [agentVersionId]);
+
+  const handleVote = async (voteType: VoteType) => {
     try {
+      setIsSubmitting(true);
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      if (!userData?.user) throw new Error('User not authenticated');
       
-      const { data: voteData, error: voteError } = await supabase
+      // Check if user already voted
+      const { data: existingVote } = await supabase
         .from('agent_votes')
-        .select('vote_type')
+        .select('*')
         .eq('agent_version_id', agentVersionId)
         .eq('user_id', userData.user.id)
-        .single();
+        .maybeSingle();
         
-      if (voteError && voteError.code !== 'PGRST116') {
-        // PGRST116 is "no rows returned" - not an error for us
-        console.error('Error fetching user vote:', voteError);
-        return;
-      }
-      
-      if (voteData) {
-        setUserVote(voteData.vote_type as VoteType);
+      if (existingVote) {
+        // If clicking same vote type, remove the vote
+        if (existingVote.vote_type === voteType) {
+          await supabase
+            .from('agent_votes')
+            .delete()
+            .eq('id', existingVote.id);
+            
+          setUserVote(null);
+          if (voteType === 'up') {
+            setUpvotes(prev => Math.max(0, prev - 1));
+          } else {
+            setDownvotes(prev => Math.max(0, prev - 1));
+          }
+        } else {
+          // Change vote type
+          await supabase
+            .from('agent_votes')
+            .update({ vote_type: voteType })
+            .eq('id', existingVote.id);
+            
+          setUserVote(voteType);
+          if (voteType === 'up') {
+            setUpvotes(prev => prev + 1);
+            setDownvotes(prev => Math.max(0, prev - 1));
+          } else {
+            setDownvotes(prev => prev + 1);
+            setUpvotes(prev => Math.max(0, prev - 1));
+          }
+        }
       } else {
-        setUserVote(null);
-      }
-    } catch (error) {
-      console.error('Error fetching user vote:', error);
-    }
-  };
-
-  const fetchComments = async () => {
-    if (!agentVersionId) return;
-    
-    try {
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('agent_votes')
-        .select('id, user_id, comment, created_at')
-        .eq('agent_version_id', agentVersionId)
-        .not('comment', 'is', null)
-        .order('created_at', { ascending: false });
-        
-      if (commentsError) throw commentsError;
-      
-      if (commentsData) {
-        setComments(commentsData.filter(c => c.comment) as any[]);
-      }
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-    }
-  };
-
-  const vote = async (voteType: VoteType) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to vote',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      // If already voted with the same vote type, remove vote
-      if (userVote === voteType) {
-        await removeVote();
-        return;
-      }
-      
-      // First, delete any existing vote
-      if (userVote) {
-        await supabase
-          .from('agent_votes')
-          .delete()
-          .eq('agent_version_id', agentVersionId)
-          .eq('user_id', userData.user.id);
-          
-        // Update stats
-        const adjustment = userVote === 'up' ? -1 : 1;
-        const column = userVote === 'up' ? 'upvotes' : 'downvotes';
-        
-        await supabase
-          .from('agent_versions')
-          .update({ [column]: voteStats[`${column}`] + adjustment })
-          .eq('id', agentVersionId);
-      }
-      
-      // Insert new vote
-      const { error: insertError } = await supabase
-        .from('agent_votes')
-        .insert({
+        // Create new vote
+        await supabase.from('agent_votes').insert({
           agent_version_id: agentVersionId,
           user_id: userData.user.id,
           vote_type: voteType
         });
         
-      if (insertError) throw insertError;
-      
-      // Update vote stats
-      const column = voteType === 'up' ? 'upvotes' : 'downvotes';
-      
-      await supabase
-        .from('agent_versions')
-        .update({ [column]: voteStats[`${column}`] + 1 })
-        .eq('id', agentVersionId);
-        
-      // Update local state
-      setUserVote(voteType);
-      setVoteStats(prev => ({
-        ...prev,
-        [column]: prev[column] + 1
-      }));
-      
-      toast({
-        title: 'Vote recorded',
-        description: `Your ${voteType === 'up' ? 'upvote' : 'downvote'} has been recorded.`,
-      });
-    } catch (error: any) {
-      console.error('Error voting:', error);
-      toast({
-        title: 'Failed to vote',
-        description: error.message || 'An error occurred while voting.',
-        variant: 'destructive',
-      });
+        setUserVote(voteType);
+        if (voteType === 'up') {
+          setUpvotes(prev => prev + 1);
+        } else {
+          setDownvotes(prev => prev + 1);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to submit vote:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const removeVote = async () => {
-    if (!userVote) return;
+  const handleUpvote = () => handleVote('up');
+  const handleDownvote = () => handleVote('down');
+  
+  const handleCommentSubmit = async (comment: string) => {
+    if (!comment.trim()) return;
     
     try {
+      setIsSubmitting(true);
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      if (!userData?.user) throw new Error('User not authenticated');
       
-      // Delete vote
-      const { error: deleteError } = await supabase
-        .from('agent_votes')
-        .delete()
-        .eq('agent_version_id', agentVersionId)
-        .eq('user_id', userData.user.id);
+      const { data, error } = await supabase
+        .from('agent_comments')
+        .insert({
+          agent_version_id: agentVersionId,
+          user_id: userData.user.id,
+          comment
+        })
+        .select('*')
+        .single();
         
-      if (deleteError) throw deleteError;
+      if (error) throw error;
       
-      // Update vote stats
-      const column = userVote === 'up' ? 'upvotes' : 'downvotes';
-      
-      await supabase
-        .from('agent_versions')
-        .update({ [column]: voteStats[`${column}`] - 1 })
-        .eq('id', agentVersionId);
-        
-      // Update local state
-      setUserVote(null);
-      setVoteStats(prev => ({
-        ...prev,
-        [column]: Math.max(0, prev[column] - 1)
-      }));
-      
-      toast({
-        title: 'Vote removed',
-        description: 'Your vote has been removed.',
-      });
-    } catch (error: any) {
-      console.error('Error removing vote:', error);
-      toast({
-        title: 'Failed to remove vote',
-        description: error.message || 'An error occurred while removing your vote.',
-        variant: 'destructive',
-      });
+      setComments(prev => [data, ...prev]);
+    } catch (err) {
+      console.error('Failed to submit comment:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const upvote = () => vote('up');
-  const downvote = () => vote('down');
-
-  const addComment = async (comment: string): Promise<boolean> => {
-    if (!comment.trim()) return false;
-    
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to comment',
-          variant: 'destructive'
-        });
-        return false;
-      }
-      
-      // Check if user has already voted
-      let hasVoted = !!userVote;
-      
-      if (!hasVoted) {
-        // Create a default upvote along with the comment
-        const { error: voteError } = await supabase
-          .from('agent_votes')
-          .insert({
-            agent_version_id: agentVersionId,
-            user_id: userData.user.id,
-            vote_type: 'up',
-            comment
-          });
-          
-        if (voteError) throw voteError;
-        
-        // Update vote stats
-        await supabase
-          .from('agent_versions')
-          .update({ upvotes: voteStats.upvotes + 1 })
-          .eq('id', agentVersionId);
-          
-        // Update local state
-        setUserVote('up');
-        setVoteStats(prev => ({
-          ...prev,
-          upvotes: prev.upvotes + 1
-        }));
-      } else {
-        // Update existing vote with comment
-        const { error: updateError } = await supabase
-          .from('agent_votes')
-          .update({ comment })
-          .eq('agent_version_id', agentVersionId)
-          .eq('user_id', userData.user.id);
-          
-        if (updateError) throw updateError;
-      }
-      
-      // Refresh comments
-      await fetchComments();
-      
-      toast({
-        title: 'Comment added',
-        description: 'Your feedback has been recorded.',
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error adding comment:', error);
-      toast({
-        title: 'Failed to add comment',
-        description: error.message || 'An error occurred while adding your comment.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    if (agentVersionId) {
-      const loadData = async () => {
-        setIsLoading(true);
-        await Promise.all([
-          fetchUserVote(),
-          fetchVoteStats(),
-          fetchComments()
-        ]);
-        setIsLoading(false);
-      };
-      
-      loadData();
-    }
-  }, [agentVersionId]);
-
+  
   return {
+    upvotes,
+    downvotes,
     userVote,
-    voteStats,
-    upvote,
-    downvote,
-    removeVote,
-    addComment,
     comments,
-    isLoading
+    isSubmitting,
+    handleUpvote,
+    handleDownvote,
+    handleCommentSubmit
   };
 };
 
