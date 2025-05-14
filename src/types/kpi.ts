@@ -1,32 +1,20 @@
 
-import { TrendDirection } from './shared';
-
-// KPI related types
-export interface KPI {
-  id: string;
-  name: string;
-  category?: string;
-  value: number;
-  previous_value?: number;
-  unit?: string;
-  target?: number;
-  date: string;
-  tenant_id?: string;
-  source?: string;
-  updated_at: string;
-  created_at: string;
-}
-
-// Aligning with shared KPITrend interface
-export interface KPITrend {
-  id?: string;
+export interface KpiTrend {
   name: string;
   value: number;
   previousValue?: number;
   change?: number;
-  changePercent?: number;
+  changePercentage?: number;
+  history?: number[];
+  months?: string[];
+}
+
+export type TrendDirection = 'up' | 'down' | 'flat' | 'none';
+
+export interface KpiInsight {
+  kpiName: string;
+  message: string;
   direction: TrendDirection;
-  trend?: 'increasing' | 'decreasing' | 'stable';
-  unit?: string;
-  target?: number;
+  priority: 'low' | 'medium' | 'high';
+  changePercentage?: number;
 }

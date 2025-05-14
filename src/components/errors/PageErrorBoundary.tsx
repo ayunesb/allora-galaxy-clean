@@ -6,35 +6,27 @@ import ErrorFallback from './ErrorFallback';
 interface PageErrorBoundaryProps {
   children: React.ReactNode;
   tenantId?: string;
-  module?: string;
 }
 
 /**
- * Specialized error boundary for page-level errors
- * Shows a user-friendly error page with navigation options
+ * Error boundary specifically designed for page-level errors
+ * Includes more prominent UI and potential recovery options
  */
 const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({ 
   children, 
-  tenantId = 'system',
-  module = 'page'
+  tenantId = 'system' 
 }) => {
   return (
     <ErrorBoundary
       level="page"
+      module="ui"
       tenantId={tenantId}
-      module={module}
       fallback={(error, resetError) => (
-        <ErrorFallback
+        <ErrorFallback 
           error={error}
           resetErrorBoundary={resetError}
-          level="page"
-          tenantId={tenantId}
-          showHeader={true}
-          showReport={true}
-          showHomeButton={true}
-          showRetry={true}
-          title="We encountered a problem"
-          description="Sorry, something went wrong while loading this page. You can try refreshing or return to the dashboard."
+          supportEmail="support@alloraos.com"
+          tenant_id={tenantId}
         />
       )}
     >

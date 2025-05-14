@@ -16,17 +16,22 @@ export {
 
 // Export hooks
 export { useErrorHandler, withErrorHandling } from './useErrorHandler';
-export { useDataFetching } from './useDataFetching';
+export { useDataFetching, useStableFetching } from './useDataFetching';
 
 // Export utilities
-export { withRetry, createRetryableFunction } from './retryUtils';
+export { 
+  withRetry, 
+  createRetryableFunction, 
+  getCircuitBreakerStatus,
+  resetCircuitBreaker 
+} from './retryUtils';
 
-// Export components
-export { default as ErrorBoundary, withErrorBoundary } from '../components/errors/ErrorBoundary';
-export { default as ErrorFallback } from '../components/errors/ErrorFallback';
-export { default as PageErrorBoundary } from '../components/errors/PageErrorBoundary';
-export { default as ErrorState } from '../components/ui/error-state';
-export { default as AsyncButton } from '../components/ui/async-button';
+// Export components - move these from direct imports to re-exported components
+export { default as ErrorBoundary } from '@/components/errors/ErrorBoundary';
+export { default as ErrorFallback } from '@/components/errors/ErrorFallback';
+export { default as PageErrorBoundary } from '@/components/errors/PageErrorBoundary';
+export { default as ErrorState } from '@/components/ui/error-state';
+export { default as AsyncButton } from '@/components/ui/async-button';
 
 // Re-export BetterToast for convenience
 export { 

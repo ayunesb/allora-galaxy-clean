@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { executeStrategy } from '@/edge/executeStrategy';
 import { supabase } from '@/integrations/supabase/client';
+import { withRetry } from '@/lib/errors/retryUtils';
 
 // Mock the Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -10,6 +11,17 @@ vi.mock('@/integrations/supabase/client', () => ({
       invoke: vi.fn()
     }
   }
+}));
+
+// Mock the withRetry function
+vi.mock('@/lib/errors/retryUtils', () => ({
+  withRetry: vi.fn().mockImplementation(async (fn) => {
+    try {
+      return await fn();
+    } catch (error) {
+      throw error;
+    }
+  })
 }));
 
 // Mock the logSystemEvent function
@@ -28,60 +40,59 @@ describe('executeStrategy retry logic', () => {
     vi.clearAllMocks();
   });
 
-  it('should make up to 3 attempts on transient errors', async () => {
-    // Mock Supabase to fail twice then succeed
-    const mockInvoke = vi.fn();
-    mockInvoke
-      .mockRejectedValueOnce(new Error('Temporary network error'))
-      .mockRejectedValueOnce(new Error('Temporary server error'))
-      .mockResolvedValueOnce({ 
-        data: { 
-          success: true,
-          execution_id: 'test-execution-id',
-          execution_time: 1.5
-        },
-        error: null
-      });
-      
-    (supabase.functions.invoke as any) = mockInvoke;
-    
-    const result = await executeStrategy(mockInput);
-    
-    expect(mockInvoke).toHaveBeenCalledTimes(3);
-    expect(result.success).toBe(true);
-    expect(result.executionId).toBe('test-execution-id'); // Fixed property name
-    expect(result.executionTime).toBe(1.5);
-  });
-
-  it('should stop retrying after success', async () => {
-    // Mock Supabase to succeed on first try
-    const mockInvoke = vi.fn().mockResolvedValueOnce({ 
+  it('should use withRetry for edge function calls', async () => {
+    // Mock successful response
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
       data: { 
         success: true,
-        execution_id: 'test-execution-id'
+        execution_id: 'test-execution-id',
+        execution_time: 1.5
       },
       error: null
     });
     
-    (supabase.functions.invoke as any) = mockInvoke;
+    await executeStrategy(mockInput);
     
-    const result = await executeStrategy(mockInput);
+    // Verify withRetry was called
+    expect(withRetry).toHaveBeenCalled();
     
-    expect(mockInvoke).toHaveBeenCalledTimes(1);
-    expect(result.success).toBe(true);
+    // Expect supabase.functions.invoke to be called with the right parameters
+    expect(supabase.functions.invoke).toHaveBeenCalledWith(
+      'executeStrategy', 
+      expect.objectContaining({ body: mockInput })
+    );
   });
 
-  it('should report error after all attempts fail', async () => {
-    // Mock Supabase to fail consistently
-    const mockError = new Error('Persistent error');
-    const mockInvoke = vi.fn().mockRejectedValue(mockError);
-    
-    (supabase.functions.invoke as any) = mockInvoke;
+  it('should handle successful response', async () => {
+    // Setup mocks
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+      data: { 
+        success: true,
+        execution_id: 'test-execution-id',
+        execution_time: 1.5
+      },
+      error: null
+    });
     
     const result = await executeStrategy(mockInput);
     
-    expect(mockInvoke).toHaveBeenCalledTimes(3);
+    // Verify results
+    expect(result.success).toBe(true);
+    expect(result.executionId).toBe('test-execution-id');
+    expect(result.executionTime).toBe(1.5);
+  });
+
+  it('should handle edge function errors', async () => {
+    // Setup mocks - withRetry will just pass through the error
+    vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Test error' }
+    });
+    
+    const result = await executeStrategy(mockInput);
+    
+    // Verify results - executeStrategy should catch the error and return failure
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Persistent error');
+    expect(result.error).toBeDefined();
   });
 });

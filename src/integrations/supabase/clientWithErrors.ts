@@ -3,6 +3,12 @@ import { supabase } from './client';
 import { handleSupabaseError } from '@/lib/errors/ErrorHandler';
 import { withRetry } from '@/lib/errors/retryUtils';
 
+type FunctionInvokeOptions = {
+  body?: object;
+  headers?: Record<string, string>;
+  method?: 'POST' | 'GET' | 'PUT' | 'DELETE' | 'PATCH';
+};
+
 /**
  * Create a wrapper around Supabase client with built-in error handling
  */
@@ -184,16 +190,18 @@ export const supabaseWithErrorHandling = {
       options?: {
         body?: object;
         headers?: Record<string, string>;
-        method?: 'POST' | 'GET' | 'PUT' | 'DELETE' | 'PATCH' | 'OPTIONS';
+        method?: 'POST' | 'GET' | 'PUT' | 'DELETE' | 'PATCH';
         maxRetries?: number;
       }
     ) => {
+      const { maxRetries, ...supabaseOptions } = options || {};
+      
       try {
         return await withRetry(
           async () => {
             const { data, error } = await supabase.functions.invoke(
               functionName,
-              options
+              supabaseOptions as FunctionInvokeOptions
             );
             
             if (error) {
@@ -203,9 +211,10 @@ export const supabaseWithErrorHandling = {
             return { data, error: null };
           },
           {
-            maxRetries: options?.maxRetries || 3,
+            maxRetries: maxRetries || 3,
             context: { functionName, options },
             module: 'edge',
+            tenantId: 'system'
           }
         );
       } catch (error) {

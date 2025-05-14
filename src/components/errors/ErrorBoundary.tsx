@@ -95,7 +95,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           error={error}
           errorInfo={errorInfo}
           resetErrorBoundary={this.resetError}
-          tenantId={this.props.tenantId}
+          tenant_id={this.props.tenantId}
         />
       );
     }
