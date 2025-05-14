@@ -1,14 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ErrorState from '@/components/ui/error-state';
 import CardErrorState from '@/components/errors/CardErrorState';
 import { EmptyState, NoDataEmptyState, FilterEmptyState } from '@/components/errors/EmptyStates';
 import PartialErrorState from '@/components/errors/PartialErrorState';
-import EdgeFunctionErrorPatterns from '@/examples/edge-error-handling/EdgeFunctionErrorPatterns';
-import RetryMechanismExample from '@/examples/edge-error-handling/RetryMechanismExample';
-import CustomErrorBoundaryExample from '@/examples/edge-error-handling/CustomErrorBoundaryExample';
+import { RetryMechanismExample, CustomErrorBoundaryExample, EdgeFunctionErrorPatterns } from '@/examples/edge-error-handling';
 
 // Examples of various error states in the application
 const ErrorStateExamples: React.FC = () => {
@@ -58,20 +55,20 @@ const ErrorStateExamples: React.FC = () => {
           <EmptyState
             title="No Items"
             description="No items have been added yet."
-            action={() => alert('Add item clicked')}
             actionText="Add Item"
+            action={() => alert('Add item clicked')}
           />
           
           {/* No Data Empty State */}
           <NoDataEmptyState
             message="No data is currently available for display."
-            action={() => alert('Refresh clicked')}
             actionText="Refresh"
+            action={() => alert('Refresh clicked')}
           />
           
           {/* Filter Empty State */}
           <FilterEmptyState
-            onClear={() => alert('Reset filters clicked')}
+            resetFilters={() => alert('Reset filters clicked')}
             customMessage="No results match your current filters."
           />
         </div>

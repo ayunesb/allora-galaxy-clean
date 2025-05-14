@@ -1,80 +1,59 @@
 
 import React from 'react';
-import { AlertTriangle, Loader2, RefreshCcw } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { RotateCw } from 'lucide-react';
 
 interface RetryFeedbackProps {
   retryCount: number;
   maxRetries: number;
   isRetrying: boolean;
-  onRetry?: () => void;
+  onRetry: () => void;
   className?: string;
-  showProgress?: boolean;
-  showButton?: boolean;
-  message?: string;
 }
 
 /**
- * Component to show retry feedback to users during automatic retries
+ * A component that shows retry status and controls for async operations
  */
 const RetryFeedback: React.FC<RetryFeedbackProps> = ({
   retryCount,
   maxRetries,
   isRetrying,
   onRetry,
-  className,
-  showProgress = true,
-  showButton = true,
-  message
+  className
 }) => {
-  if (retryCount === 0 && !isRetrying) {
-    return null;
-  }
+  const attemptsText = retryCount === 1 ? 'attempt' : 'attempts';
+  const retriesLeft = maxRetries - retryCount;
+  const retriesText = retriesLeft === 1 ? 'retry' : 'retries';
   
-  const progress = (retryCount / maxRetries) * 100;
-
   return (
-    <div className={cn(
-      "flex flex-col gap-2 p-2 rounded-md border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800 text-sm",
-      className
-    )}>
-      <div className="flex items-center gap-2">
-        {isRetrying ? (
-          <Loader2 className="h-4 w-4 text-orange-600 dark:text-orange-400 animate-spin" />
-        ) : (
-          <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-        )}
-        <span className="text-orange-800 dark:text-orange-300">
-          {message || (
-            isRetrying 
-              ? `Retrying (${retryCount}/${maxRetries})...` 
-              : `Retried ${retryCount} time${retryCount !== 1 ? 's' : ''}`
+    <div className={`bg-muted p-2.5 rounded-md text-xs ${className}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          {isRetrying ? (
+            <>
+              <RotateCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+              <span>Retrying...</span>
+            </>
+          ) : (
+            <span>
+              {retryCount} {attemptsText} made. {retriesLeft} {retriesText} left.
+            </span>
           )}
-        </span>
+        </div>
+        
+        {!isRetrying && retriesLeft > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs px-2 py-0"
+            onClick={onRetry}
+            disabled={isRetrying}
+          >
+            <RotateCw className="h-3 w-3 mr-1" />
+            Retry Now
+          </Button>
+        )}
       </div>
-      
-      {showProgress && isRetrying && (
-        <Progress value={progress} className="h-1 bg-orange-200 dark:bg-orange-800">
-          <div 
-            className="h-full bg-orange-500 dark:bg-orange-400"
-            style={{ width: `${progress}%` }}
-          />
-        </Progress>
-      )}
-      
-      {showButton && onRetry && !isRetrying && (
-        <button
-          onClick={onRetry}
-          className="flex items-center justify-center gap-1 py-1 px-3 text-xs 
-            rounded-sm bg-orange-100 dark:bg-orange-900 hover:bg-orange-200 
-            dark:hover:bg-orange-800 text-orange-800 dark:text-orange-300
-            transition-colors"
-        >
-          <RefreshCcw className="h-3 w-3" />
-          Retry manually
-        </button>
-      )}
     </div>
   );
 };

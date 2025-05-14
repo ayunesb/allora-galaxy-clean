@@ -41,8 +41,8 @@ export function ErrorFallback({
 
   const handleReportError = () => {
     toast({
-      title: "Error Reported",
-      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`
+      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
+      title: "Error Reported"
     });
   };
 

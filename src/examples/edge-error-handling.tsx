@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEdgeFunction } from '@/hooks/useEdgeFunction';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorHandler';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,6 +21,7 @@ export default function EdgeErrorHandlingExamples() {
     isLoading, 
     retry 
   } = useEdgeFunction(async (params) => {
+    // Return the raw response
     return await supabase.functions.invoke('example-with-validation', { 
       body: params 
     });
@@ -56,14 +56,14 @@ export default function EdgeErrorHandlingExamples() {
       }
       
       toast({
-        title: 'Success',
-        description: 'Request processed successfully'
+        title: "Success",
+        description: "Request processed successfully"
       });
     } catch (err: any) {
       toast({
-        variant: 'destructive',
-        title: 'Validation Error',
-        description: err.message || 'Invalid request data'
+        variant: "destructive",
+        title: "Validation Error",
+        description: err.message || "Invalid request data"
       });
     }
   };
@@ -82,9 +82,9 @@ export default function EdgeErrorHandlingExamples() {
       }
     } catch (err: any) {
       toast({
-        variant: 'destructive',
-        title: 'Not Found Error',
-        description: err.message || 'Resource not found'
+        variant: "destructive",
+        title: "Not Found Error",
+        description: err.message || "Resource not found"
       });
     }
   };
@@ -190,9 +190,9 @@ export default function EdgeErrorHandlingExamples() {
                     .then(() => {})
                     .catch(err => {
                       toast({
-                        variant: 'destructive',
-                        title: 'Function Not Found',
-                        description: err.message || 'Function does not exist'
+                        variant: "destructive",
+                        title: "Function Not Found",
+                        description: err.message || "Function does not exist"
                       });
                     });
                 }}

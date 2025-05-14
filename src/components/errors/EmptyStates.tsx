@@ -1,68 +1,36 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Search } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Search, AlertCircle, Filter, Package, XCircle, Inbox } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export interface EmptyStateProps {
+interface EmptyStateBaseProps {
+  className?: string;
+  action?: () => void;
+  actionText?: string;
+}
+
+interface EmptyStateProps extends EmptyStateBaseProps {
   title: string;
   description: string;
-  action?: () => void;
-  actionText?: string;
   icon?: React.ReactNode;
-  className?: string;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
-  title,
-  description,
-  action,
-  actionText = 'Add New',
+export const EmptyState: React.FC<EmptyStateProps> = ({ 
+  title, 
+  description, 
   icon,
-  className = '',
-}) => {
-  return (
-    <Card className={`flex flex-col items-center text-center p-6 ${className}`}>
-      <div className="bg-muted rounded-full p-3 mb-4">
-        {icon || <AlertCircle className="h-6 w-6 text-muted-foreground" />}
-      </div>
-      <CardHeader className="pb-2 pt-0">
-        <CardTitle className="text-xl">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4">
-        <p className="text-muted-foreground">{description}</p>
-      </CardContent>
-      {action && (
-        <CardFooter className="pt-0">
-          <Button onClick={action}>{actionText}</Button>
-        </CardFooter>
-      )}
-    </Card>
-  );
-};
-
-export interface NoDataEmptyStateProps {
-  message: string;
-  action?: () => void;
-  actionText?: string;
-  className?: string;
-}
-
-export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
-  message,
   action,
-  actionText = 'Refresh',
-  className = '',
+  actionText,
+  className
 }) => {
   return (
-    <div className={`p-8 text-center ${className}`}>
-      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-        <AlertCircle className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <h4 className="text-lg font-medium mb-2">No data available</h4>
-      <p className="text-muted-foreground mb-4">{message}</p>
-      {action && (
-        <Button variant="outline" size="sm" onClick={action}>
+    <div className={cn("flex flex-col items-center justify-center py-8 px-4 text-center border border-dashed rounded-lg", className)}>
+      {icon && <div className="text-muted-foreground mb-4">{icon}</div>}
+      <h3 className="text-lg font-medium mb-2">{title}</h3>
+      <p className="text-muted-foreground text-center max-w-md mb-4">{description}</p>
+      {action && actionText && (
+        <Button onClick={action} variant="outline" size="sm">
           {actionText}
         </Button>
       )}
@@ -70,64 +38,79 @@ export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
   );
 };
 
-export interface NoSearchResultsEmptyStateProps {
+interface NoDataEmptyStateProps extends EmptyStateBaseProps {
+  message?: string;
+}
+
+export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
+  message = "No data available",
+  action,
+  actionText,
+  className,
+}) => {
+  return (
+    <EmptyState
+      title="No Data Available"
+      description={message}
+      icon={<Package className="h-12 w-12 opacity-20" />}
+      action={action}
+      actionText={actionText}
+      className={className}
+    />
+  );
+};
+
+interface NoSearchResultsEmptyStateProps {
   searchTerm: string;
-  onReset: () => void;
+  resetSearch?: () => void;
   className?: string;
 }
 
 export const NoSearchResultsEmptyState: React.FC<NoSearchResultsEmptyStateProps> = ({
   searchTerm,
-  onReset,
-  className = '',
+  resetSearch,
+  className,
 }) => {
   return (
-    <div className={`p-8 text-center ${className}`}>
-      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Search className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <h4 className="text-lg font-medium mb-2">No results found</h4>
-      <p className="text-muted-foreground mb-4">
-        No results found for "<strong>{searchTerm}</strong>"
-      </p>
-      <Button variant="outline" size="sm" onClick={onReset}>
-        Clear search
-      </Button>
-    </div>
+    <EmptyState
+      title="No Results Found"
+      description={`No results found for "${searchTerm}". Try adjusting your search term.`}
+      icon={<Search className="h-12 w-12 opacity-20" />}
+      action={resetSearch}
+      actionText={resetSearch ? "Clear Search" : undefined}
+      className={className}
+    />
   );
 };
 
-export interface FilterEmptyStateProps {
-  onClear: () => void;
+interface FilterEmptyStateProps {
+  resetFilters: () => void;
   customMessage?: string;
   className?: string;
+  filterCount?: number;
 }
 
 export const FilterEmptyState: React.FC<FilterEmptyStateProps> = ({
-  onClear,
-  customMessage = 'No results match your current filters',
-  className = '',
+  resetFilters,
+  customMessage,
+  className,
+  filterCount = 0,
 }) => {
   return (
-    <div className={`p-8 text-center ${className}`}>
-      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-        <AlertCircle className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <h4 className="text-lg font-medium mb-2">No matching results</h4>
-      <p className="text-muted-foreground mb-4">{customMessage}</p>
-      <Button variant="outline" size="sm" onClick={onClear}>
-        Reset filters
-      </Button>
-    </div>
+    <EmptyState
+      title="No Matching Results"
+      description={customMessage || `No items match your current filters${filterCount ? ` (${filterCount} active)` : ''}.`}
+      icon={<Filter className="h-12 w-12 opacity-20" />}
+      action={resetFilters}
+      actionText="Reset Filters"
+      className={className}
+    />
   );
 };
 
-export interface CardEmptyStateProps {
+interface CardEmptyStateProps extends EmptyStateBaseProps {
   title: string;
-  message: string;
-  action?: () => void;
-  actionText?: string;
-  className?: string;
+  message?: string;
 }
 
 export const CardEmptyState: React.FC<CardEmptyStateProps> = ({
@@ -135,17 +118,17 @@ export const CardEmptyState: React.FC<CardEmptyStateProps> = ({
   message,
   action,
   actionText,
-  className = '',
+  className,
 }) => {
   return (
-    <div className={`flex flex-col items-center text-center py-8 px-4 ${className}`}>
-      <div className="bg-muted rounded-full p-3 mb-4">
-        <AlertCircle className="h-6 w-6 text-muted-foreground" />
+    <div className={cn("flex flex-col items-center justify-center p-6 bg-muted/10 border rounded-lg", className)}>
+      <div className="text-muted-foreground mb-2">
+        <XCircle className="h-8 w-8 opacity-30" />
       </div>
-      <h3 className="text-lg font-medium mb-1">{title}</h3>
-      <p className="text-muted-foreground mb-4 max-w-md">{message}</p>
-      {action && (
-        <Button variant="outline" size="sm" onClick={action}>
+      <h4 className="font-medium mb-1">{title}</h4>
+      {message && <p className="text-sm text-muted-foreground text-center mb-3">{message}</p>}
+      {action && actionText && (
+        <Button onClick={action} variant="outline" size="sm">
           {actionText}
         </Button>
       )}
@@ -153,24 +136,25 @@ export const CardEmptyState: React.FC<CardEmptyStateProps> = ({
   );
 };
 
-export interface EmptyListStateProps {
-  message: string;
-  action?: () => void;
-  actionText?: string;
-  className?: string;
+interface EmptyListStateProps extends EmptyStateBaseProps {
+  title: string;
+  message?: string;
 }
 
 export const EmptyListState: React.FC<EmptyListStateProps> = ({
+  title,
   message,
   action,
   actionText,
-  className = '',
+  className,
 }) => {
   return (
-    <div className={`py-12 px-4 text-center border rounded-lg bg-muted/10 ${className}`}>
-      <p className="text-muted-foreground mb-4">{message}</p>
+    <div className={cn("flex flex-col items-center justify-center py-6 px-4 border border-dashed rounded-md", className)}>
+      <Inbox className="h-8 w-8 text-muted-foreground opacity-50 mb-2" />
+      <h4 className="font-medium mb-1">{title}</h4>
+      {message && <p className="text-sm text-muted-foreground text-center mb-3">{message}</p>}
       {action && actionText && (
-        <Button variant="outline" size="sm" onClick={action}>
+        <Button onClick={action} size="sm" variant="outline">
           {actionText}
         </Button>
       )}

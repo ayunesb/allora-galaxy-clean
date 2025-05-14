@@ -92,8 +92,8 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
       );
       
       toast({
-        title: 'Invitation sent',
         description: `An invitation has been sent to ${values.email}`,
+        title: "Invitation sent"
       });
       
       form.reset();
@@ -106,9 +106,9 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
     } catch (error: any) {
       console.error('Error inviting user:', error);
       toast({
-        title: 'Failed to invite user',
         description: error.message,
-        variant: 'destructive',
+        title: "Failed to invite user",
+        variant: "destructive"
       });
     }
   };

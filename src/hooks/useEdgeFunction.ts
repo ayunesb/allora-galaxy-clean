@@ -35,7 +35,7 @@ interface UseEdgeFunctionReturn<T = any, P = any> extends UseEdgeFunctionState<T
  * Hook for calling edge functions with standardized error handling
  */
 export function useEdgeFunction<T = any, P = any>(
-  fetcher: (params?: P) => Promise<Response>,
+  fetcher: (params?: P) => Promise<any>,
   options: UseEdgeFunctionOptions = {}
 ): UseEdgeFunctionReturn<T, P> {
   const [state, setState] = useState<UseEdgeFunctionState<T>>({
@@ -69,7 +69,15 @@ export function useEdgeFunction<T = any, P = any>(
     
     try {
       const response = await fetcher(params);
-      const result = await processEdgeResponse<T>(response);
+      // Handle different response types
+      let result: T;
+      
+      if (response instanceof Response) {
+        result = await processEdgeResponse<T>(response);
+      } else {
+        // Handle Supabase FunctionsResponse or direct data
+        result = response.data || response;
+      }
       
       setState({
         data: result,

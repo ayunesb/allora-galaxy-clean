@@ -48,13 +48,7 @@ export const AsyncField = React.forwardRef<HTMLDivElement, AsyncFieldProps>(
           </div>
         )}
         <FormControl>
-          {React.isValidElement(children)
-            ? React.cloneElement(children, { 
-                id: name, 
-                disabled: loading || validating,
-                "aria-busy": validating 
-              })
-            : children}
+          {React.isValidElement(children) ? children : <span>{children}</span>}
         </FormControl>
         {description && <FormDescription>{description}</FormDescription>}
         <FormMessage />

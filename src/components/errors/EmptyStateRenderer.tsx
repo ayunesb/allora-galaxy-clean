@@ -50,7 +50,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
       return (
         <NoDataEmptyState
           {...commonProps}
-          message={customMessage}
+          message={customMessage || "No data available"}
         />
       );
 
@@ -58,7 +58,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
       return (
         <NoSearchResultsEmptyState
           searchTerm={searchTerm}
-          onClear={onClear}
+          resetSearch={onClear}
           className={className}
         />
       );
@@ -66,7 +66,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
     case 'filter':
       return (
         <FilterEmptyState
-          onClear={onClear}
+          resetFilters={onClear || (() => {})}
           customMessage={customMessage}
           className={className}
           filterCount={filterCount}
@@ -77,7 +77,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
       return (
         <CardEmptyState
           title={title || "No Data"}
-          message={customMessage}
+          message={customMessage || "No data available"}
           className={className}
           action={action}
           actionText={actionText}
@@ -88,7 +88,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
       return (
         <EmptyListState
           title={title || "No Items"}
-          message={customMessage}
+          message={customMessage || "No items available"}
           className={className}
           action={action}
           actionText={actionText}
@@ -99,10 +99,10 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
       return (
         <EmptyState
           title={title || "No Content"}
-          description={description || customMessage}
+          description={description || customMessage || "No content available"}
           icon={icon}
-          action={action}
           actionText={actionText}
+          action={action}
           className={className}
         />
       );

@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { NoDataEmptyState } from '@/components/errors/EmptyStates';
 import ErrorState from '@/components/ui/error-state';
 
@@ -72,7 +71,7 @@ export function AsyncDataRenderer<T>({
     }
     return (
       <NoDataEmptyState
-        message={emptyMessage}
+        message={emptyMessage || "No data available"}
         action={onRetry}
         actionText={onRetry ? "Refresh" : undefined}
       />
@@ -132,14 +131,12 @@ export function PartialDataRenderer<T>({
               <p className="font-medium text-destructive">Error</p>
               <p className="text-destructive/80">{error.message}</p>
               {onRetry && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <button 
+                  className="mt-2 text-xs underline hover:no-underline"
                   onClick={onRetry}
-                  className="mt-2"
                 >
                   Retry
-                </Button>
+                </button>
               )}
             </div>
           )}
