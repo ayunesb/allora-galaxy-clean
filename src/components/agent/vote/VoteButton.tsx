@@ -1,94 +1,68 @@
 
-import React from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { VoteType } from '@/types/shared';
-import { useAgentVote } from './useAgentVote';
+import { Button } from "@/components/ui/button";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { VoteType } from "@/lib/agents/voting/types";
 
 interface VoteButtonProps {
-  agentVersionId: string;
-  userVote?: VoteType | null;
-  upvotes?: number;
-  downvotes?: number;
+  type: 'up' | 'down';
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  loading?: boolean;
   size?: 'sm' | 'md' | 'lg';
-  onVoteChange?: (voteType: VoteType, success: boolean) => void;
   disabled?: boolean;
-  showCounts?: boolean;
-  className?: string;
 }
 
 export function VoteButton({
-  agentVersionId,
-  userVote,
-  upvotes = 0,
-  downvotes = 0,
+  type,
+  count,
+  active,
+  onClick,
+  loading = false,
   size = 'md',
-  onVoteChange,
-  disabled = false,
-  showCounts = true,
-  className,
+  disabled = false
 }: VoteButtonProps) {
-  const { castVote, isLoading } = useAgentVote(agentVersionId);
+  const isUpvote = type === 'up';
   
   const sizeClasses = {
-    sm: 'h-8 text-xs',
-    md: 'h-9 text-sm',
-    lg: 'h-10 text-base'
+    sm: 'text-xs p-1',
+    md: 'text-sm p-2',
+    lg: 'text-base p-3'
   };
   
-  const iconSizes = {
-    sm: 14,
-    md: 16,
-    lg: 18
-  };
-  
-  const handleVote = async (voteType: VoteType) => {
-    if (disabled || isLoading) return;
-    
-    const result = await castVote(voteType);
-    if (onVoteChange) {
-      onVoteChange(voteType, result.success);
-    }
-  };
-
   return (
-    <div className={cn("flex items-center space-x-1", className)}>
-      <Button
-        variant={userVote === VoteType.Up ? "default" : "outline"}
-        size="icon"
-        className={cn(
-          sizeClasses[size],
-          "rounded-r-none border-r-0",
-          userVote === VoteType.Up && "bg-green-500 hover:bg-green-600"
-        )}
-        disabled={disabled || isLoading}
-        onClick={() => handleVote(VoteType.Up)}
-        title="Upvote"
-      >
-        <ThumbsUp size={iconSizes[size]} />
-        {showCounts && (
-          <span className="ml-1">{upvotes}</span>
-        )}
-      </Button>
-      
-      <Button
-        variant={userVote === VoteType.Down ? "default" : "outline"}
-        size="icon"
-        className={cn(
-          sizeClasses[size],
-          "rounded-l-none",
-          userVote === VoteType.Down && "bg-red-500 hover:bg-red-600"
-        )}
-        disabled={disabled || isLoading}
-        onClick={() => handleVote(VoteType.Down)}
-        title="Downvote"
-      >
-        <ThumbsDown size={iconSizes[size]} />
-        {showCounts && (
-          <span className="ml-1">{downvotes}</span>
-        )}
-      </Button>
-    </div>
+    <Button
+      variant={active ? "default" : "outline"}
+      size="sm"
+      className={cn(
+        "flex items-center gap-1",
+        sizeClasses[size],
+        active && (isUpvote ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700")
+      )}
+      onClick={onClick}
+      disabled={disabled || loading}
+    >
+      {isUpvote ? (
+        <ThumbsUp 
+          size={size === 'sm' ? 14 : size === 'md' ? 16 : 20} 
+          className={cn(
+            active && "text-white",
+            loading && "animate-pulse"
+          )} 
+        />
+      ) : (
+        <ThumbsDown 
+          size={size === 'sm' ? 14 : size === 'md' ? 16 : 20} 
+          className={cn(
+            active && "text-white",
+            loading && "animate-pulse"
+          )} 
+        />
+      )}
+      <span className={cn(active && "text-white")}>
+        {loading ? "..." : count}
+      </span>
+    </Button>
   );
 }

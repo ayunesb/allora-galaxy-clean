@@ -1,96 +1,65 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { CommentSectionProps } from './types';
-import { formatDistanceToNow } from 'date-fns';
-import { Comment } from '@/types/shared';
+import { Card, CardContent } from '@/components/ui/card';
 
-const CommentSection: React.FC<CommentSectionProps> = ({
-  agentVersionId,
-  comments = [],
-  onAddComment,
-  loading = false,
-  maxHeight = '400px'
-}) => {
-  const [commentText, setCommentText] = useState('');
+interface CommentSectionProps {
+  agentVersionId: string;
+  onSubmitComment: (comment: string) => void;
+}
+
+export function CommentSection({ agentVersionId, onSubmitComment }: CommentSectionProps) {
+  const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim() || !onAddComment) return;
-
+  
+  const handleSubmit = async () => {
+    if (!comment.trim()) return;
+    
     setIsSubmitting(true);
     try {
-      await onAddComment(commentText);
-      setCommentText('');
-    } catch (error) {
-      console.error('Failed to add comment:', error);
+      await onSubmitComment(comment.trim());
+      setComment('');
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <div className="space-y-4 w-full">
-      <h3 className="text-lg font-medium">Comments</h3>
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium">Leave feedback</h3>
       
-      <form onSubmit={handleSubmit} className="space-y-2">
-        <Textarea
-          placeholder="Add your comment..."
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          className="min-h-[80px]"
-          disabled={isSubmitting}
-        />
-        <div className="flex justify-end">
-          <Button 
-            type="submit" 
-            disabled={!commentText.trim() || isSubmitting}
-            size="sm"
-          >
-            {isSubmitting ? 'Posting...' : 'Post Comment'}
-          </Button>
-        </div>
-      </form>
+      <Textarea
+        placeholder="Share your thoughts about this agent version..."
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={3}
+        className="resize-none"
+      />
       
-      <div 
-        className="space-y-4 mt-4 overflow-y-auto" 
-        style={{ maxHeight }}
-      >
-        {loading ? (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin h-6 w-6 border-t-2 border-primary rounded-full" />
-          </div>
-        ) : comments.length > 0 ? (
-          comments.map((comment) => (
-            <div key={comment.id} className="border rounded-md p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={`https://avatar.vercel.sh/${comment.user?.id || 'user'}?size=32`} />
-                  <AvatarFallback>
-                    {comment.user?.first_name?.[0] || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-medium text-sm">
-                  {comment.user?.first_name || 'Anonymous'}
-                </span>
-                <span className="text-muted-foreground text-xs">
-                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                </span>
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleSubmit} 
+          disabled={!comment.trim() || isSubmitting}
+          size="sm"
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+        </Button>
+      </div>
+      
+      {/* Future enhancement: Display existing comments */}
+      <div className="mt-4 space-y-2">
+        {/* {comments.map(comment => (
+          <Card key={comment.id}>
+            <CardContent className="p-3">
+              <p className="text-sm">{comment.text}</p>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-muted-foreground">By {comment.user}</span>
+                <span className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</span>
               </div>
-              <p className="text-sm">{comment.content}</p>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-muted-foreground text-sm py-4">
-            No comments yet. Be the first to share your thoughts!
-          </p>
-        )}
+            </CardContent>
+          </Card>
+        ))} */}
       </div>
     </div>
   );
-};
-
-export default CommentSection;
+}
