@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Shield, RefreshCcw } from "lucide-react";
 
@@ -23,7 +23,6 @@ interface SystemConfigProps {
 }
 
 export function SystemConfigSection({ config, onConfigChange }: SystemConfigProps) {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(config.maintenance_mode);
   const [debugLogsEnabled, setDebugLogsEnabled] = useState(config.enable_debug_logs);
@@ -45,20 +44,11 @@ export function SystemConfigSection({ config, onConfigChange }: SystemConfigProp
       
       if (error) throw error;
 
-      toast({
-        title: 'System settings updated successfully',
-        description: 'Your changes have been applied to the system configuration.',
-        variant: 'default',
-      });
-      
+      toast.success('System settings updated successfully');
       onConfigChange();
     } catch (error: any) {
       console.error('Error updating system config:', error);
-      toast({
-        title: 'Failed to update system settings',
-        description: error.message || 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }

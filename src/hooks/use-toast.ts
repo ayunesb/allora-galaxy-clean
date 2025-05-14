@@ -35,7 +35,7 @@ const ensureToastPropsCompatibility = (options: ToastOptions | ToastT): ToastT =
  * Enhanced toast interface that combines Sonner functionality with UI consistency
  */
 export const toast = {
-  // Basic toast that supports both our options format and Sonner's
+  // Basic toast function that supports both our options format and Sonner's
   toast: (options: ToastOptions | string) => {
     if (typeof options === 'string') {
       return sonnerToast(options);
@@ -138,8 +138,15 @@ export const toast = {
 
 /**
  * Hook to use toast notifications
- * Returns the toast object for component usage
+ * Returns a toast object for component usage that includes a function to directly show toasts
  */
 export function useToast() {
-  return { toast };
+  return {
+    toast: (options: ToastOptions | string) => {
+      if (typeof options === 'string') {
+        return sonnerToast(options);
+      }
+      return sonnerToast(ensureToastPropsCompatibility(options));
+    }
+  };
 }

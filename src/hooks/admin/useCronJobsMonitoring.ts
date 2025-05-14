@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 // CronJob types
 export interface CronJob {
@@ -73,11 +73,7 @@ export const useCronJobsMonitoring = (): UseCronJobsMonitoringResult => {
       
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch cron jobs'));
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch cron jobs data',
-        variant: 'destructive'
-      });
+      toast.error('Failed to fetch cron jobs data');
     } finally {
       setIsLoading(false);
     }
@@ -92,20 +88,13 @@ export const useCronJobsMonitoring = (): UseCronJobsMonitoringResult => {
         
       if (error) throw error;
       
-      toast({
-        title: 'Success',
-        description: 'Job triggered successfully',
-      });
+      toast.success('Job triggered successfully');
       
       // Refresh the jobs list after a short delay
       setTimeout(fetchJobs, 1000);
       
     } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to trigger job',
-        variant: 'destructive'
-      });
+      toast.error('Failed to trigger job');
     }
   };
   

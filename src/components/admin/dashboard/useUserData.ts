@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export interface User {
   id: string;
@@ -14,6 +14,12 @@ export interface User {
   role: string;
   tenant_id: string;
   is_active: boolean;
+  // Adding fields needed for UserTable component
+  user_id: string;
+  profiles: {
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 export interface UserFilter {
@@ -23,7 +29,6 @@ export interface UserFilter {
 }
 
 export function useUserData(initialFilter: UserFilter = {}) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<UserFilter>(initialFilter);
   const [page, setPage] = useState(1);
@@ -60,15 +65,24 @@ export function useUserData(initialFilter: UserFilter = {}) {
 
       if (error) throw error;
       
+      // Transform data to match User interface
+      const transformedData = data.map((user: any) => ({
+        ...user,
+        user_id: user.id,
+        profiles: {
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+        }
+      }));
+      
       return {
-        userData: data as User[],
+        userData: transformedData as User[],
         totalCount: count || 0,
         totalPages: count ? Math.ceil(count / pageSize) : 0,
         currentPage: page,
         pageSize
       };
     },
-    keepPreviousData: true
   });
 
   // Update user role or status
@@ -93,28 +107,21 @@ export function useUserData(initialFilter: UserFilter = {}) {
       let description = '';
       
       if ('role' in data) {
-        title = 'User role updated';
-        description = `The user's role has been updated to ${data.role}`;
+        toast.success(`The user's role has been updated to ${data.role}`);
       } else if ('is_active' in data) {
-        title = data.is_active ? 'User activated' : 'User deactivated';
-        description = data.is_active 
-          ? 'The user account has been activated' 
-          : 'The user account has been deactivated';
+        toast.success(
+          data.is_active 
+            ? 'The user account has been activated' 
+            : 'The user account has been deactivated'
+        );
+      } else {
+        toast.success('User updated successfully');
       }
       
-      toast({
-        title,
-        description,
-        variant: 'default',
-      });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (error: any) => {
-      toast({
-        title: 'Failed to update user',
-        description: error.message || 'An error occurred while updating user data',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'An error occurred while updating user data');
     }
   });
 
