@@ -1,101 +1,90 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useToast, ToastProps } from '@/hooks/use-toast';
-import { useUser } from '@/hooks/useUser';
-import { supabase } from '@/integrations/supabase/client';
 
-interface Notification {
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { toast } from '@/lib/notifications/toast';
+
+export interface Notification {
   id: string;
-  type: 'success' | 'error' | 'info' | 'warning';
+  title: string;
   message: string;
-  read: boolean;
-  createdAt: string;
+  timestamp: string;
+  isRead: boolean;
+  type: 'info' | 'success' | 'warning' | 'error';
 }
 
-interface NotificationsContextProps {
+interface NotificationsContextType {
   notifications: Notification[];
-  addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
-  markAsRead: (notificationId: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  showToast: (message: ToastProps) => void;
+  unreadCount: number;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => void;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  clearNotifications: () => void;
 }
 
-const NotificationsContext = createContext<NotificationsContextProps | undefined>(undefined);
+export const NotificationsContext = createContext<NotificationsContextType>({
+  notifications: [],
+  unreadCount: 0,
+  addNotification: () => {},
+  markAsRead: () => {},
+  markAllAsRead: () => {},
+  clearNotifications: () => {},
+});
 
-export const useNotifications = () => {
-  const context = useContext(NotificationsContext);
-  if (!context) {
-    throw new Error('useNotifications must be used within a NotificationsProvider');
-  }
-  return context;
-};
-
-export const NotificationsProvider = ({ children }: { children: React.ReactNode }) => {
+export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const { toast } = useToast();
-  const { user } = useUser();
-  
-  useEffect(() => {
-    // Load initial notifications from local storage or database
-    // For simplicity, let's assume they are loaded from local storage
-    const storedNotifications = localStorage.getItem('notifications');
-    if (storedNotifications) {
-      setNotifications(JSON.parse(storedNotifications));
-    }
-  }, []);
-  
-  useEffect(() => {
-    // Save notifications to local storage whenever they change
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
-  
-  const addNotification = (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
+
+  // Calculate unread count
+  const unreadCount = notifications.filter(notification => !notification.isRead).length;
+
+  // Add a new notification
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
     const newNotification: Notification = {
-      id: Math.random().toString(36).substring(2, 15),
-      read: false,
-      createdAt: new Date().toISOString(),
       ...notification,
+      id: `notif_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      isRead: false,
     };
-    setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
     
-    // Optionally show a toast for the notification
+    setNotifications(prev => [newNotification, ...prev]);
+    
+    // Show toast for the notification
     toast({
-      title: notification.type === 'error' ? 'Error' : notification.type,
       description: notification.message,
+      variant: notification.type === 'error' ? 'destructive' : 
+               notification.type === 'warning' ? 'warning' :
+               notification.type === 'success' ? 'success' : 'default',
     });
-  };
-  
-  const markAsRead = async (notificationId: string) => {
-    setNotifications(prevNotifications =>
-      prevNotifications.map(notification =>
-        notification.id === notificationId ? { ...notification, read: true } : notification
+  }, []);
+
+  // Mark a notification as read
+  const markAsRead = useCallback((id: string) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, isRead: true } : notif
       )
     );
-    
-    // Simulate API call to mark as read in the database
-    await new Promise(resolve => setTimeout(resolve, 500));
-  };
-  
-  const markAllAsRead = async () => {
-    setNotifications(prevNotifications =>
-      prevNotifications.map(notification => ({ ...notification, read: true }))
+  }, []);
+
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => 
+      prev.map(notif => ({ ...notif, isRead: true }))
     );
-    
-    // Simulate API call to mark all as read in the database
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  };
-  
-  const showToast = (message: ToastProps) => {
-    toast(message);
-  };
-  
+  }, []);
+
+  // Clear all notifications
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
   return (
     <NotificationsContext.Provider
       value={{
         notifications,
+        unreadCount,
         addNotification,
         markAsRead,
         markAllAsRead,
-        showToast,
+        clearNotifications,
       }}
     >
       {children}

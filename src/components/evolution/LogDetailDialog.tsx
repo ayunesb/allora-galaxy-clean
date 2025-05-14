@@ -1,72 +1,71 @@
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogClose
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Log } from '@/types/logs';
 
 interface LogDetailDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  log: any; // You can replace 'any' with a more specific type if available
-  title?: string;
+  log: Log | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const LogDetailDialog: React.FC<LogDetailDialogProps> = ({
-  isOpen,
-  onClose,
-  log,
-  title = 'Log Details'
-}) => {
+const LogDetailDialog: React.FC<LogDetailDialogProps> = ({ log, open, onOpenChange }) => {
   if (!log) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Event ID: {log.id}
-          </DialogDescription>
-          <DialogClose asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogClose>
+          <DialogTitle>Log Detail: {log.id}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="font-semibold">Timestamp</div>
-            <div>{new Date(log.created_at).toLocaleString()}</div>
-            <div className="font-semibold">Event Type</div>
-            <div>{log.event_type}</div>
-            <div className="font-semibold">Status</div>
-            <div className={log.status === 'success' ? 'text-green-500' : 'text-red-500'}>
-              {log.status || 'N/A'}
-            </div>
+        <div className="space-y-4 mt-4">
+          <div>
+            <h3 className="text-sm font-medium">Timestamp:</h3>
+            <p className="text-sm text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</p>
           </div>
 
+          <div>
+            <h3 className="text-sm font-medium">Message:</h3>
+            <p className="text-sm">{log.message || log.description}</p>
+          </div>
+
+          {log.level && (
+            <div>
+              <h3 className="text-sm font-medium">Level:</h3>
+              <p className="text-sm">{log.level}</p>
+            </div>
+          )}
+
+          {log.module && (
+            <div>
+              <h3 className="text-sm font-medium">Module:</h3>
+              <p className="text-sm">{log.module}</p>
+            </div>
+          )}
+
+          {log.status && (
+            <div>
+              <h3 className="text-sm font-medium">Status:</h3>
+              <p className="text-sm">{log.status}</p>
+            </div>
+          )}
+
           {log.metadata && (
-            <div className="space-y-2">
-              <h4 className="font-semibold">Metadata</h4>
-              <ScrollArea className="h-60 rounded border p-2">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {JSON.stringify(log.metadata, null, 2)}
-                </pre>
-              </ScrollArea>
+            <div>
+              <h3 className="text-sm font-medium">Metadata:</h3>
+              <pre className="text-xs bg-muted p-2 rounded overflow-auto">
+                {JSON.stringify(log.metadata, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {log.context && (
+            <div>
+              <h3 className="text-sm font-medium">Context:</h3>
+              <pre className="text-xs bg-muted p-2 rounded overflow-auto">
+                {typeof log.context === 'string' ? log.context : JSON.stringify(log.context, null, 2)}
+              </pre>
             </div>
           )}
         </div>

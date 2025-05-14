@@ -1,84 +1,42 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/supabaseClient';
-import { handleSupabaseError } from '@/lib/errors';
+import { useState } from 'react';
 
 export interface UserData {
   id: string;
   email: string;
-  created_at: string;
-  last_sign_in_at: string | null;
-  user_metadata: Record<string, any>;
   role: string;
+  lastLogin: string;
 }
 
-interface UseUserDataReturn {
-  users: UserData[];
-  loading: boolean;
-  error: Error | null;
-  totalUsers: number;
-  newUsersThisWeek: number;
-  refetch: () => Promise<void>;
-}
+export const useUserData = () => {
+  const [users, setUsers] = useState<UserData[]>([
+    { id: '1', email: 'admin@example.com', role: 'admin', lastLogin: '2025-05-10T10:30:00Z' },
+    { id: '2', email: 'user1@example.com', role: 'member', lastLogin: '2025-05-09T14:20:00Z' },
+    { id: '3', email: 'user2@example.com', role: 'member', lastLogin: '2025-05-08T09:15:00Z' },
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-const useUserData = (): UseUserDataReturn => {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [totalUsers, setTotalUsers] = useState<number>(0);
-  const [newUsersThisWeek, setNewUsersThisWeek] = useState<number>(0);
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Get all users from the auth.users view
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      setUsers(data || []);
-      setTotalUsers(data?.length || 0);
-
-      // Calculate new users this week
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      
-      const newUsers = data?.filter(user => {
-        const createdAt = new Date(user.created_at);
-        return createdAt >= oneWeekAgo;
-      });
-
-      setNewUsersThisWeek(newUsers?.length || 0);
-    } catch (err: any) {
-      const alloraError = handleSupabaseError(err, {
-        context: { operation: 'fetchUsers' },
-        showNotification: false
-      });
-      setError(new Error(alloraError.message));
-    } finally {
-      setLoading(false);
-    }
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const handleUpdateRole = (userId: string, newRole: string) => {
+    setUsers(users.map(user => 
+      user.id === userId ? { ...user, role: newRole } : user
+    ));
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setUsers(users.filter(user => user.id !== userId));
+  };
 
   return {
     users,
     loading,
-    error,
-    totalUsers,
-    newUsersThisWeek,
-    refetch: fetchUsers
+    searchQuery,
+    handleSearchChange,
+    handleUpdateRole,
+    handleRemoveUser
   };
 };
-
-export default useUserData;

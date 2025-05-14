@@ -1,90 +1,73 @@
 
-import React, { ReactNode } from 'react';
-import { NoDataEmptyState, NoSearchResultsEmptyState, FilterEmptyState, EmptyState } from './EmptyStates';
-
-export interface EmptyStateConfig {
-  type: 'no-data' | 'no-search-results' | 'filter' | 'custom' | 'standard';
-  title?: string;
-  description?: string;
-  searchTerm?: string;
-  resetSearch?: () => void;
-  filters?: string[];
-  filterCount?: number;
-  resetFilters?: () => void;
-  customMessage?: string;
-  icon?: ReactNode;
-  action?: () => void;
-  actionText?: string;
-  className?: string;
-}
+import React from 'react';
+import { NoDataEmptyState, FilterEmptyState } from './EmptyStates';
 
 interface EmptyStateRendererProps {
-  config: EmptyStateConfig;
+  type?: 'no-data' | 'filter' | 'search' | 'custom';
+  message?: string;
+  title?: string;
+  actionLabel?: string;
+  actionHandler?: () => void;
+  resetFiltersHandler?: () => void;
+  customContent?: React.ReactNode;
+  isEmpty: boolean;
+  isFiltered?: boolean;
+  isSearching?: boolean;
+  searchTerm?: string;
 }
 
-/**
- * Component that renders the appropriate empty state based on the provided configuration
- */
-const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({ config }) => {
-  const {
-    type,
-    title,
-    description,
-    searchTerm,
-    resetSearch,
-    filters,
-    filterCount = 0,
-    resetFilters,
-    customMessage,
-    icon,
-    action,
-    actionText,
-    className
-  } = config;
-
-  switch (type) {
-    case 'no-data':
-      return (
-        <NoDataEmptyState
-          message={description}
-          action={action}
-          actionText={actionText}
-        />
-      );
-    case 'no-search-results':
-      return (
-        <NoSearchResultsEmptyState
-          searchTerm={searchTerm}
-          resetSearch={resetSearch}
-        />
-      );
-    case 'filter':
-      return (
-        <FilterEmptyState
-          message={customMessage}
-          resetFilters={resetFilters}
-        />
-      );
-    case 'custom':
-      return (
-        <div className={`flex flex-col items-center justify-center p-6 text-center ${className || ''}`}>
-          {icon && <div className="text-muted-foreground mb-3">{icon}</div>}
-          {title && <h3 className="font-medium mb-1">{title}</h3>}
-          {description && <p className="text-sm text-muted-foreground mb-3">{description}</p>}
-          {action && <button onClick={action} className="text-primary hover:underline">{actionText || 'Continue'}</button>}
-        </div>
-      );
-    case 'standard':
-    default:
-      return (
-        <EmptyState
-          title={title || 'No Data'}
-          message={description || 'No data available'}
-          action={action}
-          actionText={actionText}
-        />
-      );
+export const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
+  type = 'no-data',
+  message,
+  title,
+  actionLabel,
+  actionHandler,
+  resetFiltersHandler,
+  customContent,
+  isEmpty,
+  isFiltered = false,
+  isSearching = false,
+  searchTerm = '',
+}) => {
+  if (!isEmpty) {
+    return null;
   }
+
+  // Determine appropriate empty state based on context
+  if (customContent) {
+    return <>{customContent}</>;
+  }
+
+  if (isSearching && searchTerm) {
+    return (
+      <FilterEmptyState
+        title="No search results"
+        message={`No results found for "${searchTerm}"`}
+        resetFilters={resetFiltersHandler}
+        resetLabel="Clear Search"
+      />
+    );
+  }
+
+  if (isFiltered) {
+    return (
+      <FilterEmptyState
+        title={title || "No matching results"}
+        message={message || "Try adjusting your filters to see more results"}
+        resetFilters={resetFiltersHandler}
+      />
+    );
+  }
+
+  // Default no-data state
+  return (
+    <NoDataEmptyState
+      title={title || "No data available"}
+      message={message || "There are no items to display"}
+      action={actionHandler}
+      actionText={actionLabel}
+    />
+  );
 };
 
 export default EmptyStateRenderer;

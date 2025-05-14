@@ -1,45 +1,20 @@
 
-import { toast } from "sonner";
+// Re-export from our centralized toast implementation
+export { 
+  useToast, 
+  notify as toast,
+  notifySuccess,
+  notifyError,
+  notifyWarning,
+  notifyInfo
+} from "@/lib/notifications/toast";
 
-// Toast variants
-export type ToastVariant = "default" | "success" | "destructive" | "info" | "warning";
+// For backward compatibility
+export interface ToastProps {
+  title?: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
+}
 
-// Basic notification function
-export const notify = (message: string, variant: ToastVariant = "default") => {
-  switch (variant) {
-    case "success":
-      toast.success(message);
-      break;
-    case "destructive":
-      toast.error(message);
-      break;
-    case "info":
-      toast.info(message);
-      break;
-    case "warning":
-      toast.warning(message);
-      break;
-    default:
-      toast(message);
-  }
-};
-
-// Helper functions for common use cases
-export const notifySuccess = (message: string) => notify(message, "success");
-export const notifyError = (message: string) => notify(message, "destructive");
-export const notifyWarning = (message: string) => notify(message, "warning");
-export const notifyInfo = (message: string) => notify(message, "info");
-
-// Hook for toast notifications
-export const useToast = () => {
-  return {
-    toast,
-    notify,
-    success: notifySuccess,
-    error: notifyError, 
-    warning: notifyWarning,
-    info: notifyInfo
-  };
-};
-
-export default useToast;
+export type ToastActionElement = React.ReactElement;

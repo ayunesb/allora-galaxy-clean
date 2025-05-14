@@ -29,14 +29,14 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   const handleSeverityChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      severity: value !== 'all' ? [value] : undefined
+      severity: value !== 'all' ? value : undefined
     });
   };
 
   const handleModuleChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      module: value !== 'all' ? [value] : undefined
+      module: value !== 'all' ? value : undefined
     });
   };
 
@@ -53,7 +53,7 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
       </div>
       
       <Select
-        value={(filters.severity && filters.severity[0]) || 'all'}
+        value={(filters.severity as string) || 'all'}
         onValueChange={handleSeverityChange}
       >
         <SelectTrigger className="w-full sm:w-36">
@@ -69,7 +69,7 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
       </Select>
       
       <Select
-        value={(filters.module && filters.module[0]) || 'all'}
+        value={(filters.module as string) || 'all'}
         onValueChange={handleModuleChange}
       >
         <SelectTrigger className="w-full sm:w-36">

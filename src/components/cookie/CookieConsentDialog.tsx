@@ -5,16 +5,16 @@ import { Button } from "@/components/ui/button";
 import { useCookiePreferences } from './useCookiePreferences';
 
 export const CookieConsentDialog: React.FC = () => {
-  const { setConsent } = useCookiePreferences();
+  const { preferences, updatePreferences } = useCookiePreferences();
   const [open, setOpen] = useState(true);
 
   const handleAcceptAll = () => {
-    setConsent(true);
+    updatePreferences({ analytics: true, marketing: true, necessary: true });
     setOpen(false);
   };
 
   const handleReject = () => {
-    setConsent(false);
+    updatePreferences({ analytics: false, marketing: false, necessary: true });
     setOpen(false);
   };
 

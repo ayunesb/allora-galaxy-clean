@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import ErrorState from '@/components/ui/error-state';
-import { EmptyState, NoDataEmptyState, FilterEmptyState, CardEmptyState } from '@/components/errors/EmptyStates';
-import { AlertTriangle, FileSearch, RefreshCw } from 'lucide-react';
+import { NoDataEmptyState, FilterEmptyState, CardEmptyState } from '@/components/errors/EmptyStates';
+import { AlertTriangle } from 'lucide-react';
 
 const ErrorStateExamples: React.FC = () => {
   return (
@@ -26,19 +25,21 @@ const ErrorStateExamples: React.FC = () => {
           </CardContent>
         </Card>
         
-        {/* Error with Icon */}
+        {/* Error with Icon and Retry */}
         <Card>
           <CardHeader>
-            <CardTitle>Error with Icon</CardTitle>
+            <CardTitle>Error with Custom Message</CardTitle>
             <CardDescription>Custom icon and retry option</CardDescription>
           </CardHeader>
           <CardContent>
-            <ErrorState 
-              title="Connection Error" 
-              message="Failed to connect to the server"
-              icon={<AlertTriangle className="h-10 w-10 text-red-500" />}
-              retry={() => alert('Retrying...')}
-            />
+            <div className="flex flex-col items-center space-y-2">
+              <AlertTriangle className="h-10 w-10 text-red-500" />
+              <ErrorState 
+                title="Connection Error" 
+                message="Failed to connect to the server"
+                retry={() => alert('Retrying...')}
+              />
+            </div>
           </CardContent>
         </Card>
         

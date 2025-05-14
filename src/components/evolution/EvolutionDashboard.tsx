@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
@@ -18,19 +19,24 @@ const generateMockLogs = (count: number): SystemLog[] => {
   return Array.from({ length: count }).map((_, i) => {
     const now = new Date();
     const randomDate = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+    const dateStr = randomDate.toISOString();
     const module = modules[Math.floor(Math.random() * modules.length)];
     const level = levels[Math.floor(Math.random() * levels.length)];
     
     return {
       id: `log-${i}`,
-      created_at: randomDate.toISOString(),
+      created_at: dateStr,
+      timestamp: dateStr,
       description: `Example ${level} log message for ${module}`,
+      message: `Example ${level} log message for ${module}`,
       level,
       module,
       event: `${module}.${level === 'error' ? 'exception' : level}`,
       event_type: level,
       metadata: { source: 'mock' },
-      context: JSON.stringify({ page: 'evolution' })
+      context: JSON.stringify({ page: 'evolution' }),
+      tenant_id: 'demo',
+      status: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'success'
     };
   });
 };
@@ -39,7 +45,7 @@ const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('strategies');
   
   // Mock fetching logs with React Query
-  const { data: logsData, isLoading } = useQuery({
+  const { data: logsData = [], isLoading } = useQuery({
     queryKey: ['evolution-logs'],
     queryFn: async () => {
       // Log this action using the system logger
@@ -60,11 +66,21 @@ const EvolutionDashboard: React.FC = () => {
     setActiveTab(value);
   };
   
-  // Convert SystemLog[] to Log[] by adding the required timestamp property
-  const auditLogs = logsData.map(log => ({
-    ...log,
-    timestamp: log.created_at || new Date().toISOString()
-  })) as unknown as Log[];
+  // Convert SystemLog[] to Log[] with the correct types
+  const auditLogs: Log[] = logsData.map(log => ({
+    id: log.id,
+    timestamp: log.timestamp || log.created_at,
+    description: log.description,
+    message: log.message || log.description,
+    level: log.level,
+    module: log.module,
+    event: log.event,
+    event_type: log.event_type,
+    status: log.status || (log.level === 'error' ? 'error' : 
+             log.level === 'warning' ? 'warning' : 'success'),
+    metadata: log.metadata,
+    context: log.context
+  }));
   
   return (
     <div className="container mx-auto p-4 space-y-6">
