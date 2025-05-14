@@ -29,6 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { toast } from "@/lib/toast";
 
 type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>;
 
@@ -52,20 +53,22 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
     
     try {
       if (createWorkspace) {
-        const workspace = await createWorkspace({
+        const newWorkspace = await createWorkspace({
           name: newWorkspaceName,
           slug: newWorkspaceSlug || undefined
         });
         
-        if (workspace) {
-          setCurrentWorkspace(workspace);
+        if (newWorkspace) {
+          setCurrentWorkspace(newWorkspace);
           setShowNewTeamDialog(false);
           setNewWorkspaceName("");
           setNewWorkspaceSlug("");
+          toast.success("Workspace created successfully");
         }
       }
     } catch (error) {
       console.error('Failed to create workspace:', error);
+      toast.error("Failed to create workspace");
     } finally {
       setIsCreating(false);
     }

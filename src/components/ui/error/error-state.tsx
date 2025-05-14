@@ -1,16 +1,18 @@
 
 import { cn } from '@/lib/utils';
-import { AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
+import { XCircle, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+export type ErrorSeverity = 'error' | 'warning' | 'info';
 
 export interface ErrorStateProps {
   /** Error title */
   title?: string;
   /** Error message */
   message: string;
-  /** Error type/severity */
-  variant?: 'default' | 'destructive' | 'warning' | 'info';
-  /** Whether to show retry button */
+  /** Error severity level */
+  severity?: ErrorSeverity;
+  /** Whether to show a retry button */
   retryable?: boolean;
   /** Retry function */
   onRetry?: () => void;
@@ -19,78 +21,78 @@ export interface ErrorStateProps {
 }
 
 /**
- * Standardized error state component
+ * Generic error state component for consistent error presentation
  */
 export function ErrorState({
   title,
   message,
-  variant = 'default',
+  severity = 'error',
   retryable = false,
   onRetry,
   className,
 }: ErrorStateProps) {
-  // Determine icon based on variant
-  const IconMap = {
-    destructive: XCircle,
+  const icons = {
+    error: XCircle,
     warning: AlertTriangle,
-    info: AlertTriangle,
-    default: XCircle
+    info: Info,
   };
+
+  const Icon = icons[severity];
   
-  const Icon = IconMap[variant];
-  
-  // Determine styling based on variant
   const bgColors = {
-    destructive: 'bg-destructive/10',
+    error: 'bg-destructive/10',
     warning: 'bg-yellow-500/10',
     info: 'bg-blue-500/10',
-    default: 'bg-muted/50'
   };
-  
+
   const borderColors = {
-    destructive: 'border-destructive/20',
-    warning: 'border-yellow-500/20',
-    info: 'border-blue-500/20',
-    default: 'border-muted'
+    error: 'border-destructive/30',
+    warning: 'border-yellow-500/30',
+    info: 'border-blue-500/30',
   };
-  
-  const iconColors = {
-    destructive: 'text-destructive',
-    warning: 'text-yellow-500 dark:text-yellow-400',
-    info: 'text-blue-500 dark:text-blue-400',
-    default: 'text-foreground'
+
+  const textColors = {
+    error: 'text-destructive',
+    warning: 'text-yellow-600 dark:text-yellow-400',
+    info: 'text-blue-600 dark:text-blue-400',
   };
 
   return (
-    <div
+    <div 
       className={cn(
-        'rounded-md border p-4',
-        bgColors[variant],
-        borderColors[variant],
+        "rounded-md border p-4", 
+        bgColors[severity], 
+        borderColors[severity],
         className
       )}
-      data-testid="error-state"
       role="alert"
-      aria-live="assertive"
+      aria-labelledby={title ? "error-title" : undefined}
+      aria-describedby="error-message"
     >
       <div className="flex items-start">
-        <div className="flex-shrink-0">
-          <Icon className={cn('h-5 w-5', iconColors[variant])} />
+        <div className="shrink-0">
+          <Icon className={cn("h-5 w-5", textColors[severity])} />
         </div>
         <div className="ml-3">
           {title && (
-            <h3 className={cn('font-medium', iconColors[variant])}>
+            <h3 
+              id="error-title"
+              className={cn("text-sm font-medium", textColors[severity])}
+            >
               {title}
             </h3>
           )}
-          <div className={cn('text-sm', title ? 'mt-2' : '')}>
+          <div 
+            id="error-message"
+            className={cn("text-sm", title ? "mt-2" : "", severity === 'error' ? "text-destructive" : "text-muted-foreground")}
+          >
             {message}
           </div>
           {retryable && onRetry && (
             <div className="mt-4">
-              <Button
-                size="sm"
-                variant="outline"
+              <Button 
+                size="sm" 
+                variant={severity === 'error' ? "destructive" : "outline"} 
                 onClick={onRetry}
                 className="gap-2"
               >

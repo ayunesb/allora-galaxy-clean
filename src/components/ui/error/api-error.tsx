@@ -34,6 +34,7 @@ export function handleAPIError(
   // Show toast notification if enabled
   if (showToast) {
     toast.error(message, {
+      id: String(Date.now()),
       title,
       duration,
     });

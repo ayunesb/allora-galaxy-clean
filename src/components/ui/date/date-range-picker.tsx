@@ -2,7 +2,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange as DayPickerDateRange, SelectRangeEventHandler } from "react-day-picker";
+import { DateRange as DayPickerRange, SelectRangeEventHandler } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-// Extend the DateRange type to make sure 'from' is always a Date
-export interface DateRange {
-  from: Date;
-  to?: Date;
-}
+import { DateRange } from "@/types/date";
+import { toDayPickerDateRange, toDomainDateRange } from "@/types/date";
 
 export interface DateRangePickerProps {
   /** Current date range value */
@@ -67,21 +63,12 @@ export function DateRangePicker({
 
   // Handle date range selection
   const handleSelect: SelectRangeEventHandler = (range) => {
-    if (range?.from) {
-      const newRange: DateRange = {
-        from: range.from,
-        to: range.to
-      };
-      
-      setSelectedRange(newRange);
-      if (setDateRange) {
-        setDateRange(newRange);
-      }
-    } else {
-      setSelectedRange(undefined);
-      if (setDateRange) {
-        setDateRange(undefined);
-      }
+    // Convert from DayPicker's DateRange to our DateRange
+    const newRange = toDomainDateRange(range);
+    
+    setSelectedRange(newRange);
+    if (setDateRange && newRange) {
+      setDateRange(newRange);
     }
   };
 
@@ -118,10 +105,7 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={selectedRange?.from}
-            selected={{
-              from: selectedRange?.from,
-              to: selectedRange?.to
-            }}
+            selected={toDayPickerDateRange(selectedRange)}
             onSelect={handleSelect}
             numberOfMonths={numberOfMonths}
             disabled={disabled || disabledDates}

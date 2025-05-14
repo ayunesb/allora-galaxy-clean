@@ -1,105 +1,144 @@
 
-// Core shared types used across the application
+// Add these type definitions to the shared types file
 
-export type TrendDirection = 'up' | 'down' | 'neutral';
+// Workspace Types
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  metadata?: Record<string, any>;
+}
 
-export type VoteType = 'up' | 'down' | 'neutral';
+export interface WorkspaceWithRole {
+  workspace: Workspace;
+  role: string;
+}
 
-export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+export interface WorkspaceContextType {
+  workspace?: Workspace;
+  workspaces: WorkspaceWithRole[];
+  setCurrentWorkspace: (workspace: Workspace) => void;
+  createWorkspace?: (workspace: { name: string; slug?: string }) => Promise<Workspace>;
+  navigation?: {
+    items: {
+      name: string;
+      href: string;
+      icon: React.ComponentType;
+      current: boolean;
+    }[];
+  };
+}
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
+// Graph Types
+export interface GraphNode {
+  id: string;
+  name: string;
+  type: string;
+  x?: number;
+  y?: number;
+  group?: number;
+  metadata?: Record<string, any>;
+}
 
-// System event modules for consistency across the application
+export interface GraphLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+// Shared component types
+export interface HeaderProps {
+  title?: string;
+  children?: React.ReactNode;
+}
+
+export interface StatsTableProps {
+  stats: CronJobStats; 
+  isLoading: boolean;
+  rawStats?: CronJobStat[];
+}
+
+// CronJob Types
+export interface CronJob {
+  id: string;
+  name: string;
+  schedule: string;
+  status: "active" | "inactive" | "error" | "running" | "pending";
+  last_run?: string;
+  next_run?: string;
+  created_at: string;
+  updated_at: string;
+  tenant_id?: string;
+  description?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CronJobStat {
+  id: string;
+  job_id: string;
+  execution_count: number;
+  success_count: number;
+  error_count: number;
+  average_duration: number;
+  last_execution_time?: string;
+  status: "success" | "error" | "running" | "pending";
+  period: "day" | "week" | "month" | "all";
+}
+
+export interface CronJobStats {
+  day: CronJobStat[];
+  week: CronJobStat[];
+  month: CronJobStat[];
+  all: CronJobStat[];
+}
+
+// System Log Types
 export type SystemEventModule = 
-  'auth' | 
-  'strategy' | 
-  'agent' | 
-  'plugin' | 
-  'user' | 
-  'tenant' | 
-  'system' | 
-  'api' | 
-  'cron';
+  | "auth" 
+  | "strategy" 
+  | "plugin" 
+  | "agent" 
+  | "execution" 
+  | "tenant" 
+  | "admin" 
+  | "system"
+  | "webhook"
+  | "workspace"
+  | "user";
 
-// Log severity levels
-export type LogSeverity = 'info' | 'warning' | 'error' | 'debug' | 'critical';
+export type SystemLogLevel = 
+  | "info" 
+  | "warning" 
+  | "error" 
+  | "critical" 
+  | "debug";
 
-export interface SystemLogFilter {
-  searchTerm?: string;
-  module?: SystemEventModule | SystemEventModule[];
-  event?: string;
-  severity?: LogSeverity;
-  dateRange?: DateRange;
-  tenant?: string;
-}
-
-export interface FilterState {
-  module?: string[];
-  eventType?: string[];
-  dateRange?: {
-    from: Date | string | null;
-    to: Date | string | null;
-  };
-  status?: string[];
-  search?: string;
-}
-
-// Comment type used for agent voting
-export interface Comment {
-  id: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  user?: {
-    id: string;
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-  };
-}
-
-// Vote type for agent voting
-export interface Vote {
-  id: string;
-  agent_id: string;
-  user_id: string;
-  vote_type: VoteType;
-  created_at: string;
-}
-
-// System log type
 export interface SystemLog {
   id: string;
-  tenant_id: string;
-  module: SystemEventModule; 
-  severity: LogSeverity;
+  module: SystemEventModule;
+  level: SystemLogLevel;
   event: string;
-  message?: string;
+  description: string;
   context: Record<string, any>;
+  tenant_id: string;
   created_at: string;
   user_id?: string;
   metadata?: Record<string, any>;
-  status?: string;
 }
 
-// Calendar & DateRange related types
-export interface DateRange {
-  from: Date;
-  to?: Date | undefined;
-}
-
-// Navigation item type
-export interface NavigationItem {
+// Shared types for notifications
+export interface ToastOptions {
+  title?: string;
+  description?: string;
+  variant?: 'default' | 'destructive' | 'success' | 'warning';
+  duration?: number;
   id?: string;
-  title: string;
-  href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  items?: NavigationItem[];
-  adminOnly?: boolean;
-  badge?: string | number;
-  isNew?: boolean;
-  isExternal?: boolean;
+  onDismiss?: () => void;
+  action?: React.ReactNode;
 }
-
-// Export UserRole type
-export type UserRole = 'admin' | 'owner' | 'member' | 'guest';

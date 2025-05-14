@@ -1,6 +1,5 @@
 
-// Export all loading components from a single file
 export * from './loading-spinner';
-export * from './loading-skeleton';
 export * from './loading-state';
-export * from './table-skeleton';
+export * from './loading-skeleton';
+export { default as TableSkeleton } from './table-skeleton';
