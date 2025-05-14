@@ -16,57 +16,63 @@ import NotificationsPage from './pages/NotificationsPage';
 import CookieConsent from './components/CookieConsent';
 import { Providers } from './providers';
 import EvolutionPage from './pages/evolution';
+import PageErrorBoundary from './components/errors/PageErrorBoundary';
+import ErrorBoundary from './components/errors/ErrorBoundary';
 
 function App() {
   return (
-    <Providers>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Index />} />
-          <Route path="notifications" element={
-            <RequireAuth>
-              <NotificationsPage />
-            </RequireAuth>
-          } />
+    <ErrorBoundary level="app">
+      <Providers>
+        <PageErrorBoundary>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Index />} />
+              <Route path="notifications" element={
+                <RequireAuth>
+                  <NotificationsPage />
+                </RequireAuth>
+              } />
+              
+              {/* Evolution Routes */}
+              <Route path="evolution" element={
+                <RequireAuth>
+                  <EvolutionPage />
+                </RequireAuth>
+              } />
+            </Route>
+            
+            {/* Auth Routes */}
+            <Route path="auth/*" element={<AuthLayout children={undefined} />} />
+            
+            {/* Onboarding Routes */}
+            <Route path="onboarding/*" element={
+              <RequireAuth>
+                <OnboardingLayout children={undefined} />
+              </RequireAuth>
+            } />
+            
+            {/* Admin Routes */}
+            <Route path="admin" element={
+              <RequireAuth roles={['admin', 'owner']}>
+                <MainLayout />
+              </RequireAuth>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="logs" element={<SystemLogs />} />
+              <Route path="ai-decisions" element={<AiDecisions />} />
+              <Route path="api-keys" element={<ApiKeysPage />} />
+              <Route path="cron-jobs" element={<CronJobsPage />} />
+            </Route>
+            
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
           
-          {/* Evolution Routes */}
-          <Route path="evolution" element={
-            <RequireAuth>
-              <EvolutionPage />
-            </RequireAuth>
-          } />
-        </Route>
-        
-        {/* Auth Routes */}
-        <Route path="auth/*" element={<AuthLayout children={undefined} />} />
-        
-        {/* Onboarding Routes */}
-        <Route path="onboarding/*" element={
-          <RequireAuth>
-            <OnboardingLayout children={undefined} />
-          </RequireAuth>
-        } />
-        
-        {/* Admin Routes */}
-        <Route path="admin" element={
-          <RequireAuth roles={['admin', 'owner']}>
-            <MainLayout />
-          </RequireAuth>
-        }>
-          <Route index element={<AdminDashboard />} />
-          <Route path="logs" element={<SystemLogs />} />
-          <Route path="ai-decisions" element={<AiDecisions />} />
-          <Route path="api-keys" element={<ApiKeysPage />} />
-          <Route path="cron-jobs" element={<CronJobsPage />} />
-        </Route>
-        
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      
-      <Toaster />
-      <CookieConsent />
-    </Providers>
+          <Toaster />
+          <CookieConsent />
+        </PageErrorBoundary>
+      </Providers>
+    </ErrorBoundary>
   );
 }
 
