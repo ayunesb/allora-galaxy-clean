@@ -5,7 +5,7 @@ export type TrendDirection = 'up' | 'down' | 'neutral';
 
 export type VoteType = 'up' | 'down';
 
-export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'additional' | 'generation' | 'complete';
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
 export type NotificationType = 'system' | 'strategy' | 'alert' | 'update' | 'info';
 

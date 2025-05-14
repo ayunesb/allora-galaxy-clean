@@ -26,7 +26,7 @@ export const useRealtimeNotifications = ({
         }, 
         (payload) => {
           // Handle the new notification
-          const newNotification: Notification = payload.new;
+          const newNotification: Notification = payload.new as Notification;
           onNewNotification(newNotification);
         })
       .subscribe();
