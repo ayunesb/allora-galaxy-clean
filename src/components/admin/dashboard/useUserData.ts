@@ -19,6 +19,8 @@ export interface User {
   profiles: {
     first_name?: string;
     last_name?: string;
+    email?: { email: string }[];
+    avatar_url?: string;
   };
 }
 
@@ -72,6 +74,8 @@ export function useUserData(initialFilter: UserFilter = {}) {
         profiles: {
           first_name: user.first_name || '',
           last_name: user.last_name || '',
+          avatar_url: user.avatar_url || '',
+          email: user.email ? [{ email: user.email }] : []
         }
       }));
       
@@ -102,10 +106,7 @@ export function useUserData(initialFilter: UserFilter = {}) {
       if (error) throw error;
       return { userId, data };
     },
-    onSuccess: ({ userId, data }) => {
-      let title = 'User updated successfully';
-      let description = '';
-      
+    onSuccess: ({ data }) => {
       if ('role' in data) {
         toast.success(`The user's role has been updated to ${data.role}`);
       } else if ('is_active' in data) {

@@ -15,11 +15,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 
+// Updated to match the shape from useUserData
 export interface UserProfile {
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  email: { email: string }[];
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url?: string | null;
+  email?: { email: string }[];
 }
 
 export interface User {
@@ -28,6 +29,7 @@ export interface User {
   created_at: string;
   user_id: string;
   profiles: UserProfile;
+  last_active?: string;
 }
 
 interface UserTableProps {

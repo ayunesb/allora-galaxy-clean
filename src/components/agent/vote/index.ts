@@ -1,6 +1,6 @@
 
 export { AgentVotePanel } from './AgentVotePanel';
 export * from './types';
-export * from './useAgentVote';
-export * from './VoteButton';
-export * from './CommentSection';
+export { useAgentVote } from './useAgentVote';
+export { VoteButton } from './VoteButton';
+export { CommentSection } from './CommentSection';

@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { VoteType } from '@/types/shared';
 import { castVote } from '@/lib/agents/voting';
 
@@ -51,11 +51,7 @@ export const useAgentVote = (agentVersionId: string) => {
       }
     } catch (error) {
       console.error('Error fetching votes:', error);
-      toast({
-        title: 'Error fetching votes',
-        description: 'Could not load voting information',
-        variant: 'destructive',
-      });
+      toast.error('Could not load voting information');
     } finally {
       setIsLoading(false);
     }
@@ -69,11 +65,7 @@ export const useAgentVote = (agentVersionId: string) => {
       const userId = userSession?.session?.user.id;
       
       if (!userId) {
-        toast({
-          title: 'Authentication required',
-          description: 'You must be signed in to vote',
-          variant: 'destructive',
-        });
+        toast.error('You must be signed in to vote');
         return false;
       }
       
@@ -84,21 +76,14 @@ export const useAgentVote = (agentVersionId: string) => {
         setUserVote(voteType);
         await fetchVotes(); // Refresh vote counts
         
-        toast({
-          title: 'Vote recorded',
-          description: `Your ${voteType === 'up' ? 'upvote' : 'downvote'} was recorded successfully`,
-        });
+        toast.success(`Your ${voteType === 'up' ? 'upvote' : 'downvote'} was recorded successfully`);
         return true;
       } else {
         throw new Error(result.error || 'Failed to cast vote');
       }
     } catch (error: any) {
       console.error('Error casting vote:', error);
-      toast({
-        title: 'Error recording vote',
-        description: error.message || 'Could not cast your vote',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Could not cast your vote');
       return false;
     } finally {
       setIsLoading(false);

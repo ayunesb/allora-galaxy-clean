@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useCronJobsMonitoring, { TimeRange } from '@/hooks/admin/useCronJobsMonitoring';
 import { CronJobsHeader } from './components/CronJobsHeader';
 import { CronJobsTabs } from './components/CronJobsTabs';
-import { StatusBadge } from './components/StatusBadge';
 import { toast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 
@@ -71,16 +70,42 @@ export function CronJobsMonitoring() {
     <div className="space-y-4">
       <CronJobsHeader 
         onRefresh={handleRefresh} 
-        timeRange={timeRange}
-        onTimeRangeChange={handleTimeRangeChange}
+        timeRange={timeRange.value}
+        onTimeRangeChange={(value) => handleTimeRangeChange({ 
+          value, 
+          label: value === '1h' ? 'Last hour' : 
+                 value === '24h' ? 'Last 24 hours' : 
+                 value === '7d' ? 'Last 7 days' : 'Last 30 days' 
+        })}
+        isLoading={isLoading}
       />
       
       <CronJobsTabs 
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        jobs={jobs}
-        stats={stats}
-        onRunJob={handleRunJob}
+        jobs={jobs.map(job => ({
+          ...job,
+          // Map status values to match CronJobExecution type
+          status: job.status === 'success' ? 'active' : 
+                 job.status === 'failure' ? 'failed' : 
+                 job.status === 'scheduled' ? 'inactive' : job.status
+        }))}
+        stats={{
+          total: stats.reduce((sum, s) => sum + s.count, 0),
+          active: stats.find(s => s.status === 'success')?.count || 0,
+          pending: stats.find(s => s.status === 'scheduled')?.count || 0,
+          failed: stats.find(s => s.status === 'failure')?.count || 0,
+          completed: stats.find(s => s.status === 'completed')?.count || 0
+        }}
+        isLoading={isLoading}
+        onRunJob={(jobName) => {
+          const job = jobs.find(j => j.name === jobName);
+          if (job) {
+            return handleRunJob(job.id, job.name);
+          }
+          toast.error(`Job "${jobName}" not found`);
+          return Promise.reject();
+        }}
       />
     </div>
   );
