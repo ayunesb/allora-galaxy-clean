@@ -1,64 +1,29 @@
 
-import { DateRange } from '@/components/ui/date-range-picker';
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
 
-export type SystemEventModule = 
-  | 'agent'
-  | 'system'
-  | 'plugin'
-  | 'strategy'
-  | 'auth'
-  | 'kpi'
-  | 'marketing'
-  | 'tenant'
-  | 'user'
-  | string;
-
-export interface FilterState {
-  searchTerm?: string;
-  dateRange?: DateRange;
-  eventType?: string;
-  userId?: string;
-  [key: string]: any;
-}
-
-export interface SystemLogFilter {
-  searchTerm?: string;
-  module?: string | string[];
-  event?: string;
-  dateRange?: DateRange;
-  tenant?: string;
-}
-
-// Add missing type definitions
-export type VoteType = 'upvote' | 'downvote';
-
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type VoteType = 'up' | 'down';
 
 export interface NavigationItem {
-  id: string;
   title: string;
   href: string;
-  icon?: React.ComponentType<any>;
-  items?: NavigationItem[];
-  adminOnly?: boolean;
-  badge?: string | number;
+  icon?: React.ComponentType;
+  requiredRole?: UserRole | UserRole[];
+  children?: NavigationItem[];
+  isNew?: boolean;
+  isExternal?: boolean;
 }
 
-export type OnboardingStep = 
-  | 'welcome'
-  | 'company-info'
-  | 'persona'
-  | 'additional-info'
-  | 'strategy-generation'
-  | 'complete';
+export enum OnboardingStep {
+  WELCOME = 'welcome',
+  COMPANY_INFO = 'company_info',
+  PERSONA = 'persona',
+  ADDITIONAL_INFO = 'additional_info',
+  STRATEGY_GENERATION = 'strategy_generation',
+  COMPLETE = 'complete'
+}
 
-// Tenant type definition
-export interface Tenant {
-  id: string;
+export interface SystemEventModule {
   name: string;
-  slug: string;
-  created_at: string;
-  updated_at: string;
-  owner_id: string;
-  settings?: Record<string, any>;
+  value: string;
+  icon?: React.ComponentType;
 }

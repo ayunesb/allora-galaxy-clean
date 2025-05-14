@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchKpiTrends } from '@/lib/kpi/fetchKpiTrends';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseWithErrorHandler } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Strategy } from '@/types';
 
@@ -25,7 +25,7 @@ export const useDashboardData = (tenantId: string | undefined) => {
       setKpiData(kpiTrends);
       
       // Fetch strategies
-      const { data, error } = await supabase
+      const { data, error } = await supabaseWithErrorHandler
         .from('strategies')
         .select('*')
         .eq('tenant_id', tenantId)

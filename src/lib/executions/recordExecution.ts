@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseWithErrorHandler } from '@/lib/supabase';
 import { ExecutionRecordInput } from '@/types/execution';
 
 /**
@@ -23,7 +23,7 @@ export async function recordExecution(data: ExecutionRecordInput): Promise<{ suc
     }
     
     // Insert execution record
-    const { data: execution, error } = await supabase
+    const { data: execution, error } = await supabaseWithErrorHandler
       .from('executions')
       .insert({
         tenant_id: data.tenantId,

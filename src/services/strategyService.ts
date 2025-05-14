@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabaseWithErrorHandler } from '@/lib/supabase';
 
 /**
  * Fetch strategies for a specific tenant
@@ -12,7 +12,7 @@ export const fetchStrategies = async (tenantId?: string) => {
   }
   
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseWithErrorHandler
       .from('strategies')
       .select('*')
       .eq('tenant_id', tenantId)
@@ -37,7 +37,7 @@ export const fetchStrategies = async (tenantId?: string) => {
  */
 export const fetchStrategyById = async (strategyId: string) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseWithErrorHandler
       .from('strategies')
       .select('*')
       .eq('id', strategyId)
@@ -63,7 +63,7 @@ export const fetchStrategyById = async (strategyId: string) => {
  */
 export const updateStrategyStatus = async (strategyId: string, status: string) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseWithErrorHandler
       .from('strategies')
       .update({ status })
       .eq('id', strategyId);

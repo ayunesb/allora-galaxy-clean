@@ -25,6 +25,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// Re-export types
+export type { Session, User } from '@supabase/supabase-js';
+
 /**
  * Enhanced Supabase client with better error handling for database operations.
  * This wrapper adds consistent error handling and logging for common database operations.
@@ -90,12 +93,6 @@ export const supabaseWithErrorHandler = {
   functions: supabase.functions
 };
 
-// For backward compatibility
-export const supabaseClient = supabase;
-
-// Re-export the Supabase client types
-export type { Session, User } from '@supabase/supabase-js';
-
 /**
  * Check if the current user is authenticated.
  * @returns A Promise that resolves to a boolean indicating if the user is authenticated.
@@ -113,3 +110,6 @@ export const getCurrentUserId = async (): Promise<string | null> => {
   const { data } = await supabase.auth.getSession();
   return data.session?.user.id || null;
 };
+
+// For backward compatibility
+export const supabaseClient = supabase;

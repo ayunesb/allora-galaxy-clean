@@ -1,219 +1,108 @@
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { NavigationItem, Tenant } from '@/types/shared';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Tenant } from '@/types/tenant';
+import { fetchWorkspaces, fetchWorkspaceById, createWorkspace as createWorkspaceService } from '@/services/workspaceService';
 
-// Define the type for the workspace context
 export interface WorkspaceContextType {
-  // Current workspace state
   currentWorkspace: Tenant | null;
-  tenants: Tenant[];
+  setCurrentWorkspace: (workspaceId: string) => void;
+  workspaces: Tenant[];
   isLoading: boolean;
-  error: Error | null;
-  
-  // Navigation and UI state
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-  mobileNavOpen: boolean;
-  setMobileNavOpen: (open: boolean) => void;
-  
-  // Tenant management
-  fetchTenants: () => Promise<void>;
-  switchWorkspace: (tenantId: string) => Promise<void>;
-  tenant: Tenant | null; // Alias for currentWorkspace for backward compatibility
-  
-  // Optional methods for extended functionality
-  createWorkspace?: (data: Partial<Tenant>) => Promise<Tenant>;
-  updateWorkspace?: (id: string, data: Partial<Tenant>) => Promise<Tenant>;
-  deleteWorkspace?: (id: string) => Promise<void>;
+  refreshWorkspaces: () => Promise<void>;
+  createWorkspace: (name: string, slug?: string) => Promise<Tenant | null>;
 }
 
-// Create the context with default values
 const WorkspaceContext = createContext<WorkspaceContextType>({
   currentWorkspace: null,
-  tenants: [],
+  setCurrentWorkspace: () => {},
+  workspaces: [],
   isLoading: true,
-  error: null,
-  
-  collapsed: false,
-  setCollapsed: () => {},
-  mobileNavOpen: false,
-  setMobileNavOpen: () => {},
-  
-  fetchTenants: async () => {},
-  switchWorkspace: async () => {},
-  tenant: null,
+  refreshWorkspaces: async () => {},
+  createWorkspace: async () => null,
 });
 
-// Provider component
-export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Core state
-  const [currentWorkspace, setCurrentWorkspace] = useState<Tenant | null>(null);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  
-  // UI state
-  const [collapsed, setCollapsed] = useState<boolean>(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
+export const useWorkspace = () => useContext(WorkspaceContext);
 
-  // Fetch tenants on load
+interface WorkspaceProviderProps {
+  children: ReactNode;
+}
+
+export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
+  const [currentWorkspace, setCurrentWorkspaceState] = useState<Tenant | null>(null);
+  const [workspaces, setWorkspaces] = useState<Tenant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load workspaces on mount and set the current workspace
   useEffect(() => {
-    fetchTenants();
+    loadWorkspaces();
   }, []);
 
-  // Load workspace preference from localStorage
-  useEffect(() => {
-    const loadWorkspacePreference = () => {
-      try {
-        const savedWorkspaceId = localStorage.getItem('preferred_workspace_id');
-        if (savedWorkspaceId && tenants.length > 0) {
-          const savedWorkspace = tenants.find(t => t.id === savedWorkspaceId);
-          if (savedWorkspace) {
-            setCurrentWorkspace(savedWorkspace);
-          } else {
-            // If saved workspace not found, default to first
-            setCurrentWorkspace(tenants[0]);
-          }
-        } else if (tenants.length > 0) {
-          // Default to first if no preference
-          setCurrentWorkspace(tenants[0]);
-        }
-      } catch (err) {
-        console.error('Error loading workspace preference:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (tenants.length > 0) {
-      loadWorkspacePreference();
-    }
-  }, [tenants]);
-
-  /**
-   * Fetches all tenants (workspaces) the user has access to
-   */
-  const fetchTenants = async () => {
+  const loadWorkspaces = async () => {
     setIsLoading(true);
-    setError(null);
-    
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData.session) {
-        setTenants([]);
-        setCurrentWorkspace(null);
-        setIsLoading(false);
-        return;
-      }
-      
-      const { data: tenantsData, error: tenantsError } = await supabase
-        .from('tenants')
-        .select(`
-          *,
-          tenant_user_roles!inner (
-            role
-          )
-        `)
-        .eq('tenant_user_roles.user_id', sessionData.session.user.id);
-      
-      if (tenantsError) {
-        throw tenantsError;
-      }
-      
-      // Extract just the tenant data we need
-      const userTenants: Tenant[] = tenantsData.map(item => ({
-        id: item.id,
-        name: item.name,
-        slug: item.slug,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        owner_id: item.owner_id,
-        settings: item.settings
-      }));
-      
-      setTenants(userTenants);
-      
-      if (userTenants.length > 0) {
-        // If there's already a selected workspace, try to find it in the updated list
-        if (currentWorkspace) {
-          const existing = userTenants.find(t => t.id === currentWorkspace.id);
-          if (existing) {
-            setCurrentWorkspace(existing);
-          } else {
-            // If not found, default to the first one
-            setCurrentWorkspace(userTenants[0]);
-          }
-        } else {
-          // No current selection, use the first one
-          setCurrentWorkspace(userTenants[0]);
+      const workspacesData = await fetchWorkspaces();
+      setWorkspaces(workspacesData);
+
+      // Try to set current workspace from local storage
+      const storedWorkspaceId = localStorage.getItem('currentWorkspaceId');
+      if (storedWorkspaceId && workspacesData.some(w => w.id === storedWorkspaceId)) {
+        const workspace = workspacesData.find(w => w.id === storedWorkspaceId);
+        if (workspace) {
+          setCurrentWorkspaceState(workspace);
         }
-      } else {
-        // No tenants available
-        setCurrentWorkspace(null);
+      } else if (workspacesData.length > 0) {
+        // Default to first workspace if no stored workspace
+        setCurrentWorkspaceState(workspacesData[0]);
+        localStorage.setItem('currentWorkspaceId', workspacesData[0].id);
       }
-    } catch (err) {
-      console.error('Error fetching workspaces:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch workspaces'));
-    } finally {
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading workspaces:', error);
       setIsLoading(false);
     }
   };
 
-  /**
-   * Switches the active workspace
-   * @param tenantId ID of the tenant to switch to
-   */
-  const switchWorkspace = async (tenantId: string) => {
-    if (!tenantId || isLoading) return;
-    
-    try {
-      const tenant = tenants.find(t => t.id === tenantId);
-      
-      if (!tenant) {
-        throw new Error(`Workspace with ID ${tenantId} not found`);
-      }
-      
-      // Save preference to localStorage
-      localStorage.setItem('preferred_workspace_id', tenantId);
-      
-      // Update state
-      setCurrentWorkspace(tenant);
-    } catch (err) {
-      console.error('Error switching workspace:', err);
-      setError(err instanceof Error ? err : new Error('Failed to switch workspace'));
+  const refreshWorkspaces = async () => {
+    await loadWorkspaces();
+  };
+
+  const setCurrentWorkspace = (workspaceId: string) => {
+    const workspace = workspaces.find(w => w.id === workspaceId);
+    if (workspace) {
+      setCurrentWorkspaceState(workspace);
+      localStorage.setItem('currentWorkspaceId', workspaceId);
     }
   };
 
-  // Use an alias for backward compatibility
-  const tenant = currentWorkspace;
+  const createWorkspace = async (name: string, slug?: string): Promise<Tenant | null> => {
+    try {
+      const newWorkspace = await createWorkspaceService({ name, slug });
+      if (newWorkspace) {
+        await refreshWorkspaces(); // Reload workspaces to include the new one
+        return newWorkspace;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error creating workspace:', error);
+      return null;
+    }
+  };
 
-  const contextValue: WorkspaceContextType = {
+  const value: WorkspaceContextType = {
     currentWorkspace,
-    tenants,
+    setCurrentWorkspace,
+    workspaces,
     isLoading,
-    error,
-    
-    collapsed,
-    setCollapsed,
-    mobileNavOpen,
-    setMobileNavOpen,
-    
-    fetchTenants,
-    switchWorkspace,
-    tenant, // Alias for backward compatibility
+    refreshWorkspaces,
+    createWorkspace
   };
 
   return (
-    <WorkspaceContext.Provider value={contextValue}>
+    <WorkspaceContext.Provider value={value}>
       {children}
     </WorkspaceContext.Provider>
   );
 };
 
-// Custom hook to use the context
-export const useWorkspace = () => useContext(WorkspaceContext);
-
-// Export the provider and hook for convenience
 export default WorkspaceContext;
