@@ -1,43 +1,35 @@
 
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
+import { useToast as useShadcnToast } from "@/components/ui/use-toast";
 
-interface NotifyParams {
-  title: string;
-  message?: string;
-  type?: 'default' | 'success' | 'error' | 'warning';
-  duration?: number;
-}
+// Toast variants
+export type ToastVariant = "default" | "success" | "destructive" | "info" | "warning";
 
-export const useNotify = () => {
-  const { toast } = useToast();
-  
-  const notify = ({ title, message, type = 'default', duration = 3000 }: NotifyParams) => {
-    // Convert our types to what the toast component accepts
-    const variant: 'default' | 'destructive' = 
-      type === 'error' ? 'destructive' : 'default';
-    
-    // For non-error variants, we'll use className to style instead
-    let className: string | undefined;
-    if (type === 'success') {
-      className = 'border-green-600 bg-green-50 dark:bg-green-950/30';
-    } else if (type === 'warning') {
-      className = 'border-yellow-600 bg-yellow-50 dark:bg-yellow-950/30';
-    }
-    
-    toast({
-      title,
-      description: message,
-      variant,
-      className,
-      duration,
-    });
-  };
-  
-  return {
-    notify,
-    success: (title: string, message?: string) => notify({ title, message, type: 'success' }),
-    error: (title: string, message?: string) => notify({ title, message, type: 'error' }),
-    warning: (title: string, message?: string) => notify({ title, message, type: 'warning' }),
-    info: (title: string, message?: string) => notify({ title, message })
-  };
+// Basic notification function
+export const notify = (message: string, variant: ToastVariant = "default") => {
+  switch (variant) {
+    case "success":
+      toast.success(message);
+      break;
+    case "destructive":
+      toast.error(message);
+      break;
+    case "info":
+      toast.info(message);
+      break;
+    case "warning":
+      toast.warning(message);
+      break;
+    default:
+      toast(message);
+  }
 };
+
+// Helper functions for common use cases
+export const notifySuccess = (message: string) => notify(message, "success");
+export const notifyError = (message: string) => notify(message, "destructive");
+export const notifyWarning = (message: string) => notify(message, "warning");
+export const notifyInfo = (message: string) => notify(message, "info");
+
+// Re-export useToast from shadcn
+export { useShadcnToast as useToast };

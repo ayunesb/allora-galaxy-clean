@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { 
   Table, 
@@ -14,7 +13,7 @@ import { SystemLog } from '@/types/logs';
 import { Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import ErrorState from '@/components/errors/ErrorState';
 import { Button } from '@/components/ui/button';
-import LogDetailDialog from '@/components/evolution/LogDetailDialog';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 
 interface ErrorGroupsListProps {
   logs: SystemLog[];
@@ -34,7 +33,7 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
   showLastSeen = false,
 }) => {
   const [selectedLog, setSelectedLog] = React.useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = React.useState<boolean>(false);
+  const [logDialogOpen, setLogDialogOpen] = React.useState<boolean>(false);
   
   // Group errors by message/type for easier analysis
   const errorGroups = useMemo(() => {
@@ -102,7 +101,7 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
   
   const handleViewDetails = (group: any) => {
     setSelectedLog(group.logs[0]);
-    setDialogOpen(true);
+    setLogDialogOpen(true);
   };
   
   if (isLoading) {
@@ -188,8 +187,8 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
       
       <LogDetailDialog 
         log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+        open={logDialogOpen} 
+        onClose={() => setLogDialogOpen(false)} 
       />
     </>
   );

@@ -66,3 +66,13 @@ export interface PaginatedResult<T> {
   pageSize: number;
   totalPages: number;
 }
+
+/**
+ * Represents a trend direction for KPIs and metrics
+ */
+export type TrendDirection = 'up' | 'down' | 'neutral' | 'flat' | 'none';
+
+/**
+ * Voting types for agent feedback
+ */
+export type VoteType = 'upvote' | 'downvote';
