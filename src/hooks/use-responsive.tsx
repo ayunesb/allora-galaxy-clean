@@ -1,32 +1,33 @@
 
-import { useEffect, useState } from 'react';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useState, useEffect } from 'react';
+import { useMediaQuery } from './useMediaQuery';
 
-/**
- * Responsive breakpoint configuration
- */
+// Define breakpoints based on Tailwind CSS defaults
+// These can be overridden by changing these values
 export const breakpoints = {
-  xs: '480px',
-  sm: '640px',
-  md: '768px',
-  lg: '1024px',
-  xl: '1280px',
-  '2xl': '1536px',
+  sm: '640px',   // Small devices (smartphones)
+  md: '768px',   // Medium devices (tablets)
+  lg: '1024px',  // Large devices (desktops)
+  xl: '1280px',  // Extra large devices (large desktops)
+  '2xl': '1536px' // Extra extra large devices
 };
 
 /**
- * Hook to detect various responsive breakpoints
+ * A responsive hook that returns boolean values for different screen sizes
+ * based on Tailwind CSS breakpoint conventions
+ * 
+ * @returns Object with boolean values for each breakpoint and screen size
  */
-export function useResponsive() {
-  const [isClient, setIsClient] = useState(false);
+export const useResponsive = () => {
+  // Check if window is available (client-side)
+  const isClient = typeof window === 'object';
   
-  // Initialize on client side only to prevent hydration mismatch
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // Track responsive states
+  const isMobile = useMediaQuery(`(max-width: ${breakpoints.sm})`);
+  const isTablet = useMediaQuery(`(max-width: ${breakpoints.md})`);
+  const isDesktop = useMediaQuery(`(min-width: ${breakpoints.lg})`);
   
-  // Media queries
-  const isXs = useMediaQuery(`(max-width: ${breakpoints.xs})`);
+  // Specific breakpoints
   const isSm = useMediaQuery(`(max-width: ${breakpoints.sm})`);
   const isMd = useMediaQuery(`(max-width: ${breakpoints.md})`);
   const isLg = useMediaQuery(`(max-width: ${breakpoints.lg})`);
@@ -36,72 +37,49 @@ export function useResponsive() {
   // Prevent hydration mismatch
   if (!isClient) {
     return {
-      isXs: false,
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true,
       isSm: false,
       isMd: false,
       isLg: false,
       isXl: false,
       is2xl: false,
-      isMobile: false,
-      isTablet: false,
-      isDesktop: true,
-      breakpoint: 'lg',
+      screenWidth: 1024,
+      screenHeight: 768
     };
   }
   
-  // Get current breakpoint name
-  const getCurrentBreakpoint = () => {
-    if (isXs) return 'xs';
-    if (isSm) return 'sm';
-    if (isMd) return 'md';
-    if (isLg) return 'lg';
-    if (isXl) return 'xl';
-    if (is2xl) return '2xl';
-    return 'lg'; // Default
-  };
+  // Get actual screen dimensions
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
   
   return {
-    // Individual breakpoints
-    isXs,
+    isMobile,
+    isTablet,
+    isDesktop,
     isSm,
     isMd,
     isLg,
     isXl,
     is2xl,
-    
-    // Device categories
-    isMobile: isMd, // <= 768px
-    isTablet: !isMd && isLg, // > 768px && <= 1024px
-    isDesktop: !isLg, // > 1024px
-    
-    // Current breakpoint name
-    breakpoint: getCurrentBreakpoint(),
+    screenWidth: dimensions.width,
+    screenHeight: dimensions.height
   };
-}
-
-/**
- * Hook to get screen dimensions
- */
-export function useScreenSize() {
-  const [dimensions, setDimensions] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    // Set initial dimensions
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  return dimensions;
-}
+};

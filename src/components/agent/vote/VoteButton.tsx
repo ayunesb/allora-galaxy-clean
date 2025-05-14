@@ -2,12 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-// Remove unused VoteType import
 
 interface VoteButtonProps {
   type: 'up' | 'down';
   count: number;
-  active: boolean;
+  selected: boolean;
   onClick: () => void;
   loading?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -17,7 +16,7 @@ interface VoteButtonProps {
 export function VoteButton({
   type,
   count,
-  active,
+  selected,
   onClick,
   loading = false,
   size = 'md',
@@ -33,12 +32,12 @@ export function VoteButton({
   
   return (
     <Button
-      variant={active ? "default" : "outline"}
+      variant={selected ? "default" : "outline"}
       size="sm"
       className={cn(
         "flex items-center gap-1",
         sizeClasses[size],
-        active && (isUpvote ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700")
+        selected && (isUpvote ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700")
       )}
       onClick={onClick}
       disabled={disabled || loading}
@@ -47,7 +46,7 @@ export function VoteButton({
         <ThumbsUp 
           size={size === 'sm' ? 14 : size === 'md' ? 16 : 20} 
           className={cn(
-            active && "text-white",
+            selected && "text-white",
             loading && "animate-pulse"
           )} 
         />
@@ -55,12 +54,12 @@ export function VoteButton({
         <ThumbsDown 
           size={size === 'sm' ? 14 : size === 'md' ? 16 : 20} 
           className={cn(
-            active && "text-white",
+            selected && "text-white",
             loading && "animate-pulse"
           )} 
         />
       )}
-      <span className={cn(active && "text-white")}>
+      <span className={cn(selected && "text-white")}>
         {loading ? "..." : count}
       </span>
     </Button>

@@ -68,7 +68,7 @@ export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="vote">Vote</TabsTrigger>
             <TabsTrigger value="comments">
-              Comments {comments.length > 0 && `(${comments.length})`}
+              Comments {comments?.length > 0 && `(${comments.length})`}
             </TabsTrigger>
           </TabsList>
           
@@ -97,7 +97,7 @@ export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
                 <>
                   <Separator className="my-4" />
                   <CommentSection 
-                    comments={comments.filter(c => c.user_id === 'currentUser')}
+                    comments={comments?.filter(c => c.user_id === 'currentUser') || []}
                     isLoading={false}
                     onAddComment={handleComment}
                     voteType={userVote}
@@ -105,7 +105,7 @@ export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
                 </>
               )}
               
-              {!userVote && comments.length > 0 && (
+              {!userVote && comments?.length > 0 && (
                 <Button 
                   variant="ghost" 
                   onClick={() => setActiveTab("comments")}
@@ -119,7 +119,7 @@ export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
           
           <TabsContent value="comments" className="pt-4">
             <CommentSection 
-              comments={comments}
+              comments={comments || []}
               isLoading={false}
               onAddComment={handleComment}
               voteType={userVote}

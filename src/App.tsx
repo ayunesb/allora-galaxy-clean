@@ -7,7 +7,7 @@ import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationsProvider } from './context/notifications/NotificationsProvider';
-import { NotificationProvider } from './components/ui/notification-provider';
+import { ToastProvider } from './components/ui/toast-provider';
 
 // Create a QueryClient instance
 const queryClient = new QueryClient({
@@ -28,9 +28,9 @@ function App() {
         <AuthProvider>
           <WorkspaceProvider>
             <NotificationsProvider>
-              <NotificationProvider>
+              <ToastProvider>
                 <RouterProvider router={router} />
-              </NotificationProvider>
+              </ToastProvider>
             </NotificationsProvider>
           </WorkspaceProvider>
         </AuthProvider>
