@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Card,
   CardContent,
@@ -45,15 +45,19 @@ export function SystemConfigSection({ config, onConfigChange }: SystemConfigProp
       
       if (error) throw error;
 
-      toast.success('System settings updated successfully', {
+      toast({
+        title: 'System settings updated successfully',
         description: 'Your changes have been applied to the system configuration.',
+        variant: 'default',
       });
       
       onConfigChange();
     } catch (error: any) {
       console.error('Error updating system config:', error);
-      toast.error('Failed to update system settings', {
+      toast({
+        title: 'Failed to update system settings',
         description: error.message || 'An unexpected error occurred',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);

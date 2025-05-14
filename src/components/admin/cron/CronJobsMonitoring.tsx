@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Play, Pause, RefreshCw, Trash2 } from 'lucide-react';
+import { Play, RefreshCw, Trash2 } from 'lucide-react';
 
 type CronJob = {
   id: string;
@@ -45,15 +45,19 @@ export function CronJobsMonitoring() {
       if (error) throw error;
       return jobId;
     },
-    onSuccess: (jobId) => {
-      toast.success('Job triggered', {
-        description: 'The job has been triggered and will run shortly.'
+    onSuccess: () => {
+      toast({
+        title: 'Job triggered',
+        description: 'The job has been triggered and will run shortly.',
+        variant: 'default',
       });
       queryClient.invalidateQueries({ queryKey: ['cron-jobs'] });
     },
     onError: (error: any) => {
-      toast.error('Failed to trigger job', {
-        description: error.message || 'An unexpected error occurred'
+      toast({
+        title: 'Failed to trigger job',
+        description: error.message || 'An unexpected error occurred',
+        variant: 'destructive',
       });
     }
   });
@@ -69,15 +73,19 @@ export function CronJobsMonitoring() {
       if (error) throw error;
       return { jobId, isActive };
     },
-    onSuccess: ({ jobId, isActive }) => {
-      toast.success(`Job ${isActive ? 'enabled' : 'disabled'}`, {
-        description: `The job has been ${isActive ? 'enabled' : 'disabled'} successfully.`
+    onSuccess: ({ isActive }) => {
+      toast({
+        title: `Job ${isActive ? 'enabled' : 'disabled'}`,
+        description: `The job has been ${isActive ? 'enabled' : 'disabled'} successfully.`,
+        variant: 'default',
       });
       queryClient.invalidateQueries({ queryKey: ['cron-jobs'] });
     },
     onError: (error: any) => {
-      toast.error('Failed to update job status', {
-        description: error.message || 'An unexpected error occurred'
+      toast({
+        title: 'Failed to update job status',
+        description: error.message || 'An unexpected error occurred',
+        variant: 'destructive',
       });
     }
   });
@@ -150,7 +158,10 @@ export function CronJobsMonitoring() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => runJobMutation.mutate(job.id)}
+                    onClick={() => {
+                      setSelectedJob(job.id);
+                      runJobMutation.mutate(job.id);
+                    }}
                     disabled={runJobMutation.isPending && selectedJob === job.id}
                     className="flex items-center gap-1"
                   >

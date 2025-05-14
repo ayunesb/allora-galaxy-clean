@@ -39,8 +39,10 @@ export function ErrorFallback({
   }, [error, errorInfo, tenant_id]);
 
   const handleReportError = () => {
-    toast.success("Error report sent", { 
+    toast({
+      title: "Error report sent",
       description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
+      variant: "default",
     });
   };
 

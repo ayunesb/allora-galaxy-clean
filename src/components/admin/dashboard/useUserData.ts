@@ -61,7 +61,7 @@ export function useUserData(initialFilter: UserFilter = {}) {
       if (error) throw error;
       
       return {
-        users: data as User[],
+        userData: data as User[],
         totalCount: count || 0,
         totalPages: count ? Math.ceil(count / pageSize) : 0,
         currentPage: page,
@@ -89,31 +89,37 @@ export function useUserData(initialFilter: UserFilter = {}) {
       return { userId, data };
     },
     onSuccess: ({ userId, data }) => {
-      let message = 'User updated successfully';
+      let title = 'User updated successfully';
       let description = '';
       
       if ('role' in data) {
-        message = 'User role updated';
+        title = 'User role updated';
         description = `The user's role has been updated to ${data.role}`;
       } else if ('is_active' in data) {
-        message = data.is_active ? 'User activated' : 'User deactivated';
+        title = data.is_active ? 'User activated' : 'User deactivated';
         description = data.is_active 
           ? 'The user account has been activated' 
           : 'The user account has been deactivated';
       }
       
-      toast.success(message, { description });
+      toast({
+        title,
+        description,
+        variant: 'default',
+      });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (error: any) => {
-      toast.error('Failed to update user', {
-        description: error.message || 'An error occurred while updating user data'
+      toast({
+        title: 'Failed to update user',
+        description: error.message || 'An error occurred while updating user data',
+        variant: 'destructive',
       });
     }
   });
 
   return {
-    userData: data?.users || [],
+    userData: data?.userData || [],
     totalCount: data?.totalCount || 0,
     totalPages: data?.totalPages || 0,
     currentPage: page,
