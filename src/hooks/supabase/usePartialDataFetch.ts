@@ -49,7 +49,8 @@ export function usePartialDataFetch<T extends Record<string, any>>(
           failedQueries.push(key);
           
           if (options.showErrorToast) {
-            notifyError(`Error loading ${key}`, { 
+            notifyError({
+              title: `Error loading ${key}`,
               description: error?.message || 'Failed to load data'
             });
           }
@@ -103,7 +104,8 @@ export function usePartialDataFetch<T extends Record<string, any>>(
       }));
       
       if (options.showErrorToast) {
-        notifyError(`Error loading ${key}`, { 
+        notifyError({
+          title: `Error loading ${key}`,
           description: error?.message || 'Failed to load data'
         });
       }

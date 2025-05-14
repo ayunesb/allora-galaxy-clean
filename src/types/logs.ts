@@ -48,18 +48,20 @@ export interface PluginLog {
 
 export interface LogFilters {
   search?: string;
+  searchTerm?: string; // Added for compatibility with hooks
   severity?: string;
   module?: string;
   startDate?: string;
+  fromDate?: string; // Added for compatibility with hooks
   endDate?: string;
+  toDate?: string; // Added for compatibility with hooks
   status?: string;
   limit?: number;
   page?: number;
   event?: string; // Added for compatibility with hooks
-  fromDate?: string; // Added for compatibility with hooks
-  toDate?: string; // Added for compatibility with hooks
-  searchTerm?: string; // Added for compatibility with hooks
   tenant_id?: string; // Added for compatibility with hooks
+  error_type?: string | string[]; // Added for compatibility with ErrorGroupsList
+  level?: string | string[]; // Added for error filters
 }
 
 // Add LogGroup interface for ErrorGroupsList

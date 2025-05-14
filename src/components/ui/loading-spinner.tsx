@@ -2,14 +2,14 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface LoadingSpinnerProps {
-  className?: string;
+export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  size = 'sm',
   className,
-  size = 'sm'
 }) => {
   const sizeClass = {
     'sm': 'h-4 w-4',

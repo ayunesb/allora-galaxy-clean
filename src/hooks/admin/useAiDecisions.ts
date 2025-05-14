@@ -12,8 +12,7 @@ interface AIDecision extends SystemLog {
 }
 
 export const useAiDecisions = () => {
-  const tenantResult = useTenantId();
-  const tenantId = tenantResult?.id; // Extract the id property
+  const { id: tenantId } = useTenantId();
   
   const [decisions, setDecisions] = useState<AIDecision[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,16 +46,22 @@ export const useAiDecisions = () => {
         query = query.eq('event', filters.event);
       }
       
-      if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate);
+      // Use consistent naming between fromDate/startDate and toDate/endDate
+      const fromDate = filters.fromDate || filters.startDate;
+      const toDate = filters.toDate || filters.endDate;
+      
+      if (fromDate) {
+        query = query.gte('created_at', fromDate);
       }
       
-      if (filters.toDate) {
-        query = query.lte('created_at', filters.toDate);
+      if (toDate) {
+        query = query.lte('created_at', toDate);
       }
       
-      if (filters.searchTerm) {
-        query = query.or(`description.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`);
+      // Use consistent naming between search and searchTerm
+      const searchTerm = filters.searchTerm || filters.search;
+      if (searchTerm) {
+        query = query.or(`description.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`);
       }
       
       const { data, error } = await query;
@@ -86,15 +91,12 @@ export const useAiDecisions = () => {
     }
   };
   
-  const updateFilters = (newFilters: Partial<LogFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
-  
   return {
     decisions,
     isLoading,
     filters,
-    updateFilters,
+    setFilters,
+    updateFilters: setFilters,
     refetch: fetchDecisions,
   };
 };

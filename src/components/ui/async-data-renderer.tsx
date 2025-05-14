@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { LoadingSpinner } from './loading-spinner';
 import { ErrorState } from './error-state';
-import { RetryFeedback } from './retry-feedback';
+import RetryFeedback from './retry-feedback';
 
 export interface AsyncDataRendererProps<T> {
   data: T | null;
@@ -24,7 +25,10 @@ export function AsyncDataRenderer<T>({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8 min-h-[200px]">
-        <LoadingSpinner message={loadingText} />
+        <div className="flex flex-col items-center">
+          <LoadingSpinner size="md" />
+          <p className="mt-2 text-sm text-muted-foreground">{loadingText}</p>
+        </div>
       </div>
     );
   }
@@ -34,7 +38,9 @@ export function AsyncDataRenderer<T>({
     if (onRetry) {
       return (
         <RetryFeedback
-          error={error}
+          retryCount={1}
+          maxRetries={3}
+          isRetrying={false}
           onRetry={onRetry}
           className="min-h-[200px]"
         />
@@ -45,6 +51,7 @@ export function AsyncDataRenderer<T>({
     return (
       <ErrorState
         title="Failed to load data"
+        message={error.message}
         action={
           onRetry ? (
             <button

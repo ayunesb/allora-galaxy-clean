@@ -3,6 +3,7 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
+  description?: string; // Added for compatibility
   user_id: string;
   tenant_id: string;
   created_at: string;

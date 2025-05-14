@@ -16,7 +16,10 @@ export const useWebhookAlerts = () => {
 
   const sendWebhookAlert = async (config: WebhookAlertConfig) => {
     if (!config.webhook_url || !config.alert_type || !config.message || !config.tenant_id) {
-      notifyError('Invalid webhook configuration', 'All required fields must be provided');
+      notifyError({
+        title: 'Invalid webhook configuration',
+        description: 'All required fields must be provided'
+      });
       return { success: false, error: 'Invalid webhook configuration' };
     }
 
@@ -30,14 +33,23 @@ export const useWebhookAlerts = () => {
         });
 
       if (error) {
-        notifyError('Webhook Error', error.message);
+        notifyError({
+          title: 'Webhook Error',
+          description: error.message
+        });
         return { success: false, error: error.message };
       }
 
-      notifySuccess('Webhook Sent', 'The webhook alert was sent successfully');
+      notifySuccess({
+        title: 'Webhook Sent',
+        description: 'The webhook alert was sent successfully'
+      });
       return { success: true, data };
     } catch (err: any) {
-      notifyError('Webhook Error', err.message || 'Failed to send webhook');
+      notifyError({
+        title: 'Webhook Error',
+        description: err.message || 'Failed to send webhook'
+      });
       return { success: false, error: err.message || 'Failed to send webhook' };
     } finally {
       setLoading(false);

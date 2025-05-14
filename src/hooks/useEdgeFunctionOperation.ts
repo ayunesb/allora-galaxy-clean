@@ -88,7 +88,21 @@ export function useEdgeFunctionOperation<T = any, P = any>(
           body: params || {},
         });
         
-        const result = await processEdgeResponse<T>(response);
+        // Create an adapter to convert FunctionsResponse to Response
+        const responseAdapter = new Response(
+          JSON.stringify(response.data), 
+          { status: response.error ? 400 : 200 }
+        );
+        
+        // Add Supabase error to response if it exists
+        if (response.error) {
+          Object.defineProperty(responseAdapter, 'supabaseError', {
+            value: response.error,
+            writable: false
+          });
+        }
+        
+        const result = await processEdgeResponse<T>(responseAdapter);
 
         setState({
           data: result,

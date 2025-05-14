@@ -5,7 +5,7 @@ import { processEdgeResponse, handleEdgeError } from '@/lib/errors/clientErrorHa
 // Only import the types we are actually using
 // Removed unused EdgeSuccessResponse import
 
-export interface EdgeFunctionQueryOptions<TData = any, TError = any> extends UseQueryOptions<TData, TError> {
+export interface EdgeFunctionQueryOptions<TData = any, TError = any> {
   queryKey: string[];
   queryFn: () => Promise<TData>;
   onError?: (error: TError) => void;
@@ -14,6 +14,7 @@ export interface EdgeFunctionQueryOptions<TData = any, TError = any> extends Use
   enabled?: boolean;
   staleTime?: number;
   retry?: boolean | number;
+  // Include other UseQueryOptions properties as needed
 }
 
 /**
@@ -42,7 +43,21 @@ export function useEdgeFunctionQuery<TData = any, TError = any>(
       
       // For Supabase edge function responses
       if (response && typeof response === 'object' && 'data' in response) {
-        return response.data;
+        // Create an adapter for Supabase functions response
+        const responseAdapter = new Response(
+          JSON.stringify(response.data), 
+          { status: response.error ? 400 : 200 }
+        );
+        
+        // Add Supabase error to response if it exists
+        if (response.error) {
+          Object.defineProperty(responseAdapter, 'supabaseError', {
+            value: response.error,
+            writable: false
+          });
+        }
+        
+        return processEdgeResponse<TData>(responseAdapter);
       }
       
       return response as TData;
@@ -59,7 +74,7 @@ export function useEdgeFunctionQuery<TData = any, TError = any>(
   return useQuery<TData, TError>({
     queryKey,
     queryFn: fetchData,
-    ...restOptions,
+    ...restOptions as any, // Cast to any to avoid type issues with restOptions
   });
 }
 
