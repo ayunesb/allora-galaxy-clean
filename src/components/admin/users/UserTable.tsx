@@ -19,9 +19,7 @@ export interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  email: {
-    email: string;
-  };
+  email: { email: string }[];
 }
 
 export interface User {
@@ -140,7 +138,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {user.profiles?.email?.email || "No email"}
+                  {user.profiles?.email?.[0]?.email || "No email"}
                 </TableCell>
                 <TableCell>
                   {getRoleBadge(user.role)}

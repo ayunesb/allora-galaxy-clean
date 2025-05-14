@@ -1,10 +1,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
 import { AuditLog, SystemEventModule } from '@/types/logs';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
+import { DateRange } from '@/types/shared';
+
+export interface AuditLogFilter {
+  searchTerm?: string;
+  module?: SystemEventModule;
+  dateRange?: DateRange;
+}
 
 export interface AuditLogDataParams {
   initialFilters?: AuditLogFilter;

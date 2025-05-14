@@ -1,11 +1,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { SystemLogFilter } from '@/components/admin/logs/SystemLogFilters';
 import { AuditLog, SystemEventModule } from '@/types/logs';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
 import { DateRange } from '@/types/shared';
+
+export interface SystemLogFilter {
+  searchTerm: string;
+  module?: SystemEventModule;
+  dateRange?: DateRange;
+}
 
 export interface SystemLogsDataParams {
   initialFilters?: SystemLogFilter;
@@ -104,15 +109,15 @@ export const useSystemLogsData = (params?: SystemLogsDataParams) => {
   };
 
   const setDateRange = (dateRange: DateRange | undefined) => {
-    setFilters(prev => ({ ...prev, dateRange }));
+    setFilters((prev: SystemLogFilter) => ({ ...prev, dateRange }));
   };
 
   const setSearchTerm = (searchTerm: string) => {
-    setFilters(prev => ({ ...prev, searchTerm }));
+    setFilters((prev: SystemLogFilter) => ({ ...prev, searchTerm }));
   };
 
   const setModule = (module: SystemEventModule | undefined) => {
-    setFilters(prev => ({ ...prev, module }));
+    setFilters((prev: SystemLogFilter) => ({ ...prev, module }));
   };
 
   return {

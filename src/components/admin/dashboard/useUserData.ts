@@ -5,10 +5,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface UserProfile {
-  first_name: string;
-  last_name: string;
-  avatar_url: string;
-  email: { email: string };
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  email: { email: string }[];
 }
 
 export interface User {
@@ -53,7 +53,18 @@ export function useUserData() {
         if (data && Array.isArray(data)) {
           // Correctly format the profiles data
           const formattedUsers = data.map(item => {
-            const profileData = item.profiles || {};
+            // Initialize with default empty values
+            let profileData = {
+              first_name: '',
+              last_name: '',
+              avatar_url: '',
+              email: [{ email: '' }]
+            };
+            
+            // If profiles data exists, use it
+            if (item.profiles && typeof item.profiles === 'object') {
+              profileData = item.profiles as UserProfile;
+            }
             
             return {
               id: item.id,
@@ -61,17 +72,10 @@ export function useUserData() {
               created_at: item.created_at,
               user_id: item.user_id,
               profiles: {
-                first_name: typeof profileData === 'object' ? profileData.first_name || '' : '',
-                last_name: typeof profileData === 'object' ? profileData.last_name || '' : '',
-                avatar_url: typeof profileData === 'object' ? profileData.avatar_url || '' : '',
-                email: {
-                  email: typeof profileData === 'object' && 
-                         Array.isArray(profileData.email) && 
-                         profileData.email.length > 0 && 
-                         profileData.email[0]?.email
-                    ? profileData.email[0].email 
-                    : ''
-                }
+                first_name: profileData.first_name || '',
+                last_name: profileData.last_name || '',
+                avatar_url: profileData.avatar_url || '',
+                email: Array.isArray(profileData.email) ? profileData.email : [{ email: '' }]
               }
             };
           });
@@ -110,9 +114,9 @@ export function useUserData() {
   // Filter users based on search query
   const filteredUsers = users.filter(user => {
     const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
-    const email = user.profiles?.email?.email?.toLowerCase() || '';
+    const userEmail = user.profiles?.email?.[0]?.email?.toLowerCase() || '';
     const query = searchQuery.toLowerCase();
-    return fullName.includes(query) || email.includes(query);
+    return fullName.includes(query) || userEmail.includes(query);
   });
 
   return {
