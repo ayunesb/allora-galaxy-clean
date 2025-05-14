@@ -1,8 +1,8 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useCallback } from 'react';
+import { useSupabaseFetch, usePartialDataFetch } from '@/hooks/supabase';
 import { Strategy } from '@/types/strategy';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StrategyEvolutionResult {
   loading: boolean;
@@ -15,13 +15,6 @@ interface StrategyEvolutionResult {
 }
 
 export function useStrategyEvolution(strategyId: string): StrategyEvolutionResult {
-  const [loading, setLoading] = useState(true);
-  const [strategy, setStrategy] = useState<Strategy | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [userMap, setUserMap] = useState<Record<string, any>>({});
-  const [error, setError] = useState<Error | null>(null);
-
   // Format date helper
   const formatDate = useCallback((dateStr: string): string => {
     try {
@@ -31,110 +24,152 @@ export function useStrategyEvolution(strategyId: string): StrategyEvolutionResul
     }
   }, []);
 
-  // Fetch strategy and related data
-  useEffect(() => {
-    const fetchStrategyData = async () => {
-      if (!strategyId || strategyId === 'default') {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      
-      try {
-        // Fetch strategy details
-        const { data: strategyData, error: strategyError } = await supabase
+  // Use partial data fetch for all strategy-related data
+  const {
+    data,
+    isLoading: loading,
+    error,
+    isPartialData,
+  } = usePartialDataFetch<{
+    strategy: Strategy | null;
+    logs: any[];
+    history: any[];
+    users: Record<string, any>;
+  }>(
+    {
+      strategy: async () => {
+        if (!strategyId || strategyId === 'default') {
+          return null;
+        }
+        
+        const { data, error } = await supabase
           .from('strategies')
           .select('*')
           .eq('id', strategyId)
           .maybeSingle();
           
-        if (strategyError) throw strategyError;
+        if (error) throw error;
         
-        if (strategyData) {
+        if (data) {
           const typedStrategy: Strategy = {
-            id: strategyData.id,
-            tenant_id: strategyData.tenant_id || '',
-            title: strategyData.title || '',
-            description: strategyData.description || '',
-            status: (strategyData.status as Strategy['status']) || 'draft',
-            created_by: strategyData.created_by || '',
-            created_at: strategyData.created_at || '',
-            approved_by: strategyData.approved_by || null,
-            approved_at: strategyData.approved_at || null,
-            rejected_by: strategyData.rejected_by || null,
-            rejected_at: strategyData.rejected_at || null,
-            priority: strategyData.priority as Strategy['priority'] || null,
-            tags: strategyData.tags || null,
-            completion_percentage: strategyData.completion_percentage || null,
-            due_date: strategyData.due_date || null,
-            updated_at: strategyData.updated_at || null,
-            metadata: strategyData.metadata || null
+            id: data.id,
+            tenant_id: data.tenant_id || '',
+            title: data.title || '',
+            description: data.description || '',
+            status: (data.status as Strategy['status']) || 'draft',
+            created_by: data.created_by || '',
+            created_at: data.created_at || '',
+            approved_by: data.approved_by || null,
+            approved_at: data.approved_at || null,
+            rejected_by: data.rejected_by || null,
+            rejected_at: data.rejected_at || null,
+            priority: data.priority as Strategy['priority'] || null,
+            tags: data.tags || null,
+            completion_percentage: data.completion_percentage || null,
+            due_date: data.due_date || null,
+            updated_at: data.updated_at || null,
+            metadata: data.metadata || null
           };
           
-          setStrategy(typedStrategy);
+          return typedStrategy;
         }
         
-        // Fetch strategy execution logs
-        const { data: executionLogs, error: logsError } = await supabase
+        return null;
+      },
+      
+      logs: async () => {
+        if (!strategyId || strategyId === 'default') {
+          return [];
+        }
+        
+        const { data, error } = await supabase
           .from('executions')
           .select('*')
           .eq('strategy_id', strategyId)
           .order('created_at', { ascending: false });
           
-        if (logsError) throw logsError;
+        if (error) throw error;
         
-        setLogs(executionLogs || []);
+        return data || [];
+      },
+      
+      history: async () => {
+        if (!strategyId || strategyId === 'default') {
+          return [];
+        }
         
-        // Fetch system logs related to this strategy
-        const { data: systemLogs, error: systemLogsError } = await supabase
+        const { data, error } = await supabase
           .from('system_logs')
           .select('*')
           .eq('module', 'strategy')
           .contains('context', { strategy_id: strategyId })
           .order('created_at', { ascending: false });
           
-        if (systemLogsError) throw systemLogsError;
+        if (error) throw error;
         
-        setHistory(systemLogs || []);
+        return data || [];
+      },
+      
+      users: async () => {
+        if (!strategyId || strategyId === 'default') {
+          return {};
+        }
         
-        // Collect all user IDs to fetch user info
+        // Collect user IDs first from strategy and logs
+        const { data: strategyData } = await supabase
+          .from('strategies')
+          .select('created_by, approved_by, rejected_by')
+          .eq('id', strategyId)
+          .maybeSingle();
+          
+        const { data: executionLogs } = await supabase
+          .from('executions')
+          .select('executed_by')
+          .eq('strategy_id', strategyId);
+          
+        // Build set of unique user IDs
         const userIds = new Set<string>();
+        
         if (strategyData?.created_by) userIds.add(strategyData.created_by);
         if (strategyData?.approved_by) userIds.add(strategyData.approved_by);
+        if (strategyData?.rejected_by) userIds.add(strategyData.rejected_by);
         
         executionLogs?.forEach(log => {
           if (log.executed_by) userIds.add(log.executed_by);
         });
         
-        if (userIds.size > 0) {
-          // Fetch user profiles
-          const { data: users, error: usersError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url')
-            .in('id', Array.from(userIds));
-            
-          if (usersError) throw usersError;
-          
-          // Create a map of user IDs to user info
-          const usersMap: Record<string, any> = {};
-          users?.forEach(user => {
-            usersMap[user.id] = user;
-          });
-          
-          setUserMap(usersMap);
+        if (userIds.size === 0) {
+          return {};
         }
-      } catch (err: any) {
-        console.error('Error fetching strategy evolution data:', err);
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchStrategyData();
-  }, [strategyId]);
+        
+        // Fetch user profiles
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', Array.from(userIds));
+          
+        if (usersError) throw usersError;
+        
+        // Create a map of user IDs to user info
+        const usersMap: Record<string, any> = {};
+        users?.forEach(user => {
+          usersMap[user.id] = user;
+        });
+        
+        return usersMap;
+      },
+    },
+    {
+      enabled: strategyId !== '' && strategyId !== 'default',
+      showErrorToast: true,
+    }
+  );
+  
+  // Ensure we have sane defaults when data is undefined
+  const strategy = data?.strategy || null;
+  const logs = data?.logs || [];
+  const history = data?.history || [];
+  const userMap = data?.users || {};
 
   return {
     loading,
