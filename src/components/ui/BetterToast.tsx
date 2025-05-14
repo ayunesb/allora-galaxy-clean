@@ -1,15 +1,23 @@
 
-// This file now re-exports the standardized toast system for backward compatibility
+// This file re-exports the standardized toast system for backward compatibility
 import { 
   notify,
   notifySuccess,
   notifyError, 
   notifyWarning,
   notifyInfo,
-  useToast
+  useToast,
+  ToastType
 } from "@/lib/notifications/toast";
 
-export { notify, notifySuccess, notifyError, notifyWarning, notifyInfo, useToast };
+export { 
+  notify, 
+  notifySuccess, 
+  notifyError, 
+  notifyWarning, 
+  notifyInfo, 
+  useToast 
+};
 
-// We export the type to maintain backward compatibility
-export type ToastVariant = "default" | "success" | "destructive" | "info" | "warning";
+// We export the type for backward compatibility
+export type ToastVariant = ToastType;

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -17,16 +17,28 @@ const NotificationCenter: React.FC = () => {
     markAsRead 
   } = useNotifications();
 
-  const handleMarkAsRead = async (id: string): Promise<void> => {
-    await markAsRead(id);
-  };
+  const handleMarkAsRead = useCallback(async (id: string): Promise<void> => {
+    try {
+      await markAsRead(id);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  }, [markAsRead]);
+
+  const handleMarkAllAsRead = useCallback(async (): Promise<void> => {
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  }, [markAllAsRead]);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     
     // If closing the notifications center, mark notifications as read
     if (!open && unreadCount > 0) {
-      markAllAsRead();
+      handleMarkAllAsRead();
     }
   };
 
@@ -52,8 +64,8 @@ const NotificationCenter: React.FC = () => {
           markAsRead={handleMarkAsRead}
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
-          onDelete={() => {}}
-          onMarkAllAsRead={markAllAsRead}
+          onDelete={() => Promise.resolve()}
+          onMarkAllAsRead={handleMarkAllAsRead}
         />
       </SheetContent>
     </Sheet>

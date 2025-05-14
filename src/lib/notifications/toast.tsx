@@ -1,18 +1,22 @@
 
 import { ReactNode } from 'react';
-import { 
-  notify as baseNotify, 
-  notifySuccess as baseNotifySuccess,
-  notifyError as baseNotifyError,
-  notifyWarning as baseNotifyWarning,
-  notifyInfo as baseNotifyInfo,
-  notifyPromise as baseNotifyPromise,
-  ToastOptions,
-  ToastType,
-  ToastPosition
-} from '@/components/ui/sonner';
+import { toast as sonnerToast } from 'sonner';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { SystemEventModule } from '@/types/shared';
+import type { SystemEventModule } from '@/types/shared';
+
+// Define toast types and options
+export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info';
+export type ToastPosition = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+
+export interface ToastOptions {
+  description?: ReactNode;
+  duration?: number;
+  position?: ToastPosition;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
 
 type LoggedToastOptions = ToastOptions & {
   log?: boolean;
@@ -23,58 +27,35 @@ type LoggedToastOptions = ToastOptions & {
 };
 
 /**
- * Extended toast notification function that can also log to the system
+ * Base toast notification function
  */
-export const notify = async (
+export const notify = (
   title: string, 
   options?: LoggedToastOptions & { type?: ToastType }
-) => {
+): string => {
   const {
     type = 'default',
-    log = false,
-    logLevel = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info',
-    logModule = 'system',
-    tenantId = 'system',
-    logContext = {},
     description,
+    duration,
+    position,
+    action,
     ...restOptions
   } = options || {};
   
   // Show the toast notification
-  const toastId = baseNotify(title, {
-    type,
-    description,
-    ...restOptions
-  });
-  
-  // Log the event if requested
-  if (log) {
-    try {
-      await logSystemEvent(
-        logModule,
-        logLevel,
-        {
-          description: description?.toString() || title,
-          toast_type: type,
-          ...logContext
-        },
-        tenantId
-      );
-    } catch (error) {
-      // Don't let logging errors affect the toast display
-      console.error('Failed to log toast notification:', error);
-    }
-  }
-  
-  return toastId;
+  return sonnerToast[type] ? 
+    sonnerToast[type](title, { description, duration, position, action }) : 
+    sonnerToast(title, { description, duration, position, action });
 };
 
-// Convenience methods that include logging capability
+/**
+ * Helper functions for different toast types
+ */
 export const notifySuccess = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
   notify(title, { ...options, type: "success" });
 
 export const notifyError = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
-  notify(title, { ...options, type: "error", log: options?.log !== false });
+  notify(title, { ...options, type: "error" });
 
 export const notifyWarning = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
   notify(title, { ...options, type: "warning" });
@@ -82,79 +63,66 @@ export const notifyWarning = (title: string, options?: Omit<LoggedToastOptions, 
 export const notifyInfo = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
   notify(title, { ...options, type: "info" });
 
-// Promise toast helper with logging
-export const notifyPromise = async <T,>(
-  promise: Promise<T>, 
-  { 
-    loading, 
-    success, 
-    error,
-    log = true,
-    logModule = 'system',
-    tenantId = 'system',
-    logContext = {}
-  }: { 
-    loading: string; 
-    success: string | ((data: T) => string); 
+/**
+ * Promise toast helper that shows loading/success/error states
+ */
+export const notifyPromise = <T,>(
+  promise: Promise<T>,
+  messages: {
+    loading: string;
+    success: string | ((data: T) => string);
     error: string | ((error: any) => string);
-    log?: boolean;
-    logModule?: SystemEventModule;
-    tenantId?: string;
-    logContext?: Record<string, any>;
-  }
-) => {
+  },
+  options?: ToastOptions
+): Promise<T> => {
+  return sonnerToast.promise(promise, {
+    loading: messages.loading,
+    success: messages.success,
+    error: messages.error,
+    ...options
+  });
+};
+
+/**
+ * Create a toast and log the event to the system logs
+ */
+export const notifyAndLog = async (
+  module: SystemEventModule,
+  level: 'info' | 'warning' | 'error',
+  title: string,
+  description?: ReactNode,
+  type?: ToastType,
+  tenantId: string = 'system',
+  additionalContext: Record<string, any> = {}
+): Promise<string> => {
+  const toastType = type || (
+    level === 'error' ? 'error' : 
+    level === 'warning' ? 'warning' : 'info'
+  );
+  
+  // Show the toast notification
+  const toastId = notify(title, {
+    description,
+    type: toastType
+  });
+  
+  // Log the event
   try {
-    // Show the loading toast
-    const loadingToast = baseNotify(loading, { type: 'default' });
-    
-    // Wait for the promise to resolve
-    const result = await promise;
-    
-    // Determine success message
-    const successMessage = typeof success === "function" ? success(result) : success;
-    
-    // Log success if requested
-    if (log) {
-      await logSystemEvent(
-        logModule,
-        'info',
-        {
-          description: successMessage,
-          toast_type: 'success',
-          ...logContext
-        },
-        tenantId
-      );
-    }
-    
-    // Show success toast
-    baseNotifySuccess(successMessage);
-    
-    return result;
-  } catch (err) {
-    // Determine error message
-    const errorMessage = typeof error === "function" ? error(err) : error;
-    
-    // Log error if requested
-    if (log) {
-      await logSystemEvent(
-        logModule,
-        'error',
-        {
-          description: errorMessage,
-          error: err,
-          toast_type: 'error',
-          ...logContext
-        },
-        tenantId
-      );
-    }
-    
-    // Show error toast
-    baseNotifyError(errorMessage);
-    
-    throw err;
+    await logSystemEvent(
+      module,
+      level,
+      {
+        description: description?.toString() || title,
+        toast_type: toastType,
+        ...additionalContext
+      },
+      tenantId
+    );
+  } catch (error) {
+    console.error('Failed to log toast notification:', error);
   }
+  
+  return toastId;
 };
 
 /**
@@ -169,34 +137,6 @@ export const useToast = () => {
     info: notifyInfo,
     promise: notifyPromise
   };
-};
-
-/**
- * Create a toast and log the event to the system logs
- */
-export const notifyAndLog = async (
-  module: SystemEventModule,
-  level: 'info' | 'warning' | 'error',
-  title: string,
-  description?: ReactNode,
-  type?: ToastType,
-  tenantId: string = 'system',
-  additionalContext: Record<string, any> = {}
-) => {
-  const toastType = type || (
-    level === 'error' ? 'error' : 
-    level === 'warning' ? 'warning' : 'info'
-  );
-  
-  return notify(title, {
-    description,
-    type: toastType,
-    log: true,
-    logLevel: level,
-    logModule: module,
-    tenantId,
-    logContext: additionalContext
-  });
 };
 
 export default useToast;

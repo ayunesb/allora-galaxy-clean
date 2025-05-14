@@ -1,134 +1,112 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CookiePreferenceItem from './CookiePreferenceItem';
-import { CookiePreferences } from '@/lib/utils';
+import { useCookiePreferences, CookiePreference } from './useCookiePreferences';
 
 interface CookieConsentDialogProps {
   open: boolean;
-  onClose: () => void;
-  onOpenChange?: (open: boolean) => void;
-  onAccept: (preferences: CookiePreferences) => void;
-  onDecline: () => void;
-  showDeclineButton?: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const CookieConsentDialog: React.FC<CookieConsentDialogProps> = ({
-  open,
-  onClose,
-  onOpenChange,
-  onAccept,
-  onDecline,
-  showDeclineButton = true,
+const CookieConsentDialog: React.FC<CookieConsentDialogProps> = ({ 
+  open, 
+  onOpenChange 
 }) => {
-  const [preferences, setPreferences] = useState<CookiePreferences>({
-    ga4Enabled: true,
-    metaPixelEnabled: true,
-    sessionAnalyticsEnabled: true
-  });
+  const [activeTab, setActiveTab] = useState('overview');
+  const { 
+    cookiePreferences, 
+    setCookiePreferences, 
+    acceptAllCookies, 
+    acceptNecessaryCookies 
+  } = useCookiePreferences();
 
-  const handlePreferenceChange = (key: keyof CookiePreferences, value: boolean) => {
-    setPreferences(prev => ({ ...prev, [key]: value }));
+  const handleAcceptAll = () => {
+    acceptAllCookies();
+    onOpenChange(false);
   };
 
-  const handleAcceptSelected = () => {
-    onAccept(preferences);
+  const handleAcceptNecessary = () => {
+    acceptNecessaryCookies();
+    onOpenChange(false);
+  };
+
+  const handleSavePreferences = () => {
+    setCookiePreferences(cookiePreferences);
+    onOpenChange(false);
+  };
+
+  const handlePreferenceChange = (type: keyof CookiePreference, value: boolean) => {
+    setCookiePreferences({
+      ...cookiePreferences,
+      [type]: value
+    });
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(open) => {
-        if (onOpenChange) onOpenChange(open);
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Cookie Preferences</DialogTitle>
-        </DialogHeader>
-
-        <Tabs defaultValue="preferences" className="w-full">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
-            <TabsTrigger value="information">Information</TabsTrigger>
-          </TabsList>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md md:max-w-lg">
+        <div className="space-y-4 py-2">
+          <h2 className="text-xl font-semibold">Cookie Preferences</h2>
           
-          <TabsContent value="preferences" className="space-y-4 py-4">
-            <CookiePreferenceItem
-              title="Necessary"
-              description="Essential cookies required for basic site functionality."
-              checked={true}
-              disabled={true}
-              onChange={() => {}}
-            />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="preferences">Cookie Settings</TabsTrigger>
+            </TabsList>
             
-            <CookiePreferenceItem
-              title="Google Analytics"
-              description="Helps us understand how visitors interact with our website."
-              checked={preferences.ga4Enabled}
-              onChange={(checked) => handlePreferenceChange('ga4Enabled', checked)}
-            />
-            
-            <CookiePreferenceItem
-              title="Meta Pixel"
-              description="Helps us measure the effectiveness of our advertising."
-              checked={preferences.metaPixelEnabled}
-              onChange={(checked) => handlePreferenceChange('metaPixelEnabled', checked)}
-            />
-            
-            <CookiePreferenceItem
-              title="Session Analytics"
-              description="Tracks user session data to improve user experience."
-              checked={preferences.sessionAnalyticsEnabled}
-              onChange={(checked) => handlePreferenceChange('sessionAnalyticsEnabled', checked)}
-            />
-          </TabsContent>
-          
-          <TabsContent value="information" className="py-4">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">What are cookies?</h3>
-              <p className="text-sm text-muted-foreground">
-                Cookies are small text files that are placed on your device to help the site provide a better user experience. 
-                In general, cookies are used to retain user preferences, store information for things like shopping carts, 
-                and provide anonymized tracking data to third-party applications like Google Analytics.
+            <TabsContent value="overview" className="space-y-4 pt-4">
+              <p>
+                We use cookies to enhance your browsing experience, serve personalized ads or content,
+                and analyze our traffic. By clicking "Accept All", you consent to our use of cookies.
               </p>
-              <p className="text-sm text-muted-foreground">
-                As a rule, cookies will make your browsing experience better. However, you may prefer to disable cookies on 
-                this site and on others. The most effective way to do this is to disable cookies in your browser.
-              </p>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2">
-          {showDeclineButton && (
-            <Button variant="outline" onClick={onDecline} className="sm:w-auto w-full">
-              Decline All
-            </Button>
-          )}
-          <div className="flex gap-2 sm:w-auto w-full">
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto"
-              onClick={handleAcceptSelected}
-            >
-              Accept Selected
-            </Button>
-            <Button 
-              className="w-full sm:w-auto"
-              onClick={() => onAccept({
-                ga4Enabled: true,
-                metaPixelEnabled: true,
-                sessionAnalyticsEnabled: true
-              })}
-            >
-              Accept All
-            </Button>
-          </div>
-        </DialogFooter>
+              
+              <div className="flex justify-between space-x-2">
+                <Button variant="outline" onClick={handleAcceptNecessary}>
+                  Necessary Only
+                </Button>
+                <Button onClick={handleAcceptAll}>Accept All</Button>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="preferences" className="space-y-4 pt-4">
+              <CookiePreferenceItem
+                title="Necessary Cookies"
+                description="These cookies are required for the website to function and cannot be disabled."
+                checked={cookiePreferences.necessary}
+                disabled={true}
+                onChange={() => {}}
+              />
+              
+              <CookiePreferenceItem
+                title="Analytics Cookies"
+                description="These cookies help us understand how visitors interact with our website."
+                checked={cookiePreferences.analytics}
+                onChange={(checked) => handlePreferenceChange('analytics', checked)}
+              />
+              
+              <CookiePreferenceItem
+                title="Marketing Cookies"
+                description="These cookies are used to track visitors across websites to display relevant advertisements."
+                checked={cookiePreferences.marketing}
+                onChange={(checked) => handlePreferenceChange('marketing', checked)}
+              />
+              
+              <CookiePreferenceItem
+                title="Preference Cookies"
+                description="These cookies enable the website to remember choices you make."
+                checked={cookiePreferences.preferences}
+                onChange={(checked) => handlePreferenceChange('preferences', checked)}
+              />
+              
+              <div className="flex justify-end">
+                <Button onClick={handleSavePreferences}>Save Preferences</Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );

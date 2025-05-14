@@ -1,36 +1,34 @@
 
-import { SystemEventType } from './shared';
-
-/**
- * System log entry
- */
 export interface SystemLog {
   id: string;
-  module: SystemEventModule;
-  event: string;
   created_at: string;
-  context?: Record<string, any>;
+  description: string;
+  level: 'info' | 'warning' | 'error';
+  module: string;
   tenant_id?: string;
+  user_id?: string;
+  metadata?: string | Record<string, any>;
+  context?: string;
+  request_id?: string;
 }
 
-/**
- * System event modules
- */
-export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
+export interface SystemLogGroup {
+  id: string;
+  error_message: string;
+  error_type: string;
+  count: number;
+  first_seen: string;
+  last_seen: string;
+  environment: string;
+  status: 'open' | 'resolved' | 'ignored';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+}
 
-/**
- * Audit log entry (alias for SystemLog for backward compatibility)
- */
-export interface AuditLog extends SystemLog {}
-
-/**
- * Log filters for querying logs
- */
-export interface LogFilters {
-  module?: SystemEventModule;
-  event?: SystemEventType;
-  fromDate?: string;
-  toDate?: string;
-  tenant_id?: string;
-  searchTerm?: string;
+export interface ErrorImpact {
+  users_affected: number;
+  occurrence_count: number;
+  first_seen: string;
+  last_seen: string;
+  tenants_affected: string[];
+  components_affected: string[];
 }

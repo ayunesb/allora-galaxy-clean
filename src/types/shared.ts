@@ -1,78 +1,57 @@
 
-import { DateRange as ReactDateRange } from "@/components/ui/date-range-picker";
-
-/**
- * Represents a date range with from and to dates
- */
-export type DateRange = ReactDateRange;
-
-/**
- * Standard sort direction
- */
-export type SortDirection = 'asc' | 'desc';
-
-/**
- * Valid system event modules
- */
+// Base system event modules for logging
 export type SystemEventModule = 
   | 'system'
   | 'auth'
-  | 'admin'
+  | 'onboarding'
   | 'strategy'
-  | 'agent'
-  | 'evolution'
+  | 'execution'
   | 'plugin'
-  | 'integration'
-  | 'tenant'
+  | 'agent'
+  | 'database'
+  | 'api'
+  | 'notification'
   | 'user'
-  | 'monitoring'
-  | 'analytics';
+  | 'billing'
+  | 'workspace'
+  | 'cron'
+  | 'evolution';
 
-/**
- * Standard result type for database operations
- */
-export interface DbResult<T> {
-  success: boolean;
-  data: T | null;
-  error?: string;
-}
+// Status types used across the application
+export type Status = 'idle' | 'loading' | 'success' | 'error';
 
-/**
- * Standard response type for API operations
- */
-export interface ApiResponse<T> {
+// Common response format for API calls
+export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
   code?: string;
   status?: number;
 }
 
-/**
- * Standard pagination parameters
- */
+// Base pagination params
 export interface PaginationParams {
-  page: number;
-  pageSize: number;
+  page?: number;
+  limit?: number;
+  offset?: number;
 }
 
-/**
- * Standard paginated result
- */
-export interface PaginatedResult<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+// Base filter params for listings
+export interface FilterParams {
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
-/**
- * Represents a trend direction for KPIs and metrics
- */
-export type TrendDirection = 'up' | 'down' | 'neutral' | 'flat' | 'none';
+// Base timestamp fields for database tables
+export interface TimestampFields {
+  created_at: string;
+  updated_at?: string;
+}
 
-/**
- * Voting types for agent feedback
- */
-export type VoteType = 'upvote' | 'downvote';
+// Generic key-value record
+export type KeyValueRecord = Record<string, any>;

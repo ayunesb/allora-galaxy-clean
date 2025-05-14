@@ -1,69 +1,103 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuditLog as AuditLogType } from '@/types/evolution';
-import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Loader2 } from 'lucide-react';
 import { SystemLog } from '@/types/logs';
+import { LogDetailDialog } from './logs/LogDetailDialog';
 
 interface AuditLogProps {
-  title: string;
-  logs: AuditLogType[];
+  logs: SystemLog[];
   isLoading: boolean;
-  onRefresh: () => void;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({
-  title,
-  logs,
-  isLoading,
-  onRefresh
-}) => {
-  const [filters, setFilters] = useState({
-    module: 'all',
-    event: 'all'
-  });
+const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   
-  // Convert AuditLog to SystemLog for compatibility with SystemLogsList
-  const convertedLogs: SystemLog[] = logs.map(log => ({
-    id: log.id || '',
-    tenant_id: log.tenant_id,
-    module: log.module || 'system',
-    event: log.event || 'unknown',
-    created_at: log.created_at || new Date().toISOString(),
-    context: log.context || {}
-  }));
+  // Filter logs based on search query
+  const filteredLogs = logs.filter(log => 
+    log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.module?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.level?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
-  // Apply filters
-  const filteredLogs = convertedLogs.filter(log => {
-    if (filters.module !== 'all' && log.module !== filters.module) {
-      return false;
-    }
-    if (filters.event !== 'all' && log.event !== filters.event) {
-      return false;
-    }
-    return true;
-  });
+  const handleLogClick = (log: SystemLog) => {
+    setSelectedLog(log);
+  };
+  
+  const handleCloseDialog = () => {
+    setSelectedLog(null);
+  };
   
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>{title}</CardTitle>
-        <AuditLogFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-          onRefresh={onRefresh}
-          isLoading={isLoading}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle>System Audit Logs</CardTitle>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Input
+                placeholder="Search logs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full md:w-[240px]"
+              />
+              <Button variant="outline" size="sm">
+                Filter
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No logs found matching your criteria
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredLogs.map((log) => (
+                <div 
+                  key={log.id}
+                  className="p-3 border rounded-md cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => handleLogClick(log)}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        log.level === 'error' ? 'bg-red-100 text-red-800' :
+                        log.level === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {log.level}
+                      </span>
+                      <span className="text-sm font-medium">{log.module}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(log.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm truncate">{log.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      {selectedLog && (
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={Boolean(selectedLog)} 
+          onOpenChange={handleCloseDialog} 
         />
-      </CardHeader>
-      <CardContent>
-        <SystemLogsList 
-          logs={filteredLogs}
-          isLoading={isLoading}
-        />
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 

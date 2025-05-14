@@ -1,108 +1,58 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SystemEventModule } from '@/types/shared';
+import type { SystemEventModule } from '@/types/shared';
+import type { SystemLog } from '@/types/logs';
 
 /**
  * Log a system event to the database
- * 
- * @param module The system module generating the event
- * @param event The type of event
- * @param context Optional context data
- * @param tenantId Optional tenant ID
- * @returns Result of the logging operation
  */
-export async function logSystemEvent(
+export const logSystemEvent = async (
   module: SystemEventModule,
-  event: string,
-  context?: Record<string, any>,
-  tenantId?: string
-): Promise<{success: boolean, error?: string, id?: string}> {
+  level: 'info' | 'warning' | 'error',
+  details: {
+    description: string;
+    [key: string]: any;
+  },
+  tenantId: string = 'system'
+): Promise<void> => {
   try {
-    // Create the log entry
-    const logEntry = {
+    const { error } = await supabase.from('system_logs').insert({
       module,
-      event,
-      context,
-      tenant_id: tenantId
-    };
-
-    // Insert into system_logs table
-    const { data, error } = await supabase
-      .from('system_logs')
-      .insert(logEntry)
-      .select('id')
-      .single();
+      level,
+      description: details.description,
+      tenant_id: tenantId,
+      metadata: JSON.stringify(details)
+    });
 
     if (error) {
-      console.error('Error logging system event:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Failed to log system event'
-      };
+      console.error('Failed to log system event:', error);
+    }
+  } catch (err) {
+    console.error('Error logging system event:', err);
+  }
+};
+
+/**
+ * Fetch system logs from the database
+ */
+export const fetchSystemLogs = async (): Promise<SystemLog[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('Failed to fetch system logs:', error);
+      return [];
     }
 
-    return { 
-      success: true,
-      id: data?.id
-    };
-  } catch (err: any) {
-    console.error('Exception logging system event:', err);
-    return { 
-      success: false, 
-      error: err.message || 'Exception occurred logging system event'
-    };
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching system logs:', err);
+    return [];
   }
-}
+};
 
-/**
- * Log an error event to the system logs
- * 
- * @param module The system module generating the error
- * @param error The error object or message
- * @param context Additional context data
- * @param tenantId Optional tenant ID
- * @returns Result of the logging operation
- */
-export async function logSystemError(
-  module: SystemEventModule,
-  error: Error | string,
-  context?: Record<string, any>,
-  tenantId?: string
-): Promise<{success: boolean, error?: string, id?: string}> {
-  const errorMessage = error instanceof Error ? error.message : error;
-  const errorStack = error instanceof Error ? error.stack : undefined;
-  
-  const errorContext = {
-    ...context,
-    error: errorMessage,
-    stack: errorStack
-  };
-
-  return logSystemEvent(module, 'error', errorContext, tenantId);
-}
-
-/**
- * Log an info event to the system logs
- *
- * @param module The system module generating the info event
- * @param message The info message
- * @param context Additional context data
- * @param tenantId Optional tenant ID
- * @returns Result of the logging operation
- */
-export async function logSystemInfo(
-  module: SystemEventModule,
-  message: string,
-  context?: Record<string, any>,
-  tenantId?: string
-): Promise<{success: boolean, error?: string, id?: string}> {
-  const infoContext = {
-    ...context,
-    message
-  };
-
-  return logSystemEvent(module, 'info', infoContext, tenantId);
-}
-
-// Default export for backward compatibility with existing code
 export default logSystemEvent;

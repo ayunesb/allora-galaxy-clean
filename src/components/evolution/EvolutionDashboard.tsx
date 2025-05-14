@@ -1,108 +1,61 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSupabaseFetch } from '@/hooks/useSupabaseFetch';
-import { useToast } from '@/lib/notifications/toast';
-import { useTenantId } from '@/hooks/useTenantId';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
-import PluginEvolutionTab from './PluginEvolutionTab';
 import AgentEvolutionTab from './AgentEvolutionTab';
+import PluginEvolutionTab from './PluginEvolutionTab';
 import AuditLog from './AuditLog';
+import { useQuery } from '@tanstack/react-query';
 
-interface EvolutionDashboardProps {
-  initialTab?: string;
-}
+// Import any necessary functions for data fetching
+import { fetchSystemLogs } from '@/lib/system/logSystemEvent';
 
-const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ initialTab = 'strategies' }) => {
-  const [activeTab, setActiveTab] = useState<string>(initialTab);
-  const { toast } = useToast();
-  const tenantId = useTenantId();
+const EvolutionDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('strategies');
   
-  // Fetch audit logs for evolution activities
-  const { data: auditLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = useSupabaseFetch(
-    'system_logs',
-    {
-      query: (query) => 
-        query
-          .select('*')
-          .eq('tenant_id', tenantId)
-          // Include evolution-related modules
-          .in('module', ['strategy', 'agent', 'plugin'])
-          // Include evolution-related events
-          .in('event', ['evolution', 'create', 'update', 'approve', 'reject', 'vote'])
-          .order('created_at', { ascending: false })
-          .limit(100),
-    }
-  );
-
-  const handleRefreshLogs = async () => {
-    try {
-      await refetchLogs();
-      toast({
-        title: "Logs refreshed",
-      });
-    } catch (error) {
-      toast({
-        title: "Could not refresh logs",
-        variant: "destructive",
-      });
-    }
+  // Define proper query function
+  const fetchLogsData = async () => {
+    // Replace this with your actual log fetching logic
+    return fetchSystemLogs();
   };
-
+  
+  const { data: logsData, isLoading } = useQuery({
+    queryKey: ['system-logs'],
+    queryFn: fetchLogsData
+  });
+  
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+  
   return (
-    <div className="container py-6">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Evolution Dashboard</h1>
+    <div className="container mx-auto p-4 space-y-6">
+      <h1 className="text-2xl font-bold">System Evolution Dashboard</h1>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid grid-cols-4 mb-8">
           <TabsTrigger value="strategies">Strategies</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="plugins">Plugins</TabsTrigger>
+          <TabsTrigger value="audit-log">Audit Log</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="strategies" className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Strategy Evolution</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <StrategyEvolutionTab />
-            </CardContent>
-          </Card>
+        <TabsContent value="strategies" className="space-y-4">
+          <StrategyEvolutionTab />
         </TabsContent>
         
-        <TabsContent value="agents" className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Evolution</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <AgentEvolutionTab />
-            </CardContent>
-          </Card>
+        <TabsContent value="agents" className="space-y-4">
+          <AgentEvolutionTab />
         </TabsContent>
         
-        <TabsContent value="plugins" className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plugin Evolution</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <PluginEvolutionTab />
-            </CardContent>
-          </Card>
+        <TabsContent value="plugins" className="space-y-4">
+          <PluginEvolutionTab />
+        </TabsContent>
+        
+        <TabsContent value="audit-log" className="space-y-4">
+          <AuditLog logs={logsData || []} isLoading={isLoading} />
         </TabsContent>
       </Tabs>
-      
-      <div className="mt-8">
-        <AuditLog 
-          title="Evolution Activity Logs" 
-          logs={auditLogs || []} 
-          isLoading={isLoadingLogs} 
-          onRefresh={handleRefreshLogs} 
-        />
-      </div>
     </div>
   );
 };
