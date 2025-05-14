@@ -11,8 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Plus, Trash2, AlertCircle, Bell } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AlertRule {
   id: string;
@@ -23,7 +24,7 @@ interface AlertRule {
   notificationChannels: string[];
 }
 
-const defaultAlertRules: AlertRule[] = [
+const DEFAULT_ALERT_RULES: AlertRule[] = [
   {
     id: '1',
     enabled: true,
@@ -43,7 +44,8 @@ const defaultAlertRules: AlertRule[] = [
 ];
 
 const ErrorRateAlerts: React.FC = () => {
-  const [alertRules, setAlertRules] = useState<AlertRule[]>(defaultAlertRules);
+  const [alertRules, setAlertRules] = useState<AlertRule[]>(DEFAULT_ALERT_RULES);
+  const [globalAlerts, setGlobalAlerts] = useState(true);
   
   const handleToggleRule = (id: string) => {
     setAlertRules(prev => 
@@ -77,32 +79,79 @@ const ErrorRateAlerts: React.FC = () => {
     
     setAlertRules(prev => [...prev, newRule]);
   };
+
+  // Get highest priority active alert (if any)
+  const getActiveAlert = (): AlertRule | null => {
+    if (!globalAlerts) return null;
+    
+    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    
+    const activeRules = alertRules
+      .filter(rule => rule.enabled)
+      .sort((a, b) => {
+        const severityA = severityOrder[a.severity as keyof typeof severityOrder] || 999;
+        const severityB = severityOrder[b.severity as keyof typeof severityOrder] || 999;
+        return severityA - severityB;
+      });
+    
+    return activeRules.length > 0 ? activeRules[0] : null;
+  };
+  
+  const activeAlert = getActiveAlert();
   
   return (
     <div className="space-y-4">
-      <div className="flex items-center">
-        <Switch id="global-alerts" defaultChecked />
-        <Label htmlFor="global-alerts" className="ml-2">
-          Enable error rate alerts
-        </Label>
-        <div className="ml-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleAddRule}
-            className="h-8 gap-1"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Rule
-          </Button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Switch 
+            id="global-alerts" 
+            checked={globalAlerts} 
+            onCheckedChange={setGlobalAlerts} 
+          />
+          <Label htmlFor="global-alerts" className="ml-2">
+            Enable error rate alerts
+          </Label>
         </div>
+        
+        {activeAlert && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 text-sm">
+                  <Bell className="h-4 w-4 text-amber-500 animate-pulse" />
+                  <span className="text-amber-500 font-medium">{activeAlert.threshold}+ errors/{activeAlert.timeWindow}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Active alert threshold for {activeAlert.severity} errors</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleAddRule}
+          className="h-8 gap-1"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Rule
+        </Button>
       </div>
       
       <Separator className="my-4" />
       
       <div className="space-y-4">
         {alertRules.map(rule => (
-          <div key={rule.id} className="border rounded-md p-3 space-y-3 bg-background">
+          <div 
+            key={rule.id} 
+            className={`border rounded-md p-3 space-y-3 ${
+              rule.enabled && globalAlerts 
+                ? `bg-background border-${rule.severity === 'critical' ? 'destructive/40' : rule.severity === 'high' ? 'amber-500/40' : 'border'}`
+                : 'bg-background'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Switch 
@@ -110,7 +159,9 @@ const ErrorRateAlerts: React.FC = () => {
                   onCheckedChange={() => handleToggleRule(rule.id)}
                   id={`rule-${rule.id}`}
                 />
-                <Label htmlFor={`rule-${rule.id}`} className="font-medium">
+                <Label htmlFor={`rule-${rule.id}`} className="font-medium flex items-center">
+                  {rule.severity === 'critical' && <AlertCircle className="h-4 w-4 text-destructive mr-1" />}
+                  {rule.severity === 'high' && <AlertTriangle className="h-4 w-4 text-amber-500 mr-1" />}
                   {rule.severity} alert
                 </Label>
               </div>
@@ -183,7 +234,7 @@ const ErrorRateAlerts: React.FC = () => {
             <div className="pt-1">
               <Label className="text-xs mb-1 block">Notification Channels</Label>
               <div className="flex flex-wrap gap-2">
-                {['email', 'slack', 'webhook'].map(channel => {
+                {['email', 'slack', 'webhook', 'dashboard'].map(channel => {
                   const isActive = rule.notificationChannels.includes(channel);
                   return (
                     <Button
@@ -230,6 +281,34 @@ const ErrorRateAlerts: React.FC = () => {
           </div>
         )}
       </div>
+
+      {alertRules.length > 0 && (
+        <div className="mt-6 bg-muted/40 p-3 rounded-md border border-dashed">
+          <h4 className="text-sm font-medium mb-2">How Notifications Work</h4>
+          <p className="text-xs text-muted-foreground">
+            When error rates exceed your defined thresholds, notifications will be automatically sent to your configured channels.
+            Alert states are checked every minute, and notifications are rate-limited to prevent alert fatigue.
+          </p>
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div className="p-2 bg-background rounded border">
+              <div className="font-medium mb-1">Email</div>
+              <div className="text-muted-foreground">Sends to admin users</div>
+            </div>
+            <div className="p-2 bg-background rounded border">
+              <div className="font-medium mb-1">Slack</div>
+              <div className="text-muted-foreground">Posts to configured workspace</div>
+            </div>
+            <div className="p-2 bg-background rounded border">
+              <div className="font-medium mb-1">Webhook</div>
+              <div className="text-muted-foreground">Triggers custom integrations</div>
+            </div>
+            <div className="p-2 bg-background rounded border">
+              <div className="font-medium mb-1">Dashboard</div>
+              <div className="text-muted-foreground">Shows in notification center</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

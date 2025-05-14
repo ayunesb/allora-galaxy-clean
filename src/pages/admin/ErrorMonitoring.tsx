@@ -23,15 +23,29 @@ const ErrorMonitoring: React.FC = () => {
     to: new Date(),
   });
 
-  const { logs, isLoading, filters, updateFilters, refetch } = useSystemLogsData({
-    module: 'system', 
-    event: 'error',
+  // Initialize with error filter
+  const { 
+    errorLogs,
+    isLoading, 
+    filters, 
+    updateFilters, 
+    refetch,
+    errorStats
+  } = useSystemLogsData({
+    module: ['system', 'database', 'auth', 'api'], 
+    level: ['error'],
     fromDate: dateRange.from.toISOString(),
     toDate: dateRange.to?.toISOString(),
   });
   
-  // Filter to only error logs
-  const errorLogs = logs.filter(log => log.event === 'error' || log.event.includes('error') || log.event.includes('exception'));
+  // Handle date range change
+  const handleDateRangeChange = (range: { from: Date; to: Date | undefined }) => {
+    setDateRange(range);
+    updateFilters({
+      fromDate: range.from.toISOString(),
+      toDate: range.to?.toISOString()
+    });
+  };
   
   return (
     <div className="container py-6">
@@ -52,7 +66,7 @@ const ErrorMonitoring: React.FC = () => {
           <Calendar className="mr-2 h-4 w-4 opacity-50" />
           <DatePickerWithRange
             value={dateRange}
-            onChange={setDateRange}
+            onChange={handleDateRangeChange}
           />
         </div>
       </div>
@@ -91,8 +105,22 @@ const ErrorMonitoring: React.FC = () => {
             </Card>
             
             <Card className="md:col-span-2">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Recent Errors</CardTitle>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-destructive"></span>
+                    <span className="text-muted-foreground">Critical: {errorStats.criticalErrors}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                    <span className="text-muted-foreground">High: {errorStats.highErrors}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                    <span className="text-muted-foreground">Other: {errorStats.mediumErrors + errorStats.lowErrors}</span>
+                  </span>
+                </div>
               </CardHeader>
               <CardContent>
                 <ErrorGroupsList 

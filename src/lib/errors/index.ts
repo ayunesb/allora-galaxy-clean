@@ -32,7 +32,7 @@ export { default as ErrorBoundary } from '@/components/errors/ErrorBoundary';
 export { default as ErrorFallback } from '@/components/errors/ErrorFallback';
 export { default as PageErrorBoundary } from '@/components/errors/PageErrorBoundary';
 export { default as RetryableErrorBoundary, withRetryableErrorBoundary } from '@/components/errors/RetryableErrorBoundary';
-export { default as ErrorState } from '@/components/errors/ErrorState';
+export { default as ErrorState } from '@/components/ui/error-state';
 export { default as InlineError } from '@/components/errors/InlineError';
 export { default as CardErrorState } from '@/components/errors/CardErrorState';
 export { default as PartialErrorState } from '@/components/errors/PartialErrorState';
@@ -65,3 +65,6 @@ export {
   notifyPromise,
   notifyAndLog
 } from '@/lib/notifications/toast';
+
+// Export EdgeFunctionError component
+export { EdgeFunctionError, withEdgeFunctionErrorHandling } from '@/components/errors/EdgeFunctionErrorHandler';

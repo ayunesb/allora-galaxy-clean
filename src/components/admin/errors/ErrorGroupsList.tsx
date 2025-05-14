@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -23,8 +22,7 @@ import {
   Info,
   Clock,
   Tag,
-  CheckCircle,
-  XCircle
+  CheckCircle
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { SystemLog } from '@/types/logs';
@@ -40,6 +38,64 @@ interface ErrorGroupsListProps {
   showLastSeen?: boolean;
 }
 
+// Helper function to group errors by type and message similarity
+const groupErrorLogs = (logs: SystemLog[]): {
+  groupedLogs: SystemLog[][];
+  groupSummary: {
+    id: string;
+    message: string;
+    count: number;
+    firstSeen: string;
+    lastSeen: string;
+    errorType: string;
+    severity: string;
+    module: string;
+    user_facing: boolean;
+  }[];
+} => {
+  // Groups errors by error_type and message similarity
+  const errorGroups: Record<string, SystemLog[]> = {};
+  
+  logs.forEach(log => {
+    const errorType = log.error_type || 'unknown';
+    const message = log.message || log.description || log.error || log.event || '';
+    
+    // Create a simplified key for grouping similar errors
+    let groupKey = `${errorType}:${message.slice(0, 50)}`;
+    
+    if (!errorGroups[groupKey]) {
+      errorGroups[groupKey] = [];
+    }
+    
+    errorGroups[groupKey].push(log);
+  });
+  
+  // Convert groups to arrays and create summaries
+  const groupedLogs = Object.values(errorGroups);
+  const groupSummary = groupedLogs.map(logs => {
+    const firstLog = logs[0];
+    return {
+      id: `group-${firstLog.id}`,
+      message: firstLog.message || firstLog.description || firstLog.error || firstLog.event || 'Unknown error',
+      count: logs.length,
+      firstSeen: logs.reduce((earliest, log) => 
+        new Date(log.created_at) < new Date(earliest) ? log.created_at : earliest, 
+        logs[0].created_at
+      ),
+      lastSeen: logs.reduce((latest, log) => 
+        new Date(log.created_at) > new Date(latest) ? log.created_at : latest, 
+        logs[0].created_at
+      ),
+      errorType: firstLog.error_type || 'Error',
+      severity: firstLog.severity || 'medium',
+      module: firstLog.module || 'unknown',
+      user_facing: firstLog.user_facing || false
+    };
+  });
+  
+  return { groupedLogs, groupSummary };
+};
+
 const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
   logs,
   isLoading,
@@ -50,6 +106,44 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
 }) => {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  
+  // Group errors if needed
+  const shouldGroup = logs.length > 3;
+  const { groupedLogs, groupSummary } = shouldGroup ? groupErrorLogs(logs) : { groupedLogs: [[]], groupSummary: [] };
+  
+  // The items to display - either individual logs or grouped logs
+  const displayItems = shouldGroup ? groupSummary.map((group, i) => ({
+    ...group,
+    isGroup: true,
+    relatedLogs: groupedLogs[i]
+  })) : logs.map(log => ({
+    ...log,
+    isGroup: false,
+    count: 1,
+    message: log.message || log.description || log.error || log.event || 'Unknown error',
+    errorType: log.error_type || 'Error',
+    severity: log.severity || 'medium'
+  }));
+  
+  // Sort by severity and then by count/timestamp
+  const sortedItems = displayItems.sort((a, b) => {
+    // Sort by severity
+    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    const severityA = severityOrder[a.severity as keyof typeof severityOrder] || 999;
+    const severityB = severityOrder[b.severity as keyof typeof severityOrder] || 999;
+    
+    if (severityA !== severityB) return severityA - severityB;
+    
+    // Then sort by count (for groups) or timestamp
+    if (a.isGroup && b.isGroup) {
+      return (b as any).count - (a as any).count;
+    }
+    
+    // Otherwise sort by most recent first
+    const dateA = new Date(a.isGroup ? (a as any).lastSeen : a.created_at);
+    const dateB = new Date(b.isGroup ? (b as any).lastSeen : b.created_at);
+    return dateB.getTime() - dateA.getTime();
+  });
   
   const toggleItem = (id: string) => {
     setOpenItems(prev => ({
@@ -90,14 +184,6 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
         {severity}
       </Badge>
     );
-  };
-  
-  const getErrorMessage = (log: SystemLog) => {
-    return log.message || log.description || log.error || log.event || 'Unknown error';
-  };
-  
-  const getErrorType = (log: SystemLog) => {
-    return log.error_type || 'Error';
   };
   
   const formatTimeAgo = (timestamp: string) => {
@@ -142,116 +228,184 @@ const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
 
   return (
     <div className="space-y-1">
-      {logs.map(log => (
-        <Collapsible
-          key={log.id}
-          open={openItems[log.id]}
-          onOpenChange={() => toggleItem(log.id)}
-          className="border rounded-md overflow-hidden"
-        >
-          <CollapsibleTrigger asChild>
-            <div className="flex items-center p-3 cursor-pointer hover:bg-muted/50">
-              <div className="mr-2">
-                {openItems[log.id] ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-              
-              <div className="mr-3">
-                {getSeverityIcon(log.severity || 'medium')}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">
-                  {getErrorMessage(log)}
-                </div>
-                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                  <span className="flex items-center gap-1">
-                    <Tag className="h-3 w-3" /> 
-                    {getErrorType(log)}
-                  </span>
-                  
-                  {log.module && (
-                    <span>{log.module}</span>
-                  )}
-                  
-                  {showLastSeen && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> 
-                      {formatTimeAgo(log.created_at)}
-                    </span>
+      {sortedItems.map((item: any) => {
+        const isGroupItem = item.isGroup;
+        const itemId = isGroupItem ? item.id : item.id;
+        const isOpen = openItems[itemId] || false;
+        
+        return (
+          <Collapsible
+            key={itemId}
+            open={isOpen}
+            onOpenChange={() => toggleItem(itemId)}
+            className="border rounded-md overflow-hidden"
+          >
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center p-3 cursor-pointer hover:bg-muted/50">
+                <div className="mr-2">
+                  {isOpen ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
-              </div>
-              
-              <div className="ml-2 flex items-center gap-2">
-                {showPriority && log.severity && (
-                  <div>{getSeverityBadge(log.severity)}</div>
-                )}
                 
-                {showFrequency && (
-                  <Badge variant="secondary" className="ml-auto">
-                    1 occurrence
-                  </Badge>
+                <div className="mr-3">
+                  {getSeverityIcon(item.severity || 'medium')}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">
+                    {item.message}
+                  </div>
+                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                    <span className="flex items-center gap-1">
+                      <Tag className="h-3 w-3" /> 
+                      {item.errorType}
+                    </span>
+                    
+                    {item.module && (
+                      <span>{item.module}</span>
+                    )}
+                    
+                    {showLastSeen && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> 
+                        {isGroupItem 
+                          ? formatTimeAgo(item.lastSeen) 
+                          : formatTimeAgo(item.created_at)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="ml-2 flex items-center gap-2">
+                  {showPriority && item.severity && (
+                    <div>{getSeverityBadge(item.severity)}</div>
+                  )}
+                  
+                  {(showFrequency || isGroupItem) && (
+                    <Badge variant="secondary" className="ml-auto">
+                      {item.count} {item.count === 1 ? 'occurrence' : 'occurrences'}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="p-3 pt-0 border-t bg-muted/20">
+                {isGroupItem ? (
+                  <>
+                    <div className="mb-3">
+                      <Table>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell className="font-medium w-1/4">First Seen</TableCell>
+                            <TableCell>{new Date(item.firstSeen).toLocaleString()}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Last Seen</TableCell>
+                            <TableCell>{new Date(item.lastSeen).toLocaleString()}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Occurrences</TableCell>
+                            <TableCell>{item.count}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Impact</TableCell>
+                            <TableCell>
+                              {item.user_facing ? "User Facing" : "System Only"}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <h4 className="font-medium text-sm mb-2">Recent Occurrences</h4>
+                    <div className="space-y-1 max-h-60 overflow-y-auto">
+                      {item.relatedLogs.slice(0, 5).map((log: SystemLog) => (
+                        <div 
+                          key={log.id} 
+                          className="p-2 bg-background/50 rounded border border-border/50 text-sm flex justify-between"
+                        >
+                          <div className="truncate flex-1">
+                            {log.description || log.message || log.error || log.event}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimeAgo(log.created_at)}
+                            </span>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-6 px-2"
+                              onClick={() => handleViewDetails(log)}
+                            >
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <Table>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium w-1/4">Message</TableCell>
+                        <TableCell>{item.description}</TableCell>
+                      </TableRow>
+                      
+                      {item.tenant_id && (
+                        <TableRow>
+                          <TableCell className="font-medium">Tenant</TableCell>
+                          <TableCell>{item.tenant_id}</TableCell>
+                        </TableRow>
+                      )}
+                      
+                      {item.user_id && (
+                        <TableRow>
+                          <TableCell className="font-medium">User</TableCell>
+                          <TableCell>{item.user_id}</TableCell>
+                        </TableRow>
+                      )}
+                      
+                      {showFirstSeen && (
+                        <TableRow>
+                          <TableCell className="font-medium">First Seen</TableCell>
+                          <TableCell>{new Date(item.created_at).toLocaleString()}</TableCell>
+                        </TableRow>
+                      )}
+                      
+                      {item.request_id && (
+                        <TableRow>
+                          <TableCell className="font-medium">Request ID</TableCell>
+                          <TableCell>
+                            <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">
+                              {item.request_id}
+                            </code>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 )}
+                <div className="mt-3 flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => {
+                    if (isGroupItem && item.relatedLogs?.length) {
+                      handleViewDetails(item.relatedLogs[0]);
+                    } else {
+                      handleViewDetails(item as SystemLog);
+                    }
+                  }}>
+                    View Details
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent>
-            <div className="p-3 pt-0 border-t bg-muted/20">
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium w-1/4">Message</TableCell>
-                    <TableCell>{log.description}</TableCell>
-                  </TableRow>
-                  
-                  {log.tenant_id && (
-                    <TableRow>
-                      <TableCell className="font-medium">Tenant</TableCell>
-                      <TableCell>{log.tenant_id}</TableCell>
-                    </TableRow>
-                  )}
-                  
-                  {log.user_id && (
-                    <TableRow>
-                      <TableCell className="font-medium">User</TableCell>
-                      <TableCell>{log.user_id}</TableCell>
-                    </TableRow>
-                  )}
-                  
-                  {showFirstSeen && (
-                    <TableRow>
-                      <TableCell className="font-medium">First Seen</TableCell>
-                      <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
-                    </TableRow>
-                  )}
-                  
-                  {log.request_id && (
-                    <TableRow>
-                      <TableCell className="font-medium">Request ID</TableCell>
-                      <TableCell>
-                        <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">
-                          {log.request_id}
-                        </code>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              
-              <div className="mt-3 flex justify-end">
-                <Button size="sm" variant="outline" onClick={() => handleViewDetails(log)}>
-                  View Details
-                </Button>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      ))}
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
       
       {selectedLog && (
         <LogDetailDialog

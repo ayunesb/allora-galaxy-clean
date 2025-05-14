@@ -7,21 +7,16 @@ import PluginEvolutionTab from './PluginEvolutionTab';
 import AuditLog from './AuditLog';
 import { useQuery } from '@tanstack/react-query';
 
-// Import any necessary functions for data fetching
-import { fetchSystemLogs } from '@/lib/system/logSystemEvent';
+// Import from the admin system logs utility instead
+import { fetchSystemLogs } from '@/lib/admin/systemLogs';
 
 const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('strategies');
   
   // Define proper query function
-  const fetchLogsData = async () => {
-    // Replace this with your actual log fetching logic
-    return fetchSystemLogs();
-  };
-  
   const { data: logsData, isLoading } = useQuery({
     queryKey: ['system-logs'],
-    queryFn: fetchLogsData
+    queryFn: () => fetchSystemLogs()
   });
   
   const handleTabChange = (value: string) => {

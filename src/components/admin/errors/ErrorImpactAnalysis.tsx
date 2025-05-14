@@ -91,7 +91,7 @@ const ErrorImpactAnalysis: React.FC<ErrorImpactAnalysisProps> = ({
         </div>
       }
     >
-      {(data) => (
+      {() => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -114,7 +114,7 @@ const ErrorImpactAnalysis: React.FC<ErrorImpactAnalysisProps> = ({
                       dataKey="value"
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
-                      {userImpactData.map((entry, index) => (
+                      {userImpactData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

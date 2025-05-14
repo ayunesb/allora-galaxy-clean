@@ -1,83 +1,81 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { SystemLog, LogFilters } from '@/types/logs';
-import { useTenantId } from '@/hooks/useTenantId';
+import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSystemLogs, SystemLogFilter } from '@/lib/admin/systemLogs';
+import { LogFilters } from '@/types/logs';
+import { addDays } from 'date-fns';
 
-export const useSystemLogsData = () => {
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Partial<LogFilters>>({});
-  const { tenantId } = useTenantId();
+/**
+ * Hook for managing system logs data with filtering and error handling
+ */
+export const useSystemLogsData = (initialFilters: LogFilters = {}) => {
+  const [filters, setFilters] = useState<LogFilters>(initialFilters);
   
-  const fetchLogs = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      let query = supabase
-        .from('system_logs')
-        .select('*');
-      
-      // Apply tenant filter if applicable
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-      
-      // Apply filters
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
-      if (filters.event) {
-        query = query.eq('event', filters.event);
-      }
-      
-      if (filters.fromDate) {
-        query = query.gte('created_at', filters.fromDate);
-      }
-      
-      if (filters.toDate) {
-        query = query.lte('created_at', filters.toDate);
-      }
-      
-      if (filters.searchTerm) {
-        query = query.or(`event.ilike.%${filters.searchTerm}%,module.ilike.%${filters.searchTerm}%`);
-      }
-      
-      // Order by created_at DESC
-      query = query.order('created_at', { ascending: false });
-      
-      // Limit to 100 records
-      query = query.limit(100);
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      setLogs(data || []);
-    } catch (err: any) {
-      console.error('Error fetching system logs:', err);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+  // Add default date range if not provided
+  const dateRange = {
+    from: new Date(initialFilters.fromDate || addDays(new Date(), -30).toISOString()),
+    to: initialFilters.toDate ? new Date(initialFilters.toDate) : new Date(),
   };
-  
-  // Fetch logs on mount and when filters change
-  useEffect(() => {
-    fetchLogs();
-  }, [tenantId, filters]);
-  
+
+  // Convert LogFilters to SystemLogFilter
+  const getSystemLogFilter = useCallback((): SystemLogFilter => {
+    return {
+      searchTerm: filters.search,
+      module: filters.module?.[0],
+      tenant: filters.tenant_id,
+      dateRange: {
+        from: filters.fromDate ? new Date(filters.fromDate) : undefined, 
+        to: filters.toDate ? new Date(filters.toDate) : undefined
+      }
+    };
+  }, [filters]);
+
+  // Fetch logs with current filters
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['system-logs', filters],
+    queryFn: async () => {
+      try {
+        return await fetchSystemLogs(getSystemLogFilter());
+      } catch (err) {
+        console.error('Error fetching system logs:', err);
+        throw err;
+      }
+    }
+  });
+
+  // Update filters
+  const updateFilters = useCallback((newFilters: LogFilters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
+
+  // Filter logs by error type (used for error monitoring)
+  const errorLogs = (data || []).filter(log => 
+    log.level === 'error' || 
+    log.event === 'error' || 
+    log.event?.includes('error') || 
+    log.event?.includes('exception')
+  );
+
+  // Calculate error statistics
+  const errorStats = {
+    totalErrors: errorLogs.length,
+    criticalErrors: errorLogs.filter(log => log.severity === 'critical').length,
+    highErrors: errorLogs.filter(log => log.severity === 'high').length,
+    mediumErrors: errorLogs.filter(log => log.severity === 'medium').length,
+    lowErrors: errorLogs.filter(log => log.severity === 'low').length,
+  };
+
   return {
-    logs,
+    logs: data || [],
+    errorLogs,
+    errorStats,
     isLoading,
     error,
     filters,
-    setFilters,
-    refetch: fetchLogs
+    updateFilters,
+    dateRange,
+    refetch
   };
 };
+
+export default useSystemLogsData;

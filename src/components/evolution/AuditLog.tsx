@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
 import { SystemLog } from '@/types/logs';
-import { LogDetailDialog } from './logs/LogDetailDialog';
+import LogDetailDialog from './logs/LogDetailDialog';
 
 interface AuditLogProps {
   logs: SystemLog[];
@@ -13,91 +14,101 @@ interface AuditLogProps {
 }
 
 const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   
-  // Filter logs based on search query
-  const filteredLogs = logs.filter(log => 
-    log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.module?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.level?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy HH:mm:ss');
+    } catch (e) {
+      return dateString;
+    }
+  };
   
-  const handleLogClick = (log: SystemLog) => {
+  // Determine badge color based on log level
+  const getLevelBadge = (level: string) => {
+    switch (level) {
+      case 'error':
+        return <Badge variant="destructive">{level}</Badge>;
+      case 'warning':
+        return <Badge variant="warning">{level}</Badge>;
+      case 'info':
+        return <Badge variant="secondary">{level}</Badge>;
+      default:
+        return <Badge>{level}</Badge>;
+    }
+  };
+  
+  // Handle opening the log detail dialog
+  const handleViewDetails = (log: SystemLog) => {
     setSelectedLog(log);
   };
   
-  const handleCloseDialog = () => {
-    setSelectedLog(null);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!logs.length) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No logs found.</p>
+      </div>
+    );
+  }
   
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>System Audit Logs</CardTitle>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <Input
-                placeholder="Search logs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:w-[240px]"
-              />
-              <Button variant="outline" size="sm">
-                Filter
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No logs found matching your criteria
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredLogs.map((log) => (
-                <div 
-                  key={log.id}
-                  className="p-3 border rounded-md cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => handleLogClick(log)}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        log.level === 'error' ? 'bg-red-100 text-red-800' :
-                        log.level === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {log.level}
-                      </span>
-                      <span className="text-sm font-medium">{log.module}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(log.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-sm truncate">{log.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <>
+      <div className="rounded-md border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[180px]">Timestamp</TableHead>
+              <TableHead>Module</TableHead>
+              <TableHead>Event</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="w-[100px]">Level</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {logs.map((log) => (
+              <TableRow key={log.id}>
+                <TableCell className="font-mono text-xs">
+                  {formatDate(log.created_at)}
+                </TableCell>
+                <TableCell>{log.module}</TableCell>
+                <TableCell>{log.event}</TableCell>
+                <TableCell className="max-w-[300px] truncate">
+                  {log.description}
+                </TableCell>
+                <TableCell>{getLevelBadge(log.level)}</TableCell>
+                <TableCell>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => handleViewDetails(log)}
+                  >
+                    View
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       
       {selectedLog && (
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={Boolean(selectedLog)} 
-          onOpenChange={handleCloseDialog} 
+        <LogDetailDialog
+          log={selectedLog}
+          open={!!selectedLog}
+          onClose={() => setSelectedLog(null)}
         />
       )}
-    </div>
+    </>
   );
 };
 
