@@ -12,7 +12,7 @@ vi.mock('date-fns', () => ({
 }));
 
 // Import the actual component
-import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { DateRangePicker } from '@/components/ui/date/date-range-picker';
 
 describe('DateRangePicker', () => {
   beforeEach(() => {
@@ -24,8 +24,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        value={{ from: new Date(), to: new Date() }}
-        onChange={mockOnChange}
+        dateRange={{ from: new Date(), to: new Date() }}
+        setDateRange={mockOnChange}
       />
     );
     
@@ -37,8 +37,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        value={{ from: new Date(), to: new Date() }}
-        onChange={mockOnChange}
+        dateRange={{ from: new Date(), to: new Date() }}
+        setDateRange={mockOnChange}
       />
     );
     
@@ -54,8 +54,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        value={{ from: new Date(), to: undefined }}
-        onChange={mockOnChange}
+        dateRange={{ from: new Date(), to: undefined }}
+        setDateRange={mockOnChange}
       />
     );
     
@@ -71,8 +71,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        value={{ from: new Date(), to: new Date() }}
-        onChange={mockOnChange}
+        dateRange={{ from: new Date(), to: new Date() }}
+        setDateRange={mockOnChange}
         className="test-class"
       />
     );

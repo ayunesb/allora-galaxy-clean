@@ -1,169 +1,184 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Compass, Home, LayoutDashboard, Package, PlugZap, Settings, UserCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { NavigationItem, UserRole } from '@/types/shared';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { notify } from '@/lib/toast';
 
-// Define interfaces for the workspace context
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
-  owner_id: string;
-  metadata: Record<string, any> | null;
-}
-
-export interface UserWorkspaceRole {
-  role: UserRole;
-  workspace: Workspace;
+  created_at: string;
 }
 
 export interface WorkspaceContextType {
-  workspace: Workspace | null;
-  workspaces: UserWorkspaceRole[];
-  isAdmin: boolean;
+  workspaces: Workspace[];
+  currentWorkspace: Workspace | null;
   isLoading: boolean;
   error: Error | null;
-  setCurrentWorkspace: (workspace: Workspace) => void;
+  switchWorkspace: (workspaceId: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<Workspace | null>;
   refreshWorkspaces: () => Promise<void>;
-  navigation: NavigationItem[];
+  tenant: Workspace | null; // Alias for backward compatibility
 }
 
-// Create the context
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+const WorkspaceContext = createContext<WorkspaceContextType>({
+  workspaces: [],
+  currentWorkspace: null,
+  isLoading: true,
+  error: null,
+  switchWorkspace: async () => {},
+  createWorkspace: async () => null,
+  refreshWorkspaces: async () => {},
+  tenant: null
+});
 
-// Provider component
-export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [workspaces, setWorkspaces] = useState<UserWorkspaceRole[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface WorkspaceProviderProps {
+  children: React.ReactNode;
+}
+
+export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
-  // Define navigation items
-  const navigation: NavigationItem[] = [
-    {
-      title: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutDashboard
-    },
-    {
-      title: 'Galaxy',
-      href: '/galaxy',
-      icon: Compass
-    },
-    {
-      title: 'Strategies',
-      href: '/strategies',
-      icon: Home
-    },
-    {
-      title: 'Agents',
-      href: '/agents',
-      icon: UserCircle
-    },
-    {
-      title: 'Plugins',
-      href: '/plugins',
-      icon: PlugZap
-    },
-    {
-      title: 'Packages',
-      href: '/packages',
-      icon: Package,
-      isNew: true,
-    },
-    {
-      title: 'Admin',
-      href: '/admin',
-      icon: Settings,
-      adminOnly: true,
-    },
-  ];
-
-  // Function to fetch workspaces
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (!user?.user) {
+        throw new Error("No authenticated user found");
       }
 
-      // Fetch all workspaces the user has access to along with their roles
-      const { data, error } = await supabase
+      // Fetch tenants (workspaces) that the user has access to
+      const { data: tenantRoles, error: tenantError } = await supabase
         .from('tenant_user_roles')
         .select(`
-          role,
-          tenant:tenants(*)
+          tenant:tenants (
+            id,
+            name,
+            slug,
+            created_at
+          )
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (tenantError) throw tenantError;
 
-      // Map the data to the expected format
-      const userWorkspaces: UserWorkspaceRole[] = data.map(item => ({
-        role: item.role as UserRole,
-        workspace: {
-          id: item.tenant.id,
-          name: item.tenant.name,
-          slug: item.tenant.slug,
-          owner_id: item.tenant.owner_id,
-          metadata: item.tenant.metadata
+      const workspacesData = tenantRoles
+        .map(tr => tr.tenant)
+        .filter(Boolean) as Workspace[];
+
+      setWorkspaces(workspacesData);
+
+      // Set current workspace if not already set or not in the list
+      if (!currentWorkspace || !workspacesData.find(w => w.id === currentWorkspace.id)) {
+        const lastUsedId = localStorage.getItem('lastWorkspaceId');
+        
+        // Try to restore last used workspace or use first one
+        if (lastUsedId && workspacesData.find(w => w.id === lastUsedId)) {
+          const found = workspacesData.find(w => w.id === lastUsedId);
+          setCurrentWorkspace(found || null);
+        } else if (workspacesData.length > 0) {
+          setCurrentWorkspace(workspacesData[0]);
+        } else {
+          setCurrentWorkspace(null);
         }
-      }));
-
-      setWorkspaces(userWorkspaces);
-
-      // If we don't have a current workspace but have workspaces available, set the first one
-      if (!workspace && userWorkspaces.length > 0) {
-        setWorkspace(userWorkspaces[0].workspace);
-        setIsAdmin(['admin', 'owner'].includes(userWorkspaces[0].role));
       }
-
-      return { success: true };
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to fetch workspaces');
-      console.error('Error fetching workspaces:', error);
-      setError(error);
-      return { success: false, error };
+    } catch (err: any) {
+      console.error("Error fetching workspaces:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Function to set the current workspace
-  const setCurrentWorkspace = (newWorkspace: Workspace) => {
-    setWorkspace(newWorkspace);
-    
-    // Update the isAdmin flag based on the role for the new workspace
-    const workspaceRole = workspaces.find(w => w.workspace.id === newWorkspace.id);
-    setIsAdmin(['admin', 'owner'].includes(workspaceRole?.role || 'member'));
+  const switchWorkspace = async (workspaceId: string): Promise<void> => {
+    try {
+      const workspace = workspaces.find(w => w.id === workspaceId);
+      if (!workspace) {
+        throw new Error("Workspace not found");
+      }
+      
+      setCurrentWorkspace(workspace);
+      localStorage.setItem('lastWorkspaceId', workspaceId);
+      
+      // Navigate to dashboard of the new workspace
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error("Error switching workspace:", err);
+      notify.error("Failed to switch workspace");
+      throw err;
+    }
   };
 
-  // Refresh workspaces function exposed in the context
-  const refreshWorkspaces = async () => {
-    return await fetchWorkspaces();
+  const createWorkspace = async (name: string): Promise<Workspace | null> => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (!user?.user) {
+        throw new Error("No authenticated user found");
+      }
+
+      // Create the workspace
+      const { data: workspaceData, error: workspaceError } = await supabase
+        .from('tenants')
+        .insert({
+          name,
+          slug: name.toLowerCase().replace(/\s+/g, '-')
+        })
+        .select()
+        .single();
+
+      if (workspaceError) throw workspaceError;
+
+      // Create role for the user in this workspace
+      const { error: roleError } = await supabase
+        .from('tenant_user_roles')
+        .insert({
+          tenant_id: workspaceData.id,
+          user_id: user.user.id,
+          role: 'admin'
+        });
+
+      if (roleError) throw roleError;
+
+      // Refresh workspaces list
+      await fetchWorkspaces();
+      
+      // Switch to the new workspace
+      if (workspaceData) {
+        await switchWorkspace(workspaceData.id);
+      }
+      
+      return workspaceData as Workspace;
+    } catch (err: any) {
+      console.error("Error creating workspace:", err);
+      notify.error("Failed to create workspace");
+      return null;
+    }
   };
 
-  // Fetch workspaces on mount
+  // Initial fetch
   useEffect(() => {
     fetchWorkspaces();
   }, []);
 
-  // Context value
   const contextValue: WorkspaceContextType = {
-    workspace,
     workspaces,
-    isAdmin,
+    currentWorkspace,
     isLoading,
     error,
-    setCurrentWorkspace,
-    refreshWorkspaces,
-    navigation
+    switchWorkspace,
+    createWorkspace,
+    refreshWorkspaces: fetchWorkspaces,
+    tenant: currentWorkspace // Alias for backward compatibility
   };
 
   return (
@@ -173,11 +188,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 };
 
-// Custom hook to use the workspace context
 export const useWorkspace = (): WorkspaceContextType => {
   const context = useContext(WorkspaceContext);
-  if (context === undefined) {
-    throw new Error('useWorkspace must be used within a WorkspaceProvider');
+  if (!context) {
+    throw new Error("useWorkspace must be used within a WorkspaceProvider");
   }
   return context;
 };

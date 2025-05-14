@@ -2,11 +2,23 @@
 import { Toaster } from "sonner";
 import { useTheme } from "next-themes";
 
+export interface ToastProviderProps {
+  children: React.ReactNode;
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "top-center" | "bottom-center";
+  richColors?: boolean;
+  expandByDefault?: boolean;
+  duration?: number;
+  className?: string;
+}
+
 export function ToastProvider({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  position = "bottom-right",
+  richColors = true,
+  expandByDefault = false,
+  duration = 4000,
+  className,
+}: ToastProviderProps) {
   const { theme = "system" } = useTheme();
 
   return (
@@ -14,13 +26,13 @@ export function ToastProvider({
       {children}
       <Toaster 
         theme={theme as "light" | "dark" | "system"} 
-        position="bottom-right"
+        position={position}
         closeButton
-        richColors
-        expand={false}
+        richColors={richColors}
+        expand={expandByDefault}
         toastOptions={{
-          duration: 4000,
-          className: "toast-container"
+          duration,
+          className: className || "toast-container"
         }}
       />
     </>
