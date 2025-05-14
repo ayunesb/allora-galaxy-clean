@@ -1,131 +1,129 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-
-interface UserProfile {
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  email: { email: string }[];
-}
 
 export interface User {
   id: string;
-  role: string;
+  email: string;
+  full_name?: string;
   created_at: string;
-  user_id: string;
-  profiles: UserProfile;
+  last_sign_in_at?: string;
+  avatar_url?: string;
+  role: string;
+  tenant_id: string;
+  is_active: boolean;
 }
 
-export function useUserData() {
-  const { currentWorkspace } = useWorkspace();
+export interface UserFilter {
+  role?: string;
+  search?: string;
+  active?: boolean | null;
+}
+
+export function useUserData(initialFilter: UserFilter = {}) {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<UserFilter>(initialFilter);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (!currentWorkspace?.id) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('tenant_user_roles')
-          .select(`
-            id,
-            role,
-            created_at,
-            user_id,
-            profiles:user_id(
-              first_name,
-              last_name,
-              avatar_url,
-              email(email)
-            )
-          `)
-          .eq('tenant_id', currentWorkspace.id);
-          
-        if (error) throw error;
-        
-        if (data && Array.isArray(data)) {
-          // Correctly format the profiles data
-          const formattedUsers = data.map(item => {
-            // Initialize with default empty values
-            let profileData: UserProfile = {
-              first_name: '',
-              last_name: '',
-              avatar_url: '',
-              email: [{ email: '' }]
-            };
-            
-            // If profiles data exists, use it
-            if (item.profiles && typeof item.profiles === 'object') {
-              const profile = item.profiles as any;
-              profileData = {
-                first_name: profile.first_name || '',
-                last_name: profile.last_name || '',
-                avatar_url: profile.avatar_url || '',
-                email: Array.isArray(profile.email) ? profile.email : [{ email: '' }]
-              };
-            }
-            
-            return {
-              id: item.id,
-              role: item.role,
-              created_at: item.created_at,
-              user_id: item.user_id,
-              profiles: profileData
-            };
-          });
-          
-          setUsers(formattedUsers);
-        }
-      } catch (error: any) {
-        console.error('Error fetching users:', error);
-        toast({
-          title: "Error fetching users",
-          description: error.message || "Failed to load users",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
+  // Fetch users with pagination and filters
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['users', filter, page, pageSize],
+    queryFn: async () => {
+      // Start with the base query
+      let query = supabase
+        .from('users_view')
+        .select('*', { count: 'exact' });
+
+      // Apply filters
+      if (filter.role) {
+        query = query.eq('role', filter.role);
       }
-    };
-    
-    fetchUsers();
-  }, [currentWorkspace?.id, toast]);
+      if (filter.search) {
+        query = query.or(`email.ilike.%${filter.search}%,full_name.ilike.%${filter.search}%`);
+      }
+      if (filter.active !== null && filter.active !== undefined) {
+        query = query.eq('is_active', filter.active);
+      }
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-  };
+      // Calculate pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
-  const handleUpdateRole = (userId: string, newRole: string) => {
-    // Implementation of updating user role
-    console.log(`Updating role for user ${userId} to ${newRole}`);
-  };
+      // Execute query with range pagination
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-  const handleRemoveUser = (userId: string) => {
-    // Implementation of removing a user
-    console.log(`Removing user ${userId}`);
-  };
+      if (error) throw error;
+      
+      return {
+        users: data as User[],
+        totalCount: count || 0,
+        totalPages: count ? Math.ceil(count / pageSize) : 0,
+        currentPage: page,
+        pageSize
+      };
+    },
+    keepPreviousData: true
+  });
 
-  // Filter users based on search query
-  const filteredUsers = users.filter(user => {
-    const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
-    const userEmail = user.profiles?.email?.[0]?.email?.toLowerCase() || '';
-    const query = searchQuery.toLowerCase();
-    return fullName.includes(query) || userEmail.includes(query);
+  // Update user role or status
+  const updateUser = useMutation({
+    mutationFn: async ({ 
+      userId, 
+      data 
+    }: { 
+      userId: string; 
+      data: Partial<User> 
+    }) => {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update(data)
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return { userId, data };
+    },
+    onSuccess: ({ userId, data }) => {
+      let message = 'User updated successfully';
+      let description = '';
+      
+      if ('role' in data) {
+        message = 'User role updated';
+        description = `The user's role has been updated to ${data.role}`;
+      } else if ('is_active' in data) {
+        message = data.is_active ? 'User activated' : 'User deactivated';
+        description = data.is_active 
+          ? 'The user account has been activated' 
+          : 'The user account has been deactivated';
+      }
+      
+      toast.success(message, { description });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update user', {
+        description: error.message || 'An error occurred while updating user data'
+      });
+    }
   });
 
   return {
-    users: filteredUsers,
-    loading,
-    searchQuery,
-    handleSearchChange,
-    handleUpdateRole,
-    handleRemoveUser
+    userData: data?.users || [],
+    totalCount: data?.totalCount || 0,
+    totalPages: data?.totalPages || 0,
+    currentPage: page,
+    isLoading,
+    error,
+    filter,
+    setFilter,
+    page,
+    setPage,
+    pageSize,
+    updateUser
   };
 }

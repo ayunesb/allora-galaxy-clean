@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Strategy Execution Flow', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: { page: any }) => {
     // Sign in before each test
     await page.goto('/auth/login');
     await page.fill('input[name="email"]', 'test@example.com');
@@ -13,7 +13,7 @@ test.describe('Strategy Execution Flow', () => {
     await page.waitForURL('/dashboard');
   });
 
-  test('Complete strategy execution flow', async ({ page }) => {
+  test('Complete strategy execution flow', async ({ page }: { page: any }) => {
     // Navigate to strategies page
     await page.click('a[href="/strategies"]');
     await page.waitForURL('/strategies');

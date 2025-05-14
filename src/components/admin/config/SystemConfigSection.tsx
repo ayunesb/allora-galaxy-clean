@@ -1,122 +1,139 @@
 
-import React from 'react';
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
 import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
-import { Settings, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+import { Shield, RefreshCcw } from "lucide-react";
 
-interface SystemConfigSectionProps {
-  title: string;
-  description: string;
-  configItems: {
-    key: string;
-    label: string;
-    type: 'text' | 'number' | 'toggle' | 'select';
-    value: any;
-    options?: { label: string; value: string }[];
-    helpText?: string;
-  }[];
-  onSave: (values: Record<string, any>) => Promise<void>;
-  icon?: React.ReactNode;
+interface SystemConfigProps {
+  config: {
+    maintenance_mode: boolean;
+    enable_debug_logs: boolean;
+    rate_limiting_enabled: boolean;
+  };
+  onConfigChange: () => void;
 }
 
-export function SystemConfigSection({
-  title,
-  description,
-  configItems,
-  onSave,
-  icon = <Settings className="h-5 w-5" />
-}: SystemConfigSectionProps) {
+export function SystemConfigSection({ config, onConfigChange }: SystemConfigProps) {
   const { toast } = useToast();
-  const [values, setValues] = React.useState<Record<string, any>>(() => 
-    configItems.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), {})
-  );
-  const [isLoading, setIsLoading] = React.useState(false);
-  
-  const handleChange = (key: string, value: any) => {
-    setValues(prev => ({ ...prev, [key]: value }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [isLoading, setIsLoading] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(config.maintenance_mode);
+  const [debugLogsEnabled, setDebugLogsEnabled] = useState(config.enable_debug_logs);
+  const [rateLimitingEnabled, setRateLimitingEnabled] = useState(config.rate_limiting_enabled);
+
+  const handleSaveChanges = async () => {
     setIsLoading(true);
     
     try {
-      await onSave(values);
-      toast({
-        title: "Settings saved",
-        description: "Your system configuration has been updated successfully."
+      const { error } = await supabase
+        .from('system_config')
+        .update({
+          maintenance_mode: maintenanceMode,
+          enable_debug_logs: debugLogsEnabled,
+          rate_limiting_enabled: rateLimitingEnabled,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+      
+      if (error) throw error;
+
+      toast.success('System settings updated successfully', {
+        description: 'Your changes have been applied to the system configuration.',
       });
-    } catch (error) {
-      console.error("Error saving configuration:", error);
-      toast({
-        title: "Error saving settings",
-        description: "There was a problem saving your configuration. Please try again.",
-        variant: "destructive"
+      
+      onConfigChange();
+    } catch (error: any) {
+      console.error('Error updating system config:', error);
+      toast.error('Failed to update system settings', {
+        description: error.message || 'An unexpected error occurred',
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
+
+  const handleRestoreDefaults = () => {
+    setMaintenanceMode(false);
+    setDebugLogsEnabled(false);
+    setRateLimitingEnabled(true);
+  };
+
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {icon}
-          <span>{title}</span>
+        <CardTitle className="flex items-center">
+          <Shield className="mr-2 h-5 w-5" />
+          System Configuration
         </CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription>
+          Configure system-wide settings and security options
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {configItems.map((item) => (
-            <div key={item.key} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor={item.key}>{item.label}</Label>
-                {item.type === 'toggle' && (
-                  <Switch 
-                    id={item.key}
-                    checked={values[item.key]}
-                    onCheckedChange={(checked) => handleChange(item.key, checked)}
-                  />
-                )}
-              </div>
-              
-              {item.type !== 'toggle' && (
-                <Input
-                  id={item.key}
-                  type={item.type === 'number' ? 'number' : 'text'}
-                  value={values[item.key]}
-                  onChange={(e) => handleChange(item.key, item.type === 'number' ? Number(e.target.value) : e.target.value)}
-                />
-              )}
-              
-              {item.helpText && (
-                <p className="text-sm text-muted-foreground">{item.helpText}</p>
-              )}
-            </div>
-          ))}
-          
-          <Button 
-            type="submit" 
-            disabled={isLoading} 
-            className="w-full sm:w-auto"
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h4 className="font-medium">Maintenance Mode</h4>
+            <p className="text-sm text-muted-foreground">
+              Temporarily disable user access while performing maintenance
+            </p>
+          </div>
+          <Switch
+            checked={maintenanceMode}
+            onCheckedChange={setMaintenanceMode}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h4 className="font-medium">Debug Logging</h4>
+            <p className="text-sm text-muted-foreground">
+              Enable detailed logs for debugging purposes
+            </p>
+          </div>
+          <Switch
+            checked={debugLogsEnabled}
+            onCheckedChange={setDebugLogsEnabled}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h4 className="font-medium">API Rate Limiting</h4>
+            <p className="text-sm text-muted-foreground">
+              Protect against abuse by limiting API request frequency
+            </p>
+          </div>
+          <Switch
+            checked={rateLimitingEnabled}
+            onCheckedChange={setRateLimitingEnabled}
+          />
+        </div>
+        
+        <div className="flex justify-between pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestoreDefaults}
+            className="flex items-center"
           >
-            <Save className="h-4 w-4 mr-2" />
-            {isLoading ? "Saving..." : "Save Configuration"}
+            <RefreshCcw className="mr-2 h-3 w-3" />
+            Restore Defaults
           </Button>
-        </form>
+          <Button 
+            onClick={handleSaveChanges}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

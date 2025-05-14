@@ -1,364 +1,188 @@
 
-import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Search, Filter, X, ChevronDown, Eye } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { SystemLog } from '@/types/logs';
-import { supabase } from '@/integrations/supabase/client';
-
-type SearchEntity = 'logs' | 'users' | 'plugins' | 'strategies' | 'executions';
+import { Search } from 'lucide-react';
+import { ErrorState } from '@/components/ui/error-state';
 
 interface SearchResult {
   id: string;
-  type: SearchEntity;
+  type: 'user' | 'log' | 'strategy' | 'agent' | 'plugin';
   title: string;
-  subtitle: string;
-  date: string;
-  badges: {
-    text: string;
-    variant?: string;
-  }[];
-  [key: string]: any;
+  description: string;
+  timestamp: string;
+  url: string;
 }
 
-const entityLabels: Record<SearchEntity, string> = {
-  logs: 'System Logs',
-  users: 'Users',
-  plugins: 'Plugins',
-  strategies: 'Strategies',
-  executions: 'Executions'
-};
+interface AdvancedSearchProps {
+  placeholder?: string;
+  onResultSelected?: (result: SearchResult) => void;
+}
 
-export function AdvancedSearch() {
+export function AdvancedSearch({ 
+  placeholder = "Search...",
+  onResultSelected 
+}: AdvancedSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchEntity, setSearchEntity] = useState<SearchEntity>('logs');
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [dateRange, setDateRange] = useState<{from?: Date; to?: Date}>({});
-  
-  const handleSearch = useCallback(async () => {
-    if (!searchTerm && !dateRange.from && !dateRange.to) {
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      let query;
-      
-      switch (searchEntity) {
-        case 'logs':
-          query = supabase
-            .from('system_logs')
-            .select('*')
-            .or(`event.ilike.%${searchTerm}%,module.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`)
-            .order('created_at', { ascending: false })
-            .limit(20);
-            
-          if (dateRange.from) {
-            query = query.gte('created_at', dateRange.from.toISOString());
-          }
-          
-          if (dateRange.to) {
-            query = query.lte('created_at', dateRange.to.toISOString());
-          }
-          
-          const { data: logData, error: logError } = await query;
-          
-          if (logError) throw logError;
-          
-          const transformedLogs = logData.map(log => ({
-            id: log.id,
-            type: 'logs' as const,
-            title: log.event,
-            subtitle: `Module: ${log.module}`,
-            date: log.created_at,
-            badges: [
-              { text: log.module, variant: 'outline' },
-              { text: log.severity || 'info', variant: getSeverityVariant(log.severity) }
-            ],
-            ...log
-          }));
-          
-          setResults(transformedLogs);
-          break;
-          
-        case 'users':
-          // Mock data for users search - in a real app, use proper queries
-          setResults([
-            {
-              id: '1',
-              type: 'users',
-              title: 'John Smith',
-              subtitle: 'john.smith@example.com',
-              date: new Date().toISOString(),
-              badges: [{ text: 'admin', variant: 'default' }]
-            },
-            {
-              id: '2',
-              type: 'users',
-              title: 'Alice Johnson',
-              subtitle: 'alice.johnson@example.com',
-              date: new Date().toISOString(),
-              badges: [{ text: 'member', variant: 'outline' }]
-            }
-          ]);
-          break;
-          
-        // Add other entity types as needed
-        default:
-          setResults([]);
+  const [searchType, setSearchType] = useState<string>('all');
+  const [submittedSearch, setSubmittedSearch] = useState<{term: string, type: string} | null>(null);
+
+  // Search query
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['advanced-search', submittedSearch],
+    queryFn: async () => {
+      if (!submittedSearch || !submittedSearch.term) {
+        return { results: [], count: 0 };
       }
-    } catch (error) {
-      console.error('Search error:', error);
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchTerm, searchEntity, dateRange]);
-  
-  // Get badge variant based on severity
-  const getSeverityVariant = (severity?: string) => {
-    switch (severity?.toLowerCase()) {
-      case 'error':
-      case 'critical':
-        return 'destructive';
-      case 'warning':
-        return 'warning';
-      case 'info':
-        return 'info';
-      case 'debug':
-        return 'secondary';
-      default:
-        return 'default';
+
+      const { term, type } = submittedSearch;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('advanced-search', {
+          body: { 
+            searchTerm: term,
+            type: type === 'all' ? undefined : type,
+            limit: 20
+          }
+        });
+
+        if (error) throw new Error(error.message);
+        return data as { results: SearchResult[], count: number };
+      } catch (err) {
+        console.error('Search error:', err);
+        throw err;
+      }
+    },
+    enabled: !!submittedSearch?.term,
+    staleTime: 60000
+  });
+
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      setSubmittedSearch({
+        term: searchTerm.trim(),
+        type: searchType
+      });
     }
   };
-  
-  // View details handler
-  const handleViewDetails = (result: SearchResult) => {
-    console.log('View details:', result);
-    // Implement navigation to detail view based on result type
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      handleSearch();
+    }
   };
-  
-  // Clear filters
-  const clearFilters = () => {
-    setSearchTerm('');
-    setDateRange({});
-    setResults([]);
+
+  const handleResultClick = (result: SearchResult) => {
+    if (onResultSelected) {
+      onResultSelected(result);
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Advanced Search</CardTitle>
-        <CardDescription>
-          Search across system data with advanced filtering
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="pl-8 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            
-            <Select value={searchEntity} onValueChange={(value) => setSearchEntity(value as SearchEntity)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select entity" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(entityLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Button onClick={handleSearch} disabled={isLoading}>
-              {isLoading ? (
-                <>Searching...</>
-              ) : (
-                <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
-                </>
-              )}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1"
-            >
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filters</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={clearFilters}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {showFilters && (
-            <div className="p-4 border rounded-md bg-muted/20 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Add date pickers and other filters here */}
-                <div>
-                  <p className="text-sm font-medium mb-2">Date Range</p>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="date" 
-                      value={dateRange.from?.toISOString().split('T')[0] || ''} 
-                      onChange={(e) => {
-                        const date = e.target.value ? new Date(e.target.value) : undefined;
-                        setDateRange(prev => ({ ...prev, from: date }));
-                      }}
-                    />
-                    <Input 
-                      type="date"
-                      value={dateRange.to?.toISOString().split('T')[0] || ''} 
-                      onChange={(e) => {
-                        const date = e.target.value ? new Date(e.target.value) : undefined;
-                        setDateRange(prev => ({ ...prev, to: date }));
-                      }}
-                    />
-                  </div>
-                </div>
-                
-                {/* Additional filters based on entity type */}
-                {searchEntity === 'logs' && (
-                  <div>
-                    <p className="text-sm font-medium mb-2">Log Severity</p>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Severities" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Severities</SelectItem>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="error">Error</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                        <SelectItem value="debug">Debug</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Results table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="hidden md:table-cell">Timestamp</TableHead>
-                  <TableHead>Tags</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  // Loading skeletons
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={`loading-${index}`}>
-                      <TableCell><Skeleton className="h-5 w-[200px]" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-[80px]" /></TableCell>
-                      <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-[120px]" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-[100px]" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-8 w-[70px] ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : results.length > 0 ? (
-                  results.map((result) => (
-                    <TableRow key={result.id}>
-                      <TableCell>
-                        <div className="font-medium">{result.title}</div>
-                        <div className="text-sm text-muted-foreground">{result.subtitle}</div>
-                      </TableCell>
-                      <TableCell>{entityLabels[result.type]}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {new Date(result.date).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {result.badges.map((badge, idx) => (
-                            <Badge key={idx} variant={badge.variant as any || 'secondary'}>
-                              {badge.text}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetails(result)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                      {searchTerm ? 'No results found. Try a different search term.' : 'Enter a search term to begin.'}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex-1 relative">
+          <Input
+            placeholder={placeholder}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="pr-10"
+          />
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         </div>
-      </CardContent>
-    </Card>
+        <Select
+          value={searchType}
+          onValueChange={setSearchType}
+        >
+          <SelectTrigger className="w-full sm:w-[120px]">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="user">Users</SelectItem>
+            <SelectItem value="log">Logs</SelectItem>
+            <SelectItem value="strategy">Strategies</SelectItem>
+            <SelectItem value="agent">Agents</SelectItem>
+            <SelectItem value="plugin">Plugins</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button onClick={handleSearch} disabled={!searchTerm.trim() || isLoading}>
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
+      </div>
+
+      {isLoading && (
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <div className="animate-spin h-6 w-6 border-t-2 border-primary rounded-full mx-auto"></div>
+            <p className="mt-2 text-sm text-muted-foreground">Searching...</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && (
+        <ErrorState 
+          title="Search Error" 
+          message={(error as Error).message || "An error occurred during search"} 
+          variant="destructive"
+          retryable
+          onRetry={handleSearch}
+        />
+      )}
+
+      {data && data.results.length === 0 && submittedSearch?.term && !isLoading && !error && (
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <p>No results found for "{submittedSearch.term}"</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {data && data.results.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              {data.count} {data.count === 1 ? 'result' : 'results'} found
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {data.results.map((result) => (
+                <div 
+                  key={`${result.type}-${result.id}`}
+                  onClick={() => handleResultClick(result)}
+                  className="p-4 hover:bg-accent cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium">{result.title}</h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                      {result.type}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                    {result.description}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {new Date(result.timestamp).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

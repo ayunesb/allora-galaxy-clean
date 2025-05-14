@@ -1,207 +1,244 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuditLogData, AuditLogFilter } from '@/hooks/admin/useAuditLogData';
-import { Calendar } from '@/components/ui/calendar';
-import { DateRange } from '@/types/shared';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { CalendarIcon, RefreshCw, Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { SystemEventModule, LogSeverity } from '@/types/shared';
+import { Pagination } from '@/components/ui/pagination-unified';
+import { AlertCircle, Info, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { ErrorState } from '@/components/ui/error-state';
+
+export interface SystemLog {
+  id: string;
+  level: string;
+  event: string;
+  description: string;
+  module: string;
+  created_at: string;
+  context: Record<string, any>;
+  tenant_id: string;
+}
 
 interface AuditLogTableProps {
-  moduleFilter?: SystemEventModule;
+  userId?: string;
+  tenantId?: string;
   limit?: number;
 }
 
-export const AuditLogTable: React.FC<AuditLogTableProps> = ({
-  moduleFilter,
-  limit = 100
-}) => {
-  const [filters, setFilters] = useState<AuditLogFilter>({
-    searchTerm: '',
-    module: moduleFilter,
-  });
-  
-  // Convert to useAuditLogData props format
-  const initialFilters = moduleFilter ? { module: moduleFilter } : {};
-  
-  const { 
-    logs, 
-    isLoading, 
-    modules,
-    handleRefresh,
-    handleFilterChange
-  } = useAuditLogData({ 
-    initialFilters 
-  });
+export function AuditLogTable({ userId, tenantId, limit = 10 }: AuditLogTableProps) {
+  const [page, setPage] = useState(1);
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
 
-  useEffect(() => {
-    // Update filters when moduleFilter prop changes
-    if (moduleFilter) {
-      setFilters(prev => ({ ...prev, module: moduleFilter }));
-      handleFilterChange({ ...filters, module: moduleFilter });
+  // Fetch system logs
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['system-logs', userId, tenantId, page, limit],
+    queryFn: async () => {
+      // Create base query
+      let query = supabase
+        .from('system_logs')
+        .select('*', { count: 'exact' });
+      
+      // Apply filters
+      if (userId) {
+        query = query.eq('context->user_id', userId);
+      }
+      
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
+      
+      // Calculate pagination
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      
+      // Execute query with range pagination
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      
+      if (error) throw error;
+      
+      return {
+        logs: data as SystemLog[],
+        totalCount: count || 0,
+        totalPages: count ? Math.ceil(count / limit) : 0,
+      };
     }
-  }, [moduleFilter]);
+  });
 
-  const handleSearch = (term: string) => {
-    setFilters(prev => ({ ...prev, searchTerm: term }));
-    handleFilterChange({ ...filters, searchTerm: term });
+  const handleLogClick = (log: SystemLog) => {
+    setSelectedLog(log);
   };
 
-  const handleModuleChange = (value: string) => {
-    const moduleValue = value === 'all' ? undefined : value as SystemEventModule;
-    setFilters(prev => ({ ...prev, module: moduleValue }));
-    handleFilterChange({ ...filters, module: moduleValue });
+  const getSeverityIcon = (level: string) => {
+    switch (level) {
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
+      case 'info':
+        return <Info className="h-4 w-4 text-blue-500" />;
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      default:
+        return <Info className="h-4 w-4 text-muted-foreground" />;
+    }
   };
 
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    setFilters(prev => ({ ...prev, dateRange: range }));
-    handleFilterChange({ ...filters, dateRange: range });
+  const getSeverityBadge = (level: string) => {
+    switch (level) {
+      case 'error':
+        return <Badge variant="destructive">Error</Badge>;
+      case 'warning':
+        return <Badge variant="default" className="bg-yellow-500">Warning</Badge>;
+      case 'info':
+        return <Badge variant="default" className="bg-blue-500">Info</Badge>;
+      case 'debug':
+        return <Badge variant="outline">Debug</Badge>;
+      default:
+        return <Badge variant="secondary">{level}</Badge>;
+    }
   };
 
-  // Helper function to format date for display
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), 'PPpp');
+      return format(new Date(dateString), 'MMM dd, yyyy HH:mm:ss');
     } catch (e) {
       return dateString;
     }
   };
 
-  // Get color for severity level
-  const getSeverityColor = (severity: string): string => {
-    switch (severity?.toLowerCase()) {
-      case 'error':
-        return 'bg-destructive text-destructive-foreground';
-      case 'warning':
-        return 'bg-warning text-warning-foreground';
-      case 'info':
-        return 'bg-info text-info-foreground';
-      default:
-        return 'bg-secondary text-secondary-foreground';
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="h-[200px] w-full flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading logs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Error Loading Logs"
+        message={(error as Error).message}
+        variant="destructive"
+      />
+    );
+  }
+
+  const logs = data?.logs || [];
+  const totalPages = data?.totalPages || 0;
+
+  if (logs.length === 0) {
+    return (
+      <div className="text-center py-8 bg-muted/50 rounded-md">
+        <p className="text-muted-foreground">No logs available</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-        <div className="flex gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search logs..."
-              value={filters.searchTerm || ''}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-8 w-full"
-            />
-          </div>
-          
-          <Select 
-            value={filters.module || 'all'} 
-            onValueChange={handleModuleChange}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Module" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modules</SelectItem>
-              {modules.map(module => (
-                <SelectItem key={module} value={module}>{module}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="justify-start text-left font-normal w-[190px]">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {filters.dateRange?.from ? (
-                  filters.dateRange.to ? (
-                    <>
-                      {format(filters.dateRange.from, "LLL dd")} - {format(filters.dateRange.to, "LLL dd")}
-                    </>
-                  ) : (
-                    format(filters.dateRange.from, "LLL dd")
-                  )
-                ) : (
-                  <span>Date range</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                selected={filters.dateRange}
-                onSelect={handleDateRangeChange}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        <Button variant="outline" size="icon" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Time</TableHead>
-              <TableHead>Module</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead>Details</TableHead>
+              <TableHead className="w-[120px]">Timestamp</TableHead>
+              <TableHead className="w-[100px]">Level</TableHead>
+              <TableHead className="w-[150px]">Module</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              // Loading skeletons
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`}>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                </TableRow>
-              ))
-            ) : logs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                  No logs found matching the current filters
+            {logs.map((log) => (
+              <TableRow key={log.id}>
+                <TableCell className="font-mono text-xs">
+                  {formatDate(log.created_at)}
+                </TableCell>
+                <TableCell>
+                  {getSeverityBadge(log.level)}
+                </TableCell>
+                <TableCell>{log.module}</TableCell>
+                <TableCell className="max-w-[300px] truncate">{log.description}</TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleLogClick(log)}
+                  >
+                    View Details
+                  </Button>
                 </TableCell>
               </TableRow>
-            ) : (
-              logs.slice(0, limit).map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    {formatDate(log.created_at)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{log.module}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={cn(getSeverityColor(log.severity))}>
-                      {log.event}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-md truncate">
-                    {log.context?.description || JSON.stringify(log.context)}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+            ))}
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          className="mt-4"
+        />
+      )}
+
+      {selectedLog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-2xl mx-4 p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2">
+                {getSeverityIcon(selectedLog.level)}
+                <h3 className="text-lg font-medium">{selectedLog.event}</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedLog(null)}>
+                &times;
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 mb-4">
+              <span className="font-medium">Timestamp:</span>
+              <span>{formatDate(selectedLog.created_at)}</span>
+              
+              <span className="font-medium">Module:</span>
+              <span>{selectedLog.module}</span>
+              
+              <span className="font-medium">Level:</span>
+              <span>{getSeverityBadge(selectedLog.level)}</span>
+            </div>
+            
+            <div className="mb-4">
+              <h4 className="font-medium mb-1">Description</h4>
+              <p className="text-sm">{selectedLog.description}</p>
+            </div>
+            
+            <div>
+              <h4 className="font-medium mb-1">Context</h4>
+              <pre className="bg-muted p-3 rounded-md text-xs overflow-auto max-h-[200px]">
+                {JSON.stringify(selectedLog.context, null, 2)}
+              </pre>
+            </div>
+            
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" onClick={() => setSelectedLog(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}

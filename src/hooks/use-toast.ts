@@ -72,35 +72,14 @@ export const toast = {
    */
   dismiss: (toastId?: string) => {
     return sonnerToast.dismiss(toastId);
-  },
-
-  /**
-   * Legacy toast method to support existing code
-   */
-  toast: (props: {
-    title?: string;
-    description?: string;
-    variant?: 'default' | 'destructive' | 'success';
-    action?: ToastActionElement;
-  }) => {
-    const { title, description, variant, action } = props;
-    
-    if (variant === 'destructive') {
-      return sonnerToast.error(title || '', { description });
-    } else if (variant === 'success') {
-      return sonnerToast.success(title || '', { description });
-    } else {
-      return sonnerToast.info(title || '', { description });
-    }
   }
 };
 
 /**
  * Hook to use toast notifications
+ * Returns the toast object for component usage
  */
 export function useToast() {
   return { toast };
 }
-
-export { toast as toast };
 
