@@ -3,8 +3,9 @@ import React from 'react';
 import { useRoleCheck } from '@/lib/auth/useRoleCheck';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Settings } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -45,7 +46,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Administration</h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold">Administration</h1>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => navigate("/admin/config")}
+          className="flex items-center gap-1"
+        >
+          <Settings className="h-4 w-4" />
+          System Configuration
+        </Button>
+      </div>
       
       <Tabs 
         defaultValue={currentPath} 
@@ -53,12 +66,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         onValueChange={handleTabChange}
         className="mb-8"
       >
-        <TabsList className="grid grid-cols-4 sm:grid-cols-5 md:w-[600px]">
+        <TabsList className="grid grid-cols-4 sm:grid-cols-6 md:w-[800px]">
+          <TabsTrigger value="">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="plugin-logs">Plugin Logs</TabsTrigger>
           <TabsTrigger value="system-logs">System Logs</TabsTrigger>
           <TabsTrigger value="ai-decisions">AI Decisions</TabsTrigger>
-          <TabsTrigger value="settings" className="hidden sm:block">Settings</TabsTrigger>
+          <TabsTrigger value="cron-jobs">CRON Jobs</TabsTrigger>
         </TabsList>
       </Tabs>
       

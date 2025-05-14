@@ -1,6 +1,6 @@
 
 import { RouteObject } from "react-router-dom";
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserManagement from "@/pages/admin/UserManagement";
@@ -9,6 +9,7 @@ import AiDecisions from "@/pages/admin/AiDecisions";
 import PluginLogs from "@/pages/admin/PluginLogs";
 import CronJobsPage from "@/pages/admin/CronJobsPage";
 import ApiKeysPage from "@/pages/admin/ApiKeysPage";
+import SystemConfig from "@/pages/admin/SystemConfig";
 import { ProtectedRoute } from "./protectedRoutes";
 
 export const adminRoutes: RouteObject[] = [
@@ -51,9 +52,11 @@ export const adminRoutes: RouteObject[] = [
       {
         path: "api-keys",
         element: <ApiKeysPage />
+      },
+      {
+        path: "config",
+        element: <SystemConfig />
       }
     ]
   }
 ];
-
-import { Navigate } from "react-router-dom";

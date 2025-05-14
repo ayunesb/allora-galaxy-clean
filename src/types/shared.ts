@@ -1,57 +1,105 @@
 
-import { ReactNode } from "react";
-import { DateRange as ReactDayPickerDateRange } from 'react-day-picker';
+// Core shared types used across the application
 
-// Navigation-related types
-export interface NavigationItem {
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+export type VoteType = 'up' | 'down' | 'neutral';
+
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
+
+// System event modules for consistency across the application
+export type SystemEventModule = 
+  'auth' | 
+  'strategy' | 
+  'agent' | 
+  'plugin' | 
+  'user' | 
+  'tenant' | 
+  'system' | 
+  'api' | 
+  'cron';
+
+// Log severity levels
+export type LogSeverity = 'info' | 'warning' | 'error' | 'debug' | 'critical';
+
+export interface SystemLogFilter {
+  searchTerm?: string;
+  module?: SystemEventModule | SystemEventModule[];
+  event?: string;
+  severity?: LogSeverity;
+  dateRange?: DateRange;
+  tenant?: string;
+}
+
+export interface FilterState {
+  module?: string[];
+  eventType?: string[];
+  dateRange?: {
+    from: Date | string | null;
+    to: Date | string | null;
+  };
+  status?: string[];
+  search?: string;
+}
+
+// Comment type used for agent voting
+export interface Comment {
   id: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  user?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
+}
+
+// Vote type for agent voting
+export interface Vote {
+  id: string;
+  agent_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  created_at: string;
+}
+
+// System log type
+export interface SystemLog {
+  id: string;
+  tenant_id: string;
+  module: SystemEventModule; 
+  severity: LogSeverity;
+  event: string;
+  message?: string;
+  context: Record<string, any>;
+  created_at: string;
+  user_id?: string;
+  metadata?: Record<string, any>;
+  status?: string;
+}
+
+// Calendar & DateRange related types
+export interface DateRange {
+  from: Date;
+  to?: Date | undefined;
+}
+
+// Navigation item type
+export interface NavigationItem {
+  id?: string;
   title: string;
   href: string;
-  icon?: ReactNode;
-  badge?: string;
-  disabled?: boolean;
-  onClick?: () => void;
-  children?: NavigationItem[];
+  icon?: React.ComponentType<{ className?: string }>;
+  items?: NavigationItem[];
+  adminOnly?: boolean;
+  badge?: string | number;
+  isNew?: boolean;
+  isExternal?: boolean;
 }
 
-// User and role types
-export enum UserRole {
-  OWNER = 'owner',
-  ADMIN = 'admin',
-  MEMBER = 'member',
-  VIEWER = 'viewer',
-  USER = 'user'
-}
-
-// System logs and events
-export type SystemEventModule = 
-  | 'auth'
-  | 'system'
-  | 'api'
-  | 'tenant'
-  | 'strategy'
-  | 'plugin'
-  | 'agent'
-  | 'user';
-
-export type LogSeverity = 
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'debug';
-
-// Common enums
-export enum VoteType {
-  UP = 'up',
-  DOWN = 'down'
-}
-
-export enum NotificationType {
-  INFO = 'info',
-  SUCCESS = 'success',
-  WARNING = 'warning',
-  ERROR = 'error'
-}
-
-// Re-export DateRange from react-day-picker to ensure consistency
-export type DateRange = ReactDayPickerDateRange;
+// Export UserRole type
+export type UserRole = 'admin' | 'owner' | 'member' | 'guest';
