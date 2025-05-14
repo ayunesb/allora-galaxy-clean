@@ -6,13 +6,13 @@ import { VoteButtonProps } from './types';
 
 export const VoteButton: React.FC<VoteButtonProps> = ({
   count,
-  isActive,
+  active,
   type,
   onClick,
   disabled
 }) => {
   const Icon = type === 'up' ? ThumbsUp : ThumbsDown;
-  const activeClass = isActive ? 
+  const activeClass = active ? 
     (type === 'up' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200') : '';
 
   return (

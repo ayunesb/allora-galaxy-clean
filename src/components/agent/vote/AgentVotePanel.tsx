@@ -3,16 +3,16 @@ import React from 'react';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { AgentVoteProps } from './types';
+import { AgentVotePanelProps } from './types';
 import { useAgentVote } from './useAgentVote';
 import { VoteButton } from './VoteButton';
 import { CommentSection } from './CommentSection';
 
-const AgentVotePanel: React.FC<AgentVoteProps> = ({
+const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
   agentVersionId,
-  initialUpvotes = 0,
-  initialDownvotes = 0,
-  userId
+  upvotes: initialUpvotes = 0,
+  downvotes: initialDownvotes = 0,
+  isReadOnly = false
 }) => {
   const {
     upvotes,
@@ -28,8 +28,7 @@ const AgentVotePanel: React.FC<AgentVoteProps> = ({
   } = useAgentVote({
     agentVersionId,
     initialUpvotes,
-    initialDownvotes,
-    userId
+    initialDownvotes
   });
 
   return (
@@ -41,35 +40,40 @@ const AgentVotePanel: React.FC<AgentVoteProps> = ({
             <div className="flex items-center gap-4">
               <VoteButton
                 count={upvotes}
-                isActive={userVote === 'up'}
+                active={userVote === 'up'}
                 type="up"
                 onClick={() => handleVote('up')}
-                disabled={submitting}
+                disabled={submitting || isReadOnly}
               />
               <VoteButton
                 count={downvotes}
-                isActive={userVote === 'down'}
+                active={userVote === 'down'}
                 type="down"
                 onClick={() => handleVote('down')}
-                disabled={submitting}
+                disabled={submitting || isReadOnly}
               />
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setShowComment(!showComment)}
+                disabled={isReadOnly}
               >
                 <MessageSquare className="h-4 w-4" />
               </Button>
             </div>
           </div>
           
-          {showComment && (
+          {showComment && !isReadOnly && (
             <CommentSection
               comment={comment}
               setComment={setComment}
               onSubmit={handleSubmitComment}
               onCancel={() => setShowComment(false)}
               disabled={submitting}
+              comments={[]}
+              agentVersionId={agentVersionId}
+              userHasVoted={userVote !== null}
+              voteType={userVote || undefined}
             />
           )}
         </div>

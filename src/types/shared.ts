@@ -1,4 +1,3 @@
-
 export interface SystemLog {
   id: string;
   created_at: string;
@@ -50,7 +49,7 @@ export type SystemEventModule =
   | 'system';
 
 // Standardize VoteType across the application
-export type VoteType = 'up' | 'down';
+export type VoteType = 'up' | 'down' | 'upvote' | 'downvote';
 
 // Add AuditLogFilter type
 export interface AuditLogFilter {

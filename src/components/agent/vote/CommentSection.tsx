@@ -5,11 +5,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { CommentSectionProps } from './types';
 
 export const CommentSection: React.FC<CommentSectionProps> = ({
-  comment,
-  setComment,
-  onSubmit,
-  onCancel,
-  disabled
+  comment = '',
+  setComment = () => {},
+  onSubmit = () => {},
+  onCancel = () => {},
+  disabled = false,
+  comments = [],
+  agentVersionId,
+  userHasVoted,
+  voteType,
+  isLoading
 }) => {
   return (
     <div className="space-y-2">
@@ -36,6 +41,20 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           Submit
         </Button>
       </div>
+      
+      {/* Display comments if there are any */}
+      {comments.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium">Recent Comments</h4>
+          <ul className="mt-2 space-y-2">
+            {comments.map((comment, index) => (
+              <li key={index} className="text-sm bg-muted p-2 rounded">
+                {comment.comment || comment.text || "No comment text"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

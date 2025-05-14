@@ -3,14 +3,20 @@ import { useState, useEffect } from 'react';
 import { getUserVote, voteOnAgentVersion } from '@/lib/agents/voting/voteOnAgentVersion';
 import { VoteType } from '@/types/shared';
 import { toast } from '@/components/ui/use-toast';
+import { UseAgentVoteReturn, AgentVoteProps } from './types';
 
-export function useAgentVote(agentVersionId: string) {
+export function useAgentVote({
+  agentVersionId,
+  initialUpvotes = 0,
+  initialDownvotes = 0
+}: AgentVoteProps): UseAgentVoteReturn {
   const [userVote, setUserVote] = useState<VoteType | null>(null);
-  const [upvoteCount, setUpvoteCount] = useState(0);
-  const [downvoteCount, setDownvoteCount] = useState(0);
+  const [upvoteCount, setUpvoteCount] = useState(initialUpvotes);
+  const [downvoteCount, setDownvoteCount] = useState(initialDownvotes);
   const [isLoading, setIsLoading] = useState(false);
   const [comment, setComment] = useState('');
   const [recentComments, setRecentComments] = useState<any[]>([]);
+  const [showComment, setShowComment] = useState(false);
 
   // Load the user's current vote
   useEffect(() => {
@@ -92,15 +98,56 @@ export function useAgentVote(agentVersionId: string) {
     }
   };
 
+  // Handle comment submission
+  const handleSubmitComment = async () => {
+    if (!comment.trim() || !userVote) return;
+    
+    setIsLoading(true);
+    try {
+      // Re-submit the vote with the comment
+      const result = await voteOnAgentVersion(agentVersionId, userVote, comment);
+      
+      if (result.success) {
+        toast({
+          title: "Comment Submitted",
+          description: "Thank you for your feedback."
+        });
+        setComment('');
+        setShowComment(false);
+      } else {
+        toast({
+          title: "Comment Failed",
+          description: result.error || "There was a problem submitting your comment.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Creating aliases for property names that are used in components
   return {
     userVote,
     upvoteCount,
     downvoteCount,
+    upvotes: upvoteCount, // Alias for upvoteCount
+    downvotes: downvoteCount, // Alias for downvoteCount
     isLoading,
+    submitting: isLoading, // Alias for isLoading
     comment,
     setComment,
     recentComments,
+    showComment,
+    setShowComment,
     handleVote,
+    handleSubmitComment,
     hasVoted: userVote !== null
   };
 }
