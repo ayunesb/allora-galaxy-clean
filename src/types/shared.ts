@@ -1,7 +1,9 @@
 
 // Common shared types used across the application
 
-// System event modules
+/**
+ * System event modules for logging and filtering
+ */
 export type SystemEventModule = 
   | 'strategy'
   | 'plugin'
@@ -17,7 +19,9 @@ export type SystemEventModule =
   | 'api'
   | string;
 
-// Log severity levels
+/**
+ * Log severity levels for system events
+ */
 export type LogSeverity = 
   | 'info'
   | 'warning'
@@ -26,13 +30,18 @@ export type LogSeverity =
   | 'debug'
   | string;
 
-// Date range for filtering logs
+/**
+ * Date range for filtering logs and other time-based data
+ * Compatible with react-day-picker DateRange
+ */
 export interface DateRange {
-  from: Date;
-  to?: Date;
+  from: Date | undefined;
+  to?: Date | undefined;
 }
 
-// System log filter type
+/**
+ * System log filter parameters
+ */
 export interface SystemLogFilter {
   module?: SystemEventModule | SystemEventModule[];
   event?: string;
@@ -40,9 +49,16 @@ export interface SystemLogFilter {
   dateRange?: DateRange;
 }
 
-// Trend direction for KPIs
+/**
+ * Trend direction for KPIs and metrics
+ */
 export type TrendDirection = 
   | 'up'
   | 'down'
   | 'neutral'
   | string;
+
+/**
+ * Vote types for agent evaluations
+ */
+export type VoteType = 'up' | 'down' | null;

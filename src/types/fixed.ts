@@ -1,3 +1,4 @@
+
 // Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
@@ -47,6 +48,11 @@ export interface ExecuteStrategyResultSnakeCase {
 
 // Add DateRange type for our filters
 export interface DateRange {
-  from: Date;
-  to?: Date;
+  from: Date | undefined;
+  to?: Date | undefined;
 }
+
+/**
+ * Vote types for agent evaluations
+ */
+export type VoteType = 'up' | 'down' | null;

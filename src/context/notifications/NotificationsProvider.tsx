@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import NotificationsContext from './NotificationsContext';
-import { Notification } from '@/types/notifications';
+import { Notification } from './types';
 import { 
   fetchUserNotifications,
   markNotificationAsRead,
@@ -19,7 +19,7 @@ interface NotificationsProviderProps {
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Changed from loading to isLoading
   const [error, setError] = useState<Error | null>(null);
 
   // Calculate unread count
@@ -29,12 +29,12 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
   const fetchNotifications = async () => {
     if (!user) {
       setNotifications([]);
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      setIsLoading(true);
       const { data, error } = await fetchUserNotifications(user.id);
       
       if (error) throw error;
@@ -48,7 +48,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -90,7 +90,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
       if (error) throw error;
       if (success) {
         setNotifications(prev => 
-          prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)
+          prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString(), is_read: true } : n)
         );
       }
     } catch (error: any) {
@@ -108,8 +108,9 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
       
       if (error) throw error;
       if (success) {
+        const now = new Date().toISOString();
         setNotifications(prev => 
-          prev.map(n => ({ ...n, read_at: new Date().toISOString() }))
+          prev.map(n => ({ ...n, read_at: now, is_read: true }))
         );
       }
     } catch (error: any) {
@@ -144,7 +145,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
     <NotificationsContext.Provider value={{
       notifications,
       unreadCount,
-      loading,
+      isLoading, // Changed from loading to isLoading
       markAsRead,
       markAllAsRead,
       deleteNotification,

@@ -1,28 +1,21 @@
 
-import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import LoadingScreen from '@/components/LoadingScreen';
 
-const ProtectedRoute: React.FC = () => {
+const ProtectedRoute = () => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: workspaceLoading } = useWorkspace();
+  const { isLoading: workspaceLoading } = useWorkspace();
 
-  // Show loading state while checking authentication
   if (authLoading || workspaceLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
-  // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Render child routes if authenticated
   return <Outlet />;
 };
 

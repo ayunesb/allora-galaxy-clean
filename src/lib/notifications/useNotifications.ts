@@ -1,23 +1,22 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Notification } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const tenantId = useTenantId();
 
   const refreshNotifications = useCallback(async () => {
     if (!tenantId) {
-      setLoading(false);
+      setIsLoading(false);
       return { success: true };
     }
     
     try {
-      setLoading(true);
+      setIsLoading(true);
       
       // Fetch notifications for the current tenant and user
       const { data, error } = await supabase
@@ -37,7 +36,7 @@ export const useNotifications = () => {
       setError(err as Error);
       return { success: false, error: err as Error };
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [tenantId]);
   
@@ -134,7 +133,7 @@ export const useNotifications = () => {
   return {
     notifications,
     unreadCount,
-    loading,
+    isLoading,
     error,
     markAsRead,
     markAllAsRead,

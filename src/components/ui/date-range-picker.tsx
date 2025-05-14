@@ -2,7 +2,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import { DateRange as DayPickerDateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,9 +11,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { DateRange } from "@/types/shared";
 
 // Define a compatible type for the onSelect handler
-export type SelectRangeEventHandler = (range: DateRange | undefined) => void;
+export type SelectRangeEventHandler = (range: DayPickerDateRange | undefined) => void;
 
 export interface DateRangePickerProps {
   className?: string;
@@ -34,17 +35,17 @@ export function DateRangePicker({
   locale = "en-US",
   ...props
 }: DateRangePickerProps & Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'>) {
-  const [date, setDate] = React.useState<DateRange | undefined>(value);
+  const [date, setDate] = React.useState<DayPickerDateRange | undefined>(value as DayPickerDateRange);
 
-  // When the date changes, call onSelect with the new value
+  // When the value changes, call onSelect with the new value
   React.useEffect(() => {
     if (value) {
-      setDate(value);
+      setDate(value as DayPickerDateRange);
     }
   }, [value]);
 
   // Handle changes to the date range
-  const handleSelect = (selectedDate: DateRange | undefined) => {
+  const handleSelect = (selectedDate: DayPickerDateRange | undefined) => {
     setDate(selectedDate);
     if (onSelect) {
       onSelect(selectedDate);
@@ -86,6 +87,7 @@ export function DateRangePicker({
             selected={date}
             onSelect={handleSelect}
             numberOfMonths={2}
+            className={cn("p-3 pointer-events-auto")}
           />
         </PopoverContent>
       </Popover>

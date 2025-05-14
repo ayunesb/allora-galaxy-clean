@@ -1,27 +1,26 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { LoadingScreen } from '@/components/LoadingScreen';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { useTenantRole } from '@/hooks/useTenantRole';
+import LoadingScreen from '@/components/LoadingScreen';
 
-interface AdminGuardProps {
-  children: React.ReactNode;
-}
+const AdminGuard = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useTenantRole();
 
-export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
-  const { userRole, isLoading } = useWorkspace();
-
-  // Show loading screen while determining user role
-  if (isLoading) {
+  if (authLoading || roleLoading) {
     return <LoadingScreen />;
   }
 
-  // Redirect if user doesn't have admin or owner role
-  if (userRole !== 'admin' && userRole !== 'owner') {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return <>{children}</>;
+  return <Outlet />;
 };
 
 export default AdminGuard;

@@ -11,7 +11,7 @@ export interface NotificationCenterContentProps {
   notifications: Notification[];
   markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
-  loading?: boolean;
+  isLoading?: boolean; // Changed from loading to isLoading
   onMarkAllAsRead?: () => Promise<void>;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
@@ -21,12 +21,12 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   notifications,
   markAsRead,
   onDelete,
-  loading = false,
+  isLoading = false, // Changed from loading to isLoading
   onMarkAllAsRead,
   activeFilter,
   setActiveFilter
 }) => {
-  if (loading) {
+  if (isLoading) {
     return <NotificationCenterLoading />;
   }
 
@@ -47,6 +47,7 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
     type: notification.type as NotificationType,
     action_url: notification.action_url,
     action_label: notification.action_label,
+    metadata: notification.metadata,
   }));
 
   return (

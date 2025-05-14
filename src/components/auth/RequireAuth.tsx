@@ -1,40 +1,36 @@
 
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from '@/components/ui/use-toast';
+import LoadingScreen from '@/components/LoadingScreen';
 
-interface RequireAuthProps {
-  children: React.ReactNode;
-  roles?: string[];
-}
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isLoading: workspaceLoading, currentWorkspace } = useWorkspace();
 
-export const RequireAuth: React.FC<RequireAuthProps> = ({ children, roles }) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast({
+        title: 'Authentication required',
+        description: 'You need to be logged in to access this page',
+        variant: 'destructive'
+      });
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (authLoading || workspaceLoading) {
+    return <LoadingScreen />;
   }
 
   if (!user) {
-    // Redirect to login page if not authenticated
-    return <Navigate to="/auth/login" state={{ from: location }} replace />;
-  }
-
-  // If roles are specified, check if user has one of those roles
-  if (roles && roles.length > 0) {
-    // This is a simplified role check - in a real app, you'd check against user.role
-    // or make an API call to check roles
-    const hasRequiredRole = true; // Replace with actual role check logic
-    
-    if (!hasRequiredRole) {
-      return <Navigate to="/unauthorized" replace />;
-    }
+    return null;
   }
 
   return <>{children}</>;
 };
+
+export default RequireAuth;

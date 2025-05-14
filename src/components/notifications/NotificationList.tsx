@@ -9,7 +9,7 @@ interface NotificationListProps {
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   filter?: string;
-  loading?: boolean;
+  isLoading?: boolean; // Changed from loading to isLoading
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({
@@ -17,9 +17,9 @@ const NotificationList: React.FC<NotificationListProps> = ({
   onMarkAsRead,
   onDelete,
   filter,
-  loading
+  isLoading = false // Changed from loading to isLoading
 }) => {
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8 flex justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

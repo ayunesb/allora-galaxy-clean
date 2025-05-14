@@ -5,7 +5,7 @@ import { NavigationItem } from '@/types/navigation';
 export interface WorkspaceContextType {
   currentWorkspace: Tenant | null;
   workspaces: Tenant[];
-  isLoading: boolean;
+  isLoading: boolean;  // Primary property
   error: Error | null;
   navigationItems: NavigationItem[];
   collapsed: boolean;
@@ -17,7 +17,8 @@ export interface WorkspaceContextType {
   // Backward compatibility properties
   tenant?: Tenant | null;
   currentTenant?: Tenant | null;
-  loading?: boolean;
+  loading?: boolean;  // Backward compatibility
+  tenants?: Tenant[]; // Backward compatibility
   setCurrentWorkspace?: (workspace: Tenant) => void;
   toggleCollapsed?: () => void;
 }
