@@ -1,43 +1,51 @@
 
-import { GraphNode } from "@/types/galaxy";
+import { GraphNode } from '@/types/galaxy';
 
-export function getNodeTitle(node: GraphNode): string {
-  if (!node) return 'Details';
+export const getNodeTitle = (node: GraphNode): string => {
+  if (!node) return 'Unknown Node';
+  return node.label || node.id || 'Unnamed Node';
+};
+
+export const getNodeType = (node: GraphNode): string => {
+  if (!node) return 'unknown';
+  return node.type || 'unknown';
+};
+
+export const getNodeStatus = (node: GraphNode): string => {
+  if (!node) return '';
+  return node.status || '';
+};
+
+export const getNodeColor = (node: GraphNode): string => {
+  if (!node) return '#888888';
   
-  switch (node.type) {
+  switch (node.type?.toLowerCase()) {
     case 'strategy':
-      return node.name || 'Strategy Details';
+      return '#3b82f6'; // blue
+    case 'agent':
+      return '#10b981'; // green
     case 'plugin':
-      return node.name || 'Plugin Details';
-    case 'agent': 
-      return `Agent ${node.name || ''} v${node.version || '1'}` || 'Agent Details';
+      return '#f59e0b'; // amber
+    case 'execution':
+      return '#8b5cf6'; // purple
     default:
-      return node.name || 'Node Details';
+      return '#64748b'; // slate
   }
-}
+};
 
-export function getNodeType(node: GraphNode): string {
-  if (!node?.type) return '';
-  return node.type.charAt(0).toUpperCase() + node.type.slice(1);
-}
-
-export function getStatusVariant(status: string | undefined) {
-  if (!status) return 'outline';
+export const getNodeSize = (node: GraphNode): number => {
+  if (!node) return 5;
   
-  switch (status) {
-    case 'active':
-    case 'approved':
-    case 'completed':
-      return 'default';
-    case 'draft':
-    case 'inactive':
-      return 'secondary';
-    case 'pending':
-      return 'outline';
-    case 'rejected':
-    case 'deprecated':
-      return 'destructive';
+  switch (node.type?.toLowerCase()) {
+    case 'strategy':
+      return 12;
+    case 'agent':
+      return 10;
+    case 'plugin':
+      return 8;
+    case 'execution':
+      return 6;
     default:
-      return 'outline';
+      return 5;
   }
-}
+};

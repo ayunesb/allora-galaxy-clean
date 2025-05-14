@@ -41,6 +41,7 @@ describe('NotificationItem', () => {
       type: 'info' as NotificationType,
       timestamp: '2023-01-01T00:00:00Z',
       read: false,
+      created_at: '2023-01-01T00:00:00Z'
     };
     
     const { container } = render(
@@ -65,6 +66,7 @@ describe('NotificationItem', () => {
         type: type as NotificationType,
         timestamp: '2023-01-01T00:00:00Z',
         read: false,
+        created_at: '2023-01-01T00:00:00Z'
       };
       
       const { container } = render(
@@ -89,6 +91,7 @@ describe('NotificationItem', () => {
       read: false,
       actionUrl: 'https://example.com',
       actionLabel: 'Visit',
+      created_at: '2023-01-01T00:00:00Z'
     };
     
     const { container } = render(

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GraphNode } from '@/types/galaxy';
-import { InspectorContent } from './InspectorContent';
+import InspectorContent from './InspectorContent';
 import { getNodeTitle } from './node-inspectors/NodeUtilities';
 
 interface InspectorSidebarProps {
@@ -41,3 +41,5 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     </div>
   );
 };
+
+export default InspectorSidebar;

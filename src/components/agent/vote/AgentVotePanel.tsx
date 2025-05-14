@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VoteButton } from './VoteButton';
-import { CommentSection } from './CommentSection';
+import CommentSection from './CommentSection';
 import { useAgentVote } from '@/hooks/useAgentVote';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -98,9 +98,7 @@ export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
                   <Separator className="my-4" />
                   <CommentSection 
                     comments={comments?.filter(c => c.user_id === 'currentUser') || []}
-                    isLoading={false}
-                    onAddComment={handleComment}
-                    voteType={userVote}
+                    onSubmit={handleComment}
                   />
                 </>
               )}
@@ -120,9 +118,7 @@ export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
           <TabsContent value="comments" className="pt-4">
             <CommentSection 
               comments={comments || []}
-              isLoading={false}
-              onAddComment={handleComment}
-              voteType={userVote}
+              onSubmit={handleComment}
             />
           </TabsContent>
         </Tabs>

@@ -7,8 +7,6 @@ import { toast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 
 export function CronJobsMonitoring() {
-  const [activeTab, setActiveTab] = useState<string>('executions');
-  
   const {
     jobs,
     stats,

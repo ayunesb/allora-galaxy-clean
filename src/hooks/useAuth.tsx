@@ -1,268 +1,226 @@
 
-// No longer just re-exporting, implement a proper hook with full authentication functionality
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from '@/components/ui/use-toast';
-import { UserRole } from '@/types/shared';
+import { useToast } from './use-toast';
 
-export interface AuthUser {
+type AuthUser = {
   id: string;
   email?: string;
-  role?: UserRole;
-}
+  user_metadata?: Record<string, any>;
+  // Add other properties as needed
+};
 
-export interface AuthState {
+type UserRole = 'admin' | 'user' | 'manager' | 'owner';
+
+type AuthContextType = {
   user: AuthUser | null;
   userRole: UserRole | null;
-  session: any | null;
+  session: any;
   isLoading: boolean;
-}
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signOut: () => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
+  updatePassword: (password: string) => Promise<{ error: any }>;
+  checkUserRole: (role: string | string[]) => Promise<boolean>;
+  hasRole: (role: string | string[]) => boolean;
+};
 
-export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    userRole: null,
-    session: null,
-    isLoading: true,
-  });
-  const navigate = useNavigate();
-  const location = useLocation();
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [session, setSession] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // First set up the auth listener for future state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setState(prev => ({ ...prev, session, user: session?.user ?? null }));
-        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+
+        // Fetch user role if we have a user
         if (session?.user) {
-          // Fetch user role
           try {
-            const { data: roleData } = await supabase
+            const { data, error } = await supabase
               .from('tenant_user_roles')
               .select('role')
               .eq('user_id', session.user.id)
               .single();
-            
-            setState(prev => ({ ...prev, userRole: roleData?.role as UserRole || null }));
+
+            if (error) throw error;
+            setUserRole(data?.role as UserRole || null);
           } catch (error) {
             console.error('Error fetching user role:', error);
+            setUserRole(null);
           }
         } else {
-          setState(prev => ({ ...prev, userRole: null }));
+          setUserRole(null);
         }
       }
     );
 
-    // Then check for existing session
-    const fetchSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          throw error;
+    // Initial session check
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        try {
+          const { data, error } = await supabase
+            .from('tenant_user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (error) throw error;
+          setUserRole(data?.role as UserRole || null);
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setUserRole(null);
         }
-        
-        if (data.session) {
-          setState(prev => ({ ...prev, session: data.session, user: data.session.user }));
-          
-          // Fetch user role
-          try {
-            const { data: roleData } = await supabase
-              .from('tenant_user_roles')
-              .select('role')
-              .eq('user_id', data.session.user.id)
-              .single();
-            
-            setState(prev => ({ ...prev, userRole: roleData?.role as UserRole || null }));
-          } catch (error) {
-            console.error('Error fetching user role:', error);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching session:', err);
-      } finally {
-        setState(prev => ({ ...prev, isLoading: false }));
       }
+
+      setIsLoading(false);
     };
 
-    fetchSession();
+    initializeAuth();
 
+    // Clean up subscription on unmount
     return () => {
-      subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
 
+  // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
-        toast({
-          title: "Authentication failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-      
-      // Redirect to where user was trying to go, or to dashboard
-      const origin = (location.state as any)?.from?.pathname || '/dashboard';
-      navigate(origin);
-      
-      toast({
-        title: "Welcome back",
-        description: "You have successfully signed in",
-      });
-      
+      if (error) throw error;
       return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Authentication failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast.error('Failed to sign in: ' + (error as Error).message);
       return { error };
     }
   };
 
+  // Sign up with email and password
   const signUp = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signUp({ email, password });
-      
-      if (error) {
-        toast({
-          title: "Registration failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-      
-      toast({
-        title: "Registration successful",
-        description: "Please check your email to confirm your account",
-      });
-      
+      if (error) throw error;
+      toast.success('Sign up successful! Please check your email for verification.');
       return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast.error('Failed to sign up: ' + (error as Error).message);
       return { error };
     }
   };
 
+  // Sign out
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      navigate('/auth/login');
-      
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-      
-      if (error) {
-        toast({
-          title: "Password reset failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-      
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for the reset link",
-      });
-      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Password reset failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast.error('Failed to sign out: ' + (error as Error).message);
       return { error };
     }
   };
 
+  // Reset password (sends email with reset link)
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      toast.success('Password reset email sent. Please check your inbox.');
+      return { error: null };
+    } catch (error) {
+      toast.error('Failed to send reset email: ' + (error as Error).message);
+      return { error };
+    }
+  };
+
+  // Update password (after reset)
   const updatePassword = async (password: string) => {
     try {
       const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        toast({
-          title: "Password update failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-      
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully",
-        variant: "success",
-      });
-      
+      if (error) throw error;
+      toast.success('Password updated successfully.');
       return { error: null };
-    } catch (error: any) {
-      toast({
-        title: "Password update failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast.error('Failed to update password: ' + (error as Error).message);
       return { error };
     }
   };
 
+  // Check if user has the specified role
   const checkUserRole = async (role: string | string[]): Promise<boolean> => {
-    if (!state.user) return false;
-    
-    // If no role is required, just check if user is authenticated
-    if (!role) return true;
-    
-    const roles = Array.isArray(role) ? role : [role];
-    
-    // Admin and owner roles can access everything
-    if (state.userRole === 'admin' || state.userRole === 'owner') {
-      return true;
+    if (!user) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('tenant_user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) return false;
+      
+      const userRoles = data.map(r => r.role);
+      
+      if (Array.isArray(role)) {
+        return role.some(r => userRoles.includes(r));
+      } else {
+        return userRoles.includes(role);
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      return false;
     }
-    
-    // Check if user's role is in the required roles
-    return roles.includes(state.userRole as string);
   };
 
-  return { 
-    user: state.user, 
-    userRole: state.userRole,
-    session: state.session, 
-    isLoading: state.isLoading,
+  // Synchronous role check based on current userRole state
+  const hasRole = (role: string | string[]): boolean => {
+    if (!userRole) return false;
+    
+    if (Array.isArray(role)) {
+      return role.includes(userRole);
+    } else {
+      return role === userRole;
+    }
+  };
+
+  const value = {
+    user,
+    userRole,
+    session,
+    isLoading,
     signIn,
     signUp,
     signOut,
     resetPassword,
     updatePassword,
-    checkUserRole
+    checkUserRole,
+    hasRole
   };
-}
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export default useAuth;

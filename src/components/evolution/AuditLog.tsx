@@ -1,26 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { DateRange } from 'react-day-picker';
-import { Search, Filter } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { SystemLog } from '@/types/logs';
 import { EvolutionFilter } from '@/types/evolution';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { LogDetailDialog } from './LogDetailDialog';
-import { Pagination } from '@/components/ui/pagination';
 import { formatDistanceToNow } from 'date-fns';
 
 export interface AuditLogProps {
-  onFetchData: (filters: any) => Promise<SystemLog[]>;
+  onFetchData: (filters: EvolutionFilter) => Promise<SystemLog[]>;
 }
 
 const LOGS_PER_PAGE = 10;
 
 const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
   const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState<EvolutionFilter>({});
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
@@ -31,7 +28,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
   const totalPages = Math.max(1, Math.ceil(totalLogs / LOGS_PER_PAGE));
 
   // Fetch data with new filters
-  const fetchData = async (newFilters = filters, page = currentPage) => {
+  const fetchData = async (newFilters: EvolutionFilter = filters, page = currentPage) => {
     setLoading(true);
     try {
       // In a real app, pagination would be server-side
@@ -53,7 +50,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
   };
 
   // Handle filter changes
-  const handleFilterChange = (newFilters: any) => {
+  const handleFilterChange = (newFilters: EvolutionFilter) => {
     setFilters(newFilters);
     setCurrentPage(1); // Reset to first page when filters change
     fetchData(newFilters, 1);
@@ -104,7 +101,22 @@ const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <AuditLogFilters onFilterChange={handleFilterChange} />
+        {/* Filter component would go here - simplified for now */}
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
+            Showing {logs.length} logs
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setFilters({});
+              fetchData({}, 1);
+            }}
+          >
+            Reset Filters
+          </Button>
+        </div>
         
         {loading ? (
           <div className="flex justify-center py-12">

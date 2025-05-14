@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ interface CommentSectionProps {
   onSubmit: (comment: string) => void;
 }
 
-const CommentSection: React.FC<CommentSectionProps> = ({ comments, onSubmit }) => {
+export const CommentSection: React.FC<CommentSectionProps> = ({ comments, onSubmit }) => {
   const [comment, setComment] = React.useState('');
 
   const handleSubmit = (e: React.FormEvent) => {

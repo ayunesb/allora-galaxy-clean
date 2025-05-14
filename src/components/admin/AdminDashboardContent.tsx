@@ -1,11 +1,11 @@
 
+import React, { useState } from 'react';
 import { WorkspaceOverview } from './dashboard/WorkspaceOverview';
 import { UserManagementCard } from './dashboard/UserManagementCard';
 import { CronJobsCard } from './dashboard/CronJobsCard';
 import { useUserData } from './dashboard/useUserData';
-import { useState } from 'react';
 
-const AdminDashboardContent = () => {
+const AdminDashboardContent: React.FC = () => {
   const {
     userData,
     isLoading,

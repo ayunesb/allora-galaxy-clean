@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GraphNode } from '@/types/galaxy';
-import { InspectorContent } from './InspectorContent';
+import InspectorContent from './InspectorContent';
 import { getNodeTitle, getNodeType } from './node-inspectors/NodeUtilities';
 
 interface MobileInspectorProps {
