@@ -2,7 +2,7 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import StatusBadge from './StatusBadge';
+import { StatusBadge } from './StatusBadge';
 import { TableSkeleton } from './TableSkeletons';
 import { CronJob } from '@/types/cron';
 

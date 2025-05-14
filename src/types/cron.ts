@@ -4,7 +4,7 @@
  */
 
 // Common status type shared across interfaces
-export type CronJobStatus = 'success' | 'failure' | 'running' | 'scheduled' | 'active' | 'inactive' | 'failed';
+export type CronJobStatus = 'success' | 'failure' | 'running' | 'scheduled' | 'active' | 'inactive' | 'failed' | 'completed';
 
 export interface CronJob {
   id: string;
@@ -21,12 +21,21 @@ export interface CronJob {
 }
 
 export interface CronJobExecution extends CronJob {
-  // Any additional properties specific to executions
+  execution_id?: string;
+  result?: any;
 }
 
 export interface CronJobStat {
   status: string;
   count: number;
+}
+
+export interface CronJobStats {
+  total: number;
+  active: number;
+  pending: number;
+  failed: number;
+  completed: number;
 }
 
 export interface TimeRange {

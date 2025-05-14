@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ExecutionsTable } from './ExecutionsTable';
 import { StatsTable } from './StatsTable';
 import { Button } from '@/components/ui/button';
-import { CronJob, CronJobStat } from '@/types/cron';
+import { CronJob, CronJobStat, CronJobStats } from '@/types/cron';
 
 interface CronJobsTabsProps {
   jobs: CronJob[];
@@ -21,6 +21,15 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
   onRunJob 
 }) => {
   const [activeTab, setActiveTab] = useState("executions");
+
+  // Convert the stats array to a CronJobStats object format expected by StatsTable
+  const statsObject: CronJobStats = {
+    total: stats.reduce((sum, stat) => sum + stat.count, 0),
+    active: stats.find(s => s.status === 'active')?.count || 0,
+    pending: stats.find(s => s.status === 'scheduled')?.count || 0,
+    failed: stats.find(s => s.status === 'failed')?.count || 0,
+    completed: stats.find(s => s.status === 'completed')?.count || 0
+  };
 
   const handleRunJob = async (jobId: string) => {
     if (onRunJob) {
@@ -59,7 +68,7 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
       <TabsContent value="stats">
         <Card>
           <CardContent className="p-0 sm:p-6">
-            <StatsTable stats={stats} isLoading={isLoading} />
+            <StatsTable stats={statsObject} rawStats={stats} isLoading={isLoading} />
           </CardContent>
         </Card>
       </TabsContent>

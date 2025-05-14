@@ -3,6 +3,7 @@ export interface GraphNode {
   id: string;
   name: string;
   label?: string;
+  description?: string;
   type: 'strategy' | 'agent' | 'plugin' | 'tenant';
   status?: string;
   color?: string;
@@ -11,6 +12,11 @@ export interface GraphNode {
   borderColor?: string;
   borderWidth?: number;
   metadata?: Record<string, any>;
+  version?: string;
+  model?: string;
+  last_executed?: string;
+  x?: number;
+  y?: number;
 }
 
 export interface GraphLink {

@@ -4,6 +4,7 @@ import { DateRange as DayPickerDateRange } from "react-day-picker";
 // Extend the DateRange type to make sure 'from' is always a Date
 export interface DateRange extends DayPickerDateRange {
   from: Date;
+  to?: Date;
 }
 
 // For use with empty date ranges

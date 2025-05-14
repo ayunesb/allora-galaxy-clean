@@ -37,7 +37,7 @@ interface WorkspaceSwitcherProps extends PopoverTriggerProps {
 }
 
 export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
-  const { currentWorkspace, workspaces, setCurrentWorkspace, createWorkspace } = useWorkspace();
+  const { workspace, workspaces, setCurrentWorkspace, createWorkspace } = useWorkspace();
   
   const [open, setOpen] = useState(false);
   const [showNewTeamDialog, setShowNewTeamDialog] = useState(false);
@@ -51,16 +51,18 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
     setIsCreating(true);
     
     try {
-      const workspace = await createWorkspace({
-        name: newWorkspaceName,
-        slug: newWorkspaceSlug || undefined
-      });
-      
-      if (workspace) {
-        setCurrentWorkspace(workspace);
-        setShowNewTeamDialog(false);
-        setNewWorkspaceName("");
-        setNewWorkspaceSlug("");
+      if (createWorkspace) {
+        const workspace = await createWorkspace({
+          name: newWorkspaceName,
+          slug: newWorkspaceSlug || undefined
+        });
+        
+        if (workspace) {
+          setCurrentWorkspace(workspace);
+          setShowNewTeamDialog(false);
+          setNewWorkspaceName("");
+          setNewWorkspaceSlug("");
+        }
       }
     } catch (error) {
       console.error('Failed to create workspace:', error);
@@ -80,7 +82,7 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
             aria-label="Select a workspace"
             className={cn("w-[200px] justify-between", className)}
           >
-            {currentWorkspace?.name || "Select workspace"}
+            {workspace?.name || "Select workspace"}
             <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -90,17 +92,17 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
               <CommandInput placeholder="Search workspace..." />
               <CommandEmpty>No workspace found.</CommandEmpty>
               <CommandGroup heading="Workspaces">
-                {workspaces.map((workspace) => (
+                {workspaces.map((item) => (
                   <CommandItem
-                    key={workspace.id}
+                    key={item.workspace.id}
                     onSelect={() => {
-                      setCurrentWorkspace(workspace);
+                      setCurrentWorkspace(item.workspace);
                       setOpen(false);
                     }}
                     className="text-sm"
                   >
-                    <span>{workspace.name}</span>
-                    {currentWorkspace?.id === workspace.id && (
+                    <span>{item.workspace.name}</span>
+                    {workspace?.id === item.workspace.id && (
                       <Check className="ml-auto h-4 w-4" />
                     )}
                   </CommandItem>

@@ -24,8 +24,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        date={{ from: new Date(), to: new Date() }}
-        onDateChange={mockOnChange}
+        value={{ from: new Date(), to: new Date() }}
+        onChange={mockOnChange}
       />
     );
     
@@ -37,8 +37,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        date={{ from: new Date(), to: new Date() }}
-        onDateChange={mockOnChange}
+        value={{ from: new Date(), to: new Date() }}
+        onChange={mockOnChange}
       />
     );
     
@@ -54,8 +54,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        date={{ from: new Date(), to: undefined }}
-        onDateChange={mockOnChange}
+        value={{ from: new Date(), to: undefined }}
+        onChange={mockOnChange}
       />
     );
     
@@ -71,8 +71,8 @@ describe('DateRangePicker', () => {
     
     render(
       <DateRangePicker
-        date={{ from: new Date(), to: new Date() }}
-        onDateChange={mockOnChange}
+        value={{ from: new Date(), to: new Date() }}
+        onChange={mockOnChange}
         className="test-class"
       />
     );
