@@ -12,7 +12,9 @@ interface AIDecision extends SystemLog {
 }
 
 export const useAiDecisions = () => {
-  const tenantId = useTenantId();
+  const tenantResult = useTenantId();
+  const tenantId = tenantResult?.id; // Extract the id property
+  
   const [decisions, setDecisions] = useState<AIDecision[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<Partial<LogFilters>>({
@@ -23,11 +25,13 @@ export const useAiDecisions = () => {
   });
 
   useEffect(() => {
-    fetchDecisions();
+    if (tenantId) {
+      fetchDecisions();
+    }
   }, [filters, tenantId]);
 
   const fetchDecisions = async () => {
-    if (!tenantId.id) return;
+    if (!tenantId) return;
     
     setIsLoading(true);
     
@@ -36,7 +40,7 @@ export const useAiDecisions = () => {
         .from('system_logs')
         .select('*')
         .eq('module', 'ai-decision-maker')
-        .eq('tenant_id', tenantId.id)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
       
       if (filters.event) {

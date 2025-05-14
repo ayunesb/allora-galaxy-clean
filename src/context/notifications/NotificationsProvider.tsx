@@ -15,7 +15,7 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     setUnreadCount(prev => prev + 1);
     
     // Display toast for certain types of notifications
-    if (notification.metadata?.priority === 'high') {
+    if (notification.metadata?.priority === 'high' || notification.priority === 'high') {
       toast({
         title: notification.title,
         description: notification.description || '',
@@ -25,7 +25,7 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
   }, [toast]);
 
   // Mark a notification as read
-  const markAsRead = useCallback((id: string) => {
+  const markAsRead = useCallback(async (id: string): Promise<void> => {
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === id && !notification.read_at
@@ -38,10 +38,12 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     setUnreadCount(prev => 
       prev > 0 ? prev - 1 : 0
     );
+    
+    return Promise.resolve();
   }, []);
 
   // Mark all notifications as read
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async (): Promise<void> => {
     const now = new Date().toISOString();
     setNotifications(prev => 
       prev.map(notification => 
@@ -52,11 +54,28 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     );
     
     setUnreadCount(0);
+    
+    return Promise.resolve();
   }, []);
 
-  const clearNotifications = useCallback(() => {
-    setNotifications([]);
-    setUnreadCount(0);
+  const deleteNotification = useCallback(async (id: string): Promise<void> => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+    // Update unread count if necessary
+    setNotifications(prev => {
+      const deletedNotification = prev.find(n => n.id === id);
+      if (deletedNotification && !deletedNotification.read_at) {
+        setUnreadCount(count => Math.max(0, count - 1));
+      }
+      return prev.filter(n => n.id !== id);
+    });
+    
+    return Promise.resolve();
+  }, []);
+
+  const refreshNotifications = useCallback(async (): Promise<void> => {
+    // This would typically fetch from an API
+    // In this mock implementation, we'll just resolve the promise
+    return Promise.resolve();
   }, []);
 
   const contextValue = {
@@ -65,7 +84,14 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     addNotification,
     markAsRead,
     markAllAsRead,
-    clearNotifications
+    deleteNotification,
+    refreshNotifications,
+    clearNotifications: useCallback(() => {
+      setNotifications([]);
+      setUnreadCount(0);
+    }, []),
+    loading: false,
+    error: null
   };
 
   return (

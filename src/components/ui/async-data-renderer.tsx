@@ -1,20 +1,15 @@
-
 import React from 'react';
-import { Card } from './card';
-import ErrorState from './error-state';
-import { Button } from './button';
+import { LoadingSpinner } from './loading-spinner';
+import { ErrorState } from './error-state';
+import { RetryFeedback } from './retry-feedback';
 
-interface AsyncDataRendererProps<T> {
+export interface AsyncDataRendererProps<T> {
   data: T | null;
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
-  renderData: (data: T) => React.ReactNode;
-  renderLoading?: () => React.ReactNode;
-  renderError?: (error: Error, retry: (() => void) | undefined) => React.ReactNode;
+  renderData: (data: T) => React.ReactElement;
   loadingText?: string;
-  noDataText?: string;
-  className?: string;
 }
 
 export function AsyncDataRenderer<T>({
@@ -23,62 +18,54 @@ export function AsyncDataRenderer<T>({
   error,
   onRetry,
   renderData,
-  renderLoading,
-  renderError,
   loadingText = 'Loading data...',
-  noDataText = 'No data available',
-  className = '',
 }: AsyncDataRendererProps<T>) {
-  const renderLoadingState = () => {
-    if (renderLoading) {
-      return renderLoading();
-    }
-    
-    return (
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-          <p className="text-sm text-muted-foreground">{loadingText}</p>
-        </div>
-      </Card>
-    );
-  };
-
-  const renderErrorState = (err: Error) => {
-    if (renderError) {
-      return renderError(err, onRetry);
-    }
-    
-    return (
-      <ErrorState
-        title="Error loading data"
-        description={err.message || 'An unexpected error occurred'}
-        action={onRetry ? <Button onClick={onRetry}>Retry</Button> : undefined}
-      />
-    );
-  };
-
-  const renderNoData = () => {
-    return (
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center">
-          <p className="text-sm text-muted-foreground">{noDataText}</p>
-        </div>
-      </Card>
-    );
-  };
-
+  // Render states
   if (isLoading) {
-    return renderLoadingState();
+    return (
+      <div className="flex justify-center items-center p-8 min-h-[200px]">
+        <LoadingSpinner message={loadingText} />
+      </div>
+    );
   }
 
   if (error) {
-    return renderErrorState(error);
+    // If we have a retry function, render the RetryFeedback component
+    if (onRetry) {
+      return (
+        <RetryFeedback
+          error={error}
+          onRetry={onRetry}
+          className="min-h-[200px]"
+        />
+      );
+    }
+    
+    // Otherwise render the standard error state
+    return (
+      <ErrorState
+        title="Failed to load data"
+        action={
+          onRetry ? (
+            <button
+              onClick={onRetry}
+              className="text-primary hover:underline"
+            >
+              Try again
+            </button>
+          ) : undefined
+        }
+      />
+    );
   }
 
   if (!data) {
-    return renderNoData();
+    return (
+      <div className="text-center p-8 text-muted-foreground">
+        No data available.
+      </div>
+    );
   }
 
-  return <div className={className}>{renderData(data)}</div>;
+  return renderData(data);
 }

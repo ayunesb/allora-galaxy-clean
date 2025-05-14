@@ -56,7 +56,7 @@ export function useEdgeFunctionQuery<TData = any, TError = any>(
     }
   };
 
-  return useQuery({
+  return useQuery<TData, TError>({
     queryKey,
     queryFn: fetchData,
     ...restOptions,

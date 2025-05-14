@@ -5,7 +5,9 @@ import { AuditLog, LogFilters } from '@/types/logs';
 import { useTenantId } from '@/hooks/useTenantId';
 
 export const useAuditLogData = () => {
-  const tenantId = useTenantId();
+  const tenantResult = useTenantId();
+  const tenantId = tenantResult?.id; // Extract the id property
+  
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -20,7 +22,7 @@ export const useAuditLogData = () => {
   });
   
   const fetchLogs = useCallback(async () => {
-    if (!tenantId.id) return;
+    if (!tenantId) return;
     
     setIsLoading(true);
     setError(null);
@@ -29,7 +31,7 @@ export const useAuditLogData = () => {
       let query = supabase
         .from('system_logs')
         .select('*')
-        .eq('tenant_id', tenantId.id)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(filters.limit || 50);
       
@@ -85,7 +87,7 @@ export const useAuditLogData = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId.id, filters]);
+  }, [tenantId, filters]);
   
   useEffect(() => {
     fetchLogs();

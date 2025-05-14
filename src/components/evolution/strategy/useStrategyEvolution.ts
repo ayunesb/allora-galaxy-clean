@@ -18,6 +18,7 @@ export const useStrategyEvolution = (strategyId: string) => {
   } = usePartialDataFetch({
     queries: {
       strategy: {
+        // Fixed: Don't wrap the function in an object literal
         query: async () => {
           // Mock fetching a strategy
           return {

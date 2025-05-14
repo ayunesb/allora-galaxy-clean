@@ -1,3 +1,4 @@
+
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,7 +45,8 @@ interface InviteUserDialogProps {
 
 export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserDialogProps) {
   const { toast } = useToast();
-  const tenantId = useTenantId();
+  const tenantIdResult = useTenantId();
+  const tenantId = tenantIdResult?.id; // Extract the id property
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

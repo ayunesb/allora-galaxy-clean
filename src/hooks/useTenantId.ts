@@ -1,17 +1,18 @@
 
-import { useContext } from 'react';
-import { WorkspaceContext } from '@/contexts/workspace/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export interface UseTenantIdResult {
-  id: string | null;
+  id: string | undefined;
+  isLoading: boolean;
+  error: Error | null;
 }
 
-export const useTenantId = (): UseTenantIdResult => {
-  const { currentTenantId } = useContext(WorkspaceContext);
+export function useTenantId(): UseTenantIdResult {
+  const { currentWorkspace, isLoading, error } = useWorkspace();
   
   return {
-    id: currentTenantId
+    id: currentWorkspace?.id,
+    isLoading,
+    error
   };
-};
-
-export default useTenantId;
+}

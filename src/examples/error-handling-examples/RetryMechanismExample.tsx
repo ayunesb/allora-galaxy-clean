@@ -1,97 +1,91 @@
 
-import { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useRetry } from '@/lib/errors';
-import { EdgeFunctionHandler } from '@/components/errors/EdgeFunctionHandler';
-import { AsyncDataRenderer } from '@/components/ui/async-data-renderer';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { AsyncDataRenderer } from "@/components/ui/async-data-renderer";
 
-const RetryMechanismExample = () => {
+export const RetryMechanismExample = () => {
+  const [data, setData] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
-  const makeRequest = useCallback(async (): Promise<string> => {
-    // Simulate a request that sometimes fails
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const [retryCount, setRetryCount] = useState(0);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
     
-    // Randomly succeed or fail
-    const shouldFail = Math.random() < 0.7;
-    
-    if (shouldFail) {
-      const error = new Error("Simulated network failure");
-      throw error;
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Always fail on first try, succeed on retry
+      if (retryCount === 0) {
+        throw new Error("Simulated network failure. Try again!");
+      }
+      
+      const result = "Data successfully loaded after retry";
+      setData(result);
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Unknown error occurred"));
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
-    
-    return "Request succeeded!";
-  }, []);
+  };
   
-  const handleError = useCallback((e: Error) => {
-    setError(e);
-    console.error("Operation failed:", e);
-  }, []);
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    fetchData().catch(() => {
+      // Error is already set in fetchData
+    });
+  };
   
-  const { 
-    execute, 
-    isLoading, 
-    data: responseData, 
-    retryCount, 
-    maxRetries,
-    isRetrying 
-  } = useRetry({
-    operation: makeRequest,
-    onError: handleError,
-    maxRetries: 3,
-    retryDelay: 1000,
-  });
-  
-  // Modified to use a render prop pattern instead of children prop
-  const renderData = (data: string) => (
-    <div className="p-4 bg-green-50 text-green-800 rounded-md">
-      {data}
-    </div>
-  );
-  
+  const handleInitialFetch = () => {
+    setRetryCount(0);
+    setData(null);
+    fetchData().catch(() => {
+      // Error is already set in fetchData
+    });
+  };
+
+  const renderData = (content: string) => {
+    return (
+      <div className="p-4 border rounded bg-green-50 dark:bg-green-900/20">
+        <p>{content}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Loaded after {retryCount} {retryCount === 1 ? 'retry' : 'retries'}
+        </p>
+      </div>
+    );
+  };
+
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Retry Mechanism Example</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4 text-sm text-muted-foreground">
-          <p>This example demonstrates automatic retry logic for unreliable operations.</p>
-          <p>Click the button to make a request that has a 70% chance of failure. The system will automatically retry up to 3 times.</p>
-        </div>
-        
-        <div className="space-y-4">
-          <Button 
-            onClick={execute} 
-            disabled={isLoading || isRetrying}
-          >
-            {isLoading ? 'Making Request...' : 'Start Request'}
-          </Button>
-          
-          <EdgeFunctionHandler
-            isLoading={isLoading}
-            error={error}
-            onRetry={execute}
-            retryCount={retryCount}
-            maxRetries={maxRetries}
-            isRetrying={isRetrying}
-          >
-            {responseData && (
-              <AsyncDataRenderer
-                data={responseData}
-                isLoading={false}
-                error={null}
-                onRetry={execute}
-                renderData={renderData}
-                loadingText="Processing data..."
-                preserveHeight={true}
-              />
-            )}
-          </EdgeFunctionHandler>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Retry Mechanism Example</h3>
+        <Button onClick={handleInitialFetch}>Fetch Data</Button>
+      </div>
+      
+      <div className="border rounded-md p-4">
+        <AsyncDataRenderer
+          data={data}
+          isLoading={isLoading}
+          error={error}
+          onRetry={handleRetry}
+          renderData={renderData}
+          loadingText="Fetching data..."
+        />
+      </div>
+      
+      <div className="text-sm text-muted-foreground">
+        <p>This example demonstrates a retry mechanism for handling transient errors:</p>
+        <ol className="list-decimal pl-5 mt-2 space-y-1">
+          <li>Click "Fetch Data" to simulate a failed request</li>
+          <li>Use the retry button to attempt the request again</li>
+          <li>The second attempt will succeed</li>
+        </ol>
+      </div>
+    </div>
   );
 };
 

@@ -1,70 +1,25 @@
 
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 
-interface ErrorStateProps {
-  title?: string;
-  message?: string;
-  error?: Error | string;
-  retry?: () => void;
-  showDetails?: boolean;
-  children?: React.ReactNode;
+export interface ErrorStateProps {
+  title: string;
+  action?: React.ReactNode;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
 }
 
-const ErrorState: React.FC<ErrorStateProps> = ({
-  title = 'Something went wrong',
-  message = 'We encountered an error while processing your request.',
-  error,
-  retry,
-  showDetails = false,
-  children,
-  className,
-  size = 'md',
+export const ErrorState: React.FC<ErrorStateProps> = ({ 
+  title,
+  action,
+  className = '',
 }) => {
-  const errorMessage = typeof error === 'string' ? error : error?.message;
-  
-  // Determine max width based on size prop
-  const maxWidthClass = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-  }[size];
-  
   return (
-    <div className={cn("w-full p-4 flex flex-col items-center justify-center", className)}>
-      <Alert variant="destructive" className={cn("mb-4 w-full", maxWidthClass)}>
-        <AlertTriangle className="h-4 w-4 mr-2" />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription className="mt-2">
-          {message}
-          
-          {showDetails && errorMessage && (
-            <div className="mt-2 text-xs bg-destructive/10 p-2 rounded font-mono overflow-auto max-h-24">
-              {errorMessage}
-            </div>
-          )}
-          
-          {children && <div className="mt-4">{children}</div>}
-          
-          {retry && (
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={retry}
-                className="bg-background hover:bg-background/90"
-              >
-                Try Again
-              </Button>
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
+    <div className={`flex flex-col items-center justify-center p-6 text-center ${className}`}>
+      <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+        <ExclamationTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+      </div>
+      <h3 className="text-lg font-medium mb-2">{title}</h3>
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 };
