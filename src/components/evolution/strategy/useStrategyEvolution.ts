@@ -22,13 +22,13 @@ export const useStrategyEvolution = (strategyId: string) => {
           return {
             id: strategyId,
             name: `Strategy ${strategyId}`,
-            status: 'active',
+            status: 'pending' as const,
             tenant_id: 'tenant-1',
             title: `Strategy ${strategyId}`,
             description: 'A mock strategy for development',
             created_by: 'user-1',
             created_at: new Date().toISOString(),
-          } as Strategy;
+          } as unknown as Strategy;
         }
       },
       logs: {

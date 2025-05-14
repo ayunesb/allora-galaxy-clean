@@ -1,17 +1,25 @@
 
 import { createContext } from 'react';
-import { NotificationsContextValue } from '@/types/notifications';
+import { Notification } from '@/types/notifications';
 
-// Create context with default values
-const NotificationsContext = createContext<NotificationsContextValue>({
+interface NotificationsContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  addNotification: (notification: Notification) => void;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  clearNotifications: () => void;
+}
+
+const defaultContext: NotificationsContextType = {
   notifications: [],
   unreadCount: 0,
-  loading: false,
-  markAsRead: async () => {},
-  markAllAsRead: async () => {},
-  deleteNotification: async () => {},
-  refreshNotifications: async () => {},
-  error: null,
-});
+  addNotification: () => {},
+  markAsRead: () => {},
+  markAllAsRead: () => {},
+  clearNotifications: () => {}
+};
+
+const NotificationsContext = createContext<NotificationsContextType>(defaultContext);
 
 export default NotificationsContext;

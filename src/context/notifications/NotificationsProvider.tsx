@@ -1,94 +1,78 @@
+
 import React, { useState, useCallback } from 'react';
-import { notifyError } from '@/lib/notifications/toast';
-import { NotificationsContext } from './NotificationsContext';
-import type { NotificationContent, NotificationType } from '@/types/notifications';
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  isRead: boolean;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
-
-interface NotificationsContextType {
-  notifications: Notification[];
-  unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  clearNotifications: () => void;
-}
-
-export const NotificationsContext = createContext<NotificationsContextType>({
-  notifications: [],
-  unreadCount: 0,
-  addNotification: () => {},
-  markAsRead: () => {},
-  markAllAsRead: () => {},
-  clearNotifications: () => {},
-});
+import { Notification } from '@/types/notifications';
+import NotificationsContext from './NotificationsContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  // Calculate unread count
-  const unreadCount = notifications.filter(notification => !notification.isRead).length;
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { toast } = useToast();
 
   // Add a new notification
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notif_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      isRead: false,
-    };
+  const addNotification = useCallback((notification: Notification) => {
+    setNotifications(prev => [notification, ...prev]);
+    setUnreadCount(prev => prev + 1);
     
-    setNotifications(prev => [newNotification, ...prev]);
-    
-    // Show toast for the notification
-    notifyError({
-      description: notification.message,
-      variant: notification.type === 'error' ? 'destructive' : 
-               notification.type === 'warning' ? 'warning' :
-               notification.type === 'success' ? 'success' : 'default',
-    });
-  }, []);
+    // Display toast for certain types of notifications
+    if (notification.priority === 'high') {
+      toast({
+        title: notification.title,
+        description: notification.message,
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
 
   // Mark a notification as read
   const markAsRead = useCallback((id: string) => {
     setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, isRead: true } : notif
+      prev.map(notification => 
+        notification.id === id && !notification.read_at
+          ? { ...notification, read_at: new Date().toISOString() }
+          : notification
       )
+    );
+    
+    // Update unread count
+    setUnreadCount(prev => 
+      prev > 0 ? prev - 1 : 0
     );
   }, []);
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(() => {
+    const now = new Date().toISOString();
     setNotifications(prev => 
-      prev.map(notif => ({ ...notif, isRead: true }))
+      prev.map(notification => 
+        !notification.read_at
+          ? { ...notification, read_at: now }
+          : notification
+      )
     );
+    
+    setUnreadCount(0);
   }, []);
 
-  // Clear all notifications
   const clearNotifications = useCallback(() => {
     setNotifications([]);
+    setUnreadCount(0);
   }, []);
 
+  const contextValue = {
+    notifications,
+    unreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    clearNotifications
+  };
+
   return (
-    <NotificationsContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        addNotification,
-        markAsRead,
-        markAllAsRead,
-        clearNotifications,
-      }}
-    >
+    <NotificationsContext.Provider value={contextValue}>
       {children}
     </NotificationsContext.Provider>
   );
 };
+
+export default NotificationsProvider;

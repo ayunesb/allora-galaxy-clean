@@ -3,7 +3,6 @@ import React from 'react';
 import { NoDataEmptyState, FilterEmptyState } from './EmptyStates';
 
 interface EmptyStateRendererProps {
-  type?: 'no-data' | 'filter' | 'search' | 'custom';
   message?: string;
   title?: string;
   actionLabel?: string;
@@ -17,7 +16,6 @@ interface EmptyStateRendererProps {
 }
 
 export const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
-  type = 'no-data',
   message,
   title,
   actionLabel,

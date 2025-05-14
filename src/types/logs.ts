@@ -63,6 +63,7 @@ export interface LogGroup {
   count: number;
   first_seen: string;
   last_seen: string;
+  last_occurred?: string; // Added for ErrorGroupsList
   error_type: string;
   message: string;
   status: string;
