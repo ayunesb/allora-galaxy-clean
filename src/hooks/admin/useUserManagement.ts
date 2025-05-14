@@ -47,13 +47,20 @@ export const useUserManagement = () => {
       }
       
       // Transform the data to match our User interface
-      const transformedUsers: User[] = (data || []).map((item: any) => ({
-        id: item.id,
-        role: item.role,
-        user_id: item.user_id,
-        created_at: item.created_at,
-        profiles: item.profiles as UserProfile
-      }));
+      const transformedUsers: User[] = (data || []).map((item: any) => {
+        const email = item.profiles?.email?.[0]?.email || '';
+        const lastLogin = new Date().toISOString(); // Mock last login data
+        
+        return {
+          id: item.id,
+          user_id: item.user_id,
+          role: item.role,
+          email: email,
+          lastLogin: lastLogin,
+          created_at: item.created_at,
+          profiles: item.profiles as UserProfile
+        };
+      });
       
       setUsers(transformedUsers);
     } catch (error: any) {

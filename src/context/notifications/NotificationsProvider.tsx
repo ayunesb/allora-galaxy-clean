@@ -15,10 +15,10 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     setUnreadCount(prev => prev + 1);
     
     // Display toast for certain types of notifications
-    if (notification.priority === 'high') {
+    if (notification.metadata?.priority === 'high') {
       toast({
         title: notification.title,
-        description: notification.message,
+        description: notification.description || '',
         variant: "destructive"
       });
     }

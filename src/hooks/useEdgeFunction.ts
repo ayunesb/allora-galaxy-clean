@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { 
-  EdgeResponse, 
   processEdgeResponse, 
   handleEdgeError 
 } from '@/lib/errors/clientErrorHandler';

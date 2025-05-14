@@ -1,144 +1,80 @@
 
-import { useQuery, useMutation, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { 
-  processEdgeResponse, 
-  handleEdgeError,
-  type EdgeSuccessResponse 
-} from '@/lib/errors/clientErrorHandler';
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { processEdgeResponse, handleEdgeError } from '@/lib/errors/clientErrorHandler';
 
-interface EdgeFunctionQueryOptions<TData = any, TError = any> extends Omit<UseQueryOptions<TData, TError>, 'queryFn'> {
-  showToast?: boolean;
-  toastSuccessMessage?: string;
-  errorMessage?: string;
-  retryOnError?: boolean;
-}
+// Only import the types we are actually using
+// Removed unused EdgeSuccessResponse import
 
-interface EdgeFunctionMutationOptions<TData = any, TVariables = any, TError = any> 
-  extends Omit<UseMutationOptions<TData, TError, TVariables>, 'mutationFn'> {
+export interface EdgeFunctionQueryOptions<TData = any, TError = any> extends UseQueryOptions<TData, TError> {
+  queryKey: string[];
+  queryFn: () => Promise<TData>;
+  onError?: (error: TError) => void;
   showToast?: boolean;
-  showLoadingToast?: boolean;
-  loadingMessage?: string;
-  toastSuccessMessage?: string;
   errorMessage?: string;
+  enabled?: boolean;
+  staleTime?: number;
+  retry?: boolean | number;
 }
 
 /**
- * Hook for querying edge functions with standardized error handling
- * @param endpointUrl The URL of the edge function
- * @param options Query options including error handling configuration
- * @returns React Query result with the response data
+ * Custom hook for handling edge function queries with standard error handling
  */
 export function useEdgeFunctionQuery<TData = any, TError = any>(
-  endpointUrl: string,
-  options: EdgeFunctionQueryOptions<TData, TError> = {}
+  options: EdgeFunctionQueryOptions<TData, TError>
 ) {
-  const { 
+  const {
+    queryKey,
+    queryFn,
+    onError,
     showToast = true,
-    toastSuccessMessage,
     errorMessage = 'Failed to fetch data',
-    retryOnError = false,
-    ...queryOptions 
+    ...restOptions
   } = options;
-  
-  return useQuery<TData, TError>({
-    ...queryOptions,
-    queryFn: async () => {
-      try {
-        const response = await fetch(endpointUrl);
-        return await processEdgeResponse<TData>(response);
-      } catch (error) {
-        handleEdgeError(error, {
-          showToast,
-          fallbackMessage: errorMessage,
-          retryHandler: retryOnError ? () => {
-            // This will trigger a refetch
-            return void 0;
-          } : undefined
-        });
-        throw error;
-      }
-    }
-  });
-}
 
-/**
- * Hook for mutating data with edge functions and standardized error handling
- * @param endpointUrl The URL of the edge function
- * @param options Mutation options including error handling configuration
- * @returns React Query mutation result
- */
-export function useEdgeFunctionMutation<TData = any, TVariables = any, TError = any>(
-  endpointUrl: string,
-  options: EdgeFunctionMutationOptions<TData, TVariables, TError> = {}
-) {
-  const { 
-    showToast = true,
-    showLoadingToast = false,
-    loadingMessage = 'Processing request...',
-    toastSuccessMessage,
-    errorMessage = 'Failed to process request',
-    ...mutationOptions 
-  } = options;
-  
-  return useMutation<TData, TError, TVariables>({
-    ...mutationOptions,
-    mutationFn: async (variables) => {
-      let toastId;
-      if (showLoadingToast) {
-        toastId = toast.loading(loadingMessage);
+  const fetchData = async () => {
+    try {
+      const response = await queryFn();
+      
+      // Handle different response types
+      if (response instanceof Response) {
+        return processEdgeResponse<TData>(response);
+      } 
+      
+      // For Supabase edge function responses
+      if (response && typeof response === 'object' && 'data' in response) {
+        return response.data;
       }
       
-      try {
-        const response = await fetch(endpointUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(variables),
-        });
-
-        const result = await processEdgeResponse<TData>(response);
-        
-        if (toastId) {
-          toast.dismiss(toastId);
-        }
-        
-        if (showToast && toastSuccessMessage) {
-          toast.success(toastSuccessMessage);
-        }
-        
-        return result;
-      } catch (error) {
-        if (toastId) {
-          toast.dismiss(toastId);
-        }
-        
-        handleEdgeError(error, {
-          showToast,
-          fallbackMessage: errorMessage
-        });
-        
-        throw error;
-      }
+      return response as TData;
+    } catch (error) {
+      handleEdgeError(error, {
+        showToast,
+        fallbackMessage: errorMessage,
+        errorCallback: onError as ((e: any) => void) | undefined
+      });
+      throw error;
     }
+  };
+
+  return useQuery({
+    queryKey,
+    queryFn: fetchData,
+    ...restOptions,
   });
 }
 
-/**
- * Helper hook for fetching data from edge functions with proper typing
- */
-export function useTypedEdgeFunctionQuery<T = any>(
-  endpointUrl: string,
-  options: EdgeFunctionQueryOptions<T> = {}
+// Simplifies usage with strongly typed edge function hooks
+export function createEdgeFunctionQuery<TParams extends any[], TData, TError = any>(
+  baseKey: string,
+  fetcher: (...args: TParams) => Promise<TData>
 ) {
-  return useEdgeFunctionQuery<T>(endpointUrl, {
-    ...options,
-    select: (data: any) => {
-      if (data && typeof data === 'object' && 'data' in data) {
-        return data.data as T;
-      }
-      return data as T;
-    }
-  });
+  return (...args: TParams) => {
+    const options: EdgeFunctionQueryOptions<TData, TError> = {
+      queryKey: [baseKey, ...args],
+      queryFn: () => fetcher(...args),
+      // Default options can be overridden when used
+    };
+    
+    return options;
+  };
 }

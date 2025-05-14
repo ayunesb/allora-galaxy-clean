@@ -1,87 +1,79 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Log, LogFilters, AuditLog } from '@/types/logs';
-import { DateRange } from '@/types/logs';
+import { LogFilters } from '@/types/logs';
 
 export const useAdminLogs = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<LogFilters>({
-    startDate: undefined,
-    endDate: undefined,
     module: undefined,
     status: undefined,
+    startDate: undefined,
+    endDate: undefined,
+    search: '',
   });
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Example for how this might be implemented
-      let query = supabase
-        .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (filters.startDate) {
-        query = query.gte('created_at', filters.startDate);
-      }
-      
-      if (filters.endDate) {
-        query = query.lte('created_at', filters.endDate);
-      }
-      
-      if (filters.module) {
-        query = query.eq('module', filters.module);
-      }
-      
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-      
-      if (filters.search) {
-        query = query.ilike('description', `%${filters.search}%`);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      setLogs(data as unknown as AuditLog[]);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
   
-  // Re-fetch logs when filters change
   useEffect(() => {
     fetchLogs();
   }, [filters]);
   
-  const updateFilters = (newFilters: Partial<LogFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+  const fetchLogs = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await fetchLogsFromApi(filters);
+      
+      if (error) throw error;
+      
+      setLogs(data || []);
+    } catch (err) {
+      console.error('Error fetching logs:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const updateDateRange = (dateRange: DateRange) => {
-    setFilters(prev => ({
-      ...prev,
-      startDate: dateRange.from.toISOString(),
-      endDate: dateRange.to?.toISOString(),
-    }));
+  const fetchLogsFromApi = async (filters: LogFilters) => {
+    // This would typically be an API call
+    // For now, we'll use the Supabase client directly
+    let query = supabase
+      .from('system_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (filters.module) {
+      query = query.eq('module', filters.module);
+    }
+    
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    if (filters.fromDate) {
+      query = query.gte('created_at', filters.fromDate);
+    }
+    
+    if (filters.toDate) {
+      query = query.lte('created_at', filters.toDate);
+    }
+    
+    if (filters.searchTerm) {
+      query = query.ilike('description', `%${filters.searchTerm}%`);
+    }
+    
+    return query.limit(100);
+  };
+  
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({...prev, ...newFilters}));
   };
   
   return {
     logs,
-    loading,
-    error,
+    isLoading,
     filters,
     updateFilters,
-    updateDateRange,
     refetch: fetchLogs,
   };
 };

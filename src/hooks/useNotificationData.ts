@@ -6,11 +6,11 @@ import { Notification, NotificationContent, NotificationType } from '@/types/not
 export const useNotificationData = (tabFilter: string | null = null) => {
   const { 
     notifications, 
-    loading,
-    error,
-    refreshNotifications
+    refreshNotifications,
+    error
   } = useNotifications();
   
+  const [loading, setLoading] = useState(false);
   const [filteredNotifications, setFilteredNotifications] = useState<NotificationContent[]>([]);
 
   // Transform Notification[] to NotificationContent[]
@@ -45,10 +45,19 @@ export const useNotificationData = (tabFilter: string | null = null) => {
     filterNotifications();
   }, [notifications, tabFilter, filterNotifications]);
 
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      await refreshNotifications();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     notifications: filteredNotifications,
     loading,
     error,
-    refresh: refreshNotifications
+    refresh
   };
 };

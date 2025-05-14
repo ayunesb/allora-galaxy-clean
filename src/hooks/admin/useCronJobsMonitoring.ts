@@ -1,7 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define proper types for CronJob and related entities
 interface CronJob {
   id: string;
   name: string;
@@ -11,6 +12,9 @@ interface CronJob {
   status: 'active' | 'inactive' | 'error';
   created_at: string;
   updated_at: string;
+  error_message?: string | null;
+  duration_ms?: number | null;
+  metadata?: Record<string, any> | null;
 }
 
 interface CronExecution {
@@ -22,6 +26,16 @@ interface CronExecution {
   error_message: string | null;
   result: any;
   created_at: string;
+}
+
+interface CronJobStat {
+  status: string;
+  count: number;
+}
+
+interface TimeRange {
+  value: string;
+  label: string;
 }
 
 // Fixed notification functions
@@ -41,6 +55,15 @@ export const useCronJobsMonitoring = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isExecutionLoading, setIsExecutionLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [stats, setStats] = useState<CronJobStat[]>([
+    { status: 'success', count: 0 },
+    { status: 'scheduled', count: 0 },
+    { status: 'failure', count: 0 }
+  ]);
+  const [timeRange, setTimeRange] = useState<TimeRange>({
+    value: 'day',
+    label: 'Last 24 hours'
+  });
   
   // Fetch all cron jobs
   useEffect(() => {
@@ -66,6 +89,26 @@ export const useCronJobsMonitoring = () => {
       
       if (error) throw error;
       setJobs(data);
+      
+      // Calculate statistics
+      const newStats: CronJobStat[] = [
+        { status: 'success', count: 0 },
+        { status: 'scheduled', count: 0 },
+        { status: 'failure', count: 0 }
+      ];
+      
+      data.forEach((job: CronJob) => {
+        if (job.status === 'active') {
+          newStats.find(s => s.status === 'success')!.count++;
+        } else if (job.status === 'inactive') {
+          newStats.find(s => s.status === 'scheduled')!.count++;
+        } else if (job.status === 'error') {
+          newStats.find(s => s.status === 'failure')!.count++;
+        }
+      });
+      
+      setStats(newStats);
+      
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
       console.error('Error fetching cron jobs:', err);
@@ -126,7 +169,7 @@ export const useCronJobsMonitoring = () => {
     }
   };
   
-  const triggerJobNow = async (jobId: string) => {
+  const runJob = async (jobId: string) => {
     try {
       // Directly call the edge function without extra arguments
       const { error } = await supabase.functions.invoke('triggerCronJob', {
@@ -155,12 +198,17 @@ export const useCronJobsMonitoring = () => {
     error,
     selectedJobId,
     activeTab,
+    stats,
+    timeRange,
+    setTimeRange,
     setSelectedJobId,
     setActiveTab,
     pauseJob,
     resumeJob,
-    triggerJobNow,
+    runJob,
+    fetchJobs,
     refreshJobs: fetchJobs,
+    triggerJobNow: runJob,
   };
 };
 

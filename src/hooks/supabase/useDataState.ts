@@ -1,79 +1,75 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { notifyError } from '@/lib/notifications/toast';
+import { useState, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-/**
- * A hook for easily fetching data with built-in loading, error, and empty states
- */
-export function useDataState<T = any>(
-  fetchFn: () => Promise<T>,
-  options: {
-    enabled?: boolean;
-    retries?: number;
-    retryDelay?: number;
-    initialData?: T | null;
-    onSuccess?: (data: T) => void;
-    onError?: (error: Error) => void;
-    showErrorToast?: boolean;
-    dependencies?: any[];
-  } = {}
-) {
-  const {
-    enabled = true,
-    retries = 3,
-    retryDelay = 1000,
-    initialData = null,
-    onSuccess,
-    onError,
-    showErrorToast = true,
-    dependencies = [],
-  } = options;
+interface UseDataStateOptions<T> {
+  initialData?: T;
+  onError?: (error: Error) => void;
+  showToast?: boolean;
+  errorMessage?: string;
+  loadingMessage?: string;
+}
 
-  const [data, setData] = useState<T | null>(initialData);
-  const [isLoading, setIsLoading] = useState<boolean>(enabled);
-  const [isError, setIsError] = useState<boolean>(false);
+export const useDataState = <T>(options: UseDataStateOptions<T> = {}) => {
+  const [data, setData] = useState<T | undefined>(options.initialData);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [retryCount, setRetryCount] = useState<number>(0);
-  const [isRetrying, setIsRetrying] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const { toast } = useToast();
   
-  const executeQuery = useCallback(async (silent: boolean = false) => {
-    if (!enabled) return;
+  const {
+    onError,
+    showToast = true,
+    errorMessage = 'An error occurred while fetching data',
+    loadingMessage = 'Loading data...',
+  } = options;
+  
+  const fetchData = useCallback(async (
+    fetchFunction: () => Promise<T>,
+    transformFunction?: (data: T) => T
+  ) => {
+    setIsLoading(true);
+    setError(null);
     
-    if (!silent) {
-      setIsLoading(true);
-      setIsError(false);
-      setError(null);
+    let toastId: string | number | undefined;
+    if (showToast) {
+      toastId = toast({
+        title: "Loading",
+        description: loadingMessage,
+      });
     }
     
     try {
-      const result = await fetchFn();
+      // Execute the fetch function
+      const result = await fetchFunction();
       
-      setData(result);
-      setIsLoading(false);
-      setIsError(false);
-      setError(null);
-      setRetryCount(0);
-      setIsRetrying(false);
-      setIsSuccess(true);
+      // Transform data if needed
+      const transformedData = transformFunction ? transformFunction(result) : result;
       
-      if (onSuccess) {
-        onSuccess(result);
+      // Update state
+      setData(transformedData);
+      
+      // Dismiss loading toast if it exists
+      if (toastId && showToast) {
+        toast({
+          id: toastId,
+          title: "Success",
+          description: "Data loaded successfully",
+          variant: "default",
+        });
       }
       
-      return result;
+      return transformedData;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      
-      setIsLoading(false);
-      setIsError(true);
+      // Handle error
+      const error = err instanceof Error ? err : new Error('Unknown error occurred');
       setError(error);
-      setIsRetrying(false);
-      setIsSuccess(false);
       
-      if (showErrorToast && !silent) {
-        notifyError('Failed to fetch data', { 
-          description: error.message
+      if (toastId && showToast) {
+        toast({
+          id: toastId,
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
         });
       }
       
@@ -82,52 +78,18 @@ export function useDataState<T = any>(
       }
       
       throw error;
-    }
-  }, [enabled, fetchFn, onSuccess, onError, showErrorToast]);
-  
-  const retry = useCallback(async () => {
-    if (retryCount >= retries) {
-      notifyError('Maximum retry attempts reached');
-      return;
-    }
-    
-    setRetryCount(prev => prev + 1);
-    setIsRetrying(true);
-    
-    try {
-      await executeQuery(true);
     } finally {
-      setIsRetrying(false);
+      setIsLoading(false);
     }
-  }, [retryCount, retries, executeQuery]);
-  
-  const reset = useCallback(() => {
-    setData(initialData);
-    setIsLoading(enabled);
-    setIsError(false);
-    setError(null);
-    setRetryCount(0);
-    setIsRetrying(false);
-    setIsSuccess(false);
-  }, [enabled, initialData]);
-  
-  // Effect to fetch data on mount and when dependencies change
-  useEffect(() => {
-    if (enabled) {
-      executeQuery().catch(() => {});
-    }
-  }, [enabled, executeQuery, ...dependencies]);
+  }, [toast, showToast, errorMessage, loadingMessage, onError]);
   
   return {
     data,
+    setData,
     isLoading,
-    isError,
     error,
-    retryCount,
-    isRetrying,
-    isSuccess,
-    refetch: executeQuery,
-    retry,
-    reset,
+    fetchData,
   };
-}
+};
+
+export default useDataState;

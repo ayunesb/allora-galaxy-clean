@@ -64,11 +64,11 @@ const CronJobsMonitoring: React.FC = () => {
 
   // Create a Stats object from cronJobStats
   const stats: CronJobStats = {
-    total: cronJobStats.reduce((sum, stat) => sum + stat.count, 0),
-    active: cronJobStats.find(s => s.status === 'success')?.count || 0,
-    pending: cronJobStats.find(s => s.status === 'scheduled')?.count || 0,
-    failed: cronJobStats.find(s => s.status === 'failure')?.count || 0,
-    completed: cronJobStats.find(s => s.status === 'success')?.count || 0
+    total: cronJobStats.reduce((sum: number, stat: CronJobStat) => sum + stat.count, 0),
+    active: cronJobStats.find((s: CronJobStat) => s.status === 'success')?.count || 0,
+    pending: cronJobStats.find((s: CronJobStat) => s.status === 'scheduled')?.count || 0,
+    failed: cronJobStats.find((s: CronJobStat) => s.status === 'failure')?.count || 0,
+    completed: cronJobStats.find((s: CronJobStat) => s.status === 'success')?.count || 0
   };
 
   const handleTimeRangeChange = (value: string) => {

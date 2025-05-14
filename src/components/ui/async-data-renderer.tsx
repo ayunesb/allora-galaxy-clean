@@ -1,154 +1,84 @@
 
 import React from 'react';
-import { NoDataEmptyState } from '@/components/errors/EmptyStates';
-import ErrorState from '@/components/ui/error-state';
+import { Card } from './card';
+import ErrorState from './error-state';
+import { Button } from './button';
 
 interface AsyncDataRendererProps<T> {
+  data: T | null;
   isLoading: boolean;
-  error?: Error | null;
-  data?: T | null;
-  loadingComponent?: React.ReactNode;
-  errorComponent?: React.ReactNode;
-  emptyComponent?: React.ReactNode;
-  emptyMessage?: string;
+  error: Error | null;
   onRetry?: () => void;
   renderData: (data: T) => React.ReactNode;
-  showEmptyState?: boolean;
+  renderLoading?: () => React.ReactNode;
+  renderError?: (error: Error, retry: (() => void) | undefined) => React.ReactNode;
+  loadingText?: string;
+  noDataText?: string;
   className?: string;
-  preserveHeight?: boolean; // Added for compatibility
-  loadingText?: string; // Added for compatibility
 }
 
-/**
- * A component that handles the async data flow states (loading, error, empty, data)
- */
 export function AsyncDataRenderer<T>({
+  data,
   isLoading,
   error,
-  data,
-  loadingComponent,
-  errorComponent,
-  emptyComponent,
-  emptyMessage,
   onRetry,
   renderData,
-  showEmptyState = true,
-  className,
-  preserveHeight = false, // Default value for new prop
-  loadingText = "Loading...", // Default value for new prop
+  renderLoading,
+  renderError,
+  loadingText = 'Loading data...',
+  noDataText = 'No data available',
+  className = '',
 }: AsyncDataRendererProps<T>) {
-  // Handle loading state
-  if (isLoading) {
-    if (loadingComponent) {
-      return <div className={className}>{loadingComponent}</div>;
+  const renderLoadingState = () => {
+    if (renderLoading) {
+      return renderLoading();
     }
+    
     return (
-      <div className={`flex justify-center items-center p-4 ${className}`}>
-        <div className="flex flex-col items-center space-y-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Card className="p-6">
+        <div className="flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
           <p className="text-sm text-muted-foreground">{loadingText}</p>
         </div>
-      </div>
+      </Card>
     );
-  }
+  };
 
-  // Handle error state
-  if (error) {
-    if (errorComponent) {
-      return <div className={className}>{errorComponent}</div>;
+  const renderErrorState = (err: Error) => {
+    if (renderError) {
+      return renderError(err, onRetry);
     }
+    
     return (
       <ErrorState
-        title="Error Loading Data"
-        message="There was a problem loading the data."
-        error={error}
-        retry={onRetry}
-        showDetails={true}
+        title="Error loading data"
+        description={err.message || 'An unexpected error occurred'}
+        action={onRetry ? <Button onClick={onRetry}>Retry</Button> : undefined}
       />
     );
-  }
+  };
 
-  // Handle empty data state
-  if ((!data || (Array.isArray(data) && data.length === 0)) && showEmptyState) {
-    if (emptyComponent) {
-      return <div className={className}>{emptyComponent}</div>;
-    }
+  const renderNoData = () => {
     return (
-      <NoDataEmptyState
-        message={emptyMessage || "No data available"}
-        action={onRetry ? onRetry : undefined}
-        actionText={onRetry ? "Refresh" : undefined}
-      />
+      <Card className="p-6">
+        <div className="flex flex-col items-center justify-center">
+          <p className="text-sm text-muted-foreground">{noDataText}</p>
+        </div>
+      </Card>
     );
+  };
+
+  if (isLoading) {
+    return renderLoadingState();
   }
 
-  // Render data
-  return <div className={className}>{data ? renderData(data) : null}</div>;
+  if (error) {
+    return renderErrorState(error);
+  }
+
+  if (!data) {
+    return renderNoData();
+  }
+
+  return <div className={className}>{renderData(data)}</div>;
 }
-
-interface PartialDataRendererProps<T> {
-  isLoading: boolean;
-  error?: Error | null;
-  data?: T | null;
-  fallbackData?: T;
-  renderData: (data: T) => React.ReactNode;
-  renderError?: (error: Error, retry?: () => void) => React.ReactNode;
-  onRetry?: () => void;
-  className?: string;
-}
-
-/**
- * A component that renders partial data even when errors occur
- */
-export function PartialDataRenderer<T>({
-  isLoading,
-  error,
-  data,
-  fallbackData,
-  renderData,
-  renderError,
-  onRetry,
-  className,
-}: PartialDataRendererProps<T>) {
-  const dataToRender = data || fallbackData;
-
-  return (
-    <div className={className}>
-      {/* Data part - render even with errors */}
-      {dataToRender && renderData(dataToRender)}
-      
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="flex justify-center items-center py-2">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="ml-2 text-sm text-muted-foreground">Refreshing...</span>
-        </div>
-      )}
-      
-      {/* Error message */}
-      {error && (
-        <div className="mt-4">
-          {renderError ? (
-            renderError(error, onRetry)
-          ) : (
-            <div className="bg-destructive/10 rounded p-3 text-sm">
-              <p className="font-medium text-destructive">Error</p>
-              <p className="text-destructive/80">{error.message}</p>
-              {onRetry && (
-                <button 
-                  className="mt-2 text-xs underline hover:no-underline"
-                  onClick={onRetry}
-                >
-                  Retry
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export const DataStateHandler = AsyncDataRenderer;
-export const PartialDataStateHandler = PartialDataRenderer;
