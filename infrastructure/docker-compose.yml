@@ -1,0 +1,40 @@
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: infrastructure/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    volumes:
+      - ../src:/app/src
+      - ../public:/app/public
+    networks:
+      - allora-network
+
+  supabase:
+    image: supabase/supabase:latest
+    ports:
+      - "54321:54321" # REST
+      - "54322:54322" # PostgreSQL
+      - "54323:54323" # Studio
+      - "54324:54324" # Functions
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - supabase-data:/var/lib/postgresql/data
+    networks:
+      - allora-network
+
+networks:
+  allora-network:
+    driver: bridge
+
+volumes:
+  supabase-data:

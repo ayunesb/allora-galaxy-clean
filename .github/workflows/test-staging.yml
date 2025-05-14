@@ -1,0 +1,42 @@
+
+name: Test Staging Environment
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+    
+jobs:
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check API health
+        id: api_check
+        uses: jtalk/url-health-check-action@v3
+        with:
+          url: ${{ secrets.STAGING_API_URL }}/v1/health
+          follow-redirect: true
+          max-attempts: 3
+          retry-delay: 5s
+          retry-all: true
+        
+      - name: Check app is loading
+        id: app_check
+        uses: jtalk/url-health-check-action@v3
+        with:
+          url: ${{ secrets.STAGING_URL }}
+          follow-redirect: true
+          max-attempts: 3
+          retry-delay: 5s
+          retry-all: true
+          
+      - name: Send alert on failure
+        if: steps.api_check.outcome == 'failure' || steps.app_check.outcome == 'failure'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: alerts
+          SLACK_COLOR: danger
+          SLACK_TITLE: 'Staging Environment Health Check Failed'
+          SLACK_MESSAGE: 'The staging environment health check has failed. Please investigate.'
