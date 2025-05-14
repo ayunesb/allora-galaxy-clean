@@ -1,70 +1,70 @@
 
-import React, { useCallback } from 'react';
-import { useNotifications } from '@/lib/notifications/useNotifications';
-import NotificationCenterHeader from './NotificationCenterHeader';
-import NotificationCenterContent from './NotificationCenterContent';
-import NotificationCenterFooter from './NotificationCenterFooter';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card } from '@/components/ui/card';
+import React from 'react';
+import { NotificationType } from '@/types/notifications';
+import { NotificationCenterContent } from './NotificationCenterContent';
+import { NotificationCenterTabs } from './NotificationCenterTabs';
+import { useNotifications } from '@/hooks/useNotifications';
+
+interface NotificationContent {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  timestamp: Date;
+  read: boolean;
+}
 
 interface NotificationCenterProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose }) => {
+export const NotificationCenter: React.FC<NotificationCenterProps> = ({ 
+  isOpen,
+  onClose 
+}) => {
   const { 
-    notifications, 
-    markAsRead,
+    notifications,
+    unreadCount,
+    isLoading, 
     markAllAsRead,
-    deleteNotification,
+    deleteAll,
+    markAsRead,
+    deleteNotification
   } = useNotifications();
-  
-  const [activeFilter, setActiveFilter] = React.useState('all');
-  
-  const handleMarkNotificationAsRead = useCallback(async (id: string): Promise<void> => {
-    try {
-      await markAsRead(id);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  }, [markAsRead]);
-  
-  const handleDeleteNotification = useCallback(async (id: string): Promise<void> => {
-    try {
-      await deleteNotification(id);
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
-  }, [deleteNotification]);
-  
-  const handleMarkAllAsRead = useCallback(async (): Promise<void> => {
-    try {
-      await markAllAsRead();
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  }, [markAllAsRead]);
 
-  if (!isOpen) return null;
+  // Convert notifications to the expected format
+  const convertedNotifications = notifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.message,
+    type: notification.type as NotificationType,
+    timestamp: notification.created_at ? new Date(notification.created_at) : new Date(),
+    read: !!notification.read_at
+  }));
 
   return (
-    <Card className="shadow-lg border w-[380px] max-w-full flex flex-col max-h-[85vh]">
-      <NotificationCenterHeader onClose={onClose} markAllAsRead={handleMarkAllAsRead} />
-      
-      <ScrollArea className="flex-1 max-h-[500px] overflow-y-auto">
-        <NotificationCenterContent 
-          notifications={notifications}
-          markAsRead={handleMarkNotificationAsRead}
-          onDelete={handleDeleteNotification}
-          onMarkAllAsRead={handleMarkAllAsRead}
-          activeFilter={activeFilter}
-          setActiveFilter={setActiveFilter}
+    <div 
+      className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-background border-l border-border shadow-xl transform transition-transform duration-200 ease-in-out z-50 ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}
+    >
+      <div className="h-full flex flex-col">
+        <NotificationCenterTabs 
+          unreadCount={unreadCount}
+          onClose={onClose}
+          onMarkAllAsRead={markAllAsRead}
+          onDeleteAll={deleteAll}
         />
-      </ScrollArea>
-      
-      <NotificationCenterFooter onMarkAllAsRead={handleMarkAllAsRead} />
-    </Card>
+        
+        <NotificationCenterContent 
+          notifications={convertedNotifications}
+          isLoading={isLoading}
+          onMarkAsRead={markAsRead}
+          onDelete={deleteNotification}
+        />
+      </div>
+    </div>
   );
 };
 

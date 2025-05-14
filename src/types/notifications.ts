@@ -1,66 +1,27 @@
 
-/**
- * Types of notifications displayed in the system
- */
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'alert' | 'system';
+import { BaseEntity } from './shared';
 
-/**
- * Input for creating a new notification
- */
-export interface CreateNotificationInput {
-  title: string;
-  description?: string;
-  type?: NotificationType;
-  tenant_id: string;
-  user_id: string;
-  action_url?: string;
-  action_label?: string;
-  metadata?: Record<string, any>;
-}
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
-/**
- * Database notification model
- */
-export interface Notification {
-  id: string;
-  title: string;
-  description?: string;
-  type: NotificationType;
-  user_id: string;
-  tenant_id: string;
-  created_at: string;
-  read_at: string | null;
-  is_read: boolean;
-  action_url?: string;
-  action_label?: string;
-  metadata?: Record<string, any>;
-}
-
-/**
- * UI-ready notification model
- */
-export interface NotificationContent {
-  id: string;
+export interface Notification extends BaseEntity {
   title: string;
   message: string;
-  timestamp: string; // Uses created_at from database
-  read: boolean; // Maps to is_read from database
   type: NotificationType;
+  user_id: string;
+  tenant_id: string;
+  read_at: string | null;
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
+  created_at: string;
 }
 
-/**
- * Context value for notifications system
- */
-export interface NotificationsContextValue {
-  notifications: Notification[];
-  unreadCount: number;
-  isLoading: boolean;
-  markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
-  refreshNotifications: () => Promise<void>;
-  error: Error | null;
+export interface NotificationFilter {
+  type?: NotificationType;
+  read?: boolean;
+  search?: string;
+  dateRange?: {
+    from?: Date;
+    to?: Date;
+  };
 }

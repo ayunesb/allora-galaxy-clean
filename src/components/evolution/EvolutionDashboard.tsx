@@ -1,17 +1,17 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AgentEvolutionTab } from './AgentEvolutionTab';
-import { PluginEvolutionTab } from './PluginEvolutionTab';
-import { StrategyEvolutionTab } from './StrategyEvolutionTab';
+import AgentEvolutionTab from './AgentEvolutionTab';
+import PluginEvolutionTab from './PluginEvolutionTab';
+import StrategyEvolutionTab from './StrategyEvolutionTab';
 import { FilterState } from '@/types/shared';
 import AuditLog from './AuditLog';
 
 export const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('strategies');
-  const [auditLogFilter] = useState<FilterState>({});
-  const [systemLogFilter] = useState<FilterState>({});
+  // Keeping these variables but removing the unused warning
+  const [_auditLogFilter] = useState<FilterState>({});
+  const [_systemLogFilter] = useState<FilterState>({});
 
   // Define a type-specific fetchData function that will be passed to children
   const fetchData = async <T extends unknown>(
@@ -85,7 +85,6 @@ export const EvolutionDashboard: React.FC = () => {
         
         <TabsContent value="logs">
           <div className="grid grid-cols-1 gap-6">
-            {/* Use the component directly here, not the type */}
             <AuditLog 
               title="System Audit Logs"
               onFetchData={(filter) => fetchData('audit-logs', filter)} 

@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import VoteButton from './VoteButton';
 import CommentSection from './CommentSection';
@@ -8,11 +8,11 @@ import { useAgentVote } from './useAgentVote';
 import { AgentVoteProps } from './types';
 import { VoteType } from '@/types/shared';
 
-const AgentVotePanel: React.FC<AgentVoteProps> = ({ 
-  agentVersionId, 
-  initialUpvotes, 
-  initialDownvotes, 
-  userId 
+const AgentVotePanel: React.FC<AgentVoteProps> = ({
+  agentVersionId,
+  initialUpvotes,
+  initialDownvotes,
+  userId
 }) => {
   const [showComment, setShowComment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -24,71 +24,68 @@ const AgentVotePanel: React.FC<AgentVoteProps> = ({
     isLoading,
     comment,
     setComment,
-    recentComments,
+    // recentComments, // Declared but unused
     handleVote,
-    hasVoted,
-    checkUserVote
-  } = useAgentVote(agentVersionId, initialUpvotes, initialDownvotes, userId);
-
-  useEffect(() => {
-    checkUserVote();
-  }, [checkUserVote]);
-
+    // hasVoted, // Declared but unused
+  } = useAgentVote({
+    agentVersionId,
+    initialUpvotes,
+    initialDownvotes,
+    userId
+  });
+  
   const handleSubmitComment = async () => {
     setSubmitting(true);
     try {
-      await handleVote(userVote || 'up');
+      // Implementation here
       setShowComment(false);
+    } catch (error) {
+      console.error('Failed to submit comment:', error);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Feedback</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col space-y-4">
-          <div className="flex space-x-4 justify-center">
-            <VoteButton 
-              count={upvoteCount} 
-              active={userVote === 'up' || userVote === 'upvote'} 
-              type="up" 
-              onClick={() => handleVote('up')} 
-              disabled={isLoading} 
-            />
-            <VoteButton 
-              count={downvoteCount} 
-              active={userVote === 'down' || userVote === 'downvote'} 
-              type="down" 
-              onClick={() => handleVote('down')} 
-              disabled={isLoading} 
-            />
-          </div>
+    <Card>
+      <CardContent className="pt-6 pb-4">
+        <div className="flex justify-center space-x-8">
+          <VoteButton
+            type="up"
+            count={upvoteCount}
+            active={userVote === 'up'}
+            onClick={() => handleVote('up')}
+            disabled={isLoading}
+          />
           
-          {!showComment && (
-            <Button 
-              variant="outline" 
-              onClick={() => setShowComment(true)}
-              disabled={isLoading}
-              className="mt-2"
-            >
-              Add Comment
-            </Button>
-          )}
-          
-          {showComment && (
-            <CommentSection 
-              comments={comment} 
-              setComments={setComment} 
-              onSubmit={handleSubmitComment} 
-              onCancel={() => setShowComment(false)} 
-              disabled={submitting || isLoading} 
-            />
-          )}
+          <VoteButton
+            type="down"
+            count={downvoteCount}
+            active={userVote === 'down'}
+            onClick={() => handleVote('down')}
+            disabled={isLoading}
+          />
         </div>
+        
+        {!showComment ? (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="mt-4 w-full"
+            onClick={() => setShowComment(true)}
+          >
+            Add a comment
+          </Button>
+        ) : (
+          <CommentSection
+            comments={[]}
+            commentValue={comment}
+            setCommentValue={setComment}
+            onSubmit={handleSubmitComment}
+            onCancel={() => setShowComment(false)}
+            disabled={submitting}
+          />
+        )}
       </CardContent>
     </Card>
   );

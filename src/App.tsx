@@ -9,6 +9,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationsProvider } from './context/notifications/NotificationsProvider';
 
+// Create a QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

@@ -1,66 +1,79 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { OnboardingProgress } from './OnboardingProgress';
+import { StepContent } from './StepContent';
+import { StepNavigation } from './StepNavigation';
+import { OnboardingErrorDialog } from './OnboardingErrorDialog';
 import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
-import OnboardingProgress from './OnboardingProgress';
-import StepContent from './StepContent';
-import StepNavigation from './StepNavigation';
-import OnboardingErrorDialog from './OnboardingErrorDialog';
+import { OnboardingStep } from '@/types/shared';
 
-const OnboardingWizard: React.FC = () => {
+export const OnboardingWizard: React.FC = () => {
   const {
-    steps,
     currentStep,
-    step,
     formData,
-    error,
-    isSubmitting,
+    progress,
+    isLoading,
+    nextStep,
+    prevStep,
+    goToStep,
     updateFormData,
-    handleStepClick,
-    handleNextStep,
-    handlePrevStep,
-    handleSubmit,
-    isStepValid,
-    resetError,
-    setFieldValue
+    resetForm,
+    submitForm,
+    completeOnboardingProcess
   } = useOnboardingWizard();
 
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleStepClick = (step: OnboardingStep) => {
+    goToStep(step);
+  };
+
+  const handleNextStep = async () => {
+    if (currentStep === 'strategy-generation') {
+      setIsSubmitting(true);
+      try {
+        await submitForm();
+        await completeOnboardingProcess();
+        nextStep();
+      } catch (error: any) {
+        setError(error.message || 'Failed to complete onboarding');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      nextStep();
+    }
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col h-full">
-      {/* Progress indicators */}
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <OnboardingProgress 
-        currentStep={currentStep || 0} 
+        currentStep={currentStep}
+        progress={progress}
         onStepClick={handleStepClick}
-        steps={steps.map(s => ({ id: s.id, label: s.label }))}
       />
       
-      {/* Form content */}
-      <div className="flex-1 overflow-y-auto my-6 px-4 md:px-0">
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <StepContent 
-          step={step.id}
+          currentStep={currentStep}
           formData={formData}
           updateFormData={updateFormData}
-          isGenerating={isSubmitting || false}
-          setFieldValue={setFieldValue}
+        />
+        
+        <StepNavigation
+          currentStep={currentStep}
+          onPrevious={prevStep}
+          onNext={handleNextStep}
+          isLoading={isLoading || isSubmitting}
         />
       </div>
       
-      {/* Navigation buttons */}
-      <StepNavigation 
-        currentStep={currentStep || 0} 
-        totalSteps={steps.length}
-        isSubmitting={isSubmitting || false}
-        isNextDisabled={!isStepValid()}
-        onNext={handleNextStep}
-        onPrev={handlePrevStep}
-        onSubmit={handleSubmit}
-        isGenerating={isSubmitting || false}
-      />
-      
-      {/* Error dialog */}
       {error && (
-        <OnboardingErrorDialog 
+        <OnboardingErrorDialog
           error={error}
-          onClose={resetError}
+          onClose={() => setError(null)}
+          onRetry={handleNextStep}
         />
       )}
     </div>

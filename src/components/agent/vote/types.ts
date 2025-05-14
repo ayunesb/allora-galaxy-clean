@@ -1,29 +1,26 @@
 
-import { VoteType } from '@/types/shared';
-
-export interface VoteButtonProps {
-  count: number;
-  active: boolean;
-  type: 'up' | 'down';
-  onClick: () => void;
-  disabled: boolean;
-}
-
-export interface CommentSectionProps {
-  comments: string;
-  setComments: React.Dispatch<React.SetStateAction<string>>;
-  onSubmit: () => void;
-  onCancel: () => void;
-  disabled: boolean;
-  agentVersionId?: string;
-  userHasVoted?: boolean;
-  voteType?: VoteType;
-  isLoading?: boolean;
-}
+import { Dispatch, SetStateAction } from 'react';
 
 export interface AgentVoteProps {
   agentVersionId: string;
   initialUpvotes: number;
   initialDownvotes: number;
   userId: string;
+}
+
+export interface VoteButtonProps {
+  type: 'up' | 'down';
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  disabled: boolean;
+}
+
+export interface CommentSectionProps {
+  comments: string[];
+  commentValue: string;
+  setCommentValue: Dispatch<SetStateAction<string>>;
+  onSubmit: () => Promise<void>;
+  onCancel: () => void;
+  disabled: boolean;
 }

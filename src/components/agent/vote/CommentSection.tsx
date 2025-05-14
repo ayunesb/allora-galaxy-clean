@@ -1,38 +1,40 @@
 
 import React from 'react';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { CommentSectionProps } from './types';
 
 const CommentSection: React.FC<CommentSectionProps> = ({
-  comments,
-  setComments,
+  commentValue,
+  setCommentValue,
   onSubmit,
   onCancel,
   disabled
 }) => {
   return (
-    <div className="mt-4 space-y-2">
+    <div className="mt-4 space-y-3">
       <Textarea
-        placeholder="Add your feedback..."
-        value={comments}
-        onChange={(e) => setComments(e.target.value)}
-        disabled={disabled}
+        placeholder="Share your feedback..."
+        value={commentValue}
+        onChange={(e) => setCommentValue(e.target.value)}
+        className="resize-none"
         rows={3}
+        disabled={disabled}
       />
-      <div className="flex justify-end gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
+      <div className="flex justify-end space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onCancel}
           disabled={disabled}
         >
           Cancel
         </Button>
-        <Button 
-          size="sm" 
+        <Button
+          variant="default"
+          size="sm"
           onClick={onSubmit}
-          disabled={disabled || !comments.trim()}
+          disabled={disabled || !commentValue.trim()}
         >
           Submit
         </Button>
