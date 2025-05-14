@@ -3,8 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import { 
   voteOnAgentVersion, 
-  upvoteAgentVersion, 
-  downvoteAgentVersion 
+  upvoteAgentVersion
 } from '@/lib/agents/voting/voteOnAgentVersion';
 
 // Mock the supabase client
@@ -43,7 +42,7 @@ describe('Agent Voting Functions', () => {
       });
 
       // Set up the mock chain
-      (supabase.from as any).mockImplementation((table) => {
+      (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'agent_votes') {
           return {
             insert: vi.fn().mockReturnValue({
@@ -120,8 +119,8 @@ describe('Agent Voting Functions', () => {
       });
       
       // Replace the implementation temporarily
-      const originalVoteOnAgentVersion = global.voteOnAgentVersion;
-      (global as any).voteOnAgentVersion = voteOnAgentVersionSpy;
+      const originalVoteOnAgentVersion = globalThis.voteOnAgentVersion;
+      (globalThis as any).voteOnAgentVersion = voteOnAgentVersionSpy;
       
       // Call upvoteAgentVersion
       const result = await upvoteAgentVersion({
@@ -131,7 +130,7 @@ describe('Agent Voting Functions', () => {
       });
       
       // Restore the original implementation
-      (global as any).voteOnAgentVersion = originalVoteOnAgentVersion;
+      (globalThis as any).voteOnAgentVersion = originalVoteOnAgentVersion;
       
       // Expectations
       expect(voteOnAgentVersionSpy).toHaveBeenCalledWith({

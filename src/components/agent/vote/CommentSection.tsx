@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface CommentSectionProps {
-  agentVersionId: string;
+  agentVersionId: string; // Keep the prop even if unused for future implementation
   onSubmitComment: (comment: string) => void;
 }
 

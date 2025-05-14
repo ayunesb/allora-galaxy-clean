@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
 import { VoteType } from '@/lib/agents/voting/types';
@@ -29,19 +29,24 @@ export const useAgentVote = (agentVersionId: string) => {
       }
       
       // Get user's existing vote
-      const { data: userVoteData, error: voteError } = await supabase
-        .from('agent_votes')
-        .select('vote_type')
-        .eq('agent_version_id', agentVersionId)
-        .eq('user_id', supabase.auth.getUser()?.id || '')
-        .maybeSingle();
+      const { data: userSession } = await supabase.auth.getSession();
+      const userId = userSession?.session?.user.id;
       
-      if (voteError) throw voteError;
-      
-      if (userVoteData) {
-        setUserVote(userVoteData.vote_type === 'up' ? VoteType.UP : VoteType.DOWN);
-      } else {
-        setUserVote(null);
+      if (userId) {
+        const { data: userVoteData, error: voteError } = await supabase
+          .from('agent_votes')
+          .select('vote_type')
+          .eq('agent_version_id', agentVersionId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (voteError) throw voteError;
+        
+        if (userVoteData) {
+          setUserVote(userVoteData.vote_type === 'up' ? VoteType.UP : VoteType.DOWN);
+        } else {
+          setUserVote(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching votes:', error);
@@ -59,8 +64,10 @@ export const useAgentVote = (agentVersionId: string) => {
   const castVote = useCallback(async (voteType: VoteType, comment?: string) => {
     setIsLoading(true);
     try {
-      const currentUser = supabase.auth.getUser();
-      if (!currentUser?.id) {
+      const { data: userSession } = await supabase.auth.getSession();
+      const userId = userSession?.session?.user.id;
+      
+      if (!userId) {
         toast({
           title: 'Authentication required',
           description: 'You must be signed in to vote',
@@ -75,7 +82,7 @@ export const useAgentVote = (agentVersionId: string) => {
       const { data, error } = await supabase.functions.invoke(voteFunction, {
         body: { 
           agent_version_id: agentVersionId,
-          user_id: currentUser.id,
+          user_id: userId,
           comment 
         }
       });

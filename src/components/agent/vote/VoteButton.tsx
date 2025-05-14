@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { VoteType } from "@/lib/agents/voting/types";
+// Remove unused VoteType import
 
 interface VoteButtonProps {
   type: 'up' | 'down';

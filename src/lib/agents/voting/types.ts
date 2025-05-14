@@ -12,3 +12,11 @@ export interface AgentVote {
   comment?: string;
   createdAt: string;
 }
+
+export interface VoteResult {
+  success: boolean;
+  voteId?: string;
+  error?: string;
+  upvotes?: number;
+  downvotes?: number;
+}
