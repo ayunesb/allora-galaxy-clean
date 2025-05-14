@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NotificationsProvider } from '@/context/NotificationsContext';
-import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
+import { WorkspaceProvider } from '@/context/WorkspaceContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { ThemeProvider as NextThemeProvider } from 'next-themes';
 
