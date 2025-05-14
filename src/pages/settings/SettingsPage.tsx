@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import PageHelmet from '@/components/PageHelmet';
 import Footer from '@/components/layout/Footer';
+import { getCookiePreferences } from '@/lib/utils';
 
 const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -57,6 +58,11 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  // Handle opening cookie preferences dialog
+  const openCookiePreferences = () => {
+    window.dispatchEvent(new Event('open-cookie-preferences'));
+  };
+
   return (
     <>
       <PageHelmet
@@ -97,7 +103,7 @@ const SettingsPage: React.FC = () => {
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="secondary" onClick={() => window.dispatchEvent(new Event('open-cookie-preferences'))}>
+              <Button variant="secondary" onClick={openCookiePreferences}>
                 {t('cookies.managePreferences')}
               </Button>
             </CardFooter>

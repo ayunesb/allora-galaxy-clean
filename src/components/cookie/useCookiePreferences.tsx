@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspaceContext } from "@/context/workspace-context";
+import { CookiePreferences } from "@/lib/utils";
 
-interface CookiePreferences {
+interface DbCookiePreferences {
   id?: string;
   user_id?: string;
   ga4_enabled?: boolean;
@@ -14,7 +15,7 @@ interface CookiePreferences {
 }
 
 export function useCookiePreferences() {
-  const [preferences, setPreferences] = useState<CookiePreferences | null>(null);
+  const [preferences, setPreferences] = useState<DbCookiePreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useWorkspaceContext() as any;
@@ -57,7 +58,9 @@ export function useCookiePreferences() {
 
       const updates = {
         user_id: user.id,
-        ...newPreferences,
+        ga4_enabled: newPreferences.ga4Enabled,
+        meta_pixel_enabled: newPreferences.metaPixelEnabled,
+        session_analytics_enabled: newPreferences.sessionAnalyticsEnabled,
         updated_at: new Date().toISOString(),
       };
 

@@ -4,16 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CookiePreferenceItem from './CookiePreferenceItem';
-
-export interface CookiePreferences {
-  ga4Enabled: boolean;
-  metaPixelEnabled: boolean;
-  sessionAnalyticsEnabled: boolean;
-}
+import { CookiePreferences } from '@/lib/utils';
 
 interface CookieConsentDialogProps {
   open: boolean;
   onClose: () => void;
+  onOpenChange?: (open: boolean) => void;
   onAccept: (preferences: CookiePreferences) => void;
   onDecline: () => void;
   showDeclineButton?: boolean;
@@ -22,6 +18,7 @@ interface CookieConsentDialogProps {
 const CookieConsentDialog: React.FC<CookieConsentDialogProps> = ({
   open,
   onClose,
+  onOpenChange,
   onAccept,
   onDecline,
   showDeclineButton = true,
@@ -41,7 +38,13 @@ const CookieConsentDialog: React.FC<CookieConsentDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(open) => {
+        if (onOpenChange) onOpenChange(open);
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Cookie Preferences</DialogTitle>

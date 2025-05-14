@@ -1,13 +1,13 @@
 
-import { Cookies } from "js-cookie";
+import Cookies from "js-cookie";
 
 /**
  * Cookie preferences data structure
  */
 export interface CookiePreferences {
-  ga4Enabled?: boolean;
-  metaPixelEnabled?: boolean;
-  sessionAnalyticsEnabled?: boolean;
+  ga4Enabled: boolean;
+  metaPixelEnabled: boolean;
+  sessionAnalyticsEnabled: boolean;
 }
 
 /**

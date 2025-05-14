@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -140,5 +141,6 @@ export function removeUndefined<T extends Record<string, any>>(obj: T): Partial<
 export { 
   getCookieConsentStatus, 
   setCookieConsentStatus, 
-  getCookiePreferences 
+  getCookiePreferences,
+  type CookiePreferences
 } from './utils/cookieUtils';

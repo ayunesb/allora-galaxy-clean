@@ -1,13 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { getCookieConsentStatus, setCookieConsentStatus } from '@/lib/utils';
+import { getCookieConsentStatus, setCookieConsentStatus, getCookiePreferences, CookiePreferences } from '@/lib/utils';
 import CookieConsentDialog from './cookie/CookieConsentDialog';
-import type { CookiePreferences } from './cookie/CookieConsentDialog';
 
 const CookieConsent: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [hasConsent, setHasConsent] = useState(getCookieConsentStatus());
+
+  // Listen for custom event to open cookie preferences dialog
+  useEffect(() => {
+    const handleOpenPreferences = () => setIsDialogOpen(true);
+    window.addEventListener('open-cookie-preferences', handleOpenPreferences);
+    return () => window.removeEventListener('open-cookie-preferences', handleOpenPreferences);
+  }, []);
 
   const handleAccept = (preferences: CookiePreferences) => {
     setCookieConsentStatus(true, preferences);
