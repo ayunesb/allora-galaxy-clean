@@ -1,4 +1,3 @@
-
 export interface SystemLog {
   id: string;
   timestamp: string;
@@ -56,11 +55,6 @@ export interface FilterState {
   [key: string]: any;
 }
 
-export interface FilterProps {
-  filters: FilterState;
-  setFilters: (filters: FilterState) => void;
-}
-
 export interface NavigationItem {
   title: string;
   href: string;
@@ -68,43 +62,6 @@ export interface NavigationItem {
   items?: NavigationItem[];
   disabled?: boolean;
   label?: string;
-  badge?: string;
-  id?: string; // Added id property
 }
 
 export type OnboardingStep = 'company-info' | 'additional-info' | 'persona' | 'strategy-generation' | 'completed';
-
-// Adding missing types that are referenced in errors
-export type VoteType = 'up' | 'down' | 'neutral';
-export type TrendDirection = 'up' | 'down' | 'neutral' | 'unchanged';
-export type SystemEventModule = 'user' | 'tenant' | 'strategy' | 'plugin' | 'agent' | 'system';
-export type SystemEventType = 'info' | 'warning' | 'error' | 'debug';
-export type LogSeverity = 'info' | 'warning' | 'error' | 'debug';
-export type NotificationType = 'system' | 'alert' | 'info' | 'success' | 'warning' | 'error';
-
-export interface BaseEntity {
-  id: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface KPITrend {
-  direction: TrendDirection;
-  percentage: number;
-}
-
-export interface ExecutionType {
-  type: string;
-  label: string;
-  description: string;
-}
-
-export interface ExecutionParams {
-  [key: string]: any;
-}
-
-export interface TenantFeature {
-  id: string;
-  name: string;
-  enabled: boolean;
-}

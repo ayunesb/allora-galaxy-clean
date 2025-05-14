@@ -7,7 +7,7 @@ export interface Notification {
   is_read: boolean;
   read_at: string | null;
   tenant_id: string;
-  type: 'system' | 'alert' | 'info' | 'success' | 'warning' | 'error';
+  type: 'system' | 'alert' | 'info';
   priority: 'low' | 'medium' | 'high';
   action_url?: string | null;
   action_label?: string | null;
@@ -20,7 +20,7 @@ export interface NotificationContent {
   message: string;
   timestamp: Date | string;
   read: boolean;
-  type: 'system' | 'alert' | 'info' | 'success' | 'warning' | 'error';
+  type: 'system' | 'alert' | 'info';
   priority?: 'low' | 'medium' | 'high';
   actionUrl?: string;
   actionLabel?: string;
@@ -38,17 +38,6 @@ export interface NotificationState {
   unreadCount: number;
   loading: boolean;
   error: string | null;
-}
-
-export interface NotificationsContextValue {
-  notifications: Notification[];
-  unreadCount: number;
-  isLoading: boolean;
-  markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
-  refreshNotifications: () => Promise<void>;
-  error: Error | null;
 }
 
 export const convertToNotificationContent = (notification: Notification): NotificationContent => {

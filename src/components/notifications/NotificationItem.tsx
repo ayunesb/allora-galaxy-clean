@@ -39,8 +39,6 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         return <Info className="h-5 w-5 text-blue-500" />;
       case 'system':
         return <Bell className="h-5 w-5 text-purple-500" />;
-      case 'alert':
-        return <AlertCircle className="h-5 w-5 text-orange-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
     }
@@ -68,13 +66,11 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const formattedDate = (() => {
     try {
-      const date = typeof notification.timestamp === 'string' 
-        ? new Date(notification.timestamp) 
-        : notification.timestamp;
-      return format(date, 'MMM dd, h:mm a');
+      const date = new Date(notification.timestamp);
+      return format(date, 'MMM d, h:mm a');
     } catch (error) {
       console.error('Error formatting date:', error);
-      return String(notification.timestamp);
+      return notification.timestamp;
     }
   })();
 
@@ -100,7 +96,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               {notification.message}
             </div>
             
-            {notification.actionUrl && notification.actionLabel && (
+            {notification.action_url && notification.action_label && (
               <Button 
                 variant="link" 
                 size="sm" 
@@ -109,11 +105,11 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
                 asChild
               >
                 <a 
-                  href={notification.actionUrl} 
+                  href={notification.action_url} 
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  {notification.actionLabel} <ExternalLink className="ml-1 h-3 w-3" />
+                  {notification.action_label} <ExternalLink className="ml-1 h-3 w-3" />
                 </a>
               </Button>
             )}

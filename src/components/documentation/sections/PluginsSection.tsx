@@ -39,7 +39,7 @@ const PluginsSection: React.FC = () => {
           <p>  name: 'My Custom Plugin',</p>
           <p>  version: '1.0.0',</p>
           <p>  description: 'A custom plugin for Allora OS',</p>
-          <p>  execute: async (context) ={">"} {"{"}</p>
+          <p>  execute: async (context) => {"{"}</p>
           <p>    // Plugin implementation</p>
           <p>    return {"{"} success: true, data: {"{"} result: 'Hello world' {"}"} {"}"};</p>
           <p>  {"}"},</p>
