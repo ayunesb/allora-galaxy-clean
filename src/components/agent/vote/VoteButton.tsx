@@ -1,30 +1,30 @@
 
 import React from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { VoteButtonProps } from './types';
 
-export const VoteButton: React.FC<VoteButtonProps> = ({
-  count,
-  active,
-  type,
-  onClick,
-  disabled
+const VoteButton: React.FC<VoteButtonProps> = ({ 
+  count, 
+  active, 
+  type, 
+  onClick, 
+  disabled 
 }) => {
   const Icon = type === 'up' ? ThumbsUp : ThumbsDown;
-  const activeClass = active ? 
-    (type === 'up' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200') : '';
-
+  
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      className={`flex items-center gap-1 ${activeClass}`}
+    <Button
+      variant={active ? "default" : "outline"}
+      size="sm"
+      className="flex items-center gap-1"
       onClick={onClick}
       disabled={disabled}
     >
-      <Icon className="h-4 w-4" />
+      <Icon size={16} />
       <span>{count}</span>
     </Button>
   );
 };
+
+export default VoteButton;

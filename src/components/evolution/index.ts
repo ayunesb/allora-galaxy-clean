@@ -1,16 +1,17 @@
 
-export { default as EvolutionDashboard } from './EvolutionDashboard';
-export { default as AgentEvolutionTab } from './AgentEvolutionTab';
-export { default as PluginEvolutionTab } from './PluginEvolutionTab';
-export { default as StrategyEvolutionTab } from './StrategyEvolutionTab';
-export { default as AuditLog } from './AuditLog';
+import { AgentEvolutionTab } from './AgentEvolutionTab';
+import { PluginEvolutionTab } from './PluginEvolutionTab';
+import { StrategyEvolutionTab } from './StrategyEvolutionTab';
+import { EvolutionDashboard } from './EvolutionDashboard';
+import AuditLog from './AuditLog';
+// Use type-only export for AuditLogItem to avoid conflicts
+export type { AuditLogItem } from './AuditLog';
 export { default as LogDetailDialog } from './logs/LogDetailDialog';
 
-// Export strategy evolution components
-export { default as StrategyDetails } from './strategy/StrategyDetails';
-export { default as EvolutionHistory } from './strategy/EvolutionHistory';
-export { default as ExecutionLogs } from './strategy/ExecutionLogs';
-export { default as StrategyLoadingSkeleton } from './strategy/StrategyLoadingSkeleton';
-
-// Export hooks
-export { useStrategyEvolution } from './strategy/useStrategyEvolution';
+export {
+  AgentEvolutionTab,
+  PluginEvolutionTab,
+  StrategyEvolutionTab,
+  EvolutionDashboard,
+  AuditLog
+};

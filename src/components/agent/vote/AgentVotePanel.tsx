@@ -1,79 +1,91 @@
 
-import React from 'react';
-import { MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { AgentVotePanelProps } from './types';
+import VoteButton from './VoteButton';
+import CommentSection from './CommentSection';
 import { useAgentVote } from './useAgentVote';
-import { VoteButton } from './VoteButton';
-import { CommentSection } from './CommentSection';
+import { AgentVoteProps } from './types';
+import { VoteType } from '@/types/shared';
 
-const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
-  agentVersionId,
-  upvotes: initialUpvotes = 0,
-  downvotes: initialDownvotes = 0,
-  isReadOnly = false
+const AgentVotePanel: React.FC<AgentVoteProps> = ({ 
+  agentVersionId, 
+  initialUpvotes, 
+  initialDownvotes, 
+  userId 
 }) => {
+  const [showComment, setShowComment] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
   const {
-    upvotes,
-    downvotes,
     userVote,
+    upvoteCount,
+    downvoteCount,
+    isLoading,
     comment,
     setComment,
-    showComment,
-    setShowComment,
-    submitting,
+    recentComments,
     handleVote,
-    handleSubmitComment
-  } = useAgentVote({
-    agentVersionId,
-    initialUpvotes,
-    initialDownvotes
-  });
+    hasVoted,
+    checkUserVote
+  } = useAgentVote(agentVersionId, initialUpvotes, initialDownvotes, userId);
+
+  useEffect(() => {
+    checkUserVote();
+  }, [checkUserVote]);
+
+  const handleSubmitComment = async () => {
+    setSubmitting(true);
+    try {
+      await handleVote(userVote || 'up');
+      setShowComment(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Feedback</CardTitle>
+      </CardHeader>
+      <CardContent>
         <div className="flex flex-col space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium">Agent Performance</h3>
-            <div className="flex items-center gap-4">
-              <VoteButton
-                count={upvotes}
-                active={userVote === 'up'}
-                type="up"
-                onClick={() => handleVote('up')}
-                disabled={submitting || isReadOnly}
-              />
-              <VoteButton
-                count={downvotes}
-                active={userVote === 'down'}
-                type="down"
-                onClick={() => handleVote('down')}
-                disabled={submitting || isReadOnly}
-              />
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowComment(!showComment)}
-                disabled={isReadOnly}
-              >
-                <MessageSquare className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex space-x-4 justify-center">
+            <VoteButton 
+              count={upvoteCount} 
+              active={userVote === 'up' || userVote === 'upvote'} 
+              type="up" 
+              onClick={() => handleVote('up')} 
+              disabled={isLoading} 
+            />
+            <VoteButton 
+              count={downvoteCount} 
+              active={userVote === 'down' || userVote === 'downvote'} 
+              type="down" 
+              onClick={() => handleVote('down')} 
+              disabled={isLoading} 
+            />
           </div>
           
-          {showComment && !isReadOnly && (
-            <CommentSection
-              comment={comment}
-              setComment={setComment}
-              onSubmit={handleSubmitComment}
-              onCancel={() => setShowComment(false)}
-              disabled={submitting}
-              comments={[]}
-              agentVersionId={agentVersionId}
-              userHasVoted={userVote !== null}
-              voteType={userVote || undefined}
+          {!showComment && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowComment(true)}
+              disabled={isLoading}
+              className="mt-2"
+            >
+              Add Comment
+            </Button>
+          )}
+          
+          {showComment && (
+            <CommentSection 
+              comments={comment} 
+              setComments={setComment} 
+              onSubmit={handleSubmitComment} 
+              onCancel={() => setShowComment(false)} 
+              disabled={submitting || isLoading} 
             />
           )}
         </div>

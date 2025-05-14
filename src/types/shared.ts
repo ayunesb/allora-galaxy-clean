@@ -1,107 +1,74 @@
-export interface SystemLog {
-  id: string;
-  created_at: string;
-  module: string;
-  event: string;
-  level: string;
-  description: string;
-  context: Record<string, any>;
-  tenant_id: string;
-}
 
-// Add TrendDirection enum definition 
-export enum TrendDirection {
-  UP = 'up',
-  DOWN = 'down',
-  NEUTRAL = 'neutral'
-}
+import { ReactNode } from 'react';
 
-// Add NavigationItem type
+// Navigation types
 export interface NavigationItem {
-  id: string;
+  id?: string;
   title: string;
-  icon?: React.ReactNode;
   href: string;
+  icon?: ReactNode;
   badge?: string | number;
   items?: NavigationItem[];
-  permission?: string;
 }
 
-// Add or update SystemLogFilter type
-export interface SystemLogFilter {
-  searchTerm?: string;
-  module?: SystemEventModule;
-  level?: 'info' | 'warning' | 'error';
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
+// User roles
+export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
+
+// Date range type used for filtering
+export interface DateRange {
+  from: Date | undefined;
+  to?: Date | undefined;
 }
 
-// Add or ensure SystemEventModule type exists
-export type SystemEventModule = 
-  | 'auth' 
-  | 'strategy' 
-  | 'agent' 
-  | 'plugin' 
-  | 'tenant' 
-  | 'api' 
-  | 'user' 
-  | 'system';
+// Trend direction for KPIs
+export type TrendDirection = 'up' | 'down' | 'neutral';
 
-// Standardize VoteType across the application
+// System event types
+export type SystemEventModule = 'auth' | 'strategy' | 'plugin' | 'agent' | 'tenant' | 'user' | 'system';
+export type SystemEventType = 'create' | 'update' | 'delete' | 'execute' | 'login' | 'logout' | 'error';
+
+// Unified VoteType definition
 export type VoteType = 'up' | 'down' | 'upvote' | 'downvote';
 
-// Add AuditLogFilter type
-export interface AuditLogFilter {
-  searchTerm?: string;
-  module?: SystemEventModule;
-  startDate?: string;
-  endDate?: string;
-  type?: string;
-}
-
-// Add AuditLog interface
-export interface AuditLog {
-  id: string;
-  module: string;
-  event: string;
-  action: string;
-  description: string;
-  created_at: string;
-  user_id?: string;
-  tenant_id?: string;
-}
-
-// Add UserRole type
-export type UserRole = 'admin' | 'member' | 'owner' | 'guest';
-
-// Add BaseEntity type
-export interface BaseEntity {
-  id: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-// Add ExecutionParams type
+// Execution types
+export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
 export interface ExecutionParams {
+  strategyId?: string;
+  pluginId?: string;
+  agentId?: string;
   [key: string]: any;
 }
 
-// Add ExecutionType type
-export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
+// Onboarding
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
-// Add KPITrend type
-export interface KPITrend {
-  direction: TrendDirection;
-  percentage: number;
+// Base type for most entities
+export interface BaseEntity {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-// Add TenantFeature type
-export type TenantFeature = 
-  | 'api_access' 
-  | 'custom_plugins' 
-  | 'advanced_analytics' 
-  | 'team_collaboration';
+// KPI trend information
+export interface KPITrend {
+  label: string;
+  value: number;
+  previousValue: number;
+  change: number;
+  direction: TrendDirection;
+}
 
-// Add OnboardingStep type
-export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'strategy' | 'complete';
+// Tenant feature flags
+export type TenantFeature = 'analytics' | 'ai-agents' | 'evolution' | 'brain' | 'billing';
+
+// Filter types for components
+export interface FilterState {
+  [key: string]: any;
+}
+
+export interface FilterProps {
+  filter: FilterState;
+  setFilter: (filter: FilterState) => void;
+  onApply?: () => void;
+  onReset?: () => void;
+}

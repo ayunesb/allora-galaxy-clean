@@ -1,60 +1,44 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { CommentSectionProps } from './types';
 
-export const CommentSection: React.FC<CommentSectionProps> = ({
-  comment = '',
-  setComment = () => {},
-  onSubmit = () => {},
-  onCancel = () => {},
-  disabled = false,
-  comments = [],
-  agentVersionId,
-  userHasVoted,
-  voteType,
-  isLoading
+const CommentSection: React.FC<CommentSectionProps> = ({
+  comments,
+  setComments,
+  onSubmit,
+  onCancel,
+  disabled
 }) => {
   return (
-    <div className="space-y-2">
-      <Textarea 
-        placeholder="Add a comment about this agent's performance..." 
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        className="min-h-[80px]"
+    <div className="mt-4 space-y-2">
+      <Textarea
+        placeholder="Add your feedback..."
+        value={comments}
+        onChange={(e) => setComments(e.target.value)}
+        disabled={disabled}
+        rows={3}
       />
       <div className="flex justify-end gap-2">
         <Button 
           variant="outline" 
-          size="sm"
+          size="sm" 
           onClick={onCancel}
+          disabled={disabled}
         >
           Cancel
         </Button>
         <Button 
-          variant="default" 
-          size="sm"
+          size="sm" 
           onClick={onSubmit}
-          disabled={disabled}
+          disabled={disabled || !comments.trim()}
         >
           Submit
         </Button>
       </div>
-      
-      {/* Display comments if there are any */}
-      {comments.length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium">Recent Comments</h4>
-          <ul className="mt-2 space-y-2">
-            {comments.map((comment, index) => (
-              <li key={index} className="text-sm bg-muted p-2 rounded">
-                {comment.comment || comment.text || "No comment text"}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 };
+
+export default CommentSection;

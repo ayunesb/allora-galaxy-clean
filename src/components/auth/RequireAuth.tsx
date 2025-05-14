@@ -1,66 +1,43 @@
 
-import { Navigate, useLocation } from "react-router-dom";
-import { ReactNode, useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useWorkspace } from "@/contexts/workspace/WorkspaceContext";
-import { LoadingScreen } from "../LoadingScreen";
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import LoadingScreen from '../LoadingScreen';
 
 interface RequireAuthProps {
-  children: ReactNode;
-  requiredRoles?: string[];
+  children: React.ReactNode;
+  roles?: string[];
 }
 
-export function RequireAuth({ children, requiredRoles }: RequireAuthProps) {
+export function RequireAuth({ children, roles }: RequireAuthProps) {
   const location = useLocation();
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { currentWorkspace, workspaces } = useWorkspace();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const { user, loading } = useAuth();
 
-  // Check if the user has required roles
-  useEffect(() => {
-    async function checkPermission() {
-      if (!isAuthenticated || !user) {
-        setHasPermission(false);
-        return;
-      }
-
-      // If no roles are required, the user has permission
-      if (!requiredRoles || requiredRoles.length === 0) {
-        setHasPermission(true);
-        return;
-      }
-
-      // Check if user has at least one of the required roles
-      const hasRole = (role: string) => {
-        // Check user roles in the current workspace
-        // Note: actual role checking logic would depend on your app structure
-        return true; // Simplified for this example
-      };
-
-      const userHasRequiredRole = requiredRoles.some(hasRole);
-      setHasPermission(userHasRequiredRole);
-    }
-
-    if (!isLoading) {
-      checkPermission();
-    }
-  }, [user, isAuthenticated, isLoading, requiredRoles]);
-
-  // Show loading while checking authentication
-  if (isLoading || hasPermission === null) {
+  if (loading) {
     return <LoadingScreen />;
   }
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
+  if (!user) {
+    // Redirect them to the /auth/login page, but save the current location they were
+    // trying to go to when they were redirected. This allows us to send them
+    // along to that page after they login, which is a nicer user experience
+    // than dropping them off on the home page.
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to unauthorized page if lacking permission
-  if (!hasPermission) {
+  // If user is authenticated and no specific roles are required, or if we don't have roles functionality
+  // then render the children
+  if (!roles || roles.length === 0) {
+    return <>{children}</>;
+  }
+
+  // If roles are required, check if the user has any of the required roles
+  // This assumes there's a userRole property in your auth context
+  // Implement according to your actual role checking logic
+  const { userRole } = useAuth();
+  if (!userRole || !roles.includes(userRole)) {
     return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 
-  // User is authenticated and authorized
   return <>{children}</>;
 }

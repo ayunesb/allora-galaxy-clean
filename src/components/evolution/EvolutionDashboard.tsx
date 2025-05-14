@@ -1,93 +1,100 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import AgentEvolutionTab from './AgentEvolutionTab';
-import PluginEvolutionTab from './PluginEvolutionTab';
-import StrategyEvolutionTab from './StrategyEvolutionTab';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AgentEvolutionTab } from './AgentEvolutionTab';
+import { PluginEvolutionTab } from './PluginEvolutionTab';
+import { StrategyEvolutionTab } from './StrategyEvolutionTab';
+import { FilterState } from '@/types/shared';
 import AuditLog from './AuditLog';
-import { AuditLogFilter, SystemLogFilter } from '@/types/shared';
 
-export function EvolutionDashboard() {
-  // State for tracking active tab
-  const [activeTab, setActiveTab] = useState("audit-log");
-  
-  // State for filters
-  const [auditLogFilter, setAuditLogFilter] = useState<AuditLogFilter>({});
-  const [systemLogFilter, setSystemLogFilter] = useState<SystemLogFilter>({});
-  
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
+export const EvolutionDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('strategies');
+  const [auditLogFilter] = useState<FilterState>({});
+  const [systemLogFilter] = useState<FilterState>({});
+
+  // Define a type-specific fetchData function that will be passed to children
+  const fetchData = async <T extends unknown>(
+    resource: string, 
+    filter: FilterState
+  ): Promise<T[]> => {
+    // This would normally call your API or use Supabase
+    console.log(`Fetching ${resource} with filter:`, filter);
+    // Mock implementation, replace with actual data fetching
+    return Promise.resolve([]);
   };
-  
-  // Fetch audit logs - would connect to a real API in production
-  const fetchAuditLogs = async () => {
-    // Implementation would go here
-    console.log("Fetching audit logs");
-  };
-  
-  // Handle refresh for audit logs
-  const handleRefreshAuditLogs = () => {
-    console.log("Refreshing audit logs");
-    // This would trigger a real refresh in production
-  };
-  
+
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Galaxy Evolution Center</h1>
+    <div className="container mx-auto space-y-6 py-6">
+      <h1 className="text-3xl font-bold">Evolution Dashboard</h1>
       
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Evolution Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold">Agents</h3>
-              <p className="text-2xl font-bold">12</p>
-              <p className="text-sm text-muted-foreground">3 evolved this month</p>
-            </div>
-            <div className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold">Plugins</h3>
-              <p className="text-2xl font-bold">8</p>
-              <p className="text-sm text-muted-foreground">1 evolved this month</p>
-            </div>
-            <div className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold">Strategies</h3>
-              <p className="text-2xl font-bold">5</p>
-              <p className="text-sm text-muted-foreground">2 new versions this month</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Agent Evolution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Track the performance and evolution of AI agents over time
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Plugin Evolution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Monitor plugin performance and version history
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Strategy Evolution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Analyze strategy performance and optimization over time
+            </p>
+          </CardContent>
+        </Card>
+      </div>
       
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="audit-log">Audit Log</TabsTrigger>
-          <TabsTrigger value="agents">Agents</TabsTrigger>
-          <TabsTrigger value="plugins">Plugins</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full justify-start">
           <TabsTrigger value="strategies">Strategies</TabsTrigger>
+          <TabsTrigger value="plugins">Plugins</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+          <TabsTrigger value="logs">System Logs</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="audit-log">
-          <AuditLog onRefresh={handleRefreshAuditLogs} />
-        </TabsContent>
-        
-        <TabsContent value="agents">
-          <AgentEvolutionTab />
+        <TabsContent value="strategies">
+          <StrategyEvolutionTab />
         </TabsContent>
         
         <TabsContent value="plugins">
           <PluginEvolutionTab />
         </TabsContent>
         
-        <TabsContent value="strategies">
-          <StrategyEvolutionTab />
+        <TabsContent value="agents">
+          <AgentEvolutionTab />
+        </TabsContent>
+        
+        <TabsContent value="logs">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Use the component directly here, not the type */}
+            <AuditLog 
+              title="System Audit Logs"
+              onFetchData={(filter) => fetchData('audit-logs', filter)} 
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
   );
-}
+};
 
 export default EvolutionDashboard;

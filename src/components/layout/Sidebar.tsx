@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import SidebarNav from './SidebarNav';
+import { SidebarNav } from './SidebarNav';
 import { NavigationItem } from '@/types/shared';
 
 interface SidebarProps {

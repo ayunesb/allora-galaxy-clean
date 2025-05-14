@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-const LoadingScreen: React.FC = () => {
+export const LoadingScreen: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="flex flex-col items-center space-y-4">
