@@ -1,35 +1,25 @@
 
-// Onboarding specific types
-export interface OnboardingStep {
-  id: string;
-  title: string;
-  description?: string;
-  isCompleted?: boolean;
-  isActive?: boolean;
-  order: number;
-  component?: React.ComponentType<any>;
-}
+export type OnboardingStep = 'company-info' | 'persona' | 'additional-info' | 'strategy-generation';
 
 export interface OnboardingFormData {
+  // Company Info
   companyName: string;
+  companyDescription?: string;
   industry: string;
-  companySize: string;
-  goals: string[];
-  website?: string;
-  description?: string;
+  companySize?: string;
+  
+  // Persona
+  personaName?: string;
+  personaDescription?: string;
+  goals?: string[];
   tone?: string;
+  
+  // Additional Info
+  additionalInfo?: string;
 }
 
-export interface OnboardingContextType {
-  currentStep: number;
-  steps: OnboardingStep[];
-  formData: OnboardingFormData;
-  setCurrentStep: (step: number) => void;
-  setSteps: (steps: OnboardingStep[]) => void;
-  updateFormData: (data: Partial<OnboardingFormData>) => void;
-  nextStep: () => void;
-  previousStep: () => void;
-  isLastStep: boolean;
-  isFirstStep: boolean;
-  progress: number;
+export interface OnboardingStepInfo {
+  id: OnboardingStep;
+  label: string;
+  validationFields: (keyof OnboardingFormData)[];
 }

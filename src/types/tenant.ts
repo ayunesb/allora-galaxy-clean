@@ -10,6 +10,7 @@ export interface Tenant {
   updated_at: string;
   owner_id: string;
   metadata?: Record<string, any>;
+  description?: string; // Add optional description field
 }
 
 // Add tenant features for future extensibility

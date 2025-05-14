@@ -33,7 +33,7 @@ export function useOnboardingSubmission() {
       // Complete the onboarding process
       const result = await completeOnboarding(user.id, formData);
       
-      if (result.success && result.tenantId) {
+      if (result.success && 'tenantId' in result) {
         // Send notification
         await sendNotification({
           title: 'Welcome to Allora OS',

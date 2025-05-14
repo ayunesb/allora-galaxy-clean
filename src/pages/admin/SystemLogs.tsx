@@ -1,63 +1,72 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
-import { AuditLog } from '@/types/logs';
+import { useSystemLogsData, SystemLog } from '@/hooks/admin/useSystemLogsData';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 
-const SystemLogs = () => {
-  const {
-    logs,
-    loading,
-    filters,
-    modules,
-    fetchLogs,
-    handleFilterChange,
-  } = useSystemLogsData();
+const SystemLogsPage: React.FC = () => {
+  const { 
+    logs, 
+    loading, 
+    filters, 
+    updateFilters, 
+    refresh, 
+    availableModules 
+  } = useSystemLogsData({ searchTerm: '' });
   
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleOpenLogDetail = (log: AuditLog) => {
+  const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
-    setShowLogDetail(true);
+    setIsDialogOpen(true);
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">System Logs</h1>
+    <>
+      <PageHelmet 
+        title="System Logs" 
+        description="View system logs and events" 
+      />
       
-      <Card>
-        <CardHeader>
-          <CardTitle>System Activity Logs</CardTitle>
-          <SystemLogFilter 
-            onFilterChange={handleFilterChange}
-            filters={filters}
-            modules={modules}
-            onRefresh={fetchLogs}
-            isLoading={loading}
-          />
-        </CardHeader>
-        <CardContent className="p-0">
-          <SystemLogsList
-            logs={logs}
-            isLoading={loading}
-            onLogClick={handleOpenLogDetail}
-          />
-        </CardContent>
-      </Card>
+      <div className="container py-6">
+        <h1 className="text-3xl font-bold mb-6">System Logs</h1>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>System Event Logs</CardTitle>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="mb-6">
+              <SystemLogFilters 
+                filters={filters}
+                onFilterChange={updateFilters}
+                availableModules={availableModules}
+                onRefresh={refresh}
+                isLoading={loading}
+              />
+            </div>
+            
+            <SystemLogsList 
+              logs={logs} 
+              isLoading={loading}
+              onViewLog={handleViewLog}
+            />
+          </CardContent>
+        </Card>
+      </div>
       
-      {selectedLog && (
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={showLogDetail} 
-          onOpenChange={setShowLogDetail} 
-        />
-      )}
-    </div>
+      <LogDetailDialog
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        log={selectedLog}
+      />
+    </>
   );
 };
 
-export default SystemLogs;
+export default SystemLogsPage;

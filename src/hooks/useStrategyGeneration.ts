@@ -21,15 +21,15 @@ export const useStrategyGeneration = () => {
     try {
       const result = await completeOnboarding(user.id, formData);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to complete onboarding');
+      if (result.success && 'tenantId' in result && 'strategyId' in result) {
+        return {
+          success: true,
+          tenantId: result.tenantId,
+          strategyId: result.strategyId
+        };
+      } else {
+        throw new Error(result.error || 'Failed to generate strategy');
       }
-      
-      return {
-        success: true,
-        tenantId: result.tenantId,
-        strategyId: result.strategyId
-      };
     } catch (error: any) {
       console.error('Strategy generation error:', error);
       
@@ -46,4 +46,4 @@ export const useStrategyGeneration = () => {
     isGenerating,
     generateStrategy
   };
-};
+}

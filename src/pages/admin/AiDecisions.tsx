@@ -1,69 +1,105 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import PageHelmet from '@/components/PageHelmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilter from '@/components/admin/logs/SystemLogFilters';
-import { AuditLog } from '@/types/logs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useSystemLogsData, SystemLog } from '@/hooks/admin/useSystemLogsData';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import { SystemLogFilter as SystemLogFilterType } from '@/types/shared';
 
-const AiDecisions = () => {
-  const initialFilters: SystemLogFilterType = { 
+const AiDecisionsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('prompts');
+  const { 
+    logs, 
+    loading, 
+    filters, 
+    updateFilters, 
+    refresh, 
+    availableModules 
+  } = useSystemLogsData({ 
     searchTerm: '',
     module: 'ai' 
-  };
-
-  const {
-    logs,
-    loading,
-    filters,
-    modules,
-    fetchLogs,
-    handleFilterChange,
-  } = useSystemLogsData({ initialFilters });
+  });
   
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [showLogDetail, setShowLogDetail] = useState<boolean>(false);
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleOpenLogDetail = (log: AuditLog) => {
+  const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
-    setShowLogDetail(true);
+    setIsDialogOpen(true);
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">AI Decisions</h1>
+    <>
+      <PageHelmet 
+        title="AI Decisions" 
+        description="Review AI decision-making history" 
+      />
       
-      <Card>
-        <CardHeader>
-          <CardTitle>AI Activities & Decisions</CardTitle>
-          <SystemLogFilter 
-            onFilterChange={handleFilterChange}
-            filters={filters}
-            modules={modules}
-            onRefresh={fetchLogs}
-            isLoading={loading}
-          />
-        </CardHeader>
-        <CardContent className="p-0">
-          <SystemLogsList
-            logs={logs}
-            isLoading={loading}
-            onLogClick={handleOpenLogDetail}
-          />
-        </CardContent>
-      </Card>
+      <div className="container py-6">
+        <h1 className="text-3xl font-bold mb-6">AI Decisions</h1>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Decision History</CardTitle>
+          </CardHeader>
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="px-6">
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="prompts">Prompt History</TabsTrigger>
+                <TabsTrigger value="decisions">System Decisions</TabsTrigger>
+                <TabsTrigger value="user-feedback">User Feedback</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <CardContent>
+              <div className="mb-6 mt-2">
+                <SystemLogFilters 
+                  filters={filters}
+                  onFilterChange={updateFilters}
+                  availableModules={availableModules}
+                  onRefresh={refresh}
+                  isLoading={loading}
+                />
+              </div>
+              
+              <TabsContent value="prompts" className="mt-0">
+                <SystemLogsList 
+                  logs={logs.filter(log => log.context?.type === 'prompt')} 
+                  isLoading={loading}
+                  onViewLog={handleViewLog}
+                />
+              </TabsContent>
+              
+              <TabsContent value="decisions" className="mt-0">
+                <SystemLogsList 
+                  logs={logs.filter(log => log.context?.type === 'decision')} 
+                  isLoading={loading}
+                  onViewLog={handleViewLog}
+                />
+              </TabsContent>
+              
+              <TabsContent value="user-feedback" className="mt-0">
+                <SystemLogsList 
+                  logs={logs.filter(log => log.context?.type === 'feedback')} 
+                  isLoading={loading}
+                  onViewLog={handleViewLog}
+                />
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+        </Card>
+      </div>
       
-      {selectedLog && (
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={showLogDetail} 
-          onOpenChange={setShowLogDetail} 
-        />
-      )}
-    </div>
+      <LogDetailDialog
+        open={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        log={selectedLog}
+      />
+    </>
   );
 };
 
-export default AiDecisions;
+export default AiDecisionsPage;

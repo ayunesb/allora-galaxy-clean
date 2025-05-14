@@ -4,22 +4,35 @@ import { supabase } from '@/lib/supabase';
 import { Tenant } from '@/types/tenant';
 import { useAuth } from '@/context/AuthContext';
 import { useTenantRole } from '@/hooks/useTenantRole';
-import { getDefaultWorkspaceNavigation, getWorkspaceNavigation } from '@/contexts/workspace/navigationItems';
 import { NavigationItem } from '@/types/navigation';
+import { WorkspaceContextType } from './workspace/types';
 
-interface WorkspaceContextType {
-  currentWorkspace: Tenant | null;
-  workspaces: Tenant[];
-  isLoading: boolean;
-  error: Error | null;
-  navigationItems: NavigationItem[];
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-  refreshWorkspaces: () => Promise<void>;
-  updateCurrentWorkspace: (workspaceId: string) => void;
-  userRole: string | null;
-}
+// Helper functions for navigation items
+const getDefaultWorkspaceNavigation = (): NavigationItem[] => {
+  return [
+    { label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
+    { label: 'Settings', href: '/settings', icon: 'Settings' }
+  ];
+};
 
+const getWorkspaceNavigation = (workspace: Tenant, role: string | null): NavigationItem[] => {
+  const items: NavigationItem[] = [
+    { label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
+    { label: 'Plugins', href: '/plugins', icon: 'Puzzle' },
+    { label: 'Galaxy', href: '/galaxy', icon: 'Globe' },
+    { label: 'Launch', href: '/launch', icon: 'Rocket' },
+    { label: 'Insights', href: '/insights/kpis', icon: 'BarChart2' }
+  ];
+  
+  // Add admin section if user has admin role
+  if (role === 'admin' || role === 'owner') {
+    items.push({ label: 'Admin', href: '/admin', icon: 'Shield' });
+  }
+  
+  return items;
+};
+
+// Create context with default value
 const WorkspaceContext = createContext<WorkspaceContextType>({
   currentWorkspace: null,
   workspaces: [],
@@ -30,7 +43,12 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   setCollapsed: () => {},
   refreshWorkspaces: async () => {},
   updateCurrentWorkspace: () => {},
-  userRole: null
+  userRole: null,
+  tenant: null,
+  currentTenant: null,
+  loading: true,
+  setCurrentWorkspace: () => {},
+  toggleCollapsed: () => {}
 });
 
 export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -45,7 +63,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId) || null;
   
   // Get the user's role in the current workspace
-  const { role: userRole } = useTenantRole(currentWorkspaceId);
+  const { role: userRole } = useTenantRole(currentWorkspaceId || undefined);
   
   // Generate navigation items based on the current workspace and user role
   const navigationItems = currentWorkspace
@@ -132,6 +150,18 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
       setCurrentWorkspaceId(workspaceId);
     }
   };
+
+  // Toggle sidebar collapsed state
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+
+  // Set current workspace with a Tenant object (for backward compatibility)
+  const setCurrentWorkspace = (workspace: Tenant) => {
+    if (workspace && workspace.id) {
+      updateCurrentWorkspace(workspace.id);
+    }
+  };
   
   return (
     <WorkspaceContext.Provider
@@ -145,7 +175,13 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         setCollapsed,
         refreshWorkspaces,
         updateCurrentWorkspace,
-        userRole
+        userRole,
+        // Backward compatibility properties
+        tenant: currentWorkspace,
+        currentTenant: currentWorkspace,
+        loading: isLoading,
+        setCurrentWorkspace,
+        toggleCollapsed
       }}
     >
       {children}

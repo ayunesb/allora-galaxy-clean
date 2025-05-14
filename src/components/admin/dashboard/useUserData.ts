@@ -54,7 +54,7 @@ export function useUserData() {
           // Correctly format the profiles data
           const formattedUsers = data.map(item => {
             // Initialize with default empty values
-            let profileData = {
+            let profileData: UserProfile = {
               first_name: '',
               last_name: '',
               avatar_url: '',
@@ -63,7 +63,13 @@ export function useUserData() {
             
             // If profiles data exists, use it
             if (item.profiles && typeof item.profiles === 'object') {
-              profileData = item.profiles as UserProfile;
+              const profile = item.profiles as any;
+              profileData = {
+                first_name: profile.first_name || '',
+                last_name: profile.last_name || '',
+                avatar_url: profile.avatar_url || '',
+                email: Array.isArray(profile.email) ? profile.email : [{ email: '' }]
+              };
             }
             
             return {
@@ -71,12 +77,7 @@ export function useUserData() {
               role: item.role,
               created_at: item.created_at,
               user_id: item.user_id,
-              profiles: {
-                first_name: profileData.first_name || '',
-                last_name: profileData.last_name || '',
-                avatar_url: profileData.avatar_url || '',
-                email: Array.isArray(profileData.email) ? profileData.email : [{ email: '' }]
-              }
+              profiles: profileData
             };
           });
           

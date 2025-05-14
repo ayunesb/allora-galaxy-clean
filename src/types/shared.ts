@@ -1,128 +1,54 @@
 
-import { DateRange as DayPickerDateRange } from 'react-day-picker';
+// Common shared types used across the application
 
-export interface FilterState {
-  searchTerm?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  status?: string;
-  category?: string;
+// Type for vote actions
+export type VoteType = 'upvote' | 'downvote';
+
+// Type for system log severity levels
+export type LogSeverity = 'info' | 'warning' | 'error' | 'debug';
+
+// Type for system event categories
+export type SystemEventType = 'system' | 'user' | 'strategy' | 'agent' | 'plugin';
+
+// Type for system log filters
+export interface SystemLogFilter {
+  searchTerm: string;
+  module?: string;
+  severity?: LogSeverity;
   dateRange?: DateRange;
-  [key: string]: any;
 }
 
-export interface FilterProps<T = FilterState> {
-  filters: T;
-  onFilterChange: (filters: T) => void;
-  onRefresh?: () => void;
-  isLoading?: boolean;
-}
-
+// Date range type for filters
 export interface DateRange {
   from: Date;
   to?: Date;
 }
 
-// Convert from react-day-picker DateRange to our DateRange
-export function convertDateRange(dayPickerRange?: DayPickerDateRange): DateRange | undefined {
-  if (!dayPickerRange || !dayPickerRange.from) return undefined;
-  return {
-    from: dayPickerRange.from,
-    to: dayPickerRange.to
-  };
-}
+// Type for notification priority levels
+export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-// User role types
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
+// Type for fixed execution status
+export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'aborted';
 
-// Navigation item structure
-export interface NavigationItem {
-  title: string;
-  href?: string;
-  icon?: React.ComponentType<any> | string;
-  disabled?: boolean;
-  external?: boolean;
-  children?: NavigationItem[];
-  items?: NavigationItem[]; // Add support for items
-  adminOnly?: boolean; // Add support for adminOnly flag
-}
-
-// Trend direction types
-export type TrendDirection = 'up' | 'down' | 'neutral';
-
-// Voting types
-export type VoteType = 'upvote' | 'downvote';
-
-// System event types
-export type SystemEventModule = 
-  | 'strategy'
-  | 'agent'
-  | 'plugin'
-  | 'user'
-  | 'tenant'
-  | 'auth'
-  | 'billing'
-  | 'hubspot' 
-  | 'system'
-  | 'ai'
-  | 'onboarding'; // Add onboarding module type
-
-export type SystemEventType = 
-  | 'created' 
-  | 'updated' 
-  | 'deleted' 
-  | 'executed' 
-  | 'approved' 
-  | 'rejected'
-  | 'error'
-  | 'info'
-  | 'warning';
-
-// KPI trend types
-export interface KPITrend {
-  value: number;
-  previousValue?: number;
-  change?: number;
-  direction: TrendDirection;
-  name?: string; // Add name property
-  unit?: string; // Add unit property
-  target?: number; // Add target property
-}
-
-// Base entity interface for common fields
-export interface BaseEntity {
-  id: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-// Execution parameters interface
-export interface ExecutionParams {
-  strategyId?: string;
-  pluginId?: string;
-  agentVersionId?: string;
+// Type for strategy execution input
+export interface ExecuteStrategyInput {
+  strategyId: string;
   tenantId: string;
   userId?: string;
   options?: Record<string, any>;
 }
 
-// Execution type
-export type ExecutionType = 'strategy' | 'plugin' | 'agent';
-
-// Tenant features
-export type TenantFeature = 'ai_assistant' | 'analytics' | 'custom_plugins' | 'auto_optimization';
-
-// Onboarding steps
-export type OnboardingStep = 
-  | 'welcome' 
-  | 'company_info' 
-  | 'persona' 
-  | 'additional_info' 
-  | 'strategy_generation' 
-  | 'complete';
-
-// System log filter type
-export interface SystemLogFilter extends FilterState {
-  module?: SystemEventModule;
-  dateRange?: DateRange;
+// Type for strategy execution result
+export interface ExecuteStrategyResult {
+  success: boolean;
+  executionId?: string;
+  status: string;
+  error?: string;
+  executionTime?: number;
+  outputs?: any;
+  results?: any;
+  logs?: any;
+  xpEarned?: number;
+  pluginsExecuted?: number;
+  successfulPlugins?: number;
 }

@@ -18,8 +18,8 @@ export function WorkspaceOverview() {
           <>
             <p>Name: {currentWorkspace.name}</p>
             <p>ID: {currentWorkspace.id}</p>
-            {currentWorkspace.description && (
-              <p>Description: {currentWorkspace.description}</p>
+            {currentWorkspace.metadata?.description && (
+              <p>Description: {currentWorkspace.metadata.description}</p>
             )}
           </>
         ) : (
