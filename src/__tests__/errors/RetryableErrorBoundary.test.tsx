@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, afterEach, afterAll, beforeAll, expect } from 'vitest';
 import RetryableErrorBoundary, { withRetryableErrorBoundary } from '@/components/errors/RetryableErrorBoundary';
 
 // Mock components

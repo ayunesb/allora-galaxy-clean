@@ -3,13 +3,15 @@ import React, { useState } from 'react';
 import {
   Card,
   CardContent,
+} from '@/components/ui/card';
+import {
   Table,
   TableBody,
   TableCell,
   TableRow,
-  Badge,
-  Button
-} from '@/components/ui';
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AlertCircle, ChevronRight, AlertTriangle, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ErrorGroup, SystemLog } from '@/types/logs';

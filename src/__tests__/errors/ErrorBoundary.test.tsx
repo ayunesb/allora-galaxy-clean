@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, afterEach, expect } from 'vitest';
 import ErrorBoundary from '@/components/errors/ErrorBoundary';
 import { ErrorHandler } from '@/lib/errors/ErrorHandler';
 
