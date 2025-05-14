@@ -1,54 +1,32 @@
 
-import { VoteType } from './shared';
+export type VoteType = 'up' | 'down';
 
-// Voting related types
-export { VoteType };
-
-export interface AgentVote {
+export interface Vote {
   id: string;
-  agent_version_id: string;
+  agent_id: string;
   user_id: string;
   vote_type: VoteType;
   comment?: string;
   created_at: string;
+  updated_at?: string;
 }
 
-export interface VoteResult {
-  success: boolean;
-  upvotes?: number;
-  downvotes?: number;
-  message?: string;
-  error?: string;
-  voteId?: string;
-}
-
-export interface VoteStats {
-  success: boolean;
+export interface VoteCount {
   upvotes: number;
   downvotes: number;
-  xp: number;
-  totalVotes: number;
-  ratio: number;
-  recentComments: CommentData[];
-  error?: string;
+  total: number;
 }
 
-export interface CommentData {
-  id: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  vote_type: VoteType;
-  user?: {
-    first_name?: string;
-    last_name?: string;
-    avatar_url?: string;
-  };
+export interface VoteStats extends VoteCount {
+  score: number; // score from -1 to 1
+  userVote?: VoteType;
 }
 
-export interface UserVoteInfo {
+export interface VoteResponse {
   success: boolean;
-  hasVoted: boolean;
-  vote: AgentVote | null;
-  error?: string;
+  message?: string;
+  data?: {
+    vote?: Vote;
+    stats?: VoteStats;
+  };
 }

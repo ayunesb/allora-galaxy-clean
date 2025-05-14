@@ -1,30 +1,35 @@
 
-// Mock React for component testing
-import * as React from 'react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
-
-// Import types and components
 import { NotificationType } from '@/types/shared';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
 
 // Mock the format function since it's likely used in NotificationItem
-jest.mock('date-fns', () => ({
-  formatDistanceToNow: jest.fn(() => '5 minutes ago'),
-  parseISO: jest.fn(() => new Date()),
-}));
-
-// Setup renderer for snapshot testing
-jest.mock('react-test-renderer', () => ({
-  act: jest.fn((callback) => callback()),
-  create: jest.fn(),
+vi.mock('date-fns', () => ({
+  formatDistanceToNow: vi.fn(() => '5 minutes ago'),
+  parseISO: vi.fn(() => new Date()),
+  format: vi.fn(() => 'Jan 1, 12:00 AM'),
 }));
 
 describe('NotificationItem', () => {
   // Mock the current time for consistent snapshots
-  jest.useFakeTimers().setSystemTime(new Date('2023-01-01').getTime());
+  const originalDate = global.Date;
+  beforeAll(() => {
+    const mockDate = new Date('2023-01-01T00:00:00Z');
+    global.Date = class extends originalDate {
+      constructor() {
+        super();
+        return mockDate;
+      }
+    } as DateConstructor;
+  });
   
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+  });
+  
+  afterAll(() => {
+    global.Date = originalDate;
   });
   
   it('should render correctly with default props', () => {
@@ -33,14 +38,15 @@ describe('NotificationItem', () => {
       title: 'Test Notification',
       message: 'This is a test notification',
       type: 'info' as NotificationType,
-      created_at: '2023-01-01T00:00:00Z',
-      read_at: null,
+      timestamp: '2023-01-01T00:00:00Z',
+      read: false,
     };
     
     const { container } = render(
       <NotificationItem 
         notification={notification}
         onMarkAsRead={() => {}}
+        onDelete={() => {}}
       />
     );
     
@@ -56,14 +62,15 @@ describe('NotificationItem', () => {
         title: `${type.toUpperCase()} Notification`,
         message: `This is a ${type} notification`,
         type: type as NotificationType,
-        created_at: '2023-01-01T00:00:00Z',
-        read_at: null,
+        timestamp: '2023-01-01T00:00:00Z',
+        read: false,
       };
       
       const { container } = render(
         <NotificationItem 
           notification={notification}
           onMarkAsRead={() => {}}
+          onDelete={() => {}}
         />
       );
       
@@ -77,16 +84,17 @@ describe('NotificationItem', () => {
       title: 'Notification with Action',
       message: 'This notification has an action button',
       type: 'info' as NotificationType,
-      created_at: '2023-01-01T00:00:00Z',
-      read_at: null,
-      action_url: 'https://example.com',
-      action_label: 'Visit',
+      timestamp: '2023-01-01T00:00:00Z',
+      read: false,
+      actionUrl: 'https://example.com',
+      actionLabel: 'Visit',
     };
     
     const { container } = render(
       <NotificationItem 
         notification={notification}
         onMarkAsRead={() => {}}
+        onDelete={() => {}}
       />
     );
     

@@ -1,119 +1,132 @@
 
 import React, { useState, useEffect } from 'react';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { VoteType } from '@/types/shared';
-import { supabase } from '@/lib/supabase';
-import { CommentData } from '@/types/voting';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
+import { VoteType } from '@/types/voting';
+import { User } from '@/types/user';
+
+export interface CommentData {
+  id: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  vote_type: VoteType;
+  user: {
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+  };
+}
 
 interface CommentSectionProps {
-  voteType: VoteType | null;
-  onSubmit: (comment: string) => Promise<boolean>;
-  isSubmitting?: boolean;
+  comments: CommentData[];
+  isLoading: boolean;
+  onAddComment: (comment: string) => Promise<boolean>;
+  voteType?: VoteType | null;
 }
 
 export const CommentSection: React.FC<CommentSectionProps> = ({
+  comments,
+  isLoading,
+  onAddComment,
   voteType,
-  onSubmit,
-  isSubmitting = false
 }) => {
-  const [comment, setComment] = useState('');
-  const [recentComments, setRecentComments] = useState<CommentData[]>([]);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [localComments, setLocalComments] = useState<CommentData[]>([]);
+  
+  useEffect(() => {
+    setLocalComments(comments);
+  }, [comments]);
 
-  const handleSubmit = async () => {
-    if (!comment.trim()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || submitting) return;
     
-    const success = await onSubmit(comment);
-    if (success) {
-      setComment('');
-      fetchRecentComments(); // Refresh comments after successful submission
-    }
-  };
-
-  const fetchRecentComments = async () => {
-    setIsLoadingComments(true);
+    setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from('agent_votes')
-        .select(`
-          id,
-          vote_type,
-          comment,
-          created_at,
-          user_id,
-          profiles:user_id(first_name, last_name, avatar_url)
-        `)
-        .not('comment', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-      
-      if (data) {
-        setRecentComments(data.map(item => ({
-          id: item.id,
-          content: item.comment || '',
-          user_id: item.user_id,
-          created_at: item.created_at,
-          vote_type: item.vote_type as VoteType,
-          user: item.profiles
-        })));
+      const success = await onAddComment(newComment.trim());
+      if (success) {
+        setNewComment('');
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error('Failed to add comment:', error);
     } finally {
-      setIsLoadingComments(false);
+      setSubmitting(false);
     }
   };
 
-  useEffect(() => {
-    fetchRecentComments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const getInitials = (user: { first_name?: string; last_name?: string }) => {
+    const first = user.first_name ? user.first_name[0] : '';
+    const last = user.last_name ? user.last_name[0] : '';
+    return `${first}${last}`.toUpperCase();
+  };
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Loading comments...</div>;
+  }
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Textarea
-          placeholder={voteType === 'up' ? "What did you like about this agent?" : "What could be improved?"}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          className="min-h-[100px]"
-          disabled={isSubmitting || !voteType}
-        />
-        <Button 
-          onClick={handleSubmit} 
-          disabled={!comment.trim() || isSubmitting || !voteType}
-          variant={voteType === 'up' ? "default" : "outline"}
-        >
-          {isSubmitting ? "Submitting..." : "Submit Feedback"}
-        </Button>
-      </div>
+      <h3 className="text-lg font-medium">Comments</h3>
       
-      {recentComments.length > 0 && (
-        <div className="space-y-3 pt-4 border-t">
-          <h3 className="text-sm font-medium">Recent Feedback</h3>
-          {recentComments.map(comment => (
-            <div key={comment.id} className="p-3 rounded-md bg-muted/50">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`w-2 h-2 rounded-full ${comment.vote_type === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="text-xs text-muted-foreground">
-                  {comment.user?.first_name || 'Anonymous'} • {new Date(comment.created_at).toLocaleDateString()}
-                </span>
+      {localComments.length === 0 ? (
+        <div className="text-center py-4 text-muted-foreground">
+          No comments yet. Be the first to comment!
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {localComments.map((comment) => (
+            <div key={comment.id} className="flex gap-3 p-3 rounded-lg bg-secondary/30">
+              <Avatar className="h-8 w-8">
+                {comment.user?.avatar_url && (
+                  <AvatarImage src={comment.user.avatar_url} alt="User" />
+                )}
+                <AvatarFallback>{getInitials(comment.user)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <p className="font-medium text-sm">
+                    {comment.user?.first_name} {comment.user?.last_name}
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(comment.created_at), 'MMM d, h:mm a')}
+                  </span>
+                </div>
+                <p className="text-sm mt-1">{comment.content}</p>
               </div>
-              <p className="text-sm">{comment.content}</p>
             </div>
           ))}
         </div>
       )}
       
-      {isLoadingComments && <div className="text-center text-sm text-muted-foreground">Loading comments...</div>}
-      {!isLoadingComments && recentComments.length === 0 && (
-        <div className="text-center text-sm text-muted-foreground pt-4 border-t">
-          No comments yet. Be the first to provide feedback!
+      <form onSubmit={handleSubmit} className="mt-4">
+        <Textarea
+          placeholder={
+            voteType
+              ? "Share why you " +
+                (voteType === "up" ? "liked" : "disliked") +
+                " this agent..."
+              : "Write a comment..."
+          }
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          className="mb-2"
+        />
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={!newComment.trim() || submitting}
+            className="mt-2"
+          >
+            {submitting ? "Posting..." : "Post Comment"}
+          </Button>
         </div>
-      )}
+      </form>
     </div>
   );
 };
+
+export default CommentSection;

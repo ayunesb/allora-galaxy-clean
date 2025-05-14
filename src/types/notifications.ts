@@ -8,6 +8,8 @@ export interface NotificationContent {
   type: NotificationType;
   timestamp: string;
   read: boolean;
+  actionUrl?: string;
+  actionLabel?: string;
 }
 
 export interface Notification {
@@ -17,8 +19,10 @@ export interface Notification {
   title?: string;
   message?: string;
   type?: NotificationType;
-  read_at?: string | null;
   created_at: string;
+  read_at?: string | null;
+  action_url?: string;
+  action_label?: string;
   data?: any;
 }
 
@@ -29,6 +33,8 @@ export const convertToNotificationContent = (notification: Notification): Notifi
     message: notification.message || '',
     type: notification.type || 'info',
     timestamp: notification.created_at,
-    read: !!notification.read_at
+    read: !!notification.read_at,
+    actionUrl: notification.action_url,
+    actionLabel: notification.action_label
   };
 };
