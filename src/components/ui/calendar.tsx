@@ -1,11 +1,18 @@
 
+"use client";
+
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, DropdownProps } from "react-day-picker";
-
+import { DayPicker } from "react-day-picker";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select,
+  SelectContent,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -15,15 +22,41 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  const handleMonthChange = (event: string) => {
+    const selectedMonth = parseInt(event, 10);
+    const currentDate = props.selected instanceof Date ? props.selected : 
+                        (props.defaultMonth || new Date());
+    
+    const newDate = new Date(currentDate);
+    newDate.setMonth(selectedMonth);
+    
+    if (props.onMonthChange) {
+      props.onMonthChange(newDate);
+    }
+  };
+
+  const handleYearChange = (event: string) => {
+    const selectedYear = parseInt(event, 10);
+    const currentDate = props.selected instanceof Date ? props.selected : 
+                        (props.defaultMonth || new Date());
+    
+    const newDate = new Date(currentDate);
+    newDate.setFullYear(selectedYear);
+    
+    if (props.onMonthChange) {
+      props.onMonthChange(newDate);
+    }
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3 pointer-events-auto", className)}
+      className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
+        caption_label: "hidden", // Hide the original caption label
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -54,27 +87,53 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Dropdown: ({ value, onChange, children }: DropdownProps) => {
+        Caption: ({ displayMonth }) => {
+          const month = displayMonth.getMonth();
+          const year = displayMonth.getFullYear();
+          
+          // Generate month options for the dropdown
+          const months = Array.from({ length: 12 }, (_, i) => ({
+            value: i.toString(),
+            label: format(new Date(year, i, 1), "MMMM")
+          }));
+          
+          // Generate year options (10 years before and after the current year)
+          const currentYear = new Date().getFullYear();
+          const years = Array.from({ length: 21 }, (_, i) => ({
+            value: (currentYear - 10 + i).toString(),
+            label: (currentYear - 10 + i).toString()
+          }));
+          
           return (
-            <Select
-              value={value?.toString()}
-              onValueChange={(newValue) => onChange?.(newValue)}
-            >
-              <SelectTrigger className="pr-1.5 focus:ring-0">
-                <SelectValue>{value}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {React.Children.map(children as React.ReactNode, (child) => (
-                  <SelectItem value={(child as any)?.props?.value}>
-                    {(child as any)?.props?.children}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex justify-center items-center gap-1">
+              <Select defaultValue={month.toString()} onValueChange={handleMonthChange}>
+                <SelectTrigger className="h-7 w-[110px] text-xs">
+                  <SelectValue>{format(displayMonth, "MMMM")}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select defaultValue={year.toString()} onValueChange={handleYearChange}>
+                <SelectTrigger className="h-7 w-[70px] text-xs">
+                  <SelectValue>{year}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(year => (
+                    <option key={year.value} value={year.value}>
+                      {year.label}
+                    </option>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           );
-        },
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        }
       }}
       {...props}
     />

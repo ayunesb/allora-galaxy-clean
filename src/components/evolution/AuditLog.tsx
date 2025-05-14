@@ -1,155 +1,188 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Pagination } from '@/components/ui/pagination';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { DataTable } from '@/components/ui/data-table';
+import { FilterState } from '@/types/shared';
+import { SystemLog } from '@/types/logs';
 import AuditLogFilters from './logs/AuditLogFilters';
 import LogDetailDialog from './logs/LogDetailDialog';
-import { FilterState } from '@/types/shared';
-
-// This will be replaced with actual data type from your system
-export interface AuditLogItem {
-  id: string;
-  timestamp: string;
-  userId: string;
-  action: string;
-  resource: string;
-  details?: any;
-  [key: string]: any;
-}
+import { formatDistanceToNow } from 'date-fns';
+import { Filter, RefreshCw } from 'lucide-react';
 
 interface AuditLogProps {
-  title?: string;
-  initialData?: AuditLogItem[];
+  logs: SystemLog[];
   isLoading?: boolean;
-  onFetchData?: (filter: FilterState) => Promise<AuditLogItem[]>;
+  totalPages?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  onRefresh?: () => void;
+  onFilterChange?: (filter: FilterState) => void;
 }
 
-export const AuditLog: React.FC<AuditLogProps> = ({
-  title = 'Audit Logs',
-  initialData = [],
-  isLoading = false,
-  onFetchData,
-}) => {
-  const [data, setData] = useState<AuditLogItem[]>(initialData);
-  const [loading, setLoading] = useState<boolean>(isLoading);
-  const [filter, setFilter] = useState<FilterState>({});
-  const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+function getSeverityColor(severity: string): string {
+  switch (severity) {
+    case 'error':
+      return 'destructive';
+    case 'warn':
+      return 'warning';
+    case 'info':
+      return 'secondary';
+    case 'debug':
+      return 'outline';
+    default:
+      return 'secondary';
+  }
+}
 
-  const fetchData = async () => {
-    if (!onFetchData) return;
-    
-    try {
-      setLoading(true);
-      const results = await onFetchData(filter);
-      setData(results);
-    } catch (error) {
-      console.error('Error fetching audit logs:', error);
-    } finally {
-      setLoading(false);
-    }
+export default function AuditLog({
+  logs,
+  isLoading = false,
+  totalPages = 1,
+  currentPage = 1,
+  onPageChange,
+  onRefresh,
+  onFilterChange
+}: AuditLogProps) {
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [filter, setFilter] = useState<FilterState>({});
+
+  const handleViewDetails = (log: SystemLog) => {
+    setSelectedLog(log);
   };
 
-  useEffect(() => {
-    if (onFetchData) {
-      fetchData();
-    }
-  }, []);
+  const handleCloseDetails = () => {
+    setSelectedLog(null);
+  };
 
-  const handleApplyFilter = () => {
-    fetchData();
+  const handleApplyFilter = (newFilter: FilterState) => {
+    setFilter(newFilter);
+    if (onFilterChange) {
+      onFilterChange(newFilter);
+    }
+    setShowFilters(false);
   };
 
   const handleResetFilter = () => {
-    setFilter({});
-    // Optionally fetch data with reset filters
-    fetchData();
+    const emptyFilter: FilterState = {};
+    setFilter(emptyFilter);
+    if (onFilterChange) {
+      onFilterChange(emptyFilter);
+    }
   };
 
-  const handleViewDetails = (log: AuditLogItem) => {
-    setSelectedLog(log);
-    setIsDetailOpen(true);
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
   };
-
-  const columns = [
-    {
-      accessorKey: 'timestamp',
-      header: 'Timestamp',
-      cell: ({ row }: any) => {
-        const timestamp = row.getValue('timestamp');
-        return new Date(timestamp).toLocaleString();
-      },
-    },
-    {
-      accessorKey: 'userId',
-      header: 'User',
-    },
-    {
-      accessorKey: 'action',
-      header: 'Action',
-    },
-    {
-      accessorKey: 'resource',
-      header: 'Resource',
-    },
-    {
-      id: 'actions',
-      cell: ({ row }: any) => {
-        return (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => handleViewDetails(row.original)}
-          >
-            View Details
-          </Button>
-        );
-      },
-    },
-  ];
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{title}</CardTitle>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={fetchData}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <AuditLogFilters 
-          filter={filter}
-          setFilter={setFilter}
-          onApply={handleApplyFilter}
-          onReset={handleResetFilter}
-        />
-        
-        <div className="mt-4">
-          <DataTable 
-            columns={columns} 
-            data={data}
-            isLoading={loading} 
-          />
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-xl">System Audit Log</CardTitle>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={toggleFilters}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+          {onRefresh && (
+            <Button variant="outline" size="sm" onClick={onRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          )}
         </div>
-        
-        {selectedLog && (
-          <LogDetailDialog 
-            isOpen={isDetailOpen}
-            onClose={() => setIsDetailOpen(false)}
-            log={selectedLog}
-          />
+      </CardHeader>
+
+      <div className="px-6">
+        {showFilters && (
+          <div className="mb-4">
+            <AuditLogFilters 
+              initialFilter={filter} 
+              onApply={handleApplyFilter} 
+              onReset={handleResetFilter}
+            />
+          </div>
+        )}
+      </div>
+
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : logs.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-border">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Module
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Event
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Severity
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-background">
+                {logs.map((log) => (
+                  <tr key={log.id}>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <span className="font-medium">{log.module}</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm max-w-xs truncate">
+                      {log.event}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <Badge variant={getSeverityColor(log.severity) as any}>
+                        {log.severity}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewDetails(log)}>
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No logs found. Try adjusting your filters.
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange || (() => {})}
+            />
+          </div>
         )}
       </CardContent>
+
+      <LogDetailDialog 
+        isOpen={!!selectedLog} 
+        onClose={handleCloseDetails} 
+        log={selectedLog} 
+      />
     </Card>
   );
-};
-
-export default AuditLog;
+}
