@@ -1,8 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useToast } from '@/hooks/use-toast';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { UserRole } from '@/types/shared';
 
 export interface UserProfile {
   first_name: string | null;
@@ -38,7 +40,7 @@ export function useUserManagement() {
   }, [currentWorkspace?.id]);
 
   // Fetch users from the database
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!currentWorkspace?.id) return;
 
     setIsLoading(true);
@@ -102,10 +104,10 @@ export function useUserManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentWorkspace?.id, toast]);
 
   // Change user role
-  const changeUserRole = async (userId: string, newRole: string) => {
+  const changeUserRole = async (userId: string, newRole: UserRole | string): Promise<boolean> => {
     if (!currentWorkspace?.id) return false;
 
     try {
@@ -120,8 +122,21 @@ export function useUserManagement() {
       // Update local state
       setUsers(prev => 
         prev.map(user => 
-          user.user_id === userId ? { ...user, role: newRole } : user
+          user.user_id === userId ? { ...user, role: newRole as string } : user
         )
+      );
+
+      // Log the role change
+      await logSystemEvent(
+        'auth',
+        'info',
+        {
+          description: `User role updated to ${newRole}`,
+          event_type: 'role_change',
+          target_user_id: userId,
+          new_role: newRole
+        },
+        currentWorkspace.id
       );
 
       toast({
@@ -142,10 +157,14 @@ export function useUserManagement() {
   };
 
   // Remove user from workspace
-  const removeUser = async (userId: string) => {
+  const removeUser = async (userId: string): Promise<boolean> => {
     if (!currentWorkspace?.id) return false;
 
     try {
+      // Find user details before removal for logging
+      const userToRemove = users.find(u => u.user_id === userId);
+      const userEmail = userToRemove?.profiles?.email?.[0]?.email || 'unknown';
+      
       const { error } = await supabase
         .from('tenant_user_roles')
         .delete()
@@ -156,6 +175,19 @@ export function useUserManagement() {
 
       // Update local state
       setUsers(prev => prev.filter(user => user.user_id !== userId));
+
+      // Log the removal
+      await logSystemEvent(
+        'auth',
+        'warning',
+        {
+          description: `User removed from workspace`,
+          event_type: 'user_removal',
+          target_user_id: userId,
+          email: userEmail
+        },
+        currentWorkspace.id
+      );
 
       toast({
         title: 'User removed',
@@ -178,7 +210,8 @@ export function useUserManagement() {
   const filteredUsers = users.filter(user => {
     const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
     const email = user.profiles?.email?.[0]?.email?.toLowerCase() || '';
-    return fullName.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+    const query = searchTerm.toLowerCase();
+    return fullName.includes(query) || email.includes(query);
   });
 
   return {

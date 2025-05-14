@@ -6,13 +6,14 @@ import { SystemEventModule, LogSeverity } from '@/types/shared';
  * Logs a system event to the database.
  * 
  * @param module The module generating the event
- * @param event The event severity or type
+ * @param severity The event severity level
  * @param context Additional context for the event
  * @param tenant_id Optional tenant ID for multi-tenant logging
+ * @returns Promise that resolves when the log is created
  */
-export default async function logSystemEvent(
+export async function logSystemEvent(
   module: SystemEventModule | string,
-  event: LogSeverity | string,
+  severity: LogSeverity | string,
   context: any,
   tenant_id?: string
 ): Promise<void> {
@@ -21,7 +22,8 @@ export default async function logSystemEvent(
       .from('system_logs')
       .insert({
         module,
-        event,
+        severity,
+        event: context?.event_type || 'system_event',
         context,
         tenant_id
       });
@@ -32,5 +34,4 @@ export default async function logSystemEvent(
   }
 }
 
-// Re-export for backwards compatibility
-export { default as logSystemEvent } from './logSystemEvent';
+export default logSystemEvent;

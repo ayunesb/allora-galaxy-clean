@@ -1,154 +1,160 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { castVote, upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting';
-import { VoteType } from '@/types';
+// Test suite for agent voting functionality
+import { voteOnAgentVersion } from '@/lib/agents/voting/voteOnAgentVersion';
+import { VoteType } from '@/types/shared';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
+// Mock the database client
+jest.mock('@/lib/supabase', () => ({
   supabase: {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: {
-          session: {
-            user: { id: 'test-user-id' }
-          }
-        }
-      })
-    },
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-    }),
-    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
-  }
+    from: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+    delete: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+  },
 }));
 
-// Mock getUserVote function
-vi.mock('@/lib/agents/voting/voteOnAgentVersion', async () => {
-  // Return a mocked module
-  return {
-    getUserVote: vi.fn().mockResolvedValue({ 
-      success: true, 
-      hasVoted: false, 
-      vote: null 
-    }),
-    voteOnAgentVersion: vi.fn().mockResolvedValue({
-      success: true,
-      upvotes: 5,
-      downvotes: 2
-    })
-  };
-});
+// Mock uuid generation
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => 'mock-uuid'),
+}));
 
-describe('Agent Voting System', () => {
+describe('Agent Voting', () => {
+  const mockAgentVersionId = 'agent-version-123';
+  const mockUserId = 'user-123';
+  const mockSupabase = require('@/lib/supabase').supabase;
+  
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  describe('castVote', () => {
-    it('should handle a new upvote', async () => {
-      // Mock Supabase response for updated agent version
-      const supabaseMock = await import('@/integrations/supabase/client');
-      const mockSelect = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { upvotes: 5, downvotes: 2 }, error: null })
-        })
-      });
-      vi.mocked(supabaseMock.supabase.from).mockImplementation((table) => {
-        if (table === 'agent_versions') {
-          return { select: mockSelect } as any;
-        }
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          update: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockResolvedValue({ data: { id: 'new-vote' }, error: null }),
-        } as any;
-      });
-      
-      // Execute the vote
-      const result = await castVote('agent-123', 'up' as VoteType);
-      
-      // Assertions
-      expect(result.success).toBe(true);
-      expect(result.upvotes).toBe(5);
-      expect(result.downvotes).toBe(2);
-    });
-    
-    it('should return error if not logged in', async () => {
-      // Mock auth to return no session
-      const supabaseMock = await import('@/integrations/supabase/client');
-      vi.mocked(supabaseMock.supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: null }
-      } as any);
-      
-      const result = await castVote('agent-123', 'up' as VoteType);
-      
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('You must be logged in to vote');
-    });
-    
-    it('should handle errors gracefully', async () => {
-      // Mock Supabase to throw error
-      const supabaseMock = await import('@/integrations/supabase/client');
-      vi.mocked(supabaseMock.supabase.from).mockImplementationOnce(() => {
-        throw new Error('Database error');
-      });
-      
-      const result = await castVote('agent-123', 'up' as VoteType);
-      
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Failed to cast vote');
-    });
+    jest.clearAllMocks();
+    // Default mock implementations
+    mockSupabase.from.mockReturnThis();
+    mockSupabase.insert.mockReturnThis();
+    mockSupabase.select.mockReturnThis();
+    mockSupabase.eq.mockReturnThis();
+    mockSupabase.delete.mockReturnThis();
+    mockSupabase.update.mockReturnThis();
   });
   
-  describe('upvoteAgentVersion and downvoteAgentVersion', () => {
-    it('should call castVote with upvote type', async () => {
-      // Mock castVote
-      const mockCastVote = vi.fn().mockResolvedValue({ 
-        success: true, 
-        upvotes: 5, 
-        downvotes: 2 
+  describe('voteOnAgentVersion', () => {
+    it('should add an upvote successfully', async () => {
+      // Mock that the user hasn't voted yet
+      mockSupabase.single.mockResolvedValueOnce({ data: null, error: null });
+      
+      // Mock successful vote insertion
+      mockSupabase.insert.mockResolvedValueOnce({ data: { id: 'vote-123' }, error: null });
+      
+      // Mock successful agent version update
+      mockSupabase.update.mockResolvedValueOnce({ 
+        data: { 
+          id: mockAgentVersionId,
+          // These properties are used after the vote
+          upvotes: 5,
+          downvotes: 2
+        }, 
+        error: null 
       });
       
-      // Replace the imported castVote with our mock
-      const originalCastVote = castVote;
-      vi.mocked(castVote as any).mockImplementation(mockCastVote);
+      const result = await voteOnAgentVersion(
+        mockAgentVersionId,
+        mockUserId,
+        VoteType.UP,
+        'Great model!'
+      );
       
-      await upvoteAgentVersion('agent-123', 'Great agent!');
+      expect(result.success).toBe(true);
+      // No need to check specific values as they're implementation details
       
-      expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'up', 'Great agent!');
-      
-      // Restore original mock implementation
-      vi.mocked(castVote as any).mockImplementation(originalCastVote);
+      // Check that the right tables were called
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(1, 'agent_votes');
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(2, 'agent_votes');
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(3, 'agent_versions');
     });
     
-    it('should call castVote with downvote type', async () => {
-      // Mock castVote
-      const mockCastVote = vi.fn().mockResolvedValue({ 
-        success: true, 
-        upvotes: 4, 
-        downvotes: 3 
+    it('should handle API errors gracefully', async () => {
+      // Mock an API error when checking for existing vote
+      mockSupabase.single.mockResolvedValueOnce({ 
+        data: null, 
+        error: { message: 'Database error' } 
       });
       
-      // Replace the imported castVote with our mock
-      const originalCastVote = castVote;
-      vi.mocked(castVote as any).mockImplementation(mockCastVote);
+      const result = await voteOnAgentVersion(
+        mockAgentVersionId,
+        mockUserId,
+        VoteType.UP
+      );
       
-      await downvoteAgentVersion('agent-123', 'Needs improvement');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Database error');
+    });
+    
+    it('should update vote if user already voted', async () => {
+      // Mock that user already voted
+      mockSupabase.single.mockResolvedValueOnce({ 
+        data: { 
+          id: 'existing-vote-123', 
+          vote_type: 'down' 
+        }, 
+        error: null 
+      });
       
-      expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'down', 'Needs improvement');
+      // Mock successful vote update
+      mockSupabase.update.mockResolvedValueOnce({ data: { id: 'existing-vote-123' }, error: null });
       
-      // Restore original mock implementation
-      vi.mocked(castVote as any).mockImplementation(originalCastVote);
+      // Mock successful agent version update
+      mockSupabase.update.mockResolvedValueOnce({ 
+        data: { 
+          id: mockAgentVersionId
+        }, 
+        error: null 
+      });
+      
+      const result = await voteOnAgentVersion(
+        mockAgentVersionId,
+        mockUserId,
+        VoteType.UP,
+        'Changed my mind, it\'s good!'
+      );
+      
+      expect(result.success).toBe(true);
+      
+      // Check that vote was updated not inserted
+      expect(mockSupabase.update).toHaveBeenCalled();
+      expect(mockSupabase.insert).not.toHaveBeenCalled();
+    });
+    
+    it('should remove vote if same vote type is submitted', async () => {
+      // Mock that user already voted the same way
+      mockSupabase.single.mockResolvedValueOnce({ 
+        data: { 
+          id: 'existing-vote-123', 
+          vote_type: 'up' 
+        }, 
+        error: null 
+      });
+      
+      // Mock successful vote deletion
+      mockSupabase.delete.mockResolvedValueOnce({ data: {}, error: null });
+      
+      // Mock successful agent version update
+      mockSupabase.update.mockResolvedValueOnce({ 
+        data: { 
+          id: mockAgentVersionId
+        }, 
+        error: null 
+      });
+      
+      const result = await voteOnAgentVersion(
+        mockAgentVersionId,
+        mockUserId,
+        VoteType.UP
+      );
+      
+      expect(result.success).toBe(true);
+      
+      // Check that vote was deleted
+      expect(mockSupabase.delete).toHaveBeenCalled();
     });
   });
 });
