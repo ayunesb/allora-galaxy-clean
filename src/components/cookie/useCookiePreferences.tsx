@@ -1,187 +1,206 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { toast } from '@/components/ui/use-toast';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
-export interface CookiePreferences {
-  ga4_enabled: boolean;
-  meta_pixel_enabled: boolean;
-  session_analytics_enabled: boolean;
-  functional: boolean;
-  marketing: boolean;
-  analytics: boolean;
+interface CookiePreference {
+  id?: string;
+  user_id?: string;
+  accepted_at?: string;
+  updated_at?: string;
+  ga4_enabled?: boolean;
+  meta_pixel_enabled?: boolean;
+  session_analytics_enabled?: boolean;
 }
 
-export const useCookiePreferences = () => {
-  const [preferences, setPreferences] = useState<CookiePreferences>({
-    ga4_enabled: false,
-    meta_pixel_enabled: false,
-    session_analytics_enabled: false,
-    functional: true, // Essential cookies are always enabled
-    marketing: false,
-    analytics: false
-  });
-  
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-
-  const tenantId = currentWorkspace?.id;
-
-  const fetchPreferences = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('cookie_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching cookie preferences:', error);
-      } else if (data) {
-        setPreferences({
-          ga4_enabled: data.ga4_enabled,
-          meta_pixel_enabled: data.meta_pixel_enabled,
-          session_analytics_enabled: data.session_analytics_enabled,
-          functional: true, // Essential cookies are always enabled
-          marketing: data.meta_pixel_enabled,
-          analytics: data.ga4_enabled || data.session_analytics_enabled
-        });
-      }
-    } catch (error) {
-      console.error('Error in useCookiePreferences:', error);
-    } finally {
-      setLoading(false);
-    }
+export interface CookiePreferencesState {
+  settings: {
+    essential: boolean;
+    analytics: boolean;
+    marketing: boolean;
   };
+  isLoaded: boolean;
+  hasAccepted: boolean;
+  showBanner: boolean;
+  acceptAll: () => Promise<void>;
+  acceptSelected: () => Promise<void>;
+  rejectAll: () => Promise<void>;
+  updatePreference: (category: string, value: boolean) => void;
+  togglePreference: (category: string) => void;
+}
 
-  const updatePreferences = async (newPreferences: Partial<CookiePreferences>) => {
-    if (!user) return;
+const defaultPreferences = {
+  essential: true, // Essential cookies are always enabled
+  analytics: false,
+  marketing: false
+};
 
-    try {
-      // Map the UI preferences back to database fields
-      const dbPreferences = {
-        ga4_enabled: newPreferences.analytics ?? preferences.ga4_enabled,
-        meta_pixel_enabled: newPreferences.marketing ?? preferences.meta_pixel_enabled,
-        session_analytics_enabled: newPreferences.analytics ?? preferences.session_analytics_enabled
-      };
+export const useCookiePreferences = (): CookiePreferencesState => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [preferences, setPreferences] = useState({
+    ...defaultPreferences
+  });
+  const [hasAccepted, setHasAccepted] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
 
-      const updatedPrefs = {
-        ...preferences,
-        ...newPreferences,
-        // If we're explicitly setting analytics/marketing, update the underlying specific settings
-        ...(newPreferences.analytics !== undefined ? { 
-          ga4_enabled: newPreferences.analytics,
-          session_analytics_enabled: newPreferences.analytics 
-        } : {}),
-        ...(newPreferences.marketing !== undefined ? { 
-          meta_pixel_enabled: newPreferences.marketing 
-        } : {})
-      };
-
-      const { error } = await supabase
-        .from('cookie_preferences')
-        .upsert({
-          user_id: user.id,
-          ...dbPreferences,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (error) {
-        throw error;
+  // Load preferences from localStorage or database
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        // Check if preferences exist in localStorage
+        const localPrefs = localStorage.getItem('cookiePreferences');
+        
+        if (localPrefs) {
+          const parsed = JSON.parse(localPrefs);
+          setPreferences(prev => ({
+            ...prev,
+            analytics: parsed.analytics || false,
+            marketing: parsed.marketing || false
+          }));
+          setHasAccepted(true);
+          setShowBanner(false);
+        } else if (user) {
+          // If user is logged in and no local prefs, check database
+          const { data, error } = await supabase
+            .from('cookie_preferences')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Error loading cookie preferences:', error);
+          } else if (data) {
+            setPreferences(prev => ({
+              ...prev,
+              analytics: data.session_analytics_enabled || false,
+              marketing: data.meta_pixel_enabled || false
+            }));
+            setHasAccepted(true);
+            setShowBanner(false);
+          }
+        }
+        
+        setIsLoaded(true);
+      } catch (error) {
+        console.error('Failed to load cookie preferences', error);
+        setIsLoaded(true);
       }
+    };
+    
+    loadPreferences();
+  }, [user]);
 
-      setPreferences(updatedPrefs);
+  // Save preferences
+  const savePreferences = async (prefs: typeof preferences) => {
+    try {
+      // Save to local storage
+      localStorage.setItem('cookiePreferences', JSON.stringify(prefs));
+      
+      // If user is logged in, save to database
+      if (user) {
+        const { error } = await supabase
+          .from('cookie_preferences')
+          .upsert({
+            user_id: user.id,
+            session_analytics_enabled: prefs.analytics,
+            meta_pixel_enabled: prefs.marketing,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+        
+        if (error) throw error;
+      }
+      
+      toast({
+        title: 'Preferences saved',
+        description: 'Your cookie preferences have been updated.',
+      });
+      
       return true;
-    } catch (error) {
-      console.error('Error updating cookie preferences:', error);
+    } catch (err) {
+      console.error('Error saving preferences:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to save preferences. Please try again.',
+        variant: 'destructive'
+      });
       return false;
     }
   };
 
-  // Update a single preference
-  const updatePreference = useCallback((key: keyof CookiePreferences, value: boolean) => {
-    updatePreferences({ [key]: value });
-  }, []);
-
-  // Accept all cookies
-  const handleAcceptAll = useCallback(async () => {
-    const allEnabled = {
-      functional: true,
-      marketing: true,
-      analytics: true
+  const acceptAll = async () => {
+    const newPrefs = {
+      ...preferences,
+      analytics: true,
+      marketing: true
     };
     
-    const success = await updatePreferences(allEnabled);
+    const success = await savePreferences(newPrefs);
     
     if (success) {
-      setOpen(false);
+      setPreferences(newPrefs);
+      setHasAccepted(true);
+      setShowBanner(false);
       toast({
-        title: "All cookies accepted",
-        description: "Thank you for accepting all cookies.",
+        title: 'Cookies accepted',
+        description: 'You have accepted all cookies.',
       });
     }
-  }, []);
+  };
 
-  // Reject all cookies except functional
-  const handleRejectAll = useCallback(async () => {
-    const allDisabled = {
-      functional: true, // Essential cookies are always enabled
-      marketing: false,
-      analytics: false
+  const acceptSelected = async () => {
+    const success = await savePreferences(preferences);
+    
+    if (success) {
+      setHasAccepted(true);
+      setShowBanner(false);
+    }
+  };
+
+  const rejectAll = async () => {
+    const newPrefs = {
+      ...defaultPreferences
     };
     
-    const success = await updatePreferences(allDisabled);
+    const success = await savePreferences(newPrefs);
     
     if (success) {
-      setOpen(false);
-      toast({
-        title: "Cookie preferences saved",
-        description: "Only essential cookies are enabled.",
-      });
+      setPreferences(newPrefs);
+      setHasAccepted(true);
+      setShowBanner(false);
     }
-  }, []);
+  };
 
-  // Save current preferences
-  const savePreferences = useCallback(async () => {
-    const success = await updatePreferences(preferences);
+  const updatePreference = (category: string, value: boolean) => {
+    if (category === 'essential') return; // Essential cookies cannot be disabled
     
-    if (success) {
-      setOpen(false);
-      toast({
-        title: "Cookie preferences saved",
-        description: "Your cookie preferences have been updated.",
-      });
-    }
-  }, [preferences]);
+    setPreferences(prev => ({
+      ...prev,
+      [category]: value
+    }));
+  };
 
-  useEffect(() => {
-    if (user) {
-      fetchPreferences();
-    }
-  }, [user]);
+  const togglePreference = (category: string) => {
+    if (category === 'essential') return; // Essential cookies cannot be disabled
+    
+    setPreferences(prev => ({
+      ...prev,
+      [category]: !prev[category as keyof typeof prev]
+    }));
+  };
 
   return {
-    preferences,
-    updatePreferences,
-    loading,
-    tenantId,
-    open,
-    setOpen,
+    settings: preferences,
+    isLoaded,
+    hasAccepted,
+    showBanner,
+    acceptAll,
+    acceptSelected,
+    rejectAll,
     updatePreference,
-    handleAcceptAll,
-    handleRejectAll,
-    savePreferences
+    togglePreference
   };
 };
 

@@ -1,11 +1,10 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BellIcon, MenuIcon, Sun, Moon } from "lucide-react";
 import { NotificationCenter } from "./NotificationCenter";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
-import { getNavigationItems } from "@/contexts/workspace/navigationItems";
 import MobileSidebar from "./MobileSidebar";
 import { useTheme } from "@/hooks/useTheme";
 import { useRBAC } from "@/hooks/useRBAC";
@@ -16,7 +15,7 @@ interface HeaderProps {
 
 export function Header({ title = "Allora OS" }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const { notifications, unreadCount } = useNotifications();
+  const { unreadCount } = useNotifications();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const { isAdmin } = useRBAC();
@@ -36,8 +35,6 @@ export function Header({ title = "Allora OS" }: HeaderProps) {
   const handleMobileItemClick = () => {
     setMobileMenuOpen(false);
   };
-
-  const navigationItems = getNavigationItems(isAdmin());
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background">

@@ -1,17 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import AuditLog from './AuditLog';
 import { SystemLog } from '@/types/logs';
 import { EvolutionFilter } from '@/types/evolution';
 import { supabase } from '@/lib/supabase';
-import { useNotify } from '@/lib/notifications/toast';
+import { toast } from '@/hooks/use-toast';
 
 export function EvolutionDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const notify = useNotify();
   const [evolutionMetrics, setEvolutionMetrics] = useState({
     totalStrategies: 0,
     activeAgents: 0,
@@ -45,7 +43,7 @@ export function EvolutionDashboard() {
         });
       } catch (error) {
         console.error('Error fetching evolution metrics:', error);
-        notify.error('Failed to load evolution metrics');
+        toast.error('Failed to load evolution metrics');
       }
     };
     
@@ -82,7 +80,7 @@ export function EvolutionDashboard() {
       return data as SystemLog[];
     } catch (error) {
       console.error('Error fetching audit logs:', error);
-      notify.error('Failed to load audit logs');
+      toast.error('Failed to load audit logs');
       return [];
     }
   };

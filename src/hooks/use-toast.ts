@@ -31,18 +31,18 @@ const ensureToastPropsCompatibility = (options: ToastOptions | ToastT): ToastT =
   return result;
 };
 
+// Create an enhanced toast function that can be called directly
+const enhancedToast = (options: ToastOptions | string) => {
+  if (typeof options === 'string') {
+    return sonnerToast(options);
+  }
+  return sonnerToast(ensureToastPropsCompatibility(options));
+};
+
 /**
  * Enhanced toast interface that combines Sonner functionality with UI consistency
  */
-export const toast = {
-  // Basic toast function that supports both our options format and Sonner's
-  toast: (options: ToastOptions | string) => {
-    if (typeof options === 'string') {
-      return sonnerToast(options);
-    }
-    return sonnerToast(ensureToastPropsCompatibility(options));
-  },
-  
+export const toast = Object.assign(enhancedToast, {
   /**
    * Display a success toast notification
    */
@@ -134,7 +134,7 @@ export const toast = {
   dismiss: (toastId?: string) => {
     return sonnerToast.dismiss(toastId);
   }
-};
+});
 
 /**
  * Hook to use toast notifications
@@ -142,11 +142,6 @@ export const toast = {
  */
 export function useToast() {
   return {
-    toast: (options: ToastOptions | string) => {
-      if (typeof options === 'string') {
-        return sonnerToast(options);
-      }
-      return sonnerToast(ensureToastPropsCompatibility(options));
-    }
+    toast: enhancedToast
   };
 }

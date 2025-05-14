@@ -1,42 +1,51 @@
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
+import { DateRange } from 'react-day-picker';
 
+// Evolution filter type
+export interface EvolutionFilter {
+  dateRange?: DateRange;
+  type?: string;
+  status?: string;
+  searchTerm?: string;
+}
+
+// Notification content type for the UI
 export interface NotificationContent {
   id: string;
   title: string;
   message: string;
-  type: NotificationType;
-  timestamp: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'system';
+  created_at: string;
   read: boolean;
-  actionUrl?: string;
-  actionLabel?: string;
+  action_url?: string;
+  action_label?: string;
 }
 
+// Database notification type
 export interface Notification {
   id: string;
-  tenant_id: string;
-  user_id: string;
   title: string;
   message: string;
-  type: NotificationType;
+  type: string;
   created_at: string;
   read_at: string | null;
-  is_read: boolean;
+  tenant_id: string;
+  user_id: string;
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
-  priority?: 'low' | 'medium' | 'high';
 }
 
-export const convertToNotificationContent = (notification: Notification): NotificationContent => {
+// Function to convert a database notification to a UI notification
+export function convertToNotificationContent(notification: Notification): NotificationContent {
   return {
     id: notification.id,
-    title: notification.title || '',
-    message: notification.message || '',
-    type: notification.type || 'info',
-    timestamp: notification.created_at,
-    read: notification.is_read || !!notification.read_at,
-    actionUrl: notification.action_url,
-    actionLabel: notification.action_label
+    title: notification.title,
+    message: notification.message,
+    type: notification.type as 'info' | 'success' | 'warning' | 'error' | 'system',
+    created_at: notification.created_at,
+    read: !!notification.read_at,
+    action_url: notification.action_url,
+    action_label: notification.action_label
   };
-};
+}

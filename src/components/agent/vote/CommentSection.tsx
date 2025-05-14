@@ -1,131 +1,69 @@
-
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
-import { VoteType } from '@/types/voting';
-import { User } from '@/types/user';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatDistanceToNow } from 'date-fns';
 
-export interface CommentData {
+interface Comment {
   id: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  vote_type: VoteType;
-  user: {
-    first_name?: string;
-    last_name?: string;
-    avatar_url?: string;
-  };
+  text: string;
+  author: string;
+  createdAt: Date;
 }
 
 interface CommentSectionProps {
-  comments: CommentData[];
-  isLoading: boolean;
-  onAddComment: (comment: string) => Promise<boolean>;
-  voteType?: VoteType | null;
+  comments: Comment[];
+  onSubmit: (comment: string) => void;
 }
 
-export const CommentSection: React.FC<CommentSectionProps> = ({
-  comments,
-  isLoading,
-  onAddComment,
-  voteType,
-}) => {
-  const [newComment, setNewComment] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [localComments, setLocalComments] = useState<CommentData[]>([]);
-  
-  useEffect(() => {
-    setLocalComments(comments);
-  }, [comments]);
+const CommentSection: React.FC<CommentSectionProps> = ({ comments, onSubmit }) => {
+  const [comment, setComment] = React.useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || submitting) return;
-    
-    setSubmitting(true);
-    try {
-      const success = await onAddComment(newComment.trim());
-      if (success) {
-        setNewComment('');
-      }
-    } catch (error) {
-      console.error('Failed to add comment:', error);
-    } finally {
-      setSubmitting(false);
+    if (comment.trim()) {
+      onSubmit(comment);
+      setComment('');
     }
   };
 
-  const getInitials = (user: { first_name?: string; last_name?: string }) => {
-    const first = user.first_name ? user.first_name[0] : '';
-    const last = user.last_name ? user.last_name[0] : '';
-    return `${first}${last}`.toUpperCase();
-  };
-
-  if (isLoading) {
-    return <div className="p-4 text-center">Loading comments...</div>;
-  }
-
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Comments</h3>
-      
-      {localComments.length === 0 ? (
-        <div className="text-center py-4 text-muted-foreground">
-          No comments yet. Be the first to comment!
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {localComments.map((comment) => (
-            <div key={comment.id} className="flex gap-3 p-3 rounded-lg bg-secondary/30">
-              <Avatar className="h-8 w-8">
-                {comment.user?.avatar_url && (
-                  <AvatarImage src={comment.user.avatar_url} alt="User" />
-                )}
-                <AvatarFallback>{getInitials(comment.user)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex justify-between items-center">
-                  <p className="font-medium text-sm">
-                    {comment.user?.first_name} {comment.user?.last_name}
-                  </p>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(comment.created_at), 'MMM d, h:mm a')}
-                  </span>
+    <Card className="w-full">
+      <Card className="p-4">
+        <h3 className="text-lg font-semibold mb-2">Comments</h3>
+        <ScrollArea className="h-[300px] mb-4">
+          {comments.length > 0 ? (
+            <div className="space-y-2">
+              {comments.map((comment) => (
+                <div key={comment.id} className="border rounded-md p-2">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">{comment.author}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(comment.createdAt)} ago
+                    </div>
+                  </div>
+                  <p className="text-sm mt-1">{comment.text}</p>
                 </div>
-                <p className="text-sm mt-1">{comment.content}</p>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="mt-4">
-        <Textarea
-          placeholder={
-            voteType
-              ? "Share why you " +
-                (voteType === "up" ? "liked" : "disliked") +
-                " this agent..."
-              : "Write a comment..."
-          }
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          className="mb-2"
-        />
-        <div className="flex justify-end">
-          <Button 
-            type="submit" 
-            disabled={!newComment.trim() || submitting}
-            className="mt-2"
-          >
-            {submitting ? "Posting..." : "Post Comment"}
+          ) : (
+            <p className="text-sm text-muted-foreground">No comments yet.</p>
+          )}
+        </ScrollArea>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <Textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Add a comment..."
+            className="resize-none"
+          />
+          <Button type="submit" disabled={!comment.trim()}>
+            Post Comment
           </Button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </Card>
+    </Card>
   );
 };
 

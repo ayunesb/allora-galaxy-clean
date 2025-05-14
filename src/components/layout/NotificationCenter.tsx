@@ -10,11 +10,16 @@ interface NotificationCenterProps {
 export function NotificationCenter({ onClose }: NotificationCenterProps) {
   const { 
     notifications,
-    markAsRead,
+    markAsRead: originalMarkAsRead,
     markAllAsRead,
     deleteNotification,
     unreadCount = 0
   } = useNotifications();
+  
+  // Create a wrapper function that returns void to match the expected type
+  const markAsRead = async (id: string): Promise<void> => {
+    await originalMarkAsRead(id);
+  };
   
   const notificationContents = notifications.map(notification => 
     convertToNotificationContent(notification)
@@ -33,3 +38,5 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
     </div>
   );
 }
+
+export default NotificationCenter;

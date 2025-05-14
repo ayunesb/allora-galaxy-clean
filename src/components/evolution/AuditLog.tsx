@@ -1,14 +1,16 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DateRange } from 'react-day-picker';
+import { Search, Filter } from 'lucide-react';
+import { SystemLog } from '@/types/logs';
+import { EvolutionFilter } from '@/types/evolution';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { LogDetailDialog } from './LogDetailDialog';
 import { Pagination } from '@/components/ui/pagination';
 import { formatDistanceToNow } from 'date-fns';
-import { SystemLog } from '@/types/logs';
-import AuditLogFilters from './logs/AuditLogFilters';
-import LogDetailDialog from './logs/LogDetailDialog';
-import { Loader2 } from 'lucide-react';
 
 export interface AuditLogProps {
   onFetchData: (filters: any) => Promise<SystemLog[]>;
@@ -158,11 +160,24 @@ const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
                 <strong>{Math.min(currentPage * LOGS_PER_PAGE, totalLogs)}</strong> of{" "}
                 <strong>{totalLogs}</strong> logs
               </div>
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
+              <div className="flex justify-center mt-6">
+                <nav aria-label="Pagination">
+                  <ul className="flex space-x-2">
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <li key={i}>
+                        <Button
+                          variant={currentPage === i + 1 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(i + 1)}
+                          className="w-10 h-10"
+                        >
+                          {i + 1}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </div>
             </div>
           </div>
         ) : (

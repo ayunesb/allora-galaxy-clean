@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 
 export function CronJobsMonitoring() {
-  const [activeTab, setActiveTab] = useState<string>('jobs');
+  const [activeTab, setActiveTab] = useState<string>('executions');
   
   const {
     jobs,
@@ -81,8 +81,6 @@ export function CronJobsMonitoring() {
       />
       
       <CronJobsTabs 
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         jobs={jobs.map(job => ({
           ...job,
           // Map status values to match CronJobExecution type
