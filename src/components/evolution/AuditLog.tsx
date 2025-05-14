@@ -1,117 +1,134 @@
 
 import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { SystemLog } from '@/types/logs';
-import LogDetailDialog from './logs/LogDetailDialog';
+import { ChevronRight } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { LogDetailDialog, type LogDetail } from './logs';
 
-interface AuditLogProps {
-  logs: SystemLog[];
-  isLoading: boolean;
+interface Log {
+  id: string;
+  timestamp: string;
+  level: string;
+  message: string;
+  module: string;
+  details?: Record<string, any>;
+  tenant_id?: string;
+  request_id?: string;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+interface AuditLogProps {
+  logs: Log[];
+  title?: string;
+  maxItems?: number;
+  showViewAll?: boolean;
+  onViewAll?: () => void;
+  isLoading?: boolean;
+}
+
+const getLevelColor = (level: string): string => {
+  switch (level.toLowerCase()) {
+    case 'error':
+      return 'destructive';
+    case 'warning':
+      return 'warning';
+    case 'info':
+      return 'info';
+    default:
+      return 'secondary';
+  }
+};
+
+const AuditLog: React.FC<AuditLogProps> = ({
+  logs,
+  title = 'Audit Log',
+  maxItems = 5,
+  showViewAll = true,
+  onViewAll,
+  isLoading = false,
+}) => {
+  const [selectedLog, setSelectedLog] = useState<LogDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
-  // Format date for display
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'Unknown date';
-    
-    try {
-      return format(new Date(dateString), 'MMM dd, yyyy HH:mm:ss');
-    } catch (e) {
-      return dateString;
-    }
-  };
+  const visibleLogs = maxItems ? logs.slice(0, maxItems) : logs;
   
-  // Determine badge color based on log level
-  const getLevelBadge = (level: string) => {
-    switch (level) {
-      case 'error':
-        return <Badge variant="destructive">{level}</Badge>;
-      case 'warning':
-        return <Badge variant="warning">{level}</Badge>;
-      case 'info':
-        return <Badge variant="secondary">{level}</Badge>;
-      default:
-        return <Badge>{level}</Badge>;
-    }
-  };
-  
-  // Handle opening the log detail dialog
-  const handleViewDetails = (log: SystemLog) => {
+  const handleLogClick = (log: LogDetail) => {
     setSelectedLog(log);
     setDialogOpen(true);
   };
   
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if (!logs.length) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No logs found.</p>
-      </div>
-    );
-  }
+  const closeDialog = () => {
+    setDialogOpen(false);
+  };
   
   return (
     <>
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[180px]">Timestamp</TableHead>
-              <TableHead>Module</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="w-[100px]">Level</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell className="font-mono text-xs">
-                  {formatDate(log.created_at)}
-                </TableCell>
-                <TableCell>{log.module}</TableCell>
-                <TableCell>{log.event}</TableCell>
-                <TableCell className="max-w-[300px] truncate">
-                  {log.description}
-                </TableCell>
-                <TableCell>{getLevelBadge(log.level)}</TableCell>
-                <TableCell>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+              ))}
+            </div>
+          ) : logs.length > 0 ? (
+            <>
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {visibleLogs.map((log) => (
+                    <Button
+                      key={log.id}
+                      variant="ghost"
+                      className="w-full justify-start h-auto py-2 px-3"
+                      onClick={() => handleLogClick(log)}
+                    >
+                      <div className="flex items-center w-full text-left">
+                        <Badge variant={getLevelColor(log.level)} className="mr-2">
+                          {log.level.toUpperCase()}
+                        </Badge>
+                        <div className="flex-1 truncate mr-2">
+                          <span className="block text-sm">{log.message}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              {showViewAll && logs.length > maxItems && (
+                <div className="pt-3 border-t mt-3">
                   <Button 
-                    size="sm" 
                     variant="ghost" 
-                    onClick={() => handleViewDetails(log)}
+                    className="w-full" 
+                    onClick={onViewAll}
                   >
-                    View
+                    View All ({logs.length})
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No log entries available
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
-      {selectedLog && (
-        <LogDetailDialog
-          log={selectedLog}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-        />
-      )}
+      <LogDetailDialog 
+        isOpen={dialogOpen} 
+        onClose={closeDialog} 
+        log={selectedLog} 
+      />
     </>
   );
 };

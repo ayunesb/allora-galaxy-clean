@@ -5,13 +5,14 @@ import { EdgeFunctionErrorDisplay } from "@/components/errors/EdgeFunctionErrorH
 import { useState } from "react";
 
 export default function ErrorHandlingDemo() {
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
   
   const triggerError = async (errorType: string) => {
     setLoading(true);
     setError(null);
+    setRequestId(null);
     
     try {
       const response = await fetch(`/api/demo-error-handling?type=${errorType}`);
@@ -20,7 +21,9 @@ export default function ErrorHandlingDemo() {
       if (!response.ok) {
         // Extract request ID if available
         const reqId = response.headers.get('x-request-id') || data.requestId;
-        setRequestId(reqId);
+        if (reqId) {
+          setRequestId(reqId);
+        }
         
         // Create error object with additional properties
         const error = new Error(data.error || 'Unknown error');
@@ -111,6 +114,11 @@ export default function ErrorHandlingDemo() {
             showDetails={true}
             showRequestId={true}
           />
+          {requestId && (
+            <div className="mt-2 text-sm text-muted-foreground">
+              Request ID: {requestId}
+            </div>
+          )}
         </div>
       )}
     </div>

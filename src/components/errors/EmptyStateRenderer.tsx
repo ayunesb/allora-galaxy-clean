@@ -1,83 +1,122 @@
 
 import React from 'react';
-import { 
-  EmptyState, 
+import {
   NoDataEmptyState,
+  NoSearchResultsEmptyState,
   FilterEmptyState,
-  NoSearchResultsEmptyState
+  CardEmptyState,
+  EmptyListState,
+  EmptyState
 } from './EmptyStates';
 
+export type EmptyStateType = 'no-data' | 'no-search-results' | 'filter' | 'card' | 'list' | 'custom';
+
 export interface EmptyStateRendererProps {
-  isEmpty: boolean;
-  isFiltered?: boolean;
-  isSearching?: boolean;
+  stateType: EmptyStateType;
   searchTerm?: string;
-  filterCount?: number;
-  loading?: boolean;
-  error?: any;
-  emptyStateProps?: React.ComponentProps<typeof EmptyState>;
-  noDataEmptyStateProps?: React.ComponentProps<typeof NoDataEmptyState>;
-  noSearchResultsEmptyStateProps?: React.ComponentProps<typeof NoSearchResultsEmptyState>;
-  noFilterResultsEmptyStateProps?: React.ComponentProps<typeof FilterEmptyState>;
-  className?: string;
-  children?: React.ReactNode;
   onClear?: () => void;
+  customMessage?: string;
+  className?: string;
+  filterCount?: number;
+  actionText?: string;
+  action?: () => void;
+  title?: string;
+  description?: string;
+  icon?: React.ReactNode;
 }
 
-export const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
-  isEmpty,
-  isFiltered = false,
-  isSearching = false,
+const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
+  stateType,
   searchTerm = '',
-  filterCount = 0,
-  loading = false,
-  error,
-  emptyStateProps,
-  noDataEmptyStateProps,
-  noSearchResultsEmptyStateProps,
-  noFilterResultsEmptyStateProps,
-  className,
-  children,
   onClear,
+  customMessage,
+  className,
+  filterCount = 0,
+  actionText,
+  action,
+  title,
+  description,
+  icon,
 }) => {
-  // Don't show empty state if we're loading
-  if (loading) return null;
-  
-  // Don't show empty state if there's an error (error component will handle this)
-  if (error) return null;
-  
-  // If there is data, just render children
-  if (!isEmpty) return <>{children}</>;
-  
-  // Show appropriate empty state based on context
-  if (isSearching && searchTerm) {
-    return (
-      <NoSearchResultsEmptyState
-        searchTerm={searchTerm}
-        className={className}
-        {...noSearchResultsEmptyStateProps}
-      />
-    );
+  // Generic props for all empty states
+  const commonProps = {
+    className,
+    action,
+    actionText,
+  };
+
+  switch (stateType) {
+    case 'no-data':
+      return (
+        <NoDataEmptyState
+          {...commonProps}
+          message={customMessage}
+        />
+      );
+
+    case 'no-search-results':
+      return (
+        <NoSearchResultsEmptyState
+          searchTerm={searchTerm}
+          onClear={onClear}
+          className={className}
+        />
+      );
+
+    case 'filter':
+      return (
+        <FilterEmptyState
+          onClear={onClear}
+          customMessage={customMessage}
+          className={className}
+          filterCount={filterCount}
+        />
+      );
+
+    case 'card':
+      return (
+        <CardEmptyState
+          title={title || "No Data"}
+          message={customMessage}
+          className={className}
+          action={action}
+          actionText={actionText}
+        />
+      );
+
+    case 'list':
+      return (
+        <EmptyListState
+          title={title || "No Items"}
+          message={customMessage}
+          className={className}
+          action={action}
+          actionText={actionText}
+        />
+      );
+
+    case 'custom':
+      return (
+        <EmptyState
+          title={title || "No Content"}
+          description={description || customMessage}
+          icon={icon}
+          action={action}
+          actionText={actionText}
+          className={className}
+        />
+      );
+
+    default:
+      return (
+        <NoDataEmptyState
+          className={className}
+          message={customMessage || "No data available"}
+          action={action}
+          actionText={actionText}
+        />
+      );
   }
-  
-  if (isFiltered && filterCount > 0) {
-    return (
-      <FilterEmptyState
-        onClear={onClear}
-        filterCount={filterCount}
-        className={className}
-        {...noFilterResultsEmptyStateProps}
-      />
-    );
-  }
-  
-  // Default empty state
-  return (
-    <EmptyState
-      className={className}
-      {...emptyStateProps}
-    />
-  );
 };
 
 export default EmptyStateRenderer;
