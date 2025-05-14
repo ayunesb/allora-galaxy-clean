@@ -18,10 +18,12 @@ import { Providers } from './providers';
 import EvolutionPage from './pages/evolution';
 import PageErrorBoundary from './components/errors/PageErrorBoundary';
 import ErrorBoundary from './components/errors/ErrorBoundary';
+import ErrorStateExamplesPage from './pages/examples/ErrorStateExamplesPage';
+import ErrorMonitoring from './pages/admin/ErrorMonitoring';
 
 function App() {
   return (
-    <ErrorBoundary level="section">
+    <ErrorBoundary>
       <Providers>
         <PageErrorBoundary>
           <Routes>
@@ -39,6 +41,9 @@ function App() {
                   <EvolutionPage />
                 </RequireAuth>
               } />
+              
+              {/* Examples Routes */}
+              <Route path="examples/error-states" element={<ErrorStateExamplesPage />} />
             </Route>
             
             {/* Auth Routes */}
@@ -59,6 +64,7 @@ function App() {
             }>
               <Route index element={<AdminDashboard />} />
               <Route path="logs" element={<SystemLogs />} />
+              <Route path="error-monitoring" element={<ErrorMonitoring />} />
               <Route path="ai-decisions" element={<AiDecisions />} />
               <Route path="api-keys" element={<ApiKeysPage />} />
               <Route path="cron-jobs" element={<CronJobsPage />} />

@@ -13,7 +13,7 @@ export interface ErrorStateProps {
   showDetails?: boolean;
   children?: React.ReactNode;
   className?: string;
-  variant?: 'default' | 'destructive' | 'outline';
+  variant?: 'default' | 'destructive';
   size?: 'sm' | 'md' | 'lg' | 'full';
 }
 

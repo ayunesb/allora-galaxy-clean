@@ -2,17 +2,29 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import AuditLogFilters, { AuditLogFilters as FilterType } from '@/components/evolution/logs/AuditLogFilters';
+import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenantId } from '@/hooks/useTenantId';
 import { Loader2 } from 'lucide-react';
 
-const AuditLog: React.FC = () => {
+interface AuditLogProps {
+  title?: string;
+  data?: any[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
+}
+
+const AuditLog: React.FC<AuditLogProps> = ({ 
+  title = "System Audit Log",
+  data,
+  isLoading: externalIsLoading,
+  onRefresh: externalRefresh
+}) => {
   const tenantId = useTenantId();
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const [filters, setFilters] = useState<FilterType>({});
+  const [filters, setFilters] = useState<any>({});
 
   const fetchLogs = async () => {
     if (!tenantId) {
@@ -68,19 +80,32 @@ const AuditLog: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, [tenantId, filters]);
+    // If external data is provided, use it, otherwise fetch logs
+    if (data) {
+      setLogs(data);
+    } else {
+      fetchLogs();
+    }
+  }, [tenantId, filters, data]);
 
-  const handleFiltersChange = (newFilters: FilterType) => {
+  const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
+  };
+
+  const handleRefresh = () => {
+    if (externalRefresh) {
+      externalRefresh();
+    } else {
+      fetchLogs();
+    }
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          System Audit Log
-          {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+          {title}
+          {(isLoading || externalIsLoading) && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -90,10 +115,10 @@ const AuditLog: React.FC = () => {
             onFiltersChange={handleFiltersChange} 
           />
           <SystemLogsList 
-            logs={logs} 
-            isLoading={isLoading} 
+            logs={data || logs} 
+            isLoading={externalIsLoading || isLoading} 
             error={error || undefined}
-            onRetry={fetchLogs}
+            onRetry={handleRefresh}
           />
         </div>
       </CardContent>
