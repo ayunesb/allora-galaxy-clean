@@ -4,8 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Import environment utilities
-import { getEnv } from "../../lib/env.ts";
-import { validateEnv, type EnvVar } from "../../lib/validateEnv.ts";
+import { getEnv, validateEnv, type EnvVar } from "../../lib/env.ts";
 
 const MODULE_NAME = "createDbFunctions";
 

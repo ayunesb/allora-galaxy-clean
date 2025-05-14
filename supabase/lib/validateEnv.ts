@@ -1,34 +1,51 @@
 
-import { getEnv } from "./env";
-
 /**
- * Type definition for environment variable requirements
+ * Environment variable configuration
  */
 export interface EnvVar {
   name: string;
   required: boolean;
-  description: string;
+  description?: string;
 }
 
 /**
- * Validate a list of environment variables and return their values
+ * Validate required environment variables
+ * @param requiredVars Array of environment variable definitions
+ * @returns Object with environment variables
  */
-export function validateEnv(requiredEnvs: EnvVar[]): Record<string, string> {
-  const result: Record<string, string> = {};
+export function validateEnv(requiredVars: EnvVar[]): Record<string, string> {
+  const env: Record<string, string> = {};
   const missing: string[] = [];
-  
-  for (const env of requiredEnvs) {
-    const value = getEnv(env.name);
-    result[env.name] = value;
+
+  requiredVars.forEach(({ name, required, description }) => {
+    const value = getEnv(name, '');
     
-    if (env.required && !value) {
-      missing.push(`${env.name} (${env.description})`);
+    if (required && !value) {
+      missing.push(`${name}${description ? ` (${description})` : ''}`);
     }
-  }
-  
+    
+    env[name] = value;
+  });
+
   if (missing.length > 0) {
-    console.warn(`Missing required environment variables: ${missing.join(', ')}`);
+    console.error(`Missing required environment variables: ${missing.join(', ')}`);
   }
-  
-  return result;
+
+  return env;
+}
+
+/**
+ * Safely get environment variables with fallback
+ * @param name The name of the environment variable
+ * @param fallback Optional fallback value if not found
+ * @returns The environment variable value or fallback
+ */
+export function getEnv(name: string, fallback: string = ""): string {
+  try {
+    const value = Deno.env.get(name);
+    return value !== undefined ? value : fallback;
+  } catch (err) {
+    console.warn(`Error accessing env variable ${name}:`, err);
+    return fallback;
+  }
 }

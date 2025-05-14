@@ -1,33 +1,33 @@
 
 // Test suite for agent voting functionality
 import { voteOnAgentVersion } from '@/lib/agents/voting/voteOnAgentVersion';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { VoteType } from '@/types/shared';
 
 // Mock the database client
-jest.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn(),
-    delete: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn(),
+    delete: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
   },
 }));
 
 // Mock uuid generation
-jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'mock-uuid'),
+vi.mock('uuid', () => ({
+  v4: vi.fn(() => 'mock-uuid'),
 }));
 
 describe('Agent Voting', () => {
   const mockAgentVersionId = 'agent-version-123';
-  const mockUserId = 'user-123';
   const mockSupabase = require('@/lib/supabase').supabase;
   
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Default mock implementations
     mockSupabase.from.mockReturnThis();
     mockSupabase.insert.mockReturnThis();
@@ -58,9 +58,7 @@ describe('Agent Voting', () => {
       
       const result = await voteOnAgentVersion(
         mockAgentVersionId,
-        mockUserId,
-        VoteType.UP,
-        'Great model!'
+        VoteType.Up
       );
       
       expect(result.success).toBe(true);
@@ -81,8 +79,7 @@ describe('Agent Voting', () => {
       
       const result = await voteOnAgentVersion(
         mockAgentVersionId,
-        mockUserId,
-        VoteType.UP
+        VoteType.Up
       );
       
       expect(result.success).toBe(false);
@@ -112,8 +109,7 @@ describe('Agent Voting', () => {
       
       const result = await voteOnAgentVersion(
         mockAgentVersionId,
-        mockUserId,
-        VoteType.UP,
+        VoteType.Up,
         'Changed my mind, it\'s good!'
       );
       
@@ -147,8 +143,7 @@ describe('Agent Voting', () => {
       
       const result = await voteOnAgentVersion(
         mockAgentVersionId,
-        mockUserId,
-        VoteType.UP
+        VoteType.Up
       );
       
       expect(result.success).toBe(true);
