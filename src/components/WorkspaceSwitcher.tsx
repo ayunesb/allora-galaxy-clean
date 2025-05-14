@@ -34,7 +34,10 @@ const WorkspaceSwitcher: React.FC<{
 
   // Handle workspace change
   const handleWorkspaceChange = (workspaceId: string) => {
-    setCurrentWorkspace(workspaceId);
+    const workspace = workspaces.find(w => w.id === workspaceId);
+    if (workspace) {
+      setCurrentWorkspace(workspace);
+    }
   };
 
   // If only one workspace, just display it
@@ -56,7 +59,7 @@ const WorkspaceSwitcher: React.FC<{
         <SelectValue placeholder="Select workspace" />
       </SelectTrigger>
       <SelectContent>
-        {workspaces.map((workspace: Tenant) => (
+        {workspaces.map((workspace) => (
           <SelectItem key={workspace.id} value={workspace.id}>
             {workspace.name}
           </SelectItem>

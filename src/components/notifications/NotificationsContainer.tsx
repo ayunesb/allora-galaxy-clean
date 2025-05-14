@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
-import { useNotificationData } from '@/hooks/useNotificationData';
-import { useNotificationActions } from '@/hooks/useNotificationActions';
+import { useNotifications } from '@/hooks/useNotifications';
 import NotificationTabs from './NotificationTabs';
 import { NotificationsPageHeader } from './NotificationsPageHeader';
 import NotificationEmptyState from './NotificationEmptyState';
@@ -16,8 +15,15 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
   setFilter: setExternalFilter
 }) => {
   const [selectedTab, setSelectedTab] = useState(externalFilter || 'all');
-  const { notifications, isLoading, refresh, unreadCount } = useNotificationData(selectedTab);
-  const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
+  const { 
+    notifications, 
+    isLoading, 
+    refreshNotifications,
+    unreadCount,
+    markAllAsRead, 
+    markAsRead, 
+    deleteNotification 
+  } = useNotifications();
   
   // Sync with external filter if provided
   const handleTabChange = (tab: string) => {
@@ -52,7 +58,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
       ) : (
         <NotificationEmptyState 
           filter={selectedTab} 
-          onRefresh={refresh}
+          onRefresh={refreshNotifications}
         />
       )}
     </div>

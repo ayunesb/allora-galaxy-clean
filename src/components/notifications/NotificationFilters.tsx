@@ -1,54 +1,46 @@
 
 import React from 'react';
-import { Check, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { NotificationType } from '@/types/notifications';
-
-export interface FilterOption {
-  value: NotificationType | 'all';
-  label: string;
-}
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { NotificationType } from '@/types/shared';
 
 interface NotificationFiltersProps {
-  selectedFilter: NotificationType | 'all';
-  onFilterChange: (filter: NotificationType | 'all') => void;
-  filterOptions: FilterOption[];
+  activeFilter: string;
+  unreadCount: number;
+  onFilterChange: (filter: string) => void;
+  onMarkAllAsRead?: () => void;
 }
 
-const NotificationFilters: React.FC<NotificationFiltersProps> = ({
-  selectedFilter,
+export const NotificationFilters: React.FC<NotificationFiltersProps> = ({
+  activeFilter,
+  unreadCount,
   onFilterChange,
-  filterOptions
+  onMarkAllAsRead
 }) => {
-  // Find the selected filter label
-  const selectedLabel = filterOptions.find(option => option.value === selectedFilter)?.label || 'All Types';
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-1">
-          <span>Filter: {selectedLabel}</span>
-          <ChevronDown className="h-4 w-4" />
+    <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
+      <Tabs value={activeFilter} onValueChange={onFilterChange} className="w-auto">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="unread" className="flex items-center gap-1">
+            Unread
+            {unreadCount > 0 && (
+              <Badge variant="secondary" className="h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                {unreadCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {onMarkAllAsRead && unreadCount > 0 && (
+        <Button variant="ghost" size="sm" onClick={onMarkAllAsRead}>
+          Mark all as read
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-48">
-        <DropdownMenuRadioGroup value={selectedFilter} onValueChange={(value) => onFilterChange(value as NotificationType | 'all')}>
-          {filterOptions.map(option => (
-            <DropdownMenuRadioItem key={option.value} value={option.value} className="flex items-center justify-between">
-              {option.label}
-              {selectedFilter === option.value && <Check className="h-4 w-4" />}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      )}
+    </div>
   );
 };
 

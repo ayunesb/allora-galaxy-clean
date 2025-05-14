@@ -3,6 +3,7 @@ import React from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { SidebarNav } from './SidebarNav';
 import { NavigationItem } from '@/types/shared';
+import { useSidebar } from '@/components/ui/sidebar/SidebarProvider';
 
 interface SidebarProps {
   items?: NavigationItem[];
@@ -10,7 +11,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ items, navigationItems: propNavigationItems }) => {
-  const { collapsed } = useWorkspace();
+  const { collapsed } = useSidebar();
   // Use either provided items, propNavigationItems, or fall back to empty array
   const navItems = items || propNavigationItems || [];
 

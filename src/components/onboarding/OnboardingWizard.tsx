@@ -4,53 +4,87 @@ import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
 import { OnboardingErrorDialog } from './OnboardingErrorDialog';
-import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
+import { OnboardingStep } from '@/types/shared';
 
-export const OnboardingWizard: React.FC = () => {
-  const {
-    currentStep,
-    formData,
-    progress,
-    isLoading,
-    nextStep,
-    prevStep,
-    goToStep,
-    updateFormData,
-    completeOnboardingProcess
-  } = useOnboardingWizard();
+interface OnboardingWizardProps {
+  initialStep?: number;
+}
 
+export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ initialStep = 0 }) => {
+  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [formData, setFormData] = useState({
+    companyName: '',
+    industry: '',
+    companySize: '',
+    website: '',
+    revenueRange: '',
+    description: '',
+    goals: [],
+    additionalInfo: '',
+    persona: {
+      name: '',
+      goals: [],
+      tone: 'professional'
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Define our steps
+  const steps = [
+    'company-info',
+    'additional-info',
+    'persona',
+    'strategy-generation',
+    'completed'
+  ] as const;
+
+  // Calculate progress percentage
+  const progress = Math.round((currentStep / (steps.length - 1)) * 100);
 
   // Convert step index to step name for StepContent
-  const getStepNameFromIndex = (stepIndex: number): string => {
-    const steps = [
-      'company-info',
-      'additional-info',
-      'persona',
-      'strategy-generation',
-      'completed'
-    ];
-    return steps[stepIndex] || steps[0];
+  const getStepNameFromIndex = (stepIndex: number): OnboardingStep => {
+    return steps[stepIndex] as OnboardingStep || 'company-info';
   };
 
   const handleStepClick = (stepIndex: number) => {
-    goToStep(stepIndex);
+    if (stepIndex < currentStep) {
+      setCurrentStep(stepIndex);
+    }
   };
 
-  const handleNextStep = async () => {
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const updateFormData = (data: any) => {
+    setFormData(prevData => ({ ...prevData, ...data }));
+  };
+
+  const completeOnboardingProcess = async () => {
     if (currentStep === 3) { // Index 3 is 'strategy-generation'
       setIsSubmitting(true);
       try {
-        await completeOnboardingProcess();
+        // Implementation would go here in a real app
+        // Mock a delay
+        setIsLoading(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsLoading(false);
         nextStep();
       } catch (error: any) {
         setError(error.message || 'Failed to complete onboarding');
       } finally {
         setIsSubmitting(false);
       }
-    } else {
-      nextStep();
     }
   };
 
@@ -71,10 +105,10 @@ export const OnboardingWizard: React.FC = () => {
         
         <StepNavigation
           currentStep={currentStep}
-          totalSteps={5}
+          totalSteps={steps.length}
           isSubmitting={isSubmitting}
           isNextDisabled={isLoading}
-          onNext={handleNextStep}
+          onNext={currentStep === 3 ? completeOnboardingProcess : nextStep}
           onPrev={prevStep}
           onSubmit={completeOnboardingProcess}
         />
@@ -84,7 +118,7 @@ export const OnboardingWizard: React.FC = () => {
         <OnboardingErrorDialog
           error={error}
           onClose={() => setError(null)}
-          onRetry={handleNextStep}
+          onRetry={completeOnboardingProcess}
         />
       )}
     </div>

@@ -1,90 +1,71 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { useAgentVote } from './useAgentVote';
 import VoteButton from './VoteButton';
 import CommentSection from './CommentSection';
-import { useAgentVote } from './useAgentVote';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { VoteType } from '@/types/shared';
+import { VoteType } from '@/types/voting';
 
 interface AgentVotePanelProps {
   agentVersionId: string;
   title?: string;
+  description?: string;
+  showComments?: boolean;
   className?: string;
 }
 
 const AgentVotePanel: React.FC<AgentVotePanelProps> = ({
   agentVersionId,
-  title = 'Agent Feedback',
-  className
+  title = 'Was this agent helpful?',
+  description = 'Help us improve by rating this agent',
+  showComments = true,
+  className = '',
 }) => {
   const {
     userVote,
     voteStats,
-    upvote,
-    downvote,
     comments,
-    addComment,
-    isLoading
-  } = useAgentVote({ agentVersionId });
-  
-  const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmitComment = async () => {
-    if (!comment.trim()) return;
-    
-    setIsSubmitting(true);
-    const success = await addComment(comment);
-    setIsSubmitting(false);
-    
-    if (success) {
-      setComment('');
-    }
-  };
+    isSubmitting,
+    handleUpvote,
+    handleDownvote,
+    handleCommentSubmit,
+  } = useAgentVote(agentVersionId);
 
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex justify-center gap-6">
-          <VoteButton
-            count={voteStats.upvotes}
-            isActive={userVote === 'up'}
-            type="up"
-            onClick={upvote}
+      <CardContent>
+        <div className="flex items-center justify-center space-x-4 py-4">
+          <VoteButton 
+            count={voteStats.upvotes} 
+            active={userVote?.vote_type === 'up'}
+            type="up" 
+            onClick={handleUpvote} 
           />
-          <VoteButton
-            count={voteStats.downvotes}
-            isActive={userVote === 'down'}
-            type="down"
-            onClick={downvote}
+          <VoteButton 
+            count={voteStats.downvotes} 
+            active={userVote?.vote_type === 'down'}
+            type="down" 
+            onClick={handleDownvote} 
           />
         </div>
         
-        <div className="mt-6">
-          <Textarea
-            placeholder="Share your feedback about this agent version..."
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className="min-h-[100px]"
-          />
-          
-          <div className="flex justify-end mt-2">
-            <Button
-              onClick={handleSubmitComment}
-              disabled={!comment.trim() || isSubmitting}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
-            </Button>
-          </div>
-        </div>
-        
-        {comments.length > 0 && (
-          <CommentSection comments={comments} />
+        {showComments && (
+          <>
+            <Separator className="my-4" />
+            <div className="space-y-4">
+              <h4 className="font-medium">Comments</h4>
+              <CommentSection 
+                comments={comments}
+                onSubmit={handleCommentSubmit}
+                isSubmitting={isSubmitting}
+              />
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

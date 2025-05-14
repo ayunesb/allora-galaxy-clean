@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { navigationItems } from '@/contexts/workspace/navigationItems';
+import { navigationItems } from '@/components/layout/sidebar/NavItems';
 import { WorkspaceProvider } from '@/context/WorkspaceContext';
 
 const MainLayout: React.FC = () => {

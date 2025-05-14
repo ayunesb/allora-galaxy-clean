@@ -28,6 +28,18 @@ export interface NotificationContent {
   metadata?: Record<string, any>;
 }
 
+// Notifications context type
+export interface NotificationsContextValue {
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  refreshNotifications: () => Promise<void>;
+  error: Error | null;
+}
+
 // Helper function to convert between types
 export const convertToNotificationContent = (notification: Notification): NotificationContent => ({
   id: notification.id,

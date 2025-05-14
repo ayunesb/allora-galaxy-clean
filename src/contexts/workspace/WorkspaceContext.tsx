@@ -1,6 +1,6 @@
 
-// Re-export from the consolidated implementation to maintain backward compatibility
-import { WorkspaceProvider, useWorkspace, WorkspaceContextType } from '@/contexts/WorkspaceContext';
+import { WorkspaceProvider, useWorkspace, type WorkspaceContextType } from '@/context/WorkspaceContext';
 
-export { WorkspaceProvider, useWorkspace, WorkspaceContextType };
+export { WorkspaceProvider, useWorkspace };
+export type { WorkspaceContextType };
 export default { WorkspaceProvider, useWorkspace };

@@ -9,6 +9,7 @@ export type VoteType = 'up' | 'down';
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 export type SystemEventType = 'create' | 'update' | 'delete' | 'login' | 'logout' | 'error';
 export type LogSeverity = 'info' | 'warning' | 'error' | 'critical';
+export type SystemEventModule = 'auth' | 'strategy' | 'agent' | 'plugin' | 'tenant' | 'system' | string;
 
 export interface BaseEntity {
   id: string;
@@ -34,6 +35,13 @@ export interface DateRange {
   to: Date | string | null;
 }
 
+export interface FilterProps {
+  filter: FilterState;
+  setFilter: (filter: FilterState) => void;
+  onApply?: () => void;
+  onReset?: () => void;
+}
+
 export interface NavigationItem {
   id?: string;
   title: string;
@@ -42,6 +50,9 @@ export interface NavigationItem {
   items?: NavigationItem[];
   badge?: string | number;
   permission?: string;
+  adminOnly?: boolean;
+  isNew?: boolean;
+  isExternal?: boolean;
 }
 
 export interface KPITrend {
@@ -81,4 +92,26 @@ export interface NotificationContent {
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
+}
+
+// Types for notifications
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: Role;
+  tenant_id: string;
+}
+
+// Types for onboarding
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+
+// Types for executions
+export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
+
+export interface ExecutionParams {
+  tenant_id: string;
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  inputs?: Record<string, any>;
 }
