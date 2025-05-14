@@ -1,5 +1,5 @@
 
-import { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 export interface FallbackProps {
   error: Error;

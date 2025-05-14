@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from "sonner";
-import { Card } from '@/components/ui/card';
 
 const ErrorRateAlerts: React.FC = () => {
   // Alert threshold configuration

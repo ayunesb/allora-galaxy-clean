@@ -36,7 +36,9 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
       }}
       onError={(error, info) => {
         if (onError) {
-          onError(error, info);
+          // Ensure componentStack is always a string
+          const componentStack = info.componentStack || '';
+          onError(error, { componentStack });
         }
       }}
       onReset={onReset}

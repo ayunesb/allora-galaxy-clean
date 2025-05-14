@@ -1,112 +1,108 @@
 
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import AuditLog from './AuditLog';
-import AgentEvolutionTab from './AgentEvolutionTab';
-import PluginEvolutionTab from './PluginEvolutionTab';
+import { useSupabaseFetch } from '@/hooks/useSupabaseFetch';
+import { useToast } from '@/lib/notifications/toast';
+import { useTenantId } from '@/hooks/useTenantId';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
+import PluginEvolutionTab from './PluginEvolutionTab';
+import AgentEvolutionTab from './AgentEvolutionTab';
+import AuditLog from './AuditLog';
 
-const EvolutionDashboard = () => {
-  const { type } = useParams<{ type?: string }>();
-  const navigate = useNavigate();
-  const { logs, isLoading, refetch } = useAuditLogData();
-  const [activeTab, setActiveTab] = useState('logs');
-  const { currentWorkspace } = useWorkspace();
-  const [selectedPluginId, setSelectedPluginId] = useState<string | undefined>(undefined);
-  const [selectedStrategyId] = useState<string>('default');
+interface EvolutionDashboardProps {
+  initialTab?: string;
+}
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
+const EvolutionDashboard: React.FC<EvolutionDashboardProps> = ({ initialTab = 'strategies' }) => {
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const { toast } = useToast();
+  const tenantId = useTenantId();
+  
+  // Fetch audit logs for evolution activities
+  const { data: auditLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = useSupabaseFetch(
+    'system_logs',
+    {
+      query: (query) => 
+        query
+          .select('*')
+          .eq('tenant_id', tenantId)
+          // Include evolution-related modules
+          .in('module', ['strategy', 'agent', 'plugin'])
+          // Include evolution-related events
+          .in('event', ['evolution', 'create', 'update', 'approve', 'reject', 'vote'])
+          .order('created_at', { ascending: false })
+          .limit(100),
+    }
+  );
 
-    if (value !== 'logs') {
-      if (type !== value) {
-        navigate(`/evolution/${value}`);
-      }
-    } else {
-      navigate('/evolution');
+  const handleRefreshLogs = async () => {
+    try {
+      await refetchLogs();
+      toast({
+        title: "Logs refreshed",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not refresh logs",
+        variant: "destructive",
+      });
     }
   };
-
-  // When a plugin is selected, update the selectedPluginId
-  const handlePluginSelect = (pluginId: string | undefined) => {
-    setSelectedPluginId(pluginId);
-  };
-
-  // If a type is provided in the URL, set it as the active tab
-  useEffect(() => {
-    if (type) {
-      setActiveTab(type);
-    }
-  }, [type]);
-
-  // If no workspace is selected, show a loading state
-  if (!currentWorkspace) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <Skeleton className="h-8 w-64" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-[300px] w-full" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Evolution Dashboard</h1>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            onClick={refetch}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="logs">System Logs</TabsTrigger>
-          <TabsTrigger value="agent">Agent Evolution</TabsTrigger>
-          <TabsTrigger value="plugin">Plugin Evolution</TabsTrigger>
-          <TabsTrigger value="strategy">Strategy Evolution</TabsTrigger>
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Evolution Dashboard</h1>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="strategies">Strategies</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+          <TabsTrigger value="plugins">Plugins</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="logs">
-          <AuditLog 
-            title="System Activity Logs"
-            data={logs}
-            isLoading={isLoading}
-            onRefresh={refetch}
-          />
+        
+        <TabsContent value="strategies" className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Strategy Evolution</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <StrategyEvolutionTab />
+            </CardContent>
+          </Card>
         </TabsContent>
-
-        <TabsContent value="agent">
-          <AgentEvolutionTab pluginId={selectedPluginId} />
+        
+        <TabsContent value="agents" className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Evolution</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <AgentEvolutionTab />
+            </CardContent>
+          </Card>
         </TabsContent>
-
-        <TabsContent value="plugin">
-          <PluginEvolutionTab onPluginSelect={handlePluginSelect} />
-        </TabsContent>
-
-        <TabsContent value="strategy">
-          <StrategyEvolutionTab strategyId={selectedStrategyId} />
+        
+        <TabsContent value="plugins" className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Plugin Evolution</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <PluginEvolutionTab />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
+      
+      <div className="mt-8">
+        <AuditLog 
+          title="Evolution Activity Logs" 
+          logs={auditLogs || []} 
+          isLoading={isLoadingLogs} 
+          onRefresh={handleRefreshLogs} 
+        />
+      </div>
     </div>
   );
 };

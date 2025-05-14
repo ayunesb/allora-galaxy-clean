@@ -1,71 +1,99 @@
 
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
 
 /**
- * Cookie preferences data structure
+ * Check if the user has already given consent to cookies
+ * @returns {boolean} True if consent was given, false otherwise
  */
-export interface CookiePreferences {
-  ga4Enabled: boolean;
-  metaPixelEnabled: boolean;
-  sessionAnalyticsEnabled: boolean;
-}
+export const getCookieConsentStatus = (): boolean => {
+  const consent = Cookies.get('cookie_consent');
+  return consent === 'true';
+};
 
 /**
- * Check if user has set cookie preferences
- * @returns boolean indicating consent status
+ * Set the cookie consent status
+ * @param {boolean} accepted - Whether consent was accepted
  */
-export function getCookieConsentStatus(): boolean {
-  try {
-    const cookieConsent = localStorage.getItem('cookie-consent');
-    return cookieConsent === 'true' || cookieConsent === 'false';
-  } catch (e) {
-    // If localStorage is not available (e.g. in SSR or private browsing)
-    return false;
-  }
-}
-
-/**
- * Set cookie consent preferences
- * @param accepted - Whether cookies are accepted
- * @param preferences - Specific cookie preferences if accepted
- */
-export function setCookieConsentStatus(accepted: boolean, preferences?: CookiePreferences): void {
-  try {
-    localStorage.setItem('cookie-consent', String(accepted));
+export const setCookieConsentStatus = (accepted: boolean): void => {
+  if (accepted) {
+    // Set the consent cookie with a 1 year expiry
+    Cookies.set('cookie_consent', 'true', { expires: 365 });
     
-    if (accepted && preferences) {
-      localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
-    } else {
-      localStorage.removeItem('cookie-preferences');
-    }
+    // Also save to localStorage as a backup
+    localStorage.setItem('cookie_consent', 'true');
+    localStorage.setItem('cookie_consent_date', new Date().toISOString());
+  } else {
+    // If rejected, we still set the cookie but with value 'false'
+    // This prevents the banner from showing again
+    Cookies.set('cookie_consent', 'false', { expires: 365 });
+    localStorage.setItem('cookie_consent', 'false');
+    localStorage.setItem('cookie_consent_date', new Date().toISOString());
     
-    // Set cookie expiration to 365 days
-    const expiryDate = new Date();
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-  } catch (e) {
-    console.error('Error setting cookie preferences:', e);
+    // Remove any analytics cookies
+    Cookies.remove('ga4_enabled');
+    Cookies.remove('meta_pixel_enabled');
+    Cookies.remove('session_analytics_enabled');
   }
-}
+};
 
 /**
- * Get user's cookie preferences
- * @returns The stored cookie preferences or default values
+ * Get the full cookie preferences object
+ * @returns {Object} Cookie preferences object
  */
-export function getCookiePreferences(): CookiePreferences {
-  const defaultPreferences: CookiePreferences = {
-    ga4Enabled: false,
-    metaPixelEnabled: false,
-    sessionAnalyticsEnabled: false
+export const getCookiePreferences = () => {
+  const defaultPreferences = {
+    ga4_enabled: false,
+    meta_pixel_enabled: false,
+    session_analytics_enabled: true,
+    updated_at: new Date().toISOString()
   };
   
   try {
-    const storedPreferences = localStorage.getItem('cookie-preferences');
-    if (storedPreferences) {
-      return JSON.parse(storedPreferences);
+    // Try to get from localStorage first
+    const storedPrefs = localStorage.getItem('cookie_preferences');
+    
+    if (storedPrefs) {
+      return JSON.parse(storedPrefs);
     }
+    
+    // If not in localStorage, check individual cookies
+    return {
+      ga4_enabled: Cookies.get('ga4_enabled') === 'true',
+      meta_pixel_enabled: Cookies.get('meta_pixel_enabled') === 'true',
+      session_analytics_enabled: Cookies.get('session_analytics_enabled') !== 'false', // Default to true
+      updated_at: localStorage.getItem('cookie_consent_date') || new Date().toISOString()
+    };
   } catch (e) {
-    console.error('Error reading cookie preferences:', e);
+    console.error('Error getting cookie preferences:', e);
+    return defaultPreferences;
+  }
+};
+
+/**
+ * Check if a specific cookie feature is enabled
+ * @param {string} feature - The feature to check, e.g. 'ga4_enabled'
+ * @returns {boolean} - Whether the feature is enabled
+ */
+export const isCookieFeatureEnabled = (feature: string): boolean => {
+  // First check if consent was given at all
+  if (!getCookieConsentStatus()) {
+    return false;
   }
   
-  return defaultPreferences;
-}
+  // Then check the specific feature
+  const prefs = getCookiePreferences();
+  return prefs[feature as keyof typeof prefs] === true;
+};
+
+/**
+ * Clear all cookies and localStorage related to cookie preferences
+ */
+export const clearCookiePreferences = (): void => {
+  Cookies.remove('cookie_consent');
+  Cookies.remove('ga4_enabled');
+  Cookies.remove('meta_pixel_enabled');
+  Cookies.remove('session_analytics_enabled');
+  localStorage.removeItem('cookie_consent');
+  localStorage.removeItem('cookie_consent_date');
+  localStorage.removeItem('cookie_preferences');
+};

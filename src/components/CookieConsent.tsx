@@ -1,72 +1,61 @@
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { getCookieConsentStatus, setCookieConsentStatus, getCookiePreferences, CookiePreferences } from '@/lib/utils';
-import CookieConsentDialog from './cookie/CookieConsentDialog';
+import { Card } from '@/components/ui/card';
+import { getCookieConsentStatus, setCookieConsentStatus } from '@/lib/utils/cookieUtils';
 
-const CookieConsent: React.FC = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [hasConsent, setHasConsent] = useState(getCookieConsentStatus());
+const CookieConsent = () => {
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Listen for custom event to open cookie preferences dialog
   useEffect(() => {
-    const handleOpenPreferences = () => setIsDialogOpen(true);
-    window.addEventListener('open-cookie-preferences', handleOpenPreferences);
-    return () => window.removeEventListener('open-cookie-preferences', handleOpenPreferences);
+    // Check if user has already consented
+    const hasConsented = getCookieConsentStatus();
+    
+    if (!hasConsented) {
+      // Show the cookie banner after a short delay
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
   }, []);
 
-  const handleAccept = (preferences: CookiePreferences) => {
-    setCookieConsentStatus(true, preferences);
-    setHasConsent(true);
-    setIsDialogOpen(false);
+  const handleAccept = () => {
+    setCookieConsentStatus(true);
+    setIsVisible(false);
   };
 
   const handleDecline = () => {
     setCookieConsentStatus(false);
-    setHasConsent(true);
-    setIsDialogOpen(false);
+    setIsVisible(false);
   };
 
-  // If user has already set cookie preferences, don't show the banner
-  if (hasConsent) {
+  if (!isVisible) {
     return null;
   }
 
   return (
-    <>
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t p-4">
-        <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/80 backdrop-blur-sm">
+      <Card className="max-w-4xl mx-auto p-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">
-              This website uses cookies to enhance your browsing experience.
+            <h3 className="font-medium">We use cookies</h3>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              This website uses cookies to improve your experience. By continuing to use this site, you agree to our use of cookies.
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setIsDialogOpen(true)}>
-              Preferences
+            <Button variant="outline" onClick={handleDecline}>
+              Decline
             </Button>
-            <Button variant="secondary" onClick={handleDecline}>
-              Decline All
-            </Button>
-            <Button onClick={() => handleAccept({
-              ga4Enabled: true,
-              metaPixelEnabled: true,
-              sessionAnalyticsEnabled: true
-            })}>
+            <Button onClick={handleAccept}>
               Accept All
             </Button>
           </div>
         </div>
-      </div>
-
-      <CookieConsentDialog 
-        open={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onAccept={handleAccept}
-        onDecline={handleDecline}
-        showDeclineButton={true}
-      />
-    </>
+      </Card>
+    </div>
   );
 };
 

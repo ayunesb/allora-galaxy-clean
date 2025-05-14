@@ -1,77 +1,66 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AuditLog as AuditLogType } from '@/types/evolution';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import { SystemLog } from '@/types/logs';
-import LogDetailDialog from './logs/LogDetailDialog';
 
 interface AuditLogProps {
-  logs: SystemLog[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
-  title?: string;
+  title: string;
+  logs: AuditLogType[];
+  isLoading: boolean;
+  onRefresh: () => void;
 }
 
 const AuditLog: React.FC<AuditLogProps> = ({
-  logs = [],
-  isLoading = false,
-  onRefresh = () => {},
-  title = "Audit Log"
+  title,
+  logs,
+  isLoading,
+  onRefresh
 }) => {
-  const [moduleFilter, setModuleFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  // Extract unique modules from logs
-  const modules = [...new Set(logs.map(log => log.module))].filter(Boolean);
-
-  // Filter logs based on selected module and search term
-  const filteredLogs = logs.filter(log => {
-    const moduleMatch = moduleFilter === 'all' || log.module === moduleFilter;
-    const searchMatch = !searchTerm || 
-      (log.event && log.event.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (log.module && log.module.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    return moduleMatch && searchMatch;
+  const [filters, setFilters] = useState({
+    module: 'all',
+    event: 'all'
   });
-
-  const handleClearFilters = () => {
-    setModuleFilter('all');
-    setSearchTerm('');
-  };
-
-  const handleViewLog = (log: SystemLog) => {
-    setSelectedLog(log);
-    setDialogOpen(true);
-  };
-
+  
+  // Convert AuditLog to SystemLog for compatibility with SystemLogsList
+  const convertedLogs: SystemLog[] = logs.map(log => ({
+    id: log.id || '',
+    tenant_id: log.tenant_id,
+    module: log.module || 'system',
+    event: log.event || 'unknown',
+    created_at: log.created_at || new Date().toISOString(),
+    context: log.context || {}
+  }));
+  
+  // Apply filters
+  const filteredLogs = convertedLogs.filter(log => {
+    if (filters.module !== 'all' && log.module !== filters.module) {
+      return false;
+    }
+    if (filters.event !== 'all' && log.event !== filters.event) {
+      return false;
+    }
+    return true;
+  });
+  
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle>{title}</CardTitle>
+        <AuditLogFilters 
+          filters={filters}
+          onFiltersChange={setFilters}
+          onRefresh={onRefresh}
+          isLoading={isLoading}
+        />
       </CardHeader>
       <CardContent>
-        <AuditLogFilters
-          modules={modules}
-          selectedModule={moduleFilter}
-          searchTerm={searchTerm}
-          onModuleChange={setModuleFilter}
-          onSearchChange={setSearchTerm}
-          onClearFilters={handleClearFilters}
-        />
-        
         <SystemLogsList 
-          logs={filteredLogs} 
-          isLoading={isLoading} 
-          onViewLog={handleViewLog}
-        />
-
-        <LogDetailDialog
-          log={selectedLog}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          logs={filteredLogs}
+          isLoading={isLoading}
         />
       </CardContent>
     </Card>

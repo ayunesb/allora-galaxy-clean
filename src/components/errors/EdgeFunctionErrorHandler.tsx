@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { ErrorState } from './ErrorState';
-import { EdgeErrorResponse } from '@/lib/errors/clientErrorHandler';
 
 export interface EdgeFunctionErrorProps {
   error: Error & {
