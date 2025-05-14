@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useWorkspaceContext, WorkspaceContextType } from "@/context/workspace-context";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>;
 
@@ -27,7 +27,7 @@ interface TeamSwitcherProps extends PopoverTriggerProps {}
 
 export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
   const [open, setOpen] = React.useState(false);
-  const { currentWorkspace, setCurrentWorkspace, tenants, loading } = useWorkspaceContext();
+  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace();
 
   if (loading) {
     return (
@@ -75,7 +75,7 @@ export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
             <CommandEmpty>No workspace found.</CommandEmpty>
             
             <CommandGroup heading="Workspaces">
-              {tenants?.map((workspace) => (
+              {workspaces?.map((workspace) => (
                 <CommandItem
                   key={workspace.id}
                   onSelect={() => {
