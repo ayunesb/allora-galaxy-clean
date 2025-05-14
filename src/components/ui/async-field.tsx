@@ -1,63 +1,28 @@
 
-import React, { useState, useEffect } from 'react';
-import { FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
-import { Loader2 } from 'lucide-react';
+import React from 'react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AsyncFieldProps {
-  name: string;
-  label?: string;
-  description?: string;
-  loading?: boolean;
-  validating?: boolean;
-  asyncMessage?: string;
+  isLoading?: boolean;
+  fallback?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }
 
 /**
- * AsyncField - Form field component with support for async validation states
+ * AsyncField - A component that shows a loading skeleton or fallback while data is loading
  */
-export const AsyncField = React.forwardRef<HTMLDivElement, AsyncFieldProps>(
-  ({ name, label, description, loading, validating, asyncMessage, children }, ref) => {
-    const [showAsyncIndicator, setShowAsyncIndicator] = useState(false);
-    
-    // Add a slight delay before showing the async indicator to prevent flickering
-    useEffect(() => {
-      let timer: NodeJS.Timeout;
-      if (validating) {
-        timer = setTimeout(() => setShowAsyncIndicator(true), 300);
-      } else {
-        setShowAsyncIndicator(false);
-      }
-      
-      return () => {
-        clearTimeout(timer);
-      };
-    }, [validating]);
-    
-    return (
-      <FormItem ref={ref}>
-        {label && (
-          <div className="flex justify-between">
-            <FormLabel htmlFor={name}>{label}</FormLabel>
-            {showAsyncIndicator && (
-              <span className="text-xs flex items-center text-muted-foreground">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Validating...
-              </span>
-            )}
-          </div>
-        )}
-        <FormControl>
-          {React.isValidElement(children) ? children : <span>{children}</span>}
-        </FormControl>
-        {description && <FormDescription>{description}</FormDescription>}
-        <FormMessage />
-        {asyncMessage && !validating && (
-          <p className="text-xs text-muted-foreground mt-1">{asyncMessage}</p>
-        )}
-      </FormItem>
-    );
+export const AsyncField: React.FC<AsyncFieldProps> = ({
+  isLoading = false,
+  fallback,
+  children,
+  className = "",
+}) => {
+  if (isLoading) {
+    return fallback || <Skeleton className={`h-6 w-full ${className}`} />;
   }
-);
 
-AsyncField.displayName = 'AsyncField';
+  return <div className={className}>{children}</div>;
+};
+
+export default AsyncField;

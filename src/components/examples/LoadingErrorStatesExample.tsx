@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataStateHandler } from '@/components/ui/data-state-handler';
 import { notifyError } from '@/lib/notifications/toast';
-import { api } from '@/lib/api';
 
 interface MockData {
   id: number;
@@ -16,7 +16,7 @@ interface MockData {
 const LoadingErrorStatesExample: React.FC = () => {
   const [data, setData] = useState<MockData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     // Simulate an API call
@@ -39,8 +39,9 @@ const LoadingErrorStatesExample: React.FC = () => {
         });
       } catch (e: any) {
         // Simulate error state
-        setError(e.message || 'Failed to load data.');
-        notifyError(e.message || 'Failed to load data.');
+        const formattedError = e instanceof Error ? e : new Error(e?.message || 'Failed to load data.');
+        setError(formattedError);
+        notifyError(formattedError.message || 'Failed to load data.');
         setData(null);
       } finally {
         setLoading(false);
@@ -52,7 +53,7 @@ const LoadingErrorStatesExample: React.FC = () => {
 
   const [partialData, setPartialData] = useState<MockData | null>(null);
   const [partialLoading, setPartialLoading] = useState(true);
-  const [partialError, setPartialError] = useState<string | null>(null);
+  const [partialError, setPartialError] = useState<Error | null>(null);
 
   useEffect(() => {
     // Simulate an API call
@@ -75,8 +76,9 @@ const LoadingErrorStatesExample: React.FC = () => {
         });
       } catch (e: any) {
         // Simulate error state
-        setPartialError(e.message || 'Failed to load partial data.');
-        notifyError(e.message || 'Failed to load partial data.');
+        const formattedError = e instanceof Error ? e : new Error(e?.message || 'Failed to load partial data.');
+        setPartialError(formattedError);
+        notifyError(formattedError.message || 'Failed to load partial data.');
         setPartialData(null);
       } finally {
         setPartialLoading(false);
@@ -98,13 +100,14 @@ const LoadingErrorStatesExample: React.FC = () => {
           </CardHeader>
           <CardContent>
             <DataStateHandler
-              loading={loading}
+              isLoading={loading}
               error={error}
               data={data}
-              renderLoading={<Skeleton className="w-full h-40" />}
-              renderError={(errorMessage) => <div className="text-red-500">{errorMessage}</div>}
-              renderContent={<div>{data?.message}</div>}
-            />
+              loadingComponent={<Skeleton className="w-full h-40" />}
+              errorComponent={<div className="text-red-500">{error?.message || 'An error occurred'}</div>}
+            >
+              <div>{data?.message}</div>
+            </DataStateHandler>
           </CardContent>
         </Card>
         
@@ -115,13 +118,14 @@ const LoadingErrorStatesExample: React.FC = () => {
           </CardHeader>
           <CardContent>
             <DataStateHandler
-              loading={partialLoading}
+              isLoading={partialLoading}
               error={partialError}
               data={partialData}
-              renderLoading={<Skeleton className="w-full h-32" />}
-              renderError={(errorMessage) => <div className="text-red-500">{errorMessage}</div>}
-              renderContent={partialData ? <div>{partialData.description}</div> : null}
-            />
+              loadingComponent={<Skeleton className="w-full h-32" />}
+              errorComponent={<div className="text-red-500">{partialError?.message || 'An error occurred'}</div>}
+            >
+              {partialData && <div>{partialData.description}</div>}
+            </DataStateHandler>
           </CardContent>
         </Card>
       </div>

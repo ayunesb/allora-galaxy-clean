@@ -1,9 +1,10 @@
+
 import React from "react";
 
 export interface DataStateHandlerProps<T> {
   isLoading?: boolean;
   data: T | null;
-  error: any;
+  error: Error | null | unknown;
   className?: string;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
@@ -33,7 +34,13 @@ export const DataStateHandler = <T,>({
 
   // Show error state
   if (error) {
-    return errorComponent || <p>Error: {error.message}</p>;
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : typeof error === 'string' 
+        ? error 
+        : 'An unknown error occurred';
+        
+    return errorComponent || <p>Error: {errorMessage}</p>;
   }
 
   // Show empty state if emptyCondition is true or data is empty
@@ -48,7 +55,7 @@ export const DataStateHandler = <T,>({
 export interface PartialDataStateHandlerProps<T> {
   isLoading?: boolean;
   data?: T | null;
-  error?: any;
+  error?: Error | null | unknown;
   className?: string;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
@@ -80,7 +87,13 @@ export const PartialDataStateHandler = <T,>({
   
   // Show error state
   if (error) {
-    return errorComponent || <p>Error: {error.message}</p>;
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : typeof error === 'string' 
+        ? error 
+        : 'An unknown error occurred';
+        
+    return errorComponent || <p>Error: {errorMessage}</p>;
   }
   
   // Show empty state if emptyCondition is true or data is empty

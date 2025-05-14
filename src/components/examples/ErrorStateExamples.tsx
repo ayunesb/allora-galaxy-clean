@@ -1,130 +1,109 @@
+
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ErrorState } from "@/lib/errors";
-import RetryMechanismExample from "@/examples/edge-error-handling/RetryMechanismExample";
-import CustomErrorBoundaryExample from "@/examples/edge-error-handling/CustomErrorBoundaryExample";
-import EdgeFunctionErrorPatterns from "@/examples/edge-error-handling/EdgeFunctionErrorPatterns";
-import { EmptyState, NoDataEmptyState, FilterEmptyState, NoSearchResultsEmptyState } from '@/components/errors/EmptyStates';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import ErrorState from '@/components/ui/error-state';
+import { EmptyState, NoDataEmptyState, FilterEmptyState, CardEmptyState } from '@/components/errors/EmptyStates';
+import { AlertTriangle, FileSearch, RefreshCw } from 'lucide-react';
 
 const ErrorStateExamples: React.FC = () => {
   return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-6">Error & Empty State Examples</h1>
-
-      <Tabs defaultValue="error-states" className="w-[400px]">
-        <TabsList>
-          <TabsTrigger value="error-states">Error States</TabsTrigger>
-          <TabsTrigger value="empty-states">Empty States</TabsTrigger>
-          <TabsTrigger value="edge-errors">Edge Function Errors</TabsTrigger>
-        </TabsList>
-        <TabsContent value="error-states">
-          <Card>
-            <CardHeader>
-              <CardTitle>Generic Error State</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ErrorState
-                title="Something went wrong"
-                description="There was an issue processing your request."
-              />
-            </CardContent>
-            <CardFooter>
-              <Button>Try Again</Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Custom Error State</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ErrorState
-                title="Unauthorized Access"
-                description="You do not have permission to view this content."
-                icon="lock"
-              />
-            </CardContent>
-            <CardFooter>
-              <Button variant="secondary">Contact Support</Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Alert Error State</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Alert variant="destructive">
-                <AlertTitle>Error!</AlertTitle>
-                <AlertDescription>
-                  There was a problem with your submission.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="empty-states">
-          <Card>
-            <CardHeader>
-              <CardTitle>No Data</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NoDataEmptyState />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>No Search Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NoSearchResultsEmptyState searchTerm="example" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Filter Empty State</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FilterEmptyState filters={['Category', 'Date']} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="edge-errors">
-          <Card>
-            <CardHeader>
-              <CardTitle>Retry Mechanism</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RetryMechanismExample />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Custom Error Boundary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CustomErrorBoundaryExample />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Edge Function Error Patterns</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EdgeFunctionErrorPatterns />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Error & Empty States Examples</h1>
+      
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Basic Error State */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Error State</CardTitle>
+            <CardDescription>Simple error with title and message</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ErrorState 
+              title="Something went wrong" 
+              message="There was an error loading your data"
+            />
+          </CardContent>
+        </Card>
+        
+        {/* Error with Icon */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Error with Icon</CardTitle>
+            <CardDescription>Custom icon and retry option</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ErrorState 
+              title="Connection Error" 
+              message="Failed to connect to the server"
+              icon={<AlertTriangle className="h-10 w-10 text-red-500" />}
+              retry={() => alert('Retrying...')}
+            />
+          </CardContent>
+        </Card>
+        
+        {/* Error with Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Error with Details</CardTitle>
+            <CardDescription>Technical error information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ErrorState 
+              title="API Error" 
+              message="Could not fetch data from API"
+              error={new Error("500 Internal Server Error: The server encountered an unexpected condition")}
+              showDetails={true}
+              retry={() => alert('Retrying API call...')}
+            />
+          </CardContent>
+        </Card>
+        
+        {/* Empty State */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Empty State</CardTitle>
+            <CardDescription>When there's no data to display</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NoDataEmptyState 
+              message="No items found in your collection"
+              action={() => alert('Adding new item...')}
+              actionText="Add Item"
+            />
+          </CardContent>
+        </Card>
+        
+        {/* Filter Empty State */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filter Empty State</CardTitle>
+            <CardDescription>No results match the filters</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FilterEmptyState 
+              message="Your current filters returned no results"
+              resetFilters={() => alert('Resetting filters...')}
+            />
+          </CardContent>
+        </Card>
+        
+        {/* Compact Card Empty State */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Card Empty State</CardTitle>
+            <CardDescription>Compact empty state for cards</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CardEmptyState 
+              title="No Activity"
+              message="There's no recent activity to display"
+              action={() => alert('View all...')}
+              actionText="View All"
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -72,7 +72,7 @@ export function AsyncDataRenderer<T>({
     return (
       <NoDataEmptyState
         message={emptyMessage || "No data available"}
-        action={onRetry}
+        action={onRetry ? onRetry : undefined}
         actionText={onRetry ? "Refresh" : undefined}
       />
     );
