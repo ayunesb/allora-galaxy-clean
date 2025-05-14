@@ -1,22 +1,45 @@
 
-export enum VoteType {
-  UP = 'up',
-  DOWN = 'down'
-}
+import { VoteType } from '@/types/shared';
 
-export interface AgentVote {
-  id: string;
+export interface VoteParams {
   agentVersionId: string;
   userId: string;
-  voteType: VoteType;
+  voteType: 'up' | 'down';
   comment?: string;
-  createdAt: string;
 }
 
 export interface VoteResult {
   success: boolean;
   voteId?: string;
   error?: string;
-  upvotes?: number;
-  downvotes?: number;
+}
+
+export interface AgentVoteStats {
+  upvotes: number;
+  downvotes: number;
+  total: number;
+  ratio: number;
+}
+
+export interface UserVoteData {
+  voteType: VoteType;
+  comment?: string | null;
+}
+
+export interface UserVoteResponse {
+  hasVoted: boolean;
+  vote: UserVoteData | null;
+}
+
+export interface CommentData {
+  id: string;
+  content: string;
+  vote_type: 'up' | 'down';
+  created_at: string;
+  user_id: string;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+  } | null;
 }

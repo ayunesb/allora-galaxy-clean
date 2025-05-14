@@ -113,14 +113,14 @@ describe('Agent Voting Functions', () => {
   describe('upvoteAgentVersion', () => {
     it('should call voteOnAgentVersion with the correct parameters', async () => {
       // Create a spy on voteOnAgentVersion
-      const voteOnAgentVersionSpy = vi.fn().mockResolvedValue({
+      const voteOnAgentVersionMock = vi.fn().mockResolvedValue({
         success: true,
         voteId: 'vote-123'
       });
       
       // Replace the implementation temporarily
-      const originalVoteOnAgentVersion = globalThis.voteOnAgentVersion;
-      (globalThis as any).voteOnAgentVersion = voteOnAgentVersionSpy;
+      const originalVoteOnAgentVersion = voteOnAgentVersion;
+      vi.spyOn(await import('@/lib/agents/voting/voteOnAgentVersion'), 'voteOnAgentVersion').mockImplementation(voteOnAgentVersionMock);
       
       // Call upvoteAgentVersion
       const result = await upvoteAgentVersion({
@@ -130,10 +130,10 @@ describe('Agent Voting Functions', () => {
       });
       
       // Restore the original implementation
-      (globalThis as any).voteOnAgentVersion = originalVoteOnAgentVersion;
+      vi.mocked(voteOnAgentVersion).mockRestore();
       
       // Expectations
-      expect(voteOnAgentVersionSpy).toHaveBeenCalledWith({
+      expect(voteOnAgentVersionMock).toHaveBeenCalledWith({
         agentVersionId: 'agent-123',
         userId: 'user-123',
         voteType: 'up',

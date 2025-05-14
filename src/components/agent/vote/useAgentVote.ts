@@ -1,8 +1,9 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/use-toast';
-import { VoteType } from '@/lib/agents/voting/types';
+import { VoteType } from '@/types/shared';
+import { castVote } from '@/lib/agents/voting';
 
 export const useAgentVote = (agentVersionId: string) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +62,7 @@ export const useAgentVote = (agentVersionId: string) => {
   }, [agentVersionId]);
   
   // Cast or update vote
-  const castVote = useCallback(async (voteType: VoteType, comment?: string) => {
+  const performVote = useCallback(async (voteType: VoteType, comment?: string) => {
     setIsLoading(true);
     try {
       const { data: userSession } = await supabase.auth.getSession();
@@ -76,29 +77,20 @@ export const useAgentVote = (agentVersionId: string) => {
         return false;
       }
       
-      // Call the upvoteAgentVersion or downvoteAgentVersion function based on the vote type
-      const voteFunction = voteType === VoteType.UP ? 'upvoteAgentVersion' : 'downvoteAgentVersion';
+      // Use the castVote function from our voting utility
+      const result = await castVote(agentVersionId, voteType === VoteType.UP ? 'up' : 'down', comment);
       
-      const { data, error } = await supabase.functions.invoke(voteFunction, {
-        body: { 
-          agent_version_id: agentVersionId,
-          user_id: userId,
-          comment 
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Update local state based on vote result
-      if (data && data.success) {
+      if (result.success) {
         setUserVote(voteType);
-        fetchVotes(); // Refresh vote counts
+        await fetchVotes(); // Refresh vote counts
         
         toast({
           title: 'Vote recorded',
           description: `Your ${voteType === VoteType.UP ? 'upvote' : 'downvote'} was recorded successfully`,
         });
         return true;
+      } else {
+        throw new Error(result.error || 'Failed to cast vote');
       }
     } catch (error: any) {
       console.error('Error casting vote:', error);
@@ -120,6 +112,6 @@ export const useAgentVote = (agentVersionId: string) => {
     downvotes,
     userVote,
     fetchVotes,
-    castVote
+    castVote: performVote
   };
 };
