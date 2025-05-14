@@ -55,3 +55,9 @@ export interface TimestampFields {
 
 // Generic key-value record
 export type KeyValueRecord = Record<string, any>;
+
+// Vote type for agent voting
+export type VoteType = 'upvote' | 'downvote' | 'neutral';
+
+// Trend direction for KPIs
+export type TrendDirection = 'up' | 'down' | 'neutral';

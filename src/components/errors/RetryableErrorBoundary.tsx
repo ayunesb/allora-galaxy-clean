@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ErrorBoundary, FallbackProps } from '@/components/errors/ErrorBoundaryBase';
-import { ErrorFallback } from './ErrorFallback';
+import { ErrorBoundary, FallbackProps } from './ErrorBoundaryBase';
+import ErrorFallback from './ErrorFallback';
 
 export type RetryableErrorBoundaryProps = {
   children: React.ReactNode;

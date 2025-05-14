@@ -1,92 +1,102 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { 
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Filter } from 'lucide-react';
 import { LogFilters } from '@/types/logs';
 
 interface ErrorMonitoringFiltersProps {
   filters: LogFilters;
   onFiltersChange: (filters: LogFilters) => void;
   isLoading: boolean;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   filters,
   onFiltersChange,
   isLoading,
-  onRefresh,
+  onRefresh
 }) => {
-  const [searchTerm, setSearchTerm] = React.useState(filters.searchTerm || '');
-  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onFiltersChange({
+      ...filters,
+      search: e.target.value
+    });
+  };
+
+  const handleSeverityChange = (value: string) => {
+    onFiltersChange({
+      ...filters,
+      severity: value !== 'all' ? [value] : undefined
+    });
+  };
+
   const handleModuleChange = (value: string) => {
-    onFiltersChange({ ...filters, module: value as any });
+    onFiltersChange({
+      ...filters,
+      module: value !== 'all' ? [value] : undefined
+    });
   };
-  
-  const handleSearch = () => {
-    onFiltersChange({ ...filters, searchTerm });
-  };
-  
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-  
+
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      <div className="flex items-center gap-2">
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search errors..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-        </div>
-        
-        <Button variant="outline" onClick={handleSearch}>
-          Filter
-        </Button>
+    <div className="flex flex-wrap gap-3 items-center">
+      <div className="relative w-full sm:w-64">
+        <Input
+          placeholder="Search errors..."
+          value={filters.search || ''}
+          onChange={handleSearchChange}
+          className="pl-8"
+        />
+        <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       </div>
       
-      <Select value={filters.module as string} onValueChange={handleModuleChange}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Module" />
+      <Select
+        value={(filters.severity && filters.severity[0]) || 'all'}
+        onValueChange={handleSeverityChange}
+      >
+        <SelectTrigger className="w-full sm:w-36">
+          <SelectValue placeholder="Severity" />
         </SelectTrigger>
         <SelectContent>
-          <SelectGroup>
-            <SelectItem value="all">All Modules</SelectItem>
-            <SelectItem value="system">System</SelectItem>
-            <SelectItem value="auth">Auth</SelectItem>
-            <SelectItem value="strategy">Strategy</SelectItem>
-            <SelectItem value="plugin">Plugin</SelectItem>
-            <SelectItem value="agent">Agent</SelectItem>
-            <SelectItem value="billing">Billing</SelectItem>
-          </SelectGroup>
+          <SelectItem value="all">All Severities</SelectItem>
+          <SelectItem value="low">Low</SelectItem>
+          <SelectItem value="medium">Medium</SelectItem>
+          <SelectItem value="high">High</SelectItem>
+          <SelectItem value="critical">Critical</SelectItem>
         </SelectContent>
       </Select>
       
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={onRefresh}
-        disabled={isLoading}
-        className="ml-auto"
+      <Select
+        value={(filters.module && filters.module[0]) || 'all'}
+        onValueChange={handleModuleChange}
       >
-        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-      </Button>
+        <SelectTrigger className="w-full sm:w-36">
+          <SelectValue placeholder="Module" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Modules</SelectItem>
+          <SelectItem value="system">System</SelectItem>
+          <SelectItem value="api">API</SelectItem>
+          <SelectItem value="database">Database</SelectItem>
+          <SelectItem value="auth">Authentication</SelectItem>
+          <SelectItem value="strategy">Strategy</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {onRefresh && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="ml-auto h-9 w-9"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span className="sr-only">Refresh</span>
+        </Button>
+      )}
     </div>
   );
 };

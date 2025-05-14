@@ -1,128 +1,180 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { handleError } from './ErrorHandler';
+import { useState, useCallback } from 'react';
 import { useRetry } from './retryUtils';
+import { useErrorHandler } from './useErrorHandler';
+import { notifyPromise } from '@/lib/notifications/toast';
 
-interface FetchOptions {
-  onSuccess?: (data: any) => void;
+interface UseFetchingOptions<T> {
+  initialData?: T;
+  onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
-  dependencies?: any[];
-  skip?: boolean;
+  showLoadingToast?: boolean;
+  showSuccessToast?: boolean;
+  showErrorToast?: boolean;
+  successMessage?: string;
+  errorMessage?: string;
+  loadingMessage?: string;
+  retryable?: boolean;
+  maxAttempts?: number;
   context?: Record<string, any>;
-  showNotification?: boolean;
-  logToSystem?: boolean;
-  tenantId?: string;
-  module?: string;
-  retry?: boolean;
-  maxRetries?: number;
 }
 
 /**
- * Hook for fetching data with error handling and loading state
+ * Hook for fetching data with error handling and retry capability
  */
-export function useDataFetching<T>(
-  fetchFn: () => Promise<T>,
-  options: FetchOptions = {}
-) {
-  const [data, setData] = useState<T | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [isFetched, setIsFetched] = useState<boolean>(false);
-  
+export function useDataFetching<T>(options: UseFetchingOptions<T> = {}) {
   const {
+    initialData,
     onSuccess,
     onError,
-    dependencies = [],
-    skip = false,
-    context = {},
-    showNotification = true,
-    logToSystem = true,
-    tenantId = 'system',
-    module = 'system',
-    retry = false,
-    maxRetries = 3
+    showLoadingToast = false,
+    showSuccessToast = false,
+    showErrorToast = true,
+    successMessage = 'Data loaded successfully',
+    errorMessage = 'Failed to load data',
+    loadingMessage = 'Loading data...',
+    retryable = true,
+    maxAttempts = 3,
+    context = {}
   } = options;
-  
-  const retryHandler = useRetry(() => fetchFn(), {
-    maxAttempts: maxRetries,
-    showFeedback: retry,
-    feedbackMessage: "Fetching data failed, retrying..."
-  });
 
-  const fetchData = useCallback(async () => {
+  const [data, setData] = useState<T | undefined>(initialData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { handleError } = useErrorHandler();
+  const { retryAsync, retryCount, isRetrying } = useRetry();
+
+  const fetchData = useCallback(async (
+    fetchFn: () => Promise<T>,
+    fetchOptions: Partial<UseFetchingOptions<T>> = {}
+  ) => {
+    const {
+      onSuccess: fnOnSuccess = onSuccess,
+      onError: fnOnError = onError,
+      showLoadingToast: fnShowLoadingToast = showLoadingToast,
+      showSuccessToast: fnShowSuccessToast = showSuccessToast,
+      showErrorToast: fnShowErrorToast = showErrorToast,
+      successMessage: fnSuccessMessage = successMessage,
+      errorMessage: fnErrorMessage = errorMessage,
+      loadingMessage: fnLoadingMessage = loadingMessage,
+      retryable: fnRetryable = retryable,
+      maxAttempts: fnMaxAttempts = maxAttempts,
+      context: fnContext = context
+    } = fetchOptions;
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      let result;
-      if (retry) {
-        result = await retryHandler.execute();
+      let result: T;
+      
+      if (fnShowLoadingToast) {
+        result = await notifyPromise<T>(
+          fnRetryable 
+            ? retryAsync(() => fetchFn(), { maxAttempts: fnMaxAttempts })
+            : fetchFn(),
+          {
+            loading: fnLoadingMessage,
+            success: fnSuccessMessage,
+            error: fnErrorMessage
+          }
+        );
       } else {
-        result = await fetchFn();
+        result = await (fnRetryable
+          ? retryAsync(() => fetchFn(), { maxAttempts: fnMaxAttempts })
+          : fetchFn());
+        
+        if (fnShowSuccessToast) {
+          // Success toast only if not using promise toast
+          // This prevents duplicate toasts
+        }
       }
       
       setData(result);
-      setIsFetched(true);
-      
-      if (onSuccess) {
-        onSuccess(result);
-      }
-      
+      if (fnOnSuccess) fnOnSuccess(result);
       return result;
-    } catch (err: any) {
-      setError(err);
-      await handleError(err, {
-        context: {
-          ...context,
-          operation: 'data_fetch'
-        },
-        showNotification,
-        logToSystem,
-        tenantId,
-        module,
-        silent: !showNotification,
-        rethrow: false
-      });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
       
-      if (onError && err instanceof Error) {
-        onError(err);
+      // Only show error toast if not already shown by notifyPromise
+      if (fnShowErrorToast && !fnShowLoadingToast) {
+        await handleError(error, {
+          context: { ...fnContext, action: 'fetchData' },
+          showNotification: true,
+          userMessage: fnErrorMessage
+        });
       }
       
-      return null;
+      if (fnOnError) fnOnError(error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [fetchFn, onSuccess, onError, retry, retryHandler, context, showNotification, logToSystem, tenantId, module]);
-  
-  useEffect(() => {
-    if (!skip) {
-      fetchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...dependencies, skip]);
-  
+  }, [
+    onSuccess, onError, showLoadingToast, showSuccessToast, showErrorToast,
+    successMessage, errorMessage, loadingMessage, retryable, maxAttempts,
+    context, handleError, retryAsync
+  ]);
+
   return {
     data,
-    isLoading,
+    isLoading: isLoading || isRetrying,
     error,
-    refetch: fetchData,
-    isFetched,
+    fetchData,
+    retryCount,
+    isRetrying,
     reset: () => {
-      setData(null);
       setError(null);
-      setIsFetched(false);
+      setData(initialData);
     }
   };
 }
 
 /**
- * Hook for fetching data with stable references (for use in effects)
+ * A stable version of useDataFetching for use with React Query and similar libraries
  */
-export function useStableFetching<T>(
-  fetchFn: () => Promise<T>,
-  options: FetchOptions = {}
-) {
-  // Store the function ref to avoid re-fetching on render
-  const [stableFn] = useState(() => fetchFn);
-  return useDataFetching(stableFn, options);
+export function useStableFetching() {
+  const { handleError } = useErrorHandler();
+  const { retryAsync } = useRetry();
+
+  const wrapFetchFn = useCallback(
+    <T>(
+      fetchFn: () => Promise<T>,
+      options: {
+        retryable?: boolean;
+        maxAttempts?: number;
+        context?: Record<string, any>;
+      } = {}
+    ) => {
+      const {
+        retryable = true,
+        maxAttempts = 3,
+        context = {}
+      } = options;
+
+      return async () => {
+        try {
+          return await (retryable
+            ? retryAsync(() => fetchFn(), { maxAttempts })
+            : fetchFn());
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          
+          // Log the error but don't show UI notification (React Query will handle this)
+          await handleError(error, {
+            context: { ...context, action: 'queryFn' },
+            showNotification: false,
+          });
+          
+          throw error;
+        }
+      };
+    },
+    [handleError, retryAsync]
+  );
+
+  return {
+    wrapFetchFn
+  };
 }

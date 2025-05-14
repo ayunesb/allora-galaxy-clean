@@ -1,99 +1,125 @@
-
 import Cookies from 'js-cookie';
 
-/**
- * Check if the user has already given consent to cookies
- * @returns {boolean} True if consent was given, false otherwise
- */
-export const getCookieConsentStatus = (): boolean => {
-  const consent = Cookies.get('cookie_consent');
-  return consent === 'true';
+// Cookie names
+export const COOKIE_CONSENT_NAME = 'cookie_consent';
+
+// Cookie consent types
+export interface CookiePreferences {
+  necessary: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  preferences: boolean;
+}
+
+// Default cookie preferences (necessary cookies are always true)
+export const DEFAULT_COOKIE_PREFERENCES: CookiePreferences = {
+  necessary: true,
+  analytics: false,
+  marketing: false,
+  preferences: false,
 };
+
+// Cookie options
+export const COOKIE_OPTIONS = {
+  expires: 365, // 1 year
+  path: '/',
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+};
+
+/**
+ * Get the current cookie consent status
+ * @returns The current cookie preferences or the default if not set
+ */
+export function getCookieConsentStatus(): CookiePreferences {
+  const consent = Cookies.get(COOKIE_CONSENT_NAME);
+  
+  if (!consent) {
+    return DEFAULT_COOKIE_PREFERENCES;
+  }
+
+  try {
+    const parsedConsent = JSON.parse(consent);
+    return {
+      ...DEFAULT_COOKIE_PREFERENCES,
+      ...parsedConsent,
+      necessary: true // Always keep necessary cookies enabled
+    };
+  } catch (error) {
+    console.error('Error parsing cookie consent:', error);
+    return DEFAULT_COOKIE_PREFERENCES;
+  }
+}
 
 /**
  * Set the cookie consent status
- * @param {boolean} accepted - Whether consent was accepted
+ * @param preferences Cookie preferences to save
  */
-export const setCookieConsentStatus = (accepted: boolean): void => {
-  if (accepted) {
-    // Set the consent cookie with a 1 year expiry
-    Cookies.set('cookie_consent', 'true', { expires: 365 });
-    
-    // Also save to localStorage as a backup
-    localStorage.setItem('cookie_consent', 'true');
-    localStorage.setItem('cookie_consent_date', new Date().toISOString());
-  } else {
-    // If rejected, we still set the cookie but with value 'false'
-    // This prevents the banner from showing again
-    Cookies.set('cookie_consent', 'false', { expires: 365 });
-    localStorage.setItem('cookie_consent', 'false');
-    localStorage.setItem('cookie_consent_date', new Date().toISOString());
-    
-    // Remove any analytics cookies
-    Cookies.remove('ga4_enabled');
-    Cookies.remove('meta_pixel_enabled');
-    Cookies.remove('session_analytics_enabled');
-  }
-};
-
-/**
- * Get the full cookie preferences object
- * @returns {Object} Cookie preferences object
- */
-export const getCookiePreferences = () => {
-  const defaultPreferences = {
-    ga4_enabled: false,
-    meta_pixel_enabled: false,
-    session_analytics_enabled: true,
-    updated_at: new Date().toISOString()
+export function setCookieConsentStatus(preferences: CookiePreferences): void {
+  // Always ensure necessary cookies are enabled
+  const finalPreferences = {
+    ...preferences,
+    necessary: true
   };
   
-  try {
-    // Try to get from localStorage first
-    const storedPrefs = localStorage.getItem('cookie_preferences');
-    
-    if (storedPrefs) {
-      return JSON.parse(storedPrefs);
-    }
-    
-    // If not in localStorage, check individual cookies
-    return {
-      ga4_enabled: Cookies.get('ga4_enabled') === 'true',
-      meta_pixel_enabled: Cookies.get('meta_pixel_enabled') === 'true',
-      session_analytics_enabled: Cookies.get('session_analytics_enabled') !== 'false', // Default to true
-      updated_at: localStorage.getItem('cookie_consent_date') || new Date().toISOString()
-    };
-  } catch (e) {
-    console.error('Error getting cookie preferences:', e);
-    return defaultPreferences;
-  }
-};
+  Cookies.set(
+    COOKIE_CONSENT_NAME,
+    JSON.stringify(finalPreferences),
+    COOKIE_OPTIONS as Cookies.CookieAttributes
+  );
+}
 
 /**
- * Check if a specific cookie feature is enabled
- * @param {string} feature - The feature to check, e.g. 'ga4_enabled'
- * @returns {boolean} - Whether the feature is enabled
+ * Check if a specific cookie type is allowed
+ * @param type Cookie type to check
+ * @returns Boolean indicating if the cookie type is allowed
  */
-export const isCookieFeatureEnabled = (feature: string): boolean => {
-  // First check if consent was given at all
-  if (!getCookieConsentStatus()) {
-    return false;
+export function isCookieTypeAllowed(type: keyof CookiePreferences): boolean {
+  const preferences = getCookieConsentStatus();
+  return preferences[type] === true;
+}
+
+/**
+ * Set a cookie only if the cookie type is allowed
+ * @param name Cookie name
+ * @param value Cookie value
+ * @param type Cookie type
+ * @param options Cookie options
+ */
+export function setConditionalCookie(
+  name: string,
+  value: string,
+  type: keyof CookiePreferences,
+  options: Cookies.CookieAttributes = {}
+): boolean {
+  if (isCookieTypeAllowed(type)) {
+    Cookies.set(name, value, { ...COOKIE_OPTIONS, ...options } as Cookies.CookieAttributes);
+    return true;
   }
+  return false;
+}
+
+/**
+ * Clear all cookies except necessary ones
+ */
+export function clearNonEssentialCookies(): void {
+  const preferences = getCookieConsentStatus();
   
-  // Then check the specific feature
-  const prefs = getCookiePreferences();
-  return prefs[feature as keyof typeof prefs] === true;
-};
-
-/**
- * Clear all cookies and localStorage related to cookie preferences
- */
-export const clearCookiePreferences = (): void => {
-  Cookies.remove('cookie_consent');
-  Cookies.remove('ga4_enabled');
-  Cookies.remove('meta_pixel_enabled');
-  Cookies.remove('session_analytics_enabled');
-  localStorage.removeItem('cookie_consent');
-  localStorage.removeItem('cookie_consent_date');
-  localStorage.removeItem('cookie_preferences');
-};
+  // Only keep the consent status cookie
+  Object.keys(Cookies.get()).forEach(cookieName => {
+    if (cookieName !== COOKIE_CONSENT_NAME) {
+      // Remove cookies that aren't explicitly allowed
+      if (!preferences.necessary) {
+        Cookies.remove(cookieName);
+      }
+    }
+  });
+  
+  // Update the cookie preferences
+  setCookieConsentStatus({
+    necessary: true,
+    analytics: false,
+    marketing: false,
+    preferences: false,
+  });
+}

@@ -3,6 +3,8 @@
  * Error type definitions for the application
  */
 
+export type ErrorSource = 'client' | 'server' | 'edge' | 'database';
+
 // Base error class that all other errors extend
 export class AlloraError extends Error {
   public code: string;
@@ -48,49 +50,39 @@ export class AlloraError extends Error {
     this.retryCount = retryCount;
     this.maxRetries = maxRetries;
     
-    // Maintains proper stack trace for where our error was thrown
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
+    // Ensures proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, new.target.prototype);
   }
+}
 
-  /**
-   * Determines if this error can be retried again
-   */
-  canRetry(): boolean {
-    if (!this.retry) return false;
-    return this.retryCount! < this.maxRetries!;
-  }
-
-  /**
-   * Creates a new instance of this error with incremented retry count
-   */
-  incrementRetry(): AlloraError {
-    return new AlloraError({
-      message: this.message,
-      code: this.code,
-      context: this.context,
-      severity: this.severity,
-      userMessage: this.userMessage,
-      source: this.source,
-      retry: this.retry,
-      retryCount: (this.retryCount || 0) + 1,
-      maxRetries: this.maxRetries,
+// Network connectivity errors
+export class NetworkError extends AlloraError {
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> = {}) {
+    super({
+      message: opts.message || 'Network connection failed',
+      code: opts.code || 'NETWORK_ERROR',
+      severity: opts.severity || 'medium',
+      userMessage: opts.userMessage || 'Unable to connect to the server. Please check your internet connection.',
+      source: opts.source || 'client',
+      retry: opts.retry !== undefined ? opts.retry : true,
+      context: opts.context,
+      retryCount: opts.retryCount,
+      maxRetries: opts.maxRetries,
     });
   }
 }
 
-// Error source types
-export type ErrorSource = 'client' | 'server' | 'edge' | 'database' | 'external';
-
-// Network related errors
-export class NetworkError extends AlloraError {
-  constructor(params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code'> & { code?: string }) {
+// Authentication errors
+export class AuthError extends AlloraError {
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> = {}) {
     super({
-      ...params,
-      code: params.code || 'NETWORK_ERROR',
-      source: 'client',
-      retry: true,
+      message: opts.message || 'Authentication failed',
+      code: opts.code || 'AUTH_ERROR',
+      severity: opts.severity || 'high',
+      userMessage: opts.userMessage || 'Authentication failed. Please sign in again.',
+      source: opts.source || 'client',
+      context: opts.context,
+      retry: false, // Auth errors typically can't be automatically retried
     });
   }
 }
@@ -98,106 +90,80 @@ export class NetworkError extends AlloraError {
 // API errors
 export class ApiError extends AlloraError {
   public status: number;
-
-  constructor(
-    params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code' | 'source'> & 
-    { code?: string; status?: number; source?: ErrorSource }
-  ) {
+  
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> & { status?: number } = {}) {
     super({
-      ...params,
-      code: params.code || 'API_ERROR',
-      source: params.source || 'server',
+      message: opts.message || 'API request failed',
+      code: opts.code || 'API_ERROR',
+      severity: opts.severity || 'medium',
+      userMessage: opts.userMessage || 'The server encountered an error while processing your request.',
+      source: opts.source || 'server',
+      context: opts.context,
+      retry: opts.retry !== undefined ? opts.retry : true,
+      retryCount: opts.retryCount,
+      maxRetries: opts.maxRetries,
     });
-    this.status = params.status || 500;
+    
+    this.status = opts.status || 500;
   }
 }
 
 // Database errors
 export class DatabaseError extends AlloraError {
-  constructor(params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code' | 'source'> & { code?: string }) {
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> = {}) {
     super({
-      ...params,
-      code: params.code || 'DATABASE_ERROR',
-      source: 'database',
+      message: opts.message || 'Database operation failed',
+      code: opts.code || 'DB_ERROR',
+      severity: opts.severity || 'high',
+      userMessage: opts.userMessage || 'We encountered a database error. Our team has been notified.',
+      source: opts.source || 'server',
+      context: opts.context,
+      retry: opts.retry !== undefined ? opts.retry : false,
     });
   }
 }
 
-// Authentication errors
-export class AuthError extends AlloraError {
-  constructor(params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code'> & { code?: string }) {
+// Not found errors
+export class NotFoundError extends AlloraError {
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> = {}) {
     super({
-      ...params,
-      code: params.code || 'AUTH_ERROR',
-      severity: 'high',
-    });
-  }
-}
-
-// Permission errors
-export class PermissionError extends AlloraError {
-  constructor(params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code' | 'severity'> & { code?: string }) {
-    super({
-      ...params,
-      code: params.code || 'PERMISSION_DENIED',
-      severity: 'high',
+      message: opts.message || 'Resource not found',
+      code: opts.code || 'NOT_FOUND',
+      severity: opts.severity || 'medium',
+      userMessage: opts.userMessage || 'The requested resource could not be found.',
+      source: opts.source || 'client',
+      context: opts.context,
+      retry: false,
     });
   }
 }
 
 // Validation errors
 export class ValidationError extends AlloraError {
-  public fields?: Record<string, string>;
-
-  constructor(
-    params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code'> & 
-    { code?: string; fields?: Record<string, string> }
-  ) {
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> = {}) {
     super({
-      ...params,
-      code: params.code || 'VALIDATION_ERROR',
-      severity: 'low',
-    });
-    this.fields = params.fields;
-  }
-}
-
-// Not found errors
-export class NotFoundError extends AlloraError {
-  constructor(params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code' | 'severity'> & { code?: string }) {
-    super({
-      ...params,
-      code: params.code || 'NOT_FOUND',
-      severity: 'low',
+      message: opts.message || 'Validation failed',
+      code: opts.code || 'VALIDATION_ERROR',
+      severity: opts.severity || 'low',
+      userMessage: opts.userMessage || 'Please check your input and try again.',
+      source: opts.source || 'client',
+      context: opts.context,
+      retry: false,
     });
   }
 }
 
-// External service errors
-export class ExternalServiceError extends AlloraError {
-  public service: string;
-  
-  constructor(
-    params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code' | 'source'> & 
-    { code?: string; service: string }
-  ) {
+// Permission errors
+export class PermissionError extends AlloraError {
+  constructor(opts: Partial<ConstructorParameters<typeof AlloraError>[0]> = {}) {
     super({
-      ...params,
-      code: params.code || 'EXTERNAL_SERVICE_ERROR',
-      source: 'external',
-      retry: true,
-    });
-    this.service = params.service;
-  }
-}
-
-// Timeout errors
-export class TimeoutError extends AlloraError {
-  constructor(params: Omit<ConstructorParameters<typeof AlloraError>[0], 'code'> & { code?: string }) {
-    super({
-      ...params,
-      code: params.code || 'TIMEOUT',
-      retry: true,
+      message: opts.message || 'Permission denied',
+      code: opts.code || 'PERMISSION_DENIED',
+      severity: opts.severity || 'medium',
+      userMessage: opts.userMessage || 'You do not have permission to perform this action.',
+      source: opts.source || 'server',
+      context: opts.context,
+      retry: false,
     });
   }
 }

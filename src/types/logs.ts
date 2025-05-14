@@ -7,9 +7,16 @@ export interface SystemLog {
   module: string;
   tenant_id?: string;
   user_id?: string;
-  metadata?: string | Record<string, any>;
+  metadata?: any;
   context?: string;
   request_id?: string;
+  error?: string;
+  error_type?: string;
+  message?: string;
+  event?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
 }
 
 export interface SystemLogGroup {
@@ -31,4 +38,15 @@ export interface ErrorImpact {
   last_seen: string;
   tenants_affected: string[];
   components_affected: string[];
+}
+
+export interface LogFilters {
+  level?: string[];
+  module?: string[];
+  fromDate?: string;
+  toDate?: string;
+  search?: string;
+  tenant_id?: string;
+  error_type?: string[];
+  severity?: string[];
 }

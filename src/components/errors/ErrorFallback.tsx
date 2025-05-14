@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorInfo } from 'react';
-import { useTenantId } from '@/hooks/useTenantId';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -21,16 +20,16 @@ export function ErrorFallback({
   supportEmail
 }: ErrorFallbackProps) {
   const { toast } = useToast();
-  const tenantId = useTenantId();
 
   useEffect(() => {
     // Log the error to our system
-    const tenantIdValue = typeof tenantId === 'string' ? tenantId : 'system';
+    const tenantIdValue = 'system';
     
     logSystemEvent(
       'system',
       'error',
       {
+        description: `React Error Boundary: ${error.message}`,
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo?.componentStack,
@@ -38,7 +37,7 @@ export function ErrorFallback({
       },
       tenantIdValue
     ).catch(console.error);
-  }, [error, errorInfo, tenantId]);
+  }, [error, errorInfo]);
 
   const handleReportError = () => {
     toast({

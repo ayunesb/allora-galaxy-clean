@@ -1,87 +1,82 @@
 
 import { useState, useEffect } from 'react';
-import { getCookieConsentStatus, setCookieConsentStatus } from '@/lib/utils/cookieUtils';
-import Cookies from 'js-cookie';
+import { 
+  getCookieConsentStatus,
+  setCookieConsentStatus,
+  DEFAULT_COOKIE_PREFERENCES,
+  CookiePreferences
+} from '@/lib/utils/cookieUtils';
 
-export type CookiePreference = {
-  necessary: boolean;
-  analytics: boolean;
-  marketing: boolean;
-  preferences: boolean;
-};
-
+/**
+ * Hook to manage cookie consent preferences
+ */
 export function useCookiePreferences() {
-  const [cookiePreferences, setCookiePreferences] = useState<CookiePreference>({
-    necessary: true, // Necessary cookies are always required
-    analytics: false,
-    marketing: false,
-    preferences: false
-  });
-
-  // Load cookie preferences on component mount
+  const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
+  const [hasConsented, setHasConsented] = useState<boolean>(false);
+  
+  // Load preferences on mount
   useEffect(() => {
     const savedPreferences = getCookieConsentStatus();
-    if (savedPreferences) {
-      setCookiePreferences(prev => ({
-        ...prev,
-        ...savedPreferences
-      }));
-    }
+    setPreferences(savedPreferences);
+    
+    // Check if user has explicitly consented before
+    const hasExplicitConsent = Object.values(savedPreferences).some(value => value === true);
+    setHasConsented(hasExplicitConsent);
   }, []);
-
-  // Function to save cookie preferences
-  const saveCookiePreferences = (preferences: CookiePreference) => {
-    setCookieConsentStatus(preferences);
-    setCookiePreferences(preferences);
+  
+  // Update a specific cookie preference
+  const updatePreference = (type: keyof CookiePreferences, value: boolean) => {
+    const updatedPreferences = {
+      ...preferences,
+      [type]: value,
+    };
+    
+    setPreferences(updatedPreferences);
+    setCookieConsentStatus(updatedPreferences);
+    setHasConsented(true);
   };
-
-  // Accept all cookies
-  const acceptAllCookies = () => {
-    const preferences = {
+  
+  // Set all preferences at once
+  const setAllPreferences = (newPreferences: CookiePreferences) => {
+    setPreferences(newPreferences);
+    setCookieConsentStatus(newPreferences);
+    setHasConsented(true);
+  };
+  
+  // Accept all cookie types
+  const acceptAll = () => {
+    const allAccepted = {
       necessary: true,
       analytics: true,
       marketing: true,
-      preferences: true
+      preferences: true,
     };
-    saveCookiePreferences(preferences);
+    
+    setPreferences(allAccepted);
+    setCookieConsentStatus(allAccepted);
+    setHasConsented(true);
   };
-
-  // Accept only necessary cookies
-  const acceptNecessaryCookies = () => {
-    const preferences = {
-      necessary: true,
+  
+  // Reject all cookie types except necessary
+  const rejectAll = () => {
+    const allRejected = {
+      necessary: true, // Necessary cookies are always enabled
       analytics: false,
       marketing: false,
-      preferences: false
+      preferences: false,
     };
-    saveCookiePreferences(preferences);
+    
+    setPreferences(allRejected);
+    setCookieConsentStatus(allRejected);
+    setHasConsented(true);
   };
-
-  // Check if all cookie types are allowed
-  const hasFullConsent = (): boolean => {
-    return (
-      cookiePreferences.necessary &&
-      cookiePreferences.analytics &&
-      cookiePreferences.marketing &&
-      cookiePreferences.preferences
-    );
-  };
-
-  // Update individual cookie preference
-  const updateCookiePreference = (type: keyof CookiePreference, value: boolean) => {
-    setCookiePreferences(prev => {
-      const updatedPrefs = { ...prev, [type]: value };
-      setCookieConsentStatus(updatedPrefs);
-      return updatedPrefs;
-    });
-  };
-
+  
   return {
-    cookiePreferences,
-    setCookiePreferences: saveCookiePreferences,
-    acceptAllCookies,
-    acceptNecessaryCookies,
-    hasFullConsent,
-    updateCookiePreference
+    preferences,
+    hasConsented,
+    updatePreference,
+    setAllPreferences,
+    acceptAll,
+    rejectAll,
   };
 }

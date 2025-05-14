@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { ErrorState } from '@/lib/errors';
+import ErrorState from '@/components/errors/ErrorState';
 import { NoDataEmptyState } from '@/components/errors/EmptyStates';
-import { PartialErrorState } from '@/components/errors/PartialErrorState';
+import PartialErrorState from '@/components/errors/PartialErrorState';
 
 interface DataStateHandlerProps<T> {
   isLoading: boolean;

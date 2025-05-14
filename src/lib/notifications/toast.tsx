@@ -51,16 +51,16 @@ export const notify = (
 /**
  * Helper functions for different toast types
  */
-export const notifySuccess = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
+export const notifySuccess = (title: string, options?: ToastOptions) => 
   notify(title, { ...options, type: "success" });
 
-export const notifyError = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
+export const notifyError = (title: string, options?: ToastOptions) => 
   notify(title, { ...options, type: "error" });
 
-export const notifyWarning = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
+export const notifyWarning = (title: string, options?: ToastOptions) => 
   notify(title, { ...options, type: "warning" });
 
-export const notifyInfo = (title: string, options?: Omit<LoggedToastOptions, "type">) => 
+export const notifyInfo = (title: string, options?: ToastOptions) => 
   notify(title, { ...options, type: "info" });
 
 /**
@@ -130,6 +130,7 @@ export const notifyAndLog = async (
  */
 export const useToast = () => {
   return {
+    toast: sonnerToast,
     notify,
     success: notifySuccess,
     error: notifyError,

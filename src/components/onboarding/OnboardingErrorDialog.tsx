@@ -4,7 +4,7 @@ import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescript
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { notifyError } from '@/lib/notifications/toast';
+import { notifyError } from '@/hooks/use-toast';
 
 interface OnboardingErrorDialogProps {
   error: string | null;
@@ -67,9 +67,7 @@ const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
         tenant_id
       ).catch(err => console.error('Failed to log retry error:', err));
       
-      notifyError('Retry failed', { 
-        description: retryError.message || 'Unable to retry operation'
-      });
+      notifyError(`Retry failed: ${retryError.message || 'Unable to retry operation'}`);
     }
   };
 
