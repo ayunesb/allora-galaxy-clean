@@ -1,0 +1,20 @@
+
+import { RouteObject } from "react-router-dom";
+import { authRoutes } from "./routes/auth";
+import { mainRoutes } from "./routes/main";
+import { adminRoutes } from "./routes/admin";
+import { publicRoutes } from "./routes/public";
+import { onboardingRoutes } from "./routes/onboarding";
+import { notFoundRoute } from "./routes/notFound";
+
+// Export all routes combined
+export const routes: RouteObject[] = [
+  ...authRoutes,
+  ...onboardingRoutes,
+  ...mainRoutes,
+  ...adminRoutes,
+  ...publicRoutes,
+  notFoundRoute
+];
+
+export default routes;
