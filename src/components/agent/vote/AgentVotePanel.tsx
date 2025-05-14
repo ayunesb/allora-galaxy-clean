@@ -43,14 +43,14 @@ const AgentVotePanel: React.FC<AgentVoteProps> = ({
                 count={upvotes}
                 isActive={userVote === 'up'}
                 type="up"
-                onClick={() => handleVote('upvote')}
+                onClick={() => handleVote('up')}
                 disabled={submitting}
               />
               <VoteButton
                 count={downvotes}
                 isActive={userVote === 'down'}
                 type="down"
-                onClick={() => handleVote('downvote')}
+                onClick={() => handleVote('down')}
                 disabled={submitting}
               />
               <Button 

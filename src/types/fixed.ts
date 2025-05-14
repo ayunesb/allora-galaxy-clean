@@ -53,6 +53,6 @@ export interface DateRange {
 }
 
 /**
- * Vote types for agent evaluations
+ * Vote types for agent evaluations - unified definition used across the app
  */
-export type VoteType = 'up' | 'down' | null;
+export type VoteType = 'up' | 'down' | 'upvote' | 'downvote' | null;

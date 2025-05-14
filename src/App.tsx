@@ -1,9 +1,9 @@
 
-import { RouterProvider } from 'react-router-dom';
-import { router } from './routes';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { routes } from './routes';
 import './App.css';
 import { Toaster } from './components/ui/toaster';
-import { ThemeProvider } from './providers/ThemeProvider';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,6 +16,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Create router from routes configuration
+const router = createBrowserRouter(routes);
 
 function App() {
   return (

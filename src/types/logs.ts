@@ -8,6 +8,8 @@ export interface SystemLog {
   context: any;
   created_at: string;
   tenant_id?: string;
+  level?: 'info' | 'warning' | 'error'; // Added the level field needed by components
+  description?: string; // Added the description field needed by components
 }
 
 export interface AuditLog {
@@ -20,6 +22,8 @@ export interface AuditLog {
   user_id?: string;
   entity_id?: string;
   entity_type?: string;
+  action?: string; // Added the action field needed by components
+  description?: string; // Added the description field needed by components
 }
 
 export interface PluginLog {

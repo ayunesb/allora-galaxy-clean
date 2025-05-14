@@ -18,8 +18,8 @@ const WorkspaceSwitcher: React.FC<{
   const { 
     currentWorkspace, 
     workspaces, 
-    isLoading, // Use isLoading, with fallback to loading for backward compatibility
-    updateCurrentWorkspace 
+    isLoading, 
+    setCurrentWorkspace 
   } = useWorkspace();
 
   // Display loading state
@@ -34,7 +34,7 @@ const WorkspaceSwitcher: React.FC<{
 
   // Handle workspace change
   const handleWorkspaceChange = (workspaceId: string) => {
-    updateCurrentWorkspace(workspaceId);
+    setCurrentWorkspace(workspaceId);
   };
 
   // If only one workspace, just display it
