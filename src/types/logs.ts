@@ -15,6 +15,8 @@ export interface SystemLog {
   error_details?: string;
   session_id?: string;
   created_at: string;
+  severity?: string; // Added for ErrorTrendsChart
+  error_type?: string; // Added for ErrorTrendsChart
 }
 
 export interface PluginLog {
@@ -44,6 +46,7 @@ export interface LogFilter {
   session_id?: string;
   limit?: number;
   offset?: number;
+  severity?: string | string[]; // Added for ErrorMonitoringFilters
 }
 
 export type LogFilters = LogFilter;
@@ -72,3 +75,16 @@ export interface LogAnalysisResults {
   anomalies: string[];
   suggestedActions: string[];
 }
+
+export interface LogGroup {
+  id: string;
+  message: string;
+  count: number;
+  lastOccurred: string;
+  firstOccurred: string;
+  severity: string;
+  module: string;
+}
+
+// For compatibility with EvolutionDashboard
+export type Log = SystemLog;

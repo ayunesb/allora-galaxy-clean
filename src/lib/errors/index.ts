@@ -6,13 +6,16 @@
 // Export error types
 export * from './errorTypes';
 
-// Export error handler
+// Export error handlers
 export { 
   ErrorHandler,
   handleError,
   handleSupabaseError,
   handleEdgeFunctionError
 } from './ErrorHandler';
+export { ErrorHandlerBase } from './ErrorHandlerBase';
+export { SupabaseErrorHandler } from './SupabaseErrorHandler';
+export { EdgeFunctionErrorHandler } from './EdgeFunctionErrorHandler';
 
 // Export hooks
 export { useErrorHandler, withErrorHandling } from './useErrorHandler';

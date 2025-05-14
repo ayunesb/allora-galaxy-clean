@@ -3,6 +3,7 @@
  * Client-side error handler for edge function responses
  */
 import { toast } from "sonner";
+import { handleError } from "./ErrorHandler";
 
 export interface EdgeErrorResponse {
   success: false;
@@ -94,6 +95,15 @@ export function handleEdgeError(error: any, options: {
       } : undefined
     });
   }
+  
+  // Call application error handler for tracking
+  handleError(error, { 
+    showNotification: false, // We already showed a toast
+    context: { 
+      requestId,
+      source: 'edge'
+    }
+  }).catch(e => console.error('Failed to log edge error:', e));
   
   if (errorCallback) {
     errorCallback(error);

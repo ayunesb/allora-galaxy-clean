@@ -45,10 +45,10 @@ const ErrorImpactAnalysis: React.FC<ErrorImpactAnalysisProps> = ({
             <Chart
               type="pie"
               data={data}
-              dataKey="value"
-              nameKey="name"
+              dataKeys={["value"]} // Changed from dataKey to dataKeys array
+              xKey="name" // Changed from nameKey to xKey
               colors={['#f43f5e', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b']}
-              valueFormatter={(value: number) => `${value} errors`}
+              tooltipFormatter={(value: number) => [`${value} errors`, 'Errors']}
             />
           </div>
         )}

@@ -13,7 +13,7 @@ export interface EmptyStateConfig {
   resetFilters?: () => void;
   customMessage?: string;
   icon?: ReactNode;
-  action?: ReactNode;
+  action?: () => void;
   actionText?: string;
   className?: string;
 }
@@ -46,33 +46,23 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({ config }) => {
     case 'no-data':
       return (
         <NoDataEmptyState
-          title={title}
-          description={description}
+          message={description}
           action={action}
           actionText={actionText}
-          className={className}
         />
       );
     case 'no-search-results':
       return (
         <NoSearchResultsEmptyState
-          title={title}
-          description={description}
           searchTerm={searchTerm}
           resetSearch={resetSearch}
-          className={className}
         />
       );
     case 'filter':
       return (
         <FilterEmptyState
-          title={title}
-          description={description}
-          filters={filters}
-          filterCount={filterCount}
+          message={customMessage}
           resetFilters={resetFilters}
-          customMessage={customMessage}
-          className={className}
         />
       );
     case 'custom':
@@ -81,7 +71,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({ config }) => {
           {icon && <div className="text-muted-foreground mb-3">{icon}</div>}
           {title && <h3 className="font-medium mb-1">{title}</h3>}
           {description && <p className="text-sm text-muted-foreground mb-3">{description}</p>}
-          {action}
+          {action && <button onClick={action} className="text-primary hover:underline">{actionText || 'Continue'}</button>}
         </div>
       );
     case 'standard':
@@ -89,8 +79,9 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({ config }) => {
       return (
         <EmptyState
           title={title || 'No Data'}
-          description={description || 'No data available'}
+          message={description || 'No data available'}
           action={action}
+          actionText={actionText}
         />
       );
   }

@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { handleError, ErrorHandler } from './ErrorHandler';
+import { handleError } from './ErrorHandler';
 import type { AlloraError } from './errorTypes';
 
 /**
@@ -12,7 +12,7 @@ export function useErrorHandler(defaultContext: Record<string, any> = {}) {
   
   const handleException = useCallback(async (
     error: unknown, 
-    options: Parameters<typeof ErrorHandler.handleError>[1] = {}
+    options: Parameters<typeof handleError>[1] = {}
   ) => {
     setIsHandlingError(true);
     try {
@@ -43,7 +43,7 @@ export function useErrorHandler(defaultContext: Record<string, any> = {}) {
  */
 export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  options: Parameters<typeof ErrorHandler.handleError>[1] = {}
+  options: Parameters<typeof handleError>[1] = {}
 ): (...args: Parameters<T>) => Promise<ReturnType<T> | null> {
   return async (...args: Parameters<T>): Promise<ReturnType<T> | null> => {
     try {
