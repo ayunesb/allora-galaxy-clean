@@ -9,8 +9,8 @@ import { SystemLogFilter } from '@/types/shared';
 
 const AiDecisions: React.FC = () => {
   const [filter, setFilter] = useState<SystemLogFilter>({
-    module: 'agent',
     searchTerm: '',
+    module: 'agent',
   });
 
   const { data, isLoading, refresh, modules, events } = useSystemLogsData(filter);
