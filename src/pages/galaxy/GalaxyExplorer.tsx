@@ -14,7 +14,7 @@ import { useMobile } from '@/hooks/useMobile';
 
 const GalaxyExplorer: React.FC = () => {
   const { data: graphData, isLoading: loading, error } = useGalaxyData();
-  const [viewMode, setViewMode] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<string>('strategy');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const fgRef = useRef<any>();
   const { isMobile } = useMobile();
@@ -24,10 +24,6 @@ const GalaxyExplorer: React.FC = () => {
   }, []);
 
   const handleCloseInspector = useCallback(() => {
-    setSelectedNode(null);
-  }, []);
-
-  const handleBackgroundClick = useCallback(() => {
     setSelectedNode(null);
   }, []);
 
@@ -76,10 +72,10 @@ const GalaxyExplorer: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h1 className="text-2xl font-bold mb-2 sm:mb-0">Galaxy Explorer</h1>
         
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
           <ViewModeSelector 
             viewMode={viewMode} 
             onModeChange={setViewMode} 
@@ -109,9 +105,6 @@ const GalaxyExplorer: React.FC = () => {
                 <ForceGraph 
                   graphData={graphData} 
                   onNodeClick={handleNodeClick}
-                  onBackgroundClick={handleBackgroundClick}
-                  selectedNodeId={selectedNode?.id}
-                  ref={fgRef}
                 />
               )}
             </div>

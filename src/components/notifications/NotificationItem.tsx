@@ -1,166 +1,153 @@
 
 import React from 'react';
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  Info, 
-  Bell, 
-  AlertTriangle,
-  Trash2,
-  Check
-} from 'lucide-react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
+import { Card, CardContent } from '@/components/ui/card';
 import { NotificationContent } from '@/types/notifications';
+import { 
+  Bell, 
+  CheckCircle, 
+  AlertCircle, 
+  X, 
+  Info, 
+  AlertTriangle,
+  ExternalLink
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NotificationItemProps {
   notification: NotificationContent;
-  onMarkAsRead: (id: string) => Promise<any>;
-  onDelete?: (id: string) => Promise<any>;
-  compact?: boolean;
+  onMarkAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
-export const NotificationItem: React.FC<NotificationItemProps> = ({
+const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onMarkAsRead,
-  onDelete,
-  compact = false
+  onDelete
 }) => {
-  const { id, title, message, type, timestamp, read, actionUrl, actionLabel } = notification;
-  
+  // Get the appropriate icon based on notification type
+  const getIcon = () => {
+    switch (notification.type) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'error':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'info':
+        return <Info className="h-5 w-5 text-blue-500" />;
+      case 'system':
+        return <Bell className="h-5 w-5 text-purple-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
   const handleMarkAsRead = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!read) {
-      await onMarkAsRead(id);
+    if (!notification.read) {
+      await onMarkAsRead(notification.id);
     }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDelete) {
-      await onDelete(id);
+      await onDelete(notification.id);
     }
   };
-  
-  const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (actionUrl) {
-      window.open(actionUrl, '_blank');
-      if (!read) {
-        onMarkAsRead(id);
-      }
+
+  const handleActionClick = () => {
+    if (!notification.read) {
+      onMarkAsRead(notification.id);
     }
   };
-  
-  // Format time in a user-friendly way
-  const formattedTime = formatDistanceToNow(parseISO(timestamp), { addSuffix: true });
-  const exactTime = format(parseISO(timestamp), 'PPpp');
-  
-  // Determine icon based on notification type
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />;
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />;
-      case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />;
-      case 'system':
-        return <Bell className="h-5 w-5 text-purple-500 flex-shrink-0" />;
-      default:
-        return <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />;
+
+  const formattedDate = (() => {
+    try {
+      const date = new Date(notification.timestamp);
+      return format(date, 'MMM d, h:mm a');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return notification.timestamp;
     }
-  };
-  
+  })();
+
   return (
-    <div 
-      className={`
-        relative px-4 py-3 border-b last:border-b-0 transition-colors
-        ${!read ? 'bg-primary/5' : 'hover:bg-accent/50'}
-        ${compact ? 'py-2' : 'py-3'}
-      `}
+    <Card 
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-accent/50",
+        !notification.read && "border-l-4 border-l-primary"
+      )}
       onClick={handleMarkAsRead}
     >
-      {!read && (
-        <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
-          <div className="w-1 h-8 bg-primary rounded-r-full"></div>
-        </div>
-      )}
-      
-      <div className="flex gap-3">
-        <div className="flex-shrink-0 mt-0.5">
-          {getIcon()}
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between">
-            <p className={`text-sm font-medium ${!read ? 'text-primary font-semibold' : ''}`}>
-              {title}
-            </p>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                    {formattedTime}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{exactTime}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+      <CardContent className="p-3">
+        <div className="flex items-start gap-3">
+          <div className="pt-1">
+            {getIcon()}
           </div>
           
-          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-            {message}
-          </p>
-          
-          {actionUrl && actionLabel && (
-            <div className="mt-2">
-              <Button
-                variant="link"
-                size="sm"
-                className="p-0 h-auto text-primary text-xs"
-                onClick={handleActionClick}
-              >
-                {actionLabel}
-              </Button>
+          <div className="flex-1">
+            <div className="font-medium leading-tight">
+              {notification.title}
             </div>
-          )}
+            <div className="text-sm text-muted-foreground mt-1">
+              {notification.message}
+            </div>
+            
+            {notification.action_url && notification.action_label && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="p-0 h-auto mt-1 text-sm flex items-center"
+                onClick={handleActionClick}
+                asChild
+              >
+                <a 
+                  href={notification.action_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  {notification.action_label} <ExternalLink className="ml-1 h-3 w-3" />
+                </a>
+              </Button>
+            )}
+            
+            <div className="text-xs text-muted-foreground mt-1">
+              {formattedDate}
+            </div>
+          </div>
+          
+          <div className="flex gap-1">
+            {!notification.read && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-6 w-6"
+                onClick={handleMarkAsRead}
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span className="sr-only">Mark as read</span>
+              </Button>
+            )}
+            
+            {onDelete && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-6 w-6 text-destructive"
+                onClick={handleDelete}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-      
-      <div className="absolute top-3 right-3 flex gap-1">
-        {!read && (
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100" 
-            onClick={handleMarkAsRead}
-            title="Mark as read"
-          >
-            <Check className="h-3 w-3" />
-          </Button>
-        )}
-        
-        {onDelete && (
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100" 
-            onClick={handleDelete}
-            title="Delete notification"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
+
+export default NotificationItem;

@@ -1,90 +1,68 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
-import { TrendDirection } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendDirection } from '@/types/shared';
 
-export interface KPICardProps {
+interface KPICardProps {
   title: string;
-  value: number;
-  previous?: number;
-  change?: number;
-  changePercent?: number;
-  direction?: TrendDirection;
-  trend?: 'increasing' | 'decreasing' | 'stable';
-  unit?: string;
-  target?: number;
-  className?: string;
+  value: string | number;
+  description?: string;
+  trendDirection?: TrendDirection;
+  trendValue?: number | string;
+  isPositive?: boolean;
+  category?: string;
+  footer?: React.ReactNode;
 }
 
 const KPICard: React.FC<KPICardProps> = ({
   title,
   value,
-  previous,
-  change,
-  changePercent,
-  direction = 'neutral',
-  trend = 'stable',
-  unit = '',
-  target,
-  className
+  description,
+  trendDirection = 'neutral',
+  trendValue,
+  isPositive = true,
+  category,
+  footer
 }) => {
-  const formatValue = (val: number): string => {
-    if (val >= 1000000) {
-      return `${(val / 1000000).toFixed(1)}M${unit}`;
-    } else if (val >= 1000) {
-      return `${(val / 1000).toFixed(1)}K${unit}`;
-    } else {
-      return `${val}${unit}`;
-    }
-  };
-
-  const getDirectionIcon = () => {
-    switch (direction) {
+  const renderTrendIcon = () => {
+    switch (trendDirection) {
       case 'up':
-        return <ArrowUpIcon className="h-4 w-4 text-green-500" />;
+        return <TrendingUp className={`h-4 w-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />;
       case 'down':
-        return <ArrowDownIcon className="h-4 w-4 text-red-500" />;
+        return <TrendingDown className={`h-4 w-4 ${isPositive ? 'text-red-500' : 'text-green-500'}`} />;
       default:
-        return <MinusIcon className="h-4 w-4 text-gray-500" />;
+        return <Minus className="h-4 w-4 text-gray-500" />;
     }
-  };
-
-  const getChangeColor = () => {
-    if (trend === 'increasing' && direction === 'up') return 'text-green-500';
-    if (trend === 'decreasing' && direction === 'down') return 'text-red-500';
-    if (trend === 'decreasing' && direction === 'up') return 'text-red-500';
-    if (trend === 'increasing' && direction === 'down') return 'text-green-500';
-    return 'text-gray-500';
   };
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg font-medium">{title}</CardTitle>
+          {category && (
+            <Badge variant="outline" className="text-xs font-normal">
+              {category}
+            </Badge>
+          )}
+        </div>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatValue(value)}</div>
-        {previous !== undefined && (
-          <div className="flex items-center mt-2">
-            {getDirectionIcon()}
-            <span className={cn("text-sm ml-1", getChangeColor())}>
-              {changePercent !== undefined ? `${Math.abs(changePercent).toFixed(1)}%` : ''} 
-              {change !== undefined ? ` (${change > 0 ? '+' : ''}${change})` : ''}
+        <div className="text-3xl font-bold">{value}</div>
+        {(trendDirection || trendValue) && (
+          <div className="flex items-center mt-1 text-sm">
+            {renderTrendIcon()}
+            <span className={`ml-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {trendValue && `${trendValue}%`}
             </span>
+            <span className="text-muted-foreground ml-2">vs. previous period</span>
           </div>
         )}
       </CardContent>
-      {target !== undefined && (
-        <CardFooter className="pt-0">
-          <CardDescription>
-            Target: {formatValue(target)}
-          </CardDescription>
-        </CardFooter>
-      )}
+      {footer && <CardFooter className="pt-0">{footer}</CardFooter>}
     </Card>
   );
 };

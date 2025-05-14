@@ -28,7 +28,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useTenantId } from '@/hooks/useTenantId';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
@@ -44,6 +44,7 @@ interface InviteUserDialogProps {
 }
 
 export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserDialogProps) {
+  const { toast } = useToast();
   const tenantId = useTenantId();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -90,7 +91,10 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
         tenantId
       );
       
-      toast.success(`An invitation has been sent to ${values.email}`);
+      toast({
+        title: 'Invitation sent',
+        description: `An invitation has been sent to ${values.email}`,
+      });
       
       form.reset();
       onOpenChange(false);
@@ -101,7 +105,11 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
       }
     } catch (error: any) {
       console.error('Error inviting user:', error);
-      toast.error(error.message);
+      toast({
+        title: 'Failed to invite user',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
   };
   

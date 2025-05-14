@@ -1,62 +1,93 @@
 
 import React from 'react';
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { OnboardingFormData } from '@/types/onboarding';
 
-export interface AdditionalInfoStepProps {
+interface AdditionalInfoStepProps {
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
   setFieldValue: (key: string, value: any) => void;
 }
 
-const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({ 
+const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   formData,
-  setFieldValue
+  updateFormData
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setFieldValue('additionalInfo', e.target.value);
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>, field: string) => {
+    // Ensure additionalInfo is an object
+    const additionalInfo = typeof formData.additionalInfo === 'object' 
+      ? formData.additionalInfo 
+      : { 
+          targetAudience: '',
+          keyCompetitors: '',
+          uniqueSellingPoints: ''
+        };
+    
+    // Update the specific field in additionalInfo
+    const updatedAdditionalInfo = {
+      ...additionalInfo,
+      [field]: e.target.value
+    };
+    
+    // Update the form data
+    updateFormData({
+      additionalInfo: updatedAdditionalInfo
+    });
+  };
+
+  // Safely get values from additionalInfo whether it's an object or not
+  const getAdditionalInfoField = (field: string): string => {
+    if (!formData.additionalInfo) return '';
+    if (typeof formData.additionalInfo === 'string') return '';
+    return (formData.additionalInfo as any)[field] || '';
   };
 
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader className="space-y-2 px-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">Additional Information</CardTitle>
-          <Badge variant="outline">Optional</Badge>
-        </div>
-        <CardDescription>
-          Provide any additional context that will help us create a more tailored strategy
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 px-0">
-        <div className="space-y-2">
-          <Label htmlFor="additionalInfo">Additional Context</Label>
-          <Textarea
-            id="additionalInfo"
-            value={formData.additionalInfo || ''}
-            onChange={handleChange}
-            placeholder="Share any specific business challenges, goals, or context that might help with your strategy"
-            rows={8}
-          />
-        </div>
-        
-        <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
-          <p>
-            <strong>Tips:</strong> You can mention specific challenges you're facing,
-            what sets your business apart, or particular metrics you want to improve.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-center">Additional Information</h2>
+      <p className="text-center text-muted-foreground">
+        Tell us more about your business to help us create an effective strategy.
+      </p>
+
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="targetAudience">Who is your target audience?</Label>
+            <Textarea
+              id="targetAudience"
+              placeholder="Describe your ideal customer or audience"
+              value={getAdditionalInfoField('targetAudience')}
+              onChange={(e) => handleChange(e, 'targetAudience')}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="keyCompetitors">Who are your key competitors?</Label>
+            <Textarea
+              id="keyCompetitors"
+              placeholder="List your main competitors and what makes them stand out"
+              value={getAdditionalInfoField('keyCompetitors')}
+              onChange={(e) => handleChange(e, 'keyCompetitors')}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="uniqueSellingPoints">What are your unique selling points?</Label>
+            <Textarea
+              id="uniqueSellingPoints"
+              placeholder="What makes your company, product, or service different from the competition?"
+              value={getAdditionalInfoField('uniqueSellingPoints')}
+              onChange={(e) => handleChange(e, 'uniqueSellingPoints')}
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

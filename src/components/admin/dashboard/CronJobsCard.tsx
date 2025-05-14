@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CronJobsMonitoring } from '../cron/CronJobsMonitoring';
+import CronJobsMonitoring from '../cron/CronJobsMonitoring';
 
 export function CronJobsCard() {
   return (

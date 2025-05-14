@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchKpiTrends } from '@/lib/kpi/fetchKpiTrends';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Strategy } from '@/types';
 
@@ -38,7 +38,7 @@ export const useDashboardData = (tenantId: string | undefined) => {
       }
       
       setStrategies(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching dashboard data:', err);
       toast({
         title: 'Error loading dashboard',
@@ -57,5 +57,3 @@ export const useDashboardData = (tenantId: string | undefined) => {
     refetch: () => tenantId && fetchData(tenantId)
   };
 };
-
-export default useDashboardData;

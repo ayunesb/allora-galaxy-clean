@@ -1,6 +1,6 @@
 
-export { AgentVotePanel } from './AgentVotePanel';
+export { default as AgentVotePanel } from './AgentVotePanel';
 export * from './types';
-export { useAgentVote } from './useAgentVote';
-export { VoteButton } from './VoteButton';
-export { default as CommentSection } from './CommentSection';
+export * from './useAgentVote';
+export * from './VoteButton';
+export * from './CommentSection';

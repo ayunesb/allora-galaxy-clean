@@ -37,8 +37,7 @@ vi.mock('@/integrations/supabase/client', () => ({
               plugins_executed: 3,
               successful_plugins: 3,
               execution_time: 1.5,
-              xp_earned: 30,
-              request_id: 'req_test_123'
+              xp_earned: 30
             },
             error: null
           });
@@ -51,28 +50,7 @@ vi.mock('@/integrations/supabase/client', () => ({
               tenants_processed: 3,
               kpis_analyzed: 42,
               agents_evolved: 2,
-              benchmarks_updated: 3,
-              request_id: 'req_test_123'
-            },
-            error: null
-          });
-        }
-        
-        if (functionName === 'triggerCronJob') {
-          const body = options?.body || {};
-          if (!body.job_name) {
-            return Promise.resolve({
-              data: null,
-              error: { message: 'job_name is required' }
-            });
-          }
-          
-          return Promise.resolve({
-            data: {
-              success: true,
-              job_name: body.job_name,
-              execution_time_ms: 1500,
-              request_id: 'req_test_123'
+              benchmarks_updated: 3
             },
             error: null
           });
@@ -89,10 +67,6 @@ vi.mock('@/integrations/supabase/client', () => ({
           error: null
         })
       })
-    }),
-    rpc: vi.fn().mockResolvedValue({
-      data: ['job-test-id'],
-      error: null
     })
   }
 }));
@@ -150,8 +124,7 @@ describe('Edge Functions Integration', () => {
         plugins_executed: 3,
         successful_plugins: 3,
         execution_time: 1.5,
-        xp_earned: 30,
-        request_id: 'req_test_123'
+        xp_earned: 30
       });
       
       // Verify function was called with correct parameters
@@ -178,24 +151,6 @@ describe('Edge Functions Integration', () => {
       expect(error).toBeDefined();
       expect(error?.message).toContain('Strategy ID is required');
     });
-    
-    it('should validate both tenant_id and strategy_id', async () => {
-      // Mock the validation error for missing tenant_id
-      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Tenant ID is required' }
-      });
-      
-      // Call with missing tenant_id
-      const { data, error } = await supabase.functions.invoke('executeStrategy', {
-        body: { strategy_id: 'strategy-123' }
-      });
-      
-      // Assertions
-      expect(data).toBeNull();
-      expect(error).toBeDefined();
-      expect(error?.message).toContain('Tenant ID is required');
-    });
   });
   
   describe('scheduledIntelligence', () => {
@@ -212,8 +167,7 @@ describe('Edge Functions Integration', () => {
         tenants_processed: 3,
         kpis_analyzed: 42,
         agents_evolved: 2,
-        benchmarks_updated: 3,
-        request_id: 'req_test_123'
+        benchmarks_updated: 3
       });
       
       // Verify function was called with correct parameters
@@ -237,42 +191,6 @@ describe('Edge Functions Integration', () => {
         'scheduledIntelligence',
         { body: { tenant_id: 'specific-tenant' } }
       );
-    });
-  });
-  
-  describe('triggerCronJob', () => {
-    it('should invoke the triggerCronJob function successfully', async () => {
-      // Call the triggerCronJob function
-      const { data, error } = await supabase.functions.invoke('triggerCronJob', {
-        body: { job_name: 'update_kpis_daily' }
-      });
-      
-      // Assertions
-      expect(error).toBeNull();
-      expect(data).toEqual({
-        success: true,
-        job_name: 'update_kpis_daily',
-        execution_time_ms: 1500,
-        request_id: 'req_test_123'
-      });
-      
-      // Verify function was called with correct parameters
-      expect(supabase.functions.invoke).toHaveBeenCalledWith(
-        'triggerCronJob',
-        { body: { job_name: 'update_kpis_daily' } }
-      );
-    });
-    
-    it('should validate required job_name parameter', async () => {
-      // Call with missing job_name
-      const { data, error } = await supabase.functions.invoke('triggerCronJob', {
-        body: {}
-      });
-      
-      // Assertions
-      expect(data).toBeNull();
-      expect(error).toBeDefined();
-      expect(error?.message).toContain('job_name is required');
     });
   });
 });

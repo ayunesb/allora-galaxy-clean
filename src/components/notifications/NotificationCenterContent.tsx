@@ -1,110 +1,78 @@
 
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import React from 'react';
+import { Notification, NotificationType } from '@/types/notifications';
+import NotificationCenterEmptyState from './NotificationCenterEmptyState';
+import NotificationCenterLoading from './NotificationCenterLoading';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BellRing, Check } from 'lucide-react';
+import NotificationCenterTabs from './NotificationCenterTabs';
 import { NotificationContent } from '@/types/notifications';
-import NotificationList from './NotificationList';
 
 export interface NotificationCenterContentProps {
-  notifications: NotificationContent[];
-  unreadCount: number;
-  onMarkAsRead: (id: string) => Promise<void>;
-  onMarkAllAsRead: () => Promise<void>;
-  onDeleteNotification: (id: string) => Promise<void>;
-  onClose: () => void;
+  notifications: Notification[];
+  markAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  loading?: boolean;
+  onMarkAllAsRead?: () => Promise<void>;
+  activeFilter: string;
+  setActiveFilter: (filter: string) => void;
 }
 
-export const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
+const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   notifications,
-  unreadCount,
-  onMarkAsRead,
+  markAsRead,
+  onDelete,
+  loading = false,
   onMarkAllAsRead,
-  onDeleteNotification
+  activeFilter,
+  setActiveFilter
 }) => {
-  const [activeTab, setActiveTab] = useState('all');
+  if (loading) {
+    return <NotificationCenterLoading />;
+  }
 
-  const unreadNotifications = notifications.filter((n) => !n.read);
-  const systemNotifications = notifications.filter((n) => n.type === 'system');
-  const alertsNotifications = notifications.filter(
-    (n) => n.type === 'warning' || n.type === 'error'
-  );
+  if (notifications.length === 0) {
+    return <NotificationCenterEmptyState />;
+  }
+
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  // Map to UI-ready format
+  const notificationItems: NotificationContent[] = notifications.map(notification => ({
+    id: notification.id,
+    title: notification.title,
+    message: notification.description || '',
+    timestamp: notification.created_at,
+    read: notification.is_read || false,
+    type: notification.type as NotificationType,
+    action_url: notification.action_url,
+    action_label: notification.action_label,
+  }));
 
   return (
-    <Card className="border shadow-md w-full z-50">
-      <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-md font-medium flex items-center">
-          <BellRing className="h-4 w-4 mr-2" />
-          Notifications
-          {unreadCount > 0 && (
-            <span className="ml-2 text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
-              {unreadCount} new
-            </span>
-          )}
-        </CardTitle>
-        <div className="flex space-x-2">
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={onMarkAllAsRead}>
-              <Check className="h-4 w-4 mr-1" />
-              <span className="text-xs">Mark all read</span>
-            </Button>
-          )}
+    <div className="space-y-2">
+      {onMarkAllAsRead && unreadCount > 0 && (
+        <div className="flex justify-end p-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onMarkAllAsRead()}
+          >
+            Mark all as read
+          </Button>
         </div>
-      </CardHeader>
-
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <div className="px-4 pb-2">
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1">
-              All
-            </TabsTrigger>
-            <TabsTrigger value="unread" className="flex-1">
-              Unread {unreadCount > 0 && `(${unreadCount})`}
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex-1">
-              System
-            </TabsTrigger>
-            <TabsTrigger value="alerts" className="flex-1">
-              Alerts
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <CardContent className="p-0">
-          <TabsContent value="all" className="m-0">
-            <NotificationList
-              notifications={notifications}
-              onMarkAsRead={onMarkAsRead}
-              onDelete={onDeleteNotification}
-            />
-          </TabsContent>
-
-          <TabsContent value="unread" className="m-0">
-            <NotificationList
-              notifications={unreadNotifications}
-              onMarkAsRead={onMarkAsRead}
-              onDelete={onDeleteNotification}
-            />
-          </TabsContent>
-
-          <TabsContent value="system" className="m-0">
-            <NotificationList
-              notifications={systemNotifications}
-              onMarkAsRead={onMarkAsRead}
-              onDelete={onDeleteNotification}
-            />
-          </TabsContent>
-
-          <TabsContent value="alerts" className="m-0">
-            <NotificationList
-              notifications={alertsNotifications}
-              onMarkAsRead={onMarkAsRead}
-              onDelete={onDeleteNotification}
-            />
-          </TabsContent>
-        </CardContent>
-      </Tabs>
-    </Card>
+      )}
+      
+      <NotificationCenterTabs 
+        value={activeFilter}
+        onValueChange={setActiveFilter}
+        notifications={notificationItems}
+        unreadCount={unreadCount}
+        onMarkAsRead={markAsRead}
+        onDelete={onDelete}
+      />
+    </div>
   );
 };
+
+export default NotificationCenterContent;

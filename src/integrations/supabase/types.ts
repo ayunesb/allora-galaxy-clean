@@ -9,54 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      agent_version_analyses: {
-        Row: {
-          agent_version_id: string | null
-          analyzed_at: string | null
-          created_at: string | null
-          diff_summary: string
-          id: string
-          impact_rationale: string
-          plugin_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          agent_version_id?: string | null
-          analyzed_at?: string | null
-          created_at?: string | null
-          diff_summary: string
-          id?: string
-          impact_rationale: string
-          plugin_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          agent_version_id?: string | null
-          analyzed_at?: string | null
-          created_at?: string | null
-          diff_summary?: string
-          id?: string
-          impact_rationale?: string
-          plugin_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_version_analyses_agent_version_id_fkey"
-            columns: ["agent_version_id"]
-            isOneToOne: false
-            referencedRelation: "agent_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_version_analyses_plugin_id_fkey"
-            columns: ["plugin_id"]
-            isOneToOne: false
-            referencedRelation: "plugins"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       agent_versions: {
         Row: {
           created_at: string | null
@@ -138,59 +90,6 @@ export type Database = {
             columns: ["agent_version_id"]
             isOneToOne: false
             referencedRelation: "agent_versions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      api_keys: {
-        Row: {
-          created_at: string | null
-          created_by: string
-          expires_at: string | null
-          id: string
-          key: string
-          key_prefix: string
-          last_used_at: string | null
-          metadata: Json | null
-          name: string
-          scope: string[]
-          status: string
-          tenant_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          created_by: string
-          expires_at?: string | null
-          id?: string
-          key: string
-          key_prefix: string
-          last_used_at?: string | null
-          metadata?: Json | null
-          name: string
-          scope?: string[]
-          status?: string
-          tenant_id: string
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string
-          expires_at?: string | null
-          id?: string
-          key?: string
-          key_prefix?: string
-          last_used_at?: string | null
-          metadata?: Json | null
-          name?: string
-          scope?: string[]
-          status?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_keys_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -712,7 +611,6 @@ export type Database = {
           completion_percentage: number | null
           created_at: string | null
           created_by: string | null
-          created_by_ai: boolean | null
           description: string
           due_date: string | null
           id: string
@@ -728,7 +626,6 @@ export type Database = {
           completion_percentage?: number | null
           created_at?: string | null
           created_by?: string | null
-          created_by_ai?: boolean | null
           description: string
           due_date?: string | null
           id?: string
@@ -744,7 +641,6 @@ export type Database = {
           completion_percentage?: number | null
           created_at?: string | null
           created_by?: string | null
-          created_by_ai?: boolean | null
           description?: string
           due_date?: string | null
           id?: string
@@ -923,19 +819,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_api_key: {
-        Args: {
-          p_name: string
-          p_tenant_id: string
-          p_scope?: string[]
-          p_expires_at?: string
-        }
-        Returns: {
-          id: string
-          key: string
-          key_prefix: string
-        }[]
-      }
       is_tenant_admin: {
         Args: { tenant_id: string }
         Returns: boolean

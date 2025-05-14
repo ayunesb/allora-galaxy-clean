@@ -1,43 +1,27 @@
 
-import { Tenant } from '@/types/tenant';
-import { NavigationItem } from '@/types/shared';
+export interface WorkspaceContextType {
+  currentWorkspace: Workspace | null;
+  setCurrentWorkspace: (workspace: Workspace) => void;
+  workspaces: Workspace[];
+  loading: boolean;
+  error: any;
+  refreshWorkspaces: () => Promise<void>;
+  createWorkspace: (name: string, slug?: string) => Promise<Workspace | undefined>;
+  deleteWorkspace: (workspaceId: string) => Promise<void>;
+  updateWorkspace: (workspaceId: string, updates: { name?: string; slug?: string }) => Promise<Workspace | undefined>;
+  userRole: string | null;
+  isLoading: boolean;
+  tenant: any | null;
+  currentTenant: any | null;
+}
 
 export interface Workspace {
   id: string;
   name: string;
   slug?: string;
-  description?: string;
-  owner_id: string;
-  metadata?: Record<string, any> | null;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+  metadata?: Record<string, any>;
   [key: string]: any;
-}
-
-export interface UserWorkspaceRole {
-  role: string;
-  workspace: Workspace;
-}
-
-export interface WorkspaceContextType {
-  workspace: Workspace | null;
-  workspaces: UserWorkspaceRole[];
-  currentWorkspace?: Workspace | null;
-  isAdmin: boolean;
-  isLoading: boolean;  // Primary property
-  loading?: boolean;   // Backward compatibility
-  error: Error | null;
-  navigationItems?: NavigationItem[];
-  navigation?: NavigationItem[];
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-  toggleCollapsed?: () => void;
-  refreshWorkspaces: () => Promise<void>;
-  updateCurrentWorkspace?: (workspaceId: string) => void;
-  setCurrentWorkspace: (workspace: Workspace) => void;
-  userRole: string | null;
-  createWorkspace?: (workspaceData: Partial<Workspace>) => Promise<Workspace | null>;
-  
-  // Backward compatibility properties
-  tenant?: Tenant | null;
-  currentTenant?: Tenant | null;
-  tenants?: Tenant[]; // Backward compatibility
 }

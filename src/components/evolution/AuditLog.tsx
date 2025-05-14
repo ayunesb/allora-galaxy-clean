@@ -1,215 +1,89 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { SystemLog } from '@/types/logs';
-import { EvolutionFilter } from '@/types/evolution';
-import { LogDetailDialog } from './LogDetailDialog';
-import { formatDistanceToNow } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
+import { AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters';
+import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
+import SystemLogsList from '@/components/admin/logs/SystemLogsList';
+import { AuditLog as AuditLogType } from '@/types/logs';
 
 export interface AuditLogProps {
-  onFetchData: (filters: EvolutionFilter) => Promise<SystemLog[]>;
+  title?: string;
+  subtitle?: string;
+  data?: AuditLogType[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
-const LOGS_PER_PAGE = 10;
+export const AuditLog: React.FC<AuditLogProps> = ({
+  title = 'Audit Logs',
+  subtitle = 'Track changes across the system',
+  data,
+  isLoading,
+  onRefresh
+}) => {
+  const [activeTab, setActiveTab] = useState('all');
+  const [filters, setFilters] = useState<AuditLogFilterState>({});
+  
+  // If data is not provided as props, use the hook to fetch the data
+  const hookData = useAuditLogData(filters as any);
+  const logs = data || hookData.logs;
+  const loading = isLoading !== undefined ? isLoading : hookData.isLoading;
+  const handleRefresh = onRefresh || hookData.refetch;
 
-const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [filters, setFilters] = useState<EvolutionFilter>({});
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
-
-  // Calculate total pages
-  const totalPages = Math.max(1, Math.ceil(totalLogs / LOGS_PER_PAGE));
-
-  // Fetch data with new filters
-  const fetchData = async (newFilters: EvolutionFilter = filters, page = currentPage) => {
-    setLoading(true);
-    try {
-      // In a real app, pagination would be server-side
-      // For now, we'll simulate it by slicing client-side
-      const results = await onFetchData(newFilters);
-      
-      setTotalLogs(results.length);
-      
-      // Calculate pagination slice
-      const startIndex = (page - 1) * LOGS_PER_PAGE;
-      const endIndex = startIndex + LOGS_PER_PAGE;
-      setLogs(results.slice(startIndex, endIndex));
-      
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleFilterChange = (newFilters: AuditLogFilterState) => {
+    setFilters(newFilters);
   };
-
-  // Handle page changes
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchData(filters, page);
-  };
-
-  // View log details
-  const handleViewDetails = (log: SystemLog) => {
-    setSelectedLog(log);
-    setShowDetailDialog(true);
-  };
-
-  // Get badge variant based on module
-  const getModuleBadgeVariant = (module: string) => {
-    switch (module?.toLowerCase()) {
-      case 'error':
-        return 'destructive';
-      case 'warning':
-        return 'warning';
-      case 'strategy':
-        return 'default';
-      case 'plugin':
-        return 'secondary';
-      case 'auth':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
-
-  // Initial data fetch
-  React.useEffect(() => {
-    fetchData();
-  }, []);
-
+  
   return (
-    <Card className="shadow-md">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>System Activity</CardTitle>
-        <CardDescription>
-          View and filter system logs and activity records
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
+        <Separator className="my-2" />
+        <AuditLogFilters 
+          filters={filters} 
+          onFilterChange={handleFilterChange}
+          onRefresh={handleRefresh}
+          isLoading={loading}
+        />
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-muted-foreground">
-            Showing {logs.length} logs
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="mb-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all">All Activity</TabsTrigger>
+              <TabsTrigger value="user">User Events</TabsTrigger>
+              <TabsTrigger value="content">Content Changes</TabsTrigger>
+              <TabsTrigger value="system">System Events</TabsTrigger>
+            </TabsList>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              setFilters({});
-              fetchData({}, 1);
-            }}
-          >
-            Reset Filters
-          </Button>
-        </div>
-        
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : logs.length > 0 ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">Event</th>
-                    <th className="px-4 py-3 text-left font-medium">Module</th>
-                    <th className="hidden px-4 py-3 text-left font-medium sm:table-cell">Time</th>
-                    <th className="px-4 py-3 text-right font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr 
-                      key={log.id} 
-                      className="border-b hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div>{log.event}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={getModuleBadgeVariant(log.module)}>
-                          {log.module}
-                        </Badge>
-                      </td>
-                      <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleViewDetails(log)}
-                        >
-                          Details
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing <strong>{Math.min((currentPage - 1) * LOGS_PER_PAGE + 1, totalLogs)}</strong> to{" "}
-                <strong>{Math.min(currentPage * LOGS_PER_PAGE, totalLogs)}</strong> of{" "}
-                <strong>{totalLogs}</strong> logs
-              </div>
-              <div className="flex justify-center mt-6">
-                <nav aria-label="Pagination">
-                  <ul className="flex space-x-2">
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <li key={i}>
-                        <Button
-                          variant={currentPage === i + 1 ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(i + 1)}
-                          className="w-10 h-10"
-                        >
-                          {i + 1}
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="py-32 text-center">
-            <div className="text-muted-foreground">No logs found</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Try adjusting your filters or check back later.
-            </p>
-            <Button 
-              variant="outline"
-              onClick={() => {
-                setFilters({});
-                fetchData({}, 1);
-              }}
-              className="mt-4"
-            >
-              Reset Filters
-            </Button>
-          </div>
-        )}
-        
-        {selectedLog && (
-          <LogDetailDialog
-            log={selectedLog}
-            open={showDetailDialog}
-            onClose={() => setShowDetailDialog(false)}
-          />
-        )}
+          
+          <TabsContent value="all">
+            <SystemLogsList logs={logs} isLoading={loading} />
+          </TabsContent>
+          
+          <TabsContent value="user">
+            <SystemLogsList logs={logs.filter(log => 
+              log.module === 'user' || log.module === 'auth'
+            )} isLoading={loading} />
+          </TabsContent>
+          
+          <TabsContent value="content">
+            <SystemLogsList logs={logs.filter(log => 
+              log.module === 'strategy' || log.module === 'plugin' || log.module === 'agent'
+            )} isLoading={loading} />
+          </TabsContent>
+          
+          <TabsContent value="system">
+            <SystemLogsList logs={logs.filter(log => 
+              log.module === 'system' || log.module === 'billing' || log.module === 'tenant'
+            )} isLoading={loading} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

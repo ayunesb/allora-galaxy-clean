@@ -1,30 +1,43 @@
 
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from './StatusBadge';
-import { TableSkeleton } from './TableSkeletons';
-import { CronJob } from '@/types/cron';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ReactNode } from 'react';
 
-interface ExecutionsTableProps {
-  jobs: CronJob[];
-  isLoading: boolean;
-  actionButton?: (job: CronJob) => React.ReactNode;
+// Define the CronJobExecution interface for the table
+export interface CronJobExecution {
+  id: string;
+  name: string;
+  schedule: string | null | undefined;
+  last_run: string | null;
+  next_run: string | null;
+  status: 'active' | 'inactive' | 'running' | 'failed';
+  function_name: string;
+  created_at: string;
+  error_message?: string | null | undefined;
+  duration_ms?: number | null;
+  metadata?: Record<string, any> | null;
 }
 
-export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
-  jobs,
-  isLoading,
-  actionButton,
+interface ExecutionsTableProps {
+  jobs: CronJobExecution[];
+  isLoading: boolean;
+  actionButton?: (job: CronJobExecution) => ReactNode;
+}
+
+export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({ 
+  jobs, 
+  isLoading, 
+  actionButton 
 }) => {
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Never';
-    try {
-      return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
-    } catch (e) {
-      return 'Invalid date';
-    }
-  };
+  if (isLoading) {
+    return <TableSkeleton />;
+  }
+
+  if (jobs.length === 0) {
+    return <div className="text-center py-8 text-muted-foreground">No jobs found.</div>;
+  }
 
   return (
     <div className="rounded-md border">
@@ -34,41 +47,45 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
             <TableHead>Name</TableHead>
             <TableHead>Schedule</TableHead>
             <TableHead>Last Run</TableHead>
-            <TableHead>Next Run</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Duration</TableHead>
             {actionButton && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading ? (
-            <TableSkeleton columns={actionButton ? 6 : 5} rows={5} />
-          ) : jobs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={actionButton ? 6 : 5} className="text-center py-6 text-muted-foreground">
-                No CRON jobs found
+          {jobs.map((job) => (
+            <TableRow key={job.id}>
+              <TableCell className="font-medium">{job.name}</TableCell>
+              <TableCell>{job.schedule || 'Manual'}</TableCell>
+              <TableCell>
+                {job.last_run ? new Date(job.last_run).toLocaleString() : 'Never'}
               </TableCell>
-            </TableRow>
-          ) : (
-            jobs.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell className="font-medium">{job.name}</TableCell>
-                <TableCell>{job.schedule || 'Manual'}</TableCell>
-                <TableCell>{formatDate(job.last_run)}</TableCell>
-                <TableCell>{formatDate(job.next_run)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={job.status} />
+              <TableCell>
+                <StatusBadge status={job.status} />
+              </TableCell>
+              <TableCell>
+                {job.duration_ms !== null && job.duration_ms !== undefined
+                  ? `${job.duration_ms}ms`
+                  : 'N/A'}
+              </TableCell>
+              {actionButton && (
+                <TableCell className="text-right">
+                  {actionButton(job)}
                 </TableCell>
-                {actionButton && (
-                  <TableCell className="text-right">{actionButton(job)}</TableCell>
-                )}
-              </TableRow>
-            ))
-          )}
+              )}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>
   );
 };
 
-export type { CronJob };
-export type { CronJobStat } from '@/types/cron';
+const TableSkeleton = () => (
+  <div className="space-y-2">
+    <Skeleton className="h-8 w-full" />
+    <Skeleton className="h-8 w-full" />
+    <Skeleton className="h-8 w-full" />
+    <Skeleton className="h-8 w-full" />
+  </div>
+);

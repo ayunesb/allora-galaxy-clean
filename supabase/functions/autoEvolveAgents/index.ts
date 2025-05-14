@@ -1,452 +1,334 @@
 
+// Supabase Edge Function to automatically evolve agents based on performance
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  corsHeaders,
-  createErrorResponse,
-  createSuccessResponse,
-  getEnv,
-  handleCorsRequest,
-  logSystemEvent,
-  parseJsonBody,
-  validateRequiredFields,
-  withRetry
-} from "../_shared/edgeUtils.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
-// Configuration for automatic agent evolution
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
+
+// Safely get environment variables
+function safeGetDenoEnv(key: string, defaultValue: string = ""): string {
+  try {
+    return Deno.env.get(key) ?? defaultValue;
+  } catch (err) {
+    console.warn(`Error accessing env variable ${key}:`, err);
+    return defaultValue;
+  }
+}
+
+// Configuration for agent evolution
 const CONFIG = {
-  // Thresholds for evolution
-  minUpvotesForEvolution: 5,
-  minUpvoteRatio: 0.65,
-  maxAgentsToEvolve: 3,
-  // Retry configuration
-  retryAttempts: 3,
-  retryBaseDelay: 500, // ms
-  // OpenAI configuration
-  model: "gpt-4", // Default model to use
-  temperature: 0.7
+  evolutionThreshold: 0.7, // Minimum score to trigger evolution (0-1)
+  minimumExecutions: 10, // Minimum number of executions before considering evolution
+  failureRateThreshold: 0.2, // Trigger evolution if failure rate exceeds this
+  staleDays: 30, // Days after which to consider an agent "stale"
+  batchSize: 10 // Max number of agents to process in one run
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  const corsResponse = handleCorsRequest(req);
-  if (corsResponse) return corsResponse;
-  
-  const requestStart = performance.now();
-  const requestId = `evolve_${Date.now().toString(36)}`;
-  
-  console.log(`[${requestId}] Request received to auto-evolve agents`);
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
   
   try {
-    // Get environment variables
-    const SUPABASE_URL = getEnv("SUPABASE_URL", true);
-    const SUPABASE_SERVICE_ROLE_KEY = getEnv("SUPABASE_SERVICE_ROLE_KEY", true);
-    const OPENAI_API_KEY = getEnv("OPENAI_API_KEY", true);
+    // Parse request body
+    const { tenant_id, options } = await req.json();
     
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !OPENAI_API_KEY) {
-      return createErrorResponse(
-        "Missing required environment variables",
-        {
-          missing: [
-            !SUPABASE_URL && "SUPABASE_URL",
-            !SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
-            !OPENAI_API_KEY && "OPENAI_API_KEY",
-          ].filter(Boolean)
-        },
-        500
-      );
-    }
+    // Get Supabase credentials
+    const SUPABASE_URL = safeGetDenoEnv("SUPABASE_URL");
+    const SUPABASE_SERVICE_KEY = safeGetDenoEnv("SUPABASE_SERVICE_ROLE_KEY");
     
-    // Initialize Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Parse and validate request body
-    let body;
-    try {
-      body = await parseJsonBody(req);
-    } catch (error) {
-      return createErrorResponse("Invalid JSON in request body", String(error), 400);
-    }
-    
-    // Validate tenant_id
-    const missingFields = validateRequiredFields(body, ['tenant_id']);
-    if (missingFields.length > 0) {
-      return createErrorResponse(
-        `Missing required fields: ${missingFields.join(', ')}`,
-        { required: ['tenant_id'] },
-        400
-      );
-    }
-    
-    const { tenant_id } = body;
-    
-    // Log the start of the process
-    await logSystemEvent(
-      supabase,
-      'agent',
-      'auto_evolve_start',
-      { tenant_id, request_id: requestId },
-      tenant_id
-    );
-    
-    // Find agents eligible for evolution
-    const eligibleAgents = await findEligibleAgents(supabase, tenant_id);
-    
-    console.log(`[${requestId}] Found ${eligibleAgents.length} agents eligible for evolution`);
-    
-    if (eligibleAgents.length === 0) {
-      return createSuccessResponse({
-        evolved: 0,
-        message: "No agents eligible for evolution",
-        request_id: requestId
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Required environment variables are not configured"
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
     
-    // Limit the number of agents to evolve
-    const agentsToEvolve = eligibleAgents.slice(0, CONFIG.maxAgentsToEvolve);
+    // Create Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+    // Merge config with any provided options
+    const config = {
+      ...CONFIG,
+      ...(options || {})
+    };
+    
+    // Log start of evolution process
+    await logSystemEvent(supabase, 'agent', 'auto_evolve_started', {
+      tenant_id,
+      config
+    }, tenant_id);
+    
+    // 1. Get agents that meet criteria for evolution
+    const agents = await getAgentsForEvolution(supabase, tenant_id, config);
+    console.log(`Found ${agents.length} agents to check for evolution`);
+    
+    let evolvedCount = 0;
     const evolvedAgents = [];
     
-    // Evolve each agent
-    for (const agent of agentsToEvolve) {
+    // 2. Process each agent
+    for (const agent of agents) {
       try {
-        console.log(`[${requestId}] Evolving agent version: ${agent.id}`);
+        // Get usage statistics
+        const stats = await getAgentStats(supabase, agent.id);
         
-        const evolveResult = await evolveAgentVersion(
-          supabase, 
-          agent, 
-          OPENAI_API_KEY,
-          requestId
-        );
+        // Calculate performance score
+        const performance = calculatePerformance(stats);
         
-        if (evolveResult.success) {
-          evolvedAgents.push({
-            originalId: agent.id,
-            newVersionId: evolveResult.newVersionId,
-            improvements: evolveResult.improvements
-          });
+        // Check if agent needs evolution
+        if (performance < config.evolutionThreshold || 
+            hasHighFailureRate(stats, config.failureRateThreshold)) {
+          
+          // Get feedback for this agent
+          const feedback = await getAgentFeedback(supabase, agent.id);
+          
+          // Generate evolved prompt based on feedback and performance
+          const newPrompt = await evolvePrompt(agent.prompt, feedback, performance);
+          
+          // Only evolve if prompt actually changed
+          if (newPrompt !== agent.prompt) {
+            // Create new agent version
+            const newAgent = await createEvolvedAgent(
+              supabase, 
+              tenant_id, 
+              agent.plugin_id, 
+              agent.id, 
+              newPrompt
+            );
+            
+            // Log the evolution
+            await logSystemEvent(supabase, 'agent', 'agent_evolved', {
+              old_agent_id: agent.id,
+              new_agent_id: newAgent.id,
+              plugin_id: agent.plugin_id,
+              performance_score: performance,
+              tenant_id
+            }, tenant_id);
+            
+            evolvedAgents.push({
+              id: newAgent.id,
+              previousId: agent.id,
+              performance
+            });
+            
+            evolvedCount++;
+          }
         }
-      } catch (agentError) {
-        console.error(`[${requestId}] Error evolving agent ${agent.id}:`, agentError);
-        
-        // Log the error but continue with other agents
-        await logSystemEvent(
-          supabase,
-          'agent',
-          'agent_evolution_error',
-          { 
-            agent_id: agent.id,
-            error: String(agentError),
-            request_id: requestId
-          },
-          tenant_id
-        );
+      } catch (error) {
+        console.error(`Error processing agent ${agent.id}:`, error);
       }
     }
     
-    // Log completion of the process
-    await logSystemEvent(
-      supabase,
-      'agent',
-      'auto_evolve_complete',
-      { 
-        tenant_id,
-        agents_evolved: evolvedAgents.length,
-        evolved_agents: evolvedAgents.map(a => a.newVersionId),
-        request_id: requestId,
-        execution_time: (performance.now() - requestStart) / 1000
-      },
+    // Log completion
+    await logSystemEvent(supabase, 'agent', 'auto_evolve_completed', {
+      agents_processed: agents.length,
+      agents_evolved: evolvedCount,
       tenant_id
-    );
+    }, tenant_id);
     
     // Return results
-    return createSuccessResponse({
+    return new Response(JSON.stringify({
       success: true,
-      evolved: evolvedAgents.length,
-      agentVersionIds: evolvedAgents.map(a => a.newVersionId),
-      message: evolvedAgents.length > 0 
-        ? `Successfully evolved ${evolvedAgents.length} agents` 
-        : "No agents were evolved",
-      execution_time: (performance.now() - requestStart) / 1000,
-      request_id: requestId
+      evolved: evolvedCount,
+      agents: evolvedAgents,
+      message: evolvedCount > 0 
+        ? `Successfully evolved ${evolvedCount} agents` 
+        : 'No agents needed evolution'
+    }), {
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
     });
     
-  } catch (error) {
-    console.error(`[${requestId}] Unexpected error:`, error);
+  } catch (error: any) {
+    console.error("Error in autoEvolveAgents:", error);
     
-    return createErrorResponse(
-      "Failed to auto-evolve agents",
-      {
-        details: error instanceof Error ? error.message : String(error),
-        execution_time: (performance.now() - requestStart) / 1000,
-        request_id: requestId
-      },
-      500
-    );
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || "Unknown error occurred",
+      evolved: 0
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
+    });
   }
 });
 
-/**
- * Find agents eligible for evolution based on vote counts and ratios
- */
-async function findEligibleAgents(supabase: any, tenantId: string) {
-  try {
-    // Use retry logic for database query
-    const { data, error } = await withRetry(
-      async () => {
-        return await supabase
-          .from('agent_versions')
-          .select('id, version, prompt, plugin_id, upvotes, downvotes, created_at')
-          .eq('status', 'active')
-          .gte('upvotes', CONFIG.minUpvotesForEvolution)
-          .order('upvotes', { ascending: false });
-      },
-      {
-        retries: CONFIG.retryAttempts,
-        delay: CONFIG.retryBaseDelay,
-        onRetry: (attempt) => console.log(`Retrying eligible agents query, attempt ${attempt}`)
-      }
-    );
+// Helper functions
+async function getAgentsForEvolution(supabase: any, tenantId: string, config: any) {
+  const query = supabase
+    .from('agent_versions')
+    .select(`
+      id,
+      plugin_id,
+      version,
+      prompt,
+      created_at,
+      tenant_id
+    `)
+    .eq('status', 'active');
     
-    if (error) throw error;
-    
-    // Filter agents based on upvote ratio
-    return (data || []).filter(agent => {
-      const totalVotes = agent.upvotes + agent.downvotes;
-      const upvoteRatio = totalVotes > 0 ? agent.upvotes / totalVotes : 0;
-      return upvoteRatio >= CONFIG.minUpvoteRatio;
-    });
-    
-  } catch (error) {
-    console.error('Error finding eligible agents:', error);
-    throw new Error(`Failed to find eligible agents: ${error instanceof Error ? error.message : String(error)}`);
+  if (tenantId) {
+    query.eq('tenant_id', tenantId);
   }
+    
+  query.limit(config.batchSize);
+    
+  const { data, error } = await query;
+    
+  if (error) throw error;
+  return data || [];
 }
 
-/**
- * Evolve an agent version by improving its prompt
- */
-async function evolveAgentVersion(
+async function getAgentStats(supabase: any, agentId: string) {
+  const { data, error } = await supabase
+    .from('plugin_logs')
+    .select('status, execution_time, created_at')
+    .eq('agent_version_id', agentId);
+    
+  if (error) throw error;
+  return data || [];
+}
+
+function calculatePerformance(stats: any[]) {
+  if (!stats || stats.length === 0) return 0.5; // Default neutral score
+  
+  const successCount = stats.filter(log => log.status === 'success').length;
+  const totalCount = stats.length;
+  
+  // Simple success rate calculation
+  return totalCount > 0 ? successCount / totalCount : 0.5;
+}
+
+function hasHighFailureRate(stats: any[], threshold: number) {
+  if (!stats || stats.length < 10) return false; // Need minimum sample size
+  
+  const failureCount = stats.filter(log => log.status !== 'success').length;
+  const totalCount = stats.length;
+  
+  return totalCount > 0 && (failureCount / totalCount) > threshold;
+}
+
+async function getAgentFeedback(supabase: any, agentId: string) {
+  const { data, error } = await supabase
+    .from('agent_votes')
+    .select('comment, vote_type')
+    .eq('agent_version_id', agentId)
+    .not('comment', 'is', null);
+    
+  if (error) throw error;
+  return data || [];
+}
+
+async function evolvePrompt(currentPrompt: string, feedback: any[], performance: number) {
+  // In a real implementation, this would use LLM to improve the prompt
+  // This is a placeholder that just adds feedback to the prompt
+  if (feedback.length === 0) return currentPrompt;
+  
+  // Simple simulation of evolution - combine feedback into prompt
+  const feedbackText = feedback
+    .map(item => `${item.vote_type === 'upvote' ? 'Positive' : 'Negative'} feedback: ${item.comment}`)
+    .join('\n');
+    
+  return `${currentPrompt}\n\n# Evolution Notes (Performance: ${performance.toFixed(2)}):\n${feedbackText}`;
+}
+
+async function createEvolvedAgent(
   supabase: any, 
-  agent: any, 
-  apiKey: string,
-  requestId: string
+  tenantId: string, 
+  pluginId: string, 
+  oldAgentId: string, 
+  newPrompt: string
 ) {
   try {
-    // Get user comments/feedback for this agent version
-    const { data: votes, error: votesError } = await withRetry(
-      () => supabase
-        .from('agent_votes')
-        .select('vote_type, comment')
-        .eq('agent_version_id', agent.id)
-        .not('comment', 'is', null),
-      { retries: CONFIG.retryAttempts, delay: CONFIG.retryBaseDelay }
-    );
+    // 1. Get current version number
+    const { data: versions } = await supabase
+      .from('agent_versions')
+      .select('version')
+      .eq('plugin_id', pluginId);
     
-    if (votesError) throw votesError;
-    
-    // Filter comments by vote type
-    const upvoteComments = votes
-      .filter(v => v.vote_type === 'up' && v.comment)
-      .map(v => v.comment);
-      
-    const downvoteComments = votes
-      .filter(v => v.vote_type === 'down' && v.comment)
-      .map(v => v.comment);
-      
-    // Get plugin information if this agent is for a plugin
-    let pluginData = null;
-    if (agent.plugin_id) {
-      const { data: plugin, error: pluginError } = await withRetry(
-        () => supabase
-          .from('plugins')
-          .select('name, description, metadata')
-          .eq('id', agent.plugin_id)
-          .single(),
-        { retries: CONFIG.retryAttempts, delay: CONFIG.retryBaseDelay }
-      );
-      
-      if (pluginError) {
-        console.warn(`[${requestId}] Warning: Could not fetch plugin data: ${pluginError.message}`);
-      } else {
-        pluginData = plugin;
-      }
+    // Calculate next version
+    let nextVersion = '1.0.0';
+    if (versions && versions.length > 0) {
+      const highestVersion = versions
+        .map((v: any) => v.version)
+        .sort((a: string, b: string) => {
+          const aParts = a.split('.').map(Number);
+          const bParts = b.split('.').map(Number);
+          for (let i = 0; i < 3; i++) {
+            if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+          }
+          return 0;
+        })[0];
+        
+      const parts = highestVersion.split('.').map(Number);
+      parts[2] += 1; // Increment patch version
+      nextVersion = parts.join('.');
     }
     
-    // Analyze and improve the prompt using OpenAI
-    const improvements = await improvePromptWithAI(
-      agent.prompt, 
-      upvoteComments, 
-      downvoteComments,
-      pluginData,
-      apiKey
-    );
+    // 2. Mark old agent as inactive
+    await supabase
+      .from('agent_versions')
+      .update({ 
+        status: 'inactive',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', oldAgentId);
     
-    // Create a new agent version with the improved prompt
-    const newVersion = parseFloat(agent.version) + 0.1;
-    
-    const { data: newAgent, error: insertError } = await withRetry(
-      () => supabase
-        .from('agent_versions')
-        .insert({
-          plugin_id: agent.plugin_id,
-          prompt: improvements.newPrompt,
-          version: newVersion.toFixed(1),
-          status: 'active',
-          created_by: null // System-generated
-        })
-        .select()
-        .single(),
-      { retries: CONFIG.retryAttempts, delay: CONFIG.retryBaseDelay }
-    );
-    
-    if (insertError) throw insertError;
-    
-    // Insert analysis record
-    await withRetry(
-      () => supabase
-        .from('agent_version_analyses')
-        .insert({
-          agent_version_id: newAgent.id,
-          plugin_id: agent.plugin_id,
-          diff_summary: improvements.diffSummary,
-          impact_rationale: improvements.impactRationale
-        }),
-      { retries: CONFIG.retryAttempts, delay: CONFIG.retryBaseDelay }
-    );
-    
-    return {
-      success: true,
-      newVersionId: newAgent.id,
-      improvements: {
-        diffSummary: improvements.diffSummary,
-        impactRationale: improvements.impactRationale
-      }
-    };
-    
+    // 3. Create new agent version
+    const { data, error } = await supabase
+      .from('agent_versions')
+      .insert({
+        plugin_id: pluginId,
+        version: nextVersion,
+        prompt: newPrompt,
+        status: 'active',
+        tenant_id: tenantId,
+        created_by: null, // System-generated
+        upvotes: 0,
+        downvotes: 0
+      })
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error(`[${requestId}] Error evolving agent:`, error);
-    throw new Error(`Failed to evolve agent: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Error creating evolved agent:', error);
+    throw error;
   }
 }
 
-/**
- * Use OpenAI to analyze and improve a prompt based on feedback
- */
-async function improvePromptWithAI(
-  originalPrompt: string,
-  upvoteComments: string[],
-  downvoteComments: string[],
-  pluginData: any | null,
-  apiKey: string
+async function logSystemEvent(
+  supabase: any,
+  module: string,
+  event: string,
+  context: Record<string, any>,
+  tenantId?: string
 ) {
   try {
-    // Format feedback into a coherent string
-    const positiveFeedback = upvoteComments.length > 0
-      ? `POSITIVE FEEDBACK:\n${upvoteComments.map(c => `- ${c}`).join('\n')}`
-      : "No positive feedback available.";
-      
-    const negativeFeedback = downvoteComments.length > 0
-      ? `NEGATIVE FEEDBACK:\n${downvoteComments.map(c => `- ${c}`).join('\n')}`
-      : "No negative feedback available.";
-    
-    // Create plugin context if available
-    const pluginContext = pluginData
-      ? `PLUGIN CONTEXT:
-- Name: ${pluginData.name}
-- Description: ${pluginData.description}
-- Additional Info: ${JSON.stringify(pluginData.metadata || {})}`
-      : "No plugin context available.";
-    
-    // Construct the prompt for OpenAI
-    const systemPrompt = `You are an expert AI prompt engineer. Your task is to improve an existing prompt based on user feedback.
-Analyze the original prompt and the user feedback, then create an improved version that addresses the issues while maintaining the prompt's original intent.
-Provide a summary of the changes you made and explain how they address the feedback.`;
-
-    const userPrompt = `ORIGINAL PROMPT:
-${originalPrompt}
-
-${positiveFeedback}
-
-${negativeFeedback}
-
-${pluginContext}
-
-Please provide:
-1. An improved version of the prompt
-2. A summary of changes made (max 300 chars)
-3. A rationale explaining how these improvements address the feedback (max 500 chars)
-
-Format your response as a JSON object with these keys: "newPrompt", "diffSummary", "impactRationale"`;
-
-    // Make the request to OpenAI API with retries
-    let attempt = 0;
-    const maxAttempts = 3;
-    
-    while (attempt < maxAttempts) {
-      attempt++;
-      
-      try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: CONFIG.model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt }
-            ],
-            temperature: CONFIG.temperature,
-            response_format: { type: "json_object" }
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`OpenAI API error (${response.status}): ${JSON.stringify(errorData)}`);
-        }
-        
-        const data = await response.json();
-        
-        // Parse and validate the response
-        let content;
-        try {
-          content = JSON.parse(data.choices[0].message.content);
-          
-          // Validate the response has all required fields
-          if (!content.newPrompt || !content.diffSummary || !content.impactRationale) {
-            throw new Error('Response is missing required fields');
-          }
-          
-          return {
-            newPrompt: content.newPrompt,
-            diffSummary: content.diffSummary,
-            impactRationale: content.impactRationale
-          };
-        } catch (parseError) {
-          if (attempt >= maxAttempts) {
-            throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
-          }
-          console.warn(`Attempt ${attempt}: Failed to parse OpenAI response, retrying...`);
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        }
-      } catch (fetchError) {
-        if (attempt >= maxAttempts) {
-          throw fetchError;
-        }
-        console.warn(`Attempt ${attempt}: OpenAI API error, retrying...`, fetchError);
-        // Wait before retrying with exponential backoff
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
-      }
-    }
-    
-    throw new Error('Failed to get response from OpenAI after multiple attempts');
+    await supabase
+      .from('system_logs')
+      .insert({
+        module,
+        event,
+        context,
+        tenant_id: tenantId
+      });
   } catch (error) {
-    console.error('Error improving prompt with AI:', error);
-    throw new Error(`AI prompt improvement failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Error logging system event:', error);
+    // Non-critical, continue execution
   }
 }

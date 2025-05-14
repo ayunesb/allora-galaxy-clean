@@ -20,7 +20,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({
   fallback,
   redirectTo = '/unauthorized'
 }) => {
-  const { user, isLoading, checkUserRole } = useAuth();
+  const { user, loading, checkUserRole } = useAuth();
   const location = useLocation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
@@ -46,12 +46,12 @@ const RequireRole: React.FC<RequireRoleProps> = ({
       }
     };
     
-    if (!isLoading) {
+    if (!loading) {
       checkPermission();
     }
-  }, [user, isLoading, roles, checkUserRole]);
+  }, [user, loading, roles, checkUserRole]);
 
-  if (isLoading || hasPermission === null) {
+  if (loading || hasPermission === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

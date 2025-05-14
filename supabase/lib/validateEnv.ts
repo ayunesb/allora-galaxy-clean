@@ -1,69 +1,34 @@
 
-/**
- * Environment variable utility for edge functions
- */
-
-export type EnvVar = string | undefined;
+import { getEnv } from "./env";
 
 /**
- * Get an environment variable with validation
- * @param name The name of the environment variable
- * @param required Whether the variable is required
- * @param fallback Fallback value if not found and not required
- * @returns The environment variable value
- * @throws Error if the variable is required but not found
+ * Type definition for environment variable requirements
  */
-export function getEnv(
-  name: string, 
-  required: boolean = false,
-  fallback: string = ''
-): string {
-  let value: EnvVar;
-  
-  try {
-    value = Deno.env.get(name);
-  } catch (err) {
-    if (required) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    console.warn(`Environment variable ${name} is not available: ${err}`);
-    return fallback;
-  }
-  
-  if (value === undefined) {
-    if (required) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    return fallback;
-  }
-  
-  return value;
+export interface EnvVar {
+  name: string;
+  required: boolean;
+  description: string;
 }
 
 /**
- * Validate multiple required environment variables
- * @param names Array of environment variable names to validate
- * @returns Object with validation result and any missing variables
+ * Validate a list of environment variables and return their values
  */
-export function validateEnv(names: string[]): {
-  valid: boolean;
-  missing: string[];
-} {
+export function validateEnv(requiredEnvs: EnvVar[]): Record<string, string> {
+  const result: Record<string, string> = {};
   const missing: string[] = [];
   
-  for (const name of names) {
-    try {
-      const value = Deno.env.get(name);
-      if (value === undefined) {
-        missing.push(name);
-      }
-    } catch (err) {
-      missing.push(name);
+  for (const env of requiredEnvs) {
+    const value = getEnv(env.name);
+    result[env.name] = value;
+    
+    if (env.required && !value) {
+      missing.push(`${env.name} (${env.description})`);
     }
   }
   
-  return {
-    valid: missing.length === 0,
-    missing
-  };
+  if (missing.length > 0) {
+    console.warn(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  
+  return result;
 }

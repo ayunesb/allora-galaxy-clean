@@ -8,7 +8,7 @@ interface NotificationTabsProps {
   selectedTab: string;
   setSelectedTab: (tab: string) => void;
   notifications: NotificationContent[];
-  isLoading?: boolean;
+  loading?: boolean;
   markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }
@@ -17,7 +17,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   selectedTab,
   setSelectedTab,
   notifications,
-  isLoading,
+  loading,
   markAsRead,
   onDelete
 }) => {
@@ -46,7 +46,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
           filter="all"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
-          isLoading={isLoading}
+          loading={loading}
         />
       </TabsContent>
       
@@ -56,7 +56,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
           filter="unread"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
-          isLoading={isLoading}
+          loading={loading}
         />
       </TabsContent>
       
@@ -66,7 +66,7 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
           filter="system"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
-          isLoading={isLoading}
+          loading={loading}
         />
       </TabsContent>
     </Tabs>

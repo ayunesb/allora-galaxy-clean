@@ -1,59 +1,81 @@
 
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { formatNodeMetadata, getNodeStatusVariant } from './NodeUtilities';
-import { GraphNode } from '@/types/galaxy';
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Star, TrendingUp, Clock } from "lucide-react";
 
 interface PluginInspectorProps {
-  node: GraphNode;
+  node: any;
 }
 
-export const PluginInspector: React.FC<PluginInspectorProps> = ({ node }) => {
-  const metadata = formatNodeMetadata(node.metadata);
+export function PluginInspector({ node }: PluginInspectorProps) {
+  if (!node) return null;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">{node.name || 'Plugin'}</CardTitle>
-          <Badge variant={getNodeStatusVariant(node)}>
-            {node.status || 'Unknown'}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {node.description || 'No description available'}
-        </p>
-      </CardHeader>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium mb-1">Status</h3>
+        <Badge variant={node.status === 'active' ? 'default' : 'secondary'}>
+          {node.status}
+        </Badge>
+      </div>
       
-      <CardContent className="space-y-4">
-        {node.version && (
-          <div>
-            <h4 className="text-sm font-medium mb-1">Version</h4>
-            <p className="text-sm">{node.version}</p>
-          </div>
-        )}
-        
-        {Object.keys(metadata).length > 0 && (
-          <>
-            <Separator />
-            <div>
-              <h4 className="text-sm font-medium mb-2">Plugin Details</h4>
-              <div className="space-y-2">
-                {Object.entries(metadata).map(([key, value]) => (
-                  <div key={key} className="grid grid-cols-3 gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">{key}</span>
-                    <span className="text-xs col-span-2 break-words">{value}</span>
-                  </div>
-                ))}
-              </div>
+      <div>
+        <h3 className="text-sm font-medium mb-1">XP</h3>
+        <div className="flex items-center gap-2">
+          <Star className="h-4 w-4 text-yellow-500" />
+          <Badge variant="outline" className="font-mono">{node.xp || 0} XP</Badge>
+        </div>
+        <Progress 
+          value={Math.min(((node.xp || 0) / 1000) * 100, 100)} 
+          className="h-2 mt-2" 
+        />
+      </div>
+      
+      <div>
+        <h3 className="text-sm font-medium mb-1">ROI</h3>
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-emerald-500" />
+          <Badge variant="outline" className="font-mono">{node.roi || 0}%</Badge>
+        </div>
+        <Progress 
+          value={Math.min((node.roi || 0), 100)} 
+          className="h-2 mt-2" 
+        />
+      </div>
+      
+      <Separator />
+      
+      {node.category && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Category</h3>
+          <Badge variant="outline">{node.category}</Badge>
+        </div>
+      )}
+      
+      <div>
+        <h3 className="text-sm font-medium mb-1">Description</h3>
+        <p className="text-sm">{node.description || 'No description'}</p>
+      </div>
+      
+      {node.metadata && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Performance</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs">
+                {node.metadata.avg_execution_time ? `${node.metadata.avg_execution_time}ms` : 'N/A'}
+              </span>
             </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">
+                Success: {node.metadata.success_rate ? `${node.metadata.success_rate}%` : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
-};
-
-export default PluginInspector;
+}

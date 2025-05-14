@@ -1,17 +1,22 @@
 
 import { VoteType } from '@/types/shared';
 
-export interface VoteParams {
-  agentVersionId: string;
-  userId: string;
+export interface UserVote {
   voteType: VoteType;
   comment?: string;
 }
 
+export interface UserVoteInfo {
+  hasVoted: boolean;
+  vote: UserVote | null;
+}
+
 export interface VoteResult {
   success: boolean;
-  voteId?: string;
+  message?: string;
   error?: string;
+  upvotes: number;
+  downvotes: number;
 }
 
 export interface AgentVoteStats {
@@ -21,25 +26,8 @@ export interface AgentVoteStats {
   ratio: number;
 }
 
-export interface UserVoteData {
-  voteType: VoteType;
-  comment?: string | null;
-}
+export type VoteStats = AgentVoteStats;
 
-export interface UserVoteResponse {
-  hasVoted: boolean;
-  vote: UserVoteData | null;
-}
-
-export interface CommentData {
-  id: string;
-  content: string;
-  vote_type: VoteType;
-  created_at: string;
-  user_id: string;
-  user?: {
-    first_name?: string;
-    last_name?: string;
-    avatar_url?: string;
-  } | null;
-}
+export type CastVoteFn = (agentVersionId: string, voteType: VoteType, comment?: string) => Promise<VoteResult>;
+export type UpvoteAgentVersionFn = (agentVersionId: string, comment?: string) => Promise<VoteResult>;
+export type DownvoteAgentVersionFn = (agentVersionId: string, comment?: string) => Promise<VoteResult>;

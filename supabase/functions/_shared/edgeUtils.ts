@@ -1,20 +1,22 @@
 
 /**
- * Common utilities for edge functions
+ * Shared utilities for Edge Functions
  */
 
+// CORS headers for all edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
 /**
- * Get an environment variable
- * @param name The name of the environment variable
- * @param fallback Optional fallback value
+ * Safely get environment variables with fallback value
+ * @param name Name of the environment variable
+ * @param fallback Default value if not found
  * @returns The environment variable value or fallback
  */
-export function getEnv(name: string, fallback: string = ""): string {
+export function getEnv(name: string, fallback: string = ''): string {
   try {
     return Deno.env.get(name) ?? fallback;
   } catch (err) {
@@ -24,191 +26,162 @@ export function getEnv(name: string, fallback: string = ""): string {
 }
 
 /**
- * Parse JSON from request body with error handling
- * @param req The request object
- * @returns Parsed JSON data
- * @throws Error if parsing fails
+ * Get an environment variable or throw if not found
+ * @param name Name of the required environment variable
+ * @returns The environment variable value
+ * @throws Error if the environment variable is not set
  */
-export async function parseJsonBody<T>(req: Request): Promise<T> {
-  try {
-    return await req.json() as T;
-  } catch (error) {
-    throw new Error(`Invalid JSON in request body: ${error instanceof Error ? error.message : String(error)}`);
+export function getRequiredEnv(name: string): string {
+  const value = getEnv(name);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
   }
+  return value;
+}
+
+/**
+ * Standard error response format
+ */
+export interface ErrorResponse {
+  success: false;
+  error: string;
+  details?: any;
+  status: number;
+  timestamp: string;
+  requestId?: string;
+}
+
+/**
+ * Standard success response format
+ */
+export interface SuccessResponse<T = any> {
+  success: true;
+  data: T;
+  timestamp: string;
+  requestId?: string;
 }
 
 /**
  * Create a standardized error response
- * @param message Error message
- * @param details Optional error details
- * @param status HTTP status code
- * @returns Response object
  */
 export function createErrorResponse(
   message: string,
   details?: any,
-  status: number = 400
+  status: number = 500,
+  requestId?: string
 ): Response {
-  return new Response(
-    JSON.stringify({
-      success: false,
-      error: message,
-      details,
-      timestamp: new Date().toISOString()
-    }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
+  const response: ErrorResponse = {
+    success: false,
+    error: message,
+    status,
+    timestamp: new Date().toISOString(),
+  };
+  
+  if (details !== undefined) {
+    response.details = details;
+  }
+  
+  if (requestId) {
+    response.requestId = requestId;
+  }
+  
+  return new Response(JSON.stringify(response), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders
     }
-  );
+  });
 }
 
 /**
  * Create a standardized success response
- * @param data Response data
- * @param message Optional success message
- * @returns Response object
  */
 export function createSuccessResponse<T>(
   data: T,
-  message: string = 'Operation successful'
+  status: number = 200,
+  requestId?: string
 ): Response {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      message,
-      data,
-      timestamp: new Date().toISOString()
-    }),
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
-}
-
-/**
- * Handle CORS preflight request
- * @param req The request object
- * @returns Response or null
- */
-export function handleCorsRequest(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    });
+  const response: SuccessResponse<T> = {
+    success: true,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+  
+  if (requestId) {
+    response.requestId = requestId;
   }
-  return null;
+  
+  return new Response(JSON.stringify(response), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders
+    }
+  });
 }
 
 /**
- * Generate a unique request ID for tracking
- * @returns Unique request ID string
- */
-export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-}
-
-/**
- * Log system event to the database
- * @param supabase Supabase client
- * @param module System module name
- * @param event Event name
- * @param context Event context data
- * @param tenantId Tenant ID
- * @returns Result of the operation
+ * Log a system event to the database
  */
 export async function logSystemEvent(
   supabase: any,
   module: string,
   event: string,
   context: Record<string, any> = {},
-  tenantId: string = 'system'
-): Promise<{ success: boolean; error?: any }> {
+  tenantId?: string
+): Promise<boolean> {
   try {
+    // Create the log entry
+    const logEntry = {
+      module,
+      event,
+      context,
+      tenant_id: tenantId
+    };
+    
+    // Insert into system_logs table
     const { error } = await supabase
       .from('system_logs')
-      .insert({
-        module,
-        event,
-        context,
-        tenant_id: tenantId,
-      });
+      .insert(logEntry);
+    
+    if (error) {
+      console.error('Error logging system event:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    // Don't let logging failures break the application
+    console.error('Error in logSystemEvent:', err);
+    return false;
+  }
+}
 
-    if (error) throw error;
-    return { success: true };
+/**
+ * Generate a unique request ID
+ */
+export function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Handle CORS preflight requests
+ */
+export function handleCorsRequest(req: Request): Response | null {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  return null;
+}
+
+/**
+ * Parse JSON request body with error handling
+ */
+export async function parseJsonBody<T = any>(req: Request): Promise<T> {
+  try {
+    return await req.json();
   } catch (error) {
-    console.error(`Error logging system event (${module}/${event}):`, error);
-    return { 
-      success: false, 
-      error
-    };
+    throw new Error(`Invalid JSON in request body: ${error.message}`);
   }
-}
-
-/**
- * Validate required fields in request body
- * @param body Request body object
- * @param fields Array of required field names
- * @returns Array of missing field names (empty if all present)
- */
-export function validateRequiredFields(
-  body: Record<string, any>,
-  fields: string[]
-): string[] {
-  const missing: string[] = [];
-  
-  for (const field of fields) {
-    if (body[field] === undefined || body[field] === null || body[field] === '') {
-      missing.push(field);
-    }
-  }
-  
-  return missing;
-}
-
-/**
- * Retry a function with exponential backoff
- * @param fn Function to retry
- * @param options Retry options
- * @returns Result of the function
- */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: {
-    retries?: number;
-    delay?: number;
-    backoff?: number;
-    onRetry?: (attempt: number, error: any) => void;
-  } = {}
-): Promise<T> {
-  const {
-    retries = 3,
-    delay = 500,
-    backoff = 2,
-    onRetry = () => {}
-  } = options;
-  
-  let lastError: any;
-  
-  for (let attempt = 1; attempt <= retries + 1; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      
-      if (attempt <= retries) {
-        const delayMs = delay * Math.pow(backoff, attempt - 1);
-        onRetry(attempt, error);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-  }
-  
-  throw lastError;
 }

@@ -1,226 +1,176 @@
 
-import { useState, useEffect, createContext, useContext } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useToast } from './use-toast';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Session } from '@supabase/supabase-js';
+import { AuthUser, AuthError } from '@/lib/auth/types';
+import { 
+  signInWithEmailAndPassword,
+  signUpWithEmailAndPassword,
+  signOutUser,
+  resetUserPassword,
+  updateUserPassword
+} from '@/lib/auth/authUtils';
 
-type AuthUser = {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-  // Add other properties as needed
-};
-
-type UserRole = 'admin' | 'user' | 'manager' | 'owner';
-
-type AuthContextType = {
-  user: AuthUser | null;
-  userRole: UserRole | null;
-  session: any;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  updatePassword: (password: string) => Promise<{ error: any }>;
-  checkUserRole: (role: string | string[]) => Promise<boolean>;
-  hasRole: (role: string | string[]) => boolean;
-};
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [session, setSession] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<AuthError | null>(null);
 
+  // Initialize auth state from Supabase session
   useEffect(() => {
-    // Set up auth state listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsLoading(false);
-
-        // Fetch user role if we have a user
-        if (session?.user) {
-          try {
-            const { data, error } = await supabase
-              .from('tenant_user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .single();
-
-            if (error) throw error;
-            setUserRole(data?.role as UserRole || null);
-          } catch (error) {
-            console.error('Error fetching user role:', error);
-            setUserRole(null);
-          }
-        } else {
-          setUserRole(null);
-        }
-      }
-    );
-
-    // Initial session check
     const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        try {
-          const { data, error } = await supabase
-            .from('tenant_user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (error) throw error;
-          setUserRole(data?.role as UserRole || null);
-        } catch (error) {
-          console.error('Error fetching user role:', error);
-          setUserRole(null);
+      try {
+        // Get current session
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw sessionError;
         }
+        
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+        
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+          setSession(newSession);
+          setUser(newSession?.user || null);
+        });
+        
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (err: any) {
+        console.error('Error initializing authentication:', err);
+        setError(err);
+      } finally {
+        setLoading(false);
       }
-
-      setIsLoading(false);
     };
-
+    
     initializeAuth();
-
-    // Clean up subscription on unmount
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, []);
 
   // Sign in with email and password
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      return { error: null };
-    } catch (error) {
-      toast.error('Failed to sign in: ' + (error as Error).message);
-      return { error };
-    }
-  };
+  const signIn = useCallback(async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    
+    const response = await signInWithEmailAndPassword(email, password);
+    
+    setLoading(false);
+    return response;
+  }, []);
 
   // Sign up with email and password
-  const signUp = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-      toast.success('Sign up successful! Please check your email for verification.');
-      return { error: null };
-    } catch (error) {
-      toast.error('Failed to sign up: ' + (error as Error).message);
-      return { error };
-    }
-  };
+  const signUp = useCallback(async (email: string, password: string, metadata?: object) => {
+    setLoading(true);
+    setError(null);
+    
+    const response = await signUpWithEmailAndPassword(email, password, metadata);
+    
+    setLoading(false);
+    return response;
+  }, []);
 
   // Sign out
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    await signOutUser(user?.id);
+    
+    setLoading(false);
+  }, [user]);
+
+  // Reset password
+  const resetPassword = useCallback(async (email: string) => {
+    setLoading(true);
+    setError(null);
+    
+    const response = await resetUserPassword(email);
+    
+    setLoading(false);
+    return response;
+  }, []);
+
+  // Update password
+  const updatePassword = useCallback(async (newPassword: string) => {
+    setLoading(true);
+    setError(null);
+    
+    const response = await updateUserPassword(newPassword);
+    
+    setLoading(false);
+    return response;
+  }, []);
+
+  // Refresh session
+  const refreshSession = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      return { error: null };
-    } catch (error) {
-      toast.error('Failed to sign out: ' + (error as Error).message);
-      return { error };
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        throw refreshError;
+      }
+      
+      setSession(data.session);
+      setUser(data.user);
+    } catch (err: any) {
+      console.error('Error refreshing session:', err);
+      setError(err);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  // Reset password (sends email with reset link)
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
-      toast.success('Password reset email sent. Please check your inbox.');
-      return { error: null };
-    } catch (error) {
-      toast.error('Failed to send reset email: ' + (error as Error).message);
-      return { error };
+  // Check if user has a specific role
+  const checkUserRole = useCallback(async (role: string): Promise<boolean> => {
+    if (!user) {
+      return false;
     }
-  };
-
-  // Update password (after reset)
-  const updatePassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      toast.success('Password updated successfully.');
-      return { error: null };
-    } catch (error) {
-      toast.error('Failed to update password: ' + (error as Error).message);
-      return { error };
-    }
-  };
-
-  // Check if user has the specified role
-  const checkUserRole = async (role: string | string[]): Promise<boolean> => {
-    if (!user) return false;
 
     try {
+      // First check for global roles in user metadata
+      const userRole = user.app_metadata?.role || 'user';
+      if (userRole === role) {
+        return true;
+      }
+
+      // Then check for tenant-specific roles
       const { data, error } = await supabase
         .from('tenant_user_roles')
         .select('role')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error) throw error;
-      
-      if (!data || data.length === 0) return false;
-      
-      const userRoles = data.map(r => r.role);
-      
-      if (Array.isArray(role)) {
-        return role.some(r => userRoles.includes(r));
-      } else {
-        return userRoles.includes(role);
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error('Error checking user role:', error);
+
+      return data?.role === role;
+    } catch (err) {
+      console.error('Error checking user role:', err);
       return false;
     }
-  };
+  }, [user]);
 
-  // Synchronous role check based on current userRole state
-  const hasRole = (role: string | string[]): boolean => {
-    if (!userRole) return false;
-    
-    if (Array.isArray(role)) {
-      return role.includes(userRole);
-    } else {
-      return role === userRole;
-    }
-  };
-
-  const value = {
+  return {
     user,
-    userRole,
     session,
-    isLoading,
+    loading,
+    error,
     signIn,
     signUp,
     signOut,
     resetPassword,
     updatePassword,
-    checkUserRole,
-    hasRole
+    refreshSession,
+    checkUserRole
   };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };
 
 export default useAuth;

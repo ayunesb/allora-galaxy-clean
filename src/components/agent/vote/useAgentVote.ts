@@ -1,118 +1,103 @@
 
-import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 import { VoteType } from '@/types/shared';
-import { castVote } from '@/lib/agents/voting';
+import { castVote, getUserVote } from '@/lib/agents/voting';
+import { UseAgentVoteParams, UseAgentVoteReturn } from './types';
 
-export const useAgentVote = (agentVersionId: string) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [userVote, setUserVote] = useState<VoteType | null>(null);
-  const [upvotes, setUpvotes] = useState(0);
-  const [downvotes, setDownvotes] = useState(0);
+export function useAgentVote({
+  agentVersionId,
+  initialUpvotes = 0,
+  initialDownvotes = 0,
+  userId
+}: UseAgentVoteParams): UseAgentVoteReturn {
+  const [upvotes, setUpvotes] = useState<number>(initialUpvotes);
+  const [downvotes, setDownvotes] = useState<number>(initialDownvotes);
+  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
+  const [comment, setComment] = useState<string>('');
+  const [showComment, setShowComment] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
-  // Fetch current vote counts and user's vote
-  const fetchVotes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Get vote counts
-      const { data: voteStats, error: statsError } = await supabase
-        .from('agent_versions')
-        .select('upvotes, downvotes')
-        .eq('id', agentVersionId)
-        .single();
-      
-      if (statsError) throw statsError;
-      
-      if (voteStats) {
-        setUpvotes(voteStats.upvotes || 0);
-        setDownvotes(voteStats.downvotes || 0);
+  // Fetch the user's current vote when component mounts
+  useEffect(() => {
+    const fetchUserVote = async () => {
+      try {
+        const { vote, hasVoted } = await getUserVote(agentVersionId, userId);
+        
+        if (hasVoted && vote) {
+          setUserVote(vote.vote_type === 'upvote' ? 'up' : 'down');
+          if (vote.comment) {
+            setComment(vote.comment);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user vote:', error);
       }
+    };
+    
+    fetchUserVote();
+  }, [agentVersionId, userId]);
+
+  const handleVote = async (voteType: VoteType) => {
+    if (submitting) return;
+    
+    setSubmitting(true);
+    
+    try {
+      const result = await castVote(agentVersionId, voteType);
       
-      // Get user's existing vote
-      const { data: userSession } = await supabase.auth.getSession();
-      const userId = userSession?.session?.user.id;
-      
-      if (userId) {
-        const { data: userVoteData, error: voteError } = await supabase
-          .from('agent_votes')
-          .select('vote_type')
-          .eq('agent_version_id', agentVersionId)
-          .eq('user_id', userId)
-          .maybeSingle();
+      if (result.success) {
+        setUpvotes(result.upvotes);
+        setDownvotes(result.downvotes);
         
-        if (voteError) throw voteError;
+        // Convert VoteType to UI state
+        if (voteType === 'upvote') {
+          setUserVote('up');
+        } else if (voteType === 'downvote') {
+          setUserVote('down');
+        }
         
-        if (userVoteData) {
-          setUserVote(userVoteData.vote_type === 'up' ? 'up' : 'down');
-        } else {
-          setUserVote(null);
+        // Show comment dialog for new votes or if changing vote type
+        if (!userVote || (userVote === 'up' && voteType === 'downvote') || (userVote === 'down' && voteType === 'upvote')) {
+          setShowComment(true);
         }
       }
     } catch (error) {
-      console.error('Error fetching votes:', error);
-      toast({
-        title: "Error",
-        description: "Could not load voting information",
-        variant: "destructive"
-      });
+      console.error('Error casting vote:', error);
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
-  }, [agentVersionId]);
-  
-  // Cast or update vote
-  const performVote = useCallback(async (voteType: VoteType, comment?: string) => {
-    setIsLoading(true);
+  };
+
+  const handleSubmitComment = async () => {
+    if (!userVote || submitting) return;
+    
+    setSubmitting(true);
+    
     try {
-      const { data: userSession } = await supabase.auth.getSession();
-      const userId = userSession?.session?.user.id;
-      
-      if (!userId) {
-        toast({
-          title: "Error",
-          description: "You must be signed in to vote",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      // Use the castVote function from our voting utility
+      // Convert UI state to VoteType
+      const voteType: VoteType = userVote === 'up' ? 'upvote' : 'downvote';
       const result = await castVote(agentVersionId, voteType, comment);
       
       if (result.success) {
-        setUserVote(voteType);
-        await fetchVotes(); // Refresh vote counts
-        
-        toast({
-          title: "Success",
-          description: `Your ${voteType === 'up' ? 'upvote' : 'downvote'} was recorded successfully`,
-          variant: "success"
-        });
-        return true;
-      } else {
-        throw new Error(result.error || 'Failed to cast vote');
+        setShowComment(false);
       }
-    } catch (error: any) {
-      console.error('Error casting vote:', error);
-      toast({
-        title: "Error",
-        description: error.message || 'Could not cast your vote',
-        variant: "destructive"
-      });
-      return false;
+    } catch (error) {
+      console.error('Error submitting comment:', error);
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
-    return false;
-  }, [agentVersionId, fetchVotes]);
-  
+  };
+
   return {
-    isLoading,
     upvotes,
     downvotes,
     userVote,
-    fetchVotes,
-    castVote: performVote
+    comment,
+    setComment,
+    showComment,
+    setShowComment,
+    submitting,
+    handleVote,
+    handleSubmitComment
   };
-};
+}

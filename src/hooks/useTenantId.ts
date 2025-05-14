@@ -1,13 +1,16 @@
 
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspace } from "@/context/WorkspaceContext";
 
-/**
- * Hook to get the current tenant ID from the workspace context
- * @returns The current tenant ID or undefined if not available
- */
-export function useTenantId(): string | undefined {
-  const { currentWorkspace } = useWorkspace();
-  return currentWorkspace?.id;
+interface UseTenantIdResult {
+  tenantId: string | undefined;
+  isLoading: boolean;
 }
 
-export default useTenantId;
+export function useTenantId(): UseTenantIdResult {
+  const { currentTenant, loading } = useWorkspace();
+  
+  return {
+    tenantId: currentTenant?.id,
+    isLoading: loading
+  };
+}

@@ -1,169 +1,106 @@
 
-import { Check, ChevronsUpDown, PlusCircle } from "lucide-react";
-import { useWorkspace } from "@/context/WorkspaceContext";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { toast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { ChevronsUpDown, Check, PlusCircle } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
+import { Workspace } from "@/contexts/workspace/types";
 
-type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>;
-
-interface WorkspaceSwitcherProps extends PopoverTriggerProps {
-  className?: string;
-}
-
-export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
-  const { currentWorkspace, workspaces, setCurrentWorkspace, createWorkspace } = useWorkspace();
-  
+/**
+ * WorkspaceSwitcher allows users to switch between different tenants/workspaces
+ */
+export function WorkspaceSwitcher() {
+  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace();
   const [open, setOpen] = useState(false);
-  const [showNewTeamDialog, setShowNewTeamDialog] = useState(false);
-  const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
-  const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName) return;
+  // Handle workspace selection
+  const handleSelectWorkspace = async (workspaceId: string) => {
+    if (currentWorkspace?.id === workspaceId) return;
     
-    setIsCreating(true);
-    
-    try {
-      if (createWorkspace) {
-        const newWorkspace = await createWorkspace(newWorkspaceName);
-        
-        if (newWorkspace) {
-          setCurrentWorkspace(newWorkspace);
-          setShowNewTeamDialog(false);
-          setNewWorkspaceName("");
-          toast({
-            title: "Success",
-            description: "Workspace created successfully",
-            variant: "success"
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to create workspace:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create workspace",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCreating(false);
+    const workspace = workspaces.find((w: Workspace) => w.id === workspaceId);
+    if (workspace) {
+      setCurrentWorkspace(workspace);
+      localStorage.setItem('currentWorkspaceId', workspace.id);
+      setOpen(false);
+      navigate('/dashboard');
     }
   };
 
+  // Open create workspace dialog
+  const handleCreateWorkspace = () => {
+    setCreating(true);
+    setOpen(false);
+  };
+
+  // Close create workspace dialog
+  const handleCloseCreateDialog = () => {
+    setCreating(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center space-x-2">
+        <Skeleton className="h-8 w-[150px]" />
+      </div>
+    );
+  }
+
+  if (!currentWorkspace) {
+    return (
+      <Button variant="outline" onClick={handleCreateWorkspace}>
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Create Workspace
+      </Button>
+    );
+  }
+
   return (
-    <Dialog open={showNewTeamDialog} onOpenChange={setShowNewTeamDialog}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            aria-label="Select a workspace"
-            className={cn("w-[200px] justify-between", className)}
-          >
-            {currentWorkspace?.name || "Select workspace"}
-            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+    <>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" role="combobox" aria-expanded={open} className="w-[200px] justify-between">
+            {currentWorkspace.name}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
-          <Command>
-            <CommandList>
-              <CommandInput placeholder="Search workspace..." />
-              <CommandEmpty>No workspace found.</CommandEmpty>
-              <CommandGroup heading="Workspaces">
-                {workspaces.map((item) => (
-                  <CommandItem
-                    key={item.workspace.id}
-                    onSelect={() => {
-                      setCurrentWorkspace(item.workspace);
-                      setOpen(false);
-                    }}
-                    className="text-sm"
-                  >
-                    <span>{item.workspace.name}</span>
-                    {currentWorkspace?.id === item.workspace.id && (
-                      <Check className="ml-auto h-4 w-4" />
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-            <CommandSeparator />
-            <CommandList>
-              <CommandGroup>
-                <DialogTrigger asChild>
-                  <CommandItem
-                    onSelect={() => {
-                      setOpen(false);
-                      setShowNewTeamDialog(true);
-                    }}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Workspace
-                  </CommandItem>
-                </DialogTrigger>
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create workspace</DialogTitle>
-          <DialogDescription>
-            Add a new workspace to manage strategies, plugins and agents.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Workspace name</Label>
-            <Input
-              id="name"
-              placeholder="Acme Inc."
-              value={newWorkspaceName}
-              onChange={(e) => setNewWorkspaceName(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setShowNewTeamDialog(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleCreateWorkspace} 
-            disabled={!newWorkspaceName || isCreating}
-          >
-            {isCreating ? "Creating..." : "Create"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-[200px]">
+          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {workspaces.map((workspace: Workspace) => (
+            <DropdownMenuItem
+              key={workspace.id}
+              onClick={() => handleSelectWorkspace(workspace.id)}
+              className="cursor-pointer"
+            >
+              <Check
+                className={`mr-2 h-4 w-4 ${currentWorkspace.id === workspace.id ? "opacity-100" : "opacity-0"}`}
+              />
+              <span>{workspace.name}</span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer" onClick={handleCreateWorkspace}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            <span>Create Workspace</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {creating && <CreateWorkspaceDialog open={creating} onClose={handleCloseCreateDialog} />}
+    </>
   );
 }
+
+export default WorkspaceSwitcher;

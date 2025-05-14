@@ -6,5 +6,5 @@ import { getEnv as getEnvUtil } from '@/lib/env/envUtils';
  * @deprecated Use getEnv from '@/lib/env/envUtils' instead
  */
 export function getEnv(key: string, defaultValue: string = ""): string {
-  return getEnvUtil(key, false, defaultValue);
+  return getEnvUtil(key) || defaultValue;
 }

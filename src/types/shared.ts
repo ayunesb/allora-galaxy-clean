@@ -1,186 +1,111 @@
 
-// Add these type definitions to the shared types file
+/**
+ * Shared type definitions for use across the application
+ */
 
-// Workspace Types
-export interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  created_at: string;
-  metadata?: Record<string, any>;
-}
-
-export interface WorkspaceWithRole {
-  workspace: Workspace;
-  role: string;
-}
-
-export interface WorkspaceContextType {
-  workspace: Workspace | null;
-  workspaces: WorkspaceWithRole[];
-  currentWorkspace: Workspace | null;
-  isLoading: boolean;
-  error: Error | null;
-  setCurrentWorkspace: (workspace: Workspace) => void;
-  switchWorkspace: (workspaceId: string) => Promise<void>;
-  createWorkspace: (name: string) => Promise<Workspace | null>;
-  refreshWorkspaces: () => Promise<void>;
-  tenant: Workspace | null; // Alias for backward compatibility
-  navigation?: {
-    items: NavigationItem[];
-  };
-}
-
-// Graph Types
-export interface GraphNode {
-  id: string;
-  name: string;
-  type: string;
-  x?: number;
-  y?: number;
-  group?: number;
-  metadata?: Record<string, any>;
-}
-
-export interface GraphLink {
-  source: string;
-  target: string;
-  value: number;
-}
-
-export interface GraphData {
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
-
-// Shared component types
-export interface HeaderProps {
-  title?: string;
-  children?: React.ReactNode;
-}
-
-export interface StatsTableProps {
-  stats: CronJobStats; 
-  isLoading: boolean;
-  rawStats?: CronJobStat[];
-}
-
-// CronJob Types
-export interface CronJob {
-  id: string;
-  name: string;
-  schedule: string;
-  status: "active" | "inactive" | "error" | "running" | "pending";
-  last_run?: string;
-  next_run?: string;
-  created_at: string;
-  updated_at: string;
-  tenant_id?: string;
-  description?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface CronJobStat {
-  id: string;
-  job_id: string;
-  execution_count: number;
-  success_count: number;
-  error_count: number;
-  average_duration: number;
-  last_execution_time?: string;
-  status: "success" | "error" | "running" | "pending";
-  period: "day" | "week" | "month" | "all";
-}
-
-export interface CronJobStats {
-  day: CronJobStat[];
-  week: CronJobStat[];
-  month: CronJobStat[];
-  all: CronJobStat[];
-  total?: number;
-  active?: number;
-  pending?: number;
-  failed?: number;
-  completed?: number;
-}
-
-// Core shared types used across the application
-export type TrendDirection = 'up' | 'down' | 'neutral';
-
-export type VoteType = 'up' | 'down' | 'neutral';
-
-export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
-
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
-
-export interface FilterState {
-  module?: string[];
-  eventType?: string[];
-  dateRange?: {
-    from: Date | string | null;
-    to: Date | string | null;
-  };
-  status?: string[];
-  search?: string;
-}
-
-// Export UserRole type
-export type UserRole = 'admin' | 'owner' | 'member' | 'guest';
-
-// System Log Types
-export type SystemEventModule = 
-  | "auth" 
-  | "strategy" 
-  | "plugin" 
-  | "agent" 
-  | "execution" 
-  | "tenant" 
-  | "admin" 
-  | "system"
-  | "webhook"
-  | "workspace"
-  | "user";
-
-export type SystemLogLevel = 
-  | "info" 
-  | "warning" 
-  | "error" 
-  | "critical" 
-  | "debug";
-
-export interface SystemLog {
-  id: string;
-  module: SystemEventModule;
-  level: SystemLogLevel;
-  event: string;
-  description: string;
-  context: Record<string, any>;
-  tenant_id: string;
-  created_at: string;
-  user_id?: string;
-  metadata?: Record<string, any>;
-}
+// User role types
+export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
 
 // Navigation item type
 export interface NavigationItem {
-  id?: string;
   title: string;
   href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  items?: NavigationItem[];
-  adminOnly?: boolean;
-  badge?: string | number;
-  isNew?: boolean;
-  isExternal?: boolean;
+  icon?: string;
+  requiresAuth?: boolean;
+  requiresRole?: UserRole[];
+  children?: NavigationItem[];
 }
 
-// Shared types for notifications
-export interface ToastOptions {
-  title?: string;
-  description?: string;
-  variant?: 'default' | 'destructive' | 'success' | 'warning';
-  duration?: number;
-  id?: string;
-  onDismiss?: () => void;
-  action?: React.ReactNode;
+// KPI trend direction
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+// System event modules for logging
+export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
+
+// System event types for logging
+export type SystemEventType = 
+  | 'create' 
+  | 'update' 
+  | 'delete' 
+  | 'login' 
+  | 'logout' 
+  | 'execute'
+  | 'generate'
+  | 'vote'
+  | 'approve'
+  | 'reject'
+  | 'error'
+  | 'success'
+  | 'warning'
+  | 'info';
+
+// Onboarding step type
+export type OnboardingStep = 
+  | 'welcome' 
+  | 'company-info' 
+  | 'persona' 
+  | 'additional-info' 
+  | 'strategy-generation' 
+  | 'completed';
+
+// Base entity interface for common properties
+export interface BaseEntity {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Execution parameters interface
+export interface ExecutionParams {
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  tenant_id: string;
+  user_id?: string;
+  input?: Record<string, any>;
+}
+
+// Execution type
+export type ExecutionType = 'strategy' | 'plugin' | 'agent';
+
+// KPI trend interface
+export interface KPITrend {
+  name: string;
+  value: number;
+  previousValue: number | null;
+  direction: TrendDirection;
+  percentageChange: number | null;
+}
+
+// Tenant feature flags
+export type TenantFeature = 
+  | 'strategy_creation'
+  | 'agent_voting'
+  | 'plugin_management'
+  | 'advanced_analytics'
+  | 'white_label';
+
+// Vote type for agent and plugin voting
+export type VoteType = 'upvote' | 'downvote';
+
+// Generic filter state interface
+export interface FilterState {
+  searchQuery?: string;
+  status?: string;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+// Generic filter props interface
+export interface FilterProps<T extends FilterState> {
+  filters: T;
+  onFilterChange: (filters: T) => void;
+}
+
+// Date range for filtering
+export interface DateRange {
+  from: Date;
+  to?: Date;
 }

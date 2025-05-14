@@ -3,67 +3,53 @@
  * Environment utilities for edge functions
  */
 
-export type EnvVar = string | undefined;
-
 /**
- * Get an environment variable with validation
+ * Safely get environment variables with fallback
  * @param name The name of the environment variable
- * @param required Whether the variable is required
- * @param fallback Fallback value if not found and not required
- * @returns The environment variable value
- * @throws Error if the variable is required but not found
+ * @param fallback Optional fallback value if not found
+ * @returns The environment variable value or fallback
  */
-export function getEnv(
-  name: string, 
-  required: boolean = false,
-  fallback: string = ''
-): string {
-  let value: EnvVar;
-  
+export function getEnv(name: string, fallback: string = ""): string {
   try {
-    value = Deno.env.get(name);
+    const value = Deno.env.get(name);
+    return value !== undefined ? value : fallback;
   } catch (err) {
-    if (required) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    console.warn(`Environment variable ${name} is not available: ${err}`);
+    console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
-  
-  if (value === undefined) {
-    if (required) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    return fallback;
-  }
-  
-  return value;
 }
 
 /**
- * Validate multiple required environment variables
- * @param names Array of environment variable names to validate
- * @returns Object with validation result and any missing variables
+ * Validate required environment variables
+ * @param requiredVars Array of environment variable definitions
+ * @returns Object with environment variables
  */
-export function validateEnv(names: string[]): {
-  valid: boolean;
-  missing: string[];
-} {
+export function validateEnv(requiredVars: EnvVar[]): Record<string, string> {
+  const env: Record<string, string> = {};
   const missing: string[] = [];
-  
-  for (const name of names) {
-    try {
-      const value = Deno.env.get(name);
-      if (value === undefined) {
-        missing.push(name);
-      }
-    } catch (err) {
-      missing.push(name);
+
+  requiredVars.forEach(({ name, required, description }) => {
+    const value = getEnv(name, '');
+    
+    if (required && !value) {
+      missing.push(`${name}${description ? ` (${description})` : ''}`);
     }
+    
+    env[name] = value;
+  });
+
+  if (missing.length > 0) {
+    console.error(`Missing required environment variables: ${missing.join(', ')}`);
   }
-  
-  return {
-    valid: missing.length === 0,
-    missing
-  };
+
+  return env;
+}
+
+/**
+ * Environment variable configuration
+ */
+export interface EnvVar {
+  name: string;
+  required: boolean;
+  description?: string;
 }

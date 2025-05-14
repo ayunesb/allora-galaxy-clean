@@ -1,53 +1,61 @@
 
-import { useNotifications } from '@/hooks/useNotifications';
-import { NotificationCenterContent } from '@/components/notifications/NotificationCenterContent';
-import { convertToNotificationContent } from '@/types/notifications';
+import React, { useState } from 'react';
+import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
+import { useNotifications } from '@/lib/notifications/useNotifications';
+import { Badge } from '@/components/ui/badge';
 
-interface NotificationCenterProps {
-  onClose: () => void;
-}
-
-export function NotificationCenter({ onClose }: NotificationCenterProps) {
+const NotificationCenter: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const { 
-    notifications,
-    markAsRead: originalMarkAsRead,
-    markAllAsRead: originalMarkAllAsRead,
-    deleteNotification: originalDeleteNotification,
-    unreadCount = 0
+    notifications, 
+    unreadCount, 
+    markAllAsRead, 
+    markAsRead 
   } = useNotifications();
-  
-  // Create wrapper functions that return void to match the expected type
-  const markAsRead = async (id: string): Promise<void> => {
-    await originalMarkAsRead(id);
-    return;
+
+  const handleMarkAsRead = async (id: string): Promise<void> => {
+    await markAsRead(id);
   };
-  
-  const markAllAsRead = async (): Promise<void> => {
-    await originalMarkAllAsRead();
-    return;
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    
+    // If closing the notifications center, mark notifications as read
+    if (!open && unreadCount > 0) {
+      markAllAsRead();
+    }
   };
-  
-  const deleteNotification = async (id: string): Promise<void> => {
-    await originalDeleteNotification(id);
-    return;
-  };
-  
-  const notificationContents = notifications.map(notification => 
-    convertToNotificationContent(notification)
-  );
 
   return (
-    <div className="absolute right-0 top-full mt-1 w-80 sm:w-96">
-      <NotificationCenterContent 
-        notifications={notificationContents}
-        unreadCount={unreadCount}
-        onMarkAsRead={markAsRead}
-        onMarkAllAsRead={markAllAsRead}
-        onDeleteNotification={deleteNotification}
-        onClose={onClose}
-      />
-    </div>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge 
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-2 text-[10px]"
+            >
+              {unreadCount}
+            </Badge>
+          )}
+          <span className="sr-only">Open notifications</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-md p-0">
+        <NotificationCenterContent 
+          notifications={notifications}
+          markAsRead={handleMarkAsRead}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+        />
+      </SheetContent>
+    </Sheet>
   );
-}
+};
 
 export default NotificationCenter;

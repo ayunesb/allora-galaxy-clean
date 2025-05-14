@@ -1,128 +1,81 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { VoteButton } from './VoteButton';
-import CommentSection from './CommentSection';
-import { useAgentVote } from '@/hooks/useAgentVote';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
+import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import { AgentVoteProps } from './types';
+import { useAgentVote } from './useAgentVote';
+import { VoteButton } from './VoteButton';
+import { CommentSection } from './CommentSection';
 
-interface AgentVotePanelProps {
-  agentId: string;
-  title?: string;
-  variant?: 'small' | 'default';
-}
-
-export const AgentVotePanel: React.FC<AgentVotePanelProps> = ({ 
-  agentId, 
-  title = "Agent Feedback",
-  variant = 'default'
+const AgentVotePanel: React.FC<AgentVoteProps> = ({
+  agentVersionId,
+  initialUpvotes = 0,
+  initialDownvotes = 0,
+  userId
 }) => {
-  const [activeTab, setActiveTab] = useState("vote");
-  const { 
-    userVote,
+  const {
     upvotes,
     downvotes,
-    comments,
-    isLoading,
-    submitVote,
-    submitComment
-  } = useAgentVote(agentId);
-
-  const handleComment = async (comment: string): Promise<boolean> => {
-    if (!userVote) {
-      return false;
-    }
-    const result = await submitComment(comment);
-    return result.success;
-  };
-
-  const isSmall = variant === 'small';
-
-  if (isLoading) {
-    return (
-      <Card className={isSmall ? "w-full" : "max-w-md w-full"}>
-        <CardHeader className="pb-3">
-          <Skeleton className="h-5 w-40" />
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-center space-x-6 mb-4">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <Skeleton className="h-10 w-10 rounded-full" />
-          </div>
-          <Skeleton className="h-24 w-full mt-4" />
-        </CardContent>
-      </Card>
-    );
-  }
+    userVote,
+    comment,
+    setComment,
+    showComment,
+    setShowComment,
+    submitting,
+    handleVote,
+    handleSubmitComment
+  } = useAgentVote({
+    agentVersionId,
+    initialUpvotes,
+    initialDownvotes,
+    userId
+  });
 
   return (
-    <Card className={isSmall ? "w-full" : "max-w-md w-full"}>
-      <CardHeader className={isSmall ? "pb-2" : "pb-3"}>
-        <CardTitle className={isSmall ? "text-lg" : "text-xl"}>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="vote" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="vote">Vote</TabsTrigger>
-            <TabsTrigger value="comments">
-              Comments {comments?.length > 0 && `(${comments.length})`}
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="vote" className="pt-4">
-            <div className="flex flex-col items-center text-center">
-              <p className="text-muted-foreground mb-4">
-                What do you think of this agent's performance?
-              </p>
-              
-              <div className="flex justify-center space-x-6 mb-4">
-                <VoteButton 
-                  type="up" 
-                  count={upvotes} 
-                  selected={userVote === 'up'}
-                  onClick={() => submitVote('up')}
-                />
-                <VoteButton 
-                  type="down" 
-                  count={downvotes} 
-                  selected={userVote === 'down'}
-                  onClick={() => submitVote('down')}
-                />
-              </div>
-              
-              {userVote && (
-                <>
-                  <Separator className="my-4" />
-                  <CommentSection 
-                    comments={comments?.filter(c => c.user_id === 'currentUser') || []}
-                    onSubmit={handleComment}
-                  />
-                </>
-              )}
-              
-              {!userVote && comments?.length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setActiveTab("comments")}
-                  className="mt-4"
-                >
-                  View {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
-                </Button>
-              )}
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium">Agent Performance</h3>
+            <div className="flex items-center gap-4">
+              <VoteButton
+                count={upvotes}
+                isActive={userVote === 'up'}
+                type="up"
+                onClick={() => handleVote('upvote')}
+                disabled={submitting}
+              />
+              <VoteButton
+                count={downvotes}
+                isActive={userVote === 'down'}
+                type="down"
+                onClick={() => handleVote('downvote')}
+                disabled={submitting}
+              />
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowComment(!showComment)}
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
             </div>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="comments" className="pt-4">
-            <CommentSection 
-              comments={comments || []}
-              onSubmit={handleComment}
+          {showComment && (
+            <CommentSection
+              comment={comment}
+              setComment={setComment}
+              onSubmit={handleSubmitComment}
+              onCancel={() => setShowComment(false)}
+              disabled={submitting}
             />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
 };
+
+export default AgentVotePanel;

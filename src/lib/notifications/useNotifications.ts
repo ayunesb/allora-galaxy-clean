@@ -1,34 +1,23 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Notification } from '@/context/notifications/types';
+import { supabase } from '@/integrations/supabase/client';
+import { Notification } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
-export interface UseNotificationsResult {
-  notifications: Notification[];
-  unreadCount: number;
-  isLoading: boolean;
-  error: Error | null;
-  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
-  deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
-  refreshNotifications: () => Promise<{ success: boolean; error?: Error }>;
-}
-
-export const useNotifications = (): UseNotificationsResult => {
+export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const tenantId = useTenantId();
 
   const refreshNotifications = useCallback(async () => {
     if (!tenantId) {
-      setIsLoading(false);
+      setLoading(false);
       return { success: true };
     }
     
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       // Fetch notifications for the current tenant and user
       const { data, error } = await supabase
@@ -48,7 +37,7 @@ export const useNotifications = (): UseNotificationsResult => {
       setError(err as Error);
       return { success: false, error: err as Error };
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [tenantId]);
   
@@ -145,7 +134,7 @@ export const useNotifications = (): UseNotificationsResult => {
   return {
     notifications,
     unreadCount,
-    isLoading,
+    loading,
     error,
     markAsRead,
     markAllAsRead,

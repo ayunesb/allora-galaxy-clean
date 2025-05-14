@@ -7,5 +7,3 @@ export {
   downvoteAgentVersion,
   castVote
 } from './voteOnAgentVersion';
-
-export * from './types';

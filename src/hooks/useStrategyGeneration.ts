@@ -1,89 +1,57 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { OnboardingFormData } from '@/types/onboarding/types';
+import { OnboardingFormData } from '@/types/onboarding';
 import { completeOnboarding } from '@/services/onboardingService';
+import { useAuth } from '@/context/AuthContext';
 
-export function useStrategyGeneration() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+interface StrategyGenerationResult {
+  success: boolean;
+  error?: string;
+  tenantId?: string;
+  strategyId?: string;
+}
+
+export const useStrategyGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  // Generate a strategy based on the onboarding data
-  const generateStrategy = async (formData: OnboardingFormData) => {
+  const { user } = useAuth();
+  
+  /**
+   * Generate an initial strategy based on onboarding data
+   */
+  const generateStrategy = async (formData: OnboardingFormData): Promise<StrategyGenerationResult> => {
     if (!user) {
-      toast({
-        title: "Not authenticated",
-        description: "You need to be logged in to generate a strategy",
-        variant: "destructive",
-      });
-      return { success: false };
+      return { success: false, error: 'User not authenticated' };
     }
-
+    
     setIsGenerating(true);
-    setProgress(10);
-
+    
     try {
-      // Simulate progress
-      const interval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 500);
-
-      // Complete onboarding which also creates an initial strategy
       const result = await completeOnboarding(user.id, formData);
       
-      clearInterval(interval);
-      setProgress(100);
-
       if (!result.success) {
-        throw new Error(result.error || "Failed to generate strategy");
+        throw new Error(result.error || 'Failed to complete onboarding');
       }
-
-      // Success!
-      toast({
-        title: "Strategy generated!",
-        description: "Your initial strategy has been created.",
-      });
-
-      // Navigate to the strategy page if we have IDs
-      if (result.tenantId && result.strategyId) {
-        navigate(`/strategies/${result.strategyId}?tenant=${result.tenantId}`);
-      } else {
-        navigate('/dashboard');
-      }
-
-      return { 
+      
+      // Return the result with strategyId if available
+      return {
         success: true,
         tenantId: result.tenantId,
-        strategyId: result.strategyId
+        strategyId: result.strategyId || undefined
       };
     } catch (error: any) {
-      console.error("Strategy generation error:", error);
+      console.error('Strategy generation error:', error);
       
-      toast({
-        title: "Strategy generation failed",
-        description: error.message || "There was an error generating your strategy",
-        variant: "destructive",
-      });
-      
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.message || 'Failed to generate strategy'
+      };
     } finally {
       setIsGenerating(false);
     }
   };
 
   return {
-    generateStrategy,
     isGenerating,
-    progress,
+    generateStrategy
   };
-}
+};

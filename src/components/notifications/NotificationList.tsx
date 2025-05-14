@@ -2,24 +2,24 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NotificationContent } from '@/types/notifications';
-import { NotificationItem } from './NotificationItem';
+import NotificationItem from './NotificationItem';
 
 interface NotificationListProps {
   notifications: NotificationContent[];
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   filter?: string;
-  isLoading?: boolean;
+  loading?: boolean;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   onMarkAsRead,
-  onDelete = async () => {},
+  onDelete,
   filter,
-  isLoading = false
+  loading
 }) => {
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="p-8 flex justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

@@ -1,22 +1,36 @@
 
+import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/hooks/useAuth';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-const SidebarProfile = () => {
-  const { user } = useAuth();
-  
-  const username = user?.email?.split('@')[0] || 'User';
-  const initials = username.substring(0, 2).toUpperCase();
-  
+const SidebarProfile: React.FC = () => {
+  const { currentTenant, userRole } = useWorkspace();
+
+  if (!currentTenant) return null;
+
+  // Create initials from the tenant name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const initials = getInitials(currentTenant.name);
+
   return (
-    <div className="flex items-center space-x-3 p-2">
-      <Avatar>
-        <AvatarImage src="/avatar.png" alt={username} />
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-      <div className="space-y-1">
-        <p className="text-sm font-medium leading-none">{username}</p>
-        <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+    <div className="border-t pt-4 pb-2 px-6">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-9 w-9">
+          <AvatarImage src={undefined} alt={currentTenant.name} />
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">{currentTenant.name}</span>
+          <span className="text-xs text-muted-foreground capitalize">{userRole}</span>
+        </div>
       </div>
     </div>
   );

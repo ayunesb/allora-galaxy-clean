@@ -1,51 +1,45 @@
 
 import { VoteType } from '@/types/shared';
 
-export interface AgentVoteData {
-  id?: string;
-  agent_version_id: string;
-  user_id: string;
-  vote_type: VoteType;
-  comment?: string;
-  created_at?: string;
+export interface AgentVoteProps {
+  agentVersionId: string;
+  initialUpvotes: number;
+  initialDownvotes: number;
+  userId?: string;
 }
 
-export interface VoteResult {
-  success: boolean;
-  upvotes?: number;
-  downvotes?: number;
-  message?: string;
-  error?: string;
-  voteId?: string;
+export interface VoteButtonProps {
+  count: number;
+  isActive: boolean;
+  type: 'up' | 'down';
+  onClick: () => void;
+  disabled: boolean;
 }
 
-export interface VoteStats {
-  success: boolean;
+export interface CommentSectionProps {
+  comment: string;
+  setComment: (comment: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  disabled: boolean;
+}
+
+export interface UseAgentVoteParams {
+  agentVersionId: string;
+  initialUpvotes: number;
+  initialDownvotes: number;
+  userId?: string;
+}
+
+export interface UseAgentVoteReturn {
   upvotes: number;
   downvotes: number;
-  xp: number;
-  totalVotes: number;
-  ratio: number;
-  recentComments: CommentData[];
-  error?: string;
-}
-
-export interface CommentData {
-  id: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  vote_type: VoteType;
-  user?: {
-    first_name?: string;
-    last_name?: string;
-    avatar_url?: string;
-  };
-}
-
-export interface UserVoteInfo {
-  success: boolean;
-  hasVoted: boolean;
-  vote: AgentVoteData | null;
-  error?: string;
+  userVote: 'up' | 'down' | null;
+  comment: string;
+  setComment: (comment: string) => void;
+  showComment: boolean;
+  setShowComment: (show: boolean) => void;
+  submitting: boolean;
+  handleVote: (voteType: VoteType) => Promise<void>;
+  handleSubmitComment: () => void;
 }

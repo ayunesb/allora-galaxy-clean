@@ -1,35 +1,18 @@
 
-import React, { useState } from 'react';
 import { WorkspaceOverview } from './dashboard/WorkspaceOverview';
 import { UserManagementCard } from './dashboard/UserManagementCard';
 import { CronJobsCard } from './dashboard/CronJobsCard';
 import { useUserData } from './dashboard/useUserData';
 
-const AdminDashboardContent: React.FC = () => {
+const AdminDashboardContent = () => {
   const {
-    userData,
-    isLoading,
-    filter,
-    setFilter,
-    updateUser
+    users,
+    loading,
+    searchQuery,
+    handleSearchChange,
+    handleUpdateRole,
+    handleRemoveUser
   } = useUserData();
-
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    setFilter({ ...filter, search: query });
-  };
-
-  const handleUpdateRole = (userId: string, newRole: string) => {
-    updateUser.mutate({ userId, data: { role: newRole } });
-  };
-
-  const handleRemoveUser = (userId: string) => {
-    if (confirm('Are you sure you want to remove this user?')) {
-      updateUser.mutate({ userId, data: { is_active: false } });
-    }
-  };
 
   const handleOpenInviteDialog = () => {
     // Logic to open invite dialog
@@ -44,8 +27,8 @@ const AdminDashboardContent: React.FC = () => {
         <WorkspaceOverview />
 
         <UserManagementCard 
-          users={userData}
-          loading={isLoading}
+          users={users}
+          loading={loading}
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
           onUpdateRole={handleUpdateRole}

@@ -1,226 +1,155 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { UserRole } from '@/types/shared';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { User, UserProfile } from '@/components/admin/users/UserTable';
 
-export interface UserProfile {
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  email: { email: string }[];
-}
-
-export interface User {
-  id: string;
-  role: string;
-  created_at: string;
-  user_id: string;
-  profiles: UserProfile;
-  last_active?: string;
-}
-
-export function useUserManagement() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const { currentWorkspace } = useWorkspace();
+export const useUserManagement = () => {
   const { toast } = useToast();
+  const { currentWorkspace } = useWorkspace();
+  const tenantId = currentWorkspace?.id;
 
-  // Fetch users when workspace changes
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  
   useEffect(() => {
-    if (currentWorkspace?.id) {
+    if (tenantId) {
       fetchUsers();
-    } else {
-      setUsers([]);
-      setIsLoading(false);
     }
-  }, [currentWorkspace?.id]);
-
-  // Fetch users from the database
-  const fetchUsers = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
-
-    setIsLoading(true);
+  }, [tenantId]);
+  
+  const fetchUsers = async () => {
+    if (!tenantId) return;
+    
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('tenant_user_roles')
         .select(`
           id,
-          user_id,
           role,
+          user_id,
           created_at,
-          profiles:user_id(
+          profiles:user_id (
             first_name,
             last_name,
             avatar_url,
-            email(email)
+            email:id(email)
           )
         `)
-        .eq('tenant_id', currentWorkspace.id);
-
-      if (error) throw error;
-
-      if (data) {
-        // Transform data to match our User type
-        const formattedUsers = data.map(item => {
-          // Process profiles data to match UserProfile type
-          const profileData: UserProfile = {
-            first_name: '',
-            last_name: '',
-            avatar_url: '',
-            email: []
-          };
-          
-          if (item.profiles) {
-            const profiles = item.profiles as unknown as any;
-            profileData.first_name = profiles.first_name || '';
-            profileData.last_name = profiles.last_name || '';
-            profileData.avatar_url = profiles.avatar_url || '';
-            profileData.email = Array.isArray(profiles.email) ? profiles.email : [];
-          }
-          
-          return {
-            id: item.id,
-            user_id: item.user_id,
-            role: item.role,
-            created_at: item.created_at,
-            profiles: profileData,
-            last_active: undefined // Add if available in the future
-          };
-        });
+        .eq('tenant_id', tenantId);
         
-        setUsers(formattedUsers);
+      if (error) {
+        throw error;
       }
+      
+      // Transform the data to match our User interface
+      const transformedUsers: User[] = (data || []).map((item: any) => ({
+        id: item.id,
+        role: item.role,
+        user_id: item.user_id,
+        created_at: item.created_at,
+        profiles: item.profiles as UserProfile
+      }));
+      
+      setUsers(transformedUsers);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
-        title: 'Error loading users',
-        description: error.message || 'Failed to load user data',
-        variant: 'destructive'
+        title: "Error fetching users",
+        description: error.message,
+        variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [currentWorkspace?.id, toast]);
-
-  // Change user role
-  const changeUserRole = async (userId: string, newRole: UserRole | string): Promise<boolean> => {
-    if (!currentWorkspace?.id) return false;
-
+  };
+  
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    if (!tenantId) return;
+    
     try {
       const { error } = await supabase
         .from('tenant_user_roles')
         .update({ role: newRole })
-        .eq('user_id', userId)
-        .eq('tenant_id', currentWorkspace.id);
-
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId);
+      
       if (error) throw error;
-
-      // Update local state
-      setUsers(prev => 
-        prev.map(user => 
-          user.user_id === userId ? { ...user, role: newRole as string } : user
-        )
-      );
-
-      // Log the role change
-      await logSystemEvent(
-        'auth',
-        'info',
-        {
-          description: `User role updated to ${newRole}`,
-          event_type: 'role_change',
-          target_user_id: userId,
-          new_role: newRole
-        },
-        currentWorkspace.id
-      );
-
+      
       toast({
-        title: 'Role updated',
-        description: `User role has been updated to ${newRole}`,
+        title: "Role updated",
+        description: `User role updated to ${newRole}`,
       });
-
-      return true;
+      
+      await fetchUsers();
     } catch (error: any) {
       console.error('Error updating user role:', error);
       toast({
-        title: 'Error updating role',
-        description: error.message || 'Failed to update user role',
-        variant: 'destructive'
+        title: "Error updating role",
+        description: error.message,
+        variant: "destructive"
       });
-      return false;
     }
   };
-
-  // Remove user from workspace
-  const removeUser = async (userId: string): Promise<boolean> => {
-    if (!currentWorkspace?.id) return false;
-
+  
+  const handleRemoveUser = async (userId: string) => {
+    if (!tenantId) return;
+    
     try {
-      // Find user details before removal for logging
-      const userToRemove = users.find(u => u.user_id === userId);
-      const userEmail = userToRemove?.profiles?.email?.[0]?.email || 'unknown';
-      
       const { error } = await supabase
         .from('tenant_user_roles')
         .delete()
-        .eq('user_id', userId)
-        .eq('tenant_id', currentWorkspace.id);
-
+        .eq('tenant_id', tenantId)
+        .eq('user_id', userId);
+      
       if (error) throw error;
-
-      // Update local state
-      setUsers(prev => prev.filter(user => user.user_id !== userId));
-
-      // Log the removal
-      await logSystemEvent(
-        'auth',
-        'warning',
-        {
-          description: `User removed from workspace`,
-          event_type: 'user_removal',
-          target_user_id: userId,
-          email: userEmail
-        },
-        currentWorkspace.id
-      );
-
+      
       toast({
-        title: 'User removed',
-        description: 'User has been removed from the workspace',
+        title: "User removed",
+        description: "User has been removed from the workspace",
       });
-
-      return true;
+      
+      await fetchUsers();
     } catch (error: any) {
       console.error('Error removing user:', error);
       toast({
-        title: 'Error removing user',
-        description: error.message || 'Failed to remove user',
-        variant: 'destructive'
+        title: "Error removing user",
+        description: error.message,
+        variant: "destructive"
       });
-      return false;
     }
   };
-
-  // Filter users by search term
+  
+  // Filter users based on search query
   const filteredUsers = users.filter(user => {
-    const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
-    const email = user.profiles?.email?.[0]?.email?.toLowerCase() || '';
-    const query = searchTerm.toLowerCase();
-    return fullName.includes(query) || email.includes(query);
+    const firstName = user.profiles?.first_name || '';
+    const lastName = user.profiles?.last_name || '';
+    const email = user.profiles?.email?.[0]?.email || '';
+    const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return fullName.includes(query) || 
+      firstName.toLowerCase().includes(query) || 
+      lastName.toLowerCase().includes(query) || 
+      email.toLowerCase().includes(query);
   });
 
   return {
     users: filteredUsers,
-    isLoading,
-    searchTerm,
-    setSearchTerm,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    isInviteDialogOpen,
+    setIsInviteDialogOpen,
     fetchUsers,
-    changeUserRole,
-    removeUser
+    handleUpdateRole,
+    handleRemoveUser
   };
-}
+};
+
+export default useUserManagement;

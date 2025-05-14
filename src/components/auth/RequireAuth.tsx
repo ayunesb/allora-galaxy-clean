@@ -1,52 +1,42 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-interface RequireAuthProps {
+export interface RequireAuthProps {
   children: React.ReactNode;
-  role?: string;
-  redirectTo?: string;
+  roles?: string[];
 }
 
-const RequireAuth: React.FC<RequireAuthProps> = ({
-  children,
-  role,
-  redirectTo = '/login'
-}) => {
-  const { user, isLoading, hasRole } = useAuth();
+export const RequireAuth: React.FC<RequireAuthProps> = ({ children, roles }) => {
+  const { user, loading: authLoading } = useAuth();
+  const { userRole, loading: workspaceLoading } = useWorkspace();
   const location = useLocation();
-  const { toast } = useToast();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to access this page",
-        variant: "destructive"
-      });
-    } else if (!isLoading && role && !hasRole(role)) {
-      toast({
-        title: "Access denied",
-        description: `You need ${role} permissions to access this page`,
-        variant: "destructive"
-      });
-    }
-  }, [isLoading, user, role, hasRole, toast]);
+  const isLoading = authLoading || workspaceLoading;
 
+  // When loading, show a loading state
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex h-screen w-full items-center justify-center">
+      <div className="animate-spin h-10 w-10 border-t-2 border-b-2 border-primary rounded-full"></div>
+    </div>;
   }
 
+  // If user is not authenticated, redirect to login
   if (!user) {
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  if (role && !hasRole(role)) {
-    return <Navigate to="/unauthorized" replace />;
+  // If roles are specified, check if user has the required role
+  if (roles && roles.length > 0) {
+    if (!userRole || !roles.includes(userRole)) {
+      // User doesn't have the required role, redirect to unauthorized
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    }
   }
 
+  // User is authenticated and has the required role (if specified)
   return <>{children}</>;
 };
 

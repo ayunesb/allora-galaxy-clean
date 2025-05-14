@@ -1,105 +1,162 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/hooks/use-toast';
-import { CronJob, CronJobStat, TimeRange } from '@/types/cron';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { notifySuccess, notifyError } from '@/components/ui/BetterToast';
 
-// Return type for the hook
-export interface UseCronJobsMonitoringResult {
-  jobs: CronJob[];
-  stats: CronJobStat[];
-  isLoading: boolean;
-  error: Error | null;
-  timeRange: TimeRange;
-  setTimeRange: (range: TimeRange) => void;
-  fetchJobs: () => Promise<void>;
-  runJob: (jobId: string) => Promise<void>;
+export interface CronJob {
+  id: string;
+  name: string;
+  schedule?: string;
+  last_run: string | null;
+  status: 'success' | 'failure' | 'running' | 'scheduled';
+  next_run: string | null;
+  duration_ms: number | null;
+  created_at: string;
+  error_message: string | null;
+  metadata: Record<string, any> | null;
 }
 
-export const useCronJobsMonitoring = (): UseCronJobsMonitoringResult => {
+export interface CronJobStats {
+  status: string;
+  count: number;
+}
+
+export interface TimeRange {
+  value: string;
+  label: string;
+}
+
+export const useCronJobsMonitoring = () => {
   const [jobs, setJobs] = useState<CronJob[]>([]);
-  const [stats, setStats] = useState<CronJobStat[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [stats, setStats] = useState<CronJobStats[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [timeRange, setTimeRange] = useState<TimeRange>({
-    value: 'day',
-    label: 'Last 24 hours'
+    value: '7d',
+    label: 'Last 7 days'
   });
 
   const fetchJobs = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch cron jobs
-      const { data, error } = await supabase
-        .from('cron_jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      setJobs(data || []);
-      
-      // Fetch stats
-      const { data: statsData, error: statsError } = await supabase
-        .rpc('get_cron_job_stats', { time_range: timeRange.value });
-        
-      if (statsError) throw statsError;
-      
-      setStats(statsData || []);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch cron jobs'));
-      toast({
-        title: "Error",
-        description: "Failed to fetch cron jobs data",
-        variant: "destructive",
-      });
+      // This would typically call a database function to get CRON job data
+      // For now we'll mock the data since we don't have the actual database tables yet
+      const mockJobs: CronJob[] = [
+        {
+          id: '1',
+          name: 'update_kpis_daily',
+          schedule: '0 0 * * *',  // Daily at midnight
+          last_run: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+          status: 'success',
+          next_run: new Date(Date.now() + 1000 * 60 * 60 * 21).toISOString(),
+          duration_ms: 2340,
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+          error_message: null,
+          metadata: { rows_processed: 124, tenants_updated: 3 }
+        },
+        {
+          id: '2',
+          name: 'sync_mqls_weekly',
+          schedule: '0 0 * * 0',  // Weekly on Sunday
+          last_run: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+          status: 'success',
+          next_run: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4).toISOString(),
+          duration_ms: 5680,
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+          error_message: null,
+          metadata: { leads_synced: 42 }
+        },
+        {
+          id: '3',
+          name: 'auto_evolve_agents_daily',
+          schedule: '0 3 * * *',  // Daily at 3am
+          last_run: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+          status: 'failure',
+          next_run: new Date(Date.now() + 1000 * 60 * 60 * 19).toISOString(),
+          duration_ms: 3450,
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
+          error_message: 'OpenAI API rate limit exceeded',
+          metadata: { agents_evaluated: 12, agents_evolved: 0 }
+        },
+        {
+          id: '4',
+          name: 'scheduled-intelligence-daily',
+          schedule: '30 0 * * *',  // Daily at 00:30
+          last_run: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+          status: 'success',
+          next_run: new Date(Date.now() + 1000 * 60 * 60 * 23 + 1000 * 60 * 30).toISOString(),
+          duration_ms: 8920,
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+          error_message: null,
+          metadata: { insights_generated: 8, strategies_updated: 3 }
+        },
+        {
+          id: '5',
+          name: 'cleanup_old_execution_logs',
+          schedule: '0 */12 * * *',  // Every 12 hours
+          last_run: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+          status: 'success',
+          next_run: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
+          duration_ms: 1230,
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
+          error_message: null,
+          metadata: { logs_cleaned: 532, space_freed_kb: 1240 }
+        }
+      ];
+
+      const mockStats: CronJobStats[] = [
+        { status: 'success', count: 28 },
+        { status: 'failure', count: 8 },
+        { status: 'running', count: 2 },
+        { status: 'scheduled', count: 12 }
+      ];
+
+      setJobs(mockJobs);
+      setStats(mockStats);
+    } catch (error: any) {
+      console.error('Error fetching CRON jobs:', error);
+      notifyError('Error', 'Failed to fetch CRON jobs data');
     } finally {
       setIsLoading(false);
     }
-  }, [timeRange.value]);
-  
-  const runJob = async (jobId: string) => {
+  }, []);
+
+  const runJob = useCallback(async (jobName: string) => {
+    setIsLoading(true);
     try {
-      const { error } = await supabase
-        .functions.invoke('triggerCronJob', {
-          body: { job_id: jobId }
-        });
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Job triggered successfully",
+      const { data, error } = await supabase.functions.invoke('triggerCronJob', {
+        body: { job_name: jobName }
       });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to run job');
+      }
+
+      notifySuccess('Job Triggered', `The job "${jobName}" has been triggered successfully.`);
       
-      // Refresh the jobs list after a short delay
-      setTimeout(fetchJobs, 1000);
+      // Refetch the jobs to get updated status
+      setTimeout(fetchJobs, 2000);
       
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to trigger job",
-        variant: "destructive",
-      });
+      return { success: true, data };
+    } catch (error: any) {
+      console.error(`Error running job ${jobName}:`, error);
+      notifyError('Error', `Failed to run job "${jobName}": ${error.message}`);
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
     }
-  };
-  
-  // Fetch jobs on mount and when timeRange changes
+  }, [fetchJobs]);
+
   useEffect(() => {
     fetchJobs();
-  }, [fetchJobs]);
-  
+  }, [fetchJobs, timeRange]);
+
   return {
     jobs,
     stats,
     isLoading,
-    error,
     timeRange,
     setTimeRange,
     fetchJobs,
-    runJob
+    runJob,
   };
 };
-
-export default useCronJobsMonitoring;

@@ -1,40 +1,22 @@
 
-// Define role types for the application
-import type { UserRole } from '@/types/shared';
+/**
+ * Defines the user role types for the application
+ */
+export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
 
-// Re-export with 'export type' syntax
-export type { UserRole };
+export const USER_ROLES: UserRole[] = ['admin', 'owner', 'member', 'viewer', 'guest'];
 
-export type RoleBasedAccess = {
-  role: UserRole | null;
-  loading: boolean;
-  error: Error | null;
-  hasRole: (requiredRoles: UserRole | UserRole[]) => boolean;
-  isAdmin?: boolean; // Added for backward compatibility
-};
-
-export interface AuthUser {
-  id: string;
-  email?: string;
-  app_metadata: {
-    provider?: string;
-    [key: string]: any;
+/**
+ * Gets a display name for a user role
+ */
+export function getRoleDisplayName(role: UserRole): string {
+  const displayNames: Record<UserRole, string> = {
+    admin: 'Administrator',
+    owner: 'Owner',
+    member: 'Member',
+    viewer: 'Viewer',
+    guest: 'Guest'
   };
-  user_metadata: {
-    name?: string;
-    [key: string]: any;
-  };
-  role?: UserRole;
-  aud: string;
+  
+  return displayNames[role] || role;
 }
-
-export interface AuthState {
-  session: any | null;
-  user: AuthUser | null;
-  userRole: UserRole | null;
-  isLoading: boolean;
-}
-
-export const isAdmin = (role: UserRole | null | undefined): boolean => {
-  return role === 'admin' || role === 'owner';
-};

@@ -58,18 +58,3 @@ export const StatsTableSkeleton: React.FC = () => (
     </Table>
   </div>
 );
-
-// Generic table skeleton for reuse
-export const TableSkeleton: React.FC<{ columns: number; rows: number }> = ({ columns, rows }) => (
-  <>
-    {Array(rows).fill(0).map((_, i) => (
-      <TableRow key={i}>
-        {Array(columns).fill(0).map((_, j) => (
-          <TableCell key={j}>
-            <Skeleton className="h-4 w-full" />
-          </TableCell>
-        ))}
-      </TableRow>
-    ))}
-  </>
-);

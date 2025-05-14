@@ -1,72 +1,48 @@
 
 import React from 'react';
-import { Card } from '@/components/ui/card';
-import { KPITrend } from '@/types/kpi';
-import KPICard from '@/components/KPICard';
-import { KPICardSkeleton } from '@/components/skeletons/KPICardSkeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export interface KpiSectionProps {
   title: string;
-  kpis?: KPITrend[];
-  isLoading?: boolean;
-  className?: string;
+  children?: React.ReactNode;
   kpiData?: any[];
+  isLoading?: boolean;
 }
 
-const KpiSection: React.FC<KpiSectionProps> = ({
-  title,
-  kpis = [],
+export const KpiSection: React.FC<KpiSectionProps> = ({ 
+  title, 
+  children, 
   kpiData = [],
-  isLoading = false,
-  className = '',
+  isLoading = false 
 }) => {
-  const dataToRender = kpis.length > 0 ? kpis : kpiData;
-
-  if (isLoading) {
-    return (
-      <div className={`space-y-4 ${className}`}>
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICardSkeleton />
-          <KPICardSkeleton />
-          <KPICardSkeleton />
-          <KPICardSkeleton />
-        </div>
-      </div>
-    );
-  }
-
-  if (dataToRender.length === 0) {
-    return (
-      <div className={`space-y-4 ${className}`}>
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        <Card className="p-6 text-center text-muted-foreground">
-          <p>No KPIs available.</p>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className={`space-y-4 ${className}`}>
-      <h2 className="text-2xl font-semibold">{title}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {dataToRender.map((kpi, index) => (
-          <KPICard 
-            key={kpi.id || index}
-            title={kpi.name}
-            value={kpi.value}
-            previous={kpi.previousValue}
-            change={kpi.change}
-            changePercent={kpi.changePercent}
-            direction={kpi.direction}
-            trend={kpi.trend}
-            unit={kpi.unit}
-            target={kpi.target}
-          />
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading && (
+          <p className="text-sm text-muted-foreground">Loading KPI data...</p>
+        )}
+        
+        {!isLoading && kpiData && kpiData.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {kpiData.map((kpi, index) => (
+              <div key={index} className="p-4 bg-muted rounded-md">
+                <div className="text-sm text-muted-foreground">{kpi.name}</div>
+                <div className="text-2xl font-bold">{kpi.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {!isLoading && (!kpiData || kpiData.length === 0) && (
+          children || (
+            <p className="text-sm text-muted-foreground">No KPI data available.</p>
+          )
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

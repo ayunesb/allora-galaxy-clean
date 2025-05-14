@@ -2,15 +2,12 @@
 import { LucideIcon } from 'lucide-react';
 
 export interface NavigationItem {
-  id?: string;
-  title: string;
+  name?: string; // For backward compatibility
+  title: string; // Primary field for display
   href: string;
-  icon?: LucideIcon;
+  icon?: LucideIcon | string;
   items?: NavigationItem[];
   adminOnly?: boolean;
-  badge?: string | number;
-  isNew?: boolean;
-  isExternal?: boolean;
 }
 
 export interface NavigationConfig {

@@ -1,25 +1,42 @@
 
-import { supabase } from '@/lib/supabase';
-import { Notification } from './types';
+import { supabase } from '@/integrations/supabase/client';
+import { Notification } from '@/types/notifications';
 
-// Function to fetch notifications for a user
-export async function fetchUserNotifications(userId: string) {
+/**
+ * Fetches all notifications for a specific user
+ * @param userId The ID of the user to fetch notifications for
+ * @param limit Maximum number of notifications to retrieve (default 50)
+ * @returns Object with data and error properties
+ */
+export async function fetchUserNotifications(
+  userId: string,
+  limit: number = 50
+): Promise<{ data: Notification[] | null, error: any }> {
   try {
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
       
     return { data, error };
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('Error fetching user notifications:', error);
     return { data: null, error };
   }
 }
 
-// Function to mark a notification as read
-export async function markNotificationAsRead(id: string, userId: string) {
+/**
+ * Marks a notification as read
+ * @param id The ID of the notification to mark as read
+ * @param userId The ID of the user who owns the notification
+ * @returns Object with success and error properties
+ */
+export async function markNotificationAsRead(
+  id: string,
+  userId: string
+): Promise<{ success: boolean, error: any }> {
   try {
     const { error } = await supabase
       .from('notifications')
@@ -34,8 +51,14 @@ export async function markNotificationAsRead(id: string, userId: string) {
   }
 }
 
-// Function to mark all notifications as read
-export async function markAllNotificationsAsRead(userId: string) {
+/**
+ * Marks all notifications for a user as read
+ * @param userId The ID of the user whose notifications to mark as read
+ * @returns Object with success and error properties
+ */
+export async function markAllNotificationsAsRead(
+  userId: string
+): Promise<{ success: boolean, error: any }> {
   try {
     const { error } = await supabase
       .from('notifications')
@@ -50,8 +73,16 @@ export async function markAllNotificationsAsRead(userId: string) {
   }
 }
 
-// Function to delete a notification
-export async function deleteUserNotification(id: string, userId: string) {
+/**
+ * Deletes a notification
+ * @param id The ID of the notification to delete
+ * @param userId The ID of the user who owns the notification
+ * @returns Object with success and error properties
+ */
+export async function deleteUserNotification(
+  id: string,
+  userId: string
+): Promise<{ success: boolean, error: any }> {
   try {
     const { error } = await supabase
       .from('notifications')
@@ -66,37 +97,24 @@ export async function deleteUserNotification(id: string, userId: string) {
   }
 }
 
-// Function to get unread notification count
-export async function getUnreadNotificationCount(userId: string) {
+/**
+ * Gets the count of unread notifications for a specific user
+ * @param userId The ID of the user to fetch the count for
+ * @returns Object with count and error properties
+ */
+export async function getUnreadNotificationCount(
+  userId: string
+): Promise<{ count: number, error: any }> {
   try {
     const { count, error } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .is('read_at', null);
       
     return { count: count || 0, error };
   } catch (error) {
-    console.error('Error counting unread notifications:', error);
+    console.error('Error fetching unread notification count:', error);
     return { count: 0, error };
-  }
-}
-
-// Function to create a notification
-export async function createNotification(notification: Omit<Notification, 'id' | 'created_at' | 'read_at' | 'is_read'>) {
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        ...notification,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-      
-    return { data, error };
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    return { data: null, error };
   }
 }

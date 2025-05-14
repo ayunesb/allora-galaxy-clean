@@ -1,59 +1,52 @@
 
 import React, { useState } from 'react';
-import PageHelmet from '@/components/PageHelmet';
+import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
-import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { SystemLogFilters } from '@/components/admin/logs/SystemLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import { SystemLogFilter } from '@/types/shared';
-import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
+import { SystemLog } from '@/types/logs';
 
 const AiDecisions: React.FC = () => {
-  const [filter, setFilter] = useState<SystemLogFilter>({
-    searchTerm: '',
-    module: 'agent',
-  });
-  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  const { data, isLoading, refresh, modules, events } = useSystemLogsData(filter);
-
-  const handleViewLogDetails = (log: any) => {
+  
+  const { decisions, isLoading, filters, setFilters, refetch } = useAiDecisionsData();
+  
+  const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
     setDialogOpen(true);
   };
-
+  
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHelmet title="AI Decisions" description="Review AI decision logs" />
+    <div className="container py-6">
+      <PageHeader
+        title="AI Decisions"
+        description="Monitor and audit AI-generated decisions and recommendations"
+      />
       
-      <h1 className="text-2xl font-bold mb-4">AI Decisions</h1>
+      <SystemLogFilters 
+        filters={filters} 
+        onFilterChange={setFilters} 
+        isLoading={isLoading}
+        onRefresh={refetch}
+      />
       
-      <Card>
-        <CardContent className="p-6">
-          <SystemLogFilters
-            filter={filter}
-            setFilter={setFilter}
-            modules={modules}
-            events={events}
-            onRefresh={refresh}
-            isLoading={isLoading}
-            className="mb-6"
-          />
-          
-          <SystemLogsList
-            logs={data}
-            isLoading={isLoading}
-            title="AI Decision Logs"
-            onViewDetails={handleViewLogDetails}
+      <Card className="mt-6">
+        <CardContent className="p-0 sm:p-6">
+          <SystemLogsList 
+            logs={decisions} 
+            isLoading={isLoading} 
+            onViewLog={handleViewLog}
           />
         </CardContent>
       </Card>
-
+      
       <LogDetailDialog 
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        log={selectedLog}
+        log={selectedLog} 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
       />
     </div>
   );

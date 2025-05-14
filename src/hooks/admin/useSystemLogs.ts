@@ -1,92 +1,160 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { supabase } from '@/lib/supabase';
-import { SystemEventModule, LogSeverity } from '@/types/shared';
+import { supabase } from '@/integrations/supabase/client';
+import { SystemEventModule, SystemEventType } from '@/types/shared';
 
-export interface SystemLog {
+interface Log {
   id: string;
-  module: string;
-  event: string;
-  context: any;
+  module: SystemEventModule;
+  event: SystemEventType;
   created_at: string;
+  context?: Record<string, any>;
   tenant_id?: string;
 }
 
-export function useSystemLogs(defaultLimit: number = 50) {
-  const { currentWorkspace } = useWorkspace();
-  const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [limit, setLimit] = useState(defaultLimit);
+export function useSystemLogs(tenantId: string | null) {
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Filter states
-  const [moduleFilter, setModuleFilter] = useState<string | null>(null);
-  const [eventFilter, setEventFilter] = useState<string | null>(null);
+  // Filters
+  const [selectedModule, setSelectedModule] = useState<SystemEventModule | ''>('');
+  const [selectedEvent, setSelectedEvent] = useState<SystemEventType | ''>('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Metadata
+  const [modules, setModules] = useState<SystemEventModule[]>([]);
+  const [events, setEvents] = useState<SystemEventType[]>([]);
 
-  // Fetch logs from the database
-  const fetchSystemLogs = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
-    
-    setIsLoading(true);
-    setError(null);
+  const fetchLogs = useCallback(async () => {
+    if (!tenantId) return;
     
     try {
+      setLoading(true);
+      setError(null);
+      
       let query = supabase
         .from('system_logs')
         .select('*')
-        .eq('tenant_id', currentWorkspace.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
       
-      // Apply module filter if set
-      if (moduleFilter) {
-        query = query.eq('module', moduleFilter);
+      // Apply filters
+      if (selectedModule) {
+        query = query.eq('module', selectedModule);
       }
       
-      // Apply event filter if set
-      if (eventFilter) {
-        query = query.eq('event', eventFilter);
+      if (selectedEvent) {
+        query = query.eq('event', selectedEvent);
       }
       
-      // Apply search filter if set
+      if (selectedDate) {
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        query = query
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+      }
+      
       if (searchTerm) {
         query = query.or(
-          `module.ilike.%${searchTerm}%,event.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`
+          `event.ilike.%${searchTerm}%,module.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`
         );
       }
       
-      const { data, error } = await query;
+      const { data, error: fetchError } = await query.limit(100);
       
-      if (error) throw error;
+      if (fetchError) {
+        throw fetchError;
+      }
       
       setLogs(data || []);
     } catch (err: any) {
       console.error('Error fetching system logs:', err);
-      setError(err);
+      setError(err.message || 'Failed to load system logs');
+      setLogs([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [currentWorkspace?.id, limit, moduleFilter, eventFilter, searchTerm]);
-
-  // Fetch logs when dependencies change
+  }, [tenantId, selectedModule, selectedEvent, selectedDate, searchTerm]);
+  
+  const fetchModulesAndEvents = useCallback(async () => {
+    if (!tenantId) return;
+    
+    try {
+      // For modules, use a direct approach without distinct
+      const { data: moduleData, error: moduleError } = await supabase
+        .from('system_logs')
+        .select('module')
+        .eq('tenant_id', tenantId);
+      
+      if (moduleError) throw moduleError;
+      
+      // For events, use a direct approach without distinct
+      const { data: eventData, error: eventError } = await supabase
+        .from('system_logs')
+        .select('event')
+        .eq('tenant_id', tenantId);
+      
+      if (eventError) throw eventError;
+      
+      // Use Set to get unique values
+      const uniqueModules = new Set<SystemEventModule>();
+      moduleData.forEach((item: { module: SystemEventModule }) => {
+        if (item.module) uniqueModules.add(item.module);
+      });
+      
+      const uniqueEvents = new Set<SystemEventType>();
+      eventData.forEach((item: { event: SystemEventType }) => {
+        if (item.event) uniqueEvents.add(item.event);
+      });
+      
+      setModules(Array.from(uniqueModules));
+      setEvents(Array.from(uniqueEvents));
+    } catch (err: any) {
+      console.error('Error fetching filters:', err);
+    }
+  }, [tenantId]);
+  
   useEffect(() => {
-    fetchSystemLogs();
-  }, [fetchSystemLogs]);
-
+    fetchLogs();
+  }, [fetchLogs]);
+  
+  useEffect(() => {
+    fetchModulesAndEvents();
+  }, [fetchModulesAndEvents]);
+  
+  const resetFilters = useCallback(() => {
+    setSelectedModule('');
+    setSelectedEvent('');
+    setSelectedDate(null);
+    setSearchTerm('');
+  }, []);
+  
+  const refreshLogs = useCallback(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+  
   return {
     logs,
-    isLoading,
+    loading,
     error,
-    refresh: fetchSystemLogs,
-    setModuleFilter,
-    setEventFilter,
-    setSearchTerm,
-    setLimit,
-    moduleFilter,
-    eventFilter,
+    selectedModule,
+    setSelectedModule,
+    selectedEvent,
+    setSelectedEvent,
+    selectedDate,
+    setSelectedDate,
     searchTerm,
-    limit
+    setSearchTerm,
+    modules,
+    events,
+    resetFilters,
+    refreshLogs
   };
 }

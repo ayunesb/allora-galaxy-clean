@@ -1,128 +1,83 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
 import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
-import { OnboardingErrorDialog } from './OnboardingErrorDialog';
+import { OnboardingStep } from '@/types/onboarding';
 
-// Use a local OnboardingStep type that matches what StepContent expects
-type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+// Define steps for the onboarding process
+const STEPS = [
+  { id: 'welcome' as OnboardingStep, label: 'Welcome' },
+  { id: 'company-info' as OnboardingStep, label: 'Company Info' },
+  { id: 'persona' as OnboardingStep, label: 'Persona' },
+  { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
+  { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
+  { id: 'completed' as OnboardingStep, label: 'Complete' }
+];
 
-interface OnboardingWizardProps {
-  initialStep?: number;
-}
+const OnboardingWizard: React.FC = () => {
+  const {
+    currentStep,
+    formData,
+    isGenerating,
+    updateFormData,
+    nextStep,
+    prevStep,
+    handleSubmit
+  } = useOnboardingWizard();
 
-export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ initialStep = 0 }) => {
-  const [currentStep, setCurrentStep] = useState(initialStep);
-  const [formData, setFormData] = useState({
-    companyName: '',
-    industry: '',
-    companySize: '',
-    website: '',
-    revenueRange: '',
-    description: '',
-    goals: [],
-    additionalInfo: '',
-    persona: {
-      name: '',
-      goals: [],
-      tone: 'professional'
-    }
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Define our steps
-  const steps = [
-    'company-info',
-    'additional-info',
-    'persona',
-    'strategy-generation',
-    'completed'
-  ] as const;
-
-  // Calculate progress percentage
-  const progress = Math.round((currentStep / (steps.length - 1)) * 100);
-
-  // Convert step index to step name for StepContent
-  const getStepNameFromIndex = (stepIndex: number): OnboardingStep => {
-    return steps[stepIndex] as OnboardingStep || 'company-info';
+  // Helper function to get current step index
+  const getCurrentStepIndex = (): number => {
+    return STEPS.findIndex(step => step.id === currentStep);
   };
 
-  const handleStepClick = (stepIndex: number) => {
-    if (stepIndex < currentStep) {
-      setCurrentStep(stepIndex);
-    }
+  // Helper function to determine if the next button should be disabled
+  const isNextButtonDisabled = (): boolean => {
+    // Add validation logic here based on currentStep
+    return false;
   };
-
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
+  
+  // Create a wrapper for updateFormData to match the expected signature
+  const handleUpdateFormData = (data: Partial<OnboardingFormData>) => {
+    updateFormData(data);
   };
-
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const updateFormData = (data: any) => {
-    setFormData(prevData => ({ ...prevData, ...data }));
-  };
-
-  const completeOnboardingProcess = async () => {
-    if (currentStep === 3) { // Index 3 is 'strategy-generation'
-      setIsSubmitting(true);
-      try {
-        // Implementation would go here in a real app
-        // Mock a delay
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsLoading(false);
-        nextStep();
-      } catch (error: any) {
-        setError(error.message || 'Failed to complete onboarding');
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
+  
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="w-full max-w-4xl mx-auto flex flex-col h-full">
+      {/* Progress indicators */}
       <OnboardingProgress 
-        currentStep={currentStep}
-        progress={progress}
-        onStepClick={handleStepClick}
+        currentStep={getCurrentStepIndex()} 
+        onStepClick={() => {
+          // Optional: Add step navigation logic here
+        }}
+        steps={STEPS}
       />
       
-      <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      {/* Form content */}
+      <div className="flex-1 overflow-y-auto my-6 px-4 md:px-0">
         <StepContent 
-          currentStep={getStepNameFromIndex(currentStep)}
+          step={currentStep}
           formData={formData}
-          updateFormData={updateFormData}
-        />
-        
-        <StepNavigation
-          currentStep={currentStep}
-          totalSteps={steps.length}
-          isSubmitting={isSubmitting}
-          isNextDisabled={isLoading}
-          onNext={currentStep === 3 ? completeOnboardingProcess : nextStep}
-          onPrev={prevStep}
-          onSubmit={completeOnboardingProcess}
+          updateFormData={handleUpdateFormData}
+          isGenerating={isGenerating}
+          setFieldValue={(key: string, value: any) => {
+            handleUpdateFormData({ [key]: value });
+          }}
         />
       </div>
       
-      {error && (
-        <OnboardingErrorDialog
-          error={error}
-          onClose={() => setError(null)}
-          onRetry={completeOnboardingProcess}
-        />
-      )}
+      {/* Navigation buttons */}
+      <StepNavigation 
+        currentStep={getCurrentStepIndex()} 
+        totalSteps={STEPS.length}
+        isSubmitting={isGenerating}
+        isNextDisabled={isNextButtonDisabled()}
+        onNext={nextStep}
+        onPrev={prevStep}
+        onSubmit={handleSubmit}
+        isGenerating={isGenerating}
+      />
     </div>
   );
 };

@@ -1,40 +1,36 @@
 
-/**
- * Type definitions for system logs
- */
+import { SystemEventType } from './shared';
 
+/**
+ * System log entry
+ */
 export interface SystemLog {
   id: string;
-  tenant_id?: string;
-  module: string;
-  level?: string;
-  severity?: string;
+  module: SystemEventModule;
   event: string;
-  description?: string;
-  message?: string;
-  context: Record<string, any>;
-  metadata?: Record<string, any>;
   created_at: string;
-  user_id?: string;
-  status?: string;
+  context?: Record<string, any>;
+  tenant_id?: string;
 }
 
-export interface LogFilter {
-  module?: string | null;
-  level?: string | null;
-  severity?: string | null;
-  dateFrom?: Date | null;
-  dateTo?: Date | null;
+/**
+ * System event modules
+ */
+export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
+
+/**
+ * Audit log entry (alias for SystemLog for backward compatibility)
+ */
+export interface AuditLog extends SystemLog {}
+
+/**
+ * Log filters for querying logs
+ */
+export interface LogFilters {
+  module?: SystemEventModule;
+  event?: SystemEventType;
+  fromDate?: string;
+  toDate?: string;
+  tenant_id?: string;
   searchTerm?: string;
-  tenant_id?: string | null;
 }
-
-export enum LogLevel {
-  DEBUG = 'debug',
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical'
-}
-
-export type AuditLog = SystemLog;

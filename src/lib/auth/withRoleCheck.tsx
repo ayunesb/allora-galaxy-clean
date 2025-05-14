@@ -17,7 +17,7 @@ const withRoleCheck = <P extends object>(
   { roles, redirectTo = '/unauthorized' }: WithRoleCheckProps
 ) => {
   const WithRoleCheck: React.FC<P> = (props) => {
-    const { user, isLoading, checkUserRole } = useAuth();
+    const { user, loading, checkUserRole } = useAuth();
     const location = useLocation();
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
@@ -43,12 +43,12 @@ const withRoleCheck = <P extends object>(
         }
       };
       
-      if (!isLoading) {
+      if (!loading) {
         checkPermission();
       }
-    }, [user, isLoading]);
+    }, [user, loading]);
 
-    if (isLoading || hasPermission === null) {
+    if (loading || hasPermission === null) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

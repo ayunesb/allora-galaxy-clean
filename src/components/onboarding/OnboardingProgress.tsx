@@ -1,71 +1,64 @@
 
 import React from 'react';
-import { Check, ArrowRight } from 'lucide-react';
+import { OnboardingStep } from '@/types/onboarding';
 import { cn } from '@/lib/utils';
+import { CheckCircle } from 'lucide-react';
 
 export interface OnboardingProgressProps {
   currentStep: number;
-  progress: number;
-  onStepClick: (stepIndex: number) => void;
+  onStepClick: (step: number) => void;
+  steps: { id: OnboardingStep; label: string; }[];
 }
 
 const OnboardingProgress: React.FC<OnboardingProgressProps> = ({ 
-  currentStep,
-  progress,
-  onStepClick
+  currentStep, 
+  onStepClick,
+  steps 
 }) => {
-  const steps = [
-    'Company Information',
-    'Additional Details',
-    'AI Persona Setup',
-    'Strategy Generation',
-    'Complete'
-  ];
-
   return (
-    <div className="mb-8">
-      <div className="relative">
-        {/* Progress bar */}
-        <div className="overflow-hidden h-2 flex rounded-full bg-muted">
-          <div
-            className="bg-primary transition-all duration-300 ease-in-out"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {/* Steps */}
-        <div className="flex justify-between mt-2">
-          {steps.map((step, index) => (
-            <div key={index} className="flex flex-col items-center">
-              <button
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all",
-                  index < currentStep
-                    ? "bg-primary border-primary text-white"
-                    : index === currentStep
-                    ? "border-primary bg-white text-primary"
-                    : "border-muted bg-white text-muted-foreground"
-                )}
-                onClick={() => onStepClick(index)}
-                disabled={index > currentStep}
-              >
-                {index < currentStep ? (
-                  <Check className="h-4 w-4" />
-                ) : index === currentStep ? (
-                  <ArrowRight className="h-4 w-4" />
-                ) : (
-                  <span className="text-sm">{index + 1}</span>
-                )}
-              </button>
-              <span className={cn(
-                "text-xs mt-1 hidden sm:block",
-                index === currentStep ? "font-medium text-primary" : "text-muted-foreground"
-              )}>
-                {step}
+    <div className="w-full">
+      <div className="flex justify-between items-center">
+        {steps.map((step, idx) => (
+          <React.Fragment key={step.id}>
+            {/* Step button */}
+            <button
+              className={cn(
+                'relative flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors',
+                idx < currentStep
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : idx === currentStep
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-muted bg-muted/40 text-muted-foreground cursor-default'
+              )}
+              onClick={() => idx <= currentStep + 1 && onStepClick(idx)}
+              disabled={idx > currentStep + 1}
+              aria-current={idx === currentStep ? 'step' : undefined}
+            >
+              {idx < currentStep ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <span>{idx + 1}</span>
+              )}
+              
+              {/* Step label */}
+              <span className="absolute top-10 -translate-x-1/2 text-xs font-medium whitespace-nowrap">
+                {step.label}
               </span>
-            </div>
-          ))}
-        </div>
+            </button>
+            
+            {/* Connecting line */}
+            {idx < steps.length - 1 && (
+              <div 
+                className={cn(
+                  'flex-1 h-0.5 mx-1',
+                  idx < currentStep 
+                    ? 'bg-primary' 
+                    : 'bg-muted'
+                )}
+              />
+            )}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );

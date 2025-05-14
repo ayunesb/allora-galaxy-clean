@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { ErrorInfo } from 'react';
 
 interface ErrorFallbackProps {
@@ -21,7 +21,8 @@ export function ErrorFallback({
   supportEmail,
   tenant_id = 'system'
 }: ErrorFallbackProps) {
-  
+  const { toast } = useToast();
+
   useEffect(() => {
     // Log the error to our system
     logSystemEvent(
@@ -38,7 +39,10 @@ export function ErrorFallback({
   }, [error, errorInfo, tenant_id]);
 
   const handleReportError = () => {
-    toast.success(`Error report sent. ${supportEmail ? `You may also contact us at ${supportEmail}.` : ''}`);
+    toast({
+      title: "Error report sent",
+      description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
+    });
   };
 
   return (

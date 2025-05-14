@@ -1,59 +1,52 @@
-
-/**
- * Fixed types for strategy execution
- */
-
+// Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
   tenantId: string;
   userId?: string;
-  params?: Record<string, any>;
-  options?: {
-    debug?: boolean;
-    timeout?: number;
-    agent_id?: string;
-    log_level?: 'debug' | 'info' | 'warn' | 'error';
-    [key: string]: any;
-  };
+  options?: Record<string, any>;
 }
 
+// Define the result interface for a strategy execution (camelCase version)
 export interface ExecuteStrategyResult {
   success: boolean;
+  error?: string;
   executionId?: string;
   executionTime?: number;
-  status?: string;
-  results?: any;
   outputs?: Record<string, any>;
-  error?: string;
-  logs?: any[];
+  results?: Record<string, any>;
+  logs?: Array<any>;
+  status?: string;
+  details?: any;
   xpEarned?: number;
   pluginsExecuted?: number;
   successfulPlugins?: number;
 }
 
-/**
- * Workspace and tenant types
- */
-export interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  owner_id: string;
-  created_at: string;
-  updated_at?: string;
-  logo_url?: string;
-  settings?: Record<string, any>;
+// Define snake case versions for edge functions
+export interface ExecuteStrategyInputSnakeCase {
+  strategy_id: string;
+  tenant_id: string;
+  user_id?: string;
+  options?: Record<string, any>;
 }
 
-export interface NavigationItem {
-  title: string;
-  href: string;
-  icon?: string;
-  children?: NavigationItem[];
-  active?: boolean;
+export interface ExecuteStrategyResultSnakeCase {
+  success: boolean;
+  error?: string;
+  execution_id?: string;
+  execution_time?: number;
+  outputs?: Record<string, any>;
+  results?: Record<string, any>;
+  logs?: Array<any>;
+  status?: string;
+  details?: any;
+  xp_earned?: number;
+  plugins_executed?: number;
+  successful_plugins?: number;
 }
 
-/**
- * User and authentication types
- */
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+// Add DateRange type for our filters
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}

@@ -1,321 +1,380 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { SearchIcon, TrendingUpIcon, StarIcon, BarChartIcon, UsersIcon, BoltIcon } from 'lucide-react';
-import PageHelmet from '@/components/PageHelmet';
-import PluginCard from '@/components/plugins/PluginCard';
-import { useToast } from '@/components/ui/use-toast';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Plugin {
-  id: string | number;
-  name: string;
-  description: string;
-  category: string;
-  installed?: boolean;
-  rating?: number;
-  usersCount?: number;
-  xp?: number;
-  version?: string;
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowUpRight, Search, Star, TrendingUp, XCircle } from 'lucide-react';
+import { Plugin } from '@/types/plugin';
 
 const PluginsPage: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('featured');
+  const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('xp');
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch plugins data
-  const { data: plugins = [], isLoading } = useQuery({
-    queryKey: ['plugins'],
-    queryFn: async () => {
-      // In a real app, we'd fetch from Supabase
-      // This is mock data for now
-      return [
-        {
-          id: 1,
-          name: 'HubSpot Integration',
-          description: 'Sync data between Allora and HubSpot CRM',
-          category: 'Marketing',
-          xp: 1245,
-          rating: 4.8,
-          usersCount: 328,
-          version: '2.1.0'
-        },
-        {
-          id: 2,
-          name: 'Email Drip Campaign',
-          description: 'Automated email sequences for lead nurturing',
-          category: 'Marketing',
-          xp: 987,
-          rating: 4.6,
-          usersCount: 256,
-          version: '1.3.2'
-        },
-        {
-          id: 3,
-          name: 'Google Analytics Connector',
-          description: 'Import and visualize GA4 metrics',
-          category: 'Analytics',
-          xp: 876,
-          rating: 4.5,
-          usersCount: 193,
-          version: '2.0.1'
-        },
-        {
-          id: 4,
-          name: 'Slack Notifications',
-          description: 'Real-time alerts and digests in Slack',
-          category: 'Automation',
-          xp: 654,
-          rating: 4.7,
-          usersCount: 312,
-          version: '1.4.0',
-          installed: true
-        },
-        {
-          id: 5,
-          name: 'AI Content Generator',
-          description: 'Generate marketing content with AI',
-          category: 'Marketing',
-          xp: 542,
-          rating: 4.3,
-          usersCount: 187,
-          version: '0.9.5'
-        },
-        {
-          id: 6,
-          name: 'Customer Segmentation',
-          description: 'Automatically segment customers based on behavior',
-          category: 'Analytics',
-          xp: 432,
-          rating: 4.4,
-          usersCount: 143,
-          version: '1.2.1'
-        },
-        {
-          id: 7,
-          name: 'WhatsApp Business API',
-          description: 'Send automated WhatsApp messages to customers',
-          category: 'Customer Support',
-          xp: 398,
-          rating: 4.5,
-          usersCount: 98,
-          version: '0.8.0'
-        },
-        {
-          id: 8,
-          name: 'Shopify Integration',
-          description: 'Connect your Shopify store to Allora',
-          category: 'Integration',
-          xp: 87,
-          rating: 4.0,
-          usersCount: 45,
-          version: '0.5.2'
-        },
-        {
-          id: 9,
-          name: 'LinkedIn Ads Connector',
-          description: 'Manage and track LinkedIn ad campaigns',
-          category: 'Marketing',
-          xp: 76,
-          rating: 3.9,
-          usersCount: 32,
-          version: '0.4.0'
-        },
-        {
-          id: 10,
-          name: 'Lead Scoring',
-          description: 'Score leads based on engagement and fit',
-          category: 'Analytics',
-          xp: 65,
-          rating: 4.1,
-          usersCount: 28,
-          version: '0.3.1'
-        }
-      ] as Plugin[];
-    }
-  });
+  useEffect(() => {
+    fetchPlugins();
+  }, []);
 
-  // Plugin categories
-  const pluginCategories = [
-    { name: 'Analytics', count: 24, icon: <BarChartIcon className="h-4 w-4" /> },
-    { name: 'Marketing', count: 37, icon: <TrendingUpIcon className="h-4 w-4" /> },
-    { name: 'Customer Support', count: 18, icon: <UsersIcon className="h-4 w-4" /> },
-    { name: 'Automation', count: 29, icon: <BoltIcon className="h-4 w-4" /> },
-    { name: 'Featured', count: 12, icon: <StarIcon className="h-4 w-4" /> },
-  ];
+  const fetchPlugins = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('plugins')
+        .select('*')
+        .order(sortBy === 'xp' ? 'xp' : sortBy === 'roi' ? 'roi' : 'name', { ascending: sortBy === 'name' });
 
-  // Filter plugins based on search term and active tab
-  const filteredPlugins = plugins.filter(plugin => {
-    const matchesSearch = plugin.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          plugin.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          plugin.category.toLowerCase().includes(searchTerm.toLowerCase());
-                          
-    if (activeTab === 'featured') {
-      return matchesSearch && plugin.rating && plugin.rating >= 4.5;
-    }
-    
-    if (activeTab === 'installed') {
-      return matchesSearch && plugin.installed === true;
-    }
-    
-    if (activeTab === 'trending') {
-      return matchesSearch && plugin.usersCount && plugin.usersCount > 150;
-    }
-    
-    if (activeTab === 'new') {
-      return matchesSearch && plugin.version && plugin.version.startsWith('0.');
-    }
-    
-    return matchesSearch;
-  });
+      if (error) {
+        throw error;
+      }
 
-  const handleInstall = useCallback((id: string | number) => {
-    toast({
-      title: "Plugin Installation Started",
-      description: "Installing plugin...",
-    });
-    
-    // Simulate installation
-    setTimeout(() => {
+      setPlugins(data || []);
+
+      // Extract unique categories
+      const uniqueCategories = [...new Set((data || []).map(plugin => plugin.category).filter(Boolean))];
+      setCategories(uniqueCategories as string[]);
+    } catch (error: any) {
       toast({
-        title: "Plugin Installed",
-        description: "The plugin has been successfully installed.",
+        title: 'Error fetching plugins',
+        description: error.message,
+        variant: 'destructive'
       });
-    }, 1500);
-  }, [toast]);
-  
-  const handleUninstall = useCallback((id: string | number) => {
-    toast({
-      title: "Plugin Uninstalled",
-      description: "The plugin has been removed successfully.",
-      variant: "destructive",
-    });
-  }, [toast]);
-  
-  const handlePluginClick = useCallback((id: string | number) => {
-    navigate(`/plugins/${id}`);
-  }, [navigate]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const renderPluginGrid = (plugins: Plugin[]) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {plugins.map(plugin => (
-        <PluginCard
-          key={plugin.id}
-          id={plugin.id}
-          name={plugin.name}
-          description={plugin.description}
-          category={plugin.category}
-          rating={plugin.rating}
-          usersCount={plugin.usersCount}
-          xp={plugin.xp}
-          version={plugin.version}
-          installed={plugin.installed}
-          onInstall={handleInstall}
-          onUninstall={handleUninstall}
-          onClick={handlePluginClick}
-        />
-      ))}
-    </div>
+  const filteredPlugins = plugins.filter(plugin => {
+    const matchesSearchTerm = !searchQuery || 
+      plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (plugin.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = !selectedCategory || plugin.category === selectedCategory;
+    
+    return matchesSearchTerm && matchesCategory;
+  });
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    // Re-sort the plugins
+    const sorted = [...plugins].sort((a, b) => {
+      if (value === 'xp') {
+        return (b.xp || 0) - (a.xp || 0);
+      } else if (value === 'roi') {
+        return (b.roi || 0) - (a.roi || 0);
+      } else {
+        return b.name.localeCompare(a.name);
+      }
+    });
+    setPlugins(sorted);
+  };
+
+  const handlePluginClick = (plugin: Plugin) => {
+    navigate(`/plugins/${plugin.id}`);
+  };
+
+  const renderPluginGrid = () => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-6 w-20" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    if (filteredPlugins.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <XCircle className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium">No plugins found</h3>
+          <p className="text-muted-foreground mt-2">
+            Try changing your search terms or filters
+          </p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedCategory('');
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPlugins.map((plugin) => (
+          <Card 
+            key={plugin.id} 
+            className="overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
+            onClick={() => handlePluginClick(plugin)}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{plugin.name}</CardTitle>
+                {plugin.status === 'active' ? (
+                  <Badge variant="success" className="bg-green-100 text-green-800">Active</Badge>
+                ) : (
+                  <Badge variant="secondary">Inactive</Badge>
+                )}
+              </div>
+              {plugin.category && (
+                <CardDescription>
+                  <Badge variant="outline" className="mt-1">
+                    {plugin.category}
+                  </Badge>
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground line-clamp-3">
+                {plugin.description || 'No description available'}
+              </p>
+            </CardContent>
+            <CardFooter className="flex justify-between border-t pt-4">
+              <div className="flex items-center gap-1">
+                <Star className="h-4 w-4 text-yellow-500" />
+                <span className="text-sm font-medium">{plugin.xp || 0} XP</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm font-medium">{plugin.roi || 0}% ROI</span>
+              </div>
+              <Button size="sm" variant="ghost" className="ml-auto">
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderPluginCard = (plugin: Plugin) => (
+    <Card 
+      key={plugin.id} 
+      className="overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
+      onClick={() => handlePluginClick(plugin)}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">{plugin.name}</CardTitle>
+          {plugin.status === 'active' ? (
+            <Badge variant="success" className="bg-green-100 text-green-800">Active</Badge>
+          ) : (
+            <Badge variant="secondary">Inactive</Badge>
+          )}
+        </div>
+        {plugin.category && (
+          <CardDescription>
+            <Badge variant="outline" className="mt-1">
+              {plugin.category}
+            </Badge>
+          </CardDescription>
+        )}
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground line-clamp-3">
+          {plugin.description || 'No description available'}
+        </p>
+      </CardContent>
+      <CardFooter className="flex justify-between border-t pt-4">
+        <div className="flex items-center gap-1">
+          <Star className="h-4 w-4 text-yellow-500" />
+          <span className="text-sm font-medium">{plugin.xp || 0} XP</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <TrendingUp className="h-4 w-4 text-emerald-500" />
+          <span className="text-sm font-medium">{plugin.roi || 0}% ROI</span>
+        </div>
+        <Button size="sm" variant="ghost" className="ml-auto">
+          <ArrowUpRight className="h-4 w-4" />
+        </Button>
+      </CardFooter>
+    </Card>
   );
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <PageHelmet 
-        title="Plugin Marketplace" 
-        description="Discover and install plugins for your Allora workspace"
-      />
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Plugin Marketplace</h1>
-        <p className="text-muted-foreground">
-          Discover and add plugins to enhance your Allora workspace
-        </p>
+    <div className="container mx-auto py-8 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Plugin Marketplace</h1>
+          <p className="text-muted-foreground">
+            Browse, track, and integrate plugins that power your business strategies
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate('/plugins/create')}
+          className="shrink-0"
+        >
+          Create Plugin
+        </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Sidebar */}
-        <div className="w-full md:w-64 space-y-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Categories</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                <Button variant="ghost" className="w-full justify-start">
-                  <SearchIcon className="h-4 w-4 mr-2" /> All Plugins
-                </Button>
-                {pluginCategories.map(category => (
-                  <Button key={category.name} variant="ghost" className="w-full justify-start">
-                    {category.icon}
-                    <span className="ml-2">{category.name}</span>
-                    <Badge variant="secondary" className="ml-auto">{category.count}</Badge>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1">
-          <div className="mb-6">
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search plugins..."
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+      <div className="bg-card border rounded-lg p-4 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search plugins..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="featured">Featured</TabsTrigger>
-              <TabsTrigger value="trending">Trending</TabsTrigger>
-              <TabsTrigger value="new">New</TabsTrigger>
-              <TabsTrigger value="installed">Installed</TabsTrigger>
-            </TabsList>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <TabsContent value={activeTab}>
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <Card key={i} className="h-[200px]">
-                      <CardHeader>
-                        <div className="h-5 w-48 bg-muted rounded animate-pulse mb-2"></div>
-                        <div className="h-3 w-32 bg-muted rounded animate-pulse"></div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-3 w-full bg-muted rounded animate-pulse mb-2"></div>
-                        <div className="h-3 w-3/4 bg-muted rounded animate-pulse"></div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : filteredPlugins.length > 0 ? (
-                renderPluginGrid(filteredPlugins)
-              ) : (
-                <div className="p-8 text-center">
-                  <h3 className="text-lg font-medium mb-2">No plugins found</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your search or filters
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          <Select value={sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="xp">Experience (XP)</SelectItem>
+              <SelectItem value="roi">Return on Investment (ROI)</SelectItem>
+              <SelectItem value="name">Name (A-Z)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
+
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList>
+          <TabsTrigger value="all">All Plugins</TabsTrigger>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="top-performers">Top Performers</TabsTrigger>
+          <TabsTrigger value="trending">Trending</TabsTrigger>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all">
+          {renderPluginGrid()}
+        </TabsContent>
+        <TabsContent value="active">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPlugins
+              .filter(p => p.status === 'active')
+              .map(renderPluginCard)}
+          </div>
+        </TabsContent>
+        <TabsContent value="top-performers">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPlugins
+              .sort((a, b) => (b.roi || 0) - (a.roi || 0))
+              .slice(0, 6)
+              .map(renderPluginCard)}
+          </div>
+        </TabsContent>
+        <TabsContent value="trending">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPlugins
+              .sort((a, b) => (b.xp || 0) - (a.xp || 0))
+              .slice(0, 6)
+              .map(renderPluginCard)}
+          </div>
+        </TabsContent>
+        <TabsContent value="leaderboard">
+          <div className="border rounded-md overflow-hidden">
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rank</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Plugin</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">XP</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">ROI</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPlugins
+                  .sort((a, b) => (b.xp || 0) - (a.xp || 0))
+                  .map((plugin, index) => (
+                    <tr key={plugin.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                      <td className="px-4 py-3 text-sm font-semibold">
+                        {index + 1}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center">
+                          <div className="ml-4">
+                            <div className="text-sm font-medium">{plugin.name}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">
+                              {plugin.description || 'No description available'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {plugin.category && (
+                          <Badge variant="outline">{plugin.category}</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center font-medium">
+                        <div className="flex items-center justify-center">
+                          <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                          {plugin.xp || 0}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center font-medium">
+                        <div className="flex items-center justify-center">
+                          <TrendingUp className="h-4 w-4 text-emerald-500 mr-1" />
+                          {plugin.roi || 0}%
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePluginClick(plugin)}
+                        >
+                          View Details
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
