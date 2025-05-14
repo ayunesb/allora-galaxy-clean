@@ -29,3 +29,25 @@ class MockIntersectionObserver {
 }
 
 window.IntersectionObserver = MockIntersectionObserver as any;
+
+// Mock ResizeObserver which is not available in JSDOM
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+window.ResizeObserver = MockResizeObserver as any;
+
+// Suppress console errors during tests
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (
+    args[0]?.includes?.('Warning:') ||
+    args[0]?.includes?.('React does not recognize the') ||
+    args[0]?.includes?.('Invalid DOM property')
+  ) {
+    return;
+  }
+  originalConsoleError(...args);
+};

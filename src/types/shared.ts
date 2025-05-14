@@ -1,3 +1,4 @@
+
 export interface SystemLog {
   id: string;
   created_at: string;
@@ -47,3 +48,61 @@ export type SystemEventModule =
   | 'api' 
   | 'user' 
   | 'system';
+
+// Standardize VoteType across the application
+export type VoteType = 'up' | 'down';
+
+// Add AuditLogFilter type
+export interface AuditLogFilter {
+  searchTerm?: string;
+  module?: SystemEventModule;
+  startDate?: string;
+  endDate?: string;
+  type?: string;
+}
+
+// Add AuditLog interface
+export interface AuditLog {
+  id: string;
+  module: string;
+  event: string;
+  action: string;
+  description: string;
+  created_at: string;
+  user_id?: string;
+  tenant_id?: string;
+}
+
+// Add UserRole type
+export type UserRole = 'admin' | 'member' | 'owner' | 'guest';
+
+// Add BaseEntity type
+export interface BaseEntity {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Add ExecutionParams type
+export interface ExecutionParams {
+  [key: string]: any;
+}
+
+// Add ExecutionType type
+export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'system';
+
+// Add KPITrend type
+export interface KPITrend {
+  direction: TrendDirection;
+  percentage: number;
+}
+
+// Add TenantFeature type
+export type TenantFeature = 
+  | 'api_access' 
+  | 'custom_plugins' 
+  | 'advanced_analytics' 
+  | 'team_collaboration';
+
+// Add OnboardingStep type
+export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'strategy' | 'complete';

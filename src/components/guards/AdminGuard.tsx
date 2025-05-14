@@ -1,26 +1,23 @@
 
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useTenantRole } from '@/hooks/useTenantRole';
-import LoadingScreen from '@/components/LoadingScreen';
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
-const AdminGuard = () => {
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, isLoading: roleLoading } = useTenantRole();
+export function AdminGuard({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const { user, isAdmin, isLoading } = useAuth();
 
-  if (authLoading || roleLoading) {
+  if (isLoading) {
     return <LoadingScreen />;
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  if (!user || !isAdmin) {
+    // Redirect non-admin users to unauthorized page
+    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return <Outlet />;
-};
+  return <>{children}</>;
+}
 
 export default AdminGuard;

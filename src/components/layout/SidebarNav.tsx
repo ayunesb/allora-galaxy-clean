@@ -1,75 +1,81 @@
-
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
+import { NavLink } from 'react-router-dom';
 import { NavigationItem } from '@/types/shared';
-import * as LucideIcons from 'lucide-react';
 
-interface SidebarNavProps {
+// Define the correct type for icon prop - expecting a React component or string
+type IconProp = React.ComponentType<any> | string | undefined;
+
+interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   items: NavigationItem[];
-  className?: string;
+  setOpen?: (open: boolean) => void;
+  hasNested?: boolean;
 }
 
-const SidebarNav: React.FC<SidebarNavProps> = ({ items, className }) => {
-  const location = useLocation();
-
-  // Function to render icon
-  const renderIcon = (icon?: React.ComponentType<any> | string) => {
-    if (!icon) return null;
-    
-    // If icon is a component (React component)
-    if (typeof icon !== 'string') {
-      const IconComponent = icon;
-      return <IconComponent className="h-4 w-4" />;
+export function SidebarNav({
+  className,
+  items,
+  setOpen,
+  hasNested = false,
+  ...props
+}: SidebarNavProps) {
+  // Convert an item.icon from ReactNode to a proper icon component
+  const renderIcon = (icon: React.ReactNode): IconProp => {
+    // If icon is a valid component or string, return it
+    if (React.isValidElement(icon) || typeof icon === 'string') {
+      return icon as IconProp;
     }
-    
-    // If icon is a string (name of Lucide icon)
-    // Use type assertion to avoid compatibility issues with the index signature
-    const IconComponent = (LucideIcons as unknown as Record<string, React.ComponentType<any>>)[icon];
-    
-    if (IconComponent) {
-      return <IconComponent className="h-4 w-4" />;
-    }
-    
-    return null;
+    // Otherwise return undefined
+    return undefined;
   };
 
   return (
-    <nav className={cn("flex flex-col gap-1", className)}>
+    <nav className={cn("flex flex-col gap-y-1", className)} {...props}>
       {items.map((item) => {
-        const isActive = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
-        const itemKey = item.href || item.title;
+        // Get a proper icon component from the ReactNode
+        const Icon = renderIcon(item.icon);
 
-        if (!item.href) {
+        if (item.items && item.items.length > 0) {
           return (
-            <div 
-              key={itemKey}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground"
-            >
-              {item.icon && <span className="h-4 w-4">{renderIcon(item.icon)}</span>}
-              <span>{item.title}</span>
+            <div key={item.id}>
+              <span className={cn(
+                "group flex items-center px-3 py-2 text-sm font-medium",
+                "text-slate-600 dark:text-slate-400",
+                "hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
+              )}>
+                {Icon && typeof Icon !== 'string' && <Icon className="mr-2 h-4 w-4" />}
+                {item.title}
+              </span>
+              <div className="ml-4 mt-1">
+                <SidebarNav items={item.items} setOpen={setOpen} hasNested />
+              </div>
             </div>
           );
         }
 
         return (
-          <Link
-            key={itemKey}
+          <NavLink
+            key={item.id}
             to={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            onClick={() => setOpen?.(false)}
+            className={({ isActive }) => cn(
+              "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
               isActive
-                ? "bg-accent text-accent-foreground"
-                : "hover:bg-accent hover:text-accent-foreground"
+                ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-50"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
+              !hasNested && "mx-2"
             )}
           >
-            {item.icon && <span className="h-4 w-4">{renderIcon(item.icon)}</span>}
+            {Icon && typeof Icon !== 'string' && <Icon className="mr-2 h-4 w-4" />}
             <span>{item.title}</span>
-          </Link>
+            {item.badge && (
+              <span className="ml-auto text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                {item.badge}
+              </span>
+            )}
+          </NavLink>
         );
       })}
     </nav>
   );
-};
-
-export default SidebarNav;
+}

@@ -1,45 +1,25 @@
 
 import { VoteType } from '@/types/shared';
 
-export interface AgentVoteProps {
-  agentVersionId: string;
-  initialUpvotes: number;
-  initialDownvotes: number;
-  userId?: string;
+export interface VoteButtonProps {
+  type: VoteType;
+  count: number;
+  active?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
 }
 
-export interface VoteButtonProps {
-  count: number;
-  isActive: boolean;
-  type: 'up' | 'down';
-  onClick: () => void;
-  disabled: boolean;
+export interface AgentVotePanelProps {
+  agentVersionId: string;
+  upvotes: number;
+  downvotes: number;
+  isReadOnly?: boolean;
 }
 
 export interface CommentSectionProps {
-  comment: string;
-  setComment: (comment: string) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-  disabled: boolean;
-}
-
-export interface UseAgentVoteParams {
+  comments: any[];
   agentVersionId: string;
-  initialUpvotes: number;
-  initialDownvotes: number;
-  userId?: string;
-}
-
-export interface UseAgentVoteReturn {
-  upvotes: number;
-  downvotes: number;
-  userVote: 'up' | 'down' | null;
-  comment: string;
-  setComment: (comment: string) => void;
-  showComment: boolean;
-  setShowComment: (show: boolean) => void;
-  submitting: boolean;
-  handleVote: (voteType: VoteType) => Promise<void>;
-  handleSubmitComment: () => void;
+  userHasVoted: boolean;
+  voteType?: VoteType;
+  isLoading?: boolean;
 }

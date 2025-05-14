@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { castVote, upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting';
 import { VoteType } from '@/types/shared';
 
@@ -75,7 +75,7 @@ describe('Agent Voting System', () => {
       });
       
       // Execute the vote
-      const result = await castVote('agent-123', 'upvote' as VoteType);
+      const result = await castVote('agent-123', 'up' as VoteType);
       
       // Assertions
       expect(result.success).toBe(true);
@@ -90,7 +90,7 @@ describe('Agent Voting System', () => {
         data: { session: null }
       } as any);
       
-      const result = await castVote('agent-123', 'upvote' as VoteType);
+      const result = await castVote('agent-123', 'up' as VoteType);
       
       expect(result.success).toBe(false);
       expect(result.error).toBe('You must be logged in to vote');
@@ -103,7 +103,7 @@ describe('Agent Voting System', () => {
         throw new Error('Database error');
       });
       
-      const result = await castVote('agent-123', 'upvote' as VoteType);
+      const result = await castVote('agent-123', 'up' as VoteType);
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('Failed to cast vote');
@@ -125,7 +125,7 @@ describe('Agent Voting System', () => {
       
       await upvoteAgentVersion('agent-123', 'Great agent!');
       
-      expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'upvote', 'Great agent!');
+      expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'up', 'Great agent!');
       
       // Restore original mock implementation
       vi.mocked(castVote as any).mockImplementation(originalCastVote);
@@ -145,7 +145,7 @@ describe('Agent Voting System', () => {
       
       await downvoteAgentVersion('agent-123', 'Needs improvement');
       
-      expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'downvote', 'Needs improvement');
+      expect(mockCastVote).toHaveBeenCalledWith('agent-123', 'down', 'Needs improvement');
       
       // Restore original mock implementation
       vi.mocked(castVote as any).mockImplementation(originalCastVote);
