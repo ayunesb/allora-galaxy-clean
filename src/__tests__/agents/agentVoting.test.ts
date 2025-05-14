@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { castVote, upvoteAgentVersion, downvoteAgentVersion } from '@/lib/agents/voting';
-import { VoteType } from '@/types/shared';
+import { VoteType } from '@/types';
 
 // Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({

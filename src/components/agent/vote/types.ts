@@ -1,7 +1,6 @@
 
-import { VoteType } from '@/types/shared';
-
-export { VoteType };
+// Import VoteType from shared types
+import { VoteType } from '@/types';
 
 export interface Vote {
   id: string;

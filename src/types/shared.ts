@@ -69,3 +69,32 @@ export interface NavigationItem {
   icon?: any;
   description?: string;
 }
+
+/**
+ * Vote type
+ */
+export type VoteType = 'up' | 'down';
+
+/**
+ * Trend direction
+ */
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+/**
+ * Filter state
+ */
+export interface FilterState {
+  module?: string[];
+  eventType?: string[];
+  dateRange?: {
+    from: Date | string | null;
+    to: Date | string | null;
+  };
+  status?: string[];
+  search?: string;
+}
+
+/**
+ * Notification type
+ */
+export type NotificationType = 'system' | 'strategy' | 'agent' | 'alert' | 'update' | 'info';

@@ -9,6 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 const WelcomeSection: React.FC = () => {
   const { user } = useAuth();
   
+  // Safely access user metadata if it exists
+  const userName = user?.email?.split('@')[0] || 'there';
+  
   return (
     <Card className="shadow-md border-t-4 border-t-primary">
       <CardHeader>
@@ -24,7 +27,7 @@ const WelcomeSection: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <p>
-          Hello {user?.user_metadata?.full_name || 'there'}, Allora OS helps you build, deploy,
+          Hello {userName}, Allora OS helps you build, deploy,
           and evolve AI-powered business strategies.
         </p>
         

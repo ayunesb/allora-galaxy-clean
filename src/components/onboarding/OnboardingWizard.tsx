@@ -4,7 +4,9 @@ import OnboardingProgress from './OnboardingProgress';
 import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
 import { OnboardingErrorDialog } from './OnboardingErrorDialog';
-import { OnboardingStep } from '@/types/shared';
+
+// Use a local OnboardingStep type that matches what StepContent expects
+type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
 interface OnboardingWizardProps {
   initialStep?: number;

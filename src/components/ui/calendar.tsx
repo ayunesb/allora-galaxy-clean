@@ -58,13 +58,17 @@ function Calendar({
           return (
             <Select
               value={value?.toString()}
-              onValueChange={(value) => onChange?.(value)}
+              onValueChange={(newValue) => onChange?.(newValue)}
             >
               <SelectTrigger className="pr-1.5 focus:ring-0">
                 <SelectValue>{value}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {children}
+                {React.Children.map(children as React.ReactNode, (child) => (
+                  <SelectItem value={(child as any)?.props?.value}>
+                    {(child as any)?.props?.children}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           );

@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { AlertTriangle, Info, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';

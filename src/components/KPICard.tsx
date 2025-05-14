@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
-import { TrendDirection } from '@/types/shared';
+import { TrendDirection } from '@/types';
 
 export interface KPICardProps {
   title: string;
