@@ -1,10 +1,14 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Tenant } from '@/types/tenant';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 export interface WorkspaceContextType {
+  collapsed?: boolean;
+  tenant?: any;
+  currentTenant?: any;
+  userRole?: any;
+  updateCurrentWorkspace?: (workspaceId: string) => void;
   currentWorkspace: Tenant | null;
   workspaces: Tenant[];
   isLoading: boolean;

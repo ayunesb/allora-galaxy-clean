@@ -1,32 +1,49 @@
+export interface SystemLog {
+  id: string;
+  created_at: string;
+  module: string;
+  event: string;
+  level: string;
+  description: string;
+  context: Record<string, any>;
+  tenant_id: string;
+}
 
-export type SystemEventModule = 
-  | 'system'
-  | 'auth'
-  | 'user'
-  | 'tenant'
-  | 'strategy'
-  | 'plugin'
-  | 'agent'
-  | 'billing'
-  | 'notification'
-  | 'execution'
-  | 'cron'
-  | 'integration';
+// Add TrendDirection enum definition 
+export enum TrendDirection {
+  UP = 'up',
+  DOWN = 'down',
+  NEUTRAL = 'neutral'
+}
 
+// Add NavigationItem type
+export interface NavigationItem {
+  id: string;
+  title: string;
+  icon?: React.ReactNode;
+  href: string;
+  badge?: string | number;
+  items?: NavigationItem[];
+  permission?: string;
+}
+
+// Add or update SystemLogFilter type
 export interface SystemLogFilter {
   searchTerm?: string;
   module?: SystemEventModule;
   level?: 'info' | 'warning' | 'error';
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
 }
 
-export interface AuditLogFilter {
-  searchTerm?: string;
-  module?: SystemEventModule;
-  startDate?: Date;
-  endDate?: Date;
-}
-
-// VoteType for agent feedback
-export type VoteType = 'up' | 'down' | 'upvote' | 'downvote' | null;
+// Add or ensure SystemEventModule type exists
+export type SystemEventModule = 
+  | 'auth' 
+  | 'strategy' 
+  | 'agent' 
+  | 'plugin' 
+  | 'tenant' 
+  | 'api' 
+  | 'user' 
+  | 'system';

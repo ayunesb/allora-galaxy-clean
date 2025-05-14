@@ -4,22 +4,15 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
-import { useNotifications } from '@/lib/notifications/useNotifications';
+import { useNotificationData } from '@/hooks/useNotificationData';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
 import { Badge } from '@/components/ui/badge';
 
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const { 
-    notifications, 
-    unreadCount, 
-    markAllAsRead, 
-    markAsRead 
-  } = useNotifications();
-
-  const handleMarkAsRead = async (id: string): Promise<void> => {
-    await markAsRead(id);
-  };
+  const { notifications, unreadCount, isLoading } = useNotificationData(activeFilter);
+  const { markAsRead, markAllAsRead } = useNotificationActions();
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -49,9 +42,12 @@ const NotificationCenter: React.FC = () => {
       <SheetContent className="w-full sm:max-w-md p-0">
         <NotificationCenterContent 
           notifications={notifications}
-          markAsRead={handleMarkAsRead}
+          markAsRead={markAsRead}
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
+          onMarkAllAsRead={markAllAsRead}
+          isLoading={isLoading}
+          unreadCount={unreadCount}
         />
       </SheetContent>
     </Sheet>

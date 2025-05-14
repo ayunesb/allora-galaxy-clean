@@ -9,7 +9,7 @@ interface NotificationListProps {
   onMarkAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   filter?: string;
-  isLoading?: boolean; // Changed from loading to isLoading
+  isLoading?: boolean;
 }
 
 const NotificationList: React.FC<NotificationListProps> = ({
@@ -17,7 +17,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   onMarkAsRead,
   onDelete,
   filter,
-  isLoading = false // Changed from loading to isLoading
+  isLoading = false
 }) => {
   if (isLoading) {
     return (

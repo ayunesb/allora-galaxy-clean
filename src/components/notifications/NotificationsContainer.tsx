@@ -16,7 +16,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
   setFilter: setExternalFilter
 }) => {
   const [selectedTab, setSelectedTab] = useState(externalFilter || 'all');
-  const { notifications, loading, refresh } = useNotificationData(selectedTab);
+  const { notifications, isLoading, refresh, unreadCount } = useNotificationData(selectedTab);
   const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
   
   // Sync with external filter if provided
@@ -24,17 +24,6 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     setSelectedTab(tab);
     if (setExternalFilter) {
       setExternalFilter(tab);
-    }
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  // Wrap refresh to match expected Promise<void> return type
-  const handleRefresh = async (): Promise<void> => {
-    try {
-      await refresh();
-    } catch (error) {
-      console.error('Error refreshing notifications:', error);
     }
   };
 
@@ -47,7 +36,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
         unreadCount={unreadCount}
       />
       
-      {loading ? (
+      {isLoading ? (
         <div className="p-8 flex justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
@@ -58,12 +47,12 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
           notifications={notifications} 
           markAsRead={markAsRead}
           onDelete={deleteNotification}
-          loading={false}
+          isLoading={false}
         />
       ) : (
         <NotificationEmptyState 
           filter={selectedTab} 
-          onRefresh={handleRefresh}
+          onRefresh={refresh}
         />
       )}
     </div>

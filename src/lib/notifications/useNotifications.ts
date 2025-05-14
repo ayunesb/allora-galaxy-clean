@@ -1,9 +1,21 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Notification } from '@/types/notifications';
 import { useTenantId } from '@/hooks/useTenantId';
 
-export const useNotifications = () => {
+export interface UseNotificationsResult {
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: Error | null;
+  markAsRead: (id: string) => Promise<{ success: boolean; error?: Error }>;
+  markAllAsRead: () => Promise<{ success: boolean; error?: Error }>;
+  deleteNotification: (id: string) => Promise<{ success: boolean; error?: Error }>;
+  refreshNotifications: () => Promise<{ success: boolean; error?: Error }>;
+}
+
+export const useNotifications = (): UseNotificationsResult => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

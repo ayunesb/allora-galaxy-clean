@@ -3,7 +3,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { routes } from './routes';
 import './App.css';
 import { Toaster } from './components/ui/toaster';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider } from './providers/ThemeProvider';
 import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

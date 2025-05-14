@@ -1,4 +1,3 @@
-
 // Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
@@ -55,4 +54,4 @@ export interface DateRange {
 /**
  * Vote types for agent evaluations - unified definition used across the app
  */
-export type VoteType = 'up' | 'down' | 'upvote' | 'downvote' | null;
+export type VoteType = 'up' | 'down' | 'upvote' | 'downvote';

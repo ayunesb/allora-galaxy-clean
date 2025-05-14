@@ -1,89 +1,99 @@
+import { Home, Bell, Settings, Users, BarChart2, Brain, ListChecks, LayoutDashboard, Plugin, FileCode2, Terminal, HelpCircle } from 'lucide-react';
+import { NavigationItem } from '@/types/shared';
 
-import type { NavigationItem } from '@/types/navigation';
-import { LayoutDashboard, Boxes, Settings, Users, FileCode2, Activity, AreaChart, FileSpreadsheet, Key, Clock } from 'lucide-react';
-
-// Default navigation items when no workspace is selected
-export const defaultWorkspaceNavigation: NavigationItem[] = [
+export const navigationItems: NavigationItem[] = [
   {
+    id: 'dashboard',
     title: 'Dashboard',
-    href: '/dashboard',
     icon: LayoutDashboard,
+    href: '/dashboard',
   },
   {
-    title: 'Plugins',
-    href: '/plugins',
-    icon: Boxes,
-  }
-];
-
-// Navigation items based on user role
-export const getWorkspaceNavigation = (role: string): NavigationItem[] => {
-  // Base navigation items for all roles
-  const baseNavigation: NavigationItem[] = [
-    {
-      title: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      title: 'Plugins',
-      href: '/plugins',
-      icon: Boxes,
-    },
-    {
-      title: 'Strategies',
-      href: '/strategies',
-      icon: FileCode2,
-    },
-    {
-      title: 'Evolution',
-      href: '/evolution',
-      icon: Activity,
-    },
-    {
-      title: 'KPI',
-      href: '/insights',
-      icon: AreaChart,
-    }
-  ];
-
-  // Admin and owner get additional navigation items
-  if (role === 'admin' || role === 'owner') {
-    return [
-      ...baseNavigation,
+    id: 'strategies',
+    title: 'Strategies',
+    icon: ListChecks,
+    href: '/strategies',
+  },
+  {
+    id: 'agents',
+    title: 'Agents',
+    icon: Brain,
+    href: '/agents',
+  },
+  {
+    id: 'galaxy',
+    title: 'Galaxy',
+    icon: Home,
+    href: '/galaxy',
+  },
+  {
+    id: 'insights',
+    title: 'Insights',
+    icon: BarChart2,
+    href: '/insights/kpis',
+    items: [
       {
-        title: 'Admin',
-        icon: Settings,
-        children: [
-          {
-            title: 'Dashboard',
-            href: '/admin',
-            icon: LayoutDashboard,
-          },
-          {
-            title: 'Users',
-            href: '/admin/users',
-            icon: Users,
-          },
-          {
-            title: 'System Logs',
-            href: '/admin/logs',
-            icon: FileSpreadsheet,
-          },
-          {
-            title: 'API Keys',
-            href: '/admin/api-keys',
-            icon: Key,
-          },
-          {
-            title: 'CRON Jobs',
-            href: '/admin/cron',
-            icon: Clock,
-          }
-        ]
-      }
-    ];
-  }
-
-  return baseNavigation;
-};
+        id: 'kpis',
+        title: 'KPIs',
+        href: '/insights/kpis',
+      },
+      {
+        id: 'reports',
+        title: 'Reports',
+        href: '/insights/reports',
+      },
+    ],
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications',
+    icon: Bell,
+    href: '/notifications',
+    badge: 0,
+  },
+  {
+    id: 'plugins',
+    title: 'Plugins',
+    icon: Plugin,
+    href: '/plugins',
+  },
+  {
+    id: 'admin',
+    title: 'Admin',
+    icon: Terminal,
+    href: '/admin/system-logs',
+    permission: 'admin',
+    items: [
+      {
+        id: 'system-logs',
+        title: 'System Logs',
+        href: '/admin/system-logs',
+        icon: FileCode2,
+      },
+      {
+        id: 'ai-decisions',
+        title: 'AI Decisions',
+        href: '/admin/ai-decisions',
+        icon: Brain,
+      },
+      {
+        id: 'users',
+        title: 'Users',
+        href: '/admin/users',
+        icon: Users,
+      },
+    ],
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    icon: Settings,
+    href: '/settings',
+  },
+  {
+    id: 'help',
+    title: 'Help',
+    icon: HelpCircle,
+    href: '/help',
+  },
+];

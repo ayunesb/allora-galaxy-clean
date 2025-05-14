@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext } from 'react';
 import useAuthHook from '@/hooks/useAuth';
 import { AuthContextType } from '@/lib/auth/types';
@@ -26,3 +25,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+export interface AuthContextType {
+  isAuthenticated?: boolean;
+  isLoading?: boolean;
+  userRoles?: string[];
+}

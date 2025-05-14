@@ -1,21 +1,38 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNotifications } from '@/context/notifications/useNotifications';
-import { Notification, NotificationContent } from '@/types/notifications';
+import { NotificationContent } from '@/types/notifications';
+import { useNotifications } from '@/lib/notifications/useNotifications';
 
-export const useNotificationData = (tabFilter: string | null = null) => {
-  const { 
-    notifications, 
-    loading,
+export interface UseNotificationDataResult {
+  notifications: NotificationContent[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: Error | null;
+  refresh: () => Promise<void>;
+}
+
+export const useNotificationData = (filter = 'all'): UseNotificationDataResult => {
+  const {
+    notifications: allNotifications,
+    unreadCount,
+    isLoading,
     error,
     refreshNotifications
   } = useNotifications();
   
   const [filteredNotifications, setFilteredNotifications] = useState<NotificationContent[]>([]);
 
-  // Transform Notification[] to NotificationContent[]
-  const transformNotifications = useCallback(() => {
-    return notifications.map((notification: Notification) => ({
+  // Apply filters to notifications
+  useEffect(() => {
+    if (!allNotifications) {
+      setFilteredNotifications([]);
+      return;
+    }
+
+    let result = [...allNotifications];
+    
+    // Convert database notifications to UI-ready format
+    const mappedNotifications: NotificationContent[] = result.map(notification => ({
       id: notification.id,
       title: notification.title,
       message: notification.description || '',
@@ -23,32 +40,34 @@ export const useNotificationData = (tabFilter: string | null = null) => {
       read: notification.is_read || false,
       type: notification.type,
       action_url: notification.action_url,
-      action_label: notification.action_label
+      action_label: notification.action_label,
+      metadata: notification.metadata,
     }));
-  }, [notifications]);
-
-  // Filter notifications based on tab selection
-  const filterNotifications = useCallback(() => {
-    const transformed = transformNotifications();
-    if (!tabFilter || tabFilter === 'all') {
-      setFilteredNotifications(transformed);
-    } else if (tabFilter === 'unread') {
-      setFilteredNotifications(transformed.filter(n => !n.read));
+    
+    // Apply filter
+    if (filter === 'unread') {
+      setFilteredNotifications(mappedNotifications.filter(n => !n.read));
+    } else if (filter === 'system') {
+      setFilteredNotifications(mappedNotifications.filter(n => n.type === 'system'));
     } else {
-      // Filter by notification type
-      setFilteredNotifications(transformed.filter(n => n.type === tabFilter));
+      setFilteredNotifications(mappedNotifications);
     }
-  }, [notifications, tabFilter, transformNotifications]);
+  }, [allNotifications, filter]);
 
-  // Apply filters whenever notifications or tab filter changes
-  useEffect(() => {
-    filterNotifications();
-  }, [notifications, tabFilter, filterNotifications]);
+  // Wrap refresh function to match expected Promise<void> return type
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      await refreshNotifications();
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+    }
+  }, [refreshNotifications]);
 
   return {
     notifications: filteredNotifications,
-    loading,
+    unreadCount,
+    isLoading,
     error,
-    refresh: refreshNotifications
+    refresh
   };
 };

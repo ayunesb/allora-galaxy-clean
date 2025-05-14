@@ -1,30 +1,31 @@
 
 import React from 'react';
-import { Notification, NotificationType } from '@/types/notifications';
+import { NotificationContent } from '@/types/notifications';
 import NotificationCenterEmptyState from './NotificationCenterEmptyState';
 import NotificationCenterLoading from './NotificationCenterLoading';
 import { Button } from '@/components/ui/button';
 import NotificationCenterTabs from './NotificationCenterTabs';
-import { NotificationContent } from '@/types/notifications';
 
 export interface NotificationCenterContentProps {
-  notifications: Notification[];
+  notifications: NotificationContent[];
   markAsRead: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
-  isLoading?: boolean; // Changed from loading to isLoading
+  isLoading?: boolean;
   onMarkAllAsRead?: () => Promise<void>;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
+  unreadCount: number;
 }
 
 const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   notifications,
   markAsRead,
   onDelete,
-  isLoading = false, // Changed from loading to isLoading
+  isLoading = false,
   onMarkAllAsRead,
   activeFilter,
-  setActiveFilter
+  setActiveFilter,
+  unreadCount
 }) => {
   if (isLoading) {
     return <NotificationCenterLoading />;
@@ -33,22 +34,6 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   if (notifications.length === 0) {
     return <NotificationCenterEmptyState />;
   }
-
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  // Map to UI-ready format
-  const notificationItems: NotificationContent[] = notifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.description || '',
-    timestamp: notification.created_at,
-    read: notification.is_read || false,
-    type: notification.type as NotificationType,
-    action_url: notification.action_url,
-    action_label: notification.action_label,
-    metadata: notification.metadata,
-  }));
 
   return (
     <div className="space-y-2">
@@ -67,7 +52,7 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
       <NotificationCenterTabs 
         value={activeFilter}
         onValueChange={setActiveFilter}
-        notifications={notificationItems}
+        notifications={notifications}
         unreadCount={unreadCount}
         onMarkAsRead={markAsRead}
         onDelete={onDelete}

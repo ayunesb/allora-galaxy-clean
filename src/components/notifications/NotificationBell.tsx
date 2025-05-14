@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
-import { useNotifications } from '@/lib/notifications/useNotifications';
+import { useNotificationData } from '@/hooks/useNotificationData';
 
 interface NotificationBellProps {
   onClick: () => void;
@@ -10,7 +10,7 @@ interface NotificationBellProps {
 }
 
 export const NotificationBell: React.FC<NotificationBellProps> = ({ onClick, className }) => {
-  const { unreadCount } = useNotifications();
+  const { unreadCount } = useNotificationData('unread');
 
   return (
     <Button 

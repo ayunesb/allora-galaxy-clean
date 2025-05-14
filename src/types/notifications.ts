@@ -24,7 +24,6 @@ export interface CreateNotificationInput {
 export interface Notification {
   id: string;
   title: string;
-  message?: string;
   description?: string;
   type: NotificationType;
   user_id: string;
@@ -58,7 +57,7 @@ export interface NotificationContent {
 export interface NotificationsContextValue {
   notifications: Notification[];
   unreadCount: number;
-  isLoading: boolean; // Changed from loading to isLoading
+  isLoading: boolean;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
