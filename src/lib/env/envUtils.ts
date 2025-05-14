@@ -7,10 +7,16 @@
 /**
  * Get an environment variable
  * @param key The name of the environment variable
- * @param defaultValue Optional default value if env var is not found
+ * @param required Whether the variable is required (throws error if not found)
+ * @param defaultValue Optional default value if env var is not found and not required
  * @returns The value of the environment variable or defaultValue
+ * @throws Error if required is true and the variable is not found
  */
-export function ENV(key: string, defaultValue?: string): string {
+export function ENV(
+  key: string, 
+  required: boolean = false, 
+  defaultValue: string = ''
+): string {
   // Try Deno.env in edge function context (highest priority)
   try {
     if (typeof globalThis !== 'undefined' && 
@@ -18,9 +24,10 @@ export function ENV(key: string, defaultValue?: string): string {
         typeof (globalThis as any).Deno?.env?.get === 'function') {
       const value = (globalThis as any).Deno.env.get(key);
       if (value !== undefined) return value;
+      if (required) throw new Error(`Required environment variable ${key} is not set in Deno context`);
     }
   } catch (e) {
-    // Ignore errors when Deno is not available
+    if (required) throw new Error(`Failed to access required environment variable ${key}: ${e}`);
     console.debug(`Deno env not available for key ${key}`);
   }
   
@@ -29,8 +36,10 @@ export function ENV(key: string, defaultValue?: string): string {
     if (typeof process !== 'undefined' && process.env) {
       const value = process.env[key];
       if (value !== undefined && value !== null) return value;
+      if (required) throw new Error(`Required environment variable ${key} is not set in Node.js context`);
     }
   } catch (e) {
+    if (required) throw new Error(`Failed to access required environment variable ${key}: ${e}`);
     console.debug(`process.env not available for key ${key}`);
   }
   
@@ -41,13 +50,18 @@ export function ENV(key: string, defaultValue?: string): string {
       // @ts-ignore
       const value = import.meta.env[key];
       if (value !== undefined && value !== null) return value;
+      if (required) throw new Error(`Required environment variable ${key} is not set in Vite context`);
     }
   } catch (e) {
-    // Ignore errors when import.meta is not available
+    if (required) throw new Error(`Failed to access required environment variable ${key}: ${e}`);
     console.debug(`import.meta.env not available for key ${key}`);
   }
   
-  return defaultValue || '';
+  if (required) {
+    throw new Error(`Required environment variable ${key} is not available in any context`);
+  }
+  
+  return defaultValue;
 }
 
 // Alias getEnv for backward compatibility
@@ -61,8 +75,12 @@ export const getEnvVar = ENV;
  * @returns The value of the environment variable or the default value
  */
 export function getEnvWithDefault(key: string, defaultValue: string): string {
-  const value = ENV(key);
-  return value !== '' ? value : defaultValue;
+  try {
+    const value = ENV(key, false, '');
+    return value !== '' ? value : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
 }
 
 /**
@@ -87,13 +105,21 @@ export function getBaseUrl(): string {
  * @param required Whether this variable is critical (will log warning if missing)
  */
 export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
-  const value = ENV(key, defaultValue);
-  
-  if (required && (value === defaultValue || value === "")) {
-    console.warn(`⚠️ Critical environment variable ${key} is missing!`);
+  try {
+    const value = ENV(key, required, defaultValue);
+    
+    if (required && (value === defaultValue || value === "")) {
+      console.warn(`⚠️ Critical environment variable ${key} is missing!`);
+    }
+    
+    return value;
+  } catch (e) {
+    console.error(`Failed to get environment variable ${key}:`, e);
+    if (required) {
+      throw e;
+    }
+    return defaultValue;
   }
-  
-  return value;
 }
 
 // CORS headers for edge functions

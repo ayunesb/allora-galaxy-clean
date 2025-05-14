@@ -15,6 +15,7 @@ export {
   type SuccessResponseData
 } from './errorHandler';
 
+// Re-export environment utilities
 export {
   ENV,
   getEnv,
@@ -34,4 +35,7 @@ export {
 } from '../env/safeEdgeEnv';
 
 // Export safe environment getter for edge functions
-export { getDenoEnv } from '../strategy/utils/environmentUtils';
+export { getEnv as getDenoEnv } from '../../supabase/lib/env';
+
+// Export retry logic utilities for edge functions
+export { executeWithRetry } from './errorHandler';

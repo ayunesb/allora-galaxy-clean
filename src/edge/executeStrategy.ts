@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ExecuteStrategyInputSnakeCase, ExecuteStrategyResult } from '@/types/fixed';
+import { ExecuteStrategyInput } from '@/types/functions';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { toast } from '@/components/ui/use-toast';
 
@@ -11,12 +11,28 @@ const RETRY_CONFIG = {
   BACKOFF_FACTOR: 2
 };
 
+// Type definition for a successful result
+interface ExecuteStrategyResult {
+  success: boolean;
+  status: 'pending' | 'completed' | 'failed';
+  executionTime: number;
+  executionId?: string;
+  error?: string;
+  details?: Record<string, any>;
+  xpEarned?: number;
+  pluginsExecuted?: number;
+  successfulPlugins?: number;
+  outputs?: Record<string, any>;
+  results?: any[];
+  logs?: any[];
+}
+
 /**
  * Validate the input for strategy execution
  * @param input The input to validate
  * @returns Object containing validation result and errors
  */
-function validateInput(input: ExecuteStrategyInputSnakeCase): { 
+function validateInput(input: ExecuteStrategyInput): { 
   isValid: boolean; 
   errors: string[] 
 } {
@@ -41,7 +57,7 @@ function validateInput(input: ExecuteStrategyInputSnakeCase): {
  * @param input The strategy execution parameters
  * @returns The result of the execution
  */
-export async function executeStrategy(input: ExecuteStrategyInputSnakeCase): Promise<ExecuteStrategyResult> {
+export async function executeStrategy(input: ExecuteStrategyInput): Promise<ExecuteStrategyResult> {
   // Validate input first
   const validation = validateInput(input);
   if (!validation.isValid) {
