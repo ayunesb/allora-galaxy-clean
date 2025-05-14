@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary, FallbackProps } from '@/components/errors/ErrorBoundaryBase';
 import { ErrorFallback } from './ErrorFallback';
 
 export type RetryableErrorBoundaryProps = {
@@ -23,7 +23,7 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
 }) => {
   return (
     <ErrorBoundary
-      fallbackRender={({ error, resetErrorBoundary }) => {
+      fallbackRender={({ error, resetErrorBoundary }: FallbackProps) => {
         if (fallback) {
           return <>{fallback}</>;
         }
@@ -31,15 +31,14 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
           <ErrorFallback 
             error={error} 
             resetErrorBoundary={resetErrorBoundary}
-            onError={(error) => {
-              if (onError) {
-                onError(error, { componentStack: '' });
-              }
-            }}
           />
         );
       }}
-      onError={onError}
+      onError={(error, info) => {
+        if (onError) {
+          onError(error, info);
+        }
+      }}
       onReset={onReset}
       resetKeys={resetKeys}
     >
@@ -47,5 +46,19 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
     </ErrorBoundary>
   );
 };
+
+/**
+ * Higher-order component to wrap a component with a retryable error boundary
+ */
+export function withRetryableErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>,
+  errorBoundaryProps: Omit<RetryableErrorBoundaryProps, 'children'> = {}
+): React.FC<P> {
+  return (props: P) => (
+    <RetryableErrorBoundary {...errorBoundaryProps}>
+      <Component {...props} />
+    </RetryableErrorBoundary>
+  );
+}
 
 export default RetryableErrorBoundary;

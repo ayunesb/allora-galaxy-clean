@@ -1,120 +1,138 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-/**
- * Merges Tailwind CSS classes
- */
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Format number with commas for thousands
+ * Utility to format a currency value
+ * @param value The value to format
+ * @param currency The currency code
+ * @returns Formatted currency string
  */
-export function formatNumber(num: number): string {
-  return new Intl.NumberFormat('en-US').format(num);
-}
-
-/**
- * Format currency amount with $ symbol and 2 decimal places
- */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(value: number, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+    currency,
+  }).format(value);
 }
 
 /**
- * Format percentage with % symbol
+ * Truncate a string to a specified length
+ * @param str String to truncate
+ * @param length Maximum length
+ * @param suffix Suffix to add to truncated string
+ * @returns Truncated string
  */
-export function formatPercentage(value: number, minimumFractionDigits = 2): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'percent',
-    minimumFractionDigits,
-    maximumFractionDigits: minimumFractionDigits,
-  }).format(value / 100);
+export function truncate(str: string, length: number, suffix = '...'): string {
+  if (str.length <= length) {
+    return str;
+  }
+  return str.slice(0, length) + suffix;
 }
 
 /**
- * Format trend percentage with + or - sign
+ * Simple retry utility
+ * @param fn Function to retry
+ * @param options Retry options
+ * @returns Result of the function
  */
-export function formatTrendPercentage(value: number | undefined | null): string {
-  if (value === undefined || value === null) return '0%';
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxAttempts?: number;
+    baseDelay?: number;
+    onRetry?: (error: Error, attempt: number) => void;
+  } = {}
+): Promise<T> {
+  const { maxAttempts = 3, baseDelay = 300, onRetry } = options;
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await fn();
+    } catch (error) {
+      attempt++;
+      if (attempt >= maxAttempts) {
+        throw error;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      
+      if (onRetry && error instanceof Error) {
+        onRetry(error, attempt);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
+/**
+ * Create a debounced version of a function
+ * @param fn Function to debounce
+ * @param delay Delay in ms
+ * @returns Debounced function
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
   
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${value.toFixed(1)}%`;
+  return function(...args: Parameters<T>) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
+/**
+ * Create a throttled version of a function
+ * @param fn Function to throttle
+ * @param limit Time limit in ms
+ * @returns Throttled function
+ */
+export function throttle<T extends (...args: any[]) => any>(
+  fn: T, 
+  limit: number
+): (...args: Parameters<T>) => void {
+  let lastCall = 0;
+  
+  return function(...args: Parameters<T>) {
+    const now = Date.now();
+    if (now - lastCall >= limit) {
+      lastCall = now;
+      fn(...args);
+    }
+  };
 }
 
 /**
  * Generate a unique ID
+ * @returns Unique ID string
  */
-export function generateId(prefix = 'id'): string {
-  return `${prefix}_${Math.random().toString(36).substring(2, 9)}`;
+export function uniqueId(prefix = ''): string {
+  return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
 }
 
 /**
- * Safely access an object property by path
+ * Deep copy an object
+ * @param obj Object to copy
+ * @returns Deep copied object
  */
-export function get(obj: any, path: string, defaultValue: any = undefined): any {
-  const travel = (regexp: RegExp) =>
-    String.prototype.split
-      .call(path, regexp)
-      .filter(Boolean)
-      .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj);
-
-  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
-  return result === undefined || result === obj ? defaultValue : result;
+export function deepCopy<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
 }
 
 /**
- * Safely access Deno environment in edge functions
+ * Remove undefined values from an object (useful for API requests)
+ * @param obj Object to clean
+ * @returns Cleaned object
  */
-export function safeGetDenoEnv(name: string): string | undefined {
-  try {
-    if (typeof globalThis !== 'undefined') {
-      const deno = globalThis as any;
-      if (deno.Deno && typeof deno.Deno.env?.get === 'function') {
-        return deno.Deno.env.get(name);
-      }
-    }
-  } catch (e) {
-    console.error(`Error accessing Deno env: ${e}`);
-  }
-  return undefined;
-}
-
-// Cookie consent utilities
-export function getCookieConsentStatus(): boolean {
-  const consentStatus = localStorage.getItem('cookie-consent');
-  return consentStatus === 'true';
-}
-
-export function setCookieConsentStatus(accepted: boolean, preferences: any = null): void {
-  localStorage.setItem('cookie-consent', accepted.toString());
-  
-  if (preferences) {
-    localStorage.setItem('cookie-preferences', JSON.stringify(preferences));
-  }
-}
-
-export function getCookiePreferences(): any {
-  const preferences = localStorage.getItem('cookie-preferences');
-  return preferences ? JSON.parse(preferences) : null;
-}
-
-/**
- * Calculate the percentage change between two values
- * @param current The current value
- * @param previous The previous value
- * @returns The percentage change (e.g., 10 for 10% increase)
- */
-export function calculatePercentChange(current: number, previous: number): number {
-  if (previous === 0) {
-    return current > 0 ? 100 : 0; // Avoid division by zero
-  }
-  
-  return parseFloat((((current - previous) / previous) * 100).toFixed(1));
+export function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  ) as Partial<T>;
 }

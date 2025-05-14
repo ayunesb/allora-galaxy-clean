@@ -1,146 +1,128 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { handleError } from './ErrorHandler';
-import { AlloraError } from './errorTypes';
-import { withRetry } from './retryUtils';
-import { notifyError } from '@/lib/notifications/toast';
+import { useRetry } from './retryUtils';
+
+interface FetchOptions {
+  onSuccess?: (data: any) => void;
+  onError?: (error: Error) => void;
+  dependencies?: any[];
+  skip?: boolean;
+  context?: Record<string, any>;
+  showNotification?: boolean;
+  logToSystem?: boolean;
+  tenantId?: string;
+  module?: string;
+  retry?: boolean;
+  maxRetries?: number;
+}
 
 /**
- * Enhanced hook for data fetching with error handling and retry logic
+ * Hook for fetching data with error handling and loading state
  */
-export function useDataFetching<T = any>(
+export function useDataFetching<T>(
   fetchFn: () => Promise<T>,
-  options: {
-    onError?: (error: AlloraError) => void;
-    onSuccess?: (data: T) => void;
-    initialData?: T;
-    dependencies?: any[];
-    immediate?: boolean;
-    retry?: boolean;
-    maxRetries?: number;
-    retryDelay?: number;
-    shouldRetry?: (error: Error) => boolean;
-    showErrorNotification?: boolean;
-    silent?: boolean;
-    preserveDataOnError?: boolean;
-  } = {}
+  options: FetchOptions = {}
 ) {
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [isFetched, setIsFetched] = useState<boolean>(false);
+  
   const {
-    onError,
     onSuccess,
-    initialData,
+    onError,
     dependencies = [],
-    immediate = true,
+    skip = false,
+    context = {},
+    showNotification = true,
+    logToSystem = true,
+    tenantId = 'system',
+    module = 'system',
     retry = false,
-    maxRetries = 3,
-    retryDelay = 1000,
-    shouldRetry = () => true,
-    showErrorNotification = true,
-    silent = false,
-    preserveDataOnError = false
+    maxRetries = 3
   } = options;
-
-  const [data, setData] = useState<T | undefined>(initialData);
-  const [error, setError] = useState<AlloraError | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(immediate);
-  const [retryCount, setRetryCount] = useState<number>(0);
+  
+  const retryHandler = useRetry(() => fetchFn(), {
+    maxAttempts: maxRetries,
+    showFeedback: retry,
+    feedbackMessage: "Fetching data failed, retrying..."
+  });
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      let fetchFunction = fetchFn;
-      
-      // Apply retry logic if requested
+      let result;
       if (retry) {
-        fetchFunction = () => withRetry(fetchFn, {
-          maxRetries,
-          delayMs: retryDelay,
-          shouldRetry: (error) => shouldRetry(error),
-          onRetry: () => {
-            setRetryCount(prev => prev + 1);
-          }
-        });
+        result = await retryHandler.execute();
+      } else {
+        result = await fetchFn();
       }
-
-      const result = await fetchFunction();
+      
       setData(result);
-      setIsLoading(false);
+      setIsFetched(true);
       
       if (onSuccess) {
         onSuccess(result);
       }
       
       return result;
-    } catch (err) {
-      const alloraError = await handleError(err, {
-        showNotification: showErrorNotification,
-        silent,
+    } catch (err: any) {
+      setError(err);
+      await handleError(err, {
+        context: {
+          ...context,
+          operation: 'data_fetch'
+        },
+        showNotification,
+        logToSystem,
+        tenantId,
+        module,
+        silent: !showNotification,
+        rethrow: false
       });
       
-      setError(alloraError);
+      if (onError && err instanceof Error) {
+        onError(err);
+      }
+      
+      return null;
+    } finally {
       setIsLoading(false);
-      
-      if (!preserveDataOnError) {
-        setData(initialData);
-      }
-      
-      if (onError) {
-        onError(alloraError);
-      }
-      
-      throw alloraError;
     }
-  }, [fetchFn, ...dependencies]);
-
+  }, [fetchFn, onSuccess, onError, retry, retryHandler, context, showNotification, logToSystem, tenantId, module]);
+  
   useEffect(() => {
-    if (immediate) {
-      fetchData().catch(err => {
-        if (!silent && showErrorNotification) {
-          notifyError("Data fetching failed", { 
-            description: err.message || "Failed to load data" 
-          });
-        }
-      });
+    if (!skip) {
+      fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [immediate, ...dependencies]);
-
+  }, [...dependencies, skip]);
+  
   return {
     data,
     isLoading,
     error,
     refetch: fetchData,
-    setData,
-    retryCount,
+    isFetched,
+    reset: () => {
+      setData(null);
+      setError(null);
+      setIsFetched(false);
+    }
   };
 }
 
 /**
- * Enhanced hook for stable data fetching that won't trigger multiple fetches
+ * Hook for fetching data with stable references (for use in effects)
  */
-export function useStableFetching<T = any>(
+export function useStableFetching<T>(
   fetchFn: () => Promise<T>,
-  options: {
-    onError?: (error: AlloraError) => void;
-    onSuccess?: (data: T) => void;
-    initialData?: T;
-    dependencies?: any[];
-    immediate?: boolean;
-    retry?: boolean;
-    maxRetries?: number;
-    retryDelay?: number;
-    shouldRetry?: (error: Error) => boolean;
-    showErrorNotification?: boolean;
-    silent?: boolean;
-  } = {}
+  options: FetchOptions = {}
 ) {
-  // Use a stable serialized version of the dependencies
-  const serializedDependencies = JSON.stringify(options.dependencies || []);
-  
-  return useDataFetching(fetchFn, {
-    ...options,
-    dependencies: [serializedDependencies],
-  });
+  // Store the function ref to avoid re-fetching on render
+  const [stableFn] = useState(() => fetchFn);
+  return useDataFetching(stableFn, options);
 }

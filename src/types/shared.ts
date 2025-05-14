@@ -1,111 +1,68 @@
 
+import { DateRange as ReactDateRange } from "@/components/ui/date-range-picker";
+
 /**
- * Shared type definitions for use across the application
+ * Represents a date range with from and to dates
  */
+export type DateRange = ReactDateRange;
 
-// User role types
-export type UserRole = 'owner' | 'admin' | 'member' | 'guest';
+/**
+ * Standard sort direction
+ */
+export type SortDirection = 'asc' | 'desc';
 
-// Navigation item type
-export interface NavigationItem {
-  title: string;
-  href: string;
-  icon?: string;
-  requiresAuth?: boolean;
-  requiresRole?: UserRole[];
-  children?: NavigationItem[];
+/**
+ * Valid system event modules
+ */
+export type SystemEventModule = 
+  | 'system'
+  | 'auth'
+  | 'admin'
+  | 'strategy'
+  | 'agent'
+  | 'evolution'
+  | 'plugin'
+  | 'integration'
+  | 'tenant'
+  | 'user'
+  | 'monitoring'
+  | 'analytics';
+
+/**
+ * Standard result type for database operations
+ */
+export interface DbResult<T> {
+  success: boolean;
+  data: T | null;
+  error?: string;
 }
 
-// KPI trend direction
-export type TrendDirection = 'up' | 'down' | 'neutral';
-
-// System event modules for logging
-export type SystemEventModule = 'user' | 'auth' | 'strategy' | 'plugin' | 'agent' | 'system' | 'billing' | 'tenant';
-
-// System event types for logging
-export type SystemEventType = 
-  | 'create' 
-  | 'update' 
-  | 'delete' 
-  | 'login' 
-  | 'logout' 
-  | 'execute'
-  | 'generate'
-  | 'vote'
-  | 'approve'
-  | 'reject'
-  | 'error'
-  | 'success'
-  | 'warning'
-  | 'info';
-
-// Onboarding step type
-export type OnboardingStep = 
-  | 'welcome' 
-  | 'company-info' 
-  | 'persona' 
-  | 'additional-info' 
-  | 'strategy-generation' 
-  | 'completed';
-
-// Base entity interface for common properties
-export interface BaseEntity {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
+/**
+ * Standard response type for API operations
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+  status?: number;
 }
 
-// Execution parameters interface
-export interface ExecutionParams {
-  strategy_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  tenant_id: string;
-  user_id?: string;
-  input?: Record<string, any>;
+/**
+ * Standard pagination parameters
+ */
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
 }
 
-// Execution type
-export type ExecutionType = 'strategy' | 'plugin' | 'agent';
-
-// KPI trend interface
-export interface KPITrend {
-  name: string;
-  value: number;
-  previousValue: number | null;
-  direction: TrendDirection;
-  percentageChange: number | null;
-}
-
-// Tenant feature flags
-export type TenantFeature = 
-  | 'strategy_creation'
-  | 'agent_voting'
-  | 'plugin_management'
-  | 'advanced_analytics'
-  | 'white_label';
-
-// Vote type for agent and plugin voting
-export type VoteType = 'upvote' | 'downvote';
-
-// Generic filter state interface
-export interface FilterState {
-  searchQuery?: string;
-  status?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  page?: number;
-  pageSize?: number;
-}
-
-// Generic filter props interface
-export interface FilterProps<T extends FilterState> {
-  filters: T;
-  onFilterChange: (filters: T) => void;
-}
-
-// Date range for filtering
-export interface DateRange {
-  from: Date;
-  to?: Date;
+/**
+ * Standard paginated result
+ */
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }

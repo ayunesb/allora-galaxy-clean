@@ -1,88 +1,56 @@
 
 import { useState, useCallback } from 'react';
-import { handleError } from './ErrorHandler';
-import { AlloraError } from './errorTypes';
+import { handleError, ErrorHandler } from './ErrorHandler';
+import type { AlloraError } from './errorTypes';
 
 /**
- * Hook for handling errors with better TypeScript support
+ * Hook to provide error handling capabilities to components
  */
-export function useErrorHandler<T = any>(options: {
-  showNotification?: boolean;
-  logToSystem?: boolean;
-  module?: string;
-  tenantId?: string;
-  silent?: boolean;
-  defaultError?: T | null;
-} = {}) {
-  const [error, setError] = useState<T | null>(options.defaultError || null);
+export function useErrorHandler(defaultContext: Record<string, any> = {}) {
+  const [lastError, setLastError] = useState<AlloraError | null>(null);
   const [isHandlingError, setIsHandlingError] = useState(false);
   
-  const handleErrorWithState = useCallback(async (
-    err: unknown, 
-    context: Record<string, any> = {}
-  ): Promise<AlloraError> => {
+  const handleException = useCallback(async (
+    error: unknown, 
+    options: Parameters<typeof ErrorHandler.handleError>[1] = {}
+  ) => {
     setIsHandlingError(true);
-    
     try {
-      // Use the central error handler
-      const alloraError = await handleError(err, {
-        ...options,
-        context,
+      const alloraError = await handleError(error, {
+        context: { ...defaultContext, ...options.context },
+        ...options
       });
-      
-      // Update the component error state
-      setError(err as T);
-      
+      setLastError(alloraError);
       return alloraError;
     } finally {
       setIsHandlingError(false);
     }
-  }, [options]);
-  
-  const clearError = useCallback(() => setError(null), []);
+  }, [defaultContext]);
   
   return {
-    error,
-    setError,
-    clearError,
+    handleError: handleException,
+    lastError,
     isHandlingError,
-    handleError: handleErrorWithState
+    clearError: () => setLastError(null)
   };
 }
 
 /**
- * HOC to wrap an async function with error handling
+ * Higher-order function to add error handling to any function
+ * @param fn Function to wrap with error handling
+ * @param options Error handling options
+ * @returns Wrapped function with error handling
  */
 export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  options: {
-    showNotification?: boolean;
-    logToSystem?: boolean;
-    module?: string;
-    tenantId?: string;
-    silent?: boolean;
-    context?: Record<string, any>;
-    onError?: (error: AlloraError) => void;
-  } = {}
-): (...args: Parameters<T>) => Promise<ReturnType<T>> {
-  return async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+  options: Parameters<typeof ErrorHandler.handleError>[1] = {}
+): (...args: Parameters<T>) => Promise<ReturnType<T> | null> {
+  return async (...args: Parameters<T>): Promise<ReturnType<T> | null> => {
     try {
       return await fn(...args);
     } catch (error) {
-      const alloraError = await handleError(error, {
-        ...options,
-        context: {
-          ...options.context,
-          functionName: fn.name,
-          functionArgs: args
-        }
-      });
-      
-      if (options.onError) {
-        options.onError(alloraError);
-      }
-      
-      throw alloraError;
+      await handleError(error, options);
+      return null;
     }
   };
 }

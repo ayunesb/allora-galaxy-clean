@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { FormErrorSummary } from '@/components/errors/FormErrorSummary';
 import { toast } from "sonner";
 import { AlertCircle, FileSearch, Inbox } from 'lucide-react';
-import { retry } from '@/lib/errors/retryUtils';
+import { retry } from '@/lib/utils';
 import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorHandler';
 
 // Define test errors
@@ -103,9 +103,22 @@ const ErrorStateExamples: React.FC = () => {
   const [activeError, setActiveError] = useState<any>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, formState } = useForm<FormData>({
     resolver: zodResolver(formSchema)
   });
+  
+  const { errors } = formState;
+  
+  // Convert React Hook Form errors to the format expected by FormErrorSummary
+  const formattedErrors: Record<string, string | string[]> = {};
+  
+  if (errors) {
+    Object.entries(errors).forEach(([field, error]) => {
+      if (error && error.message) {
+        formattedErrors[field] = error.message;
+      }
+    });
+  }
   
   const onSubmit = (data: FormData) => {
     toast.success('Form submitted successfully', {
@@ -158,7 +171,7 @@ const ErrorStateExamples: React.FC = () => {
               message="Could not connect to the server."
               error={new Error("ECONNREFUSED: Connection refused")}
               showDetails={true}
-              variant="outline"
+              variant="default"
               size="sm"
             />
             
@@ -273,8 +286,8 @@ const ErrorStateExamples: React.FC = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {Object.keys(errors).length > 0 && (
-                <FormErrorSummary errors={errors} />
+              {Object.keys(formattedErrors).length > 0 && (
+                <FormErrorSummary errors={formattedErrors} />
               )}
               
               <div className="space-y-2">
