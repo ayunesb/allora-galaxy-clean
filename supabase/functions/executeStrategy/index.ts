@@ -4,21 +4,18 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
 // Import shared utilities
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-};
-
-// Safely get environment variables with fallbacks
-function safeGetDenoEnv(key: string, defaultValue: string = ""): string {
-  try {
-    return Deno.env.get(key) ?? defaultValue;
-  } catch (err) {
-    console.warn(`Error accessing env variable ${key}:`, err);
-    return defaultValue;
-  }
-}
+import { 
+  corsHeaders, 
+  createSuccessResponse, 
+  createErrorResponse,
+  getEnv,
+  parseJsonBody,
+  handleCorsRequest,
+  withRetry,
+  validateRequiredFields,
+  logSystemEvent,
+  generateRequestId
+} from "../_shared/edgeUtils.ts";
 
 // Input validation interface
 interface ExecuteStrategyInput {
@@ -26,125 +23,133 @@ interface ExecuteStrategyInput {
   tenant_id: string;
   user_id?: string;
   options?: Record<string, any>;
+  execution_mode?: 'sync' | 'async';
 }
 
-// Generate a unique request ID
-function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-}
-
-// Main handler function for the edge function
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsRequest(req);
+  if (corsResponse) return corsResponse;
   
   const requestStart = performance.now();
   const requestId = generateRequestId();
   
+  console.log(`[${requestId}] executeStrategy request received`);
+  
   try {
-    // Parse request body
+    // Parse and validate request body
     let input: ExecuteStrategyInput;
     try {
-      input = await req.json();
+      input = await parseJsonBody<ExecuteStrategyInput>(req);
     } catch (parseError) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Invalid JSON in request body", 
-        details: String(parseError) 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return createErrorResponse(
+        "Invalid JSON in request body",
+        String(parseError),
+        400
+      );
     }
     
-    // Validate input
-    if (!input.strategy_id) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Strategy ID is required" 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-    
-    if (!input.tenant_id) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Tenant ID is required" 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+    // Validate required fields
+    const missingFields = validateRequiredFields(input, ['strategy_id', 'tenant_id']);
+    if (missingFields.length > 0) {
+      return createErrorResponse(
+        `Missing required fields: ${missingFields.join(', ')}`,
+        { fields: missingFields },
+        400
+      );
     }
     
     // Get Supabase credentials
-    const SUPABASE_URL = safeGetDenoEnv("SUPABASE_URL");
-    const SUPABASE_SERVICE_KEY = safeGetDenoEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const SUPABASE_URL = getEnv("SUPABASE_URL");
+    const SUPABASE_SERVICE_KEY = getEnv("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Required environment variables are not configured",
-        details: "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set"
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return createErrorResponse(
+        "Required environment variables are not configured",
+        "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set",
+        500
+      );
     }
     
     // Create Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const executionId = crypto.randomUUID();
     
+    // Additional logging for debugging
+    console.log(`[${requestId}] Executing strategy ${input.strategy_id} for tenant ${input.tenant_id}`);
+    console.log(`[${requestId}] Execution ID: ${executionId}`);
+    
     try {
-      // Verify the strategy exists and belongs to the tenant
-      const { data: strategy, error: strategyError } = await supabase
-        .from('strategies')
-        .select('id, title, status')
-        .eq('id', input.strategy_id)
-        .eq('tenant_id', input.tenant_id)
-        .single();
+      // Verify the strategy exists and belongs to the tenant with retry logic
+      const { data: strategy, error: strategyError } = await withRetry(
+        () => supabase
+          .from('strategies')
+          .select('id, title, status')
+          .eq('id', input.strategy_id)
+          .eq('tenant_id', input.tenant_id)
+          .single(),
+        { 
+          retries: 2, 
+          delay: 300, 
+          onRetry: (attempt) => console.log(`[${requestId}] Retrying strategy fetch, attempt ${attempt}`) 
+        }
+      );
       
       if (strategyError || !strategy) {
-        throw new Error(`Strategy not found or access denied: ${strategyError?.message || 'Unknown error'}`);
+        const errorMsg = strategyError 
+          ? `Strategy not found or access denied: ${strategyError.message}`
+          : "Strategy not found for the specified tenant";
+        
+        return createErrorResponse(errorMsg, undefined, 404);
       }
       
       if (strategy.status !== 'approved' && strategy.status !== 'pending') {
-        throw new Error(`Strategy cannot be executed with status: ${strategy.status}`);
+        return createErrorResponse(
+          `Strategy cannot be executed with status: ${strategy.status}`,
+          {
+            strategy_id: input.strategy_id,
+            current_status: strategy.status,
+            allowed_statuses: ['approved', 'pending']
+          },
+          400
+        );
       }
       
-      // Record the execution start
+      // Record the execution start with retry logic
       try {
-        const { error: execError } = await supabase
-          .from('executions')
-          .insert({
-            id: executionId,
-            tenant_id: input.tenant_id,
-            strategy_id: input.strategy_id,
-            executed_by: input.user_id,
-            type: 'strategy',
-            status: 'pending',
-            input: input.options || {},
-            created_at: new Date().toISOString()
-          });
+        const { error: execError } = await withRetry(
+          () => supabase
+            .from('executions')
+            .insert({
+              id: executionId,
+              tenant_id: input.tenant_id,
+              strategy_id: input.strategy_id,
+              executed_by: input.user_id,
+              type: 'strategy',
+              status: 'pending',
+              input: input.options || {},
+              created_at: new Date().toISOString()
+            }),
+          { retries: 2, delay: 300 }
+        );
         
         if (execError) {
-          console.warn(`Failed to record execution: ${execError.message}`);
+          console.warn(`[${requestId}] Failed to record execution: ${execError.message}`);
         }
       } catch (recordError) {
-        console.warn("Error recording execution start, continuing anyway:", recordError);
+        console.warn(`[${requestId}] Error recording execution start, continuing anyway:`, recordError);
       }
       
-      // Fetch plugins associated with this strategy
-      const { data: plugins, error: pluginsError } = await supabase
-        .from('plugins')
-        .select('*')
-        .eq('status', 'active')
-        .eq('tenant_id', input.tenant_id)
-        .limit(5);
+      // Fetch plugins associated with this strategy with retry logic
+      const { data: plugins, error: pluginsError } = await withRetry(
+        () => supabase
+          .from('plugins')
+          .select('*')
+          .eq('status', 'active')
+          .eq('tenant_id', input.tenant_id)
+          .limit(5),
+        { retries: 2, delay: 300 }
+      );
         
       if (pluginsError) {
         throw new Error(`Failed to fetch plugins: ${pluginsError.message}`);
@@ -154,27 +159,29 @@ serve(async (req) => {
       let xpEarned = 0;
       let successfulPlugins = 0;
       
-      // Execute each plugin
+      // Execute each plugin with individual error handling
       for (const plugin of (plugins || [])) {
         try {
-          // In a real implementation, we would execute the plugin's logic
-          console.log(`Executing plugin ${plugin.id} for strategy ${input.strategy_id}`);
+          console.log(`[${requestId}] Executing plugin ${plugin.id} for strategy ${input.strategy_id}`);
           
-          // Record plugin execution
-          const { data: logData, error: logError } = await supabase
-            .from('plugin_logs')
-            .insert({
-              plugin_id: plugin.id,
-              strategy_id: input.strategy_id,
-              tenant_id: input.tenant_id,
-              status: 'success',
-              input: input.options || {},
-              output: { message: "Plugin executed successfully" },
-              execution_time: 0.5,
-              xp_earned: 10
-            })
-            .select()
-            .single();
+          // Record plugin execution with retry
+          const { data: logData, error: logError } = await withRetry(
+            () => supabase
+              .from('plugin_logs')
+              .insert({
+                plugin_id: plugin.id,
+                strategy_id: input.strategy_id,
+                tenant_id: input.tenant_id,
+                status: 'success',
+                input: input.options || {},
+                output: { message: "Plugin executed successfully" },
+                execution_time: 0.5,
+                xp_earned: 10
+              })
+              .select()
+              .single(),
+            { retries: 2, delay: 300 }
+          );
           
           if (logError) {
             throw new Error(`Failed to record plugin execution: ${logError.message}`);
@@ -190,24 +197,28 @@ serve(async (req) => {
           xpEarned += 10;
           successfulPlugins++;
           
-        } catch (pluginError: any) {
-          console.error(`Error executing plugin ${plugin.id}:`, pluginError);
+        } catch (pluginError) {
+          console.error(`[${requestId}] Error executing plugin ${plugin.id}:`, pluginError);
           
+          // Record failed plugin execution with retry
           try {
-            await supabase
-              .from('plugin_logs')
-              .insert({
-                plugin_id: plugin.id,
-                strategy_id: input.strategy_id,
-                tenant_id: input.tenant_id,
-                status: 'failure',
-                input: input.options || {},
-                error: pluginError.message,
-                execution_time: 0.3,
-                xp_earned: 0
-              });
+            await withRetry(
+              () => supabase
+                .from('plugin_logs')
+                .insert({
+                  plugin_id: plugin.id,
+                  strategy_id: input.strategy_id,
+                  tenant_id: input.tenant_id,
+                  status: 'failure',
+                  input: input.options || {},
+                  error: pluginError.message,
+                  execution_time: 0.3,
+                  xp_earned: 0
+                }),
+              { retries: 2, delay: 300 }
+            );
           } catch (logError) {
-            console.error("Error recording plugin failure:", logError);
+            console.error(`[${requestId}] Error recording plugin failure:`, logError);
           }
           
           pluginResults.push({
@@ -224,45 +235,50 @@ serve(async (req) => {
       const status = successfulPlugins === pluginCount ? 'success' : 
                     (successfulPlugins > 0 ? 'partial' : 'failure');
       
-      // Update the execution record
+      // Update the execution record with retry
       try {
-        await supabase
-          .from('executions')
-          .update({
-            status,
-            output: { plugins: pluginResults },
-            execution_time: executionTime,
-            xp_earned: xpEarned
-          })
-          .eq('id', executionId);
+        await withRetry(
+          () => supabase
+            .from('executions')
+            .update({
+              status,
+              output: { plugins: pluginResults },
+              execution_time: executionTime,
+              xp_earned: xpEarned
+            })
+            .eq('id', executionId),
+          { retries: 2, delay: 300 }
+        );
       } catch (updateError) {
-        console.error("Error updating execution record:", updateError);
+        console.error(`[${requestId}] Error updating execution record:`, updateError);
       }
       
-      // Log system event
+      // Log system event with retry
       try {
-        await supabase
-          .from('system_logs')
-          .insert({
-            tenant_id: input.tenant_id,
-            module: 'strategy',
-            event: 'strategy_executed',
-            context: {
+        await withRetry(
+          () => logSystemEvent(
+            supabase,
+            'strategy',
+            'strategy_executed',
+            {
               strategy_id: input.strategy_id,
               execution_id: executionId,
               status,
               plugins_executed: pluginCount,
               successful_plugins: successfulPlugins,
-              xp_earned: xpEarned
-            }
-          });
+              xp_earned: xpEarned,
+              request_id: requestId
+            },
+            input.tenant_id
+          ),
+          { retries: 2, delay: 300 }
+        );
       } catch (logError) {
-        console.error("Error logging system event:", logError);
+        console.error(`[${requestId}] Error logging system event:`, logError);
       }
       
       // Return success response
-      return new Response(JSON.stringify({
-        success: true,
+      return createSuccessResponse({
         execution_id: executionId,
         strategy_id: input.strategy_id,
         status,
@@ -271,72 +287,72 @@ serve(async (req) => {
         execution_time: executionTime,
         xp_earned: xpEarned,
         request_id: requestId
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      }, "Strategy executed successfully");
       
-    } catch (error: any) {
-      console.error("Error executing strategy:", error);
+    } catch (error) {
+      console.error(`[${requestId}] Error executing strategy:`, error);
       
-      // Update execution record with error
+      // Update execution record with error and retry
       try {
-        await supabase
-          .from('executions')
-          .update({
-            status: 'failure',
-            error: error.message,
-            execution_time: (performance.now() - requestStart) / 1000
-          })
-          .eq('id', executionId);
+        await withRetry(
+          () => supabase
+            .from('executions')
+            .update({
+              status: 'failure',
+              error: error.message || String(error),
+              execution_time: (performance.now() - requestStart) / 1000
+            })
+            .eq('id', executionId),
+          { retries: 2, delay: 300 }
+        );
       } catch (updateError) {
-        console.error("Error updating execution with error status:", updateError);
+        console.error(`[${requestId}] Error updating execution with error status:`, updateError);
       }
       
-      // Log system event for error
+      // Log system event for error with retry
       try {
-        await supabase
-          .from('system_logs')
-          .insert({
-            tenant_id: input.tenant_id,
-            module: 'strategy',
-            event: 'strategy_execution_failed',
-            context: {
+        await withRetry(
+          () => logSystemEvent(
+            supabase,
+            'strategy',
+            'strategy_execution_failed',
+            {
               strategy_id: input.strategy_id,
               execution_id: executionId,
-              error: error.message
-            }
-          });
+              error: error.message || String(error),
+              request_id: requestId
+            },
+            input.tenant_id
+          ),
+          { retries: 2, delay: 300 }
+        );
       } catch (logError) {
-        console.error("Error logging system error event:", logError);
+        console.error(`[${requestId}] Error logging system error event:`, logError);
       }
       
       // Return error response
-      return new Response(JSON.stringify({ 
-        success: false,
-        execution_id: executionId,
-        strategy_id: input.strategy_id,
-        error: error.message,
-        execution_time: (performance.now() - requestStart) / 1000,
-        request_id: requestId
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return createErrorResponse(
+        error.message || "Failed to execute strategy",
+        {
+          execution_id: executionId,
+          strategy_id: input.strategy_id,
+          execution_time: (performance.now() - requestStart) / 1000
+        },
+        500
+      );
     }
     
-  } catch (error: any) {
-    console.error("Unexpected error:", error);
+  } catch (error) {
+    console.error(`[${requestId}] Unexpected error:`, error);
     
     // Return error response for unexpected errors
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: "Failed to execute strategy", 
-      details: String(error),
-      execution_time: (performance.now() - requestStart) / 1000,
-      request_id: requestId
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+    return createErrorResponse(
+      "Failed to execute strategy", 
+      {
+        details: error.message || String(error),
+        execution_time: (performance.now() - requestStart) / 1000
+      },
+      500
+    );
   }
 });

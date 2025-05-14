@@ -1,4 +1,3 @@
-
 /**
  * Error handling utilities for edge functions
  */
@@ -114,6 +113,256 @@ export function handleCorsPreflightRequest(req: Request): Response | null {
     });
   }
   return null;
+}
+
+/**
+ * Universal error handler with additional context
+ * Enhanced with more detailed logging and standardized error formats
+ */
+export function enhancedErrorHandler(
+  error: any,
+  requestId?: string,
+  context: Record<string, any> = {}
+): Response {
+  const status = determineErrorStatus(error);
+  const errorCode = extractErrorCode(error);
+  const requestIdToUse = requestId || generateRequestId();
+  
+  // Log the error with context for better debugging
+  console.error(`[${requestIdToUse}] Error:`, {
+    message: error.message || String(error),
+    status,
+    code: errorCode,
+    context,
+    stack: error.stack
+  });
+  
+  const responseBody: ErrorResponseData = {
+    error: error.message || String(error),
+    status,
+    request_id: requestIdToUse,
+    timestamp: new Date().toISOString(),
+  };
+  
+  if (errorCode) {
+    responseBody.code = errorCode;
+  }
+  
+  if (error.details || context) {
+    responseBody.details = {
+      ...error.details,
+      ...context
+    };
+  }
+  
+  return new Response(JSON.stringify(responseBody), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+/**
+ * Determine appropriate HTTP status code based on error type
+ */
+function determineErrorStatus(error: any): number {
+  // Use explicit status if provided
+  if (error.status && typeof error.status === 'number') {
+    return error.status;
+  }
+  
+  // Determine status from error code or message
+  const errorMessage = (error.message || '').toLowerCase();
+  const errorCode = (error.code || '').toLowerCase();
+  
+  // Auth errors
+  if (
+    errorCode.includes('auth/') ||
+    errorMessage.includes('unauthorized') ||
+    errorMessage.includes('unauthenticated') ||
+    errorCode.includes('unauthorized')
+  ) {
+    return 401;
+  }
+  
+  // Permission errors
+  if (
+    errorCode.includes('permission') ||
+    errorMessage.includes('permission') ||
+    errorMessage.includes('forbidden') ||
+    errorCode.includes('forbidden')
+  ) {
+    return 403;
+  }
+  
+  // Not found errors
+  if (
+    errorCode.includes('not_found') ||
+    errorMessage.includes('not found') ||
+    errorCode === '404'
+  ) {
+    return 404;
+  }
+  
+  // Validation errors
+  if (
+    errorCode.includes('validation') ||
+    errorMessage.includes('invalid') ||
+    errorMessage.includes('validation')
+  ) {
+    return 400;
+  }
+  
+  // Conflict errors
+  if (
+    errorCode.includes('conflict') ||
+    errorMessage.includes('already exists') ||
+    errorMessage.includes('duplicate')
+  ) {
+    return 409;
+  }
+  
+  // Rate limiting
+  if (
+    errorCode.includes('rate_limit') ||
+    errorMessage.includes('rate limit') ||
+    errorMessage.includes('too many requests')
+  ) {
+    return 429;
+  }
+  
+  // Default to server error
+  return 500;
+}
+
+/**
+ * Extract standardized error code from various error formats
+ */
+function extractErrorCode(error: any): string | undefined {
+  if (error.code) {
+    return error.code;
+  }
+  
+  // Extract code from Supabase error format
+  if (error.name === 'PostgrestError' && error.code) {
+    return `db_${error.code}`;
+  }
+  
+  // Extract from message pattern like "[CODE_123] Message"
+  const codeMatch = /\[([\w_]+)\]/.exec(error.message || '');
+  if (codeMatch) {
+    return codeMatch[1];
+  }
+  
+  return undefined;
+}
+
+/**
+ * Parse JSON request body with validation and error handling
+ */
+export async function parseAndValidateBody<T>(
+  req: Request,
+  requiredFields: string[] = []
+): Promise<[T | null, ErrorResponseData | null]> {
+  try {
+    const body = await req.json() as T;
+    
+    // Validate required fields if specified
+    if (requiredFields.length > 0) {
+      const missingFields = requiredFields.filter(field => {
+        const value = (body as any)[field];
+        return value === undefined || value === null || value === '';
+      });
+      
+      if (missingFields.length > 0) {
+        return [
+          null,
+          {
+            error: 'Missing required fields',
+            message: `The following fields are required: ${missingFields.join(', ')}`,
+            status: 400,
+            request_id: generateRequestId(),
+            timestamp: new Date().toISOString(),
+            details: { missingFields }
+          }
+        ];
+      }
+    }
+    
+    return [body, null];
+  } catch (error) {
+    return [
+      null,
+      {
+        error: 'Invalid request body',
+        message: error instanceof Error ? error.message : 'Could not parse JSON',
+        status: 400,
+        request_id: generateRequestId(),
+        timestamp: new Date().toISOString()
+      }
+    ];
+  }
+}
+
+/**
+ * Wrapper for safe execution with retry logic
+ */
+export async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    initialDelay?: number;
+    useExponentialBackoff?: boolean;
+    shouldRetry?: (error: any, attempt: number) => boolean;
+    onRetry?: (attempt: number, error: any, nextDelay: number) => void;
+    context?: string;
+  } = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    initialDelay = 500,
+    useExponentialBackoff = true,
+    shouldRetry = () => true,
+    onRetry = () => {},
+    context = 'operation'
+  } = options;
+  
+  let attempt = 0;
+  let lastError: any;
+  
+  while (attempt <= maxRetries) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      attempt++;
+      
+      // If we've reached max retries or should not retry, throw the error
+      if (attempt > maxRetries || !shouldRetry(error, attempt)) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff if enabled
+      const delay = useExponentialBackoff
+        ? initialDelay * Math.pow(2, attempt - 1) + Math.random() * 500
+        : initialDelay;
+      
+      console.warn(
+        `Attempt ${attempt}/${maxRetries} failed for ${context}. ` +
+        `Retrying in ${Math.round(delay)}ms. Error: ${error.message || String(error)}`
+      );
+      
+      onRetry(attempt, error, delay);
+      
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  // This should never be reached but TypeScript requires it
+  throw lastError;
 }
 
 /**

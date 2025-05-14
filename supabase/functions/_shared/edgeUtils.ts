@@ -1,173 +1,41 @@
 
 /**
- * Shared utilities for Edge Functions
+ * Shared utilities for edge functions
  */
 
-// CORS headers for all edge functions
+// CORS headers for edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+  'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
 };
 
-/**
- * Safely get environment variables with fallback value
- * @param name Name of the environment variable
- * @param fallback Default value if not found
- * @returns The environment variable value or fallback
- */
-export function getEnv(name: string, fallback: string = ''): string {
+// Safely get environment variables
+export function getEnv(name: string, fallback: string = ""): string {
   try {
     return Deno.env.get(name) ?? fallback;
   } catch (err) {
-    console.warn(`Error accessing env variable ${name}:`, err);
+    console.error(`Error accessing env variable ${name}:`, err);
     return fallback;
   }
 }
 
-/**
- * Get an environment variable or throw if not found
- * @param name Name of the required environment variable
- * @returns The environment variable value
- * @throws Error if the environment variable is not set
- */
-export function getRequiredEnv(name: string): string {
-  const value = getEnv(name);
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
-/**
- * Standard error response format
- */
-export interface ErrorResponse {
-  success: false;
-  error: string;
-  details?: any;
-  status: number;
-  timestamp: string;
-  requestId?: string;
-}
-
-/**
- * Standard success response format
- */
-export interface SuccessResponse<T = any> {
-  success: true;
-  data: T;
-  timestamp: string;
-  requestId?: string;
-}
-
-/**
- * Create a standardized error response
- */
-export function createErrorResponse(
-  message: string,
-  details?: any,
-  status: number = 500,
-  requestId?: string
-): Response {
-  const response: ErrorResponse = {
-    success: false,
-    error: message,
-    status,
-    timestamp: new Date().toISOString(),
-  };
-  
-  if (details !== undefined) {
-    response.details = details;
-  }
-  
-  if (requestId) {
-    response.requestId = requestId;
-  }
-  
-  return new Response(JSON.stringify(response), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders
-    }
-  });
-}
-
-/**
- * Create a standardized success response
- */
-export function createSuccessResponse<T>(
-  data: T,
-  status: number = 200,
-  requestId?: string
-): Response {
-  const response: SuccessResponse<T> = {
-    success: true,
-    data,
-    timestamp: new Date().toISOString(),
-  };
-  
-  if (requestId) {
-    response.requestId = requestId;
-  }
-  
-  return new Response(JSON.stringify(response), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders
-    }
-  });
-}
-
-/**
- * Log a system event to the database
- */
-export async function logSystemEvent(
-  supabase: any,
-  module: string,
-  event: string,
-  context: Record<string, any> = {},
-  tenantId?: string
-): Promise<boolean> {
-  try {
-    // Create the log entry
-    const logEntry = {
-      module,
-      event,
-      context,
-      tenant_id: tenantId
-    };
-    
-    // Insert into system_logs table
-    const { error } = await supabase
-      .from('system_logs')
-      .insert(logEntry);
-    
-    if (error) {
-      console.error('Error logging system event:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (err) {
-    // Don't let logging failures break the application
-    console.error('Error in logSystemEvent:', err);
-    return false;
-  }
-}
-
-/**
- * Generate a unique request ID
- */
+// Generate a unique request ID
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 
-/**
- * Handle CORS preflight requests
- */
+// Parse JSON safely with error handling
+export async function parseJsonBody<T>(req: Request): Promise<T> {
+  try {
+    return await req.json() as T;
+  } catch (error) {
+    throw new Error(`Invalid JSON request: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Handle CORS preflight requests
 export function handleCorsRequest(req: Request): Response | null {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -175,13 +43,145 @@ export function handleCorsRequest(req: Request): Response | null {
   return null;
 }
 
-/**
- * Parse JSON request body with error handling
- */
-export async function parseJsonBody<T = any>(req: Request): Promise<T> {
-  try {
-    return await req.json();
-  } catch (error) {
-    throw new Error(`Invalid JSON in request body: ${error.message}`);
+// Create standardized response formats
+export function createSuccessResponse(data: any, message?: string, status: number = 200): Response {
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data,
+      message,
+      timestamp: new Date().toISOString(),
+      request_id: generateRequestId(),
+    }),
+    { 
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  );
+}
+
+export function createErrorResponse(
+  error: string | Error, 
+  details?: any, 
+  status: number = 500
+): Response {
+  const errorMessage = error instanceof Error ? error.message : error;
+
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: errorMessage,
+      details,
+      timestamp: new Date().toISOString(),
+      request_id: generateRequestId(),
+    }),
+    { 
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  );
+}
+
+// Helper to implement retry logic
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: {
+    retries?: number;
+    delay?: number;
+    backoff?: boolean;
+    retryIf?: (error: any) => boolean;
+    onRetry?: (attempt: number, error: any) => void;
+  } = {}
+): Promise<T> {
+  const { 
+    retries = 3, 
+    delay = 300, 
+    backoff = true, 
+    retryIf = () => true,
+    onRetry = () => {}
+  } = options;
+  
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < retries + 1; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt >= retries || !retryIf(error)) {
+        throw error;
+      }
+      
+      onRetry(attempt + 1, error);
+      
+      // Calculate delay with exponential backoff if enabled
+      const waitTime = backoff ? delay * Math.pow(2, attempt) : delay;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
   }
+  
+  throw lastError;
+}
+
+// Helper for validating inputs
+export function validateRequiredFields<T extends Record<string, any>>(
+  data: T,
+  requiredFields: string[]
+): string[] {
+  const missingFields = requiredFields.filter(field => {
+    const value = data[field];
+    return value === undefined || value === null || value === '';
+  });
+  
+  return missingFields;
+}
+
+// Log to system_logs table
+export async function logSystemEvent(
+  supabase: any,
+  module: string,
+  event: string,
+  context?: Record<string, any>,
+  tenantId?: string
+): Promise<void> {
+  try {
+    await supabase.from('system_logs').insert({
+      module,
+      event,
+      context,
+      tenant_id: tenantId,
+      created_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to log system event:', error);
+  }
+}
+
+// Safe wrapper for Supabase operations with retry
+export async function safeDbOperation<T>(
+  operation: () => Promise<{ data: T | null; error: any }>,
+  operationName: string
+): Promise<T> {
+  return withRetry(async () => {
+    const { data, error } = await operation();
+    
+    if (error) {
+      console.error(`Error in ${operationName}:`, error);
+      throw new Error(`${operationName} failed: ${error.message}`);
+    }
+    
+    return data as T;
+  }, {
+    retries: 2,
+    delay: 500,
+    retryIf: (error) => {
+      // Only retry on network errors or rate limit errors, not logical errors
+      const errorMsg = error?.message?.toLowerCase() || '';
+      return errorMsg.includes('network') || 
+             errorMsg.includes('timeout') || 
+             errorMsg.includes('rate limit') ||
+             errorMsg.includes('too many requests');
+    }
+  });
 }
