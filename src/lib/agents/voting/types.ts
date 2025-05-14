@@ -4,7 +4,7 @@ import { VoteType } from '@/types/shared';
 export interface VoteParams {
   agentVersionId: string;
   userId: string;
-  voteType: 'up' | 'down';
+  voteType: VoteType;
   comment?: string;
 }
 
@@ -34,7 +34,7 @@ export interface UserVoteResponse {
 export interface CommentData {
   id: string;
   content: string;
-  vote_type: 'up' | 'down';
+  vote_type: VoteType;
   created_at: string;
   user_id: string;
   user?: {

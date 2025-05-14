@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAgentVote } from './useAgentVote';
 import { VoteButton } from './VoteButton';
-import { VoteType } from '@/lib/agents/voting/types';
+import { VoteType } from '@/types/shared';
 import { CommentSection } from './CommentSection';
 
 interface AgentVotePanelProps {
@@ -28,17 +28,17 @@ export const AgentVotePanel = ({ agentVersionId }: AgentVotePanelProps) => {
           <VoteButton
             type="up"
             count={upvotes}
-            active={userVote === VoteType.UP}
+            active={userVote === 'up'}
             loading={isLoading}
-            onClick={() => castVote(VoteType.UP)}
+            onClick={() => castVote('up')}
             disabled={isLoading}
           />
           <VoteButton
             type="down"
             count={downvotes}
-            active={userVote === VoteType.DOWN}
+            active={userVote === 'down'}
             loading={isLoading}
-            onClick={() => castVote(VoteType.DOWN)}
+            onClick={() => castVote('down')}
             disabled={isLoading}
           />
         </div>
@@ -46,15 +46,16 @@ export const AgentVotePanel = ({ agentVersionId }: AgentVotePanelProps) => {
         <Separator className="my-4" />
         
         <CommentSection 
-          agentVersionId={agentVersionId} 
-          onSubmitComment={(comment) => {
+          voteType={userVote}
+          onSubmit={(comment: string) => {
             if (userVote) {
               castVote(userVote, comment);
             } else {
               // Default to upvote if no vote yet
-              castVote(VoteType.UP, comment);
+              castVote('up', comment);
             }
           }}
+          isSubmitting={isLoading}
         />
       </CardContent>
     </Card>

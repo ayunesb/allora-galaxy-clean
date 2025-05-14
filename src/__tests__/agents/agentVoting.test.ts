@@ -119,8 +119,8 @@ describe('Agent Voting Functions', () => {
       });
       
       // Replace the implementation temporarily
-      const originalVoteOnAgentVersion = voteOnAgentVersion;
-      vi.spyOn(await import('@/lib/agents/voting/voteOnAgentVersion'), 'voteOnAgentVersion').mockImplementation(voteOnAgentVersionMock);
+      const originalImplementation = await import('@/lib/agents/voting/voteOnAgentVersion');
+      vi.spyOn(originalImplementation, 'voteOnAgentVersion').mockImplementation(voteOnAgentVersionMock);
       
       // Call upvoteAgentVersion
       const result = await upvoteAgentVersion({
@@ -130,7 +130,7 @@ describe('Agent Voting Functions', () => {
       });
       
       // Restore the original implementation
-      vi.mocked(voteOnAgentVersion).mockRestore();
+      vi.mocked(originalImplementation.voteOnAgentVersion).mockRestore();
       
       // Expectations
       expect(voteOnAgentVersionMock).toHaveBeenCalledWith({

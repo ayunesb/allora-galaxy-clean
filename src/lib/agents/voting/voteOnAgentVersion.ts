@@ -1,10 +1,11 @@
 
 import { supabase } from '@/lib/supabase';
+import { VoteType } from '@/types/shared';
 
 interface VoteParams {
   agentVersionId: string;
   userId: string;
-  voteType: 'up' | 'down';
+  voteType: VoteType;
   comment?: string;
 }
 
@@ -122,7 +123,7 @@ export const downvoteAgentVersion = async ({
 export const getUserVote = async (
   agentVersionId: string,
   userId: string
-): Promise<'up' | 'down' | null> => {
+): Promise<VoteType | null> => {
   try {
     const { data, error } = await supabase
       .from('agent_votes')
@@ -133,7 +134,7 @@ export const getUserVote = async (
     
     if (error) throw error;
     
-    return data ? data.vote_type as 'up' | 'down' : null;
+    return data ? data.vote_type as VoteType : null;
   } catch (error) {
     console.error('Error getting user vote:', error);
     return null;
@@ -145,7 +146,7 @@ export const getUserVote = async (
  */
 export const castVote = async (
   agentVersionId: string,
-  voteType: 'up' | 'down',
+  voteType: VoteType,
   comment?: string
 ): Promise<VoteResult> => {
   try {

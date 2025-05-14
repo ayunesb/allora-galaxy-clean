@@ -44,7 +44,7 @@ export const useAgentVote = (agentVersionId: string) => {
         if (voteError) throw voteError;
         
         if (userVoteData) {
-          setUserVote(userVoteData.vote_type === 'up' ? VoteType.UP : VoteType.DOWN);
+          setUserVote(userVoteData.vote_type === 'up' ? 'up' : 'down');
         } else {
           setUserVote(null);
         }
@@ -78,7 +78,7 @@ export const useAgentVote = (agentVersionId: string) => {
       }
       
       // Use the castVote function from our voting utility
-      const result = await castVote(agentVersionId, voteType === VoteType.UP ? 'up' : 'down', comment);
+      const result = await castVote(agentVersionId, voteType, comment);
       
       if (result.success) {
         setUserVote(voteType);
@@ -86,7 +86,7 @@ export const useAgentVote = (agentVersionId: string) => {
         
         toast({
           title: 'Vote recorded',
-          description: `Your ${voteType === VoteType.UP ? 'upvote' : 'downvote'} was recorded successfully`,
+          description: `Your ${voteType === 'up' ? 'upvote' : 'downvote'} was recorded successfully`,
         });
         return true;
       } else {

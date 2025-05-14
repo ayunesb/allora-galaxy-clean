@@ -50,14 +50,16 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
       if (error) throw error;
       
-      setRecentComments(data.map(item => ({
-        id: item.id,
-        content: item.comment || '',
-        user_id: item.user_id,
-        created_at: item.created_at,
-        vote_type: item.vote_type === 'up' ? VoteType.UP : VoteType.DOWN,
-        user: item.profiles
-      })));
+      if (data) {
+        setRecentComments(data.map(item => ({
+          id: item.id,
+          content: item.comment || '',
+          user_id: item.user_id,
+          created_at: item.created_at,
+          vote_type: item.vote_type as VoteType,
+          user: item.profiles
+        })));
+      }
     } catch (error) {
       console.error('Error fetching comments:', error);
     } finally {
@@ -74,7 +76,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     <div className="space-y-4">
       <div className="space-y-2">
         <Textarea
-          placeholder={voteType === VoteType.UP ? "What did you like about this agent?" : "What could be improved?"}
+          placeholder={voteType === 'up' ? "What did you like about this agent?" : "What could be improved?"}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           className="min-h-[100px]"
@@ -83,7 +85,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         <Button 
           onClick={handleSubmit} 
           disabled={!comment.trim() || isSubmitting || !voteType}
-          variant={voteType === VoteType.UP ? "default" : "outline"}
+          variant={voteType === 'up' ? "default" : "outline"}
         >
           {isSubmitting ? "Submitting..." : "Submit Feedback"}
         </Button>
@@ -95,7 +97,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           {recentComments.map(comment => (
             <div key={comment.id} className="p-3 rounded-md bg-muted/50">
               <div className="flex items-center gap-2 mb-1">
-                <span className={`w-2 h-2 rounded-full ${comment.vote_type === VoteType.UP ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className={`w-2 h-2 rounded-full ${comment.vote_type === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
                 <span className="text-xs text-muted-foreground">
                   {comment.user?.first_name || 'Anonymous'} • {new Date(comment.created_at).toLocaleDateString()}
                 </span>
