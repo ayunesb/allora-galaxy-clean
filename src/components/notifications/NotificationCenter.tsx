@@ -18,9 +18,8 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { useNotificationCenter } from '@/hooks/useNotificationCenter';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface NotificationCenterProps {
   triggerClassName?: string;
@@ -38,7 +37,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     markAsRead, 
     markAllAsRead,
     deleteNotification
-  } = useNotificationCenter({
+  } = useNotifications({
     showToastOnNew: true
   });
   
@@ -150,7 +149,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map(notification => (
+              {notifications.map((notification: any) => (
                 <div 
                   key={notification.id} 
                   className={`

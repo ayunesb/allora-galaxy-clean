@@ -21,10 +21,26 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     isLoading, 
     refreshNotifications,
     unreadCount,
-    markAllAsRead, 
-    markAsRead, 
-    deleteNotification 
+    markAllAsRead: originalMarkAllAsRead, 
+    markAsRead: originalMarkAsRead, 
+    deleteNotification: originalDeleteNotification
   } = useNotifications();
+  
+  // Create wrapper functions that return void to match the expected type
+  const markAsRead = async (id: string): Promise<void> => {
+    await originalMarkAsRead(id);
+    return;
+  };
+  
+  const markAllAsRead = async (): Promise<void> => {
+    await originalMarkAllAsRead();
+    return;
+  };
+  
+  const deleteNotification = async (id: string): Promise<void> => {
+    await originalDeleteNotification(id);
+    return;
+  };
   
   // Convert notifications to the expected format
   const convertedNotifications = notifications.map(notification => convertToNotificationContent(notification));

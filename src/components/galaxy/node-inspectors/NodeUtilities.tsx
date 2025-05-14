@@ -49,3 +49,31 @@ export const getNodeSize = (node: GraphNode): number => {
       return 5;
   }
 };
+
+export const getStatusVariant = (status?: string): string => {
+  if (!status) return 'secondary';
+  
+  switch (status.toLowerCase()) {
+    case 'active':
+    case 'online':
+    case 'success':
+    case 'completed':
+      return 'success';
+    case 'pending':
+    case 'in_progress':
+    case 'running':
+      return 'secondary';
+    case 'warning':
+    case 'attention':
+      return 'warning';
+    case 'error':
+    case 'failed':
+    case 'offline':
+      return 'destructive';
+    case 'draft':
+    case 'idle':
+      return 'outline';
+    default:
+      return 'default';
+  }
+};

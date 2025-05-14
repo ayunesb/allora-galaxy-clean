@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, Mail, Trash2 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface Invite {
   id: string;

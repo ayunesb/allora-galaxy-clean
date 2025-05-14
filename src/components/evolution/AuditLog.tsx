@@ -49,13 +49,6 @@ const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
     }
   };
 
-  // Handle filter changes
-  const handleFilterChange = (newFilters: EvolutionFilter) => {
-    setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
-    fetchData(newFilters, 1);
-  };
-
   // Handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -101,7 +94,6 @@ const AuditLog: React.FC<AuditLogProps> = ({ onFetchData }) => {
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Filter component would go here - simplified for now */}
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
             Showing {logs.length} logs

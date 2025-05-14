@@ -15,6 +15,7 @@ import { Pagination } from '@/components/ui/pagination-unified';
 import { AlertCircle, Info, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ErrorState } from '@/components/ui/error-state';
+import { useState } from 'react';
 
 export interface SystemLog {
   id: string;

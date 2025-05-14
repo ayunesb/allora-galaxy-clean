@@ -21,8 +21,7 @@ export const NotificationCenterContent: React.FC<NotificationCenterContentProps>
   unreadCount,
   onMarkAsRead,
   onMarkAllAsRead,
-  onDeleteNotification,
-  onClose,
+  onDeleteNotification
 }) => {
   const [activeTab, setActiveTab] = useState('all');
 
@@ -31,19 +30,6 @@ export const NotificationCenterContent: React.FC<NotificationCenterContentProps>
   const alertsNotifications = notifications.filter(
     (n) => n.type === 'warning' || n.type === 'error'
   );
-
-  const getFilteredNotifications = () => {
-    switch (activeTab) {
-      case 'unread':
-        return unreadNotifications;
-      case 'system':
-        return systemNotifications;
-      case 'alerts':
-        return alertsNotifications;
-      default:
-        return notifications;
-    }
-  };
 
   return (
     <Card className="border shadow-md w-full z-50">

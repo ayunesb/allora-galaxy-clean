@@ -11,14 +11,25 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
   const { 
     notifications,
     markAsRead: originalMarkAsRead,
-    markAllAsRead,
-    deleteNotification,
+    markAllAsRead: originalMarkAllAsRead,
+    deleteNotification: originalDeleteNotification,
     unreadCount = 0
   } = useNotifications();
   
-  // Create a wrapper function that returns void to match the expected type
+  // Create wrapper functions that return void to match the expected type
   const markAsRead = async (id: string): Promise<void> => {
     await originalMarkAsRead(id);
+    return;
+  };
+  
+  const markAllAsRead = async (): Promise<void> => {
+    await originalMarkAllAsRead();
+    return;
+  };
+  
+  const deleteNotification = async (id: string): Promise<void> => {
+    await originalDeleteNotification(id);
+    return;
   };
   
   const notificationContents = notifications.map(notification => 
