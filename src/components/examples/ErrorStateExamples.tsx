@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,13 +67,15 @@ const ErrorStateExamples: React.FC = () => {
           
           {/* No Data Empty State */}
           <NoDataEmptyState
-            onRefresh={() => alert('Refresh clicked')}
-            customMessage="No data is currently available for display."
+            message="No data is currently available for display."
+            action={() => alert('Refresh clicked')}
+            actionText="Refresh"
           />
           
           {/* Filter Empty State */}
           <FilterEmptyState
             onClear={() => alert('Reset filters clicked')}
+            customMessage="No results match your current filters."
           />
         </div>
       </section>

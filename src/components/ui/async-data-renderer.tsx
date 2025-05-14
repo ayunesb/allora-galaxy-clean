@@ -1,140 +1,153 @@
 
 import React from 'react';
-import { LoadingIndicator } from './loading-indicator';
-import ErrorState from '@/components/errors/ErrorState';
+import { Button } from '@/components/ui/button';
 import { NoDataEmptyState } from '@/components/errors/EmptyStates';
-import RetryFeedback from '@/components/ui/retry-feedback';
-import { cn } from '@/lib/utils';
+import ErrorState from '@/components/ui/error-state';
 
-export interface AsyncDataRendererProps<T> {
-  data: T | null | undefined;
+interface AsyncDataRendererProps<T> {
   isLoading: boolean;
-  isError: boolean;
   error?: Error | null;
-  isEmpty?: (data: T) => boolean;
-  children: (data: T) => React.ReactNode;
+  data?: T | null;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
   emptyComponent?: React.ReactNode;
-  loadingText?: string;
-  errorTitle?: string;
-  errorMessage?: string;
   emptyMessage?: string;
-  showDetails?: boolean;
   onRetry?: () => void;
-  retryCount?: number;
-  maxRetries?: number;
-  isRetrying?: boolean;
+  renderData: (data: T) => React.ReactNode;
+  showEmptyState?: boolean;
   className?: string;
-  loadingSize?: 'sm' | 'md' | 'lg' | 'xl';
-  preserveHeight?: boolean;
 }
 
 /**
- * AsyncDataRenderer - A component to handle loading, error, and empty states consistently
+ * A component that handles the async data flow states (loading, error, empty, data)
  */
 export function AsyncDataRenderer<T>({
-  data,
   isLoading,
-  isError,
   error,
-  isEmpty = (data: T) => {
-    if (data === null || data === undefined) return true;
-    if (Array.isArray(data)) return data.length === 0;
-    if (typeof data === 'object') return Object.keys(data).length === 0;
-    return false;
-  },
-  children,
+  data,
   loadingComponent,
   errorComponent,
   emptyComponent,
-  loadingText = "Loading...",
-  errorTitle,
-  errorMessage,
   emptyMessage,
-  showDetails = false,
   onRetry,
-  retryCount = 0,
-  maxRetries = 3,
-  isRetrying = false,
+  renderData,
+  showEmptyState = true,
   className,
-  loadingSize = 'md',
-  preserveHeight = false,
-}: AsyncDataRendererProps<T>): React.ReactElement {
-  // Get container ref for preserving height
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = React.useState<number | null>(null);
-
-  // Update containerHeight when component mounts or data changes from loading to success
-  React.useEffect(() => {
-    if (preserveHeight && containerRef.current && !isLoading && data && !isError) {
-      setContainerHeight(containerRef.current.offsetHeight);
-    }
-  }, [preserveHeight, isLoading, data, isError]);
-
-  const containerStyle = preserveHeight && containerHeight 
-    ? { minHeight: `${containerHeight}px` } 
-    : {};
-
+}: AsyncDataRendererProps<T>) {
   // Handle loading state
   if (isLoading) {
+    if (loadingComponent) {
+      return <div className={className}>{loadingComponent}</div>;
+    }
     return (
-      <div className={cn("relative", className)} style={containerStyle}>
-        {loadingComponent || (
-          <LoadingIndicator text={loadingText} size={loadingSize} />
-        )}
+      <div className={`flex justify-center items-center p-4 ${className}`}>
+        <div className="flex flex-col items-center space-y-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
   // Handle error state
-  if (isError) {
+  if (error) {
+    if (errorComponent) {
+      return <div className={className}>{errorComponent}</div>;
+    }
     return (
-      <div className={cn("relative", className)} style={containerStyle}>
-        {errorComponent || (
-          <>
-            {(retryCount > 0 || isRetrying) && onRetry && (
-              <RetryFeedback
-                retryCount={retryCount}
-                maxRetries={maxRetries}
-                isRetrying={isRetrying}
-                onRetry={onRetry}
-                className="mb-4"
-              />
-            )}
-            <ErrorState
-              title={errorTitle || "Failed to load data"}
-              message={errorMessage || "We couldn't load the requested data."}
-              error={error || undefined}
-              retry={onRetry}
-              showDetails={showDetails}
-            />
-          </>
-        )}
-      </div>
+      <ErrorState
+        title="Error Loading Data"
+        message="There was a problem loading the data."
+        error={error}
+        retry={onRetry}
+        showDetails={true}
+      />
     );
   }
 
-  // Handle empty state
-  if (!data || isEmpty(data)) {
+  // Handle empty data state
+  if ((!data || (Array.isArray(data) && data.length === 0)) && showEmptyState) {
+    if (emptyComponent) {
+      return <div className={className}>{emptyComponent}</div>;
+    }
     return (
-      <div className={cn("relative", className)} style={containerStyle}>
-        {emptyComponent || (
-          <NoDataEmptyState 
-            onRefresh={onRetry} 
-            customMessage={emptyMessage} 
-          />
-        )}
-      </div>
+      <NoDataEmptyState
+        message={emptyMessage}
+        action={onRetry}
+        actionText={onRetry ? "Refresh" : undefined}
+      />
     );
   }
 
-  // Render children with data
+  // Render data
+  return <div className={className}>{data ? renderData(data) : null}</div>;
+}
+
+interface PartialDataRendererProps<T> {
+  isLoading: boolean;
+  error?: Error | null;
+  data?: T | null;
+  fallbackData?: T;
+  renderData: (data: T) => React.ReactNode;
+  renderError?: (error: Error, retry?: () => void) => React.ReactNode;
+  onRetry?: () => void;
+  className?: string;
+}
+
+/**
+ * A component that renders partial data even when errors occur
+ */
+export function PartialDataRenderer<T>({
+  isLoading,
+  error,
+  data,
+  fallbackData,
+  renderData,
+  renderError,
+  onRetry,
+  className,
+}: PartialDataRendererProps<T>) {
+  const dataToRender = data || fallbackData;
+
   return (
-    <div className={className} ref={containerRef} style={containerStyle}>
-      {children(data)}
+    <div className={className}>
+      {/* Data part - render even with errors */}
+      {dataToRender && renderData(dataToRender)}
+      
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-2">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="ml-2 text-sm text-muted-foreground">Refreshing...</span>
+        </div>
+      )}
+      
+      {/* Error message */}
+      {error && (
+        <div className="mt-4">
+          {renderError ? (
+            renderError(error, onRetry)
+          ) : (
+            <div className="bg-destructive/10 rounded p-3 text-sm">
+              <p className="font-medium text-destructive">Error</p>
+              <p className="text-destructive/80">{error.message}</p>
+              {onRetry && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onRetry}
+                  className="mt-2"
+                >
+                  Retry
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-export default AsyncDataRenderer;
+export const DataStateHandler = AsyncDataRenderer;
+export const PartialDataStateHandler = PartialDataRenderer;
