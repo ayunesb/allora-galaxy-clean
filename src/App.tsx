@@ -47,12 +47,12 @@ function App() {
             </Route>
             
             {/* Auth Routes */}
-            <Route path="auth/*" element={<AuthLayout children={undefined} />} />
+            <Route path="auth/*" element={<AuthLayout />} />
             
             {/* Onboarding Routes */}
             <Route path="onboarding/*" element={
               <RequireAuth>
-                <OnboardingLayout children={undefined} />
+                <OnboardingLayout />
               </RequireAuth>
             } />
             
@@ -63,7 +63,7 @@ function App() {
               </RequireAuth>
             }>
               <Route index element={<AdminDashboard />} />
-              <Route path="logs" element={<SystemLogs />} />
+              <Route path="system-logs" element={<SystemLogs />} />
               <Route path="error-monitoring" element={<ErrorMonitoring />} />
               <Route path="ai-decisions" element={<AiDecisions />} />
               <Route path="api-keys" element={<ApiKeysPage />} />

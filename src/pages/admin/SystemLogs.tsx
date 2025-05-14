@@ -6,49 +6,56 @@ import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import { useSystemLogsData } from '@/hooks/admin/useSystemLogsData';
-import { SystemLog } from '@/types/logs';
+import { SystemLog, LogFilters } from '@/types/logs';
+import AdminLayout from '@/components/layout/AdminLayout';
 
 const SystemLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
-  const { logs, isLoading, filters, setFilters, refetch } = useSystemLogsData();
+  const { logs, isLoading, filters, updateFilters, refetch } = useSystemLogsData();
   
   const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
     setDialogOpen(true);
   };
   
+  const handleFilterChange = (newFilters: LogFilters) => {
+    updateFilters(newFilters);
+  };
+  
   return (
-    <div className="container py-6">
-      <PageHeader
-        title="System Logs"
-        description="View and filter system events and activities"
-      />
-      
-      <SystemLogFilters 
-        filters={filters} 
-        onFilterChange={setFilters} 
-        isLoading={isLoading}
-        onRefresh={refetch}
-      />
-      
-      <Card className="mt-6">
-        <CardContent className="p-0 sm:p-6">
-          <SystemLogsList 
-            logs={logs} 
-            isLoading={isLoading} 
-            onViewLog={handleViewLog}
-          />
-        </CardContent>
-      </Card>
-      
-      <LogDetailDialog 
-        log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-      />
-    </div>
+    <AdminLayout>
+      <div className="space-y-6">
+        <PageHeader
+          title="System Logs"
+          description="View and filter system events and activities"
+        />
+        
+        <SystemLogFilters 
+          filters={filters} 
+          onFilterChange={handleFilterChange} 
+          isLoading={isLoading}
+          onRefresh={refetch}
+        />
+        
+        <Card>
+          <CardContent className="p-0 sm:p-0">
+            <SystemLogsList 
+              logs={logs} 
+              isLoading={isLoading} 
+              onViewLog={handleViewLog}
+            />
+          </CardContent>
+        </Card>
+        
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={dialogOpen} 
+          onOpenChange={setDialogOpen} 
+        />
+      </div>
+    </AdminLayout>
   );
 };
 

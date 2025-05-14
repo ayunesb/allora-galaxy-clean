@@ -15,6 +15,7 @@ interface AuditLogProps {
 
 const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -42,6 +43,7 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
   // Handle opening the log detail dialog
   const handleViewDetails = (log: SystemLog) => {
     setSelectedLog(log);
+    setDialogOpen(true);
   };
   
   if (isLoading) {
@@ -104,8 +106,8 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
       {selectedLog && (
         <LogDetailDialog
           log={selectedLog}
-          open={!!selectedLog}
-          onClose={() => setSelectedLog(null)}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
         />
       )}
     </>

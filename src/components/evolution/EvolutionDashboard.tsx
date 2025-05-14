@@ -6,17 +6,54 @@ import AgentEvolutionTab from './AgentEvolutionTab';
 import PluginEvolutionTab from './PluginEvolutionTab';
 import AuditLog from './AuditLog';
 import { useQuery } from '@tanstack/react-query';
+import { SystemLog } from '@/types/logs';
 
-// Import from the admin system logs utility instead
-import { fetchSystemLogs } from '@/lib/admin/systemLogs';
+// Import from the system lib
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
+
+// Generate some mock logs for the example
+const generateMockLogs = (count: number): SystemLog[] => {
+  const modules = ['system', 'auth', 'api', 'database', 'strategy'];
+  const levels = ['info', 'warning', 'error'] as const;
+  
+  return Array.from({ length: count }).map((_, i) => {
+    const now = new Date();
+    const randomDate = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+    const module = modules[Math.floor(Math.random() * modules.length)];
+    const level = levels[Math.floor(Math.random() * levels.length)];
+    
+    return {
+      id: `log-${i}`,
+      created_at: randomDate.toISOString(),
+      description: `Example ${level} log message for ${module}`,
+      level,
+      module,
+      event: `${module}.${level === 'error' ? 'exception' : level}`,
+      metadata: { source: 'mock' },
+      context: JSON.stringify({ page: 'evolution' })
+    };
+  });
+};
 
 const EvolutionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('strategies');
   
-  // Define proper query function
+  // Mock fetching logs with React Query
   const { data: logsData, isLoading } = useQuery({
-    queryKey: ['system-logs'],
-    queryFn: () => fetchSystemLogs()
+    queryKey: ['evolution-logs'],
+    queryFn: async () => {
+      // Log this action using the system logger
+      await logSystemEvent(
+        'evolution',
+        'info',
+        {
+          description: 'Fetched evolution logs',
+          log_count: 10
+        }
+      );
+      // Return mock data
+      return generateMockLogs(10);
+    }
   });
   
   const handleTabChange = (value: string) => {
