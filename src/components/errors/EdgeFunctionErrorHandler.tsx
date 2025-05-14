@@ -1,127 +1,119 @@
 
+// Make sure EdgeFunctionError is exported properly
 import React from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export interface EdgeFunctionErrorProps {
-  error: Error & {
-    statusCode?: number;
-    code?: string;
-    details?: any;
+  error: {
+    message: string;
     requestId?: string;
+    code?: string;
+    status?: number;
     timestamp?: string;
+    details?: any;
   };
-  retry?: () => void;
+  onRetry?: () => void;
   showDetails?: boolean;
+  className?: string;
   showRequestId?: boolean;
+  retry?: () => void;
 }
 
 /**
- * Specialized error component for edge function errors
+ * A specialized component for displaying edge function errors
  */
 export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
   error,
+  onRetry,
   retry,
   showDetails = false,
-  showRequestId = true,
+  showRequestId = false,
+  className
 }) => {
-  const requestId = error.requestId || 'unknown';
-  const statusCode = error.statusCode || 500;
-  const errorCode = error.code || 'UNKNOWN_ERROR';
-  
-  // Get appropriate error message based on status code
-  const getErrorTitle = () => {
-    switch (statusCode) {
-      case 400:
-        return 'Bad Request';
-      case 401:
-        return 'Unauthorized';
-      case 403:
-        return 'Forbidden';
-      case 404:
-        return 'Not Found';
-      case 429:
-        return 'Too Many Requests';
-      case 500:
-        return 'Server Error';
-      default:
-        return 'Request Error';
+  // Format the error message based on status code
+  const getErrorMessage = () => {
+    const status = error.status || 500;
+    
+    if (error.message) return error.message;
+    
+    switch (status) {
+      case 401: return 'Unauthorized. Please sign in to continue.';
+      case 403: return 'You don\'t have permission to access this resource.';
+      case 404: return 'The requested resource was not found.';
+      case 429: return 'Rate limit exceeded. Please try again later.';
+      case 500: return 'A server error occurred. Please try again later.';
+      default: return 'An unexpected error occurred.';
     }
   };
 
+  const handleRetry = onRetry || retry;
+
   return (
-    <div className="space-y-4">
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>{getErrorTitle()}</AlertTitle>
-        <AlertDescription>
-          <div className="mt-2">
-            {error.message || "There was an error processing your request."}
-          </div>
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center space-x-2">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          <CardTitle className="text-lg">Request Failed</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-sm">
+          <p className="font-medium">{getErrorMessage()}</p>
           
-          {showRequestId && (
-            <div className="mt-2 text-xs">
-              Request ID: <code className="font-mono">{requestId}</code>
-              {errorCode && (
-                <>
-                  <span className="mx-1">•</span>
-                  Error Code: <code className="font-mono">{errorCode}</code>
-                </>
-              )}
+          {showRequestId && error.requestId && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Request ID: <code className="font-mono">{error.requestId}</code>
+            </p>
+          )}
+          
+          {error.code && (
+            <p className="text-xs text-muted-foreground">
+              Error Code: <code className="font-mono">{error.code}</code>
+            </p>
+          )}
+          
+          {showDetails && error.details && (
+            <div className="mt-2">
+              <p className="text-xs font-medium">Error Details:</p>
+              <pre className="mt-1 max-h-20 overflow-auto rounded bg-muted p-2 text-xs">
+                {typeof error.details === 'object' 
+                  ? JSON.stringify(error.details, null, 2) 
+                  : String(error.details)}
+              </pre>
             </div>
           )}
-          
-          {retry && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={retry}
-              className="mt-3 bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30"
-            >
-              <RefreshCw className="mr-2 h-3 w-3" /> Try Again
-            </Button>
-          )}
-        </AlertDescription>
-      </Alert>
-      
-      {showDetails && error.details && (
-        <div className="rounded border p-3 bg-muted/20 text-xs font-mono overflow-auto max-h-40">
-          <div className="text-muted-foreground mb-1">Error Details:</div>
-          <pre>{typeof error.details === 'string' ? error.details : JSON.stringify(error.details, null, 2)}</pre>
         </div>
+      </CardContent>
+      {handleRetry && (
+        <CardFooter className="pt-0">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRetry} 
+            className="flex items-center"
+          >
+            <RefreshCw className="mr-2 h-3 w-3" />
+            Try Again
+          </Button>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 };
 
-/**
- * Higher-order component to wrap a component with edge function error handling
- */
+// Also alias EdgeFunctionErrorDisplay to EdgeFunctionError for backward compatibility
+export const EdgeFunctionErrorDisplay = EdgeFunctionError;
+
+// HOC for wrapping components with edge function error handling
 export function withEdgeFunctionErrorHandling<P extends object>(
-  Component: React.ComponentType<P>,
-  options: {
-    fallbackUI?: React.ReactNode;
-    showDetails?: boolean;
-    showRequestId?: boolean;
-  } = {}
-) {
-  return function WithEdgeFunctionErrorHandling(props: P & { error?: any; retry?: () => void }) {
-    const { error, retry, ...rest } = props;
-    
+  Component: React.ComponentType<P>
+): React.FC<P & { error?: any; retry?: () => void; showDetails?: boolean }> {
+  return ({ error, retry, showDetails, ...props }) => {
     if (error) {
-      return options.fallbackUI || (
-        <EdgeFunctionError
-          error={error}
-          retry={retry}
-          showDetails={options.showDetails}
-          showRequestId={options.showRequestId}
-        />
-      );
+      return <EdgeFunctionError error={error} retry={retry} showDetails={showDetails} />;
     }
-    
-    return <Component {...rest as P} />;
+    return <Component {...props as P} />;
   };
 }
-
-export default EdgeFunctionError;

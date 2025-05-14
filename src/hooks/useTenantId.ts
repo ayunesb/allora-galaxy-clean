@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useSupabase } from '@/providers/SupabaseProvider';
+import { supabase } from '@/integrations/supabase/client';
 
 export type UseTenantIdResult = string | null;
 
 export function useTenantId(): UseTenantIdResult {
-  const { supabase } = useSupabase();
   const [tenantId, setTenantId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export function useTenantId(): UseTenantIdResult {
     };
     
     getUserTenant().catch(console.error);
-  }, [supabase]);
+  }, []);
 
   return tenantId;
 }

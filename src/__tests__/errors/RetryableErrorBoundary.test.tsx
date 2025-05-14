@@ -1,4 +1,5 @@
-import React from 'react';
+
+// Remove unused React import
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, afterEach, afterAll, beforeAll, expect } from 'vitest';
 import RetryableErrorBoundary, { withRetryableErrorBoundary } from '@/components/errors/RetryableErrorBoundary';

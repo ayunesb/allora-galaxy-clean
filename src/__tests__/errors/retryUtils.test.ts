@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { withRetry, createRetryableFunction } from '@/lib/errors/retryUtils';
 
 describe('Retry utilities', () => {

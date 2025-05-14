@@ -1,6 +1,5 @@
-
-import { renderHook, act } from '@testing-library/react-hooks';
-import { vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useEdgeFunction } from '@/hooks/useEdgeFunction';
 import { toast } from 'sonner';
 
@@ -9,7 +8,7 @@ vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
     success: vi.fn(),
-    loading: vi.fn(),
+    loading: vi.fn().mockReturnValue('toast-1'),
     dismiss: vi.fn()
   }
 }));
@@ -103,10 +102,7 @@ describe('useEdgeFunction', () => {
     );
     
     // Start the operation
-    let toastId;
     await act(async () => {
-      // Simulate toast.loading returning a toast ID
-      toast.loading.mockReturnValueOnce('toast-1');
       await result.current.execute();
     });
     
