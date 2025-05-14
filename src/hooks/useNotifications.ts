@@ -1,15 +1,9 @@
 
-import { useContext } from 'react';
-import { NotificationsContext } from '@/context/notifications/NotificationsContext';
+// Re-export from the context module
+import { useNotifications } from '@/context/notifications/useNotifications';
 import { NotificationsContextValue } from '@/context/notifications/types';
 
-// Custom hook to use the notifications context
-export const useNotifications = (): NotificationsContextValue => {
-  const context = useContext(NotificationsContext);
-  if (!context) {
-    throw new Error('useNotifications must be used within a NotificationsProvider');
-  }
-  return context;
-};
+export { useNotifications };
+export type { NotificationsContextValue };
 
 export default useNotifications;
