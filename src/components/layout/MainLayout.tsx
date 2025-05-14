@@ -17,7 +17,7 @@ const MainLayout: React.FC = () => {
     <WorkspaceProvider>
       <div className="flex min-h-screen flex-col">
         <Navbar>
-          {isMobile && <MobileSidebar items={navigationItems} />}
+          {isMobile ? <MobileSidebar /> : null}
         </Navbar>
         
         <div className="flex flex-1">

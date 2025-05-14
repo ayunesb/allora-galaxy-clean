@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Vote, Comment, VoteType, UseAgentVoteProps, UseAgentVoteResult } from './types';
+import { Comment, UseAgentVoteProps, UseAgentVoteResult } from './types';
+import { VoteType } from '@/types/shared';
 
 export const useAgentVote = ({ agentVersionId }: UseAgentVoteProps): UseAgentVoteResult => {
   const [upvotes, setUpvotes] = useState(0);

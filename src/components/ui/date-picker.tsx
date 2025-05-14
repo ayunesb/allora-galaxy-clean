@@ -10,11 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-export interface DateRange {
-  from: Date | null;
-  to: Date | null;
-}
+import { DateRange } from "@/types/shared";
 
 interface DatePickerProps {
   selected?: Date | null | DateRange;
@@ -88,7 +84,7 @@ export function DatePicker({
             <Calendar
               mode="single"
               selected={date || undefined}
-              onSelect={(newDate) => handleSelect(newDate || null)}
+              onSelect={(newDate) => handleSelect(newDate as Date)}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
             />

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CommentSectionProps, Comment } from './types';
+import { CommentSectionProps } from './types';
 import { format } from 'date-fns';
 
 const CommentSection: React.FC<CommentSectionProps> = ({

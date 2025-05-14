@@ -14,6 +14,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NotificationType } from '@/types/shared';
 
 interface NotificationItemProps {
   notification: NotificationContent;

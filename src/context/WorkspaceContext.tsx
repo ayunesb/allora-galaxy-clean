@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { NavigationItem } from '@/types/shared';
 import { createWorkspace as createWorkspaceService } from '@/services/workspaceService';
-import { CreateTenantInput, Tenant } from '@/types/tenant';
+import { CreateTenantInput } from '@/types/tenant';
 
 export interface Workspace {
   id: string;
@@ -66,7 +65,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>(defaultNavigationItems);
+  const [navigationItems] = useState<NavigationItem[]>(defaultNavigationItems);
 
   const fetchWorkspaces = async () => {
     try {

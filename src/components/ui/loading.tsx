@@ -1,48 +1,21 @@
 
-import React from 'react';
+import { Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LoadingSpinner } from './loading-spinner';
 
-type LoadingProps = {
-  fullScreen?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  text?: string;
+interface LoadingProps {
+  size?: 'default' | 'sm' | 'lg';
   className?: string;
+}
+
+export function Loading({ size = 'default', className }: LoadingProps) {
+  const sizeClass = 
+    size === 'sm' ? 'h-4 w-4' : 
+    size === 'lg' ? 'h-8 w-8' : 
+    'h-6 w-6';
+    
+  return (
+    <div className="flex items-center justify-center">
+      <Loader className={cn(sizeClass, "animate-spin", className)} />
+    </div>
+  );
 };
-
-export function Loading({ 
-  fullScreen = false, 
-  size = 'md', 
-  text = 'Loading...', 
-  className 
-}: LoadingProps) {
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-50">
-        <LoadingSpinner size={size} />
-        {text && <p className="mt-4 text-muted-foreground font-medium">{text}</p>}
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("flex flex-col items-center justify-center p-4", className)}>
-      <LoadingSpinner size={size} />
-      {text && <p className="mt-2 text-sm text-muted-foreground">{text}</p>}
-    </div>
-  );
-}
-
-// Usage: Overlay loading
-export function LoadingOverlay({ text }: { text?: string }) {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <Loading text={text} />
-    </div>
-  );
-}
-
-// Usage: Inline loading
-export function LoadingInline({ text }: { text?: string }) {
-  return <Loading size="sm" text={text} />;
-}

@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import useAgentVote from './useAgentVote';
 import VoteButton from './VoteButton';
 import CommentSection from './CommentSection';
-import { Comment } from './types';
 
 interface AgentVotePanelProps {
   agentVersionId: string;

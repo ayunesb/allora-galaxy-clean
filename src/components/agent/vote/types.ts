@@ -1,6 +1,8 @@
 
 // Import VoteType from shared types
-import { VoteType } from '@/types';
+import { VoteType } from '@/types/shared';
+
+export { VoteType }; // Export VoteType to fix the error
 
 export interface Vote {
   id: string;

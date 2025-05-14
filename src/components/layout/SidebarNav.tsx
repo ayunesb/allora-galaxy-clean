@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { NavigationItem } from '@/types/shared/types';
+import { NavigationItem } from '@/types/shared';
 import { Badge } from '@/components/ui/badge';
 import { useTenantRole } from '@/hooks/useTenantRole';
 
@@ -12,7 +12,9 @@ interface SidebarNavProps {
 
 export default function SidebarNav({ items }: SidebarNavProps) {
   const { pathname } = useLocation();
-  const { isAdmin } = useTenantRole();
+  const { role } = useTenantRole();
+  
+  const isAdmin = role === 'admin' || role === 'owner';
 
   const filteredItems = React.useMemo(() => {
     return items.filter(item => !item.adminOnly || isAdmin);

@@ -4,15 +4,13 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import NotificationCenterContent from '@/components/notifications/NotificationCenterContent';
-import { useNotificationData } from '@/hooks/useNotificationData';
-import { useNotificationActions } from '@/hooks/useNotificationActions';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Badge } from '@/components/ui/badge';
 
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const { notifications, isLoading, unreadCount } = useNotificationData(activeFilter);
-  const { markAsRead, markAllAsRead } = useNotificationActions();
+  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotifications();
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -46,7 +44,6 @@ const NotificationCenter: React.FC = () => {
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
           onMarkAllAsRead={markAllAsRead}
-          isLoading={isLoading}
           unreadCount={unreadCount}
         />
       </SheetContent>

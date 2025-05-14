@@ -1,246 +1,282 @@
-
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
-import { Loader2, AlertCircle, CheckCircle, PlayCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Play, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type CronJob = {
-  job_name: string;
-  executions: number;
-  successful: number;
-  failed: number;
-  avg_duration_ms: number;
-  last_execution: string;
-  last_status: string;
-};
+interface CronJob {
+  id: string;
+  name: string;
+  schedule: string;
+  last_run: string | null;
+  next_run: string | null;
+  status: 'active' | 'inactive' | 'running' | 'failed';
+  last_status: 'success' | 'failed' | null;
+  function_name: string;
+  created_at: string;
+}
 
 const CronJobsMonitoring: React.FC = () => {
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [loading, setLoading] = useState(true);
-  const [triggering, setTriggering] = useState<string | null>(null);
-  const [loadingRefresh, setLoadingRefresh] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { toast } = useToast();
 
-  const fetchJobs = async () => {
-    setLoadingRefresh(true);
-    setError(null);
-    
+  const fetchCronJobs = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_cron_job_stats');
-      
-      if (error) {
-        throw new Error(`Failed to fetch CRON jobs: ${error.message}`);
-      }
-      
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('cron_jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
       setJobs(data || []);
-    } catch (err: any) {
-      console.error('Error fetching CRON jobs:', err);
-      setError(err.message || 'Failed to fetch CRON jobs');
-      
+    } catch (error: any) {
+      console.error('Error fetching cron jobs:', error);
       toast({
-        title: 'Error fetching CRON jobs',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive'
+        title: 'Error fetching cron jobs',
+        description: error.message,
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
-      setLoadingRefresh(false);
     }
   };
 
   useEffect(() => {
-    fetchJobs();
+    fetchCronJobs();
   }, []);
 
-  const triggerJob = async (jobName: string) => {
-    setTriggering(jobName);
-    
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchCronJobs();
+    setRefreshing(false);
+  };
+
+  const handleRunNow = async (jobId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('triggerCronJob', {
-        body: { job_name: jobName }
+      const { error } = await supabase.functions.invoke('trigger-cron-job', {
+        body: { jobId },
       });
-      
-      if (error) {
-        throw new Error(`Failed to trigger job: ${error.message}`);
-      }
-      
+
+      if (error) throw error;
+
       toast({
-        title: 'Job Triggered',
-        description: `${jobName} has been triggered successfully`,
-        variant: 'default'
+        title: 'Job triggered',
+        description: 'The job has been triggered manually',
       });
-      
-      // Refresh job list after a delay to see the new execution
-      setTimeout(() => fetchJobs(), 2000);
-    } catch (err: any) {
-      console.error('Error triggering job:', err);
-      
+
+      // Refresh the list after a short delay
+      setTimeout(() => fetchCronJobs(), 2000);
+    } catch (error: any) {
+      console.error('Error triggering job:', error);
       toast({
-        title: 'Failed to Trigger Job',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive'
+        title: 'Error triggering job',
+        description: error.message,
+        variant: 'destructive',
       });
-    } finally {
-      setTriggering(null);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'completed') {
-      return <Badge className="bg-green-500"><CheckCircle className="w-4 h-4 mr-1" /> Completed</Badge>;
-    } else if (status === 'failed') {
-      return <Badge variant="destructive"><AlertCircle className="w-4 h-4 mr-1" /> Failed</Badge>;
-    } else if (status === 'running') {
-      return <Badge variant="secondary"><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Running</Badge>;
-    } else {
-      return <Badge variant="outline">{status}</Badge>;
+    switch (status) {
+      case 'active':
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">Active</Badge>;
+      case 'inactive':
+        return <Badge variant="outline" className="bg-gray-500/10 text-gray-500 border-gray-500/20">Inactive</Badge>;
+      case 'running':
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">Running</Badge>;
+      case 'failed':
+        return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Failed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleString();
-  };
-
-  const formatDuration = (ms: number) => {
-    if (!ms) return '-';
+  const getLastStatusIcon = (status: string | null) => {
+    if (!status) return null;
     
-    if (ms < 1000) {
-      return `${ms.toFixed(0)}ms`;
-    } else if (ms < 60000) {
-      return `${(ms / 1000).toFixed(2)}s`;
-    } else {
-      return `${(ms / 60000).toFixed(2)}m`;
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
     }
   };
 
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Cron Jobs</CardTitle>
+          <CardDescription>Monitor and manage scheduled tasks</CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="all">
+          <TabsList className="mb-4">
+            <TabsTrigger value="all">All Jobs</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="failed">Failed</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all">
+            <JobsTable 
+              jobs={jobs} 
+              loading={loading} 
+              onRunNow={handleRunNow} 
+              getStatusBadge={getStatusBadge}
+              getLastStatusIcon={getLastStatusIcon}
+            />
+          </TabsContent>
+          
+          <TabsContent value="active">
+            <JobsTable 
+              jobs={jobs.filter(job => job.status === 'active')} 
+              loading={loading} 
+              onRunNow={handleRunNow} 
+              getStatusBadge={getStatusBadge}
+              getLastStatusIcon={getLastStatusIcon}
+            />
+          </TabsContent>
+          
+          <TabsContent value="failed">
+            <JobsTable 
+              jobs={jobs.filter(job => job.status === 'failed' || job.last_status === 'failed')} 
+              loading={loading} 
+              onRunNow={handleRunNow} 
+              getStatusBadge={getStatusBadge}
+              getLastStatusIcon={getLastStatusIcon}
+            />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
+
+interface JobsTableProps {
+  jobs: CronJob[];
+  loading: boolean;
+  onRunNow: (jobId: string) => void;
+  getStatusBadge: (status: string) => React.ReactNode;
+  getLastStatusIcon: (status: string | null) => React.ReactNode;
+}
+
+const JobsTable: React.FC<JobsTableProps> = ({ 
+  jobs, 
+  loading, 
+  onRunNow, 
+  getStatusBadge,
+  getLastStatusIcon 
+}) => {
   if (loading) {
     return (
-      <Card className="w-full">
-        <CardContent className="pt-6 flex justify-center">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="mt-2">Loading CRON jobs...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
     );
   }
 
-  if (error) {
-    return (
-      <Card className="w-full">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center">
-            <AlertCircle className="h-10 w-10 text-destructive" />
-            <h3 className="mt-2 text-lg font-medium">Failed to load CRON jobs</h3>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
-            <Button onClick={fetchJobs} variant="outline" className="mt-4">
-              Try Again
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  if (jobs.length === 0) {
+    return <div className="text-center py-4 text-muted-foreground">No jobs found</div>;
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Scheduled Jobs</CardTitle>
-            <CardDescription>Monitor and manage CRON jobs</CardDescription>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={fetchJobs}
-            disabled={loadingRefresh}
-          >
-            {loadingRefresh ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {jobs.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">No CRON jobs found</p>
-          </div>
-        ) : (
-          <Table>
-            <TableCaption>List of scheduled CRON jobs and their execution status</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Job Name</TableHead>
-                <TableHead>Last Run</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Success/Total</TableHead>
-                <TableHead className="text-right">Avg Duration</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((job) => (
-                <TableRow key={job.job_name}>
-                  <TableCell className="font-medium">{job.job_name}</TableCell>
-                  <TableCell>{formatDate(job.last_execution)}</TableCell>
-                  <TableCell>{getStatusBadge(job.last_status)}</TableCell>
-                  <TableCell className="text-center">
-                    {job.successful}/{job.executions}
-                  </TableCell>
-                  <TableCell className="text-right">{formatDuration(job.avg_duration_ms)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => triggerJob(job.job_name)}
-                      disabled={triggering === job.job_name}
-                    >
-                      {triggering === job.job_name ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Running
-                        </>
-                      ) : (
-                        <>
-                          <PlayCircle className="mr-2 h-4 w-4" />
-                          Run Now
-                        </>
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-      <CardFooter className="border-t p-4">
-        <p className="text-xs text-muted-foreground">
-          Jobs are executed on schedule by the Supabase pg_cron extension. You can also trigger them manually.
-        </p>
-      </CardFooter>
-    </Card>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Schedule</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Last Run</TableHead>
+            <TableHead>Next Run</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {jobs.map((job) => (
+            <TableRow key={job.id}>
+              <TableCell className="font-medium">
+                <div className="flex flex-col">
+                  <span>{job.name}</span>
+                  <span className="text-xs text-muted-foreground">{job.function_name}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">{job.schedule}</code>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(job.status)}
+                  {job.last_status && (
+                    <span title={`Last run: ${job.last_status}`}>
+                      {getLastStatusIcon(job.last_status)}
+                    </span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                {job.last_run ? (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <span title={format(new Date(job.last_run), 'PPpp')}>
+                      {formatDistanceToNow(new Date(job.last_run), { addSuffix: true })}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">Never</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {job.next_run ? (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <span title={format(new Date(job.next_run), 'PPpp')}>
+                      {formatDistanceToNow(new Date(job.next_run), { addSuffix: true })}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">Not scheduled</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRunNow(job.id)}
+                  disabled={job.status === 'running'}
+                >
+                  <Play className="h-4 w-4 mr-1" />
+                  Run Now
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

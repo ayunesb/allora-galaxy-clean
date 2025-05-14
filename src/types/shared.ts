@@ -29,6 +29,7 @@ export interface AppUser {
   role?: UserRole;
   createdAt?: string;
   metadata?: Record<string, any>;
+  user_metadata?: Record<string, any>; // Added this to fix error
 }
 
 /**
@@ -58,7 +59,10 @@ export type OnboardingStep =
   | 'company'
   | 'persona'
   | 'workspace'
-  | 'complete';
+  | 'complete'
+  | 'company-info'
+  | 'additional-info'
+  | 'strategy-generation';
 
 /**
  * Navigation item
@@ -68,6 +72,11 @@ export interface NavigationItem {
   href: string;
   icon?: any;
   description?: string;
+  id?: string; // Added id to fix WorkspaceContext errors
+  items?: NavigationItem[];
+  adminOnly?: boolean;
+  badge?: string | number;
+  isNew?: boolean;
 }
 
 /**
@@ -97,4 +106,12 @@ export interface FilterState {
 /**
  * Notification type
  */
-export type NotificationType = 'system' | 'strategy' | 'agent' | 'alert' | 'update' | 'info';
+export type NotificationType = 'system' | 'strategy' | 'agent' | 'alert' | 'update' | 'info' | 'success' | 'warning' | 'error';
+
+/**
+ * Date range type for consistent date range handling
+ */
+export interface DateRange {
+  from: Date | null;
+  to?: Date | null;
+}

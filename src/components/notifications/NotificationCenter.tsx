@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
 import { format } from 'date-fns';
-import { convertToNotificationContent } from '@/types/notifications';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface NotificationCenterProps {
@@ -17,8 +15,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ triggerC
     notifications, 
     unreadCount, 
     markAsRead, 
-    markAllAsRead, 
-    isLoading 
+    markAllAsRead 
   } = useNotifications();
 
   // Sort notifications by date (newest first)

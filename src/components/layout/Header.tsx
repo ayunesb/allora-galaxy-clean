@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -32,7 +31,7 @@ interface HeaderProps {
   setSidebarOpen?: (open: boolean) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
+const Header: React.FC<HeaderProps> = () => {
   const { user, userRole, signOut } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
@@ -58,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[240px] p-0">
-            <MobileSidebar onItemClick={() => setMobileOpen(false)} />
+            <MobileSidebar/>
           </SheetContent>
         </Sheet>
         
