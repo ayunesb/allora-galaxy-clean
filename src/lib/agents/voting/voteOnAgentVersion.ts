@@ -1,216 +1,110 @@
-import { supabase } from '@/integrations/supabase/client';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { VoteType } from '@/types/voting';
+
+import { supabase } from '@/lib/supabase';
+import { VoteType } from '@/types/shared';
 
 /**
- * Vote on an agent version
- * @param agentVersionId The agent version ID to vote on
- * @param voteType The type of vote (upvote or downvote)
- * @param comment Optional comment explaining the vote
- * @returns Result of the voting operation
- */
-export async function castVote(
-  agentVersionId: string,
-  voteType: VoteType,
-  comment?: string
-): Promise<VoteResult> {
-  try {
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.user) {
-      return {
-        success: false,
-        upvotes: 0,
-        downvotes: 0,
-        error: 'You must be logged in to vote'
-      };
-    }
-    
-    const userId = session.user.id;
-    
-    return voteOnAgentVersion(agentVersionId, voteType, userId, comment);
-  } catch (err: any) {
-    console.error('Error in castVote:', err);
-    return {
-      success: false,
-      upvotes: 0,
-      downvotes: 0,
-      error: `Failed to cast vote: ${err.message}`
-    };
-  }
-}
-
-/**
- * Vote on an agent version
- * @param agentVersionId The agent version ID to vote on
- * @param voteType The type of vote (upvote or downvote)
- * @param userId The user ID casting the vote
- * @param comment Optional comment explaining the vote
- * @returns Result of the voting operation
+ * Cast a vote on an agent version
+ * @param agentVersionId The agent version ID
+ * @param voteType The vote type (up, down, or neutral)
+ * @param comment Optional comment on the vote
+ * @returns Promise with the vote result
  */
 export async function voteOnAgentVersion(
   agentVersionId: string,
   voteType: VoteType,
-  userId: string,
   comment?: string
-): Promise<VoteResult> {
+): Promise<{ 
+  success: boolean;
+  upvotes?: number; 
+  downvotes?: number;
+  voteId?: string;
+  error?: string;
+}> {
   try {
-    // Check if user has already voted on this agent version
-    const { data: existingVote, error: checkError } = await supabase
+    // Check if user already voted for this agent version
+    const { data: existingVote } = await supabase
       .from('agent_votes')
-      .select('*')
+      .select('id, vote_type')
       .eq('agent_version_id', agentVersionId)
-      .eq('user_id', userId)
-      .maybeSingle();
+      .single();
 
-    if (checkError) {
-      console.error('Error checking existing vote:', checkError);
-      return {
-        success: false,
-        upvotes: 0,
-        downvotes: 0,
-        error: `Failed to check existing vote: ${checkError.message}`
-      };
-    }
-
-    // If user has already voted, update their vote
+    let result;
+    
     if (existingVote) {
-      // If same vote type, remove the vote (toggle off)
+      // Update existing vote
       if (existingVote.vote_type === voteType) {
-        const { error: deleteError } = await supabase
+        // If clicking same vote, remove it (toggle off)
+        result = await supabase
           .from('agent_votes')
           .delete()
           .eq('id', existingVote.id);
-
-        if (deleteError) {
-          return {
-            success: false,
-            upvotes: 0,
-            downvotes: 0,
-            error: `Failed to remove vote: ${deleteError.message}`
-          };
-        }
       } else {
-        // Otherwise, change the vote type
-        const { error: updateError } = await supabase
+        // Change vote
+        result = await supabase
           .from('agent_votes')
-          .update({
+          .update({ 
             vote_type: voteType,
-            comment: comment || existingVote.comment
+            comment: comment || null
           })
           .eq('id', existingVote.id);
-
-        if (updateError) {
-          return {
-            success: false,
-            upvotes: 0,
-            downvotes: 0,
-            error: `Failed to update vote: ${updateError.message}`
-          };
-        }
       }
     } else {
-      // If no existing vote, create a new one
-      const { error: insertError } = await supabase
+      // Create new vote
+      result = await supabase
         .from('agent_votes')
-        .insert({
-          agent_version_id: agentVersionId,
-          user_id: userId,
+        .insert({ 
+          agent_version_id: agentVersionId, 
           vote_type: voteType,
-          comment
-        });
-
-      if (insertError) {
-        return {
-          success: false,
-          upvotes: 0,
-          downvotes: 0,
-          error: `Failed to cast vote: ${insertError.message}`
-        };
-      }
+          comment: comment || null 
+        })
+        .select()
+        .single();
     }
 
+    if (result.error) throw result.error;
+
     // Get updated vote counts
-    const { data: agentVersion, error: fetchError } = await supabase
+    const { data: updatedVersion, error: countError } = await supabase
       .from('agent_versions')
       .select('upvotes, downvotes')
       .eq('id', agentVersionId)
       .single();
-
-    if (fetchError || !agentVersion) {
-      return {
-        success: false,
-        upvotes: 0,
-        downvotes: 0,
-        error: `Failed to fetch updated vote counts: ${fetchError?.message}`
-      };
-    }
-
-    // Log the voting event
-    await logSystemEvent(
-      'agent',
-      'info',
-      {
-        event: 'agent_voted',
-        agent_version_id: agentVersionId,
-        vote_type: voteType,
-        user_id: userId
-      }
-    ).catch(error => console.error('Error logging vote event:', error));
+      
+    if (countError) throw countError;
 
     return {
       success: true,
-      upvotes: agentVersion.upvotes,
-      downvotes: agentVersion.downvotes,
-      message: `Successfully ${voteType === 'up' ? 'upvoted' : 'downvoted'} agent version`
+      upvotes: updatedVersion.upvotes,
+      downvotes: updatedVersion.downvotes,
+      voteId: result.data?.id
     };
-  } catch (err: any) {
-    console.error('Error voting on agent version:', err);
-    return {
-      success: false,
-      upvotes: 0,
-      downvotes: 0,
-      error: `Unexpected error: ${err.message}`
-    };
+  } catch (error: any) {
+    console.error('Error voting on agent version:', error);
+    return { success: false, error: error.message };
   }
 }
 
 /**
- * Get user's vote on an agent version
+ * Get the current user's vote for an agent version
  * @param agentVersionId The agent version ID
- * @param userId The user ID
- * @returns Information about the user's vote
+ * @returns Promise with the user vote info
  */
-export async function getUserVote(agentVersionId: string, userId?: string) {
+export async function getUserVote(agentVersionId: string): Promise<{
+  success: boolean;
+  hasVoted: boolean;
+  vote: any | null;
+  error?: string;
+}> {
   try {
-    if (!userId) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        return {
-          success: false,
-          hasVoted: false,
-          vote: null,
-          error: "Not authenticated"
-        };
-      }
-      userId = session.user.id;
-    }
-    
     const { data, error } = await supabase
       .from('agent_votes')
       .select('*')
       .eq('agent_version_id', agentVersionId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      return {
-        success: false,
-        hasVoted: false,
-        vote: null,
-        error: `Failed to get vote: ${error.message}`
-      };
+      .single();
+      
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 is code for "no rows returned", which is normal if user hasn't voted
+      throw error;
     }
 
     return {
@@ -218,44 +112,49 @@ export async function getUserVote(agentVersionId: string, userId?: string) {
       hasVoted: !!data,
       vote: data
     };
-  } catch (err: any) {
-    return {
-      success: false,
-      hasVoted: false,
-      vote: null,
-      error: `Unexpected error: ${err.message}`
-    };
+  } catch (error: any) {
+    console.error('Error getting user vote:', error);
+    return { success: false, hasVoted: false, vote: null, error: error.message };
   }
 }
 
 /**
  * Upvote an agent version
  * @param agentVersionId The agent version ID
- * @param comment Optional comment
+ * @param comment Optional comment on the upvote
+ * @returns Promise with the vote result
  */
 export async function upvoteAgentVersion(
-  agentVersionId: string,
+  agentVersionId: string, 
   comment?: string
-): Promise<VoteResult> {
-  return castVote(agentVersionId, 'up', comment);
+): Promise<{ success: boolean; error?: string; }> {
+  return voteOnAgentVersion(agentVersionId, VoteType.Up, comment);
 }
 
 /**
  * Downvote an agent version
  * @param agentVersionId The agent version ID
- * @param comment Optional comment
+ * @param comment Optional comment on the downvote
+ * @returns Promise with the vote result
  */
 export async function downvoteAgentVersion(
   agentVersionId: string,
   comment?: string
-): Promise<VoteResult> {
-  return castVote(agentVersionId, 'down', comment);
+): Promise<{ success: boolean; error?: string; }> {
+  return voteOnAgentVersion(agentVersionId, VoteType.Down, comment);
 }
 
-export interface VoteResult {
-  success: boolean;
-  upvotes: number;
-  downvotes: number;
-  message?: string;
-  error?: string;
+/**
+ * Cast a vote on an agent version with comment
+ * @param agentVersionId The agent version ID
+ * @param voteType The vote type
+ * @param comment The comment on the vote
+ * @returns Promise with the vote result 
+ */
+export async function castVote(
+  agentVersionId: string,
+  voteType: VoteType,
+  comment?: string
+): Promise<{ success: boolean; error?: string; }> {
+  return voteOnAgentVersion(agentVersionId, voteType, comment);
 }

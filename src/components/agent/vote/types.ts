@@ -1,37 +1,51 @@
 
 import { VoteType } from '@/types/shared';
-import { Comment } from '@/types/shared';
 
-export interface VoteButtonProps {
-  agentVersionId: string;
-  currentVote?: VoteType | null;
-  onVoteChange?: (voteType: VoteType) => void;
-  size?: 'sm' | 'md' | 'lg';
-  showCount?: boolean;
+export interface AgentVoteData {
+  id?: string;
+  agent_version_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  comment?: string;
+  created_at?: string;
+}
+
+export interface VoteResult {
+  success: boolean;
   upvotes?: number;
   downvotes?: number;
-  disabled?: boolean;
-  className?: string;
+  message?: string;
+  error?: string;
+  voteId?: string;
 }
 
-export interface CommentSectionProps {
-  agentVersionId: string;
-  comments?: Comment[];
-  onAddComment?: (comment: string) => Promise<void>;
-  loading?: boolean;
-  maxHeight?: string;
-}
-
-export interface UseAgentVoteProps {
-  agentVersionId: string;
-}
-
-export interface UseAgentVoteResult {
-  vote: VoteType | null;
+export interface VoteStats {
+  success: boolean;
   upvotes: number;
   downvotes: number;
+  xp: number;
+  totalVotes: number;
+  ratio: number;
+  recentComments: CommentData[];
+  error?: string;
+}
+
+export interface CommentData {
+  id: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  vote_type: VoteType;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+  };
+}
+
+export interface UserVoteInfo {
+  success: boolean;
   hasVoted: boolean;
-  castVote: (voteType: VoteType, comment?: string) => Promise<void>;
-  loading: boolean;
-  error: Error | null;
+  vote: AgentVoteData | null;
+  error?: string;
 }

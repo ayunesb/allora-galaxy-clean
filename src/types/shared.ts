@@ -4,10 +4,18 @@
 // User and Auth related types
 export type UserRole = 'admin' | 'owner' | 'member' | 'guest';
 
-// Export with 'export type' for better TypeScript module isolation
-export type VoteType = 'up' | 'down' | 'neutral';
+// Use enum for better TypeScript protection and consistency
+export enum VoteType {
+  Up = 'up',
+  Down = 'down',
+  Neutral = 'neutral'
+}
 
-export type TrendDirection = 'up' | 'down' | 'neutral';
+export enum TrendDirection {
+  Up = 'up',
+  Down = 'down',
+  Neutral = 'neutral'
+}
 
 export type FilterState = {
   dateRange?: {
@@ -18,16 +26,22 @@ export type FilterState = {
   severity?: string[];
 };
 
-export type SystemEventModule = 
-  | 'system' 
-  | 'auth' 
-  | 'strategy' 
-  | 'plugin' 
-  | 'agent' 
-  | 'tenant' 
-  | 'integration';
+export enum SystemEventModule {
+  System = 'system',
+  Auth = 'auth',
+  Strategy = 'strategy',
+  Plugin = 'plugin',
+  Agent = 'agent',
+  Tenant = 'tenant',
+  Integration = 'integration'
+}
 
-export type LogSeverity = 'info' | 'warn' | 'error' | 'debug';
+export enum LogSeverity {
+  Info = 'info',
+  Warn = 'warn',
+  Error = 'error',
+  Debug = 'debug'
+}
 
 export type SystemLogFilter = {
   module?: SystemEventModule[];
@@ -39,9 +53,13 @@ export type SystemLogFilter = {
   search?: string;
 };
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
-
-export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'generate' | 'complete';
+export enum NotificationType {
+  Info = 'info',
+  Success = 'success',
+  Warning = 'warning',
+  Error = 'error',
+  System = 'system'
+}
 
 // Calendar & DateRange related types
 export interface DateRange {
@@ -60,4 +78,46 @@ export interface NavigationItem {
   badge?: string | number;
   isNew?: boolean;
   isExternal?: boolean;
+}
+
+// Add BaseEntity for consistent ID and timestamp fields across entities
+export interface BaseEntity {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Standardize property names
+export interface CommonProps {
+  isLoading?: boolean; // Preferred over "loading"
+  error?: Error | null;
+  className?: string;
+}
+
+// Add consistent execution types
+export enum ExecutionType {
+  Strategy = 'strategy',
+  Plugin = 'plugin',
+  Agent = 'agent'
+}
+
+export type ExecutionParams = Record<string, any>;
+
+// Add tenant feature flags
+export enum TenantFeature {
+  StrategyGeneration = 'strategy_generation',
+  AgentVoting = 'agent_voting',
+  PluginMarketplace = 'plugin_marketplace',
+  Analytics = 'analytics',
+  TeamManagement = 'team_management'
+}
+
+// Add SystemEventType for better event categorization
+export enum SystemEventType {
+  Created = 'created',
+  Updated = 'updated',
+  Deleted = 'deleted',
+  Executed = 'executed',
+  Failed = 'failed',
+  Completed = 'completed'
 }

@@ -1,167 +1,133 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
+import { voteOnAgentVersion, getUserVote } from '@/lib/agents/voting';
 import { VoteType } from '@/types/shared';
-import { UseAgentVoteProps, UseAgentVoteResult } from './types';
 import { toast } from '@/components/ui/use-toast';
+import { VoteResult, UserVoteInfo } from './types';
 
-export const useAgentVote = ({ agentVersionId }: UseAgentVoteProps): UseAgentVoteResult => {
-  const { user } = useAuth();
-  const [vote, setVote] = useState<VoteType | null>(null);
-  const [upvotes, setUpvotes] = useState(0);
-  const [downvotes, setDownvotes] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
+export function useAgentVote(agentVersionId: string) {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [userVote, setUserVote] = useState<UserVoteInfo | null>(null);
+  
   useEffect(() => {
-    if (!agentVersionId || !user) return;
+    if (!agentVersionId) return;
     
-    const fetchAgentVoteData = async () => {
-      setLoading(true);
-      setError(null);
-      
+    const fetchUserVote = async () => {
+      setIsLoading(true);
       try {
-        // Fetch vote stats first
-        const { data: versionData, error: versionError } = await supabase
-          .from('agent_versions')
-          .select('upvotes, downvotes')
-          .eq('id', agentVersionId)
-          .single();
-        
-        if (versionError) throw versionError;
-        
-        setUpvotes(versionData.upvotes || 0);
-        setDownvotes(versionData.downvotes || 0);
-        
-        // Then fetch user's vote if they are logged in
-        if (user?.id) {
-          const { data: voteData, error: voteError } = await supabase
-            .from('agent_votes')
-            .select('vote_type')
-            .eq('agent_version_id', agentVersionId)
-            .eq('user_id', user.id)
-            .single();
-          
-          if (voteError && voteError.code !== 'PGRST116') {
-            // PGRST116 is "no rows returned" which is fine
-            throw voteError;
-          }
-          
-          setVote(voteData?.vote_type as VoteType || null);
-        }
-      } catch (err) {
-        console.error('Error fetching vote data:', err);
-        setError(err as Error);
+        const result = await getUserVote(agentVersionId);
+        setUserVote(result);
+      } catch (error) {
+        console.error("Error fetching user vote:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
-    fetchAgentVoteData();
-  }, [agentVersionId, user]);
-
-  const castVote = async (voteType: VoteType, comment?: string) => {
-    if (!agentVersionId || !user?.id) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to vote on agent versions.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
+    fetchUserVote();
+  }, [agentVersionId]);
+  
+  const castVote = async (voteType: VoteType, comment?: string): Promise<VoteResult> => {
+    setIsLoading(true);
     try {
-      // Determine vote changes based on current state
-      let upvoteChange = 0;
-      let downvoteChange = 0;
+      const result = await voteOnAgentVersion(agentVersionId, voteType, comment);
       
-      if (vote === 'up' && voteType !== 'up') {
-        upvoteChange = -1;
-      } else if (vote !== 'up' && voteType === 'up') {
-        upvoteChange = 1;
-      }
-      
-      if (vote === 'down' && voteType !== 'down') {
-        downvoteChange = -1;
-      } else if (vote !== 'down' && voteType === 'down') {
-        downvoteChange = 1;
-      }
-      
-      // First, update the vote counts on the agent version
-      const { error: updateError } = await supabase
-        .from('agent_versions')
-        .update({
-          upvotes: upvotes + upvoteChange,
-          downvotes: downvotes + downvoteChange,
-        })
-        .eq('id', agentVersionId);
-      
-      if (updateError) throw updateError;
-      
-      // Check if we should remove existing vote
-      if (voteType === 'neutral') {
-        const { error: deleteError } = await supabase
-          .from('agent_votes')
-          .delete()
-          .eq('agent_version_id', agentVersionId)
-          .eq('user_id', user.id);
-        
-        if (deleteError) throw deleteError;
-      } else {
-        // Upsert the vote record
-        const { error: upsertError } = await supabase
-          .from('agent_votes')
-          .upsert({
+      if (result.success) {
+        // Update user vote state
+        setUserVote({
+          success: true,
+          hasVoted: true,
+          vote: {
             agent_version_id: agentVersionId,
-            user_id: user.id,
+            user_id: 'current-user',
             vote_type: voteType,
-            ...(comment ? { comment } : {}),
-          }, {
-            onConflict: 'agent_version_id,user_id',
-          });
+            comment,
+            id: result.voteId
+          }
+        });
         
-        if (upsertError) throw upsertError;
+        const voteAction = voteType === VoteType.Up ? 'Upvoted' : 'Downvoted';
+        toast({
+          title: `${voteAction} successfully`,
+          description: "Your feedback helps improve our agents",
+        });
+      } else {
+        toast({
+          title: "Vote failed",
+          description: result.error || "Unable to register your vote",
+          variant: "destructive",
+        });
       }
       
-      // Update local state
-      setVote(voteType === 'neutral' ? null : voteType);
-      setUpvotes(prev => prev + upvoteChange);
-      setDownvotes(prev => prev + downvoteChange);
-      
+      return result;
+    } catch (error: any) {
       toast({
-        title: voteType === 'neutral' 
-          ? "Vote removed" 
-          : `${voteType === 'up' ? 'Upvoted' : 'Downvoted'} successfully`,
-        variant: "default",
-      });
-      
-    } catch (err) {
-      console.error('Error casting vote:', err);
-      setError(err as Error);
-      
-      toast({
-        title: "Failed to cast vote",
-        description: (err as Error).message,
+        title: "Vote failed",
+        description: error.message || "An error occurred while voting",
         variant: "destructive",
       });
+      
+      return { 
+        success: false, 
+        error: error.message || "Failed to cast vote"
+      };
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  return {
-    vote,
-    upvotes,
-    downvotes,
-    hasVoted: !!vote,
-    castVote,
-    loading,
-    error,
+  
+  const removeVote = async (): Promise<VoteResult> => {
+    if (!userVote?.vote?.id) {
+      return { success: false, error: "No existing vote to remove" };
+    }
+    
+    setIsLoading(true);
+    try {
+      // We use the neutral vote to remove the vote
+      const result = await voteOnAgentVersion(agentVersionId, VoteType.Neutral);
+      
+      if (result.success) {
+        // Update user vote state
+        setUserVote({
+          success: true,
+          hasVoted: false,
+          vote: null
+        });
+        
+        toast({
+          title: "Vote removed",
+          description: "Your vote has been removed",
+        });
+      } else {
+        toast({
+          title: "Failed to remove vote",
+          description: result.error || "Unable to remove your vote",
+          variant: "destructive",
+        });
+      }
+      
+      return result;
+    } catch (error: any) {
+      toast({
+        title: "Failed to remove vote",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+      
+      return { 
+        success: false, 
+        error: error.message || "Failed to remove vote"
+      };
+    } finally {
+      setIsLoading(false);
+    }
   };
-};
-
-export default useAgentVote;
+  
+  return {
+    userVote: userVote?.vote?.vote_type,
+    hasVoted: userVote?.hasVoted || false,
+    isLoading,
+    castVote,
+    removeVote
+  };
+}

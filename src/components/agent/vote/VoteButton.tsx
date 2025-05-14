@@ -1,77 +1,94 @@
 
 import React from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { VoteButtonProps } from './types';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { VoteType } from '@/types/shared';
+import { useAgentVote } from './useAgentVote';
 
-const VoteButton: React.FC<VoteButtonProps> = ({
+interface VoteButtonProps {
+  agentVersionId: string;
+  userVote?: VoteType | null;
+  upvotes?: number;
+  downvotes?: number;
+  size?: 'sm' | 'md' | 'lg';
+  onVoteChange?: (voteType: VoteType, success: boolean) => void;
+  disabled?: boolean;
+  showCounts?: boolean;
+  className?: string;
+}
+
+export function VoteButton({
   agentVersionId,
-  currentVote = null,
-  onVoteChange,
-  size = 'md',
-  showCount = true,
+  userVote,
   upvotes = 0,
   downvotes = 0,
+  size = 'md',
+  onVoteChange,
   disabled = false,
-  className
-}) => {
-  const handleVote = (voteType: VoteType) => {
-    if (disabled || !onVoteChange) return;
-    
-    // Toggle vote if clicking the same button again
-    const newVoteType = currentVote === voteType ? 'neutral' : voteType;
-    onVoteChange(newVoteType);
+  showCounts = true,
+  className,
+}: VoteButtonProps) {
+  const { castVote, isLoading } = useAgentVote(agentVersionId);
+  
+  const sizeClasses = {
+    sm: 'h-8 text-xs',
+    md: 'h-9 text-sm',
+    lg: 'h-10 text-base'
   };
-
-  const buttonSizes = {
-    sm: 'h-7 px-2',
-    md: 'h-9 px-3',
-    lg: 'h-10 px-4'
-  };
-
+  
   const iconSizes = {
-    sm: 'h-3 w-3',
-    md: 'h-4 w-4',
-    lg: 'h-5 w-5'
+    sm: 14,
+    md: 16,
+    lg: 18
+  };
+  
+  const handleVote = async (voteType: VoteType) => {
+    if (disabled || isLoading) return;
+    
+    const result = await castVote(voteType);
+    if (onVoteChange) {
+      onVoteChange(voteType, result.success);
+    }
   };
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center space-x-1", className)}>
       <Button
-        variant={currentVote === 'up' ? 'default' : 'outline'}
-        size="sm"
+        variant={userVote === VoteType.Up ? "default" : "outline"}
+        size="icon"
         className={cn(
-          buttonSizes[size],
-          "rounded-full",
-          currentVote === 'up' && "bg-green-500 hover:bg-green-600"
+          sizeClasses[size],
+          "rounded-r-none border-r-0",
+          userVote === VoteType.Up && "bg-green-500 hover:bg-green-600"
         )}
-        onClick={() => handleVote('up')}
-        disabled={disabled}
-        aria-label="Upvote"
+        disabled={disabled || isLoading}
+        onClick={() => handleVote(VoteType.Up)}
+        title="Upvote"
       >
-        <ThumbsUp className={cn(iconSizes[size], "mr-1")} />
-        {showCount && upvotes > 0 && <span>{upvotes}</span>}
+        <ThumbsUp size={iconSizes[size]} />
+        {showCounts && (
+          <span className="ml-1">{upvotes}</span>
+        )}
       </Button>
       
       <Button
-        variant={currentVote === 'down' ? 'default' : 'outline'}
-        size="sm"
+        variant={userVote === VoteType.Down ? "default" : "outline"}
+        size="icon"
         className={cn(
-          buttonSizes[size],
-          "rounded-full",
-          currentVote === 'down' && "bg-red-500 hover:bg-red-600"
+          sizeClasses[size],
+          "rounded-l-none",
+          userVote === VoteType.Down && "bg-red-500 hover:bg-red-600"
         )}
-        onClick={() => handleVote('down')}
-        disabled={disabled}
-        aria-label="Downvote"
+        disabled={disabled || isLoading}
+        onClick={() => handleVote(VoteType.Down)}
+        title="Downvote"
       >
-        <ThumbsDown className={cn(iconSizes[size], "mr-1")} />
-        {showCount && downvotes > 0 && <span>{downvotes}</span>}
+        <ThumbsDown size={iconSizes[size]} />
+        {showCounts && (
+          <span className="ml-1">{downvotes}</span>
+        )}
       </Button>
     </div>
   );
-};
-
-export default VoteButton;
+}
