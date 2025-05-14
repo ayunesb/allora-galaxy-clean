@@ -1,7 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { VoteType } from '@/types/shared';
+import { VoteType } from '@/types/voting';
 
 /**
  * Vote on an agent version
@@ -164,7 +163,7 @@ export async function voteOnAgentVersion(
       success: true,
       upvotes: agentVersion.upvotes,
       downvotes: agentVersion.downvotes,
-      message: `Successfully ${voteType === 'upvote' ? 'upvoted' : 'downvoted'} agent version`
+      message: `Successfully ${voteType === 'up' ? 'upvoted' : 'downvoted'} agent version`
     };
   } catch (err: any) {
     console.error('Error voting on agent version:', err);
@@ -238,7 +237,7 @@ export async function upvoteAgentVersion(
   agentVersionId: string,
   comment?: string
 ): Promise<VoteResult> {
-  return castVote(agentVersionId, 'upvote', comment);
+  return castVote(agentVersionId, 'up', comment);
 }
 
 /**
@@ -250,7 +249,7 @@ export async function downvoteAgentVersion(
   agentVersionId: string,
   comment?: string
 ): Promise<VoteResult> {
-  return castVote(agentVersionId, 'downvote', comment);
+  return castVote(agentVersionId, 'down', comment);
 }
 
 export interface VoteResult {

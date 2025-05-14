@@ -38,3 +38,9 @@ export interface UseAgentVoteResult {
   handleDownvote: () => Promise<void>;
   handleCommentSubmit: (comment: string) => Promise<void>;
 }
+
+export interface CommentSectionProps {
+  comments: Comment[];
+  onSubmitComment?: (comment: string) => Promise<void>;
+  isSubmitting?: boolean;
+}

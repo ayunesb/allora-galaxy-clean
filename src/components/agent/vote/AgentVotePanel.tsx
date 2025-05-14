@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import useAgentVote from './useAgentVote';
 import VoteButton from './VoteButton';
 import CommentSection from './CommentSection';
@@ -69,7 +69,11 @@ const AgentVotePanel: React.FC<AgentVotePanelProps> = ({ agentVersionId }) => {
         </div>
       </div>
       
-      <CommentSection comments={comments as Comment[]} />
+      <CommentSection
+        comments={comments}
+        onSubmitComment={handleCommentSubmit}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 };

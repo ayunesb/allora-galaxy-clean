@@ -1,4 +1,5 @@
 
+import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,48 +11,99 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+export interface DateRange {
+  from: Date | null;
+  to: Date | null;
+}
+
 interface DatePickerProps {
-  date?: Date | null;
-  onDateChange?: (date: Date | undefined) => void;
+  selected?: Date | null | DateRange;
+  onSelect?: (date: Date | DateRange) => void;
+  mode?: 'single' | 'range';
   placeholder?: string;
   className?: string;
 }
 
-export function DatePicker({ date, onDateChange, placeholder = "Pick a date", className }: DatePickerProps) {
-  // This function handles the type conversion between Calendar's date selection
-  // and our component's expected types
-  const handleSelect = (selectedDate: Date | undefined) => {
-    if (onDateChange) {
-      onDateChange(selectedDate);
+export function DatePicker({
+  selected,
+  onSelect,
+  mode = 'single',
+  placeholder = "Pick a date",
+  className,
+}: DatePickerProps) {
+  const [date, setDate] = React.useState<Date | null>(
+    mode === 'single' && selected && !(selected as DateRange).from ? selected as Date : null
+  );
+  const [dateRange, setDateRange] = React.useState<DateRange>(
+    mode === 'range' && selected && (selected as DateRange).from 
+      ? selected as DateRange 
+      : { from: null, to: null }
+  );
+  
+  const handleSelect = (value: Date | DateRange) => {
+    if (mode === 'single') {
+      setDate(value as Date);
+    } else {
+      setDateRange(value as DateRange);
+    }
+    
+    if (onSelect) {
+      onSelect(value);
+    }
+  };
+
+  const getDisplayValue = () => {
+    if (mode === 'single') {
+      return date ? format(date, "PPP") : placeholder;
+    } else {
+      const { from, to } = dateRange;
+      if (from && to) {
+        return `${format(from, "PPP")} - ${format(to, "PPP")}`;
+      } else if (from) {
+        return `${format(from, "PPP")} - ...`;
+      } else {
+        return placeholder;
+      }
     }
   };
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant={"outline"}
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground",
-            className
+    <div className={cn("grid gap-2", className)}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            id="date"
+            variant={"outline"}
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !date && !dateRange.from && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {getDisplayValue()}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="center">
+          {mode === 'single' ? (
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={handleSelect as (date: Date | undefined) => void}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          ) : (
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={handleSelect as (date: DateRange) => void}
+              initialFocus
+              numberOfMonths={2}
+              className={cn("p-3 pointer-events-auto")}
+            />
           )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date || undefined}
-          onSelect={handleSelect}
-          initialFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
-      </PopoverContent>
-    </Popover>
-  );
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
 }
-
-export default DatePicker;

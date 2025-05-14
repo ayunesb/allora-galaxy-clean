@@ -4,6 +4,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import NotificationTabs from './NotificationTabs';
 import { NotificationsPageHeader } from './NotificationsPageHeader';
 import NotificationEmptyState from './NotificationEmptyState';
+import { convertToNotificationContent } from '@/types/notifications';
 
 interface NotificationsContainerProps {
   filter?: string | null;
@@ -24,6 +25,9 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     markAsRead, 
     deleteNotification 
   } = useNotifications();
+  
+  // Convert notifications to the expected format
+  const convertedNotifications = notifications.map(notification => convertToNotificationContent(notification));
   
   // Sync with external filter if provided
   const handleTabChange = (tab: string) => {
@@ -50,7 +54,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
         <NotificationTabs 
           selectedTab={selectedTab}
           setSelectedTab={handleTabChange}
-          notifications={notifications} 
+          notifications={convertedNotifications} 
           markAsRead={markAsRead}
           onDelete={deleteNotification}
           isLoading={false}

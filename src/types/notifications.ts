@@ -7,8 +7,9 @@ export interface Notification {
   is_read: boolean;
   read_at: string | null;
   tenant_id: string;
+  user_id: string; // Added this to match context/notifications/types.ts
   type: 'system' | 'alert' | 'info';
-  priority: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high';
   action_url?: string | null;
   action_label?: string | null;
   metadata?: Record<string, any> | null;
@@ -38,6 +39,19 @@ export interface NotificationState {
   unreadCount: number;
   loading: boolean;
   error: string | null;
+}
+
+// Add CreateNotificationInput interface
+export interface CreateNotificationInput {
+  title: string;
+  description?: string;
+  type?: 'system' | 'alert' | 'info';
+  tenant_id: string;
+  user_id: string;
+  action_url?: string;
+  action_label?: string;
+  metadata?: Record<string, any>;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 export const convertToNotificationContent = (notification: Notification): NotificationContent => {

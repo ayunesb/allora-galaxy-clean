@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { NavigationItem } from '@/types/shared';
+import { createWorkspace as createWorkspaceService } from '@/services/workspaceService';
+import { CreateTenantInput, Tenant } from '@/types/tenant';
 
 export interface Workspace {
   id: string;
@@ -19,12 +21,43 @@ export interface WorkspaceContextType {
   userRole: string | null;
   navigationItems: NavigationItem[];
   refreshWorkspaces: () => Promise<void>;
+  createWorkspace: (input: CreateTenantInput) => Promise<Workspace | null>;
   // For backward compatibility
   tenant: Workspace | null;
   tenants: Workspace[];
   setTenant: (workspace: Workspace | null) => void;
   isLoading: boolean;
 }
+
+const defaultNavigationItems: NavigationItem[] = [
+  { 
+    id: 'dashboard',
+    title: 'Dashboard', 
+    href: '/dashboard', 
+    badge: 'New'
+  },
+  { 
+    id: 'strategies',
+    title: 'Strategies', 
+    href: '/strategies' 
+  },
+  { 
+    id: 'agents',
+    title: 'Agents', 
+    href: '/agents' 
+  },
+  { 
+    id: 'plugins',
+    title: 'Plugins', 
+    href: '/plugins' 
+  },
+  { 
+    id: 'analytics',
+    title: 'Analytics', 
+    href: '/analytics',
+    disabled: true
+  }
+];
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
@@ -33,7 +66,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>(defaultNavigationItems);
 
   const fetchWorkspaces = async () => {
     try {
@@ -129,6 +162,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setUserRole(null);
     }
   };
+  
+  const createWorkspace = async (input: CreateTenantInput): Promise<Workspace | null> => {
+    const workspace = await createWorkspaceService(input);
+    if (workspace) {
+      await fetchWorkspaces(); // Refresh the list after creating a new workspace
+    }
+    return workspace;
+  };
 
   // For backward compatibility
   const tenant = currentWorkspace;
@@ -146,6 +187,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         userRole,
         navigationItems,
         refreshWorkspaces: fetchWorkspaces,
+        createWorkspace,
         // For backward compatibility
         tenant,
         tenants,

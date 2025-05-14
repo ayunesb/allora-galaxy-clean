@@ -6,13 +6,14 @@ import type { Session, User } from '@/lib/supabase';
 export interface AuthContextType {
   session: Session | null;
   user: User | null;
-  userRole: string | null; // Add userRole
+  userRole: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
+  checkUserRole: (role: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -95,6 +96,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.updateUser({ password });
     return { error };
   };
+  
+  const checkUserRole = async (role: string): Promise<boolean> => {
+    // Simple case - direct match with current role
+    if (userRole === role) {
+      return true;
+    }
+    
+    // Admin role check (admin can do all)
+    if (userRole === 'admin' || userRole === 'owner') {
+      return true;
+    }
+    
+    // Owner role check
+    if (role === 'owner' && userRole === 'owner') {
+      return true;
+    }
+    
+    return false;
+  };
 
   const value = {
     session,
@@ -105,7 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     resetPassword,
-    updatePassword
+    updatePassword,
+    checkUserRole
   };
 
   return (
