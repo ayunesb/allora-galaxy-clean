@@ -237,16 +237,16 @@ const AlloraOSDocs: React.FC = () => {
                 Developers can create custom plugins using the Plugin SDK:
               </p>
               <div className="bg-muted p-4 rounded-md font-mono text-sm mt-2">
-                <p>import { createPlugin } from '@allora/plugin-sdk';</p>
-                <p className="mt-2">const myPlugin = createPlugin({'{'}</p>
+                <p>import {"{"} createPlugin {"}"} from '@allora/plugin-sdk';</p>
+                <p className="mt-2">const myPlugin = createPlugin({"{"}</p>
                 <p>  name: 'My Custom Plugin',</p>
                 <p>  version: '1.0.0',</p>
                 <p>  description: 'A custom plugin for Allora OS',</p>
-                <p>  execute: async (context) => {'{'}</p>
+                <p>  execute: async (context) => {"{"}</p>
                 <p>    // Plugin implementation</p>
-                <p>    return {'{'} success: true, data: {'{'} result: 'Hello world' } };</p>
-                <p>  {'}'},</p>
-                <p>{'}'});</p>
+                <p>    return {"{"} success: true, data: {"{"} result: 'Hello world' {"}"} {"}"};</p>
+                <p>  {"}"},</p>
+                <p>{"}"});</p>
               </div>
               <p className="mt-2">
                 Refer to the Plugin SDK documentation for detailed API reference.
@@ -328,10 +328,10 @@ const AlloraOSDocs: React.FC = () => {
                   <h4 className="font-medium">Strategy Execution</h4>
                   <div className="bg-muted p-3 rounded-md font-mono text-xs mt-1">
                     <p>POST /api/executeStrategy</p>
-                    <p className="mt-1">{'{'}</p>
+                    <p className="mt-1">{"{"}</p>
                     <p>  "strategyId": "string",</p>
-                    <p>  "params": {'{'} /* Optional parameters */ {'}'}</p>
-                    <p>{'}'}</p>
+                    <p>  "params": {"{"} /* Optional parameters */ {"}"}</p>
+                    <p>{"}"}</p>
                   </div>
                 </div>
                 
