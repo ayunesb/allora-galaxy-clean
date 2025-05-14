@@ -7,7 +7,7 @@ import {
   deleteUserNotification,
   getUnreadNotificationCount 
 } from '@/context/notifications/notificationUtils';
-import { Notification } from '@/types/api-key';
+import { Notification } from './types';
 import { supabase } from '@/lib/supabase';
 import { NotificationsContextValue } from './types';
 

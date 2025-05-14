@@ -1,5 +1,7 @@
 
-export type VoteType = 'up' | 'down';
+import { VoteType } from '@/types/shared';
+
+export { VoteType };
 
 export interface Vote {
   id: string;

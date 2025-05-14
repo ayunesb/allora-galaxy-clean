@@ -1,3 +1,6 @@
+
+import { VoteType, DateRange } from './shared';
+
 // Define the input interface for executing a strategy (camelCase version)
 export interface ExecuteStrategyInput {
   strategyId: string;
@@ -45,13 +48,8 @@ export interface ExecuteStrategyResultSnakeCase {
   successful_plugins?: number;
 }
 
-// Add DateRange type for our filters
-export interface DateRange {
-  from: Date | undefined;
-  to?: Date | undefined;
-}
+// Export DateRange type from shared.ts
+export { DateRange };
 
-/**
- * Vote types for agent evaluations - unified definition used across the app
- */
-export type VoteType = 'up' | 'down' | 'upvote' | 'downvote';
+// Export standardized VoteType from shared.ts
+export { VoteType };

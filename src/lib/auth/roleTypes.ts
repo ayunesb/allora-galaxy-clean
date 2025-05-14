@@ -1,8 +1,10 @@
 
+import { UserRole } from '@/types/shared';
+
 /**
- * Defines the user role types for the application
+ * Re-exports the standard UserRole type from shared.ts
  */
-export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
+export { UserRole };
 
 export const USER_ROLES: UserRole[] = ['admin', 'owner', 'member', 'viewer', 'guest'];
 
@@ -15,7 +17,8 @@ export function getRoleDisplayName(role: UserRole): string {
     owner: 'Owner',
     member: 'Member',
     viewer: 'Viewer',
-    guest: 'Guest'
+    guest: 'Guest',
+    user: 'User'
   };
   
   return displayNames[role] || role;

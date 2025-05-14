@@ -1,7 +1,10 @@
 
 import { User, Session } from '@supabase/supabase-js';
+import { UserRole } from '@/types/shared';
 
-export interface AuthUser extends User {}
+export interface AuthUser extends User {
+  role?: UserRole;
+}
 
 export interface AuthError {
   message: string;
@@ -14,7 +17,7 @@ export interface AuthSession {
 }
 
 export interface AuthState extends AuthSession {
-  loading: boolean;
+  isLoading: boolean;  // Changed from loading to isLoading for consistency
   error: AuthError | null;
 }
 
@@ -35,7 +38,7 @@ export interface AuthResponse {
 export interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
-  loading: boolean;
+  isLoading: boolean;  // Changed from loading to isLoading for consistency
   error: AuthError | null;
   signIn: (email: string, password: string) => Promise<AuthResponse>;
   signUp: (email: string, password: string, metadata?: object) => Promise<AuthResponse>;
@@ -43,5 +46,6 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
   refreshSession: () => Promise<void>;
-  checkUserRole: (role: string) => Promise<boolean>;
+  checkUserRole: (role: string | string[]) => Promise<boolean>;
+  userRole?: UserRole | null;
 }

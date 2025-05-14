@@ -1,4 +1,6 @@
 
+import { NotificationType } from './shared';
+
 export interface Notification {
   id: string;
   title: string;
@@ -7,12 +9,13 @@ export interface Notification {
   is_read: boolean;
   read_at: string | null;
   tenant_id: string;
-  user_id: string; // Added this to match context/notifications/types.ts
-  type: 'system' | 'alert' | 'info';
+  user_id: string;
+  type: NotificationType;
   priority?: 'low' | 'medium' | 'high';
   action_url?: string | null;
   action_label?: string | null;
   metadata?: Record<string, any> | null;
+  description?: string;
 }
 
 export interface NotificationContent {
@@ -21,7 +24,7 @@ export interface NotificationContent {
   message: string;
   timestamp: Date | string;
   read: boolean;
-  type: 'system' | 'alert' | 'info';
+  type: NotificationType;
   priority?: 'low' | 'medium' | 'high';
   actionUrl?: string;
   actionLabel?: string;
@@ -29,7 +32,7 @@ export interface NotificationContent {
 }
 
 export interface NotificationFilter {
-  type?: 'all' | 'unread' | 'system' | 'alert' | 'info';
+  type?: 'all' | 'unread' | NotificationType;
   priority?: 'all' | 'low' | 'medium' | 'high';
   search?: string;
 }
@@ -45,7 +48,7 @@ export interface NotificationState {
 export interface CreateNotificationInput {
   title: string;
   description?: string;
-  type?: 'system' | 'alert' | 'info';
+  type?: NotificationType;
   tenant_id: string;
   user_id: string;
   action_url?: string;
@@ -58,7 +61,7 @@ export const convertToNotificationContent = (notification: Notification): Notifi
   return {
     id: notification.id,
     title: notification.title,
-    message: notification.message,
+    message: notification.message || notification.description || '',
     timestamp: notification.created_at,
     read: notification.is_read,
     type: notification.type,

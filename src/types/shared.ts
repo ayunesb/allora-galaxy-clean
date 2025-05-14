@@ -30,7 +30,8 @@ export interface User {
   updatedAt: string;
 }
 
-export type UserRole = 'admin' | 'user' | 'owner';
+// Standardized UserRole type
+export type UserRole = 'admin' | 'user' | 'owner' | 'member' | 'viewer' | 'guest';
 
 export interface SystemLogFilter {
   module?: string;
@@ -72,6 +73,9 @@ export interface NavigationItem {
   disabled?: boolean;
   label?: string;
   badge?: string | number;
+  isNew?: boolean;
+  isExternal?: boolean;
+  adminOnly?: boolean;
 }
 
 export type OnboardingStep = 'company-info' | 'additional-info' | 'persona' | 'strategy-generation' | 'completed';
@@ -85,6 +89,12 @@ export interface BaseEntity {
 export type SystemEventModule = 'auth' | 'tenant' | 'plugin' | 'agent' | 'strategy' | 'execution' | 'system' | 'admin';
 export type SystemEventType = 'created' | 'updated' | 'deleted' | 'executed' | 'failed' | 'info' | 'warning' | 'error';
 
+// Add LogSeverity for consistent logging
+export type LogSeverity = 'info' | 'warning' | 'error' | 'debug';
+
+// Add NotificationType to standardize notification types
+export type NotificationType = 'system' | 'alert' | 'info' | 'success' | 'warning' | 'error';
+
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
 export type ExecutionType = 'strategy' | 'plugin' | 'agent' | 'cron' | 'webhook' | 'scheduled';
@@ -95,4 +105,31 @@ export interface ExecutionParams {
 
 export type TenantFeature = 'analytics' | 'plugins' | 'agents' | 'strategies' | 'admin' | 'api';
 
+// Standardized VoteType definition
 export type VoteType = 'up' | 'down';
+
+// Add KPITrend interface to standardize KPI trends
+export interface KPITrend {
+  id: string;
+  name: string;
+  value: number;
+  previousValue?: number;
+  change?: number;
+  changePercent?: number;
+  direction?: TrendDirection;
+  trend?: 'increasing' | 'decreasing' | 'stable';
+  unit?: string;
+  target?: number;
+}
+
+// Add AuditLog type for consistent usage
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  user_id?: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  details?: Record<string, any>;
+  tenant_id: string;
+}

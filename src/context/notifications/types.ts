@@ -1,4 +1,6 @@
 
+import { NotificationType } from '@/types/shared';
+
 /**
  * Notification data structure from the database
  */
@@ -10,12 +12,13 @@ export interface Notification {
   tenant_id: string;
   created_at: string;
   read_at: string | null;
-  type: string;
+  type: NotificationType;
   description?: string;
   is_read: boolean;
   metadata?: Record<string, any>;
   action_url?: string;
   action_label?: string;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 /**

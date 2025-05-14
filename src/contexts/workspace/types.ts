@@ -1,6 +1,6 @@
 
 import { Tenant } from '@/types/tenant';
-import { NavigationItem } from '@/types/navigation';
+import { NavigationItem } from '@/types/shared';
 
 export interface WorkspaceContextType {
   currentWorkspace: Tenant | null;
@@ -13,6 +13,7 @@ export interface WorkspaceContextType {
   refreshWorkspaces: () => Promise<void>;
   updateCurrentWorkspace: (workspaceId: string) => void;
   userRole: string | null;
+  createWorkspace?: (workspaceData: Partial<Workspace>) => Promise<Workspace | null>;
   
   // Backward compatibility properties
   tenant?: Tenant | null;
@@ -28,5 +29,6 @@ export interface Workspace {
   name: string;
   slug?: string;
   description?: string;
+  owner_id: string;
   [key: string]: any;
 }

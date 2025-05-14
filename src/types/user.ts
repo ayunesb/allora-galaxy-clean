@@ -1,10 +1,10 @@
 
-// Import PostgrestError but actually use it in the code
 import { PostgrestError } from '@supabase/supabase-js';
+import { UserRole } from './shared';
 
 export interface User {
   id: string;
-  role: string;
+  role: UserRole;
   created_at: string;
   user_id: string;
   profiles?: {
@@ -33,7 +33,8 @@ export interface UserProfile {
   onboarding_completed?: boolean;
 }
 
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer' | 'guest';
+// Re-export UserRole from shared.ts
+export { UserRole };
 
 // Example of using PostgrestError in an interface to avoid the unused import warning
 export interface DatabaseOperationResult<T = any> {

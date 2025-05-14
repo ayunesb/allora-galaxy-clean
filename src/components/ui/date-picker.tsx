@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { DateRange as DayPickerDateRange } from "react-day-picker";
 
 export interface DateRange {
   from: Date | null;
@@ -67,6 +68,14 @@ export function DatePicker({
     }
   };
 
+  // Convert our DateRange to DayPicker's DateRange
+  const toDayPickerDateRange = (range: DateRange): DayPickerDateRange => {
+    return {
+      from: range.from || undefined,
+      to: range.to || undefined
+    };
+  };
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -95,8 +104,15 @@ export function DatePicker({
           ) : (
             <Calendar
               mode="range"
-              selected={dateRange}
-              onSelect={handleSelect as (date: DateRange) => void}
+              selected={toDayPickerDateRange(dateRange)}
+              onSelect={(range) => {
+                if (range) {
+                  handleSelect({
+                    from: range.from || null,
+                    to: range.to || null
+                  });
+                }
+              }}
               initialFocus
               numberOfMonths={2}
               className={cn("p-3 pointer-events-auto")}

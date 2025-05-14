@@ -1,6 +1,8 @@
 
+import { VoteType } from './shared';
+
 // Voting related types
-export type VoteType = 'up' | 'down';
+export { VoteType };
 
 export interface AgentVote {
   id: string;

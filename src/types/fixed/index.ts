@@ -44,5 +44,7 @@ export type {
   ExecutionParams,
   ExecutionType,
   KPITrend,
-  TenantFeature
+  TenantFeature,
+  LogSeverity,
+  NotificationType
 } from '../shared';

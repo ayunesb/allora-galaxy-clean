@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Notification } from '@/types/notifications';
+import { Notification } from '@/context/notifications/types';
 import { useTenantId } from '@/hooks/useTenantId';
 
 export interface UseNotificationsResult {
