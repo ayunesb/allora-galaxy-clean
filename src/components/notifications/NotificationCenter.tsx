@@ -1,70 +1,69 @@
 
-import React from 'react';
-import { NotificationType } from '@/types/notifications';
-import { NotificationCenterContent } from './NotificationCenterContent';
-import { NotificationCenterTabs } from './NotificationCenterTabs';
-import { useNotifications } from '@/hooks/useNotifications';
+import React, { useState } from 'react';
+import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import NotificationCenterContent from './NotificationCenterContent';
+import { useNotificationData } from '@/hooks/useNotificationData';
+import { useNotificationActions } from '@/hooks/useNotificationActions';
+import { Badge } from '@/components/ui/badge';
+import NotificationCenterTabs from './NotificationCenterTabs';
 
-interface NotificationContent {
-  id: string;
-  title: string;
-  message: string;
-  type: NotificationType;
-  timestamp: Date;
-  read: boolean;
-}
+const NotificationCenter: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const { notifications, unreadCount, isLoading } = useNotificationData(activeFilter);
+  const { markAsRead, markAllAsRead, deleteNotification } = useNotificationActions();
 
-interface NotificationCenterProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    
+    // If closing the notifications center, mark notifications as read
+    if (!open && unreadCount > 0) {
+      markAllAsRead();
+    }
+  };
 
-export const NotificationCenter: React.FC<NotificationCenterProps> = ({ 
-  isOpen,
-  onClose 
-}) => {
-  const { 
-    notifications,
-    unreadCount,
-    isLoading, 
-    markAllAsRead,
-    deleteAll,
-    markAsRead,
-    deleteNotification
-  } = useNotifications();
-
-  // Convert notifications to the expected format
   const convertedNotifications = notifications.map(notification => ({
     id: notification.id,
     title: notification.title,
     message: notification.message,
-    type: notification.type as NotificationType,
+    type: notification.type,
     timestamp: notification.created_at ? new Date(notification.created_at) : new Date(),
-    read: !!notification.read_at
+    read: !!notification.read_at,
+    action_url: notification.action_url,
+    action_label: notification.action_label
   }));
 
   return (
-    <div 
-      className={`fixed inset-y-0 right-0 w-full sm:w-96 bg-background border-l border-border shadow-xl transform transition-transform duration-200 ease-in-out z-50 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
-    >
-      <div className="h-full flex flex-col">
-        <NotificationCenterTabs 
-          unreadCount={unreadCount}
-          onClose={onClose}
-          onMarkAllAsRead={markAllAsRead}
-          onDeleteAll={deleteAll}
-        />
-        
-        <NotificationCenterContent 
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge 
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-2 text-[10px]"
+            >
+              {unreadCount}
+            </Badge>
+          )}
+          <span className="sr-only">Open notifications</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-md p-0">
+        <NotificationCenterTabs
           notifications={convertedNotifications}
-          isLoading={isLoading}
+          unreadCount={unreadCount}
+          onClose={() => setIsOpen(false)}
+          onMarkAllAsRead={markAllAsRead}
           onMarkAsRead={markAsRead}
           onDelete={deleteNotification}
+          value={activeFilter}
+          onValueChange={setActiveFilter}
         />
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

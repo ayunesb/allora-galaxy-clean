@@ -38,7 +38,14 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
       const { data, error } = await fetchUserNotifications(user.id);
       
       if (error) throw error;
-      setNotifications(data || []);
+      
+      // Ensure all required properties are set when updating state
+      const processedData = (data || []).map(notification => ({
+        ...notification,
+        is_read: !!notification.read_at
+      }));
+      
+      setNotifications(processedData);
     } catch (error: any) {
       console.error('Error fetching notifications:', error);
       setError(error);

@@ -24,7 +24,7 @@ export interface Notification {
 export interface NotificationsContextValue {
   notifications: Notification[];
   unreadCount: number;
-  isLoading: boolean; // Changed from loading to isLoading for consistency
+  isLoading: boolean;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;

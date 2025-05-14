@@ -4,14 +4,14 @@ import CompanyInfoStep from './steps/CompanyInfoStep';
 import PersonaStep from './steps/PersonaStep';
 import AdditionalInfoStep from './steps/AdditionalInfoStep';
 import StrategyGenerationStep from './steps/StrategyGenerationStep';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { OnboardingFormData } from '@/types/onboarding';
+
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
 
 export interface StepContentProps {
-  step: OnboardingStep;
+  currentStep: OnboardingStep;
   formData: OnboardingFormData;
   updateFormData: (data: Partial<OnboardingFormData>) => void;
-  setFieldValue: (key: string, value: any) => void;
-  isGenerating?: boolean;
 }
 
 export interface StrategyGenerationStepProps {
@@ -20,13 +20,15 @@ export interface StrategyGenerationStepProps {
 }
 
 const StepContent: React.FC<StepContentProps> = ({ 
-  step, 
+  currentStep, 
   formData, 
-  updateFormData,
-  setFieldValue,
-  isGenerating 
+  updateFormData
 }) => {
-  switch (step) {
+  const setFieldValue = (key: string, value: any) => {
+    updateFormData({ [key]: value });
+  };
+
+  switch (currentStep) {
     case 'company-info':
       return (
         <CompanyInfoStep 
@@ -55,7 +57,6 @@ const StepContent: React.FC<StepContentProps> = ({
       return (
         <StrategyGenerationStep 
           formData={formData} 
-          isGenerating={isGenerating} 
         />
       );
     default:

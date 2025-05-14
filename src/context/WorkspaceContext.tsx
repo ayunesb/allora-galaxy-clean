@@ -1,24 +1,44 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Tenant } from '@/types/tenant';
-import { fetchWorkspaces, fetchWorkspaceById, createWorkspace as createWorkspaceService } from '@/services/workspaceService';
+import { fetchWorkspaces, createWorkspace as createWorkspaceService } from '@/services/workspaceService';
+import { NavigationItem } from '@/types/navigation';
 
 export interface WorkspaceContextType {
+  // Primary properties (new naming convention)
   currentWorkspace: Tenant | null;
-  setCurrentWorkspace: (workspaceId: string) => void;
   workspaces: Tenant[];
   isLoading: boolean;
+  error: Error | null;
+  navigationItems: NavigationItem[];
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
   refreshWorkspaces: () => Promise<void>;
+  updateCurrentWorkspace: (workspaceId: string) => void;
+  userRole: string | null;
+  
+  // Backward compatibility properties
+  tenant?: Tenant | null;
+  currentTenant?: Tenant | null;
+  loading?: boolean;
+  tenants?: Tenant[];
+  setCurrentWorkspace?: (workspaceId: string) => void;
+  toggleCollapsed?: () => void;
   createWorkspace: (name: string, slug?: string) => Promise<Tenant | null>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
   currentWorkspace: null,
-  setCurrentWorkspace: () => {},
   workspaces: [],
   isLoading: true,
   refreshWorkspaces: async () => {},
-  createWorkspace: async () => null,
+  updateCurrentWorkspace: () => {},
+  userRole: null,
+  collapsed: false,
+  setCollapsed: () => {},
+  error: null,
+  navigationItems: [],
+  createWorkspace: async () => null
 });
 
 export const useWorkspace = () => useContext(WorkspaceContext);
@@ -31,6 +51,10 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
   const [currentWorkspace, setCurrentWorkspaceState] = useState<Tenant | null>(null);
   const [workspaces, setWorkspaces] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
 
   // Load workspaces on mount and set the current workspace
   useEffect(() => {
@@ -57,8 +81,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       }
 
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading workspaces:', error);
+      setError(error);
       setIsLoading(false);
     }
   };
@@ -67,12 +92,16 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
     await loadWorkspaces();
   };
 
-  const setCurrentWorkspace = (workspaceId: string) => {
+  const updateCurrentWorkspace = (workspaceId: string) => {
     const workspace = workspaces.find(w => w.id === workspaceId);
     if (workspace) {
       setCurrentWorkspaceState(workspace);
       localStorage.setItem('currentWorkspaceId', workspaceId);
     }
+  };
+
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
   };
 
   const createWorkspace = async (name: string, slug?: string): Promise<Tenant | null> => {
@@ -83,19 +112,34 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         return newWorkspace;
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating workspace:', error);
+      setError(error);
       return null;
     }
   };
 
   const value: WorkspaceContextType = {
+    // Primary properties
     currentWorkspace,
-    setCurrentWorkspace,
     workspaces,
     isLoading,
+    error,
+    navigationItems,
+    collapsed,
+    setCollapsed,
     refreshWorkspaces,
-    createWorkspace
+    updateCurrentWorkspace,
+    userRole,
+    createWorkspace,
+    
+    // Backward compatibility properties
+    tenant: currentWorkspace,
+    currentTenant: currentWorkspace,
+    loading: isLoading,
+    tenants: workspaces,
+    setCurrentWorkspace: updateCurrentWorkspace,
+    toggleCollapsed
   };
 
   return (

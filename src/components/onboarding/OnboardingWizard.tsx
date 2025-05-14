@@ -1,11 +1,10 @@
 
 import React, { useState } from 'react';
-import { OnboardingProgress } from './OnboardingProgress';
-import { StepContent } from './StepContent';
-import { StepNavigation } from './StepNavigation';
+import OnboardingProgress from './OnboardingProgress';
+import StepContent, { OnboardingStep } from './StepContent';
+import StepNavigation from './StepNavigation';
 import { OnboardingErrorDialog } from './OnboardingErrorDialog';
 import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
-import { OnboardingStep } from '@/types/shared';
 
 export const OnboardingWizard: React.FC = () => {
   const {
@@ -17,8 +16,6 @@ export const OnboardingWizard: React.FC = () => {
     prevStep,
     goToStep,
     updateFormData,
-    resetForm,
-    submitForm,
     completeOnboardingProcess
   } = useOnboardingWizard();
 
@@ -33,7 +30,6 @@ export const OnboardingWizard: React.FC = () => {
     if (currentStep === 'strategy-generation') {
       setIsSubmitting(true);
       try {
-        await submitForm();
         await completeOnboardingProcess();
         nextStep();
       } catch (error: any) {
@@ -62,10 +58,13 @@ export const OnboardingWizard: React.FC = () => {
         />
         
         <StepNavigation
-          currentStep={currentStep}
-          onPrevious={prevStep}
+          currentStep={0}
+          totalSteps={5}
+          isSubmitting={isSubmitting}
+          isNextDisabled={isLoading}
           onNext={handleNextStep}
-          isLoading={isLoading || isSubmitting}
+          onPrev={prevStep}
+          onSubmit={completeOnboardingProcess}
         />
       </div>
       
