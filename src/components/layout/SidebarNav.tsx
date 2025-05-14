@@ -1,74 +1,102 @@
 
 import React from 'react';
-import { cn } from "@/lib/utils";
-import { NavLink } from 'react-router-dom';
-import { NavigationItem } from '@/types/shared';
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { NavigationItem } from '@/types/shared/types';
+import { Badge } from '@/components/ui/badge';
+import { useTenantRole } from '@/hooks/useTenantRole';
 
-interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
+interface SidebarNavProps {
   items: NavigationItem[];
-  setOpen?: (open: boolean) => void;
-  hasNested?: boolean;
 }
 
-export function SidebarNav({
-  className,
-  items,
-  setOpen,
-  hasNested = false,
-  ...props
-}: SidebarNavProps) {
-  return (
-    <nav className={cn("flex flex-col gap-y-1", className)} {...props}>
-      {items.map((item) => {
-        const IconComponent = item.icon;
+export default function SidebarNav({ items }: SidebarNavProps) {
+  const { pathname } = useLocation();
+  const { isAdmin } = useTenantRole();
 
-        if (item.items && item.items.length > 0) {
+  const filteredItems = React.useMemo(() => {
+    return items.filter(item => !item.adminOnly || isAdmin);
+  }, [items, isAdmin]);
+  
+  return (
+    <nav className="space-y-1 px-2 py-3">
+      {filteredItems.map((item) => {
+        // Check if this item or any child is active
+        const isActive = pathname === item.href || 
+                        (item.items?.some(child => pathname === child.href));
+        
+        if (item.items?.length) {
           return (
-            <div key={item.id || item.href}>
-              <span className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium",
-                "text-slate-600 dark:text-slate-400",
-                "hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
+            <div key={item.id || item.href} className="space-y-1">
+              <div className={cn(
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
               )}>
-                {IconComponent && <IconComponent className="mr-2 h-4 w-4" />}
-                {item.title}
-              </span>
-              <div className="ml-4 mt-1">
-                <SidebarNav 
-                  items={item.items} 
-                  setOpen={setOpen} 
-                  hasNested={true} 
-                />
+                {item.icon && <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />}
+                <span>{item.title}</span>
+              </div>
+              
+              <div className="space-y-1 pl-10">
+                {item.items.map((child) => (
+                  <Link
+                    key={child.id || child.href}
+                    to={child.href}
+                    className={cn(
+                      'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
+                      pathname === child.href
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                    )}
+                  >
+                    <span>{child.title}</span>
+                    {child.badge && (
+                      <Badge 
+                        variant="secondary"
+                        className="ml-auto py-0.5"
+                      >
+                        {child.badge}
+                      </Badge>
+                    )}
+                  </Link>
+                ))}
               </div>
             </div>
           );
         }
-
+        
         return (
-          <NavLink
+          <Link
             key={item.id || item.href}
             to={item.href}
-            onClick={() => setOpen?.(false)}
-            className={({ isActive }) => cn(
-              "group flex items-center px-3 py-2 text-sm font-medium rounded-md",
-              isActive
-                ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-50"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
-              !hasNested && "mx-2"
+            className={cn(
+              'group flex items-center px-3 py-2 text-sm font-medium rounded-md',
+              pathname === item.href
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
             )}
           >
-            {IconComponent && <IconComponent className="mr-2 h-4 w-4" />}
+            {item.icon && <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />}
             <span>{item.title}</span>
             {item.badge && (
-              <span className="ml-auto text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+              <Badge 
+                variant="secondary"
+                className="ml-auto py-0.5"
+              >
                 {item.badge}
-              </span>
+              </Badge>
             )}
-          </NavLink>
+            {item.isNew && (
+              <Badge 
+                className="ml-auto bg-green-500 text-white"
+              >
+                New
+              </Badge>
+            )}
+          </Link>
         );
       })}
     </nav>
   );
 }
-
-export default SidebarNav;

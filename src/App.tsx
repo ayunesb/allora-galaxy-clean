@@ -2,12 +2,12 @@
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { routes } from './routes';
 import './App.css';
-import { Toaster } from './components/ui/toaster';
 import { ThemeProvider } from './providers/ThemeProvider';
 import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationsProvider } from './context/notifications/NotificationsProvider';
+import { NotificationProvider } from './components/ui/notification-provider';
 
 // Create a QueryClient instance
 const queryClient = new QueryClient({
@@ -28,8 +28,9 @@ function App() {
         <AuthProvider>
           <WorkspaceProvider>
             <NotificationsProvider>
-              <RouterProvider router={router} />
-              <Toaster />
+              <NotificationProvider>
+                <RouterProvider router={router} />
+              </NotificationProvider>
             </NotificationsProvider>
           </WorkspaceProvider>
         </AuthProvider>

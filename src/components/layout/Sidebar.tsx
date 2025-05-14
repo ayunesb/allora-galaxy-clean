@@ -1,8 +1,8 @@
 
-// Remove unused imports
 import React from 'react';
 import { cn } from '@/lib/utils';
 import SidebarNav from './SidebarNav';
+import { navigationItems } from './sidebar/NavItems';
 
 interface SidebarProps {
   className?: string;
@@ -15,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       className
     )}>
       <div className="flex-1 flex flex-col min-h-0">
-        <SidebarNav />
+        <SidebarNav items={navigationItems} />
       </div>
     </div>
   );

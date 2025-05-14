@@ -5,6 +5,7 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
+import MobileSidebar from './MobileSidebar';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { navigationItems } from '@/components/layout/sidebar/NavItems';
 import { WorkspaceProvider } from '@/context/WorkspaceContext';
@@ -15,10 +16,12 @@ const MainLayout: React.FC = () => {
   return (
     <WorkspaceProvider>
       <div className="flex min-h-screen flex-col">
-        <Navbar />
+        <Navbar>
+          {isMobile && <MobileSidebar items={navigationItems} />}
+        </Navbar>
         
         <div className="flex flex-1">
-          {!isMobile && <Sidebar items={navigationItems} />}
+          {!isMobile && <Sidebar className="z-20" />}
           
           <main className="flex-1 bg-background">
             <div className="container mx-auto py-6">
