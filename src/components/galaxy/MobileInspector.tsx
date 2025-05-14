@@ -4,6 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GraphNode } from '@/types/galaxy';
+import { InspectorContent } from './InspectorContent';
+import { getNodeTitle, getNodeType } from './node-inspectors/NodeUtilities';
 
 interface MobileInspectorProps {
   node: GraphNode;
@@ -11,12 +13,14 @@ interface MobileInspectorProps {
 }
 
 const MobileInspector: React.FC<MobileInspectorProps> = ({ node, onClose }) => {
+  if (!node) return null;
+  
   return (
     <Sheet open={!!node} onOpenChange={() => onClose()}>
-      <SheetContent side="bottom" className="h-[80vh]">
+      <SheetContent side="bottom" className="h-[80vh] px-0">
         <div className="h-1 w-12 bg-muted-foreground/10 rounded-full mx-auto mb-2" />
-        <SheetHeader className="flex-row justify-between items-center mb-4">
-          <SheetTitle>Node Details</SheetTitle>
+        <SheetHeader className="flex-row justify-between items-center mb-4 px-4">
+          <SheetTitle>{getNodeTitle(node)}</SheetTitle>
           <Button 
             variant="ghost" 
             size="sm" 
@@ -27,33 +31,22 @@ const MobileInspector: React.FC<MobileInspectorProps> = ({ node, onClose }) => {
           </Button>
         </SheetHeader>
         
-        <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-80px)] pr-4">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">{node.name || node.id}</h3>
-            <div className="flex items-center space-x-2">
+        <div className="space-y-2 px-4 mb-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs bg-muted px-2.5 py-0.5 rounded-full">
+              {getNodeType(node)}
+            </span>
+            {node.status && (
               <span className="text-xs bg-muted px-2.5 py-0.5 rounded-full">
-                {node.type}
+                {node.status}
               </span>
-              {node.status && (
-                <span className="text-xs bg-muted px-2.5 py-0.5 rounded-full">
-                  {node.status}
-                </span>
-              )}
-            </div>
+            )}
           </div>
-          
-          {node.description && (
-            <div>
-              <h4 className="text-sm font-medium mb-1">Description</h4>
-              <p className="text-sm text-muted-foreground">{node.description}</p>
-            </div>
-          )}
-          
-          <div>
-            <h4 className="text-sm font-medium mb-1">Metadata</h4>
-            <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
-              {JSON.stringify(node.metadata || {}, null, 2)}
-            </pre>
+        </div>
+        
+        <div className="border-t border-border pt-4">
+          <div className="px-4 overflow-y-auto max-h-[calc(80vh-140px)] pr-4 space-y-6">
+            <InspectorContent node={node} />
           </div>
         </div>
       </SheetContent>

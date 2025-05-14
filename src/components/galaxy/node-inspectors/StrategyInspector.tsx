@@ -2,33 +2,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { formatDistanceToNow } from "date-fns";
+import { StrategyNode } from "@/types/galaxy";
+import { getStatusVariant } from "./NodeUtilities";
 
 interface StrategyInspectorProps {
-  node: any;
+  node: StrategyNode;
 }
 
 export function StrategyInspector({ node }: StrategyInspectorProps) {
   if (!node) return null;
-
-  // Helper function to determine badge variant based on status
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'active':
-      case 'approved':
-      case 'completed':
-        return 'default';
-      case 'draft':
-      case 'inactive':
-        return 'secondary';
-      case 'pending':
-        return 'outline';
-      case 'rejected':
-      case 'deprecated':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -37,13 +19,15 @@ export function StrategyInspector({ node }: StrategyInspectorProps) {
         <Badge variant={getStatusVariant(node.status)}>{node.status}</Badge>
       </div>
       
-      <div>
-        <h3 className="text-sm font-medium mb-1">Completion</h3>
-        <div className="flex items-center gap-2">
-          <Progress value={node.completion_percentage} className="flex-1" />
-          <span className="text-xs">{node.completion_percentage}%</span>
+      {node.completion_percentage !== undefined && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Completion</h3>
+          <div className="flex items-center gap-2">
+            <Progress value={node.completion_percentage} className="flex-1" />
+            <span className="text-xs">{node.completion_percentage}%</span>
+          </div>
         </div>
-      </div>
+      )}
       
       {node.tags && node.tags.length > 0 && (
         <div>
@@ -56,12 +40,14 @@ export function StrategyInspector({ node }: StrategyInspectorProps) {
         </div>
       )}
       
-      <div>
-        <h3 className="text-sm font-medium mb-1">Created</h3>
-        <p className="text-sm text-muted-foreground">
-          {formatDistanceToNow(new Date(node.created_at), { addSuffix: true })}
-        </p>
-      </div>
+      {node.created_at && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Created</h3>
+          <p className="text-sm text-muted-foreground">
+            {formatDistanceToNow(new Date(node.created_at), { addSuffix: true })}
+          </p>
+        </div>
+      )}
       
       {node.due_date && (
         <div>
@@ -72,10 +58,12 @@ export function StrategyInspector({ node }: StrategyInspectorProps) {
         </div>
       )}
       
-      <div>
-        <h3 className="text-sm font-medium mb-1">Description</h3>
-        <p className="text-sm">{node.description}</p>
-      </div>
+      {node.description && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Description</h3>
+          <p className="text-sm">{node.description}</p>
+        </div>
+      )}
     </div>
   );
 }

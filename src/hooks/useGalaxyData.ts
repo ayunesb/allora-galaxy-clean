@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { GraphData } from '@/types/galaxy';
+import { GraphData, GraphNode, GraphLink } from '@/types/galaxy';
 
 export const useGalaxyData = () => {
   return useQuery({
@@ -36,17 +36,22 @@ export const useGalaxyData = () => {
       if (logsError) throw logsError;
       
       // Create nodes and links for the graph
-      const nodes: any[] = [];
-      const links: any[] = [];
+      const nodes: GraphNode[] = [];
+      const links: GraphLink[] = [];
       
       // Add strategy nodes
       strategies?.forEach((strategy) => {
         nodes.push({
           id: `strategy-${strategy.id}`,
           realId: strategy.id,
-          name: strategy.title,
+          name: strategy.title || 'Untitled Strategy',
           type: 'strategy',
-          ...strategy,
+          status: strategy.status,
+          description: strategy.description,
+          completion_percentage: strategy.completion_percentage,
+          created_at: strategy.created_at,
+          due_date: strategy.due_date,
+          tags: strategy.tags || []
         });
       });
       
@@ -55,9 +60,14 @@ export const useGalaxyData = () => {
         nodes.push({
           id: `plugin-${plugin.id}`,
           realId: plugin.id,
-          name: plugin.name,
+          name: plugin.name || 'Unnamed Plugin',
           type: 'plugin',
-          ...plugin,
+          status: plugin.status,
+          description: plugin.description,
+          category: plugin.category,
+          xp: plugin.xp || 0,
+          roi: plugin.roi || 0,
+          metadata: plugin.metadata || {}
         });
       });
       
@@ -66,9 +76,13 @@ export const useGalaxyData = () => {
         nodes.push({
           id: `agent-${agent.id}`,
           realId: agent.id,
-          name: `${agent.plugins?.name || 'Unknown'} v${agent.version}`,
+          name: `${agent.plugins?.name || 'Unknown'}`,
           type: 'agent',
-          ...agent,
+          status: agent.status,
+          version: agent.version || 1,
+          prompt: agent.prompt,
+          upvotes: agent.upvotes || 0,
+          downvotes: agent.downvotes || 0
         });
         
         // Link agent versions to plugins

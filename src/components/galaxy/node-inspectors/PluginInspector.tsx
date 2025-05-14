@@ -3,9 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Star, TrendingUp, Clock } from "lucide-react";
+import { PluginNode } from "@/types/galaxy";
+import { getStatusVariant } from "./NodeUtilities";
 
 interface PluginInspectorProps {
-  node: any;
+  node: PluginNode;
 }
 
 export function PluginInspector({ node }: PluginInspectorProps) {
@@ -15,8 +17,8 @@ export function PluginInspector({ node }: PluginInspectorProps) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-medium mb-1">Status</h3>
-        <Badge variant={node.status === 'active' ? 'default' : 'secondary'}>
-          {node.status}
+        <Badge variant={getStatusVariant(node.status)}>
+          {node.status || 'Unknown'}
         </Badge>
       </div>
       

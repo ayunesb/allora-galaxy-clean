@@ -21,6 +21,34 @@ export interface GraphNode {
   [key: string]: any; // Allow for additional custom properties
 }
 
+// Strategy specific node properties
+export interface StrategyNode extends GraphNode {
+  type: 'strategy';
+  completion_percentage?: number;
+  created_at?: string;
+  due_date?: string;
+}
+
+// Plugin specific node properties
+export interface PluginNode extends GraphNode {
+  type: 'plugin';
+  category?: string;
+  metadata?: {
+    avg_execution_time?: number;
+    success_rate?: number;
+    [key: string]: any;
+  };
+}
+
+// Agent specific node properties
+export interface AgentNode extends GraphNode {
+  type: 'agent';
+  version: number;
+  prompt?: string;
+  upvotes?: number;
+  downvotes?: number;
+}
+
 // Link between nodes
 export interface GraphLink {
   source: string | GraphNode;
