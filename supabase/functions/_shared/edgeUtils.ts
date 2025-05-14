@@ -1,187 +1,197 @@
 
 /**
- * Shared utilities for Edge Functions
+ * Shared utilities for edge functions
  */
 
 // CORS headers for all edge functions
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
-/**
- * Safely get environment variables with fallback value
- * @param name Name of the environment variable
- * @param fallback Default value if not found
- * @returns The environment variable value or fallback
- */
-export function getEnv(name: string, fallback: string = ''): string {
-  try {
-    return Deno.env.get(name) ?? fallback;
-  } catch (err) {
-    console.warn(`Error accessing env variable ${name}:`, err);
-    return fallback;
-  }
+// Error codes for standardized error handling
+export enum ErrorCode {
+  BAD_REQUEST = "BAD_REQUEST",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  NOT_FOUND = "NOT_FOUND",
+  RATE_LIMITED = "RATE_LIMITED",
+  VALIDATION_ERROR = "VALIDATION_ERROR", 
+  CONFLICT = "CONFLICT",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
 }
 
-/**
- * Get an environment variable or throw if not found
- * @param name Name of the required environment variable
- * @returns The environment variable value
- * @throws Error if the environment variable is not set
- */
-export function getRequiredEnv(name: string): string {
-  const value = getEnv(name);
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
-/**
- * Standard error response format
- */
+// Standard error response interface
 export interface ErrorResponse {
   success: false;
   error: string;
+  code?: string;
   details?: any;
-  status: number;
+  requestId: string;
   timestamp: string;
-  requestId?: string;
+  status: number;
 }
 
-/**
- * Standard success response format
- */
+// Standard success response interface
 export interface SuccessResponse<T = any> {
   success: true;
   data: T;
+  requestId: string;
   timestamp: string;
-  requestId?: string;
 }
 
 /**
- * Create a standardized error response
+ * Generate a unique request ID for tracing
+ */
+export function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
+ * Create a standardized error response for edge functions
  */
 export function createErrorResponse(
   message: string,
-  details?: any,
   status: number = 500,
-  requestId?: string
+  code: ErrorCode | string = ErrorCode.INTERNAL_ERROR,
+  details?: any,
+  requestId: string = generateRequestId()
 ): Response {
-  const response: ErrorResponse = {
+  console.error(`[${requestId}] Error: ${message}`, { code, status, details });
+  
+  const responseData: ErrorResponse = {
     success: false,
     error: message,
+    code,
     status,
     timestamp: new Date().toISOString(),
+    requestId
   };
   
   if (details !== undefined) {
-    response.details = details;
+    responseData.details = details;
   }
   
-  if (requestId) {
-    response.requestId = requestId;
-  }
-  
-  return new Response(JSON.stringify(response), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders
+  return new Response(
+    JSON.stringify(responseData),
+    { 
+      status,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
     }
-  });
+  );
 }
 
 /**
- * Create a standardized success response
+ * Create a standardized success response for edge functions
  */
 export function createSuccessResponse<T>(
-  data: T,
-  status: number = 200,
-  requestId?: string
+  data: T, 
+  requestId: string = generateRequestId()
 ): Response {
-  const response: SuccessResponse<T> = {
+  const responseData: SuccessResponse<T> = {
     success: true,
     data,
     timestamp: new Date().toISOString(),
+    requestId
   };
   
-  if (requestId) {
-    response.requestId = requestId;
-  }
-  
-  return new Response(JSON.stringify(response), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders
+  return new Response(
+    JSON.stringify(responseData),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
     }
-  });
-}
-
-/**
- * Log a system event to the database
- */
-export async function logSystemEvent(
-  supabase: any,
-  module: string,
-  event: string,
-  context: Record<string, any> = {},
-  tenantId?: string
-): Promise<boolean> {
-  try {
-    // Create the log entry
-    const logEntry = {
-      module,
-      event,
-      context,
-      tenant_id: tenantId
-    };
-    
-    // Insert into system_logs table
-    const { error } = await supabase
-      .from('system_logs')
-      .insert(logEntry);
-    
-    if (error) {
-      console.error('Error logging system event:', error);
-      return false;
-    }
-    
-    return true;
-  } catch (err) {
-    // Don't let logging failures break the application
-    console.error('Error in logSystemEvent:', err);
-    return false;
-  }
-}
-
-/**
- * Generate a unique request ID
- */
-export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  );
 }
 
 /**
  * Handle CORS preflight requests
  */
 export function handleCorsRequest(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
   return null;
 }
 
 /**
- * Parse JSON request body with error handling
+ * Safely parse request body as JSON
+ * @returns Parsed JSON body or error response
  */
-export async function parseJsonBody<T = any>(req: Request): Promise<T> {
+export async function parseJsonBody<T>(
+  req: Request, 
+  requestId: string = generateRequestId()
+): Promise<{ body: T; error: null } | { body: null; error: Response }> {
   try {
-    return await req.json();
+    const body = await req.json() as T;
+    return { body, error: null };
   } catch (error) {
-    throw new Error(`Invalid JSON in request body: ${error.message}`);
+    const errorResponse = createErrorResponse(
+      "Invalid JSON in request body", 
+      400, 
+      ErrorCode.BAD_REQUEST, 
+      { parseError: String(error) },
+      requestId
+    );
+    return { body: null, error: errorResponse };
   }
+}
+
+/**
+ * Validate request body against required fields
+ */
+export function validateRequiredFields<T extends object>(
+  body: T, 
+  requiredFields: string[], 
+  requestId: string = generateRequestId()
+): { valid: true } | { valid: false; error: Response } {
+  const missingFields = requiredFields.filter(field => !(field in body) || body[field as keyof T] === undefined || body[field as keyof T] === null);
+  
+  if (missingFields.length > 0) {
+    const error = createErrorResponse(
+      "Missing required fields", 
+      400, 
+      ErrorCode.VALIDATION_ERROR,
+      { missing_fields: missingFields },
+      requestId
+    );
+    return { valid: false, error };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Log structured information from edge functions
+ */
+export function logEdgeInfo(
+  requestId: string, 
+  message: string, 
+  data?: Record<string, any>
+): void {
+  console.log(`[${requestId}] ${message}`, data || {});
+}
+
+/**
+ * Log structured error information from edge functions
+ */
+export function logEdgeError(
+  requestId: string, 
+  error: Error | string, 
+  context?: Record<string, any>
+): void {
+  const errorMessage = error instanceof Error ? error.message : error;
+  const errorStack = error instanceof Error ? error.stack : undefined;
+  
+  console.error(`[${requestId}] Error: ${errorMessage}`, {
+    stack: errorStack,
+    ...context
+  });
 }

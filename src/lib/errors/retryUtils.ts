@@ -1,189 +1,92 @@
 
-import { useState, useCallback } from 'react';
+/**
+ * Retry utility for handling transient errors in operations
+ */
 
 interface RetryOptions {
-  maxAttempts?: number;
-  baseDelay?: number;
-  maxDelay?: number;
-  jitter?: boolean;
-  onRetry?: (error: Error, attempt: number) => void;
-}
-
-interface CircuitBreakerState {
-  status: 'closed' | 'open' | 'half-open';
-  failures: number;
-  lastFailure: number | null;
-  nextAttempt: number | null;
-}
-
-// Global circuit breaker states for different operations
-const circuitBreakers: Record<string, CircuitBreakerState> = {};
-
-/**
- * Get the current status of a circuit breaker
- */
-export function getCircuitBreakerStatus(key: string): CircuitBreakerState['status'] {
-  return (circuitBreakers[key]?.status || 'closed');
+  maxRetries?: number;
+  initialDelay?: number;
+  backoffFactor?: number;
+  context?: Record<string, any>;
+  onRetry?: (error: Error, attempt: number, delay: number) => void;
+  module?: string;
+  tenantId?: string | null;
 }
 
 /**
- * Reset a circuit breaker to its closed state
+ * Executes a function with retry logic for resilience
+ * @param fn The function to execute with retry
+ * @param options Retry configuration options
+ * @returns The result of the function execution
  */
-export function resetCircuitBreaker(key: string): void {
-  circuitBreakers[key] = {
-    status: 'closed',
-    failures: 0,
-    lastFailure: null,
-    nextAttempt: null
-  };
-}
-
-/**
- * Calculate backoff delay with optional jitter
- */
-function calculateBackoff(attempt: number, baseDelay: number, maxDelay: number, jitter: boolean): number {
-  const exponentialDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
-  if (!jitter) return exponentialDelay;
-  
-  // Add randomness to avoid thundering herd problem
-  return exponentialDelay * (0.5 + Math.random() * 0.5);
-}
-
-/**
- * Generic retry function with exponential backoff
- */
-export async function retry<T>(
+export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}
 ): Promise<T> {
   const {
-    maxAttempts = 3,
-    baseDelay = 1000,
-    maxDelay = 30000,
-    jitter = true,
-    onRetry
+    maxRetries = 3,
+    initialDelay = 500,
+    backoffFactor = 2,
+    context = {},
+    onRetry,
+    module = 'unknown',
+    tenantId = null
   } = options;
 
+  let lastError: Error;
   let attempt = 0;
 
-  while (true) {
+  while (attempt < maxRetries + 1) {
     try {
+      // Attempt execution
       return await fn();
-    } catch (err) {
+    } catch (error) {
       attempt++;
-      const error = err instanceof Error ? err : new Error(String(err));
+      lastError = error instanceof Error ? error : new Error(String(error));
       
-      if (attempt >= maxAttempts) {
-        // Exhausted all retry attempts
-        throw error;
+      // If this is the last attempt, throw the error
+      if (attempt > maxRetries) {
+        console.error(
+          `[${module}] Operation failed after ${maxRetries + 1} attempts:`, 
+          { error: lastError.message, context, tenantId }
+        );
+        throw lastError;
       }
 
       // Calculate delay with exponential backoff
-      const delay = calculateBackoff(attempt, baseDelay, maxDelay, jitter);
+      const delay = initialDelay * Math.pow(backoffFactor, attempt - 1);
       
-      // Notify about retry if callback provided
+      // Log the retry
+      console.warn(
+        `[${module}] Retrying operation (${attempt}/${maxRetries}) after error:`, 
+        { error: lastError.message, delay, context, tenantId }
+      );
+      
+      // Execute onRetry callback if provided
       if (onRetry) {
-        onRetry(error, attempt);
+        onRetry(lastError, attempt, delay);
       }
-
-      // Wait before next attempt
+      
+      // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+
+  // This line should never be reached due to the throw in the loop
+  throw lastError!;
 }
 
 /**
- * Creates a retryable version of a function
+ * Creates a retry-enabled version of a function
+ * @param fn The function to wrap with retry logic
+ * @param options Retry configuration options
+ * @returns A new function with built-in retry capability
  */
 export function createRetryableFunction<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  options: RetryOptions & { circuitBreakerKey?: string } = {}
+  options: RetryOptions = {}
 ): T {
-  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-    const {
-      circuitBreakerKey,
-      maxAttempts = 3,
-      ...restOptions
-    } = options;
-
-    // If circuit breaker is defined and in open state, fail fast
-    if (circuitBreakerKey && 
-        circuitBreakers[circuitBreakerKey]?.status === 'open' &&
-        circuitBreakers[circuitBreakerKey].nextAttempt &&
-        circuitBreakers[circuitBreakerKey].nextAttempt > Date.now()) {
-      throw new Error(`Circuit breaker is open for ${circuitBreakerKey}`);
-    }
-
-    try {
-      // Attempt the operation with retries
-      const result = await retry(() => fn(...args), { maxAttempts, ...restOptions });
-      
-      // If successful and circuit breaker exists, reset it
-      if (circuitBreakerKey && circuitBreakers[circuitBreakerKey]) {
-        resetCircuitBreaker(circuitBreakerKey);
-      }
-      
-      return result;
-    } catch (err) {
-      // If circuit breaker is enabled, update its state
-      if (circuitBreakerKey) {
-        const breaker = circuitBreakers[circuitBreakerKey] || {
-          status: 'closed',
-          failures: 0,
-          lastFailure: null,
-          nextAttempt: null
-        };
-        
-        breaker.failures += 1;
-        breaker.lastFailure = Date.now();
-        
-        // Open the circuit after consecutive failures
-        if (breaker.failures >= (maxAttempts * 2)) {
-          breaker.status = 'open';
-          // Set cool-off period (30 seconds)
-          breaker.nextAttempt = Date.now() + 30000;
-        }
-        
-        circuitBreakers[circuitBreakerKey] = breaker;
-      }
-      
-      throw err;
-    }
+  return (async (...args: Parameters<T>) => {
+    return withRetry(() => fn(...args), options);
   }) as T;
-}
-
-/**
- * Hook for using retry functionality in React components
- */
-export function useRetry() {
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-  
-  const retryAsync = useCallback(async <T>(
-    fn: () => Promise<T>,
-    options: RetryOptions = {}
-  ): Promise<T> => {
-    setIsRetrying(true);
-    setRetryCount(0);
-    
-    try {
-      return await retry(fn, {
-        ...options,
-        onRetry: (error, attempt) => {
-          setRetryCount(attempt);
-          if (options.onRetry) {
-            options.onRetry(error, attempt);
-          }
-        }
-      });
-    } finally {
-      setIsRetrying(false);
-    }
-  }, []);
-  
-  return {
-    retryAsync,
-    retryCount,
-    isRetrying
-  };
 }
