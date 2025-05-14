@@ -22,11 +22,12 @@ import SettingsPage from "@/pages/settings/SettingsPage";
 import ProfileSettings from "@/pages/settings/ProfileSettings";
 import BillingPage from "@/pages/billing/BillingPage";
 import Unauthorized from "@/pages/unauthorized";
+import { ProtectedRoute } from "./protectedRoutes";
 
 export const mainRoutes: RouteObject[] = [
   {
     path: "/",
-    element: <RequireAuth><MainLayout /></RequireAuth>,
+    element: <ProtectedRoute path="/" element={<MainLayout><Outlet /></MainLayout>} />,
     children: [
       {
         index: true,
@@ -111,7 +112,7 @@ export const mainRoutes: RouteObject[] = [
       },
       {
         path: "settings/billing",
-        element: <BillingPage />
+        element: <ProtectedRoute path="/settings/billing" element={<BillingPage />} roles={['admin', 'owner']} />
       },
       {
         path: "unauthorized",

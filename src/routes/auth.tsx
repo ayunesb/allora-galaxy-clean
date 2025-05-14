@@ -6,6 +6,14 @@ import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import { AuthGuard } from "@/components/auth/AuthGuard";
+
+// Auth routes - no auth required, but redirect to dashboard if already logged in
+const redirectToDashboardIfLoggedIn = (element: JSX.Element) => (
+  <AuthGuard roles={[]}>
+    <Navigate to="/dashboard" replace />
+  </AuthGuard>
+);
 
 export const authRoutes: RouteObject[] = [
   {

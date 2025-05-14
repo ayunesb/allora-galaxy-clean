@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { useTenantId } from '@/hooks/useTenantId';
 import { UserRole } from '@/types/shared';
 
 /**
@@ -13,15 +14,20 @@ export function useTenantRole(tenantId?: string): {
   role: UserRole | null;
   loading: boolean;
   error: Error | null;
+  hasRole: (requiredRoles: UserRole[] | UserRole) => boolean;
 } {
   const { user } = useAuth();
+  const currentTenantId = useTenantId();
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Use provided tenantId or fall back to current tenant
+  const effectiveTenantId = tenantId || currentTenantId;
 
   useEffect(() => {
     const fetchRole = async () => {
-      if (!user || !tenantId) {
+      if (!user || !effectiveTenantId) {
         setLoading(false);
         return;
       }
@@ -31,7 +37,7 @@ export function useTenantRole(tenantId?: string): {
         const { data, error } = await supabase
           .from('tenant_user_roles')
           .select('role')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', effectiveTenantId)
           .eq('user_id', user.id)
           .single();
 
@@ -47,9 +53,25 @@ export function useTenantRole(tenantId?: string): {
     };
 
     fetchRole();
-  }, [user, tenantId]);
+  }, [user, effectiveTenantId]);
 
-  return { role, loading, error };
+  /**
+   * Check if the user has any of the required roles
+   * @param requiredRoles Single role or array of roles to check against
+   * @returns boolean indicating if user has the required role
+   */
+  const hasRole = (requiredRoles: UserRole[] | UserRole): boolean => {
+    if (!role) return false;
+    
+    // Admin and owner have access to everything
+    if (role === 'admin' || role === 'owner') return true;
+    
+    // Check against single role or array of roles
+    const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    return roles.includes(role);
+  };
+
+  return { role, loading, error, hasRole };
 }
 
 export default useTenantRole;

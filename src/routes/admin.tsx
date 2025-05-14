@@ -1,8 +1,7 @@
 
 import { RouteObject } from "react-router-dom";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import AdminLayout from "@/components/layout/AdminLayout";
-import { RequireAuth } from "@/components/auth/RequireAuth";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemLogs from "@/pages/admin/SystemLogs";
@@ -10,11 +9,16 @@ import AiDecisions from "@/pages/admin/AiDecisions";
 import PluginLogs from "@/pages/admin/PluginLogs";
 import CronJobsPage from "@/pages/admin/CronJobsPage";
 import ApiKeysPage from "@/pages/admin/ApiKeysPage";
+import { ProtectedRoute } from "./protectedRoutes";
 
 export const adminRoutes: RouteObject[] = [
   {
     path: "/admin",
-    element: <RequireAuth roles={['admin', 'owner']}><AdminLayout><Outlet /></AdminLayout></RequireAuth>,
+    element: <ProtectedRoute 
+      path="/admin" 
+      element={<AdminLayout><Outlet /></AdminLayout>} 
+      roles={['admin', 'owner']} 
+    />,
     children: [
       {
         index: true,
@@ -51,3 +55,5 @@ export const adminRoutes: RouteObject[] = [
     ]
   }
 ];
+
+import { Navigate } from "react-router-dom";

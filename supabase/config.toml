@@ -89,3 +89,5 @@ verify_jwt = true
 verify_jwt = true
 [functions.send-webhook-alert]
 verify_jwt = true
+[functions.check-access]
+verify_jwt = true
