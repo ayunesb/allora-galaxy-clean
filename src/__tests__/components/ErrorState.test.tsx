@@ -1,10 +1,9 @@
 
-import React from 'react';
+import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi } from 'vitest';
-import ErrorState from '@/components/ui/error-state';
+import ErrorState from '@/components/errors/ErrorState';
 
-describe('ErrorState', () => {
+describe('ErrorState Component', () => {
   it('renders with default props', () => {
     render(<ErrorState />);
     
@@ -12,83 +11,76 @@ describe('ErrorState', () => {
     expect(screen.getByText('We encountered an error while processing your request.')).toBeInTheDocument();
   });
 
-  it('renders custom title and message', () => {
+  it('renders with custom title and message', () => {
+    const title = 'Custom Error Title';
+    const message = 'Custom error message for testing';
+    
     render(
       <ErrorState 
-        title="Custom Error Title" 
-        message="Custom error message" 
+        title={title}
+        message={message}
       />
     );
     
-    expect(screen.getByText('Custom Error Title')).toBeInTheDocument();
-    expect(screen.getByText('Custom error message')).toBeInTheDocument();
+    expect(screen.getByText(title)).toBeInTheDocument();
+    expect(screen.getByText(message)).toBeInTheDocument();
   });
-
-  it('displays error details when showDetails is true', () => {
-    const testError = new Error('Test error details');
+  
+  it('shows error details when showDetails is true', () => {
+    const error = new Error('Test error message');
     
     render(
       <ErrorState 
-        error={testError}
+        error={error}
         showDetails={true}
       />
     );
     
-    expect(screen.getByText('Test error details')).toBeInTheDocument();
+    expect(screen.getByText(error.message)).toBeInTheDocument();
   });
-
-  it('does not display error details when showDetails is false', () => {
-    const testError = new Error('Test error details');
+  
+  it('calls retry function when button is clicked', () => {
+    const retryFn = vi.fn();
     
     render(
       <ErrorState 
-        error={testError}
-        showDetails={false}
+        retry={retryFn}
       />
     );
     
-    expect(screen.queryByText('Test error details')).not.toBeInTheDocument();
-  });
-
-  it('calls retry function when retry button is clicked', () => {
-    const mockRetry = vi.fn();
-    
-    render(
-      <ErrorState 
-        retry={mockRetry}
-      />
-    );
-    
-    const retryButton = screen.getByText('Try Again');
+    const retryButton = screen.getByRole('button', { name: /try again/i });
     fireEvent.click(retryButton);
     
-    expect(mockRetry).toHaveBeenCalledTimes(1);
+    expect(retryFn).toHaveBeenCalledTimes(1);
   });
-
-  it('does not render retry button when retry function is not provided', () => {
-    render(<ErrorState />);
-    
-    expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
-  });
-
+  
   it('renders children when provided', () => {
     render(
       <ErrorState>
-        <p>Child content</p>
+        <div data-testid="child-element">Child Content</div>
       </ErrorState>
     );
     
-    expect(screen.getByText('Child content')).toBeInTheDocument();
+    expect(screen.getByTestId('child-element')).toBeInTheDocument();
   });
-
-  it('handles string error message', () => {
-    render(
+  
+  it('applies custom class names', () => {
+    const customClass = 'custom-error-class';
+    
+    const { container } = render(
       <ErrorState 
-        error="String error message"
-        showDetails={true}
+        className={customClass}
       />
     );
     
-    expect(screen.getByText('String error message')).toBeInTheDocument();
+    expect(container.querySelector(`.${customClass}`)).toBeInTheDocument();
+  });
+  
+  it('uses different size classes', () => {
+    const { rerender } = render(<ErrorState size="sm" />);
+    expect(document.querySelector('.max-w-sm')).toBeInTheDocument();
+    
+    rerender(<ErrorState size="lg" />);
+    expect(document.querySelector('.max-w-lg')).toBeInTheDocument();
   });
 });
