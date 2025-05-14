@@ -1,73 +1,138 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { NotificationContent } from '@/types/notifications';
-import { useNotifications } from '@/lib/notifications/useNotifications';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Notification, NotificationContent, convertToNotificationContent } from '@/types/notifications';
 
-export interface UseNotificationDataResult {
-  notifications: NotificationContent[];
-  unreadCount: number;
-  isLoading: boolean;
-  error: Error | null;
-  refresh: () => Promise<void>;
-}
-
-export const useNotificationData = (filter = 'all'): UseNotificationDataResult => {
-  const {
-    notifications: allNotifications,
-    unreadCount,
-    isLoading,
-    error,
-    refreshNotifications
-  } = useNotifications();
+export const useNotificationData = (limit = 20) => {
+  const [notifications, setNotifications] = useState<NotificationContent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   
-  const [filteredNotifications, setFilteredNotifications] = useState<NotificationContent[]>([]);
-
-  // Apply filters to notifications
   useEffect(() => {
-    if (!allNotifications) {
-      setFilteredNotifications([]);
-      return;
-    }
+    fetchNotifications();
+  }, []);
 
-    let result = [...allNotifications];
+  const fetchNotifications = async () => {
+    setIsLoading(true);
+    setError(null);
     
-    // Convert database notifications to UI-ready format
-    const mappedNotifications: NotificationContent[] = result.map(notification => ({
-      id: notification.id,
-      title: notification.title,
-      message: notification.description || '',
-      timestamp: notification.created_at,
-      read: notification.is_read || false,
-      type: notification.type,
-      action_url: notification.action_url,
-      action_label: notification.action_label,
-      metadata: notification.metadata,
-    }));
-    
-    // Apply filter
-    if (filter === 'unread') {
-      setFilteredNotifications(mappedNotifications.filter(n => !n.read));
-    } else if (filter === 'system') {
-      setFilteredNotifications(mappedNotifications.filter(n => n.type === 'system'));
-    } else {
-      setFilteredNotifications(mappedNotifications);
-    }
-  }, [allNotifications, filter]);
-
-  // Wrap refresh function to match expected Promise<void> return type
-  const refresh = useCallback(async (): Promise<void> => {
     try {
-      await refreshNotifications();
-    } catch (error) {
-      console.error('Error refreshing notifications:', error);
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) throw error;
+      
+      // Convert to NotificationContent format
+      const notificationContent = (data || []).map((notification: Notification) => 
+        convertToNotificationContent(notification)
+      );
+      
+      setNotifications(notificationContent);
+    } catch (err: any) {
+      console.error('Error fetching notifications:', err);
+      setError(err instanceof Error ? err : new Error(err.message));
+    } finally {
+      setIsLoading(false);
     }
-  }, [refreshNotifications]);
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('user_id', userData.user.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true } 
+            : notification
+        )
+      );
+    } catch (err: any) {
+      console.error('Error marking notification as read:', err);
+      throw err;
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('user_id', userData.user.id)
+        .is('read_at', null);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
+    } catch (err: any) {
+      console.error('Error marking all notifications as read:', err);
+      throw err;
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userData.user.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting notification:', err);
+      throw err;
+    }
+  };
 
   return {
-    notifications: filteredNotifications,
-    unreadCount,
+    notifications,
     isLoading,
     error,
-    refresh
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
   };
 };
+
+export default useNotificationData;

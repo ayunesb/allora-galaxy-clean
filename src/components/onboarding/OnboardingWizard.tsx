@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import OnboardingProgress from './OnboardingProgress';
-import StepContent, { OnboardingStep } from './StepContent';
+import StepContent from './StepContent';
 import StepNavigation from './StepNavigation';
 import { OnboardingErrorDialog } from './OnboardingErrorDialog';
 import { useOnboardingWizard } from '@/hooks/useOnboardingWizard';
@@ -22,12 +22,24 @@ export const OnboardingWizard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleStepClick = (step: OnboardingStep) => {
-    goToStep(step);
+  // Convert step index to step name for StepContent
+  const getStepNameFromIndex = (stepIndex: number): string => {
+    const steps = [
+      'company-info',
+      'additional-info',
+      'persona',
+      'strategy-generation',
+      'completed'
+    ];
+    return steps[stepIndex] || steps[0];
+  };
+
+  const handleStepClick = (stepIndex: number) => {
+    goToStep(stepIndex);
   };
 
   const handleNextStep = async () => {
-    if (currentStep === 'strategy-generation') {
+    if (currentStep === 3) { // Index 3 is 'strategy-generation'
       setIsSubmitting(true);
       try {
         await completeOnboardingProcess();
@@ -52,13 +64,13 @@ export const OnboardingWizard: React.FC = () => {
       
       <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <StepContent 
-          currentStep={currentStep}
+          currentStep={getStepNameFromIndex(currentStep)}
           formData={formData}
           updateFormData={updateFormData}
         />
         
         <StepNavigation
-          currentStep={0}
+          currentStep={currentStep}
           totalSteps={5}
           isSubmitting={isSubmitting}
           isNextDisabled={isLoading}

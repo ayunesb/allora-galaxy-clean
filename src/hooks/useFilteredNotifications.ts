@@ -1,75 +1,51 @@
 
-import { useMemo } from 'react';
-import { useNotifications } from '@/lib/notifications/useNotifications';
-import { Notification, NotificationType } from '@/types/notifications';
+import { useState, useMemo } from 'react';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Notification } from '@/types/notifications';
 
-interface UseFilteredNotificationsOptions {
-  type?: NotificationType | 'all';
-  unreadOnly?: boolean;
-  limit?: number;
-}
+type FilterType = 'all' | 'unread' | 'read';
 
-export function useFilteredNotifications(options: UseFilteredNotificationsOptions = {}) {
-  const { type = 'all', unreadOnly = false, limit } = options;
-  const { notifications, loading } = useNotifications();
+export const useFilteredNotifications = () => {
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification, refreshNotifications } = useNotifications();
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const filteredNotifications = useMemo(() => {
     let filtered = [...notifications];
     
-    // Filter by type if not 'all'
-    if (type !== 'all') {
-      filtered = filtered.filter((notification: Notification) => notification.type === type);
+    // Apply read/unread filter
+    if (filter === 'unread') {
+      filtered = filtered.filter(notification => !notification.is_read);
+    } else if (filter === 'read') {
+      filtered = filtered.filter(notification => notification.is_read);
     }
     
-    // Filter by read status if unreadOnly is true
-    if (unreadOnly) {
-      filtered = filtered.filter((notification: Notification) => !notification.is_read);
-    }
-    
-    // Sort by creation date (newest first)
-    filtered.sort((a: Notification, b: Notification) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-    
-    // Apply limit if provided
-    if (limit && limit > 0) {
-      filtered = filtered.slice(0, limit);
+    // Apply search term filter
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        notification => 
+          notification.title.toLowerCase().includes(lowerSearchTerm) || 
+          notification.message.toLowerCase().includes(lowerSearchTerm)
+      );
     }
     
     return filtered;
-  }, [notifications, type, unreadOnly, limit]);
+  }, [notifications, filter, searchTerm]);
 
   return {
     notifications: filteredNotifications,
-    loading,
-    count: filteredNotifications.length
+    unreadCount,
+    isLoading,
+    filter,
+    searchTerm,
+    setFilter,
+    setSearchTerm,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refreshNotifications,
   };
-}
+};
 
-export function useNotificationStats() {
-  const { notifications } = useNotifications();
-  
-  return useMemo(() => {
-    const stats = {
-      total: notifications.length,
-      unread: 0,
-      byType: {} as Record<string, number>
-    };
-    
-    notifications.forEach((notification: Notification) => {
-      // Count unread
-      if (!notification.is_read) {
-        stats.unread++;
-      }
-      
-      // Count by type
-      const type = notification.type || 'unknown';
-      if (!stats.byType[type]) {
-        stats.byType[type] = 0;
-      }
-      stats.byType[type]++;
-    });
-    
-    return stats;
-  }, [notifications]);
-}
+export default useFilteredNotifications;

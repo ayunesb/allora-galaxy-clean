@@ -34,7 +34,11 @@ export function SidebarNav({
                 {item.title}
               </span>
               <div className="ml-4 mt-1">
-                <SidebarNav items={item.items} setOpen={setOpen} hasNested />
+                <SidebarNav 
+                  items={item.items} 
+                  setOpen={setOpen} 
+                  hasNested={true} 
+                />
               </div>
             </div>
           );
@@ -66,3 +70,5 @@ export function SidebarNav({
     </nav>
   );
 }
+
+export default SidebarNav;

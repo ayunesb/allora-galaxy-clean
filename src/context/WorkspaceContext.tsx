@@ -1,152 +1,169 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Tenant } from '@/types/tenant';
-import { fetchWorkspaces, createWorkspace as createWorkspaceService } from '@/services/workspaceService';
-import { NavigationItem } from '@/types/navigation';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { NavigationItem } from '@/types/shared';
+
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  owner_id: string;
+  metadata?: Record<string, any>;
+}
 
 export interface WorkspaceContextType {
-  // Primary properties (new naming convention)
-  currentWorkspace: Tenant | null;
-  workspaces: Tenant[];
-  isLoading: boolean;
-  error: Error | null;
-  navigationItems: NavigationItem[];
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-  refreshWorkspaces: () => Promise<void>;
-  updateCurrentWorkspace: (workspaceId: string) => void;
+  currentWorkspace: Workspace | null;
+  setCurrentWorkspace: (workspace: Workspace | null) => void;
+  workspaces: Workspace[];
+  loading: boolean;
   userRole: string | null;
-  
-  // Backward compatibility properties
-  tenant?: Tenant | null;
-  currentTenant?: Tenant | null;
-  loading?: boolean;
-  tenants?: Tenant[];
-  setCurrentWorkspace?: (workspaceId: string) => void;
-  toggleCollapsed?: () => void;
-  createWorkspace: (name: string, slug?: string) => Promise<Tenant | null>;
+  navigationItems: NavigationItem[];
+  refreshWorkspaces: () => Promise<void>;
+  // For backward compatibility
+  tenant: Workspace | null;
+  tenants: Workspace[];
+  setTenant: (workspace: Workspace | null) => void;
+  isLoading: boolean;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType>({
-  currentWorkspace: null,
-  workspaces: [],
-  isLoading: true,
-  refreshWorkspaces: async () => {},
-  updateCurrentWorkspace: () => {},
-  userRole: null,
-  collapsed: false,
-  setCollapsed: () => {},
-  error: null,
-  navigationItems: [],
-  createWorkspace: async () => null
-});
+const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
-export const useWorkspace = () => useContext(WorkspaceContext);
-
-interface WorkspaceProviderProps {
-  children: ReactNode;
-}
-
-export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
-  const [currentWorkspace, setCurrentWorkspaceState] = useState<Tenant | null>(null);
-  const [workspaces, setWorkspaces] = useState<Tenant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
   const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
 
-  // Load workspaces on mount and set the current workspace
+  const fetchWorkspaces = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('tenant_user_roles')
+        .select('tenant_id, role')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+        
+      if (rolesError) throw rolesError;
+      
+      const tenantIds = userRoles?.map(role => role.tenant_id) || [];
+      
+      if (tenantIds.length === 0) {
+        setWorkspaces([]);
+        setLoading(false);
+        return;
+      }
+      
+      const { data: tenantsData, error: tenantsError } = await supabase
+        .from('tenants')
+        .select('*')
+        .in('id', tenantIds);
+        
+      if (tenantsError) throw tenantsError;
+      
+      setWorkspaces(tenantsData || []);
+      
+      // If there's a current workspace in local storage, try to load it
+      const savedTenantId = localStorage.getItem('currentWorkspaceId');
+      if (savedTenantId && tenantsData) {
+        const savedTenant = tenantsData.find(t => t.id === savedTenantId);
+        if (savedTenant) {
+          setCurrentWorkspace(savedTenant);
+          
+          // Also fetch user role for this workspace
+          const userRoleRecord = userRoles?.find(r => r.tenant_id === savedTenant.id);
+          setUserRole(userRoleRecord?.role || null);
+        } else if (tenantsData.length > 0) {
+          // If saved tenant not found but there are tenants, use the first one
+          setCurrentWorkspace(tenantsData[0]);
+        }
+      } else if (tenantsData && tenantsData.length > 0) {
+        // No saved tenant, use the first one
+        setCurrentWorkspace(tenantsData[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching workspaces:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    loadWorkspaces();
+    fetchWorkspaces();
+    
+    // Subscribe to tenant changes
+    const channel = supabase
+      .channel('public:tenants')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tenants' }, () => {
+        fetchWorkspaces();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const loadWorkspaces = async () => {
-    setIsLoading(true);
-    try {
-      const workspacesData = await fetchWorkspaces();
-      setWorkspaces(workspacesData);
-
-      // Try to set current workspace from local storage
-      const storedWorkspaceId = localStorage.getItem('currentWorkspaceId');
-      if (storedWorkspaceId && workspacesData.some(w => w.id === storedWorkspaceId)) {
-        const workspace = workspacesData.find(w => w.id === storedWorkspaceId);
-        if (workspace) {
-          setCurrentWorkspaceState(workspace);
-        }
-      } else if (workspacesData.length > 0) {
-        // Default to first workspace if no stored workspace
-        setCurrentWorkspaceState(workspacesData[0]);
-        localStorage.setItem('currentWorkspaceId', workspacesData[0].id);
-      }
-
-      setIsLoading(false);
-    } catch (error: any) {
-      console.error('Error loading workspaces:', error);
-      setError(error);
-      setIsLoading(false);
+  // When current workspace changes, save it to local storage
+  useEffect(() => {
+    if (currentWorkspace) {
+      localStorage.setItem('currentWorkspaceId', currentWorkspace.id);
     }
-  };
+  }, [currentWorkspace]);
 
-  const refreshWorkspaces = async () => {
-    await loadWorkspaces();
-  };
-
-  const updateCurrentWorkspace = (workspaceId: string) => {
-    const workspace = workspaces.find(w => w.id === workspaceId);
-    if (workspace) {
-      setCurrentWorkspaceState(workspace);
-      localStorage.setItem('currentWorkspaceId', workspaceId);
-    }
-  };
-
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed);
-  };
-
-  const createWorkspace = async (name: string, slug?: string): Promise<Tenant | null> => {
-    try {
-      const newWorkspace = await createWorkspaceService({ name, slug });
-      if (newWorkspace) {
-        await refreshWorkspaces(); // Reload workspaces to include the new one
-        return newWorkspace;
-      }
-      return null;
-    } catch (error: any) {
-      console.error('Error creating workspace:', error);
-      setError(error);
-      return null;
-    }
-  };
-
-  const value: WorkspaceContextType = {
-    // Primary properties
-    currentWorkspace,
-    workspaces,
-    isLoading,
-    error,
-    navigationItems,
-    collapsed,
-    setCollapsed,
-    refreshWorkspaces,
-    updateCurrentWorkspace,
-    userRole,
-    createWorkspace,
+  const handleSetCurrentWorkspace = (workspace: Workspace | null) => {
+    setCurrentWorkspace(workspace);
     
-    // Backward compatibility properties
-    tenant: currentWorkspace,
-    currentTenant: currentWorkspace,
-    loading: isLoading,
-    tenants: workspaces,
-    setCurrentWorkspace: updateCurrentWorkspace,
-    toggleCollapsed
+    if (workspace) {
+      // Update user role for this workspace
+      supabase
+        .from('tenant_user_roles')
+        .select('role')
+        .eq('tenant_id', workspace.id)
+        .eq('user_id', (supabase.auth.getUser()))
+        .single()
+        .then(({ data }) => {
+          setUserRole(data?.role || null);
+        });
+    } else {
+      setUserRole(null);
+    }
   };
+
+  // For backward compatibility
+  const tenant = currentWorkspace;
+  const tenants = workspaces;
+  const setTenant = handleSetCurrentWorkspace;
+  const isLoading = loading;
 
   return (
-    <WorkspaceContext.Provider value={value}>
+    <WorkspaceContext.Provider
+      value={{
+        currentWorkspace,
+        setCurrentWorkspace: handleSetCurrentWorkspace,
+        workspaces,
+        loading,
+        userRole,
+        navigationItems,
+        refreshWorkspaces: fetchWorkspaces,
+        // For backward compatibility
+        tenant,
+        tenants,
+        setTenant,
+        isLoading
+      }}
+    >
       {children}
     </WorkspaceContext.Provider>
   );
+};
+
+export const useWorkspace = (): WorkspaceContextType => {
+  const context = useContext(WorkspaceContext);
+  if (context === undefined) {
+    throw new Error('useWorkspace must be used within a WorkspaceProvider');
+  }
+  return context;
 };
 
 export default WorkspaceContext;
