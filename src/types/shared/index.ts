@@ -1,44 +1,57 @@
 
-// Re-export all shared types and interfaces
-export * from './types';
+// Core shared types used across the application
 
-// Common enums
-export enum VoteType {
-  Up = 'up',
-  Down = 'down',
-  Neutral = 'neutral'
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+export type VoteType = 'up' | 'down';
+
+export type OnboardingStep = 'welcome' | 'company' | 'persona' | 'additional' | 'generation' | 'complete';
+
+export type NotificationType = 'system' | 'strategy' | 'alert' | 'update' | 'info';
+
+export interface FilterState {
+  module?: string[];
+  eventType?: string[];
+  dateRange?: {
+    from: Date | string | null;
+    to: Date | string | null;
+  };
+  status?: string[];
+  search?: string;
 }
 
-export enum TrendDirection {
-  Up = 'up',
-  Down = 'down',
-  Neutral = 'neutral'
+// Comment type used for agent voting
+export interface Comment {
+  id: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  user?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
 }
 
-export enum FilterState {
-  All = 'all',
-  Active = 'active',
-  Complete = 'complete',
-  Pending = 'pending'
+// Vote type for agent voting
+export interface Vote {
+  id: string;
+  agent_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  created_at: string;
 }
 
-export enum NotificationType {
-  Info = 'info',
-  Success = 'success',
-  Warning = 'warning',
-  Error = 'error',
-  System = 'system'
+// System log type
+export interface SystemLog {
+  id: string;
+  tenant_id: string;
+  module: string; 
+  event: string;
+  context: Record<string, any>;
+  created_at: string;
+  user_id?: string;
+  metadata?: Record<string, any>;
+  status?: string;
 }
-
-export type DateRange = {
-  from: Date;
-  to?: Date;
-};
-
-export type OnboardingStep = 
-  | 'welcome'
-  | 'company'
-  | 'persona'
-  | 'team'
-  | 'goals'
-  | 'complete';

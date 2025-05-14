@@ -1,24 +1,27 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { KPITrend } from '@/types/kpi';
 import KPICard from '@/components/KPICard';
-import KPICardSkeleton from '@/components/skeletons/KPICardSkeleton';
+import { KPICardSkeleton } from '@/components/skeletons/KPICardSkeleton';
 
 export interface KpiSectionProps {
   title: string;
   kpis?: KPITrend[];
   isLoading?: boolean;
   className?: string;
+  kpiData?: any[];
 }
 
 const KpiSection: React.FC<KpiSectionProps> = ({
   title,
   kpis = [],
+  kpiData = [],
   isLoading = false,
   className = '',
 }) => {
+  const dataToRender = kpis.length > 0 ? kpis : kpiData;
+
   if (isLoading) {
     return (
       <div className={`space-y-4 ${className}`}>
@@ -33,7 +36,7 @@ const KpiSection: React.FC<KpiSectionProps> = ({
     );
   }
 
-  if (kpis.length === 0) {
+  if (dataToRender.length === 0) {
     return (
       <div className={`space-y-4 ${className}`}>
         <h2 className="text-2xl font-semibold">{title}</h2>
@@ -48,12 +51,12 @@ const KpiSection: React.FC<KpiSectionProps> = ({
     <div className={`space-y-4 ${className}`}>
       <h2 className="text-2xl font-semibold">{title}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi, index) => (
+        {dataToRender.map((kpi, index) => (
           <KPICard 
             key={kpi.id || index}
             title={kpi.name}
             value={kpi.value}
-            previousValue={kpi.previousValue}
+            previous={kpi.previousValue}
             change={kpi.change}
             changePercent={kpi.changePercent}
             direction={kpi.direction}

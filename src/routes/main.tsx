@@ -13,6 +13,7 @@ import PluginDetailPage from "@/pages/plugins/PluginDetailPage";
 import PluginEvolutionPage from "@/pages/plugins/PluginEvolutionPage";
 import AgentPerformance from "@/pages/agents/AgentPerformance";
 import KpiDashboard from "@/pages/insights/KpiDashboard";
+import KpiTrends from "@/pages/insights/KpiTrends";
 import EvolutionPage from "@/pages/evolution";
 import StrategyEngine from "@/pages/strategy/StrategyEngine";
 import AlloraBrainPage from "@/pages/allora-brain/AlloraBrainPage";
@@ -75,8 +76,17 @@ export const mainRoutes: RouteObject[] = [
         element: <AgentPerformance />
       },
       {
-        path: "insights/kpis",
-        element: <KpiDashboard />
+        path: "insights",
+        children: [
+          {
+            path: "kpis",
+            element: <KpiDashboard />
+          },
+          {
+            path: "trends",
+            element: <KpiTrends />
+          }
+        ]
       },
       {
         path: "evolution",
