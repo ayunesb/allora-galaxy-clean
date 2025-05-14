@@ -1,72 +1,93 @@
 
 import React from 'react';
-import ErrorBoundary from './ErrorBoundary';
-import { AlertTriangle } from 'lucide-react';
+import { ErrorBoundary } from './ErrorBoundary';
+import { Button } from '@/components/ui/button';
+import { Home, RefreshCw } from 'lucide-react';
+import { useTenantId } from '@/hooks/useTenantId';
+import { useRouter } from 'next/router';
 
-interface PageErrorFallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
-  supportEmail?: string;
-  tenantId: string;
+interface PageErrorBoundaryProps {
+  children: React.ReactNode;
+  title?: string;
+  description?: string;
+  redirectHome?: boolean;
 }
 
 /**
- * Error fallback for page-level errors - shows a user-friendly error page
+ * Error boundary specifically designed for page-level errors
  */
-export const PageErrorFallback: React.FC<PageErrorFallbackProps> = ({ 
-  error, 
-  resetErrorBoundary, 
-  supportEmail = 'support@allora.com',
-  tenantId
+export const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({
+  children,
+  title = 'Page Error',
+  description = 'Something went wrong when loading this page.',
+  redirectHome = true,
 }) => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white shadow-lg rounded-lg">
-        <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-          </div>
-          <h2 className="mt-6 text-2xl font-bold text-gray-900">Something went wrong</h2>
-          <p className="mt-2 text-gray-600">
-            We're sorry, but something unexpectedly went wrong. Our team has been notified.
-          </p>
-          <div className="mt-4 border p-4 rounded-md bg-gray-50 text-sm text-left overflow-auto max-h-32">
-            <p className="text-red-600 font-mono">{error.message}</p>
-          </div>
-          <div className="mt-6 flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <button
-              onClick={resetErrorBoundary}
-              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Try again
-            </button>
-            <button
-              onClick={() => window.location.href = '/'}
-              className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Go to Homepage
-            </button>
-          </div>
-          <p className="mt-8 text-xs text-gray-500">
-            If the problem persists, please contact our support team at{' '}
-            <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline">
-              {supportEmail}
-            </a>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
+  const tenantId = useTenantId();
+  const router = useRouter();
 
-/**
- * Page Error Boundary for catching errors at page level
- */
-const PageErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <ErrorBoundary
-      level="page"
-      fallback={<PageErrorFallback error={new Error()} resetErrorBoundary={() => {}} tenantId="system" />}
+      title={title}
+      description={description}
+      fallback={({ error, resetErrorBoundary }) => (
+        <div className="container flex flex-col items-center justify-center min-h-[60vh] py-12">
+          <div className="text-destructive mb-6">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          
+          <h2 className="text-2xl font-bold mb-3">{title}</h2>
+          <p className="text-muted-foreground text-center max-w-md mb-6">
+            {description}
+          </p>
+          
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="bg-muted p-4 rounded-md mb-6 w-full max-w-md">
+              <h3 className="text-sm font-semibold mb-2">Error details:</h3>
+              <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-[200px]">
+                {error.message}
+                {error.stack && (
+                  <div className="mt-2 text-xs opacity-70">{error.stack}</div>
+                )}
+              </pre>
+            </div>
+          )}
+          
+          <div className="flex gap-4">
+            <Button 
+              variant="outline"
+              onClick={resetErrorBoundary}
+              className="flex items-center"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+            
+            {redirectHome && (
+              <Button 
+                onClick={() => router.push('/')}
+                className="flex items-center"
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Back to Home
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     >
       {children}
     </ErrorBoundary>

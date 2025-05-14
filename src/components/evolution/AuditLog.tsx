@@ -1,89 +1,101 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { useAuditLogData } from '@/hooks/admin/useAuditLogData';
-import { AuditLogFilterState } from '@/components/evolution/logs/AuditLogFilters';
-import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import { AuditLog as AuditLogType } from '@/types/logs';
+import AuditLogFilters, { AuditLogFilters as FilterType } from '@/components/evolution/logs/AuditLogFilters';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
+import { Loader2 } from 'lucide-react';
 
-export interface AuditLogProps {
-  title?: string;
-  subtitle?: string;
-  data?: AuditLogType[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
-}
+const AuditLog: React.FC = () => {
+  const tenantId = useTenantId();
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState<FilterType>({});
 
-export const AuditLog: React.FC<AuditLogProps> = ({
-  title = 'Audit Logs',
-  subtitle = 'Track changes across the system',
-  data,
-  isLoading,
-  onRefresh
-}) => {
-  const [activeTab, setActiveTab] = useState('all');
-  const [filters, setFilters] = useState<AuditLogFilterState>({});
-  
-  // If data is not provided as props, use the hook to fetch the data
-  const hookData = useAuditLogData(filters as any);
-  const logs = data || hookData.logs;
-  const loading = isLoading !== undefined ? isLoading : hookData.isLoading;
-  const handleRefresh = onRefresh || hookData.refetch;
+  const fetchLogs = async () => {
+    if (!tenantId) {
+      setIsLoading(false);
+      return;
+    }
 
-  const handleFilterChange = (newFilters: AuditLogFilterState) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let query = supabase
+        .from('system_logs')
+        .select('*')
+        .eq('tenant_id', tenantId);
+
+      // Apply filters
+      if (filters.module) {
+        query = query.eq('module', filters.module);
+      }
+      
+      if (filters.event) {
+        query = query.ilike('event', `%${filters.event}%`);
+      }
+      
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate.toISOString());
+      }
+      
+      if (filters.endDate) {
+        const endOfDay = new Date(filters.endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', endOfDay.toISOString());
+      }
+      
+      if (filters.search) {
+        query = query.or(`event.ilike.%${filters.search}%,module.ilike.%${filters.search}%`);
+      }
+
+      // Order by created_at DESC
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (err) {
+      console.error('Error fetching system logs:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch logs'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, [tenantId, filters]);
+
+  const handleFiltersChange = (newFilters: FilterType) => {
     setFilters(newFilters);
   };
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
-        <Separator className="my-2" />
-        <AuditLogFilters 
-          filters={filters} 
-          onFilterChange={handleFilterChange}
-          onRefresh={handleRefresh}
-          isLoading={loading}
-        />
+        <CardTitle className="flex items-center justify-between">
+          System Audit Log
+          {isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+        </CardTitle>
       </CardHeader>
-      
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="mb-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">All Activity</TabsTrigger>
-              <TabsTrigger value="user">User Events</TabsTrigger>
-              <TabsTrigger value="content">Content Changes</TabsTrigger>
-              <TabsTrigger value="system">System Events</TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value="all">
-            <SystemLogsList logs={logs} isLoading={loading} />
-          </TabsContent>
-          
-          <TabsContent value="user">
-            <SystemLogsList logs={logs.filter(log => 
-              log.module === 'user' || log.module === 'auth'
-            )} isLoading={loading} />
-          </TabsContent>
-          
-          <TabsContent value="content">
-            <SystemLogsList logs={logs.filter(log => 
-              log.module === 'strategy' || log.module === 'plugin' || log.module === 'agent'
-            )} isLoading={loading} />
-          </TabsContent>
-          
-          <TabsContent value="system">
-            <SystemLogsList logs={logs.filter(log => 
-              log.module === 'system' || log.module === 'billing' || log.module === 'tenant'
-            )} isLoading={loading} />
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-4">
+          <AuditLogFilters 
+            filters={filters} 
+            onFiltersChange={handleFiltersChange} 
+          />
+          <SystemLogsList 
+            logs={logs} 
+            isLoading={isLoading} 
+            error={error || undefined}
+            onRetry={fetchLogs}
+          />
+        </div>
       </CardContent>
     </Card>
   );

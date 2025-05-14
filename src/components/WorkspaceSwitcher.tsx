@@ -1,106 +1,113 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { ChevronsUpDown, Check, PlusCircle } from "lucide-react";
-import { useNavigate } from 'react-router-dom';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
-import { Workspace } from "@/contexts/workspace/types";
+import React from 'react';
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useWorkspaceContext } from "@/context/workspace-context";
+import type { WorkspaceContextType } from "@/types";
 
-/**
- * WorkspaceSwitcher allows users to switch between different tenants/workspaces
- */
-export function WorkspaceSwitcher() {
-  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace();
-  const [open, setOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const navigate = useNavigate();
+type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>;
 
-  // Handle workspace selection
-  const handleSelectWorkspace = async (workspaceId: string) => {
-    if (currentWorkspace?.id === workspaceId) return;
-    
-    const workspace = workspaces.find((w: Workspace) => w.id === workspaceId);
-    if (workspace) {
-      setCurrentWorkspace(workspace);
-      localStorage.setItem('currentWorkspaceId', workspace.id);
-      setOpen(false);
-      navigate('/dashboard');
-    }
-  };
+interface TeamSwitcherProps extends PopoverTriggerProps {}
 
-  // Open create workspace dialog
-  const handleCreateWorkspace = () => {
-    setCreating(true);
-    setOpen(false);
-  };
-
-  // Close create workspace dialog
-  const handleCloseCreateDialog = () => {
-    setCreating(false);
-  };
+export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
+  const [open, setOpen] = React.useState(false);
+  const { currentWorkspace, setCurrentWorkspace, tenants, loading } = useWorkspaceContext() as any;
 
   if (loading) {
     return (
-      <div className="flex items-center space-x-2">
-        <Skeleton className="h-8 w-[150px]" />
-      </div>
-    );
-  }
-
-  if (!currentWorkspace) {
-    return (
-      <Button variant="outline" onClick={handleCreateWorkspace}>
-        <PlusCircle className="mr-2 h-4 w-4" />
-        Create Workspace
+      <Button
+        variant="outline"
+        className={cn("w-[200px] justify-start", className)}
+      >
+        <Skeleton className="h-5 w-5 rounded-full" />
+        <Skeleton className="h-4 w-[100px] ml-2" />
       </Button>
     );
   }
 
   return (
-    <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" role="combobox" aria-expanded={open} className="w-[200px] justify-between">
-            {currentWorkspace.name}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-[200px]">
-          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {workspaces.map((workspace: Workspace) => (
-            <DropdownMenuItem
-              key={workspace.id}
-              onClick={() => handleSelectWorkspace(workspace.id)}
-              className="cursor-pointer"
-            >
-              <Check
-                className={`mr-2 h-4 w-4 ${currentWorkspace.id === workspace.id ? "opacity-100" : "opacity-0"}`}
-              />
-              <span>{workspace.name}</span>
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer" onClick={handleCreateWorkspace}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            <span>Create Workspace</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {creating && <CreateWorkspaceDialog open={creating} onClose={handleCloseCreateDialog} />}
-    </>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          aria-label="Select a workspace"
+          className={cn("w-[200px] justify-between", className)}
+        >
+          {currentWorkspace ? (
+            <>
+              <Avatar className="mr-2 h-5 w-5">
+                <AvatarImage
+                  src={`https://avatar.vercel.sh/${currentWorkspace.id}.png`}
+                  alt={currentWorkspace.name}
+                />
+                <AvatarFallback>{currentWorkspace.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              {currentWorkspace.name}
+            </>
+          ) : (
+            "Select workspace"
+          )}
+          <CaretSortIcon className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0">
+        <Command>
+          <CommandList>
+            <CommandInput placeholder="Search workspace..." />
+            <CommandEmpty>No workspace found.</CommandEmpty>
+            
+            <CommandGroup heading="Workspaces">
+              {tenants?.map((workspace: any) => (
+                <CommandItem
+                  key={workspace.id}
+                  onSelect={() => {
+                    setCurrentWorkspace(workspace);
+                    setOpen(false);
+                  }}
+                  className="text-sm"
+                >
+                  <Avatar className="mr-2 h-5 w-5">
+                    <AvatarImage
+                      src={`https://avatar.vercel.sh/${workspace.id}.png`}
+                      alt={workspace.name}
+                    />
+                    <AvatarFallback>{workspace.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  {workspace.name}
+                  <CheckIcon
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      currentWorkspace?.id === workspace.id
+                        ? "opacity-100"
+                        : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+          <CommandSeparator />
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
-
-export default WorkspaceSwitcher;

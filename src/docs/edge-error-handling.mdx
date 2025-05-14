@@ -1,0 +1,134 @@
+
+# Edge Function Error Handling Guide
+
+This guide explains our standardized approach to handling errors in edge functions.
+
+## Server-Side Error Handling
+
+### Response Format
+
+All edge function responses follow a consistent format:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { /* Response data */ },
+  "timestamp": "2023-05-14T10:30:00.000Z", 
+  "requestId": "req_1684062600000_abcdef"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "code": "ERROR_CODE",
+  "details": { /* Additional error details */ },
+  "timestamp": "2023-05-14T10:30:00.000Z",
+  "requestId": "req_1684062600000_abcdef",
+  "status": 400
+}
+```
+
+### Error Codes
+
+Common error codes used across edge functions:
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `BAD_REQUEST` | 400 | Invalid request format or data |
+| `UNAUTHORIZED` | 401 | Authentication required |
+| `FORBIDDEN` | 403 | Authenticated but not authorized |
+| `NOT_FOUND` | 404 | Resource not found |
+| `VALIDATION_ERROR` | 400 | Request validation failed |
+| `RATE_LIMITED` | 429 | Too many requests |
+| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| `SERVICE_UNAVAILABLE` | 503 | Service temporarily unavailable |
+
+### Request Validation
+
+All edge functions validate requests before processing:
+- Required fields are checked
+- Type checking is performed
+- Business rule validations are applied
+
+## Client-Side Error Handling
+
+### Using the useEdgeFunction Hook
+
+The simplest way to handle edge function errors:
+
+```tsx
+const { 
+  execute, 
+  data, 
+  error, 
+  isLoading 
+} = useEdgeFunction(
+  (params) => supabase.functions.invoke('function-name', { body: params }),
+  {
+    showToast: true,
+    errorMessage: 'Custom error message',
+    retryOnError: true
+  }
+);
+
+// Later call the function
+await execute({ param1: 'value' });
+```
+
+### Manual Error Handling
+
+For more control over error handling:
+
+```tsx
+import { processEdgeResponse, handleEdgeError } from '@/lib/errors/clientErrorHandler';
+
+try {
+  const response = await supabase.functions.invoke('function-name', { 
+    body: { /* params */ } 
+  });
+  
+  const data = await processEdgeResponse(response);
+  // Success handling
+} catch (error) {
+  handleEdgeError(error, { 
+    showToast: true,
+    fallbackMessage: 'Custom error message' 
+  });
+}
+```
+
+### Rendering Edge Function Errors
+
+Use the `EdgeFunctionError` component to display edge function errors:
+
+```tsx
+import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorHandler';
+
+function MyComponent() {
+  // ...
+  
+  if (error) {
+    return (
+      <EdgeFunctionError
+        error={error}
+        retry={retry}
+        showDetails={isDevelopment}
+      />
+    );
+  }
+  
+  // ...
+}
+```
+
+## Best Practices
+
+1. Always use request IDs for tracing errors across systems
+2. Log all errors with appropriate context on the server
+3. Include just enough detail in client-facing errors to be helpful without exposing sensitive information
+4. Provide retry mechanisms for transient errors
+5. Use appropriate HTTP status codes for different error types

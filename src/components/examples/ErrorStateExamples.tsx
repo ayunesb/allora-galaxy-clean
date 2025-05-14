@@ -1,474 +1,335 @@
 
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { z } from 'zod';
+import ErrorState from '@/components/errors/ErrorState';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FormRow } from '@/components/ui/form-row';
-import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
-import { 
-  ErrorState, 
-  CardErrorState, 
-  InlineError, 
-  PartialErrorState,
-  EmptyState, 
-  NoDataEmptyState,
-  NoSearchResultsEmptyState,
-  FormErrorSummary,
-  FormSubmitButton,
-  AsyncField
-} from '@/lib/errors';
-import { notify } from '@/lib/notifications/toast';
-import { retryUtils } from '@/lib/errors/retryUtils';
-import { ErrorBoundary } from '@/lib/errors';
+import { FormErrorSummary } from '@/components/errors/FormErrorSummary';
+import { toast } from "sonner";
+import { AlertCircle, FileSearch, Inbox } from 'lucide-react';
+import { retry } from '@/lib/errors/retryUtils';
+import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorHandler';
 
-/**
- * Example page showing the various error state components
- */
-const ErrorStateExamples = () => {
-  const [activeTab, setActiveTab] = useState('error-components');
-  const [loading, setLoading] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [showAsyncError, setShowAsyncError] = useState(false);
-  
-  // Simulate form submission with validation
-  const formSchema = z.object({
-    email: z.string().email({ message: "Please enter a valid email address" }),
-    password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-    confirmPassword: z.string()
-  }).refine(data => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"]
-  });
-  
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: ""
-    }
-  });
-  
-  const { formState: { errors } } = form;
-  
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    setLoading(true);
-    try {
-      // Simulate async validation
-      setValidating(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setValidating(false);
-      
-      if (data.email === 'taken@example.com') {
-        form.setError('email', { 
-          type: 'manual', 
-          message: 'This email is already taken' 
-        });
-        notify({
-          title: "Validation failed",
-          description: "This email is already taken. Please use another one."
-        });
-        return;
-      }
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Show success
-      notify({
-        title: "Form submitted successfully!",
-        description: "Thank you for your submission."
-      });
-    } catch (error) {
-      console.error("Form submission error:", error);
-      form.setError('root', { 
-        type: 'manual', 
-        message: 'Failed to submit form' 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Simulate async validation
-  const validateEmailAsync = async () => {
-    if (!form.getValues('email')) return;
-    
-    setValidating(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const email = form.getValues('email');
-      if (email === 'taken@example.com') {
-        form.setError('email', { 
-          type: 'manual', 
-          message: 'This email is already taken'
-        });
-        setShowAsyncError(true);
-      } else {
-        form.clearErrors('email');
-        setShowAsyncError(false);
-      }
-    } finally {
-      setValidating(false);
-    }
-  };
-  
-  return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Error State Components</h1>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 mb-8">
-          <TabsTrigger value="error-components">Error Components</TabsTrigger>
-          <TabsTrigger value="empty-states">Empty States</TabsTrigger>
-          <TabsTrigger value="form-validation">Form Validation</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="error-components" className="space-y-8">
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Error States</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Standard Error State</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ErrorState
-                    title="Failed to load data"
-                    message="We couldn't load the requested data. Please try again later."
-                    error={new Error("API connection timed out after 30 seconds")}
-                    retry={() => notify({ title: "Retrying..." })}
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Card Error State</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardErrorState
-                    title="Payment Failed"
-                    message="Your payment could not be processed. Please check your details and try again."
-                    onRetry={() => notify({ title: "Retrying payment..." })}
-                    onAction={() => notify({ title: "Contacting support..." })}
-                    actionLabel="Contact Support"
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Inline Error</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <InlineError
-                    message="Database connection failed"
-                    details="Cannot establish connection to the database server"
-                    onRetry={() => notify({ title: "Reconnecting..." })}
-                  />
-                  
-                  <Separator className="my-4" />
-                  
-                  <InlineError
-                    message="Invalid API key"
-                    variant="subtle"
-                    onRetry={() => notify({ title: "Checking API key..." })}
-                  />
-                  
-                  <Separator className="my-4" />
-                  
-                  <InlineError
-                    message="File not found"
-                    variant="minimal"
-                    severity="warning"
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Partial Error State</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <PartialErrorState
-                    title="Charts partially loaded"
-                    message="Analytics data could not be fully loaded"
-                    section="User Activity"
-                    variant="inline"
-                    onRetry={() => notify({ title: "Reloading analytics data..." })}
-                  />
-                  
-                  <Separator className="my-4" />
-                  
-                  <PartialErrorState
-                    message="Some plugin data is unavailable"
-                    section="Plugin Metrics"
-                    variant="embedded"
-                    onRetry={() => notify({ title: "Reloading plugin data..." })}
-                  />
-                  
-                  <Separator className="my-4" />
-                  
-                  <div className="relative">
-                    <PartialErrorState
-                      message="Dashboard statistics are incomplete"
-                      onRetry={() => notify({ title: "Reloading dashboard..." })}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Error Boundary</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">With Error</h3>
-                    <ErrorBoundary>
-                      <BuggyComponent />
-                    </ErrorBoundary>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Working Component</h3>
-                    <Card className="p-4">
-                      <p>This component works correctly</p>
-                      <Button className="mt-2" variant="outline">
-                        Click me
-                      </Button>
-                    </Card>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        </TabsContent>
-        
-        <TabsContent value="empty-states" className="space-y-8">
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Empty States</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Standard Empty State</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EmptyState
-                    title="No reports available"
-                    description="There are no reports available for the selected time period."
-                    icon={<AlertTriangle className="h-12 w-12" />}
-                    action={
-                      <Button>Create Report</Button>
-                    }
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Data Empty State</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <NoDataEmptyState
-                    onRefresh={() => notify({ title: "Refreshing data..." })}
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Search Results Empty State</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <NoSearchResultsEmptyState
-                    searchTerm="artificial intelligence"
-                    onClear={() => notify({ title: "Clearing search..." })}
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Filter Empty State</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <FilterEmptyState
-                    onReset={() => notify({ title: "Resetting filters..." })}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        </TabsContent>
-        
-        <TabsContent value="form-validation" className="space-y-8">
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Form Validation</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Form with Validation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      <FormErrorSummary errors={errors} />
-                      
-                      <AsyncField
-                        name="email"
-                        label="Email"
-                        validating={validating}
-                        asyncMessage={showAsyncError ? undefined : "Email available"}
-                      >
-                        <Input
-                          placeholder="Enter your email"
-                          onBlur={validateEmailAsync}
-                          {...form.register('email')}
-                        />
-                      </AsyncField>
-                      
-                      <FormRow label="Password" htmlFor="password" error={errors.password?.message}>
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="Create a password"
-                          {...form.register('password')}
-                        />
-                      </FormRow>
-                      
-                      <FormRow label="Confirm Password" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          placeholder="Confirm your password"
-                          {...form.register('confirmPassword')}
-                        />
-                      </FormRow>
-                      
-                      <FormSubmitButton loadingText="Creating Account..." disabled={loading}>
-                        Create Account
-                      </FormSubmitButton>
-                    </form>
-                  </Form>
-                  
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    <p>Try these validation scenarios:</p>
-                    <ul className="list-disc list-inside mt-2">
-                      <li>Submit without filling fields</li>
-                      <li>Use an invalid email format</li>
-                      <li>Enter "taken@example.com" to see async validation</li>
-                      <li>Enter non-matching passwords</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Form Components</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <Label className="mb-2 block">Form Error Summary</Label>
-                    <FormErrorSummary
-                      errors={{
-                        "email": "Please enter a valid email address",
-                        "password": "Password must be at least 8 characters",
-                        "confirmPassword": "Passwords do not match"
-                      }}
-                    />
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <Label className="mb-2 block">Form Submit Button States</Label>
-                    <div className="space-y-2">
-                      <FormSubmitButton>
-                        Submit
-                      </FormSubmitButton>
-                      
-                      <FormSubmitButton isSubmitting>
-                        Submit
-                      </FormSubmitButton>
-                      
-                      <FormSubmitButton isSuccess>
-                        Submit
-                      </FormSubmitButton>
-                      
-                      <FormSubmitButton isError errors={{"email": "Invalid"}}>
-                        Submit
-                      </FormSubmitButton>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <Label className="mb-2 block">Async Field States</Label>
-                    <div className="space-y-4">
-                      <AsyncField
-                        name="email1"
-                        label="Default State"
-                      >
-                        <Input placeholder="Enter email" />
-                      </AsyncField>
-                      
-                      <AsyncField
-                        name="email2"
-                        label="Validating State"
-                        validating={true}
-                      >
-                        <Input placeholder="Checking availability..." />
-                      </AsyncField>
-                      
-                      <AsyncField
-                        name="email3"
-                        label="Success State"
-                        asyncMessage="Email is available"
-                      >
-                        <Input placeholder="example@domain.com" />
-                      </AsyncField>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+// Define test errors
+const testErrors = {
+  notFound: {
+    message: 'Resource not found',
+    statusCode: 404,
+    code: 'NOT_FOUND',
+    details: { resourceType: 'User', id: '123456' },
+    requestId: 'req_1684062600000_abcdef',
+  },
+  serverError: {
+    message: 'Internal server error occurred',
+    statusCode: 500,
+    code: 'INTERNAL_ERROR',
+    details: { trace: 'Error at line 42' },
+    requestId: 'req_1684062600000_abcdef',
+  },
+  validationError: {
+    message: 'Validation failed',
+    statusCode: 400,
+    code: 'VALIDATION_ERROR',
+    details: { errors: ['Email is invalid', 'Password is too short'] },
+    requestId: 'req_1684062600000_abcdef',
+  }
 };
 
-// A component that intentionally throws an error for demonstration
-const BuggyComponent: React.FC = () => {
-  const [shouldThrow, setShouldThrow] = useState(false);
+// Function to simulate a retry operation
+const simulateRetry = async (shouldFail: boolean = true) => {
+  let attempts = 0;
   
-  if (shouldThrow) {
-    throw new Error("This is an intentional error for demonstration");
+  try {
+    await retry(
+      async () => {
+        attempts++;
+        if (shouldFail && attempts < 3) {
+          throw new Error(`Attempt ${attempts} failed`);
+        }
+        return 'Success';
+      },
+      {
+        maxAttempts: 3,
+        baseDelay: 500,
+        onRetry: (error, attempt) => {
+          toast.info(`Retry attempt ${attempt}`, {
+            description: `Previous attempt failed: ${error.message}`
+          });
+        }
+      }
+    );
+    
+    toast.success('Operation succeeded after retries');
+  } catch (error) {
+    toast.error('Operation failed after all retry attempts');
+    throw error;
   }
+};
+
+// Empty state component
+const EmptyState = ({ title = 'No data found', description = 'There are no items to display.', icon, action }: {
+  title?: string;
+  description?: string;
+  icon?: React.ReactNode;
+  action?: React.ReactNode;
+}) => (
+  <div className="flex flex-col items-center justify-center text-center p-8 bg-muted/40 rounded-lg">
+    <div className="rounded-full bg-muted p-3 mb-4">
+      {icon || <Inbox className="h-8 w-8 text-muted-foreground" />}
+    </div>
+    <h3 className="text-lg font-semibold mb-2">{title}</h3>
+    <p className="text-muted-foreground mb-4 max-w-md">{description}</p>
+    {action}
+  </div>
+);
+
+// Form validation schema
+const formSchema = z.object({
+  email: z.string().email('Please enter a valid email address.'),
+  password: z.string().min(8, 'Password must be at least 8 characters long.'),
+  confirmPassword: z.string().min(8, 'Confirm password must be at least 8 characters long.')
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword']
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+const ErrorStateExamples: React.FC = () => {
+  const [activeError, setActiveError] = useState<any>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(formSchema)
+  });
+  
+  const onSubmit = (data: FormData) => {
+    toast.success('Form submitted successfully', {
+      description: `Logged in as ${data.email}`
+    });
+  };
+  
+  const triggerRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await simulateRetry(true);
+    } catch (error) {
+      console.error('Retry failed:', error);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+  
+  const handleRetrySuccess = async () => {
+    setIsRetrying(true);
+    try {
+      await simulateRetry(false);
+      setActiveError(null);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   return (
-    <Card className="p-4">
-      <p className="mb-2">This component will throw an error when clicked</p>
-      <Button onClick={() => setShouldThrow(true)} variant="destructive">
-        Trigger Error
-      </Button>
-    </Card>
+    <div className="container py-8">
+      <h1 className="text-2xl font-bold mb-6">Error State Components</h1>
+      
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Standard Error States</CardTitle>
+            <CardDescription>Different variations of the ErrorState component</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ErrorState 
+              title="Something went wrong"
+              message="We were unable to process your request."
+              retry={() => toast("Retrying...")}
+            />
+            
+            <ErrorState 
+              title="Network Error"
+              message="Could not connect to the server."
+              error={new Error("ECONNREFUSED: Connection refused")}
+              showDetails={true}
+              variant="outline"
+              size="sm"
+            />
+            
+            <ErrorState 
+              title="Access Denied"
+              message="You don't have permission to access this resource."
+              variant="default"
+              size="lg"
+            >
+              <div className="flex justify-center mt-4">
+                <Button variant="default" size="sm">
+                  Request Access
+                </Button>
+              </div>
+            </ErrorState>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Edge Function Errors</CardTitle>
+            <CardDescription>Error handling for API and edge function calls</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setActiveError(testErrors.notFound)}
+              >
+                Show 404 Error
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setActiveError(testErrors.serverError)}
+              >
+                Show 500 Error
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setActiveError(testErrors.validationError)}
+              >
+                Show Validation Error
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setActiveError(null)}
+              >
+                Clear Error
+              </Button>
+            </div>
+            
+            {activeError ? (
+              <EdgeFunctionError 
+                error={activeError} 
+                retry={handleRetrySuccess} 
+                showDetails={true}
+                showRequestId={true}
+              />
+            ) : (
+              <div className="p-6 text-center border rounded-md bg-background">
+                <p className="text-muted-foreground">Select an error type to display</p>
+              </div>
+            )}
+            
+            <div className="pt-4">
+              <h3 className="text-sm font-medium mb-2">Testing Retry Logic</h3>
+              <Button 
+                onClick={triggerRetry} 
+                disabled={isRetrying}
+              >
+                {isRetrying ? 'Retrying...' : 'Trigger Retry Logic'}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                This will simulate a failing operation that automatically retries
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Empty States</CardTitle>
+            <CardDescription>Components for when no data is available</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <EmptyState 
+              title="No results found"
+              description="Try adjusting your search or filter terms."
+              icon={<FileSearch className="h-8 w-8 text-muted-foreground" />}
+              action={
+                <Button variant="outline" size="sm">
+                  Clear filters
+                </Button>
+              }
+            />
+            
+            <EmptyState 
+              title="Your inbox is empty"
+              description="When you receive new messages, they will appear here."
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Form Error Handling</CardTitle>
+            <CardDescription>Validation error handling in forms</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {Object.keys(errors).length > 0 && (
+                <FormErrorSummary errors={errors} />
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  {...register('email')}
+                  className={errors.email ? 'border-destructive' : ''}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive flex items-center mt-1">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  {...register('password')}
+                  className={errors.password ? 'border-destructive' : ''}
+                />
+                {errors.password && (
+                  <p className="text-xs text-destructive flex items-center mt-1">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  {...register('confirmPassword')}
+                  className={errors.confirmPassword ? 'border-destructive' : ''}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-destructive flex items-center mt-1">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+              
+              <Button type="submit">Submit</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 

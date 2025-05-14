@@ -1,5 +1,4 @@
 
-// Deno edge function to execute strategies
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 
@@ -33,6 +32,101 @@ function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 
+// Error response interface
+interface ErrorResponse {
+  success: false;
+  error: string;
+  code?: string;
+  details?: any;
+  requestId: string;
+  timestamp: string;
+  status: number;
+}
+
+// Success response interface
+interface SuccessResponse<T = any> {
+  success: true;
+  data: T;
+  requestId: string;
+  timestamp: string;
+}
+
+// Create standardized error response
+function createErrorResponse(
+  message: string,
+  status: number = 500,
+  code: string = "INTERNAL_ERROR",
+  details?: any,
+  requestId: string = generateRequestId()
+): Response {
+  const responseData: ErrorResponse = {
+    success: false,
+    error: message,
+    code,
+    status,
+    timestamp: new Date().toISOString(),
+    requestId
+  };
+  
+  if (details !== undefined) {
+    responseData.details = details;
+  }
+  
+  return new Response(
+    JSON.stringify(responseData),
+    { 
+      status,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
+    }
+  );
+}
+
+// Create standardized success response
+function createSuccessResponse<T>(
+  data: T, 
+  requestId: string = generateRequestId()
+): Response {
+  const responseData: SuccessResponse<T> = {
+    success: true,
+    data,
+    timestamp: new Date().toISOString(),
+    requestId
+  };
+  
+  return new Response(
+    JSON.stringify(responseData),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
+    }
+  );
+}
+
+// Input validation function
+function validateInput(input: any): { valid: boolean; errors?: string[] } {
+  const errors: string[] = [];
+  
+  if (!input) {
+    errors.push("Request body is required");
+    return { valid: false, errors };
+  }
+  
+  if (!input.strategy_id) {
+    errors.push("strategy_id is required");
+  }
+  
+  if (!input.tenant_id) {
+    errors.push("tenant_id is required");
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
 // Main handler function for the edge function
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -49,35 +143,25 @@ serve(async (req) => {
     try {
       input = await req.json();
     } catch (parseError) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Invalid JSON in request body", 
-        details: String(parseError) 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return createErrorResponse(
+        "Invalid JSON in request body", 
+        400, 
+        "BAD_REQUEST", 
+        String(parseError),
+        requestId
+      );
     }
     
     // Validate input
-    if (!input.strategy_id) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Strategy ID is required" 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-    
-    if (!input.tenant_id) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Tenant ID is required" 
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+    const validation = validateInput(input);
+    if (!validation.valid) {
+      return createErrorResponse(
+        "Validation failed", 
+        400, 
+        "VALIDATION_ERROR", 
+        validation.errors,
+        requestId
+      );
     }
     
     // Get Supabase credentials
@@ -85,14 +169,13 @@ serve(async (req) => {
     const SUPABASE_SERVICE_KEY = safeGetDenoEnv("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Required environment variables are not configured",
-        details: "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set"
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return createErrorResponse(
+        "Required environment variables are not configured",
+        500,
+        "CONFIGURATION_ERROR",
+        "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set",
+        requestId
+      );
     }
     
     // Create Supabase client
@@ -261,19 +344,15 @@ serve(async (req) => {
       }
       
       // Return success response
-      return new Response(JSON.stringify({
-        success: true,
+      return createSuccessResponse({
         execution_id: executionId,
         strategy_id: input.strategy_id,
         status,
         plugins_executed: pluginCount,
         successful_plugins: successfulPlugins,
         execution_time: executionTime,
-        xp_earned: xpEarned,
-        request_id: requestId
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+        xp_earned: xpEarned
+      }, requestId);
       
     } catch (error: any) {
       console.error("Error executing strategy:", error);
@@ -311,32 +390,25 @@ serve(async (req) => {
       }
       
       // Return error response
-      return new Response(JSON.stringify({ 
-        success: false,
-        execution_id: executionId,
-        strategy_id: input.strategy_id,
-        error: error.message,
-        execution_time: (performance.now() - requestStart) / 1000,
-        request_id: requestId
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      return createErrorResponse(
+        error.message || "Strategy execution failed",
+        500,
+        "STRATEGY_EXECUTION_ERROR",
+        { execution_id: executionId },
+        requestId
+      );
     }
     
   } catch (error: any) {
     console.error("Unexpected error:", error);
     
     // Return error response for unexpected errors
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: "Failed to execute strategy", 
-      details: String(error),
-      execution_time: (performance.now() - requestStart) / 1000,
-      request_id: requestId
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    });
+    return createErrorResponse(
+      "Failed to execute strategy",
+      500,
+      "INTERNAL_ERROR",
+      String(error),
+      requestId
+    );
   }
 });

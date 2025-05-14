@@ -1,77 +1,61 @@
 
 import React from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { notifyError } from '@/lib/notifications/toast';
+import { toast } from 'sonner';
+import { useTenantId } from '@/hooks/useTenantId';
+import { AlertOctagon } from 'lucide-react';
 
-export interface ErrorFallbackProps {
+interface ErrorFallbackProps {
   error: Error;
-  errorInfo?: React.ErrorInfo | null;
   resetErrorBoundary: () => void;
-  tenantId?: string;
+  onError?: (error: Error, tenantId: string | null) => void;
 }
 
-/**
- * Default error fallback component for error boundaries
- */
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({ 
-  error, 
-  errorInfo, 
-  resetErrorBoundary, 
-  tenantId = 'system' 
-}) => {
-  const handleResetAndNotify = () => {
-    notifyError('Recovering from error', { 
-      description: 'The application has recovered from an error. Some data may have been lost.'
+export function ErrorFallback({ error, resetErrorBoundary, onError }: ErrorFallbackProps) {
+  const tenantId = useTenantId();
+  
+  // Log error to console
+  React.useEffect(() => {
+    console.error('ErrorBoundary caught an error:', error);
+    
+    // Optional callback for additional error processing
+    if (onError) {
+      onError(error, tenantId);
+    }
+    
+    // Show toast notification
+    toast.error('An error occurred', {
+      description: 'The application encountered an unexpected problem.'
     });
-    resetErrorBoundary();
-  };
+  }, [error, onError, tenantId]);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg">
-      <CardHeader className="bg-red-50 dark:bg-red-900/20">
-        <div className="flex items-center gap-2 mb-2">
-          <AlertTriangle className="text-red-600 dark:text-red-400 h-5 w-5" />
-          <CardTitle>Something went wrong</CardTitle>
-        </div>
-        <CardDescription>
-          The application encountered an unexpected error. Our team has been notified.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-md overflow-auto max-h-32 mb-3">
-          <p className="text-red-600 dark:text-red-400 text-sm font-mono">{error.message}</p>
-        </div>
-        
-        {errorInfo && (
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm text-gray-600 dark:text-gray-400">
-              Technical Details
-            </summary>
-            <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900/50 p-3 rounded-md overflow-auto max-h-64">
-              {error.stack}
-              {'\n\n'}
-              {errorInfo.componentStack}
-            </pre>
-          </details>
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => window.location.href = '/'}
-        >
-          <Home className="mr-2 h-4 w-4" />
-          Go to homepage
-        </Button>
-        <Button onClick={handleResetAndNotify}>
-          <RefreshCw className="mr-2 h-4 w-4" />
+    <div className="p-6 flex flex-col items-center justify-center min-h-[300px] text-center">
+      <AlertOctagon className="h-12 w-12 text-destructive mb-4" />
+      <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
+      <p className="text-sm text-muted-foreground mb-4 max-w-md">
+        The application encountered an unexpected error. Our team has been notified.
+      </p>
+      <div className="space-x-2">
+        <Button variant="outline" onClick={resetErrorBoundary}>
           Try again
         </Button>
-      </CardFooter>
-    </Card>
+        <Button onClick={() => window.location.reload()}>
+          Reload page
+        </Button>
+      </div>
+      
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="mt-4 p-3 bg-muted rounded-md text-left max-w-md overflow-auto">
+          <p className="text-xs font-semibold mb-2">Error details:</p>
+          <pre className="text-xs whitespace-pre-wrap break-words">
+            {error.message}
+            {error.stack && (
+              <div className="mt-2 text-xs opacity-70">{error.stack}</div>
+            )}
+          </pre>
+        </div>
+      )}
+    </div>
   );
-};
-
-export default ErrorFallback;
+}
