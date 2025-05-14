@@ -1,5 +1,5 @@
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { NotificationType } from '@/types/shared';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
@@ -14,7 +14,8 @@ vi.mock('date-fns', () => ({
 describe('NotificationItem', () => {
   // Mock the current time for consistent snapshots
   const originalDate = global.Date;
-  beforeAll(() => {
+  
+  beforeEach(() => {
     const mockDate = new Date('2023-01-01T00:00:00Z');
     global.Date = class extends originalDate {
       constructor() {
@@ -28,7 +29,7 @@ describe('NotificationItem', () => {
     vi.clearAllMocks();
   });
   
-  afterAll(() => {
+  afterEach(() => {
     global.Date = originalDate;
   });
   
@@ -45,8 +46,8 @@ describe('NotificationItem', () => {
     const { container } = render(
       <NotificationItem 
         notification={notification}
-        onMarkAsRead={() => {}}
-        onDelete={() => {}}
+        onMarkAsRead={() => Promise.resolve()}
+        onDelete={() => Promise.resolve()}
       />
     );
     
@@ -69,8 +70,8 @@ describe('NotificationItem', () => {
       const { container } = render(
         <NotificationItem 
           notification={notification}
-          onMarkAsRead={() => {}}
-          onDelete={() => {}}
+          onMarkAsRead={() => Promise.resolve()}
+          onDelete={() => Promise.resolve()}
         />
       );
       
@@ -93,8 +94,8 @@ describe('NotificationItem', () => {
     const { container } = render(
       <NotificationItem 
         notification={notification}
-        onMarkAsRead={() => {}}
-        onDelete={() => {}}
+        onMarkAsRead={() => Promise.resolve()}
+        onDelete={() => Promise.resolve()}
       />
     );
     

@@ -1,5 +1,5 @@
 
-import { NotificationType } from '@/types/shared';
+import { NotificationType } from '@/types/notifications';
 
 /**
  * Notification data structure from the database
@@ -13,7 +13,6 @@ export interface Notification {
   created_at: string;
   read_at: string | null;
   type: NotificationType;
-  description?: string;
   is_read: boolean;
   metadata?: Record<string, any>;
   action_url?: string;
@@ -22,15 +21,15 @@ export interface Notification {
 }
 
 /**
- * NotificationsContext interface with consistent naming
+ * NotificationsContext interface
  */
 export interface NotificationsContextValue {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
-  markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
-  refreshNotifications: () => Promise<void>;
+  markAsRead: (id: string) => Promise<{ success: boolean; error?: any }>;
+  markAllAsRead: () => Promise<{ success: boolean; error?: any }>;
+  deleteNotification: (id: string) => Promise<{ success: boolean; error?: any }>;
+  refreshNotifications: () => Promise<{ success: boolean; error?: any }>;
   error: Error | null;
 }

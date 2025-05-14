@@ -1,102 +1,166 @@
 
 import React from 'react';
-import { format } from 'date-fns';
-import { X, Check, Bell, CheckCircle, AlertCircle, InfoIcon } from 'lucide-react';
+import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import { 
+  AlertCircle, 
+  CheckCircle, 
+  Info, 
+  Bell, 
+  AlertTriangle,
+  Trash2,
+  Check
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { NotificationType } from '@/types/shared';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import { NotificationContent } from '@/types/notifications';
 
-export interface NotificationItemProps {
-  notification: {
-    id: string;
-    title: string;
-    message: string;
-    type: NotificationType;
-    timestamp: string;
-    read: boolean;
-    actionUrl?: string;
-    actionLabel?: string;
-  };
-  onMarkAsRead: (id: string) => void;
-  onDelete: (id: string) => void;
+interface NotificationItemProps {
+  notification: NotificationContent;
+  onMarkAsRead: (id: string) => Promise<any>;
+  onDelete?: (id: string) => Promise<any>;
+  compact?: boolean;
 }
 
-export function NotificationItem({ notification, onMarkAsRead, onDelete }: NotificationItemProps) {
+export const NotificationItem: React.FC<NotificationItemProps> = ({
+  notification,
+  onMarkAsRead,
+  onDelete,
+  compact = false
+}) => {
   const { id, title, message, type, timestamp, read, actionUrl, actionLabel } = notification;
   
-  const typeStyles = {
-    info: 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700',
-    success: 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700',
-    warning: 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700',
-    error: 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700',
-    system: 'bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700'
+  const handleMarkAsRead = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!read) {
+      await onMarkAsRead(id);
+    }
   };
 
-  const iconMap = {
-    info: <InfoIcon className="h-5 w-5 text-blue-500 dark:text-blue-400" />,
-    success: <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />,
-    warning: <AlertCircle className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />,
-    error: <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400" />,
-    system: <Bell className="h-5 w-5 text-purple-500 dark:text-purple-400" />
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      await onDelete(id);
+    }
   };
-
-  const date = new Date(timestamp);
-  const formattedTime = format(date, 'MMM d, h:mm a');
-
+  
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (actionUrl) {
+      window.open(actionUrl, '_blank');
+      if (!read) {
+        onMarkAsRead(id);
+      }
+    }
+  };
+  
+  // Format time in a user-friendly way
+  const formattedTime = formatDistanceToNow(parseISO(timestamp), { addSuffix: true });
+  const exactTime = format(parseISO(timestamp), 'PPpp');
+  
+  // Determine icon based on notification type
+  const getIcon = () => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />;
+      case 'error':
+        return <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />;
+      case 'system':
+        return <Bell className="h-5 w-5 text-purple-500 flex-shrink-0" />;
+      default:
+        return <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />;
+    }
+  };
+  
   return (
     <div 
-      className={cn(
-        'relative flex items-start p-4 mb-2 rounded-md border',
-        typeStyles[type],
-        read ? 'opacity-70' : ''
-      )}
+      className={`
+        relative px-4 py-3 border-b last:border-b-0 transition-colors
+        ${!read ? 'bg-primary/5' : 'hover:bg-accent/50'}
+        ${compact ? 'py-2' : 'py-3'}
+      `}
+      onClick={handleMarkAsRead}
     >
-      <div className="mr-4 mt-0.5">
-        {iconMap[type]}
-      </div>
-      <div className="flex-grow min-w-0">
-        <div className="flex justify-between items-start mb-1">
-          <h4 className="font-medium text-sm">{title}</h4>
-          <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 whitespace-nowrap">
-            {formattedTime}
-          </span>
+      {!read && (
+        <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
+          <div className="w-1 h-8 bg-primary rounded-r-full"></div>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-300">{message}</p>
+      )}
+      
+      <div className="flex gap-3">
+        <div className="flex-shrink-0 mt-0.5">
+          {getIcon()}
+        </div>
         
-        {actionUrl && actionLabel && (
-          <div className="mt-2">
-            <a 
-              href={actionUrl} 
-              className="text-sm font-medium text-primary hover:text-primary-dark"
-            >
-              {actionLabel}
-            </a>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <p className={`text-sm font-medium ${!read ? 'text-primary font-semibold' : ''}`}>
+              {title}
+            </p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                    {formattedTime}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{exactTime}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-        )}
+          
+          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+            {message}
+          </p>
+          
+          {actionUrl && actionLabel && (
+            <div className="mt-2">
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0 h-auto text-primary text-xs"
+                onClick={handleActionClick}
+              >
+                {actionLabel}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
       
-      <div className="flex ml-2">
+      <div className="absolute top-3 right-3 flex gap-1">
         {!read && (
           <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-7 w-7 p-0 rounded-full"
-            onClick={() => onMarkAsRead(id)}
+            variant="outline" 
+            size="icon" 
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100" 
+            onClick={handleMarkAsRead}
+            title="Mark as read"
           >
-            <Check className="h-4 w-4" />
-            <span className="sr-only">Mark as read</span>
+            <Check className="h-3 w-3" />
           </Button>
         )}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => onDelete(id)}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Delete</span>
-        </Button>
+        
+        {onDelete && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100" 
+            onClick={handleDelete}
+            title="Delete notification"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        )}
       </div>
     </div>
   );
-}
+};

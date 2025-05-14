@@ -1,23 +1,84 @@
 
 import { useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { Notification } from '@/types/notifications';
+import { toast } from '@/lib/toast';
+
+export interface UseRealtimeNotificationsOptions {
+  showToast?: boolean;
+  onNewNotification?: (notification: Notification) => void;
+}
 
 /**
- * A hook for setting up realtime notifications using Supabase
- * 
- * @param onNotification Callback to be called when a notification is received
- * @returns An object with the cleanup function
+ * Hook for setting up and managing real-time notifications
  */
-export function useRealtimeNotifications(onNotification: (payload: Notification) => void) {
+export function useRealtimeNotifications({ 
+  showToast = true,
+  onNewNotification
+}: UseRealtimeNotificationsOptions = {}) {
   const { user } = useAuth();
+  
+  // Handle new notifications from realtime subscription
+  const handleNewNotification = useCallback((newNotification: Notification) => {
+    // Call the provided callback if it exists
+    if (onNewNotification) {
+      onNewNotification(newNotification);
+    }
+    
+    // Show toast notification if enabled
+    if (showToast && newNotification) {
+      const notificationType = newNotification.type || 'info';
+      
+      switch (notificationType) {
+        case 'success':
+          toast.success(newNotification.title, { 
+            description: newNotification.message,
+            id: newNotification.id,
+            action: newNotification.action_label && newNotification.action_url ? {
+              label: newNotification.action_label,
+              onClick: () => window.open(newNotification.action_url, '_blank')
+            } : undefined
+          });
+          break;
+        case 'error':
+          toast.error(newNotification.title, { 
+            description: newNotification.message,
+            id: newNotification.id,
+            action: newNotification.action_label && newNotification.action_url ? {
+              label: newNotification.action_label,
+              onClick: () => window.open(newNotification.action_url, '_blank')
+            } : undefined
+          });
+          break;
+        case 'warning':
+          toast.warning(newNotification.title, { 
+            description: newNotification.message,
+            id: newNotification.id,
+            action: newNotification.action_label && newNotification.action_url ? {
+              label: newNotification.action_label,
+              onClick: () => window.open(newNotification.action_url, '_blank')
+            } : undefined
+          });
+          break;
+        default:
+          toast.info(newNotification.title, { 
+            description: newNotification.message,
+            id: newNotification.id,
+            action: newNotification.action_label && newNotification.action_url ? {
+              label: newNotification.action_label,
+              onClick: () => window.open(newNotification.action_url, '_blank')
+            } : undefined
+          });
+      }
+    }
+  }, [showToast, onNewNotification]);
 
-  const setupRealtimeSubscription = useCallback(() => {
-    if (!user?.id) return null;
-
-    // Create a channel for the notifications table
-    const notificationChannel = supabase.channel('notification_updates')
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const channel = supabase.channel('notification_updates')
       .on(
         'postgres_changes',
         {
@@ -26,29 +87,22 @@ export function useRealtimeNotifications(onNotification: (payload: Notification)
           table: 'notifications',
           filter: `user_id=eq.${user.id}`
         },
-        (payload: { new: Notification }) => {
-          // Call the callback with the payload
-          onNotification(payload.new);
+        (payload) => {
+          // Process the new notification
+          const newNotification = payload.new as Notification;
+          handleNewNotification(newNotification);
         }
       )
       .subscribe();
-
-    // Return a cleanup function
+    
+    // Clean up subscription on unmount
     return () => {
-      supabase.removeChannel(notificationChannel);
+      supabase.removeChannel(channel);
     };
-  }, [user?.id, onNotification]);
-
-  // Set up the subscription when the component mounts and clean up when it unmounts
-  useEffect(() => {
-    const cleanupFn = setupRealtimeSubscription();
-    return () => {
-      if (cleanupFn) cleanupFn();
-    };
-  }, [setupRealtimeSubscription]);
-
+  }, [user?.id, handleNewNotification]);
+  
   return {
-    forceReconnect: setupRealtimeSubscription
+    // Return empty object for now, could be extended later
   };
 }
 

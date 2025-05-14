@@ -6,11 +6,11 @@ import { NotificationsContextValue } from './types';
 const NotificationsContext = createContext<NotificationsContextValue>({
   notifications: [],
   unreadCount: 0,
-  isLoading: false, // Changed from loading to isLoading
-  markAsRead: async () => {},
-  markAllAsRead: async () => {},
-  deleteNotification: async () => {},
-  refreshNotifications: async () => {},
+  isLoading: false,
+  markAsRead: async () => ({ success: false }),
+  markAllAsRead: async () => ({ success: false }),
+  deleteNotification: async () => ({ success: false }),
+  refreshNotifications: async () => ({ success: false }),
   error: null,
 });
 

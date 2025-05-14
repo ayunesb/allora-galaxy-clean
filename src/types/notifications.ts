@@ -1,5 +1,5 @@
 
-import { NotificationType } from './shared';
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
 
 export interface NotificationContent {
   id: string;
@@ -16,14 +16,16 @@ export interface Notification {
   id: string;
   tenant_id: string;
   user_id: string;
-  title?: string;
-  message?: string;
-  type?: NotificationType;
+  title: string;
+  message: string;
+  type: NotificationType;
   created_at: string;
-  read_at?: string | null;
+  read_at: string | null;
+  is_read: boolean;
   action_url?: string;
   action_label?: string;
-  data?: any;
+  metadata?: Record<string, any>;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 export const convertToNotificationContent = (notification: Notification): NotificationContent => {
@@ -33,7 +35,7 @@ export const convertToNotificationContent = (notification: Notification): Notifi
     message: notification.message || '',
     type: notification.type || 'info',
     timestamp: notification.created_at,
-    read: !!notification.read_at,
+    read: notification.is_read || !!notification.read_at,
     actionUrl: notification.action_url,
     actionLabel: notification.action_label
   };
