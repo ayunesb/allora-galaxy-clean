@@ -1,59 +1,57 @@
+
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { SystemEventModule } from "@/types/shared";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Chart } from '@/components/ui/chart';
+
+interface ErrorImpactData {
+  name: string;
+  value: number;
+}
 
 interface ErrorImpactAnalysisProps {
-  module: SystemEventModule;
-  errorCount: number;
-  lastOccurred: Date | null;
-  affectedTenants: number;
-  renderContent: React.ReactNode;
+  data: ErrorImpactData[];
+  isLoading?: boolean;
 }
 
 const ErrorImpactAnalysis: React.FC<ErrorImpactAnalysisProps> = ({
-  module,
-  errorCount,
-  lastOccurred,
-  affectedTenants,
-  renderContent
+  data,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Error Impact by Feature</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 animate-pulse bg-gray-200 rounded"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
-        <CardTitle>Impact Analysis</CardTitle>
+        <CardTitle>Error Impact by Feature</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-medium">Module</h3>
-            <p className="text-muted-foreground">{module}</p>
+      <CardContent>
+        {data.length === 0 ? (
+          <div className="h-64 flex items-center justify-center">
+            <p className="text-muted-foreground">No impact data available</p>
           </div>
-          <div>
-            <h3 className="text-sm font-medium">Error Count</h3>
-            <p className="text-muted-foreground">{errorCount}</p>
+        ) : (
+          <div className="h-64">
+            <Chart
+              type="pie"
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              colors={['#f43f5e', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b']}
+              valueFormatter={(value: number) => `${value} errors`}
+            />
           </div>
-          <div>
-            <h3 className="text-sm font-medium">Last Occurred</h3>
-            <p className="text-muted-foreground">
-              {lastOccurred ? lastOccurred.toLocaleDateString() : 'N/A'}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Affected Tenants</h3>
-            <p className="text-muted-foreground">{affectedTenants}</p>
-          </div>
-        </div>
-        
-        <div>
-          <h3 className="text-sm font-medium">Details</h3>
-          <ScrollArea className="h-[200px] w-full rounded-md border">
-            <div className="p-4">
-              {renderContent}
-            </div>
-          </ScrollArea>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,4 +1,3 @@
-"use client";
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
@@ -12,22 +11,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { toast } from "@/components/ui/use-toast"
-import { useRouter } from 'next/navigation';
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface ErrorFallbackProps {
   error: Error;
-  reset: () => void;
+  reset?: () => void;
+  resetErrorBoundary?: () => void;
+  supportEmail?: string;
 }
 
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, reset }) => {
-  const router = useRouter();
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, reset, resetErrorBoundary, supportEmail }) => {
+  const handleReset = () => {
+    if (resetErrorBoundary) {
+      resetErrorBoundary();
+    } else if (reset) {
+      reset();
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center">
+    <div className="flex flex-col items-center justify-center h-full text-center p-6">
       <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong.</h1>
-      <p className="text-red-500 mb-4">{error.message || 'An unexpected error occurred.'}</p>
+      <p className="text-destructive mb-4">{error.message || 'An unexpected error occurred.'}</p>
+      
+      {supportEmail && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Contact <a href={`mailto:${supportEmail}`} className="underline">{supportEmail}</a> for support.
+        </p>
+      )}
+      
       <div className="space-x-4">
         <Button onClick={() => {
           toast.error("Error reported", {
@@ -36,10 +49,13 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, reset }) => {
         }}>
           Report Error
         </Button>
-        <Button variant="outline" onClick={() => router.refresh()}>
+        <Button variant="outline" onClick={() => {
+          window.location.reload();
+        }}>
           Try Again
         </Button>
       </div>
+      
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="destructive" className="mt-4">
@@ -57,8 +73,8 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, reset }) => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
-              reset();
-              router.refresh();
+              handleReset();
+              window.location.reload();
             }}>Continue</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

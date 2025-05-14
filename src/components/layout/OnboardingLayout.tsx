@@ -1,10 +1,9 @@
-
 import React, { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTenantContext } from '@/contexts/TenantContext';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { toast } from 'sonner';
-import { LucideLogo } from '@/components/LucideLogo';
+import LucideLogo from '@/components/LucideLogo';
 
 const OnboardingLayout: React.FC = () => {
   const { tenant, isLoading } = useTenantContext();

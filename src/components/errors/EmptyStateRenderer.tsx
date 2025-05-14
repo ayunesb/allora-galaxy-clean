@@ -1,119 +1,96 @@
 
-import React from 'react';
-import {
-  NoDataEmptyState,
-  NoSearchResultsEmptyState,
-  FilterEmptyState,
-  CardEmptyState,
-  EmptyListState,
-  EmptyState
-} from './EmptyStates';
+import React, { ReactNode } from 'react';
+import { NoDataEmptyState, NoSearchResultsEmptyState, FilterEmptyState, EmptyState } from './EmptyStates';
 
-export type EmptyStateType = 'no-data' | 'no-search-results' | 'filter' | 'card' | 'list' | 'custom';
-
-export interface EmptyStateRendererProps {
-  stateType: EmptyStateType;
-  searchTerm?: string;
-  onClear?: () => void;
-  customMessage?: string;
-  className?: string;
-  filterCount?: number;
-  actionText?: string;
-  action?: () => void;
+export interface EmptyStateConfig {
+  type: 'no-data' | 'no-search-results' | 'filter' | 'custom' | 'standard';
   title?: string;
   description?: string;
-  icon?: React.ReactNode;
+  searchTerm?: string;
+  resetSearch?: () => void;
+  filters?: string[];
+  filterCount?: number;
+  resetFilters?: () => void;
+  customMessage?: string;
+  icon?: ReactNode;
+  action?: ReactNode;
+  actionText?: string;
+  className?: string;
 }
 
-const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
-  stateType,
-  searchTerm = '',
-  onClear,
-  customMessage,
-  className,
-  filterCount = 0,
-  actionText,
-  action,
-  title,
-  description,
-  icon,
-}) => {
-  // Generic props for all empty states
-  const commonProps = {
-    className,
+interface EmptyStateRendererProps {
+  config: EmptyStateConfig;
+}
+
+/**
+ * Component that renders the appropriate empty state based on the provided configuration
+ */
+const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({ config }) => {
+  const {
+    type,
+    title,
+    description,
+    searchTerm,
+    resetSearch,
+    filters,
+    filterCount = 0,
+    resetFilters,
+    customMessage,
+    icon,
     action,
     actionText,
-  };
+    className
+  } = config;
 
-  switch (stateType) {
+  switch (type) {
     case 'no-data':
       return (
         <NoDataEmptyState
-          {...commonProps}
-          message={customMessage || "No data available"}
+          title={title}
+          description={description}
+          action={action}
+          actionText={actionText}
+          className={className}
         />
       );
-
     case 'no-search-results':
       return (
         <NoSearchResultsEmptyState
+          title={title}
+          description={description}
           searchTerm={searchTerm}
-          resetSearch={onClear}
+          resetSearch={resetSearch}
           className={className}
         />
       );
-
     case 'filter':
       return (
         <FilterEmptyState
-          resetFilters={onClear || (() => {})}
+          title={title}
+          description={description}
+          filters={filters}
+          filterCount={filterCount}
+          resetFilters={resetFilters}
           customMessage={customMessage}
           className={className}
-          filterCount={filterCount}
         />
       );
-
-    case 'card':
-      return (
-        <CardEmptyState
-          title={title || "No Data"}
-          message={customMessage || "No data available"}
-          className={className}
-          action={action}
-          actionText={actionText}
-        />
-      );
-
-    case 'list':
-      return (
-        <EmptyListState
-          title={title || "No Items"}
-          message={customMessage || "No items available"}
-          className={className}
-          action={action}
-          actionText={actionText}
-        />
-      );
-
     case 'custom':
       return (
-        <EmptyState
-          title={title || "No Content"}
-          description={description || customMessage || "No content available"}
-          icon={icon}
-          actionText={actionText}
-          action={action}
-          className={className}
-        />
+        <div className={`flex flex-col items-center justify-center p-6 text-center ${className || ''}`}>
+          {icon && <div className="text-muted-foreground mb-3">{icon}</div>}
+          {title && <h3 className="font-medium mb-1">{title}</h3>}
+          {description && <p className="text-sm text-muted-foreground mb-3">{description}</p>}
+          {action}
+        </div>
       );
-
+    case 'standard':
     default:
       return (
-        <NoDataEmptyState
-          className={className}
-          message={customMessage || "No data available"}
+        <EmptyState
+          title={title || 'No Data'}
+          description={description || 'No data available'}
           action={action}
-          actionText={actionText}
         />
       );
   }

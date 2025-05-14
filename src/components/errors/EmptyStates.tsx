@@ -1,34 +1,138 @@
+
 import React, { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from "@/lib/utils";
-import { FileSearch, SearchX, Filter, Package } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SearchX, Filter, FolderX, AlertCircle } from 'lucide-react';
 
-interface EmptyStateProps {
-  title: string;
+export interface NoDataEmptyStateProps {
+  title?: string;
   description?: string;
-  image?: string;
-  children?: ReactNode;
+  action?: ReactNode;
+  actionText?: string;
   className?: string;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({
-  title,
-  description,
-  image,
-  children,
+export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
+  title = 'No Data Found',
+  description = 'There is no data available to display at this time.',
+  action,
+  actionText,
   className
 }) => {
   return (
-    <div className={cn("flex flex-col items-center justify-center p-6 text-center", className)}>
-      {image && <img src={image} alt="Empty State" className="mb-4 w-32 h-32 object-contain" />}
-      <h2 className="text-xl font-semibold mb-2">{title}</h2>
-      {description && <p className="text-muted-foreground mb-4">{description}</p>}
-      {children}
+    <EmptyState
+      title={title}
+      description={description}
+      icon={<FolderX className="h-10 w-10" />}
+      action={actionText && action ? (
+        <Button onClick={typeof action === 'function' ? action : undefined}>
+          {actionText}
+        </Button>
+      ) : action}
+    />
+  );
+};
+
+export interface NoSearchResultsEmptyStateProps {
+  title?: string;
+  description?: string;
+  searchTerm?: string;
+  resetSearch?: () => void;
+  className?: string;
+}
+
+export const NoSearchResultsEmptyState: React.FC<NoSearchResultsEmptyStateProps> = ({
+  title = 'No Results Found',
+  description,
+  searchTerm = '',
+  resetSearch,
+  className
+}) => {
+  const defaultDescription = searchTerm 
+    ? `No results found for "${searchTerm}". Try a different search term.` 
+    : 'No results match your search criteria.';
+
+  return (
+    <EmptyState
+      title={title}
+      description={description || defaultDescription}
+      icon={<SearchX className="h-10 w-10" />}
+      action={resetSearch ? (
+        <Button variant="outline" onClick={resetSearch}>
+          Clear Search
+        </Button>
+      ) : null}
+    />
+  );
+};
+
+export interface FilterEmptyStateProps {
+  title?: string;
+  description?: string;
+  filters?: string[];
+  filterCount?: number;
+  customMessage?: string;
+  resetFilters?: () => void;
+  className?: string;
+}
+
+export const FilterEmptyState: React.FC<FilterEmptyStateProps> = ({
+  title = 'No Matching Results',
+  description,
+  filters = [],
+  filterCount = 0,
+  customMessage,
+  resetFilters,
+  className
+}) => {
+  const getDefaultDescription = () => {
+    if (customMessage) return customMessage;
+    if (filters && filters.length > 0) {
+      return `No results match your ${filters.join(', ')} filters.`;
+    }
+    return `No results match your applied filters (${filterCount} active).`;
+  };
+
+  return (
+    <EmptyState
+      title={title}
+      description={description || getDefaultDescription()}
+      icon={<Filter className="h-10 w-10" />}
+      action={resetFilters ? (
+        <Button variant="outline" onClick={resetFilters}>
+          Clear Filters
+        </Button>
+      ) : null}
+    />
+  );
+};
+
+export interface CardEmptyStateProps {
+  title?: string;
+  description?: string;
+  icon?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}
+
+export const CardEmptyState: React.FC<CardEmptyStateProps> = ({
+  title = 'No Data',
+  description = 'No data available to display.',
+  icon = <AlertCircle className="h-8 w-8" />,
+  action,
+  className
+}) => {
+  return (
+    <div className={`flex flex-col items-center justify-center p-6 text-center ${className || ''}`}>
+      <div className="text-muted-foreground mb-3">{icon}</div>
+      <h3 className="font-medium mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground mb-3">{description}</p>
+      {action}
     </div>
   );
 };
 
-interface NoDataEmptyStateProps {
+export interface EmptyListStateProps {
   title?: string;
   description?: string;
   action?: ReactNode;
@@ -36,130 +140,21 @@ interface NoDataEmptyStateProps {
   className?: string;
 }
 
-const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
-  title = "No data available",
-  description = "There is no data to display.",
+export const EmptyListState: React.FC<EmptyListStateProps> = ({
+  title = 'No Items',
+  description = 'There are no items to display.',
   action,
-  icon = <FileSearch className="w-6 h-6 text-muted-foreground mb-2" />,
+  icon = <FolderX className="h-10 w-10" />,
   className
 }) => {
   return (
     <EmptyState
       title={title}
       description={description}
-      className={className}
-    >
-      {icon}
-      {action}
-    </EmptyState>
+      icon={icon}
+      action={action}
+    />
   );
 };
 
-interface NoSearchResultsEmptyStateProps {
-  title?: string;
-  description?: string;
-  action?: ReactNode;
-  className?: string;
-}
-
-const NoSearchResultsEmptyState: React.FC<NoSearchResultsEmptyStateProps> = ({
-  title = "No search results",
-  description = "No results were found for your search query.",
-  action,
-  className
-}) => {
-  return (
-    <EmptyState
-      title={title}
-      description={description}
-      className={className}
-    >
-      <SearchX className="w-6 h-6 text-muted-foreground mb-2" />
-      {action}
-    </EmptyState>
-  );
-};
-
-interface FilterEmptyStateProps {
-  title?: string;
-  description?: string;
-  action?: ReactNode;
-  className?: string;
-}
-
-const FilterEmptyState: React.FC<FilterEmptyStateProps> = ({
-  title = "No results with these filters",
-  description = "Adjust your filters to see results.",
-  action,
-  className
-}) => {
-  return (
-    <EmptyState
-      title={title}
-      description={description}
-      className={className}
-    >
-      <Filter className="w-6 h-6 text-muted-foreground mb-2" />
-      {action}
-    </EmptyState>
-  );
-};
-
-interface CardEmptyStateProps {
-  title?: string;
-  description?: string;
-  action?: ReactNode;
-  className?: string;
-}
-
-const CardEmptyState: React.FC<CardEmptyStateProps> = ({
-  title = "Nothing to display",
-  description = "There are no items to show in this card.",
-  action,
-  className
-}) => {
-  return (
-    <EmptyState
-      title={title}
-      description={description}
-      className={className}
-    >
-      <Package className="w-6 h-6 text-muted-foreground mb-2" />
-      {action}
-    </EmptyState>
-  );
-};
-
-interface EmptyListStateProps {
-  title?: string;
-  description?: string;
-  action?: ReactNode;
-  className?: string;
-}
-
-const EmptyListState: React.FC<EmptyListStateProps> = ({
-  title = "List is empty",
-  description = "There are no items in this list.",
-  action,
-  className
-}) => {
-  return (
-    <EmptyState
-      title={title}
-      description={description}
-      className={className}
-    >
-      <Package className="w-6 h-6 text-muted-foreground mb-2" />
-      {action}
-    </EmptyState>
-  );
-};
-
-export {
-  EmptyState,
-  NoDataEmptyState,
-  NoSearchResultsEmptyState,
-  FilterEmptyState,
-  CardEmptyState,
-  EmptyListState
-};
+export { EmptyState } from '@/components/ui/EmptyState';
