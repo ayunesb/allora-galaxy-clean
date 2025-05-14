@@ -2,31 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
-
-// CronJob types
-export interface CronJob {
-  id: string;
-  name: string;
-  schedule: string | null;
-  last_run: string | null;
-  next_run: string | null;
-  status: 'success' | 'failure' | 'running' | 'scheduled';
-  function_name: string;
-  created_at: string;
-  error_message?: string | null;
-  duration_ms?: number | null;
-  metadata?: Record<string, any> | null;
-}
-
-export interface CronJobStat {
-  status: string;
-  count: number;
-}
-
-export interface TimeRange {
-  value: string;
-  label: string;
-}
+import { CronJob, CronJobStat, TimeRange } from '@/types/cron';
 
 // Return type for the hook
 export interface UseCronJobsMonitoringResult {
@@ -73,7 +49,11 @@ export const useCronJobsMonitoring = (): UseCronJobsMonitoringResult => {
       
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch cron jobs'));
-      toast.error('Failed to fetch cron jobs data');
+      toast({
+        title: "Error",
+        description: "Failed to fetch cron jobs data",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -88,13 +68,20 @@ export const useCronJobsMonitoring = (): UseCronJobsMonitoringResult => {
         
       if (error) throw error;
       
-      toast.success('Job triggered successfully');
+      toast({
+        title: "Success",
+        description: "Job triggered successfully",
+      });
       
       // Refresh the jobs list after a short delay
       setTimeout(fetchJobs, 1000);
       
     } catch (err) {
-      toast.error('Failed to trigger job');
+      toast({
+        title: "Error",
+        description: "Failed to trigger job",
+        variant: "destructive",
+      });
     }
   };
   

@@ -2,15 +2,16 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExecutionsTable, CronJobExecution } from './ExecutionsTable';
-import { StatsTable, CronJobStats } from './StatsTable';
+import { ExecutionsTable } from './ExecutionsTable';
+import { StatsTable } from './StatsTable';
 import { Button } from '@/components/ui/button';
+import { CronJob, CronJobStat } from '@/types/cron';
 
 interface CronJobsTabsProps {
-  jobs: CronJobExecution[];
-  stats: CronJobStats;
+  jobs: CronJob[];
+  stats: CronJobStat[];
   isLoading: boolean;
-  onRunJob?: (jobName: string) => Promise<any>;
+  onRunJob?: (jobId: string) => Promise<any>;
 }
 
 export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({ 
@@ -21,9 +22,9 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState("executions");
 
-  const handleRunJob = async (jobName: string) => {
+  const handleRunJob = async (jobId: string) => {
     if (onRunJob) {
-      await onRunJob(jobName);
+      await onRunJob(jobId);
     }
   };
 
@@ -40,11 +41,11 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
             <ExecutionsTable 
               jobs={jobs} 
               isLoading={isLoading}
-              actionButton={(job: CronJobExecution) => (
+              actionButton={(job: CronJob) => (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleRunJob(job.name)}
+                  onClick={() => handleRunJob(job.id)}
                   disabled={isLoading || job.status === 'running'}
                 >
                   {job.status === 'running' ? 'Running...' : 'Run Now'}
@@ -66,6 +67,4 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
   );
 };
 
-export type { CronJobExecution as CronJob };
-export type { CronJobStats };
 export default CronJobsTabs;

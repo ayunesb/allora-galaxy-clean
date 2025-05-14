@@ -1,31 +1,42 @@
 
-/**
- * Type definitions for Galaxy graph visualization components
- */
-
 export interface GraphNode {
   id: string;
-  name?: string;
-  type?: string;
-  description?: string;
+  name: string;
+  label?: string;
+  type: 'strategy' | 'agent' | 'plugin' | 'tenant';
   status?: string;
-  version?: string;
-  model?: string;
-  last_executed?: string;
+  color?: string;
+  size?: number;
+  value?: number;
+  borderColor?: string;
+  borderWidth?: number;
   metadata?: Record<string, any>;
-  [key: string]: any;
 }
 
 export interface GraphLink {
-  source: string;
-  target: string;
+  source: string | GraphNode;
+  target: string | GraphNode;
+  value?: number;
+  color?: string;
+  width?: number;
   type?: string;
-  strength?: number;
-  label?: string;
-  [key: string]: any;
 }
 
 export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
+}
+
+export interface ForceGraphProps {
+  graphData: GraphData;
+  onNodeClick?: (node: GraphNode) => void;
+  height?: number | string;
+  width?: number | string;
+  backgroundColor?: string;
+}
+
+export interface GalaxyFilterOptions {
+  viewMode: string;
+  sortBy?: string;
+  filterBy?: string;
 }

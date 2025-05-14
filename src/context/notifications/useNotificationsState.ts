@@ -30,7 +30,7 @@ export function useNotificationsState(userId: string | null) {
       const { data, error: fetchError } = await fetchUserNotifications(userId);
 
       if (fetchError) {
-        throw new Error(fetchError.message);
+        throw new Error(fetchError.toString());
       }
 
       // Process notifications
@@ -64,7 +64,7 @@ export function useNotificationsState(userId: string | null) {
       const { success, error: apiError } = await markNotificationAsRead(id, userId);
 
       if (!success) {
-        throw new Error(apiError?.message || 'Failed to mark notification as read');
+        throw new Error(apiError?.toString() || 'Failed to mark notification as read');
       }
 
       // Update local state
@@ -95,7 +95,7 @@ export function useNotificationsState(userId: string | null) {
       const { success, error: apiError } = await markAllNotificationsAsRead(userId);
 
       if (!success) {
-        throw new Error(apiError?.message || 'Failed to mark all notifications as read');
+        throw new Error(apiError?.toString() || 'Failed to mark all notifications as read');
       }
 
       // Update local state
@@ -126,7 +126,7 @@ export function useNotificationsState(userId: string | null) {
       const { success, error: apiError } = await deleteUserNotification(id, userId);
 
       if (!success) {
-        throw new Error(apiError?.message || 'Failed to delete notification');
+        throw new Error(apiError?.toString() || 'Failed to delete notification');
       }
 
       // Update local state

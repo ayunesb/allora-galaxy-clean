@@ -26,7 +26,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     deleteNotification
   } = useNotifications();
   
-  // Create wrapper functions that return void to match the expected type
+  // Create wrapper functions that void the Promise return type
   const handleMarkAsRead = async (id: string): Promise<void> => {
     await markAsRead(id);
   };
@@ -37,6 +37,10 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
   
   const handleDeleteNotification = async (id: string): Promise<void> => {
     await deleteNotification(id);
+  };
+  
+  const handleRefreshNotifications = async (): Promise<void> => {
+    await refreshNotifications();
   };
   
   // Convert notifications to the expected format
@@ -75,7 +79,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
       ) : (
         <NotificationEmptyState 
           filter={selectedTab} 
-          onRefresh={refreshNotifications}
+          onRefresh={handleRefreshNotifications}
         />
       )}
     </div>

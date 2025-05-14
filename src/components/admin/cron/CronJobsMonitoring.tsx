@@ -1,17 +1,17 @@
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useCronJobsMonitoring } from '@/hooks/admin/useCronJobsMonitoring';
 import CronJobsTabs from './components/CronJobsTabs';
 import { ErrorState } from '@/components/ui/error-state';
+import { CronJob } from '@/types/cron';
 
 export const CronJobsMonitoring = () => {
   const { 
     isLoading, 
     jobs, 
-    executions, 
+    stats, 
     error, 
-    refresh 
+    fetchJobs 
   } = useCronJobsMonitoring();
   
   return (
@@ -28,15 +28,15 @@ export const CronJobsMonitoring = () => {
             title="Failed to load CRON jobs"
             message={error.message}
             retryable
-            onRetry={refresh}
+            onRetry={fetchJobs}
             variant="destructive"
           />
         ) : (
           <CronJobsTabs 
-            jobs={jobs}
-            executions={executions}
+            jobs={jobs as CronJob[]}
+            stats={stats}
             isLoading={isLoading}
-            onRefresh={refresh}
+            onRunJob={fetchJobs}
           />
         )}
       </CardContent>

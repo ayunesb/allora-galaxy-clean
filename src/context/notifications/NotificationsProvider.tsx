@@ -1,6 +1,6 @@
 
-import React, { useEffect, useCallback } from 'react';
-import { NotificationsContextValue, Notification } from './types';
+import React from 'react';
+import { NotificationsContextValue } from './types';
 import { useNotifications } from '@/hooks/useNotifications';
 import NotificationsContext from './NotificationsContext';
 
@@ -26,7 +26,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({ ch
   
   // Create context value from our hooks
   const contextValue: NotificationsContextValue = {
-    notifications,
+    notifications: notifications.map(n => ({
+      ...n,
+      read_at: n.is_read ? new Date().toISOString() : null
+    })),
     unreadCount,
     isLoading,
     markAsRead,

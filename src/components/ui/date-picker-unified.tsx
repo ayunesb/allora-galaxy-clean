@@ -1,7 +1,8 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
+import { SelectSingleEventHandler } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,83 +13,54 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export interface DatePickerProps {
-  /** Date value */
-  value?: Date | null;
-  /** Default initial date */
-  defaultValue?: Date;
-  /** Callback when date changes */
-  onChange?: (date: Date | null) => void;
-  /** Placeholder text when no date is selected */
+export interface UnifiedDatePickerProps {
+  value: Date | null | undefined;
+  onChange: (date: Date | null) => void;
   placeholder?: string;
-  /** Optional className for custom styling */
   className?: string;
-  /** Popover alignment */
-  align?: "start" | "center" | "end";
-  /** Whether the date picker is disabled */
   disabled?: boolean;
-  /** Format to display the date, defaults to "PPP" */
-  dateFormat?: string;
 }
 
-/**
- * Unified Date Picker component
- */
-export function DatePicker({
+export function UnifiedDatePicker({
   value,
   onChange,
-  defaultValue,
   placeholder = "Pick a date",
   className,
-  align = "start",
   disabled = false,
-  dateFormat = "PPP"
-}: DatePickerProps) {
-  const [date, setDate] = React.useState<Date | null | undefined>(
-    value !== undefined ? value : defaultValue
-  );
-
-  // Update internal state when value prop changes
-  React.useEffect(() => {
-    if (value !== undefined) {
-      setDate(value);
-    }
-  }, [value]);
-
-  const handleDateChange = (newDate: Date | null) => {
-    setDate(newDate);
-    if (onChange) {
-      onChange(newDate);
-    }
-  };
-
+}: UnifiedDatePickerProps) {
   return (
-    <div className={cn("grid gap-2", className)}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-            disabled={disabled}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, dateFormat) : <span>{placeholder}</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align={align}>
-          <Calendar
-            mode="single"
-            selected={date || undefined}
-            onSelect={handleDateChange}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant={"outline"}
+          disabled={disabled}
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !value && "text-muted-foreground",
+            className
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {value ? format(value, "PPP") : <span>{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value || undefined}
+          onSelect={(date) => {
+            // Cast to the expected type
+            const handler: SelectSingleEventHandler = (day) => {
+              onChange(day);
+            };
+            handler(date);
+          }}
+          initialFocus
+          disabled={disabled}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
+
+export default UnifiedDatePicker;

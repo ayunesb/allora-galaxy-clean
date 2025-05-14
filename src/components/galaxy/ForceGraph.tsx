@@ -1,110 +1,73 @@
 
-import React, { useRef, useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
+import React, { useRef, useEffect } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { useTheme } from '@/hooks/useTheme';
-import { ForceGraphProps, GraphNode } from '@/types/galaxy';
+import { useTheme } from 'next-themes';
+import { GraphData, GraphNode, ForceGraphProps } from '@/types/galaxy';
 
-const ForceGraph: React.FC<ForceGraphProps> = ({
+const ForceGraph: React.FC<ForceGraphProps> = ({ 
   graphData,
   onNodeClick,
-  onBackgroundClick = () => {},
-  highlightedNodeId,
-  selectedNodeId,
-  className = '',
+  height = 600,
+  width = '100%'
 }) => {
   const graphRef = useRef<any>(null);
   const { theme } = useTheme();
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const isDarkTheme = theme === 'dark';
+  
+  // Define text and background colors based on theme
+  const textColor = isDarkTheme ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
+  const backgroundColor = isDarkTheme ? '#1a1a1a' : '#f8f8f8';
 
-  // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setDimensions({ width, height });
-      }
-    };
-
-    // Set initial dimensions
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Node color based on type and theme
-  const getNodeColor = (node: GraphNode) => {
-    if (node.color) return node.color;
-    
-    const isDark = theme === 'dark';
-    
-    switch (node.type) {
-      case 'strategy':
-        return isDark ? '#9333ea' : '#a855f7'; // Purple
-      case 'plugin':
-        return isDark ? '#2563eb' : '#3b82f6'; // Blue
-      case 'agent':
-        return isDark ? '#16a34a' : '#22c55e'; // Green
-      default:
-        return isDark ? '#6b7280' : '#9ca3af'; // Gray
+    if (graphRef.current) {
+      // Reheat simulation when data changes
+      graphRef.current.d3Force('charge').strength(-150);
+      graphRef.current.d3Force('link').distance(70);
+      graphRef.current.d3Force('center').strength(0.8);
+      
+      // Set up tooltip when hovering over nodes
+      graphRef.current
+        .nodeCanvasObject((node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
+          const label = node.name || node.label || node.id.substring(0, 6);
+          const fontSize = 12 / globalScale;
+          const nodeSize = node.size || 6;
+          
+          // Draw node circle
+          ctx.beginPath();
+          ctx.arc(node.x || 0, node.y || 0, nodeSize, 0, 2 * Math.PI, false);
+          ctx.fillStyle = node.color || '#1e88e5';
+          ctx.fill();
+          
+          // Draw border if color is provided
+          if (node.borderColor) {
+            ctx.strokeStyle = node.borderColor;
+            ctx.lineWidth = node.borderWidth || 1;
+            ctx.stroke();
+          }
+          
+          // Draw node label
+          ctx.font = `${fontSize}px Sans-Serif`;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = textColor;
+          ctx.fillText(label, node.x || 0, (node.y || 0) + nodeSize + 3);
+        });
     }
-  };
-
-  // Link color based on theme
-  const getLinkColor = () => {
-    return theme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)';
-  };
-
-  // Handle node size
-  const getNodeSize = (node: GraphNode) => {
-    if (node.id === selectedNodeId || node.id === highlightedNodeId) {
-      return 8;
-    }
-    
-    switch (node.type) {
-      case 'strategy':
-        return 6;
-      case 'plugin':
-        return 5;
-      case 'agent':
-        return 4;
-      default:
-        return 3;
-    }
-  };
+  }, [graphData, isDarkTheme, textColor]);
 
   return (
-    <Card className={`overflow-hidden border ${className}`} ref={containerRef}>
-      <div className="w-full h-full">
-        {graphData?.nodes && graphData.nodes.length > 0 && (
-          <ForceGraph2D
-            ref={graphRef}
-            graphData={graphData}
-            width={dimensions.width}
-            height={dimensions.height}
-            nodeLabel={(node: GraphNode) => node.name || node.id}
-            nodeColor={getNodeColor}
-            nodeRelSize={6}
-            nodeVal={getNodeSize}
-            linkColor={getLinkColor}
-            linkWidth={1}
-            linkDirectionalArrowLength={3}
-            linkDirectionalArrowRelPos={0.8}
-            onNodeClick={onNodeClick}
-            onBackgroundClick={onBackgroundClick}
-            cooldownTicks={100}
-            onEngineStop={() => {
-              // Center after initial layout
-              if (graphRef.current) {
-                graphRef.current.zoomToFit(400, 40);
-              }
-            }}
-          />
-        )}
-      </div>
-    </Card>
+    <div style={{ width, height, background: backgroundColor }}>
+      <ForceGraph2D
+        ref={graphRef}
+        graphData={graphData}
+        nodeRelSize={6}
+        linkDirectionalParticles={2}
+        linkDirectionalParticleWidth={1.5}
+        nodeId="id"
+        onNodeClick={(node) => onNodeClick && onNodeClick(node as unknown as GraphNode)}
+        cooldownTicks={100}
+        linkColor={() => isDarkTheme ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}
+      />
+    </div>
   );
 };
 

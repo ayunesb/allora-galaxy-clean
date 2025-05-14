@@ -1,14 +1,10 @@
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { SystemLog } from '@/types/logs';
+import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 interface LogDetailDialogProps {
   log: SystemLog;
@@ -16,66 +12,79 @@ interface LogDetailDialogProps {
   onClose: () => void;
 }
 
-export const LogDetailDialog: React.FC<LogDetailDialogProps> = ({
-  log,
-  open,
-  onClose,
-}) => {
-  const formatJSON = (obj: any) => {
-    try {
-      if (!obj) return 'No data';
-      if (typeof obj === 'string') {
-        try {
-          // Try to parse if it's a stringified JSON
-          const parsed = JSON.parse(obj);
-          return JSON.stringify(parsed, null, 2);
-        } catch {
-          // Return as-is if it's not JSON
-          return obj;
-        }
-      }
-      return JSON.stringify(obj, null, 2);
-    } catch (e) {
-      return 'Error formatting data';
+export const LogDetailDialog: React.FC<LogDetailDialogProps> = ({ log, open, onClose }) => {
+  // Function to format JSON for display
+  const formatJson = (json: Record<string, any>) => {
+    return JSON.stringify(json, null, 2);
+  };
+
+  // Function to get badge variant based on severity
+  const getSeverityBadgeVariant = (severity?: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'error':
+      case 'critical':
+        return 'destructive';
+      case 'warning':
+        return 'warning';
+      case 'info':
+        return 'default';
+      case 'debug':
+        return 'outline';
+      default:
+        return 'secondary';
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Log Details</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {log.event}
+            {log.severity && (
+              <Badge variant={getSeverityBadgeVariant(log.severity)}>
+                {log.severity}
+              </Badge>
+            )}
+          </DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
-          <div className="grid grid-cols-2 gap-4">
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 border-b pb-4">
             <div>
-              <h4 className="text-sm font-medium mb-1">Event</h4>
-              <p className="text-sm">{log.event || '-'}</p>
+              <p className="text-sm font-medium text-muted-foreground">Module</p>
+              <p>{log.module}</p>
             </div>
             <div>
-              <h4 className="text-sm font-medium mb-1">Module</h4>
-              <p className="text-sm">{log.module || '-'}</p>
+              <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
+              <p>{format(new Date(log.created_at), 'PPpp')}</p>
             </div>
           </div>
-
+          
+          {log.message && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Message</p>
+              <p className="text-sm">{log.message}</p>
+            </div>
+          )}
+          
           <div>
-            <h4 className="text-sm font-medium mb-1">Timestamp</h4>
-            <p className="text-sm">
-              {new Date(log.created_at).toLocaleString()}
-            </p>
+            <p className="text-sm font-medium text-muted-foreground mb-1">Context</p>
+            <pre className="text-xs bg-muted p-4 rounded-md overflow-auto max-h-80">
+              {formatJson(log.context || {})}
+            </pre>
           </div>
-
-          <div>
-            <h4 className="text-sm font-medium mb-1">Context Data</h4>
-            <div className="bg-muted p-4 rounded-md">
-              <pre className="text-xs overflow-x-auto whitespace-pre-wrap">
-                {formatJSON(log.context)}
+          
+          {log.metadata && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Metadata</p>
+              <pre className="text-xs bg-muted p-4 rounded-md overflow-auto max-h-80">
+                {formatJson(log.metadata)}
               </pre>
             </div>
-          </div>
+          )}
         </div>
-
+        
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Close</Button>
         </DialogFooter>
