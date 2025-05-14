@@ -1,15 +1,32 @@
 
+# Robots.txt for Allora OS
+# This file provides instructions to web crawlers about which sections of the site they are allowed to visit
+
+# Google's web crawler - Allow full access
 User-agent: Googlebot
 Allow: /
 
+# Bing's crawler - Allow full access
 User-agent: Bingbot
 Allow: /
 
+# Twitter card fetcher - Allow access for generating Twitter cards
 User-agent: Twitterbot
 Allow: /
 
+# Facebook link preview fetcher - Allow access for generating previews
 User-agent: facebookexternalhit
 Allow: /
 
+# All other crawlers - Allow full access
+# This can be restricted in production if needed
 User-agent: *
 Allow: /
+
+# Sitemap location (uncomment when sitemap.xml is available)
+# Sitemap: https://your-domain.com/sitemap.xml
+
+# Notes:
+# - Consider restricting admin, user data, and API paths in production
+# - Update this file when adding new sections that should be private
+# - Review periodically as part of security assessments
