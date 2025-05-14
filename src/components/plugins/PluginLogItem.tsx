@@ -1,98 +1,98 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { PluginLog } from '@/types';
+import { formatDistance } from 'date-fns/formatDistance';
+import { AlertCircle, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { PluginLog } from '@/types/logs';
 
 interface PluginLogItemProps {
   log: PluginLog;
 }
 
-export const PluginLogItem: React.FC<PluginLogItemProps> = ({ log }) => {
-  // Format timestamp
-  const formattedTime = log.created_at 
-    ? format(new Date(log.created_at), 'MMM d, yyyy HH:mm:ss')
-    : 'Unknown time';
-
-  // Determine status icon
-  const StatusIcon = () => {
-    switch (log.status) {
-      case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'failure':
-      case 'error':
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <Clock className="h-5 w-5 text-gray-500" />;
+const PluginLogItem: React.FC<PluginLogItemProps> = ({ log }) => {
+  const formatDateTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy HH:mm:ss');
+    } catch (e) {
+      return dateString;
     }
   };
-
-  // Format execution time
-  const executionTime = log.execution_time 
-    ? `${log.execution_time.toFixed(2)}s`
-    : 'N/A';
-
-  // Format XP earned
-  const xpEarned = log.xp_earned !== undefined 
-    ? `+${log.xp_earned} XP`
-    : '';
-
+  
+  const getTimeAgo = (dateString: string) => {
+    try {
+      return formatDistance(new Date(dateString), new Date(), { addSuffix: true });
+    } catch (e) {
+      return '';
+    }
+  };
+  
+  const getStatusIcon = () => {
+    if (!log.status) return null;
+    
+    switch (log.status) {
+      case 'error':
+        return <AlertCircle className="h-5 w-5 text-destructive" />;
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-success" />;
+      default:
+        return null;
+    }
+  };
+  
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center">
-            <StatusIcon />
-            <div className="ml-3">
-              <div className="flex items-center">
-                <h4 className="font-medium">
-                  Plugin Execution
-                </h4>
-                <Badge 
-                  variant={log.status === 'success' ? 'success' : log.status === 'failure' ? 'destructive' : 'outline'}
-                  className="ml-2"
-                >
-                  {log.status}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{formattedTime}</p>
-            </div>
-          </div>
-          <div className="text-right text-sm">
-            <div>{executionTime}</div>
-            {xpEarned && <div className="text-green-600 font-medium">{xpEarned}</div>}
+    <Card className={`border-l-4 ${
+      log.status === 'error' ? 'border-l-destructive' : 
+      log.status === 'warning' ? 'border-l-warning' : 
+      log.status === 'success' ? 'border-l-success' : 
+      'border-l-primary'
+    }`}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div className="space-y-1">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              {getStatusIcon()}
+              <span>{log.message}</span>
+            </CardTitle>
+            <CardDescription>
+              {formatDateTime(log.created_at)} ({getTimeAgo(log.created_at)})
+            </CardDescription>
           </div>
         </div>
-        
-        {log.error && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
-            {log.error}
-          </div>
-        )}
-        
-        {(log.input || log.output) && (
-          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-            {log.input && (
-              <div className="text-sm">
-                <div className="font-medium mb-1">Input:</div>
-                <pre className="bg-gray-50 p-2 rounded overflow-x-auto text-xs">
-                  {JSON.stringify(log.input, null, 2)}
-                </pre>
-              </div>
-            )}
-            {log.output && (
-              <div className="text-sm">
-                <div className="font-medium mb-1">Output:</div>
-                <pre className="bg-gray-50 p-2 rounded overflow-x-auto text-xs">
-                  {JSON.stringify(log.output, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
+      </CardHeader>
+      
+      {(log.data || log.error) && (
+        <CardContent className="pb-2">
+          {log.data && (
+            <div className="text-sm space-y-1">
+              <div className="font-medium">Data:</div>
+              <pre className="text-xs bg-muted p-2 rounded-sm overflow-auto max-h-40">
+                {typeof log.data === 'object' 
+                  ? JSON.stringify(log.data, null, 2) 
+                  : String(log.data)}
+              </pre>
+            </div>
+          )}
+          
+          {log.error && (
+            <div className="text-sm space-y-1 mt-3">
+              <div className="font-medium text-destructive">Error:</div>
+              <pre className="text-xs bg-destructive/10 text-destructive p-2 rounded-sm overflow-auto max-h-40">
+                {log.error}
+              </pre>
+            </div>
+          )}
+        </CardContent>
+      )}
+      
+      <CardFooter className="text-xs text-muted-foreground">
+        <div className="flex justify-between w-full">
+          <div>Plugin ID: {log.plugin_id}</div>
+          {log.execution_time !== undefined && (
+            <div>Execution Time: {log.execution_time.toFixed(2)}ms</div>
+          )}
+        </div>
+      </CardFooter>
     </Card>
   );
 };

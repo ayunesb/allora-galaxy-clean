@@ -1,120 +1,195 @@
 
-import React from 'react';
-import { Strategy } from '@/types';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StrategyCard } from '@/components/dashboard/StrategyCard';
+import { PlusCircle, LineChart, Settings, History } from 'lucide-react';
+import { EdgeFunctionErrorHandler } from '@/lib/errors';
+
+interface Strategy {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  status: string;
+}
 
 interface StrategyTabsProps {
   strategies: Strategy[];
   isLoading: boolean;
+  error: any;
+  onNewStrategy: () => void;
+  onEditStrategy: (id: string) => void;
+  onRunStrategy: (id: string) => void;
 }
 
-export const StrategyTabs: React.FC<StrategyTabsProps> = ({
+const StrategyTabs: React.FC<StrategyTabsProps> = ({
   strategies,
-  isLoading
+  isLoading,
+  error,
+  onNewStrategy,
+  onEditStrategy,
+  onRunStrategy
 }) => {
+  const [activeTab, setActiveTab] = useState("active");
+
+  // Filter strategies based on active tab
+  const filteredStrategies = strategies.filter(strategy => {
+    if (activeTab === "active") return strategy.status === "active";
+    if (activeTab === "draft") return strategy.status === "draft";
+    if (activeTab === "archived") return strategy.status === "archived";
+    return true;
+  });
+
   return (
-    <Tabs defaultValue="all" className="mt-8">
-      <TabsList>
-        <TabsTrigger value="all">All Strategies</TabsTrigger>
-        <TabsTrigger value="pending">Pending</TabsTrigger>
-        <TabsTrigger value="active">Active</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="all" className="mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isLoading ? (
-            <p>Loading strategies...</p>
-          ) : strategies.length > 0 ? (
-            strategies.map((strategy) => (
-              <StrategyCard
-                key={strategy.id}
-                id={strategy.id}
-                title={strategy.title}
-                description={strategy.description}
-                status={
-                  strategy.status === 'approved' || strategy.status === 'in_progress' 
-                    ? 'active' 
-                    : strategy.status === 'rejected' 
-                    ? 'archived' 
-                    : strategy.status === 'completed' 
-                    ? 'completed' 
-                    : 'pending'
-                }
-                priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
-                completionPercentage={strategy.completion_percentage || 0}
-                createdBy={typeof strategy.created_by === 'string' && strategy.created_by === 'ai' ? 'ai' : 'human'}
-                tags={strategy.tags || []}
+    <EdgeFunctionErrorHandler
+      isLoading={isLoading}
+      error={error}
+    >
+      <Tabs 
+        defaultValue="active" 
+        onValueChange={setActiveTab} 
+        className="w-full"
+      >
+        <div className="flex justify-between items-center mb-6">
+          <TabsList>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="draft">Draft</TabsTrigger>
+            <TabsTrigger value="archived">Archived</TabsTrigger>
+          </TabsList>
+          
+          <Button onClick={onNewStrategy} className="gap-2">
+            <PlusCircle size={16} /> New Strategy
+          </Button>
+        </div>
+
+        <TabsContent value="active" className="m-0">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredStrategies.length === 0 ? (
+              <EmptyState 
+                message="No active strategies yet"
+                description="Start by creating a new strategy"
+                action={onNewStrategy}
+                actionLabel="Create Strategy"
               />
-            ))
-          ) : (
-            <Card className="p-6 text-center col-span-full">
-              <p className="text-muted-foreground mb-4">No strategies found</p>
-              <Button asChild>
-                <a href="/launch">Create Strategy</a>
-              </Button>
-            </Card>
-          )}
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="pending" className="mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isLoading ? (
-            <p>Loading strategies...</p>
-          ) : strategies.filter(s => s.status === 'pending').length > 0 ? (
-            strategies
-              .filter(s => s.status === 'pending')
-              .map((strategy) => (
+            ) : (
+              filteredStrategies.map(strategy => (
                 <StrategyCard
                   key={strategy.id}
-                  id={strategy.id}
-                  title={strategy.title}
-                  description={strategy.description}
-                  status="pending"
-                  priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
-                  completionPercentage={strategy.completion_percentage || 0}
-                  createdBy={typeof strategy.created_by === 'string' && strategy.created_by === 'ai' ? 'ai' : 'human'}
-                  tags={strategy.tags || []}
+                  strategy={strategy}
+                  onEdit={() => onEditStrategy(strategy.id)}
+                  onRun={() => onRunStrategy(strategy.id)}
                 />
               ))
-          ) : (
-            <Card className="p-6 text-center col-span-full">
-              <p className="text-muted-foreground">No pending strategies</p>
-            </Card>
-          )}
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="active" className="mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isLoading ? (
-            <p>Loading strategies...</p>
-          ) : strategies.filter(s => s.status === 'approved' || s.status === 'in_progress').length > 0 ? (
-            strategies
-              .filter(s => s.status === 'approved' || s.status === 'in_progress')
-              .map((strategy) => (
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="draft" className="m-0">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredStrategies.length === 0 ? (
+              <EmptyState 
+                message="No draft strategies"
+                description="Drafts are strategies that are still in development"
+                action={onNewStrategy}
+                actionLabel="Create Draft"
+              />
+            ) : (
+              filteredStrategies.map(strategy => (
                 <StrategyCard
                   key={strategy.id}
-                  id={strategy.id}
-                  title={strategy.title}
-                  description={strategy.description}
-                  status="active"
-                  priority={strategy.priority as 'high' | 'medium' | 'low' | undefined}
-                  completionPercentage={strategy.completion_percentage || 0}
-                  createdBy={typeof strategy.created_by === 'string' && strategy.created_by === 'ai' ? 'ai' : 'human'}
-                  tags={strategy.tags || []}
+                  strategy={strategy}
+                  onEdit={() => onEditStrategy(strategy.id)}
+                  onRun={() => onRunStrategy(strategy.id)}
                 />
               ))
-          ) : (
-            <Card className="p-6 text-center col-span-full">
-              <p className="text-muted-foreground">No active strategies</p>
-            </Card>
-          )}
-        </div>
-      </TabsContent>
-    </Tabs>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="archived" className="m-0">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredStrategies.length === 0 ? (
+              <EmptyState 
+                message="No archived strategies"
+                description="Archived strategies are no longer active but preserved for reference"
+              />
+            ) : (
+              filteredStrategies.map(strategy => (
+                <StrategyCard
+                  key={strategy.id}
+                  strategy={strategy}
+                  onEdit={() => onEditStrategy(strategy.id)}
+                  onRun={() => onRunStrategy(strategy.id)}
+                />
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </EdgeFunctionErrorHandler>
   );
 };
+
+interface StrategyCardProps {
+  strategy: Strategy;
+  onEdit: () => void;
+  onRun: () => void;
+}
+
+const StrategyCard: React.FC<StrategyCardProps> = ({ strategy, onEdit, onRun }) => {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{strategy.name || "Unnamed Strategy"}</CardTitle>
+        <CardDescription className="line-clamp-2">
+          {strategy.description || "No description provided"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-muted-foreground">
+            Status: {strategy.status || "unknown"}
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={onEdit}>
+              <Settings className="h-4 w-4 mr-1" /> Edit
+            </Button>
+            <Button size="sm" onClick={onRun}>
+              <LineChart className="h-4 w-4 mr-1" /> Run
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+interface EmptyStateProps {
+  message: string;
+  description?: string;
+  action?: () => void;
+  actionLabel?: string;
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ 
+  message, 
+  description, 
+  action, 
+  actionLabel 
+}) => (
+  <Card className="col-span-full p-8 flex flex-col items-center justify-center text-center">
+    <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center mb-4">
+      <History className="h-6 w-6 text-muted-foreground" />
+    </div>
+    <h3 className="font-medium text-lg">{message}</h3>
+    {description && <p className="text-muted-foreground mt-1">{description}</p>}
+    {action && actionLabel && (
+      <Button onClick={action} className="mt-4">
+        {actionLabel}
+      </Button>
+    )}
+  </Card>
+);
+
+export default StrategyTabs;

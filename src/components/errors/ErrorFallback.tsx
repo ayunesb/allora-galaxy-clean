@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorInfo } from 'react';
+import ErrorState from '@/components/ui/error-state';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -41,7 +42,6 @@ export function ErrorFallback({
 
   const handleReportError = () => {
     toast({
-      title: "Error report sent",
       description: `Thank you for reporting this issue. Our team will investigate.${supportEmail ? ` You may also contact us at ${supportEmail}.` : ''}`,
     });
   };

@@ -1,173 +1,170 @@
 
-import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EdgeFunctionError } from "@/components/errors/EdgeFunctionErrorHandler";
-import { handleEdgeError, processEdgeResponse } from "@/lib/errors/clientErrorHandler";
-import { useMutation } from "@tanstack/react-query";
-import { Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { EdgeFunctionError } from '@/components/errors/EdgeFunctionErrorDisplay';
+import { Loader } from 'lucide-react';
 
-/**
- * Demo component for testing edge function error handling
- */
-export default function ErrorHandlingDemo() {
-  const [errorType, setErrorType] = useState("not_found");
-  const [requestId, setRequestId] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
-  const [showErrorDetails, setShowErrorDetails] = useState(false);
-  
-  // Function to trigger an error via edge function
-  const triggerError = async (errorType: string) => {
-    const response = await fetch('/api/demo-error-handling', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ errorType }),
-    });
+interface ErrorDemoState {
+  isLoading: boolean;
+  error: any;
+  response: any;
+}
 
-    const responseData = await processEdgeResponse(response);
-    return responseData;
-  };
-  
-  // Setup the mutation
-  const errorMutation = useMutation({
-    mutationFn: (selectedErrorType: string) => triggerError(selectedErrorType),
-    onSuccess: (data) => {
-      setResult({
-        success: true,
-        message: data.message,
-        timestamp: new Date().toISOString(),
-      });
-      setRequestId(data.requestId || null);
-    },
-    onError: (error: any) => {
-      setResult({
-        success: false,
-        error,
-        timestamp: new Date().toISOString(),
-      });
-      setRequestId(error.requestId || null);
-    }
+const ErrorHandlingDemo = () => {
+  const [errorType, setErrorType] = useState<string>('none');
+  const [delay, setDelay] = useState<number>(0);
+  const [state, setState] = useState<ErrorDemoState>({
+    isLoading: false,
+    error: null,
+    response: null
   });
-  
-  const handleSubmit = async () => {
-    errorMutation.mutate(errorType);
+
+  const testEndpoint = async () => {
+    setState({ isLoading: true, error: null, response: null });
+    
+    try {
+      const response = await fetch('https://project-ref.supabase.co/functions/v1/demo-error-handling', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ errorType, simulateDelay: delay }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setState({
+          isLoading: false,
+          error: {
+            message: data.error,
+            statusCode: data.status,
+            code: data.code,
+            details: data.details,
+            requestId: data.requestId,
+            timestamp: data.timestamp
+          },
+          response: null
+        });
+      } else {
+        setState({
+          isLoading: false,
+          error: null,
+          response: data
+        });
+      }
+    } catch (error) {
+      setState({
+        isLoading: false,
+        error: {
+          message: 'Network error: Could not connect to the edge function',
+          statusCode: 0,
+          code: 'NETWORK_ERROR'
+        },
+        response: null
+      });
+    }
   };
 
   return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-6">Edge Function Error Handling Demo</h1>
-      
-      <div className="grid md:grid-cols-2 gap-8">
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Edge Function Error Handling Demo</h1>
+        <p className="text-muted-foreground mb-6">
+          Test how our error handling system works with edge functions.
+          Select different error types to simulate various error conditions.
+        </p>
+        
         <Card>
           <CardHeader>
-            <CardTitle>Trigger Error</CardTitle>
+            <CardTitle>Test Edge Function</CardTitle>
             <CardDescription>
-              Test different error scenarios to see how they're handled
+              Configure the type of response you want to receive
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Error Type</Label>
-              <Select value={errorType} onValueChange={setErrorType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select error type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="not_found">Not Found (404)</SelectItem>
-                  <SelectItem value="unauthorized">Unauthorized (401)</SelectItem>
-                  <SelectItem value="forbidden">Forbidden (403)</SelectItem>
-                  <SelectItem value="validation">Validation Error (400)</SelectItem>
-                  <SelectItem value="server_error">Server Error (500)</SelectItem>
-                  <SelectItem value="timeout">Timeout</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <input
-                id="show-details"
-                type="checkbox"
-                className="form-checkbox"
-                checked={showErrorDetails}
-                onChange={() => setShowErrorDetails(!showErrorDetails)}
-              />
-              <Label htmlFor="show-details">Show detailed error information</Label>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="error-type">Error Type</Label>
+                <Select
+                  value={errorType}
+                  onValueChange={setErrorType}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select error type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (Success)</SelectItem>
+                    <SelectItem value="badRequest">Bad Request (400)</SelectItem>
+                    <SelectItem value="unauthorized">Unauthorized (401)</SelectItem>
+                    <SelectItem value="forbidden">Forbidden (403)</SelectItem>
+                    <SelectItem value="notFound">Not Found (404)</SelectItem>
+                    <SelectItem value="rateLimited">Rate Limited (429)</SelectItem>
+                    <SelectItem value="serverError">Server Error (500)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="delay">Simulate Processing Delay</Label>
+                  <span className="text-sm text-muted-foreground">{delay}ms</span>
+                </div>
+                <Slider
+                  id="delay"
+                  min={0}
+                  max={3000}
+                  step={100}
+                  value={[delay]}
+                  onValueChange={(values) => setDelay(values[0])}
+                />
+              </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={errorMutation.isPending}
-              className="w-full"
-            >
-              {errorMutation.isPending ? (
+            <Button onClick={testEndpoint} disabled={state.isLoading}>
+              {state.isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  Testing...
                 </>
               ) : (
-                'Trigger Error'
+                'Test Endpoint'
               )}
             </Button>
           </CardFooter>
         </Card>
         
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Response</CardTitle>
-              <CardDescription>
-                {requestId && <span>Request ID: {requestId}</span>}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {errorMutation.isPending ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : errorMutation.isError ? (
-                <EdgeFunctionError 
-                  error={errorMutation.error as any}
-                  showDetails={showErrorDetails}
-                  retry={() => errorMutation.mutate(errorType)}
-                />
-              ) : result?.success ? (
-                <Alert>
-                  <AlertTitle>Success!</AlertTitle>
-                  <AlertDescription>{result.message}</AlertDescription>
-                </Alert>
-              ) : null}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>How It Works</CardTitle>
-            </CardHeader>
-            <CardContent className="prose prose-sm dark:prose-invert">
-              <p>
-                This demo showcases the error handling system for edge functions:
-              </p>
-              <ol className="list-decimal pl-4 space-y-1">
-                <li>Standardized error responses from edge functions</li>
-                <li>Client-side error handling with proper components</li>
-                <li>Error tracking with request IDs</li>
-                <li>Automatic retry capabilities</li>
-                <li>Consistent user-friendly error displays</li>
-              </ol>
-              <p className="text-sm text-muted-foreground mt-4">
-                Try different error types to see how the system handles each scenario.
-                Toggle "Show detailed error information" to see technical details.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {state.error && (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-2">Error Response</h2>
+            <EdgeFunctionError 
+              error={state.error} 
+              showDetails={true}
+            />
+          </div>
+        )}
+        
+        {state.response && (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-2">Success Response</h2>
+            <Card>
+              <CardContent className="pt-6">
+                <pre className="bg-muted p-4 rounded-md overflow-auto text-sm">
+                  {JSON.stringify(state.response, null, 2)}
+                </pre>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default ErrorHandlingDemo;

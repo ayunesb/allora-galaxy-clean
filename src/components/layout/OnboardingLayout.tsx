@@ -1,80 +1,74 @@
 
-import React, { useEffect, useState } from 'react';
-import Footer from './Footer';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useTenantContext } from '@/contexts/TenantContext';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { useTenantId } from '@/hooks/useTenantId';
+import { toast } from 'sonner';
+import { LucideLogo } from '@/components/LucideLogo';
 
-interface OnboardingLayoutProps {
-  children: React.ReactNode;
-  currentStep?: number;
-  totalSteps?: number;
-}
+const OnboardingLayout: React.FC = () => {
+  const { tenant, isLoading } = useTenantContext();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({ 
-  children, 
-  currentStep = 0, 
-  totalSteps = 4
-}) => {
-  const { t } = useTranslation();
-  const tenantId = useTenantId();
-  const [progressWidth, setProgressWidth] = useState(0);
-  const [hasRendered, setHasRendered] = useState(false);
-  
-  // Calculate and animate progress bar
+  // Extract step information from path
+  const getStepInfo = () => {
+    const path = location.pathname.replace('/onboarding/', '');
+    const step = parseInt(path.split('/')[0]) || 1;
+    return { step, path };
+  };
+
+  const { step } = getStepInfo();
+
+  // Redirect to main page if tenant is already onboarded
   useEffect(() => {
-    if (totalSteps <= 0) return;
-    
-    const progressPercentage = Math.min(((currentStep + 1) / totalSteps) * 100, 100);
-    
-    // Don't animate on first render
-    if (!hasRendered) {
-      setProgressWidth(progressPercentage);
-      setHasRendered(true);
-      return;
+    if (!isLoading && tenant && tenant.is_onboarded) {
+      toast.info('Your organization is already set up');
+      navigate('/');
     }
-    
-    // Animate progress change
-    setProgressWidth(progressPercentage);
-    
-    // Log step change when tenant ID is available
-    if (tenantId) {
+  }, [tenant, isLoading, navigate]);
+
+  // Log onboarding step views
+  useEffect(() => {
+    if (tenant && !isLoading) {
       logSystemEvent(
-        'system',
+        'onboarding',
         'info',
-        { step: currentStep, total_steps: totalSteps, context: 'onboarding' },
-        tenantId
-      ).catch(err => console.error('Failed to log step change:', err));
+        {
+          step: step,
+          total_steps: 4, // Update this if you change the number of steps
+          context: location.pathname,
+          description: `User viewed onboarding step ${step}`
+        },
+        tenant.id
+      ).catch(console.error);
     }
-  }, [currentStep, totalSteps, hasRendered, tenantId]);
-  
+  }, [step, location.pathname, tenant, isLoading]);
+
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 text-center">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">
-            {t('common.appName')}
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            {t('onboarding.welcome')}
-          </p>
-        </div>
-        
-        <div className="max-w-md mx-auto mb-8 hidden sm:block">
-          <div className="h-1 w-full bg-primary/20 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary rounded-full transition-all duration-700 ease-in-out" 
-              style={{ width: `${progressWidth}%` }}
-            ></div>
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b">
+        <div className="container flex items-center justify-between p-4 mx-auto">
+          <LucideLogo />
+          <div className="text-sm">
+            <span className="text-muted-foreground">
+              Onboarding Step: {step} / 4
+            </span>
           </div>
         </div>
-      </div>
-      
-      <main className="flex-1">
-        {children}
+      </header>
+
+      <main className="flex-1 container mx-auto py-8">
+        <Outlet />
       </main>
-      
-      <Footer />
+
+      <footer className="py-6 border-t">
+        <div className="container mx-auto px-4">
+          <div className="text-center text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} Allora. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

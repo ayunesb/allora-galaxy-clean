@@ -2,51 +2,56 @@
 export interface SystemLog {
   id: string;
   created_at: string;
-  description: string;
-  level: 'info' | 'warning' | 'error';
-  module: string;
   tenant_id?: string;
   user_id?: string;
-  metadata?: any;
-  context?: string;
-  request_id?: string;
+  level: 'info' | 'warning' | 'error';
+  module: string;
+  description: string;
+  event?: string;
   error?: string;
   error_type?: string;
-  message?: string;
-  event?: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
-  user_facing?: boolean;
-  affects_multiple_users?: boolean;
+  error_code?: string;
+  context?: any;
+  metadata?: any;
+  request_id?: string;
+  source_ip?: string;
 }
 
-export interface SystemLogGroup {
+export interface PluginLog {
   id: string;
-  error_message: string;
-  error_type: string;
-  count: number;
-  first_seen: string;
-  last_seen: string;
-  environment: string;
-  status: 'open' | 'resolved' | 'ignored';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-}
-
-export interface ErrorImpact {
-  users_affected: number;
-  occurrence_count: number;
-  first_seen: string;
-  last_seen: string;
-  tenants_affected: string[];
-  components_affected: string[];
+  created_at: string;
+  plugin_id: string;
+  execution_id: string;
+  tenant_id?: string;
+  status?: 'success' | 'error' | 'warning';
+  message: string;
+  data?: any;
+  execution_time?: number;
+  error?: string;
 }
 
 export interface LogFilters {
+  search?: string;
   level?: string[];
   module?: string[];
   fromDate?: string;
   toDate?: string;
-  search?: string;
-  tenant_id?: string;
-  error_type?: string[];
-  severity?: string[];
+  tenant_id?: string[];
+  user_id?: string[];
+  event?: string[];
+  error_code?: string[];
+}
+
+export interface ErrorGroup {
+  isGroup: boolean;
+  relatedLogs: SystemLog[];
+  id: string;
+  message: string;
+  count: number;
+  firstSeen: string;
+  lastSeen: string;
+  errorType: string;
+  severity: string;
+  module: string;
+  user_facing: boolean;
 }
