@@ -3,7 +3,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useWorkspaceState } from './workspace/useWorkspaceState';
 import { WorkspaceContextType } from './workspace/types';
 
-// Create the initial context
+// Create the context with complete type
 const WorkspaceContext = createContext<WorkspaceContextType>({
   currentWorkspace: null,
   setCurrentWorkspace: () => {},
@@ -18,13 +18,20 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   isLoading: true,
   tenant: null,
   currentTenant: null,
+  collapsed: false,
+  setCollapsed: () => {},
+  toggleCollapsed: () => {},
 });
 
 interface WorkspaceProviderProps {
   children: ReactNode;
+  initialCollapsed?: boolean;
 }
 
-export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
+export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ 
+  children, 
+  initialCollapsed = false
+}) => {
   // Use our custom hook to manage workspace state
   const workspaceState = useWorkspaceState();
   

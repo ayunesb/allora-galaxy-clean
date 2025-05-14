@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import useAuth from '@/hooks/useAuth';
@@ -11,6 +12,9 @@ export const useWorkspaceState = (): WorkspaceContextType => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  
+  // UI state for sidebar
+  const [collapsed, setCollapsed] = useState(false);
 
   // Fetch workspaces when user changes
   useEffect(() => {
@@ -160,6 +164,11 @@ export const useWorkspaceState = (): WorkspaceContextType => {
     fetchAndSetUserRole();
   };
 
+  // Toggle sidebar collapsed state
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+
   return {
     currentWorkspace,
     setCurrentWorkspace: handleWorkspaceChange,
@@ -171,8 +180,12 @@ export const useWorkspaceState = (): WorkspaceContextType => {
     deleteWorkspace,
     updateWorkspace,
     userRole,
-    isLoading: loading,
+    isLoading: loading, // Provide both loading and isLoading for backward compatibility
     tenant: currentWorkspace,
     currentTenant: currentWorkspace,
+    // UI state properties
+    collapsed,
+    setCollapsed,
+    toggleCollapsed,
   };
 };

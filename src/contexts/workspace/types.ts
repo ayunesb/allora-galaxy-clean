@@ -13,6 +13,10 @@ export interface WorkspaceContextType {
   isLoading: boolean;
   tenant: any | null;
   currentTenant: any | null;
+  // UI state properties
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+  toggleCollapsed: () => void;
 }
 
 export interface Workspace {

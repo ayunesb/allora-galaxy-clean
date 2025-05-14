@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronsUpDown, Check, PlusCircle } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
-import { useWorkspace } from '@/context/WorkspaceContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
 import { Workspace } from "@/contexts/workspace/types";
