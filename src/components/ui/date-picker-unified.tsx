@@ -48,15 +48,10 @@ export function UnifiedDatePicker({
         <Calendar
           mode="single"
           selected={value || undefined}
-          onSelect={(date) => {
-            // Cast to the expected type
-            const handler: SelectSingleEventHandler = (day) => {
-              onChange(day);
-            };
-            handler(date);
-          }}
+          onSelect={(date) => onChange(date || null)}
           initialFocus
           disabled={disabled}
+          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>

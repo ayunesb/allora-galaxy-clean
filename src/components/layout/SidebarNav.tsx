@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { useTenantRole } from "@/hooks/useTenantRole";
 import { ChevronDown } from "lucide-react";
@@ -67,7 +68,7 @@ export function SidebarNav({ items, className }: SidebarNavProps) {
 
           {isOpen && item.items && (
             <div className="pl-6 space-y-1">
-              {item.items.map((child) =>
+              {item.items.map((child: NavigationItem) =>
                 renderNavItem(child)
               )}
             </div>

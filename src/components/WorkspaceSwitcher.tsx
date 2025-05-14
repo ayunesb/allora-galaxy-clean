@@ -29,7 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { toast } from "@/lib/toast";
+import { toast } from "@/hooks/use-toast";
 
 type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>;
 
@@ -38,12 +38,11 @@ interface WorkspaceSwitcherProps extends PopoverTriggerProps {
 }
 
 export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps) {
-  const { workspace, workspaces, setCurrentWorkspace, createWorkspace } = useWorkspace();
+  const { currentWorkspace, workspaces, setCurrentWorkspace, createWorkspace } = useWorkspace();
   
   const [open, setOpen] = useState(false);
   const [showNewTeamDialog, setShowNewTeamDialog] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [newWorkspaceSlug, setNewWorkspaceSlug] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateWorkspace = async () => {
@@ -53,22 +52,26 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
     
     try {
       if (createWorkspace) {
-        const newWorkspace = await createWorkspace({
-          name: newWorkspaceName,
-          slug: newWorkspaceSlug || undefined
-        });
+        const newWorkspace = await createWorkspace(newWorkspaceName);
         
         if (newWorkspace) {
           setCurrentWorkspace(newWorkspace);
           setShowNewTeamDialog(false);
           setNewWorkspaceName("");
-          setNewWorkspaceSlug("");
-          toast.success("Workspace created successfully");
+          toast({
+            title: "Success",
+            description: "Workspace created successfully",
+            variant: "success"
+          });
         }
       }
     } catch (error) {
       console.error('Failed to create workspace:', error);
-      toast.error("Failed to create workspace");
+      toast({
+        title: "Error",
+        description: "Failed to create workspace",
+        variant: "destructive"
+      });
     } finally {
       setIsCreating(false);
     }
@@ -85,7 +88,7 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
             aria-label="Select a workspace"
             className={cn("w-[200px] justify-between", className)}
           >
-            {workspace?.name || "Select workspace"}
+            {currentWorkspace?.name || "Select workspace"}
             <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -105,7 +108,7 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
                     className="text-sm"
                   >
                     <span>{item.workspace.name}</span>
-                    {workspace?.id === item.workspace.id && (
+                    {currentWorkspace?.id === item.workspace.id && (
                       <Check className="ml-auto h-4 w-4" />
                     )}
                   </CommandItem>
@@ -146,15 +149,6 @@ export default function WorkspaceSwitcher({ className }: WorkspaceSwitcherProps)
               placeholder="Acme Inc."
               value={newWorkspaceName}
               onChange={(e) => setNewWorkspaceName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug (optional)</Label>
-            <Input
-              id="slug"
-              placeholder="acme"
-              value={newWorkspaceSlug}
-              onChange={(e) => setNewWorkspaceSlug(e.target.value)}
             />
           </div>
         </div>

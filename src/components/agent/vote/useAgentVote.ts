@@ -51,7 +51,11 @@ export const useAgentVote = (agentVersionId: string) => {
       }
     } catch (error) {
       console.error('Error fetching votes:', error);
-      toast.error('Could not load voting information');
+      toast({
+        title: "Error",
+        description: "Could not load voting information",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +69,11 @@ export const useAgentVote = (agentVersionId: string) => {
       const userId = userSession?.session?.user.id;
       
       if (!userId) {
-        toast.error('You must be signed in to vote');
+        toast({
+          title: "Error",
+          description: "You must be signed in to vote",
+          variant: "destructive"
+        });
         return false;
       }
       
@@ -76,14 +84,22 @@ export const useAgentVote = (agentVersionId: string) => {
         setUserVote(voteType);
         await fetchVotes(); // Refresh vote counts
         
-        toast.success(`Your ${voteType === 'up' ? 'upvote' : 'downvote'} was recorded successfully`);
+        toast({
+          title: "Success",
+          description: `Your ${voteType === 'up' ? 'upvote' : 'downvote'} was recorded successfully`,
+          variant: "success"
+        });
         return true;
       } else {
         throw new Error(result.error || 'Failed to cast vote');
       }
     } catch (error: any) {
       console.error('Error casting vote:', error);
-      toast.error(error.message || 'Could not cast your vote');
+      toast({
+        title: "Error",
+        description: error.message || 'Could not cast your vote',
+        variant: "destructive"
+      });
       return false;
     } finally {
       setIsLoading(false);

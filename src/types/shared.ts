@@ -16,17 +16,18 @@ export interface WorkspaceWithRole {
 }
 
 export interface WorkspaceContextType {
-  workspace?: Workspace;
+  workspace: Workspace | null;
   workspaces: WorkspaceWithRole[];
+  currentWorkspace: Workspace | null;
+  isLoading: boolean;
+  error: Error | null;
   setCurrentWorkspace: (workspace: Workspace) => void;
-  createWorkspace?: (workspace: { name: string; slug?: string }) => Promise<Workspace>;
+  switchWorkspace: (workspaceId: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<Workspace | null>;
+  refreshWorkspaces: () => Promise<void>;
+  tenant: Workspace | null; // Alias for backward compatibility
   navigation?: {
-    items: {
-      name: string;
-      href: string;
-      icon: React.ComponentType;
-      current: boolean;
-    }[];
+    items: NavigationItem[];
   };
 }
 
@@ -96,7 +97,35 @@ export interface CronJobStats {
   week: CronJobStat[];
   month: CronJobStat[];
   all: CronJobStat[];
+  total?: number;
+  active?: number;
+  pending?: number;
+  failed?: number;
+  completed?: number;
 }
+
+// Core shared types used across the application
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+export type VoteType = 'up' | 'down' | 'neutral';
+
+export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system';
+
+export interface FilterState {
+  module?: string[];
+  eventType?: string[];
+  dateRange?: {
+    from: Date | string | null;
+    to: Date | string | null;
+  };
+  status?: string[];
+  search?: string;
+}
+
+// Export UserRole type
+export type UserRole = 'admin' | 'owner' | 'member' | 'guest';
 
 // System Log Types
 export type SystemEventModule = 
@@ -130,6 +159,19 @@ export interface SystemLog {
   created_at: string;
   user_id?: string;
   metadata?: Record<string, any>;
+}
+
+// Navigation item type
+export interface NavigationItem {
+  id?: string;
+  title: string;
+  href: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  items?: NavigationItem[];
+  adminOnly?: boolean;
+  badge?: string | number;
+  isNew?: boolean;
+  isExternal?: boolean;
 }
 
 // Shared types for notifications

@@ -3,30 +3,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { notify } from '@/lib/toast';
-
-export interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  created_at: string;
-}
-
-export interface WorkspaceContextType {
-  workspaces: Workspace[];
-  currentWorkspace: Workspace | null;
-  isLoading: boolean;
-  error: Error | null;
-  switchWorkspace: (workspaceId: string) => Promise<void>;
-  createWorkspace: (name: string) => Promise<Workspace | null>;
-  refreshWorkspaces: () => Promise<void>;
-  tenant: Workspace | null; // Alias for backward compatibility
-}
+import { Workspace, WorkspaceContextType, WorkspaceWithRole } from '@/types/shared';
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
+  workspace: null,
   workspaces: [],
   currentWorkspace: null,
   isLoading: true,
   error: null,
+  setCurrentWorkspace: () => {},
   switchWorkspace: async () => {},
   createWorkspace: async () => null,
   refreshWorkspaces: async () => {},
@@ -38,7 +23,7 @@ interface WorkspaceProviderProps {
 }
 
 export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceWithRole[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -63,8 +48,10 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             id,
             name,
             slug,
-            created_at
-          )
+            created_at,
+            metadata
+          ),
+          role
         `)
         .eq('user_id', user.user.id)
         .order('created_at', { ascending: false });
@@ -72,21 +59,24 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       if (tenantError) throw tenantError;
 
       const workspacesData = tenantRoles
-        .map(tr => tr.tenant)
-        .filter(Boolean) as Workspace[];
+        .filter(tr => tr.tenant)
+        .map(tr => ({
+          workspace: tr.tenant as Workspace,
+          role: tr.role
+        })) as WorkspaceWithRole[];
 
       setWorkspaces(workspacesData);
 
       // Set current workspace if not already set or not in the list
-      if (!currentWorkspace || !workspacesData.find(w => w.id === currentWorkspace.id)) {
+      if (!currentWorkspace || !workspacesData.find(w => w.workspace.id === currentWorkspace.id)) {
         const lastUsedId = localStorage.getItem('lastWorkspaceId');
         
         // Try to restore last used workspace or use first one
-        if (lastUsedId && workspacesData.find(w => w.id === lastUsedId)) {
-          const found = workspacesData.find(w => w.id === lastUsedId);
-          setCurrentWorkspace(found || null);
+        if (lastUsedId && workspacesData.find(w => w.workspace.id === lastUsedId)) {
+          const found = workspacesData.find(w => w.workspace.id === lastUsedId);
+          setCurrentWorkspace(found ? found.workspace : null);
         } else if (workspacesData.length > 0) {
-          setCurrentWorkspace(workspacesData[0]);
+          setCurrentWorkspace(workspacesData[0].workspace);
         } else {
           setCurrentWorkspace(null);
         }
@@ -101,7 +91,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
   const switchWorkspace = async (workspaceId: string): Promise<void> => {
     try {
-      const workspace = workspaces.find(w => w.id === workspaceId);
+      const workspace = workspaces.find(w => w.workspace.id === workspaceId)?.workspace;
       if (!workspace) {
         throw new Error("Workspace not found");
       }
@@ -126,12 +116,15 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         throw new Error("No authenticated user found");
       }
 
+      // Create slug from name
+      const slug = name.toLowerCase().replace(/\s+/g, '-');
+
       // Create the workspace
       const { data: workspaceData, error: workspaceError } = await supabase
         .from('tenants')
         .insert({
           name,
-          slug: name.toLowerCase().replace(/\s+/g, '-')
+          slug
         })
         .select()
         .single();
@@ -171,10 +164,12 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
   }, []);
 
   const contextValue: WorkspaceContextType = {
+    workspace: currentWorkspace,
     workspaces,
     currentWorkspace,
     isLoading,
     error,
+    setCurrentWorkspace,
     switchWorkspace,
     createWorkspace,
     refreshWorkspaces: fetchWorkspaces,

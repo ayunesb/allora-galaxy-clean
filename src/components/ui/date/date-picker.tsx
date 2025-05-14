@@ -14,56 +14,20 @@ import {
 } from "@/components/ui/popover";
 
 export interface DatePickerProps {
-  /** Current selected date value */
-  value?: Date | null;
-  /** Default date if no value is provided */
-  defaultValue?: Date;
-  /** Callback when date is changed */
-  onChange?: (date: Date | null) => void;
-  /** Placeholder text when no date is selected */
+  date: Date | null | undefined;
+  setDate: (date: Date | null) => void;
   placeholder?: string;
-  /** Additional class names */
   className?: string;
-  /** Popover content alignment */
-  align?: "start" | "center" | "end";
-  /** Whether the date picker is disabled */
   disabled?: boolean;
-  /** Disable specific dates */
-  disabledDates?: (date: Date) => boolean;
 }
 
-/**
- * Unified date picker component for selecting a single date
- */
 export function DatePicker({
-  value,
-  defaultValue,
-  onChange,
+  date,
+  setDate,
   placeholder = "Pick a date",
   className,
-  align = "start",
   disabled = false,
-  disabledDates,
 }: DatePickerProps) {
-  const [date, setDate] = React.useState<Date | null | undefined>(
-    value !== undefined ? value : defaultValue
-  );
-
-  // Update local state when value prop changes
-  React.useEffect(() => {
-    if (value !== undefined) {
-      setDate(value);
-    }
-  }, [value]);
-
-  // Handle date selection
-  const handleSelect: SelectSingleEventHandler = (selectedDate) => {
-    setDate(selectedDate);
-    if (onChange) {
-      onChange(selectedDate);
-    }
-  };
-
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -80,18 +44,16 @@ export function DatePicker({
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align={align}>
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={date || undefined}
-          onSelect={handleSelect}
+          onSelect={(selectedDate) => setDate(selectedDate)}
           initialFocus
-          disabled={disabled || disabledDates}
-          className={cn("p-3 pointer-events-auto")}
+          disabled={disabled}
+          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>
   );
 }
-
-export default DatePicker;

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ExecutionsTable } from './ExecutionsTable';
 import { StatsTable } from './StatsTable';
 import { Button } from '@/components/ui/button';
-import { CronJob, CronJobStat, CronJobStats } from '@/types/cron';
+import { CronJob, CronJobStat, CronJobStats } from '@/types/shared';
 
 interface CronJobsTabsProps {
   jobs: CronJob[];
@@ -24,11 +24,15 @@ export const CronJobsTabs: React.FC<CronJobsTabsProps> = ({
 
   // Convert the stats array to a CronJobStats object format expected by StatsTable
   const statsObject: CronJobStats = {
-    total: stats.reduce((sum, stat) => sum + stat.count, 0),
-    active: stats.find(s => s.status === 'active')?.count || 0,
-    pending: stats.find(s => s.status === 'scheduled')?.count || 0,
-    failed: stats.find(s => s.status === 'failed')?.count || 0,
-    completed: stats.find(s => s.status === 'completed')?.count || 0
+    day: [],
+    week: [],
+    month: [],
+    all: [],
+    total: stats.reduce((sum, stat) => sum + stat.execution_count, 0),
+    active: stats.filter(s => s.status === 'success').length,
+    pending: stats.filter(s => s.status === 'pending').length,
+    failed: stats.filter(s => s.status === 'error').length,
+    completed: stats.filter(s => s.status === 'success').length
   };
 
   const handleRunJob = async (jobId: string) => {

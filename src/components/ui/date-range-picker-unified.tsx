@@ -94,7 +94,16 @@ export function DateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={handleDateChange}
+            onSelect={(selectedDate) => {
+              if (selectedDate?.from) {
+                handleDateChange({
+                  from: selectedDate.from,
+                  to: selectedDate?.to
+                } as DateRange);
+              } else {
+                handleDateChange(undefined);
+              }
+            }}
             numberOfMonths={2}
             className={cn("p-3 pointer-events-auto")}
           />

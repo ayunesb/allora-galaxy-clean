@@ -1,6 +1,6 @@
 
 import React, { ReactNode } from 'react';
-import Header from './Header';
+import { Header } from './Header';
 import { Sidebar } from '@/components/ui/sidebar';
 import SidebarNav from './SidebarNav';
 import { getNavigationItems } from '@/contexts/workspace/navigationItems';
