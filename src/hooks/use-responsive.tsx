@@ -31,7 +31,7 @@ export function useResponsive() {
   const isMd = useMediaQuery(`(max-width: ${breakpoints.md})`);
   const isLg = useMediaQuery(`(max-width: ${breakpoints.lg})`);
   const isXl = useMediaQuery(`(max-width: ${breakpoints.xl})`);
-  const is2xl = useMediaQuery(`(max-width: ${breakpoints.["2xl"]})`);
+  const is2xl = useMediaQuery(`(max-width: ${breakpoints['2xl']})`);
   
   // Prevent hydration mismatch
   if (!isClient) {

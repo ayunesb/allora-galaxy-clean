@@ -18,4 +18,4 @@ export function Loading({ size = 'default', className }: LoadingProps) {
       <Loader className={cn(sizeClass, "animate-spin", className)} />
     </div>
   );
-};
+}
