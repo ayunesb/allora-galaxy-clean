@@ -1,7 +1,15 @@
 
-import { supabaseClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { SystemEventModule, LogSeverity } from '@/types/shared';
 
+/**
+ * Logs a system event to the database.
+ * 
+ * @param module The module generating the event
+ * @param event The event severity or type
+ * @param context Additional context for the event
+ * @param tenant_id Optional tenant ID for multi-tenant logging
+ */
 export default async function logSystemEvent(
   module: SystemEventModule | string,
   event: LogSeverity | string,
@@ -9,7 +17,7 @@ export default async function logSystemEvent(
   tenant_id?: string
 ): Promise<void> {
   try {
-    await supabaseClient
+    await supabase
       .from('system_logs')
       .insert({
         module,

@@ -1,105 +1,165 @@
 
 import React, { useState } from 'react';
-import PageHelmet from '@/components/PageHelmet';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useSystemLogsData, SystemLog } from '@/hooks/admin/useSystemLogsData';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import { PageHeader } from '@/components/ui/page-header';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import { useSystemLogsData, SystemLogFilter } from '@/hooks/admin/useSystemLogsData';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-const AiDecisionsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('prompts');
-  const { 
-    logs, 
-    loading, 
-    filters, 
-    updateFilters, 
-    refresh, 
-    availableModules 
-  } = useSystemLogsData({ 
-    searchTerm: '',
-    module: 'ai' 
-  });
+export default function AiDecisionsPage() {
+  const [activeTab, setActiveTab] = useState('agent-decisions');
   
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // System logs data hook
+  const {
+    logs,
+    totalCount,
+    isLoading,
+    currentPage,
+    pageSize,
+    filters,
+    updateFilters,
+    goToPage,
+    changePageSize,
+    refreshLogs,
+  } = useSystemLogsData();
 
-  const handleViewLog = (log: SystemLog) => {
-    setSelectedLog(log);
-    setIsDialogOpen(true);
-  };
+  // Calculate total pages
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Initialize with agent module filter
+  React.useEffect(() => {
+    updateFilters({
+      ...filters,
+      module: 'agent'
+    });
+  }, []);
+
+  // Render pagination controls
+  const renderPagination = () => (
+    <div className="flex items-center justify-between">
+      <div className="text-sm text-muted-foreground">
+        Showing {Math.min((currentPage - 1) * pageSize + 1, totalCount)} to{" "}
+        {Math.min(currentPage * pageSize, totalCount)} of {totalCount} entries
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1 || isLoading}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
+        <span className="text-sm">
+          Page {currentPage} of {totalPages || 1}
+        </span>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage >= totalPages || isLoading}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        
+        <Select value={pageSize.toString()} onValueChange={(value) => changePageSize(Number(value))}>
+          <SelectTrigger className="w-[100px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="10">10 per page</SelectItem>
+            <SelectItem value="25">25 per page</SelectItem>
+            <SelectItem value="50">50 per page</SelectItem>
+            <SelectItem value="100">100 per page</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   return (
-    <>
-      <PageHelmet 
-        title="AI Decisions" 
-        description="Review AI decision-making history" 
-      />
+    <div className="container mx-auto py-8">
+      <PageHeader heading="AI Decisions" subheading="Review agent decisions and outcomes" />
       
-      <div className="container py-6">
-        <h1 className="text-3xl font-bold mb-6">AI Decisions</h1>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="agent-decisions">Agent Decisions</TabsTrigger>
+          <TabsTrigger value="votes">Agent Votes</TabsTrigger>
+          <TabsTrigger value="analytics">Performance Analytics</TabsTrigger>
+        </TabsList>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Decision History</CardTitle>
-          </CardHeader>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="px-6">
-              <TabsList className="w-full sm:w-auto">
-                <TabsTrigger value="prompts">Prompt History</TabsTrigger>
-                <TabsTrigger value="decisions">System Decisions</TabsTrigger>
-                <TabsTrigger value="user-feedback">User Feedback</TabsTrigger>
-              </TabsList>
-            </div>
-            
+        <TabsContent value="agent-decisions">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Decisions</CardTitle>
+              <CardDescription>
+                Review decisions made by AI agents in the system
+              </CardDescription>
+            </CardHeader>
             <CardContent>
-              <div className="mb-6 mt-2">
-                <SystemLogFilters 
-                  filters={filters}
-                  onFilterChange={updateFilters}
-                  availableModules={availableModules}
-                  onRefresh={refresh}
-                  isLoading={loading}
-                />
-              </div>
-              
-              <TabsContent value="prompts" className="mt-0">
-                <SystemLogsList 
-                  logs={logs.filter(log => log.context?.type === 'prompt')} 
-                  isLoading={loading}
-                  onViewLog={handleViewLog}
-                />
-              </TabsContent>
-              
-              <TabsContent value="decisions" className="mt-0">
-                <SystemLogsList 
-                  logs={logs.filter(log => log.context?.type === 'decision')} 
-                  isLoading={loading}
-                  onViewLog={handleViewLog}
-                />
-              </TabsContent>
-              
-              <TabsContent value="user-feedback" className="mt-0">
-                <SystemLogsList 
-                  logs={logs.filter(log => log.context?.type === 'feedback')} 
-                  isLoading={loading}
-                  onViewLog={handleViewLog}
-                />
-              </TabsContent>
+              <SystemLogsList
+                logs={logs}
+                isLoading={isLoading}
+                filters={filters as SystemLogFilter}
+                setFilters={updateFilters}
+                onRefresh={refreshLogs}
+                title="Agent Decisions"
+                pagination={renderPagination()}
+              />
             </CardContent>
-          </Tabs>
-        </Card>
-      </div>
-      
-      <LogDetailDialog
-        open={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        log={selectedLog}
-      />
-    </>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="votes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Votes</CardTitle>
+              <CardDescription>
+                Review votes cast on agent versions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Agent voting data will be displayed here
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="analytics">
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Analytics</CardTitle>
+              <CardDescription>
+                View performance metrics and trends for agents
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Agent performance analytics will be displayed here
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
-};
-
-export default AiDecisionsPage;
+}

@@ -1,6 +1,6 @@
 
 import { supabase } from '@/lib/supabase';
-import { OnboardingFormData } from '@/types/onboarding';
+import { OnboardingFormData } from '@/types/onboarding/types';
 
 /**
  * Complete the onboarding process for a user

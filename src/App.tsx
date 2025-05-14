@@ -1,19 +1,36 @@
 
-import { Routes, Route, useRoutes } from 'react-router-dom';
-import { Toaster } from '@/components/ui/sonner';
-import CookieConsent from './components/CookieConsent';
-import { Providers } from './providers';
-import { routes } from './routes';
+import { RouterProvider } from 'react-router-dom';
+import { router } from './routes';
+import './App.css';
+import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from './providers/ThemeProvider';
+import { AuthProvider } from './context/AuthContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { NotificationsProvider } from './context/notifications/NotificationsProvider';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
-  const routeElements = useRoutes(routes);
-  
   return (
-    <Providers>
-      {routeElements}
-      <Toaster />
-      <CookieConsent />
-    </Providers>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light">
+        <AuthProvider>
+          <WorkspaceProvider>
+            <NotificationsProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+            </NotificationsProvider>
+          </WorkspaceProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

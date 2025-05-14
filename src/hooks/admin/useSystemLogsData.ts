@@ -1,142 +1,144 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { DateRange, LogSeverity } from '@/types/shared';
+import { supabase } from '@/lib/supabase';
+import { DateRange } from '@/types/shared';
+
+export interface SystemLogFilter {
+  searchTerm: string;
+  module?: string | string[];
+  event?: string;
+  dateRange?: DateRange;
+}
 
 export interface SystemLog {
   id: string;
   module: string;
   event: string;
+  context: any;
   created_at: string;
-  context?: Record<string, any>;
   tenant_id?: string;
 }
 
-export interface SystemLogFilter {
-  searchTerm: string;
-  module?: string;
-  severity?: LogSeverity;
-  dateRange?: DateRange;
-}
-
-export function useSystemLogsData(initialFilters: SystemLogFilter = { searchTerm: '' }) {
+export function useSystemLogsData() {
   const { currentWorkspace } = useWorkspace();
   const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<SystemLogFilter>(initialFilters);
-  const [availableModules, setAvailableModules] = useState<string[]>([]);
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [filters, setFilters] = useState<SystemLogFilter>({
+    searchTerm: '',
+  });
 
   // Fetch logs based on current filters
   const fetchLogs = useCallback(async () => {
     if (!currentWorkspace?.id) return;
 
-    setLoading(true);
+    setIsLoading(true);
+    setError(null);
+
     try {
+      // Start building the query
       let query = supabase
         .from('system_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' });
 
       // Apply tenant filter
       query = query.eq('tenant_id', currentWorkspace.id);
 
       // Apply module filter if specified
       if (filters.module) {
-        query = query.eq('module', filters.module);
+        if (Array.isArray(filters.module)) {
+          query = query.in('module', filters.module);
+        } else {
+          query = query.eq('module', filters.module);
+        }
       }
 
-      // Apply severity/event filter if specified
-      if (filters.severity) {
-        query = query.eq('event', filters.severity);
+      // Apply event filter if specified
+      if (filters.event) {
+        query = query.eq('event', filters.event);
       }
 
       // Apply date range filter if specified
       if (filters.dateRange?.from) {
-        const fromDate = filters.dateRange.from.toISOString();
-        query = query.gte('created_at', fromDate);
+        query = query.gte('created_at', filters.dateRange.from.toISOString());
 
         if (filters.dateRange.to) {
-          const toDate = filters.dateRange.to.toISOString();
-          query = query.lte('created_at', toDate);
+          query = query.lte('created_at', filters.dateRange.to.toISOString());
         }
       }
 
-      // Execute the query
-      const { data, error } = await query.limit(100);
-
-      if (error) throw error;
-
-      // Filter by search term if specified
-      let filteredData = data || [];
+      // Apply search term filter if specified
       if (filters.searchTerm) {
-        const searchLower = filters.searchTerm.toLowerCase();
-        filteredData = filteredData.filter(log => {
-          const contextStr = log.context ? JSON.stringify(log.context).toLowerCase() : '';
-          return (
-            log.module.toLowerCase().includes(searchLower) ||
-            log.event.toLowerCase().includes(searchLower) ||
-            contextStr.includes(searchLower)
-          );
-        });
+        query = query.or(
+          `module.ilike.%${filters.searchTerm}%,event.ilike.%${filters.searchTerm}%,context.ilike.%${filters.searchTerm}%`
+        );
       }
 
-      setLogs(filteredData);
-    } catch (error) {
-      console.error('Error fetching system logs:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentWorkspace?.id, filters]);
+      // Apply pagination
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      query = query
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-  // Fetch all available modules for filtering
-  const fetchModules = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('system_logs')
-        .select('module')
-        .eq('tenant_id', currentWorkspace.id)
-        .order('module');
+      // Execute the query
+      const { data, error, count } = await query;
 
       if (error) throw error;
 
-      // Extract unique modules
-      const modules = [...new Set(data?.map(item => item.module))];
-      setAvailableModules(modules);
-    } catch (error) {
-      console.error('Error fetching modules:', error);
+      setLogs(data || []);
+      setTotalCount(count || 0);
+    } catch (err: any) {
+      console.error('Error fetching system logs:', err);
+      setError(err);
+    } finally {
+      setIsLoading(false);
     }
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, filters, currentPage, pageSize]);
 
-  // Fetch data on initial load and when workspace changes
+  // Fetch logs when dependencies change
   useEffect(() => {
-    if (currentWorkspace?.id) {
-      fetchLogs();
-      fetchModules();
-    }
-  }, [currentWorkspace?.id, fetchLogs, fetchModules]);
+    fetchLogs();
+  }, [fetchLogs]);
 
-  // Update filters
-  const updateFilters = (newFilters: SystemLogFilter) => {
+  // Handle filter changes
+  const updateFilters = (newFilters: Partial<SystemLogFilter>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  // Handle page change
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle page size change
+  const changePageSize = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1); // Reset to first page when page size changes
   };
 
   // Refresh logs
-  const refresh = async () => {
-    await fetchLogs();
+  const refreshLogs = () => {
+    fetchLogs();
   };
 
   return {
     logs,
-    loading,
+    totalCount,
+    isLoading,
+    error,
+    currentPage,
+    pageSize,
     filters,
-    availableModules,
-    selectedLog,
-    setSelectedLog,
-    updateFilters,
-    refresh
+    refreshLogs,
+    updateFilters: setFilters,
+    goToPage,
+    changePageSize,
   };
 }

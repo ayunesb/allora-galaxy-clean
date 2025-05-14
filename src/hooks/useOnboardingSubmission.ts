@@ -1,90 +1,67 @@
 
 import { useState } from 'react';
-import { OnboardingFormData } from '@/types/onboarding';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { sendNotification } from '@/lib/notifications/sendNotification';
+import { toast } from '@/hooks/use-toast';
+import { OnboardingFormData } from '@/types/onboarding/types';
 import { completeOnboarding } from '@/services/onboardingService';
 
-/**
- * Hook for managing onboarding form submission
- */
 export function useOnboardingSubmission() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (formData: OnboardingFormData) => {
+  const handleSubmission = async (formData: OnboardingFormData) => {
     if (!user) {
-      setError('User must be logged in to complete onboarding');
       toast({
-        title: 'Authentication Error',
-        description: 'You must be logged in to complete onboarding',
-        variant: 'destructive'
+        title: "Not authenticated",
+        description: "You need to be logged in to complete onboarding",
+        variant: "destructive",
       });
-      return false;
+      return { success: false };
     }
 
+    setIsSubmitting(true);
+
     try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      // Complete the onboarding process
+      // Call onboarding service to handle the submission
       const result = await completeOnboarding(user.id, formData);
-      
-      if (result.success && 'tenantId' in result) {
-        // Send notification
-        await sendNotification({
-          title: 'Welcome to Allora OS',
-          description: 'Your workspace is ready! We\'ve created your initial strategy.',
-          type: 'success',
-          tenant_id: result.tenantId,
-          user_id: user.id,
-          action_label: 'View Dashboard',
-          action_url: '/dashboard'
-        }).catch(err => {
-          console.warn('Failed to send welcome notification:', err);
-          // Non-critical error, continue with onboarding success
-        });
-        
-        toast({
-          title: 'Welcome to Allora OS!',
-          description: 'Your workspace has been created successfully.',
-        });
-        
-        return true;
-      } else {
-        setError(result.error || 'Failed to create workspace');
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to create workspace',
-          variant: 'destructive',
-        });
-        return false;
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to complete onboarding");
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+
+      // Success!
       toast({
-        title: 'Error',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive',
+        title: "Onboarding completed!",
+        description: "Your workspace is now ready to use.",
       });
-      console.error('Onboarding error:', err);
-      return false;
+
+      // Navigate to the dashboard with the new tenant ID
+      if (result.tenantId) {
+        navigate(`/dashboard?tenant=${result.tenantId}`);
+      } else {
+        navigate('/dashboard');
+      }
+
+      return { success: true, tenantId: result.tenantId };
+    } catch (error: any) {
+      console.error("Onboarding submission error:", error);
+      
+      toast({
+        title: "Onboarding failed",
+        description: error.message || "There was an error completing the onboarding process",
+        variant: "destructive",
+      });
+      
+      return { success: false, error };
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const resetError = () => {
-    setError(null);
-  };
-
   return {
+    handleSubmission,
     isSubmitting,
-    error,
-    handleSubmit,
-    resetError
   };
 }

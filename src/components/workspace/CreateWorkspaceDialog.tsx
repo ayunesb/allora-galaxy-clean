@@ -1,132 +1,118 @@
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/context/WorkspaceContext';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "@/hooks/use-toast";
 
 interface CreateWorkspaceDialogProps {
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function CreateWorkspaceDialog({ open, onClose }: CreateWorkspaceDialogProps) {
-  const [name, setName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { refreshWorkspaces } = useWorkspace();
+export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDialogProps) {
+  const { refreshWorkspaces, createWorkspace } = useWorkspace();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name.trim()) {
       toast({
-        title: 'Error',
-        description: 'Please enter a workspace name',
-        variant: 'destructive',
+        title: "Workspace name required",
+        description: "Please provide a name for your workspace.",
+        variant: "destructive",
       });
       return;
     }
-
-    if (!user) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to create a workspace',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsCreating(true);
-
+    
+    setIsSubmitting(true);
+    
     try {
-      // Generate a slug from the workspace name
-      const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-
-      // Insert the new tenant
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name,
-          slug,
-          owner_id: user.id
-        })
-        .select()
-        .single();
-
-      if (tenantError) throw tenantError;
-
-      // Assign the current user as an owner of this tenant
-      const { error: roleError } = await supabase
-        .from('tenant_user_roles')
-        .insert({
-          tenant_id: tenant.id,
-          user_id: user.id,
-          role: 'owner'
-        });
-
-      if (roleError) throw roleError;
-
+      if (createWorkspace) {
+        const result = await createWorkspace(name, description);
+        
+        if (result) {
+          toast({
+            title: "Workspace created",
+            description: `${name} workspace has been created successfully.`,
+          });
+          
+          // Reset form and close dialog
+          setName("");
+          setDescription("");
+          onOpenChange(false);
+          
+          // Refresh the workspace list
+          await refreshWorkspaces();
+        }
+      }
+    } catch (error) {
+      console.error("Error creating workspace:", error);
       toast({
-        title: 'Success',
-        description: `${name} workspace has been created`,
-      });
-
-      // Refresh the workspaces list
-      await refreshWorkspaces();
-      
-      // Close the dialog
-      onClose();
-    } catch (error: any) {
-      console.error('Error creating workspace:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create workspace',
-        variant: 'destructive',
+        title: "Failed to create workspace",
+        description: "There was an error creating your workspace. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setIsCreating(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Create new workspace</DialogTitle>
-        </DialogHeader>
         <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Create Workspace</DialogTitle>
+            <DialogDescription>
+              Create a new workspace to organize your projects and team members.
+            </DialogDescription>
+          </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Workspace name</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
+                placeholder="Acme Corporation"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="My Awesome Company"
-                disabled={isCreating}
+                autoComplete="off"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="A brief description of your workspace"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isCreating}>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              type="button"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating}>
-              {isCreating ? (
-                <>
-                  <LoadingSpinner className="mr-2" />
-                  Creating...
-                </>
-              ) : (
-                'Create'
-              )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Workspace"}
             </Button>
           </DialogFooter>
         </form>

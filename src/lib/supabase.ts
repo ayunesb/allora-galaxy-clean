@@ -1,13 +1,17 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getEnvWithDefault } from '@/lib/env';
+import type { Database } from '@/types/supabase';
 
 // Get Supabase URL and key with hardcoded fallbacks to prevent blank screens
 const supabaseUrl = getEnvWithDefault('VITE_SUPABASE_URL', 'https://ijrnwpgsqsxzqdemtknz.supabase.co');
 const supabaseAnonKey = getEnvWithDefault('VITE_SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo');
 
-// Create Supabase client with consistent configuration
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+/**
+ * Main Supabase client instance.
+ * Used for all interactions with Supabase services.
+ */
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storageKey: 'allora_auth_token',
     persistSession: true,
@@ -22,7 +26,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
- * Enhanced Supabase client with better error handling for common operations
+ * Enhanced Supabase client with better error handling for database operations.
+ * This wrapper adds consistent error handling and logging for common database operations.
  */
 export const supabaseWithErrorHandler = {
   from: (table: string) => {
@@ -85,11 +90,26 @@ export const supabaseWithErrorHandler = {
   functions: supabase.functions
 };
 
+// For backward compatibility
+export const supabaseClient = supabase;
+
 // Re-export the Supabase client types
 export type { Session, User } from '@supabase/supabase-js';
 
-// Export a function to check if user is authenticated
+/**
+ * Check if the current user is authenticated.
+ * @returns A Promise that resolves to a boolean indicating if the user is authenticated.
+ */
 export const isAuthenticated = async (): Promise<boolean> => {
   const { data } = await supabase.auth.getSession();
   return !!data.session;
+};
+
+/**
+ * Get the current user's ID if authenticated.
+ * @returns The user's ID or null if not authenticated.
+ */
+export const getCurrentUserId = async (): Promise<string | null> => {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id || null;
 };

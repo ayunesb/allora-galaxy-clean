@@ -1,41 +1,47 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useToast } from '@/hooks/use-toast';
 
-interface User {
+export interface UserProfile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  email: { email: string }[];
+}
+
+export interface User {
   id: string;
-  user_id: string;
   role: string;
-  last_active: string | null;
   created_at: string;
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-    email: { email: string }[];
-  };
+  user_id: string;
+  profiles: UserProfile;
+  last_active?: string;
 }
 
 export function useUserManagement() {
-  const { currentWorkspace } = useWorkspace();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
 
+  // Fetch users when workspace changes
   useEffect(() => {
     if (currentWorkspace?.id) {
       fetchUsers();
+    } else {
+      setUsers([]);
+      setIsLoading(false);
     }
   }, [currentWorkspace?.id]);
 
+  // Fetch users from the database
   const fetchUsers = async () => {
     if (!currentWorkspace?.id) return;
-    
-    setLoading(true);
+
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('tenant_user_roles')
@@ -44,144 +50,144 @@ export function useUserManagement() {
           user_id,
           role,
           created_at,
-          profiles:user_id (
+          profiles:user_id(
             first_name,
             last_name,
             avatar_url,
-            email:email (email)
+            email(email)
           )
         `)
         .eq('tenant_id', currentWorkspace.id);
-      
+
       if (error) throw error;
-      setUsers(data || []);
+
+      if (data) {
+        // Transform data to match our User type
+        const formattedUsers = data.map(item => {
+          // Process profiles data to match UserProfile type
+          const profileData: UserProfile = {
+            first_name: '',
+            last_name: '',
+            avatar_url: '',
+            email: []
+          };
+          
+          if (item.profiles) {
+            const profiles = item.profiles as unknown as any;
+            profileData.first_name = profiles.first_name || '';
+            profileData.last_name = profiles.last_name || '';
+            profileData.avatar_url = profiles.avatar_url || '';
+            profileData.email = Array.isArray(profiles.email) ? profiles.email : [];
+          }
+          
+          return {
+            id: item.id,
+            user_id: item.user_id,
+            role: item.role,
+            created_at: item.created_at,
+            profiles: profileData,
+            last_active: undefined // Add if available in the future
+          };
+        });
+        
+        setUsers(formattedUsers);
+      }
     } catch (error: any) {
-      toast({
-        title: "Error fetching users",
-        description: error.message,
-        variant: "destructive",
-      });
       console.error('Error fetching users:', error);
+      toast({
+        title: 'Error loading users',
+        description: error.message || 'Failed to load user data',
+        variant: 'destructive'
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
-    if (!currentWorkspace?.id) return;
-    
+  // Change user role
+  const changeUserRole = async (userId: string, newRole: string) => {
+    if (!currentWorkspace?.id) return false;
+
     try {
       const { error } = await supabase
         .from('tenant_user_roles')
         .update({ role: newRole })
-        .eq('tenant_id', currentWorkspace.id)
-        .eq('user_id', userId);
-      
+        .eq('user_id', userId)
+        .eq('tenant_id', currentWorkspace.id);
+
       if (error) throw error;
-      
-      toast({
-        title: "Role updated",
-        description: "User role has been updated successfully",
-      });
-      
+
       // Update local state
       setUsers(prev => 
         prev.map(user => 
           user.user_id === userId ? { ...user, role: newRole } : user
         )
       );
-      
-    } catch (error: any) {
+
       toast({
-        title: "Error updating role",
-        description: error.message,
-        variant: "destructive",
+        title: 'Role updated',
+        description: `User role has been updated to ${newRole}`,
       });
+
+      return true;
+    } catch (error: any) {
       console.error('Error updating user role:', error);
+      toast({
+        title: 'Error updating role',
+        description: error.message || 'Failed to update user role',
+        variant: 'destructive'
+      });
+      return false;
     }
   };
 
+  // Remove user from workspace
   const removeUser = async (userId: string) => {
-    if (!currentWorkspace?.id) return;
-    
+    if (!currentWorkspace?.id) return false;
+
     try {
       const { error } = await supabase
         .from('tenant_user_roles')
         .delete()
-        .eq('tenant_id', currentWorkspace.id)
-        .eq('user_id', userId);
-      
+        .eq('user_id', userId)
+        .eq('tenant_id', currentWorkspace.id);
+
       if (error) throw error;
-      
-      toast({
-        title: "User removed",
-        description: "User has been removed from workspace",
-      });
-      
+
       // Update local state
       setUsers(prev => prev.filter(user => user.user_id !== userId));
-      
-    } catch (error: any) {
+
       toast({
-        title: "Error removing user",
-        description: error.message,
-        variant: "destructive",
+        title: 'User removed',
+        description: 'User has been removed from the workspace',
       });
+
+      return true;
+    } catch (error: any) {
       console.error('Error removing user:', error);
-    }
-  };
-
-  const inviteUser = async (email: string, role: string) => {
-    if (!currentWorkspace?.id) return;
-    
-    try {
-      // In a real implementation, this would send an invitation email
-      // and create a pending invitation record
-      
       toast({
-        title: "Invitation sent",
-        description: `Invitation has been sent to ${email}`,
+        title: 'Error removing user',
+        description: error.message || 'Failed to remove user',
+        variant: 'destructive'
       });
-      
-      setIsInviteDialogOpen(false);
-      
-    } catch (error: any) {
-      toast({
-        title: "Error sending invitation",
-        description: error.message,
-        variant: "destructive",
-      });
-      console.error('Error inviting user:', error);
+      return false;
     }
   };
 
-  // Helper to get user's full name
-  const getUserFullName = (user: User) => {
-    const firstName = user.profiles?.first_name || '';
-    const lastName = user.profiles?.last_name || '';
-    return `${firstName} ${lastName}`.trim() || 'Unknown User';
-  };
-
-  // Helper to get user's email
-  const getUserEmail = (user: User) => {
-    if (user.profiles?.email && Array.isArray(user.profiles.email) && user.profiles.email.length > 0) {
-      return user.profiles.email[0]?.email || '';
-    }
-    return '';
-  };
+  // Filter users by search term
+  const filteredUsers = users.filter(user => {
+    const fullName = `${user.profiles?.first_name || ''} ${user.profiles?.last_name || ''}`.toLowerCase();
+    const email = user.profiles?.email?.[0]?.email?.toLowerCase() || '';
+    return fullName.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+  });
 
   return {
-    users,
-    loading,
-    selectedUser,
-    isInviteDialogOpen,
-    setSelectedUser,
-    setIsInviteDialogOpen,
+    users: filteredUsers,
+    isLoading,
+    searchTerm,
+    setSearchTerm,
     fetchUsers,
-    updateUserRole,
-    removeUser,
-    inviteUser,
-    getUserFullName,
-    getUserEmail
+    changeUserRole,
+    removeUser
   };
 }

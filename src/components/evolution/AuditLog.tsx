@@ -1,119 +1,157 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AuditLog as AuditLogType } from '@/types/logs';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
 import { format } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import AuditLogFilters from '@/components/evolution/logs/AuditLogFilters';
-import { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
-import { SystemEventModule } from '@/types/logs';
+import { Skeleton } from '@/components/ui/skeleton';
+import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import { AuditLog } from '@/types/logs';
+import AuditLogFilters, { AuditLogFilter } from '@/components/evolution/logs/AuditLogFilters';
+import { SystemEventModule } from '@/types/shared';
 
-export interface AuditLogProps {
-  title: string;
-  data: AuditLogType[];
-  isLoading?: boolean;
-  onRefresh?: () => void;
+interface AuditLogComponentProps {
+  logs: AuditLog[];
+  isLoading: boolean;
+  filters: AuditLogFilter;
+  setFilters: (filters: AuditLogFilter) => void;
+  onRefresh: () => void;
+  title?: string;
+  pagination?: React.ReactNode;
 }
 
-const AuditLog: React.FC<AuditLogProps> = ({ 
-  title, 
-  data, 
-  isLoading = false,
-  onRefresh
+export const AuditLogComponent: React.FC<AuditLogComponentProps> = ({
+  logs,
+  isLoading,
+  filters,
+  setFilters,
+  onRefresh,
+  title = "Audit Log",
+  pagination
 }) => {
-  const [open, setOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AuditLogType | null>(null);
-  const [filters, setFilters] = useState<AuditLogFilter>({ searchTerm: '' });
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
-  const handleOpen = (log: AuditLogType) => {
+  const viewLogDetails = (log: AuditLog) => {
     setSelectedLog(log);
-    setOpen(true);
+    setDetailModalOpen(true);
   };
 
-  const handleFilterChange = (newFilters: AuditLogFilter) => {
-    setFilters(newFilters);
+  const closeLogDetails = () => {
+    setDetailModalOpen(false);
   };
 
-  const filteredLogs = data.filter(log => {
-    const searchTermLower = filters.searchTerm?.toLowerCase() || '';
-    const matchesSearchTerm =
-      log.event.toLowerCase().includes(searchTermLower) ||
-      log.module.toLowerCase().includes(searchTermLower) ||
-      (log.description && log.description.toString().toLowerCase().includes(searchTermLower));
-
-    const matchesModule = !filters.module || log.module === filters.module;
-    
-    const matchesDateRange = !filters.dateRange?.from || (
-      new Date(log.created_at) >= filters.dateRange.from &&
-      (!filters.dateRange.to || new Date(log.created_at) <= filters.dateRange.to)
-    );
-
-    return matchesSearchTerm && matchesModule && matchesDateRange;
-  });
-
-  const modules: SystemEventModule[] = Array.from(new Set(data.map(log => log.module))) as SystemEventModule[];
-
-  const handleRefresh = () => {
-    if (onRefresh) {
-      onRefresh();
-    }
+  // Get badge variant based on event type
+  const getBadgeVariant = (event: string) => {
+    event = event.toLowerCase();
+    if (event.includes('error') || event.includes('fail') || event.includes('reject')) return 'destructive';
+    if (event.includes('warn')) return 'warning';
+    if (event.includes('success') || event.includes('create') || event.includes('approve')) return 'success';
+    return 'secondary';
   };
+
+  // Available modules for filtering
+  const moduleOptions: SystemEventModule[] = [
+    'strategy',
+    'plugin',
+    'agent',
+    'auth',
+    'system',
+    'tenant',
+    'user',
+    'kpi',
+    'execution'
+  ];
 
   return (
-    <Card>
-      <CardHeader className="flex items-center justify-between">
-        <CardTitle>{title}</CardTitle>
-        <div className="flex items-center space-x-2">
-          <AuditLogFilters 
-            onFilterChange={handleFilterChange}
-            modules={modules}
-            filters={filters}
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
-          />
-          {onRefresh && (
-            <Button variant="outline" onClick={onRefresh} disabled={isLoading}>
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[450px] w-full overflow-auto">
-          <div className="divide-y divide-border">
-            {filteredLogs.map((log) => (
-              <div
-                key={log.id}
-                className="grid grid-cols-12 items-center gap-4 p-4 hover:bg-secondary"
-                onClick={() => handleOpen(log)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="col-span-2 text-xs text-muted-foreground">
-                  {format(new Date(log.created_at), 'MMM dd, yyyy hh:mm:ss')}
-                </div>
-                <div className="col-span-2">
-                  <Badge variant="secondary">{log.module}</Badge>
-                </div>
-                <div className="col-span-8">{log.event}</div>
-              </div>
-            ))}
-            {filteredLogs.length === 0 && (
-              <div className="p-4 text-center text-muted-foreground">
-                No logs found.
-              </div>
-            )}
+    <div className="space-y-4">
+      <AuditLogFilters
+        filters={filters}
+        setFilters={setFilters}
+        onRefresh={onRefresh}
+        isLoading={isLoading}
+      />
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="relative w-full overflow-auto">
+            <table className="w-full caption-bottom text-sm">
+              <thead className="border-b">
+                <tr>
+                  <th className="h-12 px-4 text-left align-middle font-medium">Event</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium">Module</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium">Timestamp</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="border-b transition-colors hover:bg-muted/50">
+                      <td className="p-4"><Skeleton className="h-6 w-32" /></td>
+                      <td className="p-4"><Skeleton className="h-6 w-24" /></td>
+                      <td className="p-4"><Skeleton className="h-6 w-36" /></td>
+                      <td className="p-4"><Skeleton className="h-6 w-48" /></td>
+                    </tr>
+                  ))
+                ) : logs.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                      No logs found matching your filters
+                    </td>
+                  </tr>
+                ) : (
+                  logs.map((log) => (
+                    <tr 
+                      key={log.id} 
+                      className="border-b transition-colors hover:bg-muted/50 cursor-pointer"
+                      onClick={() => viewLogDetails(log)}
+                    >
+                      <td className="p-4">
+                        <Badge variant={getBadgeVariant(log.event)}>
+                          {log.event}
+                        </Badge>
+                      </td>
+                      <td className="p-4">{log.module}</td>
+                      <td className="p-4">
+                        {format(new Date(log.created_at), 'MMM dd, yyyy HH:mm:ss')}
+                      </td>
+                      <td className="p-4 max-w-md truncate">
+                        {log.context ? (
+                          <pre className="text-xs whitespace-pre-wrap">
+                            {JSON.stringify(log.context, null, 2).substring(0, 100)}
+                            {JSON.stringify(log.context, null, 2).length > 100 ? '...' : ''}
+                          </pre>
+                        ) : (
+                          <span className="text-muted-foreground italic">No details</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        </ScrollArea>
-      </CardContent>
+          
+          {pagination && (
+            <div className="px-4 py-2 border-t">
+              {pagination}
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       {selectedLog && (
-        <LogDetailDialog log={selectedLog} open={open} onOpenChange={setOpen} />
+        <LogDetailDialog
+          log={selectedLog}
+          open={detailModalOpen}
+          onClose={closeLogDetails}
+        />
       )}
-    </Card>
+    </div>
   );
 };
 
-export default AuditLog;
+export default AuditLogComponent;

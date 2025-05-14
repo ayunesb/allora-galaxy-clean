@@ -2,7 +2,7 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import NotificationsContext from './NotificationsContext';
 import { Notification } from '@/types/notifications';
 import { 

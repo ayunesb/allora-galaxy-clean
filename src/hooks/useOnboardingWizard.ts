@@ -1,189 +1,160 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { validateOnboardingData } from '@/lib/onboarding/validateOnboardingData';
+import { OnboardingFormData } from '@/types/onboarding/types';
+import { toast } from '@/hooks/use-toast';
 import { completeOnboarding } from '@/services/onboardingService';
-import { useOnboardingStore } from '@/lib/onboarding/onboardingState';
-import { trackOnboardingStepCompleted, trackOnboardingStepView } from '@/lib/onboarding/onboardingAnalytics';
-import { OnboardingStep } from '@/types/onboarding';
 
-/**
- * Main hook for managing the onboarding wizard
- */
+export type OnboardingStep = 
+  | 'welcome' 
+  | 'company-info' 
+  | 'persona' 
+  | 'additional-info' 
+  | 'strategy-generation';
+
 export function useOnboardingWizard() {
-  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
+  const [formData, setFormData] = useState<OnboardingFormData>({
+    companyName: '',
+    industry: '',
+    companyDescription: '',
+    personaName: '',
+    tone: 'professional',
+    goals: [],
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   
-  // Get state from store
-  const {
-    currentStep,
-    formData,
-    isSubmitting,
-    updateFormData,
-    setField,
-    setStep,
-    nextStep,
-    prevStep,
-    setSubmitting,
-    setComplete
-  } = useOnboardingStore();
-  
-  // Define steps
-  const steps = [
-    { id: 'company-info' as OnboardingStep, label: 'Company Info' },
-    { id: 'persona' as OnboardingStep, label: 'Target Persona' },
-    { id: 'additional-info' as OnboardingStep, label: 'Additional Info' },
-    { id: 'strategy-generation' as OnboardingStep, label: 'Strategy' },
+  // Step configuration
+  const steps: OnboardingStep[] = [
+    'welcome',
+    'company-info',
+    'persona',
+    'additional-info',
+    'strategy-generation'
   ];
   
-  const step = steps[currentStep ?? 0];
-  
-  // Track step view
-  const trackStepView = useCallback(() => {
-    if (user) {
-      trackOnboardingStepView(user.id, step.id);
-    }
-  }, [step?.id, user]);
-  
-  // Validate current step
-  const validateCurrentStep = () => {
-    const stepId = steps[currentStep ?? 0].id;
-    const validation = validateOnboardingData(formData, stepId);
-    
-    if (!validation.valid) {
-      // Show validation errors
-      toast({
-        title: "Validation Error",
-        description: Object.values(validation.errors).join(', '),
-        variant: "destructive"
-      });
-    }
-    
-    return validation;
+  // Calculate progress percentage
+  const calculateProgress = () => {
+    const currentIndex = steps.indexOf(currentStep);
+    return Math.round((currentIndex / (steps.length - 1)) * 100);
   };
   
-  // Check if current step is valid
-  const isStepValid = () => {
-    const stepId = steps[currentStep ?? 0].id;
-    return validateOnboardingData(formData, stepId).valid;
-  };
-  
-  // Handle step navigation
-  const handleStepClick = (index: number) => {
-    // Only allow going to completed steps or next step
-    if (index <= (currentStep ?? 0) + 1) {
-      setStep(index);
-      trackStepView();
+  // Navigate to next step
+  const nextStep = () => {
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1]);
+      setProgress(calculateProgress());
     }
   };
   
-  // Handle next step
-  const handleNextStep = () => {
-    const validation = validateCurrentStep();
-    
-    if (!validation.valid) {
-      return false;
-    }
-    
-    if ((currentStep ?? 0) < steps.length - 1) {
-      // Track step completion
-      if (user) {
-        trackOnboardingStepCompleted(user.id, steps[currentStep ?? 0].id);
-      }
-      
-      nextStep();
-      trackStepView();
-      return true;
-    }
-    
-    return false;
-  };
-  
-  // Handle previous step
-  const handlePrevStep = () => {
-    if ((currentStep ?? 0) > 0) {
-      prevStep();
-      trackStepView();
+  // Navigate to previous step
+  const prevStep = () => {
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(steps[currentIndex - 1]);
+      setProgress(calculateProgress());
     }
   };
   
-  // Handle form submission
-  const handleSubmit = async () => {
+  // Go to specific step
+  const goToStep = (step: OnboardingStep) => {
+    if (steps.includes(step)) {
+      setCurrentStep(step);
+      setProgress(calculateProgress());
+    }
+  };
+  
+  // Update form data
+  const updateFormData = (data: Partial<OnboardingFormData>) => {
+    setFormData(prev => ({ ...prev, ...data }));
+  };
+  
+  // Handle welcome step
+  const handleWelcomeSubmit = () => {
+    nextStep();
+  };
+  
+  // Handle company info submission
+  const handleCompanyInfoSubmit = (data: Partial<OnboardingFormData>) => {
+    updateFormData(data);
+    nextStep();
+  };
+  
+  // Handle persona submission
+  const handlePersonaSubmit = (data: Partial<OnboardingFormData>) => {
+    updateFormData(data);
+    nextStep();
+  };
+  
+  // Handle additional info submission
+  const handleAdditionalInfoSubmit = (data: Partial<OnboardingFormData>) => {
+    updateFormData(data);
+    nextStep();
+  };
+  
+  // Complete the onboarding process
+  const completeOnboardingProcess = async () => {
     if (!user) {
-      setError('User must be logged in to complete onboarding');
       toast({
-        title: 'Authentication Error',
-        description: 'You must be logged in to complete onboarding',
-        variant: 'destructive'
+        title: "Authentication required",
+        description: "Please log in to complete the onboarding process.",
+        variant: "destructive"
       });
       return;
     }
     
+    setIsLoading(true);
+    
     try {
-      setSubmitting(true);
-      setError(null);
-      
-      // Complete the onboarding process
       const result = await completeOnboarding(user.id, formData);
       
-      if (result.success && result.tenantId) {
-        toast({
-          title: 'Welcome to Allora OS!',
-          description: 'Your workspace has been created successfully.',
-        });
-        
-        // Mark onboarding as complete
-        setComplete(true, result.tenantId);
-        
-        // Navigate to dashboard
-        navigate('/dashboard');
-      } else {
-        setError(result.error || 'Failed to create workspace');
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to create workspace',
-          variant: 'destructive',
-        });
+      if (!result.success) {
+        throw new Error(result.error || "Failed to complete onboarding");
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      
       toast({
-        title: 'Error',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive',
+        title: "Onboarding completed!",
+        description: "Your workspace has been set up successfully.",
       });
-      console.error('Onboarding error:', err);
+      
+      // Navigate to dashboard with the new tenant
+      if (result.tenantId) {
+        navigate(`/dashboard?tenant=${result.tenantId}`);
+      } else {
+        navigate('/dashboard');
+      }
+      
+    } catch (error: any) {
+      console.error("Onboarding error:", error);
+      toast({
+        title: "Onboarding failed",
+        description: error.message || "There was an error during the onboarding process.",
+        variant: "destructive"
+      });
     } finally {
-      setSubmitting(false);
+      setIsLoading(false);
     }
   };
-  
-  const resetError = () => setError(null);
-  
-  // Initialize step tracking
-  useState(() => {
-    trackStepView();
-  });
-  
+
   return {
-    steps,
     currentStep,
-    step,
     formData,
-    error,
-    isSubmitting,
+    progress,
+    isLoading,
+    nextStep,
+    prevStep,
+    goToStep,
     updateFormData,
-    setFieldValue: setField,
-    handleStepClick,
-    handleNextStep,
-    handlePrevStep,
-    handleSubmit,
-    isStepValid,
-    resetError,
-    validateCurrentStep
+    handleWelcomeSubmit,
+    handleCompanyInfoSubmit,
+    handlePersonaSubmit,
+    handleAdditionalInfoSubmit,
+    completeOnboardingProcess,
   };
 }

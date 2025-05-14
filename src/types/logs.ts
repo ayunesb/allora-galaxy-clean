@@ -1,49 +1,68 @@
 
-export type LogStatus = 'success' | 'failure' | 'warning' | 'info';
-
-export type SystemEventModule = 
-  | 'strategy'
-  | 'agent'
-  | 'plugin'
-  | 'user'
-  | 'tenant'
-  | 'auth'
-  | 'billing'
-  | 'hubspot' 
-  | 'system'
-  | 'ai';
-
-export type SystemEventType = 
-  | 'created' 
-  | 'updated' 
-  | 'deleted' 
-  | 'executed' 
-  | 'approved' 
-  | 'rejected'
-  | 'error'
-  | 'info'
-  | 'warning';
+import { SystemEventModule } from './shared';
 
 export interface SystemLog {
   id: string;
   module: SystemEventModule;
   event: string;
+  context: any;
   created_at: string;
-  context?: Record<string, any>;
   tenant_id?: string;
 }
 
-export interface AuditLog extends SystemLog {
+export interface AuditLog {
+  id: string;
+  module: SystemEventModule;
+  event: string;
+  context: any;
+  created_at: string;
+  tenant_id?: string;
   user_id?: string;
-  action?: string;
-  details?: Record<string, any>;
-  resource_type?: string;
-  resource_id?: string;
-  error?: string;
-  // Add these fields for backward compatibility with data from API
-  entity_type?: SystemEventModule; 
   entity_id?: string;
-  event_type?: string;
-  description?: any;
-  metadata?: Record<string, any>;
+  entity_type?: string;
+}
+
+export interface PluginLog {
+  id: string;
+  plugin_id: string;
+  strategy_id?: string;
+  agent_version_id?: string;
+  tenant_id: string;
+  status: string;
+  input: any;
+  output: any;
+  error?: string;
+  created_at: string;
+  execution_time: number;
+  xp_earned: number;
+  event: string;
+  metadata?: any;
+  plugins?: { name: string };
+  strategies?: { title: string };
+}
+
+export interface ExecutionLog {
+  id: string;
+  type: string;
+  status: string;
+  tenant_id: string;
+  strategy_id?: string;
+  plugin_id?: string;
+  agent_version_id?: string;
+  executed_by?: string;
+  input?: any;
+  output?: any;
+  error?: string;
+  created_at: string;
+  execution_time: number;
+  xp_earned: number;
+  agent_versions?: {
+    id: string;
+    version: string;
+    prompt: string;
+    plugin_id: string;
+    plugins: {
+      name: string;
+    };
+  };
 }

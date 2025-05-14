@@ -1,9 +1,8 @@
 
 import * as React from "react";
-import { CalendarIcon } from "@radix-ui/react-icons";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,84 +12,70 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export function convertDateRange(range?: DateRange): { start_date?: string; end_date?: string } {
-  if (!range) return {};
-  
-  const result: { start_date?: string; end_date?: string } = {};
-  
-  if (range.from) {
-    result.start_date = range.from.toISOString();
-  }
-  
-  if (range.to) {
-    result.end_date = range.to.toISOString();
-  }
-  
-  return result;
-}
+// Define a compatible type for the onSelect handler
+export type SelectRangeEventHandler = (range: DateRange | undefined) => void;
 
-export type SelectRangeEventHandler = (range?: DateRange) => void;
-
-interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
-  date?: DateRange;
-  onSelect: SelectRangeEventHandler;
+export interface DateRangePickerProps {
+  className?: string;
+  value?: DateRange;
+  onSelect?: SelectRangeEventHandler;
+  placeholder?: string;
+  showCompare?: boolean;
   align?: "start" | "center" | "end";
   locale?: string;
-  showCompact?: boolean;
 }
 
 export function DateRangePicker({
-  date,
-  onSelect,
-  align = "start",
   className,
-  locale,
-  showCompact = false,
-}: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  value,
+  onSelect,
+  placeholder = "Select date range",
+  align = "start",
+  locale = "en-US",
+  ...props
+}: DateRangePickerProps & Omit<React.HTMLAttributes<HTMLDivElement>, 'onSelect'>) {
+  const [date, setDate] = React.useState<DateRange | undefined>(value);
 
-  const handleSelect = (range?: DateRange) => {
-    onSelect(range);
-    if (range?.from && range?.to) {
-      setIsOpen(false);
+  // When the date changes, call onSelect with the new value
+  React.useEffect(() => {
+    if (value) {
+      setDate(value);
+    }
+  }, [value]);
+
+  // Handle changes to the date range
+  const handleSelect = (selectedDate: DateRange | undefined) => {
+    setDate(selectedDate);
+    if (onSelect) {
+      onSelect(selectedDate);
     }
   };
-
-  // Format date for display
-  const dateFormat = showCompact ? "MMM d" : "LLL dd, y";
-  
-  const formatDate = (date?: Date, defaultText: string = "Pick a date") => {
-    if (!date) return defaultText;
-    return format(date, dateFormat, { locale });
-  };
-
-  const displayText = React.useMemo(() => {
-    if (!date?.from) {
-      return showCompact ? "Date range" : "Select date range";
-    }
-
-    if (date.to) {
-      return `${formatDate(date.from)} - ${formatDate(date.to)}`;
-    }
-
-    return `${formatDate(date.from)} - ?`;
-  }, [date, showCompact]);
 
   return (
-    <div className={cn("grid gap-2", className)}>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <div className={cn("grid gap-2", className)} {...props}>
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant={"outline"}
+            variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground",
-              showCompact && "h-8 text-xs"
+              !date && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {displayText}
+            {date?.from ? (
+              date.to ? (
+                <>
+                  {format(date.from, "LLL dd, y")} -{" "}
+                  {format(date.to, "LLL dd, y")}
+                </>
+              ) : (
+                format(date.from, "LLL dd, y")
+              )
+            ) : (
+              <span>{placeholder}</span>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align={align}>

@@ -1,103 +1,89 @@
 
-import { NavigationItem } from "@/types/shared";
-import * as LucideIcons from "lucide-react";
+import type { NavigationItem } from '@/types/navigation';
+import { LayoutDashboard, Boxes, Settings, Users, FileCode2, Activity, AreaChart, FileSpreadsheet, Key, Clock } from 'lucide-react';
 
-// Type-safe function to get Lucide icon component
-const getIcon = (iconName: string) => {
-  return (LucideIcons as any)[iconName] || undefined;
-};
-
-export const navigationItems: NavigationItem[] = [
+// Default navigation items when no workspace is selected
+export const defaultWorkspaceNavigation: NavigationItem[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: getIcon("LayoutDashboard"),
+    title: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
   },
   {
-    title: "Notifications",
-    href: "/notifications",
-    icon: getIcon("Bell"),
-  },
-  {
-    title: "Galaxy",
-    href: "/galaxy",
-    icon: getIcon("Globe"),
-  },
-  {
-    title: "Launch",
-    href: "/launch",
-    icon: getIcon("Rocket"),
-  },
-  {
-    title: "Plugins",
-    href: "/plugins",
-    icon: getIcon("Package"),
-  },
-  {
-    title: "Agents",
-    href: "/agents",
-    icon: getIcon("Users"),
-    items: [
-      {
-        title: "Performance",
-        href: "/agents/performance",
-        icon: getIcon("LineChart"),
-      },
-    ],
-  },
-  {
-    title: "Insights",
-    href: "/insights",
-    icon: getIcon("BarChart"),
-    items: [
-      {
-        title: "KPIs",
-        href: "/insights/kpis",
-        icon: getIcon("TrendingUp"),
-      },
-    ],
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: getIcon("Settings"),
-  },
-  {
-    title: "Admin",
-    href: "/admin",
-    icon: getIcon("Layers"),
-    adminOnly: true,
-    items: [
-      {
-        title: "Dashboard",
-        href: "/admin",
-        icon: getIcon("Home"),
-      },
-      {
-        title: "Users",
-        href: "/admin/users",
-        icon: getIcon("Users"),
-      },
-      {
-        title: "System Logs",
-        href: "/admin/logs",
-        icon: getIcon("FileText"),
-      },
-      {
-        title: "AI Decisions",
-        href: "/admin/ai-decisions",
-        icon: getIcon("Brain"),
-      },
-      {
-        title: "Plugin Logs",
-        href: "/admin/plugin-logs",
-        icon: getIcon("Database"),
-      },
-      {
-        title: "API Keys",
-        href: "/admin/api-keys",
-        icon: getIcon("Key"),
-      },
-    ],
-  },
+    title: 'Plugins',
+    href: '/plugins',
+    icon: Boxes,
+  }
 ];
+
+// Navigation items based on user role
+export const getWorkspaceNavigation = (role: string): NavigationItem[] => {
+  // Base navigation items for all roles
+  const baseNavigation: NavigationItem[] = [
+    {
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      title: 'Plugins',
+      href: '/plugins',
+      icon: Boxes,
+    },
+    {
+      title: 'Strategies',
+      href: '/strategies',
+      icon: FileCode2,
+    },
+    {
+      title: 'Evolution',
+      href: '/evolution',
+      icon: Activity,
+    },
+    {
+      title: 'KPI',
+      href: '/insights',
+      icon: AreaChart,
+    }
+  ];
+
+  // Admin and owner get additional navigation items
+  if (role === 'admin' || role === 'owner') {
+    return [
+      ...baseNavigation,
+      {
+        title: 'Admin',
+        icon: Settings,
+        children: [
+          {
+            title: 'Dashboard',
+            href: '/admin',
+            icon: LayoutDashboard,
+          },
+          {
+            title: 'Users',
+            href: '/admin/users',
+            icon: Users,
+          },
+          {
+            title: 'System Logs',
+            href: '/admin/logs',
+            icon: FileSpreadsheet,
+          },
+          {
+            title: 'API Keys',
+            href: '/admin/api-keys',
+            icon: Key,
+          },
+          {
+            title: 'CRON Jobs',
+            href: '/admin/cron',
+            icon: Clock,
+          }
+        ]
+      }
+    ];
+  }
+
+  return baseNavigation;
+};
