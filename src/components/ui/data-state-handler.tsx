@@ -57,7 +57,7 @@ export function DataStateHandler<T>({
       <ErrorState
         title="Failed to load data"
         message="We couldn't load the requested data. Please try again later."
-        error={error}
+        error={error || undefined}
         retry={onRetry}
       />
     );

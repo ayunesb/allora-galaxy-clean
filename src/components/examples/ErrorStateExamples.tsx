@@ -5,11 +5,9 @@ import ErrorState from '@/components/ui/error-state';
 import CardErrorState from '@/components/errors/CardErrorState';
 import { EmptyState, NoDataEmptyState, FilterEmptyState } from '@/components/errors/EmptyStates';
 import PartialErrorState from '@/components/errors/PartialErrorState';
-import { 
-  EdgeFunctionErrorPatterns, 
-  RetryMechanismExample, 
-  CustomErrorBoundaryExample 
-} from '@/examples/edge-error-handling';
+import EdgeFunctionErrorPatterns from '@/examples/edge-error-handling/EdgeFunctionErrorPatterns';
+import RetryMechanismExample from '@/examples/edge-error-handling/RetryMechanismExample';
+import CustomErrorBoundaryExample from '@/examples/edge-error-handling/CustomErrorBoundaryExample';
 
 // Examples of various error states in the application
 const ErrorStateExamples: React.FC = () => {
@@ -59,8 +57,8 @@ const ErrorStateExamples: React.FC = () => {
           <EmptyState
             title="No Items"
             description="No items have been added yet."
-            actionLabel="Add Item"
-            onAction={() => alert('Add item clicked')}
+            action={() => alert('Add item clicked')}
+            actionText="Add Item"
           />
           
           {/* No Data Empty State */}

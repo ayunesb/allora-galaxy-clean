@@ -7,7 +7,7 @@ import { useState } from "react";
 export default function ErrorHandlingDemo() {
   const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [setRequestId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
   
   const triggerError = async (errorType: string) => {
     setLoading(true);
@@ -19,14 +19,14 @@ export default function ErrorHandlingDemo() {
       
       if (!response.ok) {
         // Extract request ID if available
-        const requestId = response.headers.get('x-request-id') || data.requestId;
-        setRequestId(requestId);
+        const reqId = response.headers.get('x-request-id') || data.requestId;
+        setRequestId(reqId);
         
         // Create error object with additional properties
         const error = new Error(data.error || 'Unknown error');
         Object.assign(error, {
           status: response.status,
-          requestId,
+          requestId: reqId,
           details: data.details,
           code: data.code
         });
@@ -107,7 +107,7 @@ export default function ErrorHandlingDemo() {
           <h3 className="text-lg font-medium mb-4">Error Response:</h3>
           <EdgeFunctionErrorDisplay
             error={error}
-            onRetry={handleRetry}
+            retry={handleRetry}
             showDetails={true}
             showRequestId={true}
           />
