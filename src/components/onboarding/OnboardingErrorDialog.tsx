@@ -2,7 +2,7 @@
 import React from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AlertTriangle } from 'lucide-react';
-import { notifyError } from '@/components/ui/BetterToast';
+import { toast } from '@/hooks/use-toast';
 
 interface OnboardingErrorDialogProps {
   error: string;
@@ -18,7 +18,11 @@ export const OnboardingErrorDialog: React.FC<OnboardingErrorDialogProps> = ({
   // Show notification error
   React.useEffect(() => {
     if (error) {
-      notifyError('Error during onboarding process');
+      toast({
+        title: "Onboarding Error",
+        description: "An error occurred during the onboarding process",
+        variant: "destructive"
+      });
     }
   }, [error]);
 

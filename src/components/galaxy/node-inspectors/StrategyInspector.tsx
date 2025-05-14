@@ -1,69 +1,66 @@
 
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { formatDistanceToNow } from "date-fns";
-import { StrategyNode } from "@/types/galaxy";
-import { getStatusVariant } from "./NodeUtilities";
+import React from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { formatNodeMetadata, getNodeStatusVariant } from './NodeUtilities';
+import { GraphNode } from '@/types/galaxy';
 
 interface StrategyInspectorProps {
-  node: StrategyNode;
+  node: GraphNode;
 }
 
-export function StrategyInspector({ node }: StrategyInspectorProps) {
-  if (!node) return null;
+export const StrategyInspector: React.FC<StrategyInspectorProps> = ({ node }) => {
+  const metadata = formatNodeMetadata(node.metadata);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium mb-1">Status</h3>
-        <Badge variant={getStatusVariant(node.status)}>{node.status}</Badge>
-      </div>
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">{node.name || 'Strategy'}</CardTitle>
+          <Badge variant={getNodeStatusVariant(node)}>
+            {node.status || 'Unknown'}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {node.description || 'No description available'}
+        </p>
+      </CardHeader>
       
-      {node.completion_percentage !== undefined && (
-        <div>
-          <h3 className="text-sm font-medium mb-1">Completion</h3>
-          <div className="flex items-center gap-2">
-            <Progress value={node.completion_percentage} className="flex-1" />
-            <span className="text-xs">{node.completion_percentage}%</span>
+      <CardContent className="space-y-4">
+        {node.version && (
+          <div>
+            <h4 className="text-sm font-medium mb-1">Version</h4>
+            <p className="text-sm">{node.version}</p>
           </div>
-        </div>
-      )}
-      
-      {node.tags && node.tags.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Tags</h3>
-          <div className="flex flex-wrap gap-1">
-            {node.tags.map((tag: string, i: number) => (
-              <Badge key={i} variant="outline">{tag}</Badge>
-            ))}
+        )}
+        
+        {node.last_executed && (
+          <div>
+            <h4 className="text-sm font-medium mb-1">Last Executed</h4>
+            <p className="text-sm">{new Date(node.last_executed).toLocaleString()}</p>
           </div>
-        </div>
-      )}
-      
-      {node.created_at && (
-        <div>
-          <h3 className="text-sm font-medium mb-1">Created</h3>
-          <p className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(node.created_at), { addSuffix: true })}
-          </p>
-        </div>
-      )}
-      
-      {node.due_date && (
-        <div>
-          <h3 className="text-sm font-medium mb-1">Due Date</h3>
-          <p className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(node.due_date), { addSuffix: true })}
-          </p>
-        </div>
-      )}
-      
-      {node.description && (
-        <div>
-          <h3 className="text-sm font-medium mb-1">Description</h3>
-          <p className="text-sm">{node.description}</p>
-        </div>
-      )}
-    </div>
+        )}
+        
+        {Object.keys(metadata).length > 0 && (
+          <>
+            <Separator />
+            <div>
+              <h4 className="text-sm font-medium mb-2">Strategy Details</h4>
+              <div className="space-y-2">
+                {Object.entries(metadata).map(([key, value]) => (
+                  <div key={key} className="grid grid-cols-3 gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">{key}</span>
+                    <span className="text-xs col-span-2 break-words">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default StrategyInspector;

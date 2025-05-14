@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export interface UseNotificationCenterOptions {
   showToastOnNew?: boolean;
@@ -25,7 +25,11 @@ export const useNotificationCenter = (options: UseNotificationCenterOptions = {}
     markAsRead,
     markAllAsRead,
     deleteNotification
-  } = useNotifications();
+  } = useNotifications({
+    autoLoad,
+    refreshInterval,
+    showToastOnNew
+  });
   
   const [lastNotificationCount, setLastNotificationCount] = useState(0);
   
@@ -43,24 +47,6 @@ export const useNotificationCenter = (options: UseNotificationCenterOptions = {}
     setLastNotificationCount(unreadCount);
   }, [unreadCount, lastNotificationCount, showToastOnNew]);
   
-  // Auto-load notifications on mount
-  useEffect(() => {
-    if (autoLoad) {
-      refreshNotifications();
-    }
-  }, [autoLoad, refreshNotifications]);
-  
-  // Set up refresh interval
-  useEffect(() => {
-    if (refreshInterval > 0) {
-      const intervalId = setInterval(() => {
-        refreshNotifications();
-      }, refreshInterval);
-      
-      return () => clearInterval(intervalId);
-    }
-  }, [refreshInterval, refreshNotifications]);
-  
   // Create utility functions with error handling
   const handleMarkAsRead = useCallback(async (id: string) => {
     try {
@@ -77,7 +63,7 @@ export const useNotificationCenter = (options: UseNotificationCenterOptions = {}
       await markAllAsRead();
       toast({
         title: "All notifications marked as read",
-        variant: "success"
+        variant: "default"
       });
       return true;
     } catch (error) {
@@ -112,3 +98,5 @@ export const useNotificationCenter = (options: UseNotificationCenterOptions = {}
     deleteNotification: handleDeleteNotification
   };
 };
+
+export default useNotificationCenter;

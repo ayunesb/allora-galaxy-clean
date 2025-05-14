@@ -1,11 +1,5 @@
 
-import React, { useState } from 'react';
-import { 
-  Popover, 
-  PopoverTrigger, 
-  PopoverContent 
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { 
   Bell, 
   Check, 
@@ -16,10 +10,16 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react';
+import { 
+  Popover, 
+  PopoverTrigger, 
+  PopoverContent 
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotificationCenter } from '@/hooks/useNotificationCenter';
 
 interface NotificationCenterProps {
   triggerClassName?: string;
@@ -28,7 +28,7 @@ interface NotificationCenterProps {
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({ 
   triggerClassName 
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
   
   const { 
     notifications, 
@@ -37,7 +37,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     markAsRead, 
     markAllAsRead,
     deleteNotification
-  } = useNotifications({
+  } = useNotificationCenter({
     showToastOnNew: true
   });
   
@@ -149,7 +149,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map((notification: any) => (
+              {notifications.map((notification) => (
                 <div 
                   key={notification.id} 
                   className={`

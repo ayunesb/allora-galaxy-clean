@@ -21,25 +21,22 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
     isLoading, 
     refreshNotifications,
     unreadCount,
-    markAllAsRead: originalMarkAllAsRead, 
-    markAsRead: originalMarkAsRead, 
-    deleteNotification: originalDeleteNotification
+    markAllAsRead, 
+    markAsRead, 
+    deleteNotification
   } = useNotifications();
   
   // Create wrapper functions that return void to match the expected type
-  const markAsRead = async (id: string): Promise<void> => {
-    await originalMarkAsRead(id);
-    return;
+  const handleMarkAsRead = async (id: string): Promise<void> => {
+    await markAsRead(id);
   };
   
-  const markAllAsRead = async (): Promise<void> => {
-    await originalMarkAllAsRead();
-    return;
+  const handleMarkAllAsRead = async (): Promise<void> => {
+    await markAllAsRead();
   };
   
-  const deleteNotification = async (id: string): Promise<void> => {
-    await originalDeleteNotification(id);
-    return;
+  const handleDeleteNotification = async (id: string): Promise<void> => {
+    await deleteNotification(id);
   };
   
   // Convert notifications to the expected format
@@ -58,7 +55,7 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
       <NotificationsPageHeader
         activeFilter={selectedTab}
         onFilterChange={handleTabChange}
-        onMarkAllAsRead={markAllAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
         unreadCount={unreadCount}
       />
       
@@ -71,8 +68,8 @@ const NotificationsContainer: React.FC<NotificationsContainerProps> = ({
           selectedTab={selectedTab}
           setSelectedTab={handleTabChange}
           notifications={convertedNotifications} 
-          markAsRead={markAsRead}
-          onDelete={deleteNotification}
+          markAsRead={handleMarkAsRead}
+          onDelete={handleDeleteNotification}
           isLoading={false}
         />
       ) : (

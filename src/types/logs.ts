@@ -1,18 +1,33 @@
 
-import { SystemEventModule, LogSeverity } from './shared';
+/**
+ * Type definitions for system logs
+ */
 
 export interface SystemLog {
   id: string;
-  tenant_id?: string;
-  module: SystemEventModule;
-  severity: LogSeverity;
+  module: string;
+  level?: string;
   event: string;
-  message: string;
-  context?: any;
+  description?: string;
+  context: Record<string, any>;
   created_at: string;
+  tenant_id?: string;
+  user_id?: string;
 }
 
-export interface AuditLogItem extends SystemLog {
-  metadata?: any;
-  status?: 'success' | 'failure' | 'warning';
+export interface LogFilter {
+  module?: string | null;
+  level?: string | null;
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
+  searchTerm?: string;
+  tenant_id?: string | null;
+}
+
+export enum LogLevel {
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical'
 }

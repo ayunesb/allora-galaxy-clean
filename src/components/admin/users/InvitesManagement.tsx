@@ -1,183 +1,105 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useToast } from '@/hooks/use-toast';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Mail, Trash2 } from 'lucide-react';
-import { format, isPast } from 'date-fns';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
-interface Invite {
-  id: string;
-  email: string;
-  role: string;
-  token: string;
-  expires_at: string;
-  created_at: string;
-  tenant_id: string;
-}
-
-export function InvitesManagement() {
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { currentWorkspace } = useWorkspace();
-  const { toast } = useToast();
-
-  const fetchInvites = async () => {
-    if (!currentWorkspace?.id) return;
-
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('user_invites')
-        .select('*')
-        .eq('tenant_id', currentWorkspace.id);
-
-      if (error) throw error;
-      setInvites(data || []);
-    } catch (error: any) {
-      console.error('Error fetching invites:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load invitation data',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
+export const InvitesManagement = () => {
+  const [invites, setInvites] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Sample data - in a real app, this would come from an API call
+  const sampleInvites = [
+    { 
+      id: '1', 
+      email: 'user1@example.com', 
+      role: 'editor',
+      status: 'pending',
+      created_at: new Date(Date.now() - 3600000).toISOString()
+    },
+    { 
+      id: '2', 
+      email: 'user2@example.com', 
+      role: 'viewer',
+      status: 'expired',
+      created_at: new Date(Date.now() - 86400000 * 3).toISOString()
+    }
+  ];
+  
+  // Simulate loading invites
+  useState(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setInvites(sampleInvites);
+      setLoading(false);
+    }, 1000);
+  });
+  
+  // Status badge variants
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'expired':
+        return 'destructive';
+      default:
+        return 'secondary';
     }
   };
-
-  useEffect(() => {
-    if (currentWorkspace?.id) {
-      fetchInvites();
-    }
-  }, [currentWorkspace?.id]);
-
-  const resendInvitation = async (invite: Invite) => {
-    try {
-      const { error } = await supabase.functions.invoke('send-invite-email', {
-        body: {
-          email: invite.email,
-          tenant_id: invite.tenant_id,
-          tenant_name: currentWorkspace?.name || "Your Organization",
-          role: invite.role,
-          token: invite.token
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: 'Invitation resent',
-        description: `An invitation has been sent to ${invite.email}`,
-      });
-    } catch (error: any) {
-      console.error('Error resending invitation:', error);
-      toast({
-        title: 'Failed to resend invitation',
-        description: error.message || 'An error occurred',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const deleteInvitation = async (inviteId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_invites')
-        .delete()
-        .eq('id', inviteId);
-
-      if (error) throw error;
-
-      setInvites(invites.filter(invite => invite.id !== inviteId));
-      
-      toast({
-        title: 'Invitation deleted',
-        description: 'The invitation has been removed',
-      });
-    } catch (error: any) {
-      console.error('Error deleting invitation:', error);
-      toast({
-        title: 'Failed to delete invitation',
-        description: error.message || 'An error occurred',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const getInviteStatus = (expiresAt: string) => {
-    return isPast(new Date(expiresAt)) ? 
-      <Badge variant="destructive">Expired</Badge> : 
-      <Badge variant="outline">Pending</Badge>;
-  };
-
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Pending Invitations</CardTitle>
-        <Button variant="outline" size="sm" onClick={fetchInvites} disabled={isLoading}>
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          <span className="ml-2">Refresh</span>
+        <CardTitle>Pending Invites</CardTitle>
+        <Button size="sm">
+          View All
         </Button>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center p-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {loading ? (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         ) : invites.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">No pending invitations found</p>
+          <div className="text-center py-6 text-muted-foreground">
+            No pending invites
+          </div>
         ) : (
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Date Sent</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invites.map(invite => (
-                  <TableRow key={invite.id}>
-                    <TableCell>{invite.email}</TableCell>
-                    <TableCell>{invite.role}</TableCell>
-                    <TableCell>{format(new Date(invite.created_at), 'PP')}</TableCell>
-                    <TableCell>{format(new Date(invite.expires_at), 'PP')}</TableCell>
-                    <TableCell>{getInviteStatus(invite.expires_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          title="Resend invitation"
-                          onClick={() => resendInvitation(invite)}
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          title="Delete invitation"
-                          onClick={() => deleteInvitation(invite.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 border-b">
+                  <th className="px-4 py-2 text-left font-medium">Email</th>
+                  <th className="px-4 py-2 text-left font-medium">Role</th>
+                  <th className="px-4 py-2 text-left font-medium">Status</th>
+                  <th className="px-4 py-2 text-left font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invites.map((invite) => (
+                  <tr key={invite.id} className="border-b hover:bg-muted/50">
+                    <td className="px-4 py-2">{invite.email}</td>
+                    <td className="px-4 py-2 capitalize">{invite.role}</td>
+                    <td className="px-4 py-2">
+                      <Badge variant={getStatusBadgeVariant(invite.status)}>
+                        {invite.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {format(new Date(invite.created_at), 'MMM d, yyyy')}
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         )}
       </CardContent>
     </Card>
   );
-}
+};
+
+export default InvitesManagement;

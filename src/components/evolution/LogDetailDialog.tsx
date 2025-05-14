@@ -1,10 +1,13 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistanceToNow } from 'date-fns';
 import { SystemLog } from '@/types/logs';
 
 interface LogDetailDialogProps {
@@ -16,69 +19,60 @@ interface LogDetailDialogProps {
 export const LogDetailDialog: React.FC<LogDetailDialogProps> = ({
   log,
   open,
-  onClose
+  onClose,
 }) => {
-  const getModuleBadgeVariant = (module: string) => {
-    switch (module?.toLowerCase()) {
-      case 'error':
-        return 'destructive';
-      case 'warning':
-        return 'warning';
-      case 'strategy':
-        return 'default';
-      case 'plugin':
-        return 'secondary';
-      case 'auth':
-        return 'outline';
-      default:
-        return 'secondary';
+  const formatJSON = (obj: any) => {
+    try {
+      if (!obj) return 'No data';
+      if (typeof obj === 'string') {
+        try {
+          // Try to parse if it's a stringified JSON
+          const parsed = JSON.parse(obj);
+          return JSON.stringify(parsed, null, 2);
+        } catch {
+          // Return as-is if it's not JSON
+          return obj;
+        }
+      }
+      return JSON.stringify(obj, null, 2);
+    } catch (e) {
+      return 'Error formatting data';
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{log.event}</DialogTitle>
-          <div className="flex items-center mt-2 space-x-2">
-            <Badge variant={getModuleBadgeVariant(log.module)}>
-              {log.module}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-            </span>
-          </div>
+          <DialogTitle>Log Details</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {log.context && (
+        <div className="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-medium mb-1">Context Data</h3>
-              <ScrollArea className="h-[200px] rounded-md border p-4">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {JSON.stringify(log.context, null, 2)}
-                </pre>
-              </ScrollArea>
+              <h4 className="text-sm font-medium mb-1">Event</h4>
+              <p className="text-sm">{log.event || '-'}</p>
             </div>
-          )}
+            <div>
+              <h4 className="text-sm font-medium mb-1">Module</h4>
+              <p className="text-sm">{log.module || '-'}</p>
+            </div>
+          </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="font-medium">Log ID:</span>{' '}
-              <span className="text-muted-foreground">{log.id}</span>
+          <div>
+            <h4 className="text-sm font-medium mb-1">Timestamp</h4>
+            <p className="text-sm">
+              {new Date(log.created_at).toLocaleString()}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium mb-1">Context Data</h4>
+            <div className="bg-muted p-4 rounded-md">
+              <pre className="text-xs overflow-x-auto whitespace-pre-wrap">
+                {formatJSON(log.context)}
+              </pre>
             </div>
-            <div>
-              <span className="font-medium">Timestamp:</span>{' '}
-              <span className="text-muted-foreground">
-                {new Date(log.created_at).toLocaleString()}
-              </span>
-            </div>
-            {log.tenant_id && (
-              <div>
-                <span className="font-medium">Tenant ID:</span>{' '}
-                <span className="text-muted-foreground">{log.tenant_id}</span>
-              </div>
-            )}
           </div>
         </div>
 

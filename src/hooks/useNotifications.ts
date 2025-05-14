@@ -1,213 +1,212 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Notification } from '@/types/notifications';
-import { useAuth } from '@/context/AuthContext';
-import { useRealtimeNotifications } from './useRealtimeNotifications';
-import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { notifyError, notifySuccess } from '@/components/ui/BetterToast';
+import { BaseNotification } from '@/types/notifications';
 
 export interface UseNotificationsOptions {
-  limit?: number;
   autoLoad?: boolean;
+  refreshInterval?: number;
   showToasts?: boolean;
+  showToastOnNew?: boolean;
 }
 
-export function useNotifications({
-  limit = 50,
-  autoLoad = true,
-  showToasts = false
-}: UseNotificationsOptions = {}) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+export const useNotifications = (options: UseNotificationsOptions = {}) => {
+  const {
+    autoLoad = false,
+    refreshInterval = 0,
+    showToasts = false,
+    showToastOnNew = false
+  } = options;
+
+  const [notifications, setNotifications] = useState<BaseNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
-  // Handle real-time notifications
-  const handleNewNotification = useCallback((newNotification: Notification) => {
-    setNotifications(prev => [{ 
-      ...newNotification, 
-      is_read: false 
-    }, ...prev]);
-    
-    setUnreadCount(prev => prev + 1);
-  }, []);
-
-  // Set up real-time subscription with our hook
-  useRealtimeNotifications({ 
-    showToast: showToasts,
-    onNewNotification: handleNewNotification
-  });
-
-  // Load notifications
-  const refreshNotifications = useCallback(async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
-    
+  // Fetch notifications from the database
+  const fetchNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const { data, error: fetchError } = await supabase
+
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Fetch notifications for this user
+      const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setNotifications(data || []);
       
-      if (fetchError) throw new Error(fetchError.message);
+      // Calculate unread count
+      const unread = (data || []).filter(n => !n.is_read).length;
+      setUnreadCount(unread);
       
-      const processedNotifications = (data || []).map(notification => ({
-        ...notification,
-        is_read: !!notification.read_at
-      }));
-      
-      setNotifications(processedNotifications);
-      setUnreadCount(processedNotifications.filter(n => !n.is_read).length);
-      
+      setLastFetchTime(new Date());
       return { success: true };
     } catch (err) {
-      console.error('Error loading notifications:', err);
-      setError(err instanceof Error ? err : new Error('Failed to load notifications'));
-      return { success: false, error: err };
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Failed to fetch notifications:', error);
+      setError(error);
+      return { success: false, error };
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, limit]);
+  }, []);
 
   // Mark a notification as read
   const markAsRead = useCallback(async (id: string) => {
-    if (!user?.id) return { success: false };
-    
     try {
-      const timestamp = new Date().toISOString();
-      
-      // Optimistic update
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
       setNotifications(prev => 
-        prev.map(notification =>
-          notification.id === id ? { 
-            ...notification, 
-            is_read: true, 
-            read_at: timestamp 
-          } : notification
-        )
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
       
       // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
       
-      // Update in database
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read_at: timestamp })
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
       return { success: true };
     } catch (err) {
-      console.error('Error marking notification as read:', err);
-      
-      // Revert optimistic update
-      await refreshNotifications();
-      
-      return { success: false, error: err };
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Failed to mark notification as read:', error);
+      if (showToasts) {
+        notifyError('Failed to mark notification as read');
+      }
+      return { success: false, error };
     }
-  }, [user?.id, refreshNotifications]);
+  }, [showToasts]);
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
-    if (!user?.id) return { success: false };
-    
     try {
-      const timestamp = new Date().toISOString();
-      
-      // Optimistic update
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      // Update local state
       setNotifications(prev => 
-        prev.map(notification => ({
-          ...notification,
-          is_read: true,
-          read_at: timestamp
-        }))
+        prev.map(n => ({ ...n, is_read: true }))
       );
       
       // Reset unread count
       setUnreadCount(0);
       
-      // Update in database
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read_at: timestamp })
-        .eq('user_id', user.id)
-        .is('read_at', null);
+      if (showToasts) {
+        notifySuccess('All notifications marked as read');
+      }
       
-      if (error) throw error;
-      
-      toast.success('All notifications marked as read');
       return { success: true };
     } catch (err) {
-      console.error('Error marking all notifications as read:', err);
-      
-      // Revert optimistic update
-      await refreshNotifications();
-      
-      return { success: false, error: err };
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Failed to mark all notifications as read:', error);
+      if (showToasts) {
+        notifyError('Failed to mark all notifications as read');
+      }
+      return { success: false, error };
     }
-  }, [user?.id, refreshNotifications]);
+  }, [showToasts]);
 
   // Delete a notification
   const deleteNotification = useCallback(async (id: string) => {
-    if (!user?.id) return { success: false };
-    
     try {
-      // Optimistic update
-      const notificationToDelete = notifications.find(n => n.id === id);
-      const wasUnread = notificationToDelete && !notificationToDelete.is_read;
-      
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      
-      if (wasUnread) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-      
-      // Delete from database
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
+        .eq('id', id);
+
       if (error) throw error;
+
+      // Update local state
+      const deletedNotification = notifications.find(n => n.id === id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      
+      // Update unread count if needed
+      if (deletedNotification && !deletedNotification.is_read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
       
       return { success: true };
     } catch (err) {
-      console.error('Error deleting notification:', err);
-      
-      // Revert optimistic update
-      await refreshNotifications();
-      
-      return { success: false, error: err };
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Failed to delete notification:', error);
+      if (showToasts) {
+        notifyError('Failed to delete notification');
+      }
+      return { success: false, error };
     }
-  }, [notifications, user?.id, refreshNotifications]);
+  }, [notifications, showToasts]);
 
-  // Load notifications on mount
+  // Initial fetch on mount if autoLoad is true
   useEffect(() => {
-    if (autoLoad && user?.id) {
-      refreshNotifications();
+    if (autoLoad) {
+      fetchNotifications();
     }
-  }, [autoLoad, user?.id, refreshNotifications]);
+  }, [autoLoad, fetchNotifications]);
+
+  // Set up refresh interval if specified
+  useEffect(() => {
+    if (refreshInterval > 0) {
+      const intervalId = setInterval(() => {
+        fetchNotifications();
+      }, refreshInterval);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [refreshInterval, fetchNotifications]);
+
+  // Check for new notifications to show toast
+  useEffect(() => {
+    if (showToastOnNew && lastFetchTime && notifications.length > 0) {
+      // Find notifications created after last fetch time that are unread
+      const lastFetch = lastFetchTime.getTime();
+      const newNotifications = notifications.filter(n => {
+        const createdAt = new Date(n.created_at).getTime();
+        return !n.is_read && createdAt > lastFetch;
+      });
+      
+      if (newNotifications.length > 0) {
+        notifyInfo(`You have ${newNotifications.length} new notification${newNotifications.length > 1 ? 's' : ''}`);
+      }
+    }
+  }, [notifications, showToastOnNew, lastFetchTime]);
 
   return {
     notifications,
     unreadCount,
     isLoading,
     error,
+    refreshNotifications: fetchNotifications,
     markAsRead,
     markAllAsRead,
-    deleteNotification,
-    refreshNotifications
+    deleteNotification
   };
-}
+};
+
+export default useNotifications;
