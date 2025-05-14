@@ -29,6 +29,7 @@ const generateMockLogs = (count: number): SystemLog[] => {
       level,
       module,
       event: `${module}.${level === 'error' ? 'exception' : level}`,
+      event_type: level,
       metadata: { source: 'mock' },
       context: JSON.stringify({ page: 'evolution' })
     };

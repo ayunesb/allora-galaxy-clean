@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { InboxIcon, RefreshCw, FilterX, Search, CircleSlash } from 'lucide-react';
@@ -76,15 +75,23 @@ export const FilterEmptyState: React.FC<FilterEmptyStateProps> = ({
   />
 );
 
-export const NoSearchResultsEmptyState: React.FC<{ searchTerm?: string; className?: string }> = ({
-  searchTerm,
-  className = "",
+export interface NoSearchResultsEmptyStateProps {
+  searchTerm?: string;
+  className?: string;
+  onClear?: () => void;
+}
+
+export const NoSearchResultsEmptyState: React.FC<NoSearchResultsEmptyStateProps> = ({
+  searchTerm = '',
+  className,
+  onClear,
 }) => (
   <EmptyState
-    title="No Search Results"
-    description={searchTerm ? `No results found for "${searchTerm}"` : "No matching results found."}
-    icon={<Search className="h-12 w-12 text-muted-foreground" />}
+    icon={<Search className="h-12 w-12 text-muted-foreground/60" />}
+    title="No results found"
+    description={`No items matching "${searchTerm}" were found. Try a different search term.`}
     className={className}
+    action={onClear ? { label: 'Clear Search', onClick: onClear } : undefined}
   />
 );
 

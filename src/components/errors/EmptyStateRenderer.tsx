@@ -1,99 +1,83 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { NoDataEmptyState, NoSearchResultsEmptyState, FilterEmptyState } from './EmptyStates';
-import { cn } from '@/lib/utils';
+import { 
+  EmptyState, 
+  NoDataEmptyState,
+  FilterEmptyState,
+  NoSearchResultsEmptyState
+} from './EmptyStates';
 
 export interface EmptyStateRendererProps {
-  type: 'no-data' | 'no-search-results' | 'no-filter-results' | 'custom';
-  message?: string;
-  title?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  onRefresh?: () => void;
+  isEmpty: boolean;
+  isFiltered?: boolean;
+  isSearching?: boolean;
   searchTerm?: string;
-  onClear?: () => void;
+  filterCount?: number;
+  loading?: boolean;
+  error?: any;
+  emptyStateProps?: React.ComponentProps<typeof EmptyState>;
+  noDataEmptyStateProps?: React.ComponentProps<typeof NoDataEmptyState>;
+  noSearchResultsEmptyStateProps?: React.ComponentProps<typeof NoSearchResultsEmptyState>;
+  noFilterResultsEmptyStateProps?: React.ComponentProps<typeof FilterEmptyState>;
   className?: string;
-  icon?: React.ReactNode;
   children?: React.ReactNode;
+  onClear?: () => void;
 }
 
-/**
- * EmptyStateRenderer - A component to consistently render different types of empty states
- */
 export const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
-  type,
-  message,
-  title,
-  actionLabel,
-  onAction,
-  onRefresh,
+  isEmpty,
+  isFiltered = false,
+  isSearching = false,
   searchTerm = '',
-  onClear,
+  filterCount = 0,
+  loading = false,
+  error,
+  emptyStateProps,
+  noDataEmptyStateProps,
+  noSearchResultsEmptyStateProps,
+  noFilterResultsEmptyStateProps,
   className,
-  icon,
-  children
+  children,
+  onClear,
 }) => {
-  switch (type) {
-    case 'no-data':
-      return (
-        <NoDataEmptyState 
-          onRefresh={onRefresh} 
-          customMessage={message} 
-          className={className}
-        />
-      );
-    
-    case 'no-search-results':
-      if (!onClear || !searchTerm) {
-        console.error('EmptyStateRenderer: onClear and searchTerm are required for no-search-results type');
-        return <NoDataEmptyState customMessage="No results found" />;
-      }
-      return (
-        <NoSearchResultsEmptyState 
-          onClear={onClear} 
-          searchTerm={searchTerm} 
-          className={className}
-        />
-      );
-    
-    case 'no-filter-results':
-      if (!onClear) {
-        console.error('EmptyStateRenderer: onClear is required for no-filter-results type');
-        return <NoDataEmptyState customMessage="No matching items" />;
-      }
-      return (
-        <FilterEmptyState 
-          onClear={onClear} 
-          className={className}
-        />
-      );
-    
-    case 'custom':
-      return (
-        <div className={cn(
-          "flex flex-col items-center justify-center text-center bg-muted/40 rounded-lg p-8",
-          className
-        )}>
-          {icon && (
-            <div className="rounded-full bg-muted p-3 mb-4">
-              {icon}
-            </div>
-          )}
-          {title && <h3 className="text-lg font-semibold mb-2">{title}</h3>}
-          {message && <p className="text-muted-foreground mb-4">{message}</p>}
-          {children}
-          {onAction && (
-            <Button onClick={onAction}>
-              {actionLabel || 'Continue'}
-            </Button>
-          )}
-        </div>
-      );
-    
-    default:
-      return <NoDataEmptyState customMessage={message} />;
+  // Don't show empty state if we're loading
+  if (loading) return null;
+  
+  // Don't show empty state if there's an error (error component will handle this)
+  if (error) return null;
+  
+  // If there is data, just render children
+  if (!isEmpty) return <>{children}</>;
+  
+  // Show appropriate empty state based on context
+  if (isSearching && searchTerm) {
+    return (
+      <NoSearchResultsEmptyState
+        searchTerm={searchTerm}
+        className={className}
+        {...noSearchResultsEmptyStateProps}
+      />
+    );
   }
+  
+  if (isFiltered && filterCount > 0) {
+    return (
+      <FilterEmptyState
+        onClear={onClear}
+        filterCount={filterCount}
+        className={className}
+        {...noFilterResultsEmptyStateProps}
+      />
+    );
+  }
+  
+  // Default empty state
+  return (
+    <EmptyState
+      className={className}
+      {...emptyStateProps}
+    />
+  );
 };
 
 export default EmptyStateRenderer;

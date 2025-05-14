@@ -4,6 +4,7 @@ import { useToast as useShadcnToast } from "@/components/ui/use-toast";
 
 // Toast variants
 export type ToastVariant = "default" | "success" | "destructive" | "info" | "warning";
+export type ToastType = ToastVariant; // Added for backward compatibility
 
 // Basic notification function
 export const notify = (message: string, variant: ToastVariant = "default") => {

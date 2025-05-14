@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,9 @@ const AuditLog: React.FC<AuditLogProps> = ({ logs, isLoading }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   
   // Format date for display
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Unknown date';
+    
     try {
       return format(new Date(dateString), 'MMM dd, yyyy HH:mm:ss');
     } catch (e) {

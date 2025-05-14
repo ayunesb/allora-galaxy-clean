@@ -1,10 +1,12 @@
-
 import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useCookiePreferences } from './useCookiePreferences';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { useCookiePreferences } from "./useCookiePreferences";
+import CookiePreferenceItem from "./CookiePreferenceItem";
 import { CookiePreferences } from '@/types/cookiePreferences';
 
 interface CookieConsentDialogProps {

@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Loader2, Check, AlertCircle } from 'lucide-react';
-import { Button, ButtonProps } from '@/components/ui/button';
+import { ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface FormSubmitButtonProps extends Omit<ButtonProps, 'type'> {
