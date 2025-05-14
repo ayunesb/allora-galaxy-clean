@@ -1,34 +1,28 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { LogSeverity } from '@/types/shared';
+import { supabaseClient } from '@/lib/supabase';
+import { SystemEventModule, LogSeverity } from '@/types/shared';
 
-/**
- * Log a system event to the database
- * 
- * @param module The module generating the event
- * @param severity The severity level (info, warning, error)
- * @param context Additional context information
- * @param tenantId Optional tenant ID
- */
-export async function logSystemEvent(
-  module: string,
-  severity: LogSeverity,
-  context: Record<string, any> = {},
-  tenantId?: string
+export default async function logSystemEvent(
+  module: SystemEventModule | string,
+  event: LogSeverity | string,
+  context: any,
+  tenant_id?: string
 ): Promise<void> {
   try {
-    // Create the log entry
-    await supabase
+    await supabaseClient
       .from('system_logs')
       .insert({
         module,
-        event: severity,
+        event,
         context,
-        tenant_id: tenantId
+        tenant_id
       });
       
   } catch (error) {
-    // Don't throw, just log to console since this is a logging function
-    console.error('Failed to log system event:', error);
+    console.error('Error logging system event:', error);
+    // We don't throw here to avoid causing issues with the main flow
   }
 }
+
+// Re-export for backwards compatibility
+export { default as logSystemEvent } from './logSystemEvent';

@@ -25,14 +25,28 @@ import AgentPerformance from "@/pages/agents/AgentPerformance";
 import EvolutionPage from "@/pages/evolution";
 import AlloraBrainPage from "@/pages/allora-brain/AlloraBrainPage";
 import StandaloneAgentOSPage from "@/pages/standalone/StandaloneAgentOSPage";
+import StrategyBuilder from "@/pages/launch/StrategyBuilder";
+import StrategyEngine from "@/pages/strategy/StrategyEngine";
+import ProfileSettings from "@/pages/settings/ProfileSettings";
+import SettingsPage from "@/pages/settings/SettingsPage";
+import BillingPage from "@/pages/billing/BillingPage";
+import ExplorePage from "@/pages/explore/ExplorePage";
+import NotificationsPage from "@/pages/notifications/NotificationsPage";
+import TermsPage from "@/pages/legal/TermsPage";
+import PrivacyPage from "@/pages/legal/PrivacyPage";
+import DeletionRequestPage from "@/pages/legal/DeletionRequestPage";
 
-// Admin Pages
+// Admin pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserManagement from "@/pages/admin/UserManagement";
 import SystemLogs from "@/pages/admin/SystemLogs";
 import AiDecisions from "@/pages/admin/AiDecisions";
-import PluginLogs from "@/pages/admin/PluginLogs";
+import CronJobsPage from "@/pages/admin/CronJobsPage";
 import ApiKeysPage from "@/pages/admin/ApiKeysPage";
+import PluginLogs from "@/pages/admin/PluginLogs";
+
+// Auth components
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 // Unauthorized
 import Unauthorized from "@/pages/unauthorized";
@@ -69,7 +83,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: "/onboarding",
-    element: <OnboardingLayout><Outlet /></OnboardingLayout>,
+    element: <RequireAuth><OnboardingLayout><Outlet /></OnboardingLayout></RequireAuth>,
     children: [
       {
         index: true,
@@ -79,7 +93,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: "/",
-    element: <MainLayout />,
+    element: <RequireAuth><MainLayout /></RequireAuth>,
     children: [
       {
         index: true,
@@ -94,8 +108,16 @@ export const routes: RouteObject[] = [
         element: <LaunchPage />
       },
       {
+        path: "launch/new",
+        element: <StrategyBuilder />
+      },
+      {
         path: "galaxy",
         element: <GalaxyPage />
+      },
+      {
+        path: "notifications",
+        element: <NotificationsPage />
       },
       {
         path: "plugins",
@@ -127,6 +149,14 @@ export const routes: RouteObject[] = [
         element: <EvolutionPage />
       },
       {
+        path: "evolution/:type",
+        element: <EvolutionPage />
+      },
+      {
+        path: "strategies/:strategyId",
+        element: <StrategyEngine />
+      },
+      {
         path: "allora-brain",
         element: <AlloraBrainPage />
       },
@@ -135,34 +165,20 @@ export const routes: RouteObject[] = [
         element: <StandaloneAgentOSPage />
       },
       {
-        path: "admin",
-        element: <AdminLayout><Outlet /></AdminLayout>,
-        children: [
-          {
-            index: true,
-            element: <AdminDashboard />
-          },
-          {
-            path: "users",
-            element: <UserManagement />
-          },
-          {
-            path: "system-logs",
-            element: <SystemLogs />
-          },
-          {
-            path: "ai-decisions",
-            element: <AiDecisions />
-          },
-          {
-            path: "plugin-logs",
-            element: <PluginLogs />
-          },
-          {
-            path: "api-keys",
-            element: <ApiKeysPage />
-          }
-        ]
+        path: "explore",
+        element: <ExplorePage />
+      },
+      {
+        path: "settings",
+        element: <SettingsPage />
+      },
+      {
+        path: "settings/profile",
+        element: <ProfileSettings />
+      },
+      {
+        path: "settings/billing",
+        element: <BillingPage />
       },
       {
         path: "unauthorized",
@@ -171,7 +187,60 @@ export const routes: RouteObject[] = [
     ]
   },
   {
+    path: "/admin",
+    element: <RequireAuth roles={['admin', 'owner']}><AdminLayout><Outlet /></AdminLayout></RequireAuth>,
+    children: [
+      {
+        index: true,
+        element: <AdminDashboard />
+      },
+      {
+        path: "users",
+        element: <UserManagement />
+      },
+      {
+        path: "system-logs",
+        element: <SystemLogs />
+      },
+      {
+        path: "logs",
+        element: <Navigate to="/admin/system-logs" replace />
+      },
+      {
+        path: "ai-decisions",
+        element: <AiDecisions />
+      },
+      {
+        path: "plugin-logs",
+        element: <PluginLogs />
+      },
+      {
+        path: "cron-jobs",
+        element: <CronJobsPage />
+      },
+      {
+        path: "api-keys",
+        element: <ApiKeysPage />
+      }
+    ]
+  },
+  // Public routes
+  {
+    path: "/terms",
+    element: <AuthLayout><TermsPage /></AuthLayout>
+  },
+  {
+    path: "/privacy",
+    element: <AuthLayout><PrivacyPage /></AuthLayout>
+  },
+  {
+    path: "/deletion-request",
+    element: <AuthLayout><DeletionRequestPage /></AuthLayout>
+  },
+  {
     path: "*",
     element: <NotFound />
   }
 ];
+
+export default routes;
