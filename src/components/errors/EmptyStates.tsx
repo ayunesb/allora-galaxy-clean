@@ -1,40 +1,68 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Search, X, RefreshCw, Filter, FileX, Database, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, Search } from 'lucide-react';
 
-// Base empty state props
 export interface EmptyStateProps {
   title: string;
-  description?: string;
-  icon?: React.ReactNode;
+  description: string;
   action?: () => void;
   actionText?: string;
+  icon?: React.ReactNode;
   className?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
-  icon,
   action,
-  actionText = 'Try Again',
-  className,
+  actionText = 'Add New',
+  icon,
+  className = '',
 }) => {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-10 px-4 text-center", className)}>
-      {icon && (
-        <div className="rounded-full bg-muted p-3 mb-4">
-          {icon}
-        </div>
-      )}
-      <h3 className="text-lg font-medium">{title}</h3>
-      {description && (
-        <p className="text-sm text-muted-foreground mt-2 mb-4 max-w-md">{description}</p>
-      )}
+    <Card className={`flex flex-col items-center text-center p-6 ${className}`}>
+      <div className="bg-muted rounded-full p-3 mb-4">
+        {icon || <AlertCircle className="h-6 w-6 text-muted-foreground" />}
+      </div>
+      <CardHeader className="pb-2 pt-0">
+        <CardTitle className="text-xl">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="pb-4">
+        <p className="text-muted-foreground">{description}</p>
+      </CardContent>
       {action && (
-        <Button onClick={action} variant="outline" size="sm">
+        <CardFooter className="pt-0">
+          <Button onClick={action}>{actionText}</Button>
+        </CardFooter>
+      )}
+    </Card>
+  );
+};
+
+export interface NoDataEmptyStateProps {
+  message: string;
+  action?: () => void;
+  actionText?: string;
+  className?: string;
+}
+
+export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
+  message,
+  action,
+  actionText = 'Refresh',
+  className = '',
+}) => {
+  return (
+    <div className={`p-8 text-center ${className}`}>
+      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+        <AlertCircle className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h4 className="text-lg font-medium mb-2">No data available</h4>
+      <p className="text-muted-foreground mb-4">{message}</p>
+      {action && (
+        <Button variant="outline" size="sm" onClick={action}>
           {actionText}
         </Button>
       )}
@@ -42,132 +70,110 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-export interface NoDataEmptyStateProps {
-  message?: string;
-  action?: () => void;
-  actionText?: string;
-  className?: string;
-}
-
-export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
-  message = "No data available",
-  action,
-  actionText,
-  className,
-}) => {
-  return (
-    <EmptyState
-      title="No Data Found"
-      description={message}
-      icon={<Database className="h-6 w-6 text-muted-foreground" />}
-      action={action}
-      actionText={actionText}
-      className={className}
-    />
-  );
-};
-
 export interface NoSearchResultsEmptyStateProps {
-  searchTerm?: string;
-  onClear?: () => void;
+  searchTerm: string;
+  onReset: () => void;
   className?: string;
 }
 
 export const NoSearchResultsEmptyState: React.FC<NoSearchResultsEmptyStateProps> = ({
-  searchTerm = "",
-  onClear,
-  className,
+  searchTerm,
+  onReset,
+  className = '',
 }) => {
   return (
-    <EmptyState
-      title="No Results Found"
-      description={`No items matching "${searchTerm}" were found.`}
-      icon={<Search className="h-6 w-6 text-muted-foreground" />}
-      action={onClear}
-      actionText="Clear Search"
-      className={className}
-    />
+    <div className={`p-8 text-center ${className}`}>
+      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+        <Search className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h4 className="text-lg font-medium mb-2">No results found</h4>
+      <p className="text-muted-foreground mb-4">
+        No results found for "<strong>{searchTerm}</strong>"
+      </p>
+      <Button variant="outline" size="sm" onClick={onReset}>
+        Clear search
+      </Button>
+    </div>
   );
 };
 
 export interface FilterEmptyStateProps {
-  onClear?: () => void;
+  onClear: () => void;
   customMessage?: string;
   className?: string;
-  filterCount?: number;
 }
 
 export const FilterEmptyState: React.FC<FilterEmptyStateProps> = ({
   onClear,
-  customMessage,
-  className,
-  filterCount = 0,
+  customMessage = 'No results match your current filters',
+  className = '',
 }) => {
   return (
-    <EmptyState
-      title="No Matching Results"
-      description={
-        customMessage || 
-        `No items match the selected filters${filterCount > 0 ? ` (${filterCount} active)` : ''}.`
-      }
-      icon={<Filter className="h-6 w-6 text-muted-foreground" />}
-      action={onClear}
-      actionText="Clear Filters"
-      className={className}
-    />
+    <div className={`p-8 text-center ${className}`}>
+      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+        <AlertCircle className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h4 className="text-lg font-medium mb-2">No matching results</h4>
+      <p className="text-muted-foreground mb-4">{customMessage}</p>
+      <Button variant="outline" size="sm" onClick={onClear}>
+        Reset filters
+      </Button>
+    </div>
   );
 };
 
 export interface CardEmptyStateProps {
-  title?: string;
-  message?: string;
-  className?: string;
+  title: string;
+  message: string;
   action?: () => void;
   actionText?: string;
+  className?: string;
 }
 
 export const CardEmptyState: React.FC<CardEmptyStateProps> = ({
-  title = "No Data Available",
-  message = "There is no data to display at this time.",
-  className,
+  title,
+  message,
   action,
   actionText,
+  className = '',
 }) => {
   return (
-    <EmptyState
-      title={title}
-      description={message}
-      icon={<FileX className="h-6 w-6 text-muted-foreground" />}
-      action={action}
-      actionText={actionText}
-      className={cn("py-6", className)}
-    />
+    <div className={`flex flex-col items-center text-center py-8 px-4 ${className}`}>
+      <div className="bg-muted rounded-full p-3 mb-4">
+        <AlertCircle className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-medium mb-1">{title}</h3>
+      <p className="text-muted-foreground mb-4 max-w-md">{message}</p>
+      {action && (
+        <Button variant="outline" size="sm" onClick={action}>
+          {actionText}
+        </Button>
+      )}
+    </div>
   );
 };
 
 export interface EmptyListStateProps {
-  title?: string;
-  message?: string;
+  message: string;
   action?: () => void;
   actionText?: string;
   className?: string;
 }
 
 export const EmptyListState: React.FC<EmptyListStateProps> = ({
-  title = "Nothing Here Yet",
-  message = "No items have been added yet.",
+  message,
   action,
   actionText,
-  className,
+  className = '',
 }) => {
   return (
-    <EmptyState
-      title={title}
-      description={message}
-      icon={<AlertTriangle className="h-6 w-6 text-muted-foreground" />}
-      action={action}
-      actionText={actionText}
-      className={className}
-    />
+    <div className={`py-12 px-4 text-center border rounded-lg bg-muted/10 ${className}`}>
+      <p className="text-muted-foreground mb-4">{message}</p>
+      {action && actionText && (
+        <Button variant="outline" size="sm" onClick={action}>
+          {actionText}
+        </Button>
+      )}
+    </div>
   );
 };

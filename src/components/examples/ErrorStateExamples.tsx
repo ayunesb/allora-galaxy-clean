@@ -1,10 +1,7 @@
 
 import React from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
 import ErrorState from '@/components/ui/error-state';
 import CardErrorState from '@/components/errors/CardErrorState';
 import { EmptyState, NoDataEmptyState, FilterEmptyState } from '@/components/errors/EmptyStates';

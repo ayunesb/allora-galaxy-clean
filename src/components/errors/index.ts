@@ -1,5 +1,5 @@
 
-export { default as EdgeFunctionErrorHandler } from './EdgeFunctionErrorHandler';
+export { default as EdgeFunctionErrorHandler } from './EdgeFunctionHandler';
 export { default as EmptyStateRenderer } from './EmptyStateRenderer';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as ErrorFallback } from './ErrorFallback';
