@@ -1,91 +1,73 @@
 
-import { toast as sonnerToast, type ToastOptions } from "sonner";
+import { toast as sonnerToast, Toast, ToastT } from "sonner";
 
-type NotifyOptions = ToastOptions & {
-  id?: string;
-};
+export type ToastProps = ToastT;
 
+/**
+ * Standardized toast utility using Sonner
+ */
 export const toast = {
   /**
-   * Show a default toast notification
+   * Display a success toast notification
    */
-  message: (message: string, options?: NotifyOptions) => {
-    return sonnerToast(message, options);
-  },
-  
-  /**
-   * Show a success toast notification
-   */
-  success: (message: string, options?: NotifyOptions) => {
+  success: (message: string, options?: ToastProps) => {
     return sonnerToast.success(message, options);
   },
   
   /**
-   * Show an error toast notification
+   * Display an error toast notification
    */
-  error: (message: string, options?: NotifyOptions) => {
+  error: (message: string, options?: ToastProps) => {
     return sonnerToast.error(message, options);
   },
   
   /**
-   * Show a warning toast notification
+   * Display an info toast notification
    */
-  warning: (message: string, options?: NotifyOptions) => {
-    return sonnerToast.warning(message, options);
-  },
-  
-  /**
-   * Show an info toast notification
-   */
-  info: (message: string, options?: NotifyOptions) => {
+  info: (message: string, options?: ToastProps) => {
     return sonnerToast.info(message, options);
   },
   
   /**
-   * Show a loading toast notification
+   * Display a warning toast notification
    */
-  loading: (message: string, options?: NotifyOptions) => {
-    return sonnerToast.loading(message, options);
+  warning: (message: string, options?: ToastProps) => {
+    return sonnerToast.warning(message, options);
   },
   
   /**
-   * Dismiss a toast notification
-   */
-  dismiss: (toastId?: string) => {
-    if (toastId) {
-      sonnerToast.dismiss(toastId);
-    } else {
-      sonnerToast.dismiss();
-    }
-  },
-  
-  /**
-   * Handle promise with toast notifications
+   * Display a promise toast that updates based on promise resolution
    */
   promise: <T>(
     promise: Promise<T>,
-    {
-      loading,
-      success,
-      error,
-    }: {
+    options: {
       loading: string;
       success: string | ((data: T) => string);
-      error: string | ((error: unknown) => string);
+      error: string | ((error: any) => string);
     },
-    options?: NotifyOptions
+    toastOptions?: ToastProps
   ) => {
-    return sonnerToast.promise(promise, {
-      loading,
-      success,
-      error,
-    }, options);
+    return sonnerToast.promise(promise, options, toastOptions);
   },
   
   /**
-   * Create a custom toast notification
+   * Display a custom toast component
    */
-  custom: (render: React.ReactNode, options?: NotifyOptions) => {
-    return sonnerToast.custom(render, options);
+  custom: (element: React.ReactNode, options?: ToastProps) => {
+    return sonnerToast(element, options);
+  },
+  
+  /**
+   * Display a default toast notification
+   */
+  default: (message: string, options?: ToastProps) => {
+    return sonnerToast(message, options);
+  },
+  
+  /**
+   * Dismiss a specific toast or all toasts
+   */
+  dismiss: (toastId?: string) => {
+    return sonnerToast.dismiss(toastId);
   }
 };

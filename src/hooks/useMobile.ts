@@ -1,8 +1,12 @@
 
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useResponsive } from '@/hooks/use-responsive';
 
+/**
+ * Hook to detect mobile viewport
+ * @deprecated Use useResponsive() instead for more granular breakpoints
+ */
 export function useMobile() {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const { isMobile } = useResponsive();
   return { isMobile };
 }
 
