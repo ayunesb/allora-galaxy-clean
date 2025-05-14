@@ -35,7 +35,7 @@ const PluginsSection: React.FC = () => {
         </p>
         <div className="bg-muted p-4 rounded-md font-mono text-sm mt-2">
           <p>import {"{createPlugin}"} from '@allora/plugin-sdk';</p>
-          <p className="mt-2">const myPlugin = createPlugin {"{"}</p>
+          <p className="mt-2">const myPlugin = createPlugin({"{"}</p>
           <p>  name: 'My Custom Plugin',</p>
           <p>  version: '1.0.0',</p>
           <p>  description: 'A custom plugin for Allora OS',</p>
@@ -43,7 +43,7 @@ const PluginsSection: React.FC = () => {
           <p>    // Plugin implementation</p>
           <p>    return {"{"} success: true, data: {"{"} result: 'Hello world' {"}"} {"}"};</p>
           <p>  {"}"},</p>
-          <p>{"}"}</p>
+          <p>{"}"})</p>
         </div>
         <p className="mt-2">
           Refer to the Plugin SDK documentation for detailed API reference.

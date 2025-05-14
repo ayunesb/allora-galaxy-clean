@@ -3,6 +3,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { routes } from './routes';
 import './App.css';
 import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from './providers/ThemeProvider';
 import { AuthProvider } from './context/AuthContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -22,7 +23,18 @@ const router = createBrowserRouter(routes);
 
 function App() {
   return (
-    <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light">
+        <AuthProvider>
+          <WorkspaceProvider>
+            <NotificationsProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+            </NotificationsProvider>
+          </WorkspaceProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

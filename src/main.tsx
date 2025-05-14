@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -8,7 +7,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import App from './App';
 import './index.css';
 import './styles/animations.css';
-import { ThemeProvider as NextThemeProvider } from './providers/ThemeProvider';
+import { NextThemeProvider } from './providers';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
