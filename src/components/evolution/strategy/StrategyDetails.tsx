@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Users, CheckCircle, FileText } from 'lucide-react';
+import { CalendarIcon, Users, CheckCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AsyncDataRenderer } from '@/components/ui/async-data-renderer';
@@ -62,7 +62,8 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
       isLoading={isLoading}
       error={error instanceof Error ? error : null}
       onRetry={refetch}
-      renderData={(strategy) => (
+    >
+      {(strategy: Strategy) => (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex justify-between items-start">
@@ -104,7 +105,7 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">Tags</h3>
                     <div className="flex flex-wrap gap-1">
-                      {strategy.tags.map((tag, i) => (
+                      {strategy.tags.map((tag: string, i: number) => (
                         <Badge key={i} variant="outline">{tag}</Badge>
                       ))}
                     </div>
@@ -146,7 +147,7 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
           </CardContent>
         </Card>
       )}
-    />
+    </AsyncDataRenderer>
   );
 };
 

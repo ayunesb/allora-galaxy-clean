@@ -75,9 +75,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
           >
             {(strategyData: Strategy) => (
               <StrategyDetails 
-                strategy={strategyData} 
-                formatDate={formatDate}
-                userMap={userMap}
+                strategyId={strategyData.id} 
               />
             )}
           </AsyncDataRenderer>
@@ -100,7 +98,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
               <EvolutionHistory 
                 history={historyData}
                 formatDate={formatDate}
-                userMap={userMap}
+                renderUser={getUserName}
               />
             )}
           </AsyncDataRenderer>
@@ -121,9 +119,9 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
           >
             {(executionData: StrategyExecution[]) => (
               <ExecutionLogs 
-                logs={executionData}
+                executions={executionData}
                 formatDate={formatDate}
-                userMap={userMap}
+                renderUser={getUserName}
               />
             )}
           </AsyncDataRenderer>

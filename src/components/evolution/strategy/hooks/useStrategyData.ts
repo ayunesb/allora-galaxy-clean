@@ -92,7 +92,7 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
     notify({ 
       title: 'Error loading strategy', 
       description: strategyQuery.error instanceof Error ? strategyQuery.error.message : 'Unknown error'
-    }, { type: 'error' });
+    });
   }
 
   const refetchAll = async () => {
@@ -109,7 +109,7 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
       notify({ 
         title: 'Error refreshing data',
         description: error instanceof Error ? error.message : 'Unknown error'
-      }, { type: 'error' });
+      });
     }
   };
 
@@ -122,3 +122,5 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
     isError: strategyQuery.isError || versionsQuery.isError || executionsQuery.isError
   };
 };
+
+export default useStrategyData;

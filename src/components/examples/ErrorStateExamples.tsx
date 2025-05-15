@@ -2,8 +2,37 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import ErrorState from '@/components/ui/error-state';
-import { NoDataEmptyState, FilterEmptyState, CardEmptyState } from '@/components/errors/EmptyStates';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
+
+// Simple component implementations for empty state variations
+const NoDataEmptyState = ({ title, message, actionLabel, onClick }) => (
+  <div className="text-center p-4">
+    <h3 className="font-medium mb-2">{title}</h3>
+    <p className="text-muted-foreground mb-4">{message}</p>
+    {actionLabel && onClick && (
+      <Button variant="outline" onClick={onClick}>{actionLabel}</Button>
+    )}
+  </div>
+);
+
+const FilterEmptyState = ({ title, message, onReset }) => (
+  <div className="text-center p-4">
+    <h3 className="font-medium mb-2">{title}</h3>
+    <p className="text-muted-foreground mb-4">{message}</p>
+    <Button variant="outline" onClick={onReset}>Reset Filters</Button>
+  </div>
+);
+
+const CardEmptyState = ({ title, message, action }) => (
+  <div className="text-center p-4">
+    <h3 className="font-medium mb-2">{title}</h3>
+    <p className="text-muted-foreground mb-4">{message}</p>
+    {action && (
+      <Button variant="link" onClick={action.onClick}>{action.label}</Button>
+    )}
+  </div>
+);
 
 const ErrorStateExamples: React.FC = () => {
   return (
@@ -68,9 +97,10 @@ const ErrorStateExamples: React.FC = () => {
           </CardHeader>
           <CardContent>
             <NoDataEmptyState 
+              title="No Items Found"
               message="No items found in your collection"
-              action={() => alert('Adding new item...')}
-              actionText="Add Item"
+              actionLabel="Add Item"
+              onClick={() => alert('Adding new item...')}
             />
           </CardContent>
         </Card>
@@ -83,8 +113,9 @@ const ErrorStateExamples: React.FC = () => {
           </CardHeader>
           <CardContent>
             <FilterEmptyState 
+              title="No Results"
               message="Your current filters returned no results"
-              resetFilters={() => alert('Resetting filters...')}
+              onReset={() => alert('Resetting filters...')}
             />
           </CardContent>
         </Card>
@@ -99,8 +130,10 @@ const ErrorStateExamples: React.FC = () => {
             <CardEmptyState 
               title="No Activity"
               message="There's no recent activity to display"
-              action={() => alert('View all...')}
-              actionText="View All"
+              action={{ 
+                label: "View All", 
+                onClick: () => alert('View all...') 
+              }}
             />
           </CardContent>
         </Card>

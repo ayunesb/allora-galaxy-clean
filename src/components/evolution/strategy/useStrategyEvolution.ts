@@ -55,6 +55,7 @@ export interface UseStrategyEvolutionResult {
   // Additional properties needed
   strategy: Strategy | null;
   versions: StrategyVersion[];
+  executions: ExecutionLogItem[];
   contributors: Contributor[];
   latestVersion: StrategyVersion | null;
   averageExecutionTime: number | null;
@@ -290,8 +291,9 @@ export function useStrategyEvolution(strategyId: string): UseStrategyEvolutionRe
     userMap: { getUserName },
     formatDate: formatTimestamp,
     // Additional properties
-    strategy: strategy || strategyQuery.data,
+    strategy: strategy || strategyQuery.data || null,
     versions: versionsQuery.data || [],
+    executions: executionLogs,
     ...computedStats,
     refetch
   };

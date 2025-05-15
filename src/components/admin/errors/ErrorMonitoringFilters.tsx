@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Filter } from 'lucide-react';
-import { LogFilters, LogSeverity, isLogSeverity } from '@/types/logs';
-import { SystemEventModule } from '@/types/shared';
+import { LogFilters } from '@/types/logs';
 
 interface ErrorMonitoringFiltersProps {
   filters: LogFilters;
@@ -35,7 +34,6 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   };
 
   const handleModuleChange = (value: string) => {
-    // Cast to SystemEventModule or undefined to fix type error
     onFiltersChange({
       ...filters,
       module: value !== 'all' ? [value] : undefined

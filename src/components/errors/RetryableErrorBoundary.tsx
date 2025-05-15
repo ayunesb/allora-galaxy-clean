@@ -14,7 +14,7 @@ export interface RetryableErrorBoundaryProps {
 
 export interface ErrorFallbackProps {
   error: Error;
-  resetErrorBoundary: (...args: any[]) => void;
+  resetErrorBoundary: () => void;
   retryCount?: number;
   maxRetries?: number;
 }
@@ -83,7 +83,7 @@ class RetryableErrorBoundary extends Component<RetryableErrorBoundaryProps, Retr
     console.error('Caught error:', error, errorInfo);
   }
 
-  resetErrorBoundary = (...args: any[]): void => {
+  resetErrorBoundary = (): void => {
     const { maxRetries = 3, onReset } = this.props;
     const { retryCount } = this.state;
 

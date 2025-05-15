@@ -1,154 +1,150 @@
 
 import React from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { SystemLog } from '@/types/logs';
 import { format } from 'date-fns';
-import { Copy, X } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { X, Calendar, User, Tag, FileText } from 'lucide-react';
 
-export interface LogDetailDialogProps {
-  log: SystemLog | null;
-  onOpenChange: (open: boolean) => void;
+interface LogDetailDialogProps {
+  log: {
+    id: string;
+    created_at?: string;
+    event?: string;
+    message?: string;
+    module?: string;
+    user_id?: string;
+    tenant_id?: string;
+    details?: any;
+    context?: any;
+    level?: string;
+    severity?: string;
+    title?: string;
+  };
   open: boolean;
-  onCopyId?: (id: string) => void;
+  onOpenChange: (open: boolean) => void;
+  formatUser?: (userId: string) => string;
 }
 
-const LogDetailDialog: React.FC<LogDetailDialogProps> = ({ 
-  log, 
-  onOpenChange,
+const LogDetailDialog: React.FC<LogDetailDialogProps> = ({
+  log,
   open,
-  onCopyId 
+  onOpenChange,
+  formatUser = (userId) => userId || 'System'
 }) => {
-  if (!log) return null;
-
-  const handleCopyId = () => {
-    if (log.id && onCopyId) {
-      onCopyId(log.id);
-    } else if (log.id) {
-      navigator.clipboard.writeText(log.id);
-    }
-  };
-
-  const formatJSON = (data: any) => {
-    if (!data) return 'None';
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
     try {
-      if (typeof data === 'string') {
-        return data;
-      }
-      return JSON.stringify(data, null, 2);
-    } catch (e) {
-      return String(data);
+      return format(new Date(dateString), 'PPp');
+    } catch (error) {
+      return dateString;
     }
   };
 
-  const getLogLevelClass = () => {
-    switch (log.level) {
-      case 'error':
-        return 'bg-destructive text-destructive-foreground';
-      case 'warning':
-        return 'bg-amber-500 text-amber-50';
-      case 'info':
-        return 'bg-blue-500 text-blue-50';
-      default:
-        return 'bg-primary text-primary-foreground';
+  const getSeverityColor = (severity?: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'low': return 'bg-blue-100 text-blue-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'critical': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getLevelColor = (level?: string) => {
+    switch (level?.toLowerCase()) {
+      case 'info': return 'bg-blue-100 text-blue-800';
+      case 'warn': return 'bg-yellow-100 text-yellow-800';
+      case 'warning': return 'bg-yellow-100 text-yellow-800';
+      case 'error': return 'bg-red-100 text-red-800';
+      case 'debug': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh]">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-sm ${getLogLevelClass()}`}>
-                {log.level}
-              </span>
-              <DialogTitle className="text-xl">Log Details</DialogTitle>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
-            </Button>
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-xl">{log.title || log.event || 'Log Details'}</DialogTitle>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
           </div>
         </DialogHeader>
-
-        <ScrollArea className="h-[60vh] pr-4">
-          <Tabs defaultValue="details">
-            <TabsList>
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="metadata">Metadata</TabsTrigger>
-              {log.details && <TabsTrigger value="context">Context</TabsTrigger>}
-              {log.error_message && <TabsTrigger value="error">Error</TabsTrigger>}
-            </TabsList>
-
-            <TabsContent value="details" className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Timestamp</h4>
-                  <p className="font-mono">{format(new Date(log.created_at), 'PPpp')}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Module</h4>
-                  <p>{log.module}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">ID</h4>
-                  <div className="flex items-center gap-1">
-                    <p className="font-mono text-xs truncate">{log.id}</p>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleCopyId}>
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                {log.tenant_id && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground">Tenant ID</h4>
-                    <p className="font-mono text-xs truncate">{log.tenant_id}</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Message</h4>
-                <p className="whitespace-pre-wrap">{log.message || log.description}</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="metadata" className="space-y-4">
-              <div className="bg-muted rounded-md p-3">
-                <pre className="text-xs overflow-auto whitespace-pre-wrap">{formatJSON(log.metadata)}</pre>
-              </div>
-            </TabsContent>
-
-            {log.details && (
-              <TabsContent value="context" className="space-y-4">
-                <div className="bg-muted rounded-md p-3">
-                  <pre className="text-xs overflow-auto whitespace-pre-wrap">{formatJSON(log.details)}</pre>
-                </div>
-              </TabsContent>
-            )}
-
-            {log.error_message && (
-              <TabsContent value="error" className="space-y-4">
-                <div className="bg-destructive/10 text-destructive rounded-md p-3">
-                  <h4 className="text-sm font-medium mb-1">{log.error_type || 'Error'}</h4>
-                  <pre className="text-xs overflow-auto whitespace-pre-wrap">{log.error_message}</pre>
-                </div>
-              </TabsContent>
-            )}
-          </Tabs>
-        </ScrollArea>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
+        <div className="space-y-4">
+          {/* Metadata */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Time:</span>
+              <span className="font-medium">{formatDate(log.created_at)}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">User:</span>
+              <span className="font-medium">{log.user_id ? formatUser(log.user_id) : 'System'}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Module:</span>
+              <span className="font-medium">{log.module || 'Unknown'}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">ID:</span>
+              <span className="font-medium text-xs truncate">{log.id}</span>
+            </div>
+          </div>
+          
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2">
+            {log.level && (
+              <Badge variant="outline" className={getLevelColor(log.level)}>
+                {log.level.toUpperCase()}
+              </Badge>
+            )}
+            
+            {log.severity && (
+              <Badge variant="outline" className={getSeverityColor(log.severity)}>
+                {log.severity}
+              </Badge>
+            )}
+            
+            {log.tenant_id && (
+              <Badge variant="outline">
+                Tenant: {log.tenant_id.substring(0, 8)}
+              </Badge>
+            )}
+          </div>
+          
+          {/* Message */}
+          {log.message && (
+            <div className="p-3 bg-muted rounded-md">
+              <p className="whitespace-pre-wrap break-words">{log.message}</p>
+            </div>
+          )}
+          
+          {/* Context */}
+          {(log.context || log.details) && (
+            <>
+              <h4 className="text-sm font-medium">Additional Details</h4>
+              <ScrollArea className="h-[200px] rounded-md border">
+                <pre className="p-4 text-xs">
+                  {JSON.stringify(log.context || log.details, null, 2)}
+                </pre>
+              </ScrollArea>
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
