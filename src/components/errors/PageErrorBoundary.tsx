@@ -50,6 +50,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 
 interface PageErrorBoundaryProps {
   children: React.ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface PageErrorBoundaryState {
@@ -79,6 +80,12 @@ class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBound
     this.setState({
       errorInfo
     });
+    
+    // Call the onError callback if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+    
     console.error('Error caught by PageErrorBoundary:', error, errorInfo);
   }
 

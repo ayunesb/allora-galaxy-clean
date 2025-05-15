@@ -6,7 +6,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export interface ErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<ErrorBoundaryFallbackProps>;
+  fallback?: React.ComponentType<ErrorBoundaryFallbackProps> | React.ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
@@ -91,15 +91,28 @@ class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState
 
   render(): React.ReactNode {
     const { hasError, error } = this.state;
-    const { children, fallback: Fallback = DefaultFallback } = this.props;
+    const { children, fallback } = this.props;
 
     if (hasError && error) {
-      return (
-        <Fallback 
-          error={error instanceof Error ? error : new Error(String(error))} 
-          resetErrorBoundary={this.resetErrorBoundary} 
-        />
-      );
+      // Handle both React component and ReactNode fallback types
+      if (React.isValidElement(fallback)) {
+        return fallback;
+      } else if (typeof fallback === 'function') {
+        const FallbackComponent = fallback as React.ComponentType<ErrorBoundaryFallbackProps>;
+        return (
+          <FallbackComponent 
+            error={error} 
+            resetErrorBoundary={this.resetErrorBoundary} 
+          />
+        );
+      } else {
+        return (
+          <DefaultFallback 
+            error={error} 
+            resetErrorBoundary={this.resetErrorBoundary} 
+          />
+        );
+      }
     }
 
     return children;

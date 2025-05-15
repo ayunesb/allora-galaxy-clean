@@ -8,14 +8,15 @@ export interface RetryableErrorBoundaryProps {
   children: React.ReactNode;
   maxRetries?: number;
   fallback?: React.ComponentType<ErrorFallbackProps>;
-  onReset?: () => void; // Add the onReset prop
+  onReset?: () => void;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 export interface ErrorFallbackProps {
-  error: any;
+  error: Error;
   resetErrorBoundary: (...args: any[]) => void;
-  retryCount?: number; // Make retryCount optional
-  maxRetries?: number; // Make maxRetries optional
+  retryCount?: number;
+  maxRetries?: number;
 }
 
 interface RetryableErrorBoundaryState {
@@ -73,6 +74,12 @@ class RetryableErrorBoundary extends Component<RetryableErrorBoundaryProps, Retr
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
+    
+    // Call onError if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+    
     console.error('Caught error:', error, errorInfo);
   }
 
@@ -112,5 +119,22 @@ class RetryableErrorBoundary extends Component<RetryableErrorBoundaryProps, Retr
     return children;
   }
 }
+
+// Higher Order Component for wrapping components with RetryableErrorBoundary
+export const withRetryableErrorBoundary = <P extends object>(
+  Component: React.ComponentType<P>,
+  errorBoundaryProps: Omit<RetryableErrorBoundaryProps, 'children'> = {}
+): React.FC<P> => {
+  const WithRetryableErrorBoundary = (props: P) => (
+    <RetryableErrorBoundary {...errorBoundaryProps}>
+      <Component {...props} />
+    </RetryableErrorBoundary>
+  );
+  
+  const displayName = Component.displayName || Component.name || 'Component';
+  WithRetryableErrorBoundary.displayName = `withRetryableErrorBoundary(${displayName})`;
+  
+  return WithRetryableErrorBoundary;
+};
 
 export default RetryableErrorBoundary;

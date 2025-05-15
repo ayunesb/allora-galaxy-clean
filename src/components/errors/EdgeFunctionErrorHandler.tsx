@@ -1,90 +1,71 @@
 
 import React from 'react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export interface EdgeFunctionErrorProps {
-  error: Error | null;
-  message?: string;
-  showDetails?: boolean;
+  error: Error;
   onRetry?: () => void;
+  retry?: () => void; // Compatibility with old API
+  showDetails?: boolean;
+  showRequestId?: boolean; // Added for test compatibility
 }
 
-// Export the EdgeFunctionError component for testing
 export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
   error,
-  message = 'An error occurred while processing your request',
-  showDetails = false,
-  onRetry
-}) => {
-  if (!error) return null;
-
-  return (
-    <Alert variant="destructive" className="my-4">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        {message}
-        {showDetails && (
-          <div className="mt-2 text-sm text-gray-500">
-            <p>{error.message}</p>
-          </div>
-        )}
-        {onRetry && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onRetry}
-            className="mt-2"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Retry
-          </Button>
-        )}
-      </AlertDescription>
-    </Alert>
-  );
-};
-
-export interface EdgeFunctionErrorDisplayProps {
-  error: Error | null;
-  title?: string;
-  description?: string;
-  onRetry?: () => void;
-  retryLabel?: string;
-}
-
-// Export the EdgeFunctionErrorDisplay component for testing
-export const EdgeFunctionErrorDisplay: React.FC<EdgeFunctionErrorDisplayProps> = ({
-  error,
-  title = 'Operation Failed',
-  description = 'There was an error processing your request',
   onRetry,
-  retryLabel = 'Try Again'
+  retry, // Compatibility with old API
+  showDetails = false,
+  showRequestId = false,
 }) => {
-  if (!error) return null;
-
+  const retryHandler = onRetry || retry; // Use onRetry if available, fall back to retry
+  
+  // Extract error details
+  const errorObj = error as any;
+  const requestId = errorObj.requestId || errorObj.request_id;
+  const status = errorObj.status || errorObj.statusCode;
+  const details = errorObj.details || {};
+  
   return (
-    <Card className="border-destructive/50 bg-destructive/10">
+    <Card className="border-destructive/50 bg-destructive/5 mx-auto my-4 max-w-md">
       <CardHeader>
         <CardTitle className="flex items-center text-destructive">
           <AlertCircle className="mr-2 h-5 w-5" />
-          {title}
+          Edge Function Error
+          {status && <span className="ml-2 text-sm">({status})</span>}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        <p>{description}</p>
-        <div className="rounded bg-muted/50 p-2 text-xs font-mono overflow-auto">
-          {error.message}
-        </div>
+      <CardContent className="space-y-3 text-sm">
+        <p className="font-medium">{error.message}</p>
+        
+        {showRequestId && requestId && (
+          <div className="text-xs text-muted-foreground">
+            <span className="font-semibold">Request ID:</span> {requestId}
+          </div>
+        )}
+        
+        {showDetails && Object.keys(details).length > 0 && (
+          <div className="mt-2">
+            <p className="font-semibold text-xs mb-1">Error Details:</p>
+            <div className="rounded bg-muted/50 p-2 text-xs font-mono overflow-auto max-h-32">
+              <pre className="whitespace-pre-wrap">
+                {JSON.stringify(details, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
       </CardContent>
-      {onRetry && (
+      
+      {retryHandler && (
         <CardFooter>
-          <Button variant="outline" size="sm" onClick={onRetry}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={retryHandler}
+          >
             <RefreshCw className="mr-2 h-4 w-4" />
-            {retryLabel}
+            Try Again
           </Button>
         </CardFooter>
       )}
@@ -92,24 +73,11 @@ export const EdgeFunctionErrorDisplay: React.FC<EdgeFunctionErrorDisplayProps> =
   );
 };
 
-interface EdgeFunctionErrorHandlerProps {
-  error: Error | null;
-  isLoading?: boolean;
-  children: React.ReactNode;
-  onRetry?: () => void;
-}
+// Alias export for backward compatibility
+export const EdgeFunctionErrorDisplay = EdgeFunctionError;
 
-const EdgeFunctionErrorHandler: React.FC<EdgeFunctionErrorHandlerProps> = ({
-  error,
-  isLoading = false,
-  children,
-  onRetry
-}) => {
-  if (error) {
-    return <EdgeFunctionError error={error} onRetry={onRetry} />;
-  }
+// Re-export for convenience
+export const EdgeFunctionHandler = EdgeFunctionError;
 
-  return <>{children}</>;
-};
-
-export default EdgeFunctionErrorHandler;
+// Default export
+export default EdgeFunctionError;
