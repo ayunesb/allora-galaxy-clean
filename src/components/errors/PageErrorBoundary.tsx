@@ -1,10 +1,9 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import ErrorFallback from '@/components/errors/ErrorFallback';
+import { Component, ErrorInfo, ReactNode } from 'react';
+import ErrorFallback from './ErrorFallback';
 
 interface PageErrorBoundaryProps {
   children: ReactNode;
-  onError?: (error: Error, info: ErrorInfo) => void;
 }
 
 interface PageErrorBoundaryState {
@@ -13,6 +12,10 @@ interface PageErrorBoundaryState {
   errorInfo: ErrorInfo | null;
 }
 
+/**
+ * A specialized error boundary for page-level errors
+ * with a full-screen error display
+ */
 class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBoundaryState> {
   constructor(props: PageErrorBoundaryProps) {
     super(props);
@@ -23,43 +26,30 @@ class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBound
     };
   }
 
-  static getDerivedStateFromError(error: Error): PageErrorBoundaryState {
-    return {
-      hasError: true,
-      error,
-      errorInfo: null
-    };
+  static getDerivedStateFromError(error: Error): Partial<PageErrorBoundaryState> {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Update state with error details
-    this.setState({
-      errorInfo
-    });
-
-    // Log the error to console
-    console.error('Error caught by PageErrorBoundary:', error);
-    console.error('Component Stack:', errorInfo.componentStack);
-    
-    // Call the onError callback if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
-    }
+    this.setState({ errorInfo });
+    console.error("Page-level error caught:", error, errorInfo);
   }
+
+  resetErrorBoundary = (): void => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null
+    });
+  };
 
   render(): ReactNode {
     if (this.state.hasError) {
       return (
         <ErrorFallback
           error={this.state.error}
-          componentStack={this.state.errorInfo?.componentStack || ''}
-          resetErrorBoundary={() => {
-            this.setState({
-              hasError: false,
-              error: null,
-              errorInfo: null
-            });
-          }}
+          errorInfo={this.state.errorInfo}
+          resetErrorBoundary={this.resetErrorBoundary}
         />
       );
     }

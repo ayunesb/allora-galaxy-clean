@@ -1,84 +1,102 @@
 
 import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileX, Search, FilterX } from 'lucide-react';
+import { Search, FileX, Filter, RefreshCw, InboxIcon } from 'lucide-react';
 
-interface NoDataEmptyStateProps {
-  title?: string;
-  message?: string;
-  actionText?: string;
-  action?: () => void;
+interface EmptyStateProps {
+  title: string;
+  description: string;
+  icon?: React.ReactNode;
+  action?: {
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  };
 }
 
-export const NoDataEmptyState: React.FC<NoDataEmptyStateProps> = ({
-  title = 'No data available',
-  message = 'There are no items to display',
-  actionText,
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  title,
+  description,
+  icon,
   action
 }) => (
-  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-    <div className="rounded-full bg-muted p-3 mb-4">
-      <FileX className="h-6 w-6 text-muted-foreground" />
-    </div>
-    <h3 className="text-lg font-medium mb-2">{title}</h3>
-    <p className="text-muted-foreground mb-4">{message}</p>
-    {action && actionText && (
-      <Button onClick={action}>{actionText}</Button>
+  <div className="flex flex-col items-center justify-center text-center p-8 w-full">
+    <div className="mb-4 rounded-full bg-muted p-3">{icon}</div>
+    <h3 className="mb-2 text-lg font-medium">{title}</h3>
+    <p className="mb-6 text-sm text-muted-foreground max-w-sm">{description}</p>
+    {action && (
+      <Button
+        variant={action.variant || "default"}
+        onClick={action.onClick}
+      >
+        {action.label}
+      </Button>
     )}
   </div>
 );
 
-interface NoSearchResultsEmptyStateProps {
-  searchTerm: string;
-  clearSearch?: () => void;
-  title?: string;
-}
+export const CardEmptyState: React.FC<EmptyStateProps> = (props) => (
+  <Card>
+    <CardContent className="pt-6">
+      <EmptyState {...props} />
+    </CardContent>
+  </Card>
+);
 
-export const NoSearchResultsEmptyState: React.FC<NoSearchResultsEmptyStateProps> = ({
-  searchTerm,
-  clearSearch,
-  title = 'No search results'
+export const NoDataEmptyState: React.FC<{ onRefresh?: () => void }> = ({ onRefresh }) => (
+  <EmptyState
+    icon={<FileX size={24} />}
+    title="No data available"
+    description="There is no data to display at this time."
+    action={onRefresh ? {
+      label: "Refresh",
+      onClick: onRefresh,
+      variant: "outline"
+    } : undefined}
+  />
+);
+
+export const NoSearchResultsEmptyState: React.FC<{ onReset: () => void }> = ({ onReset }) => (
+  <EmptyState
+    icon={<Search size={24} />}
+    title="No results found"
+    description="Try adjusting your search or filter to find what you're looking for."
+    action={{
+      label: "Reset filters",
+      onClick: onReset,
+      variant: "outline"
+    }}
+  />
+);
+
+export const FilterEmptyState: React.FC<{ onReset: () => void }> = ({ onReset }) => (
+  <EmptyState
+    icon={<Filter size={24} />}
+    title="No matching items"
+    description="No items match your current filter criteria."
+    action={{
+      label: "Clear filters",
+      onClick: onReset,
+      variant: "outline"
+    }}
+  />
+);
+
+export const EmptyListState: React.FC<{ message: string; onRefresh?: () => void }> = ({ 
+  message, 
+  onRefresh 
 }) => (
-  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-    <div className="rounded-full bg-muted p-3 mb-4">
-      <Search className="h-6 w-6 text-muted-foreground" />
-    </div>
-    <h3 className="text-lg font-medium mb-2">{title}</h3>
-    <p className="text-muted-foreground mb-4">
-      No results found for "{searchTerm}"
-    </p>
-    {clearSearch && (
-      <Button variant="outline" onClick={clearSearch}>Clear Search</Button>
+  <div className="flex flex-col items-center justify-center p-6 text-center">
+    <InboxIcon className="h-12 w-12 text-muted-foreground mb-4" />
+    <p className="text-muted-foreground">{message}</p>
+    {onRefresh && (
+      <Button variant="outline" className="mt-4" onClick={onRefresh}>
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Refresh
+      </Button>
     )}
   </div>
 );
 
-interface FilterEmptyStateProps {
-  resetFilters?: () => void;
-  message?: string;
-  resetLabel?: string;
-  title?: string;
-}
-
-export const FilterEmptyState: React.FC<FilterEmptyStateProps> = ({
-  resetFilters,
-  message = 'Try adjusting your filters to see more results',
-  resetLabel = 'Reset Filters',
-  title = 'No matching results'
-}) => (
-  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-    <div className="rounded-full bg-muted p-3 mb-4">
-      <FilterX className="h-6 w-6 text-muted-foreground" />
-    </div>
-    <h3 className="text-lg font-medium mb-2">{title}</h3>
-    <p className="text-muted-foreground mb-4">{message}</p>
-    {resetFilters && (
-      <Button variant="outline" onClick={resetFilters}>{resetLabel}</Button>
-    )}
-  </div>
-);
-
-// Additional empty state components with title prop support
-export const CardEmptyState = NoDataEmptyState;
-export const EmptyListState = NoDataEmptyState;
-export const EmptyState = NoDataEmptyState;
+export default EmptyState;

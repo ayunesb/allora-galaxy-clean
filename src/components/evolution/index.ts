@@ -1,16 +1,24 @@
 
-// Export evolution components
-export { default as AuditLog } from './AuditLog';
+// Main components
 export { default as EvolutionDashboard } from './EvolutionDashboard';
+export { default as AgentEvolutionTab } from './AgentEvolutionTab';
 export { default as PluginEvolutionTab } from './PluginEvolutionTab';
 export { default as StrategyEvolutionTab } from './StrategyEvolutionTab';
+export { default as AuditLog } from './AuditLog';
 export { default as LogDetailDialog } from './LogDetailDialog';
 
-// Export strategy components
-export { default as StrategyDetails } from './strategy/StrategyDetails';
-export { default as StrategyHeader } from './strategy/StrategyHeader';
-export { default as StrategyEvolutionHistory } from './strategy/StrategyEvolutionHistory';
+// Strategy evolution components
+export { StrategyDetails } from './strategy/StrategyDetails';
+export { EvolutionHistory } from './strategy/EvolutionHistory';
+export { ExecutionLogs } from './strategy/ExecutionLogs';
+export { StrategyLoadingSkeleton } from './strategy/StrategyLoadingSkeleton';
 
-// Export agent components
-export { default as AgentVotePanel } from '../agent/vote/AgentVotePanel';
-export { default as AgentVersionComparison } from './agent/AgentVersionComparison';
+// Strategy component parts
+export { default as StrategyStatusBadge } from './strategy/components/StrategyStatusBadge';
+export { default as StrategyMetadata } from './strategy/components/StrategyMetadata';
+export { default as StrategyDescription } from './strategy/components/StrategyDescription';
+export { default as StrategyTags } from './strategy/components/StrategyTags';
+
+// Agent evolution components
+export { default as AgentPerformanceMetrics } from './agent/evolution/AgentPerformanceMetrics';
+export { default as AgentEvolutionChart } from './agent/evolution/AgentEvolutionChart';
