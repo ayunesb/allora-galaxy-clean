@@ -4,40 +4,40 @@ import type { SystemLog } from '@/types/logs';
 import { addDays } from 'date-fns';
 
 // Mock the imported utility functions
-jest.mock('@/components/admin/errors/utils/dateUtils', () => ({
-  generateDateRange: jest.fn(() => [new Date('2025-01-01'), new Date('2025-01-02')]),
-  formatDay: jest.fn((day) => {
+vi.mock('@/components/admin/errors/utils/dateUtils', () => ({
+  generateDateRange: vi.fn(() => [new Date('2025-01-01'), new Date('2025-01-02')]),
+  formatDay: vi.fn((day: Date) => {
     if (day.toISOString().includes('2025-01-01')) return 'Jan 01';
     return 'Jan 02';
   }),
-  getDayStart: jest.fn((day) => {
+  getDayStart: vi.fn((day: Date) => {
     if (day.toISOString().includes('2025-01-01')) return new Date('2025-01-01T00:00:00');
     return new Date('2025-01-02T00:00:00');
   }),
-  getDayEnd: jest.fn((day) => {
+  getDayEnd: vi.fn((day: Date) => {
     if (day.toISOString().includes('2025-01-01')) return new Date('2025-01-01T23:59:59.999');
     return new Date('2025-01-02T23:59:59.999');
   }),
-  isDateInDay: jest.fn((date, dayStart, dayEnd) => {
+  isDateInDay: vi.fn((date: Date, dayStart: Date, dayEnd: Date) => {
     const dateStr = date.toISOString();
     const dayStartStr = dayStart.toISOString();
     return dateStr.substring(0, 10) === dayStartStr.substring(0, 10);
   })
 }));
 
-jest.mock('@/components/admin/errors/utils/severityUtils', () => ({
-  countLogsBySeverity: jest.fn(() => ({
+vi.mock('@/components/admin/errors/utils/severityUtils', () => ({
+  countLogsBySeverity: vi.fn(() => ({
     criticalCount: 1,
     highCount: 2,
     mediumCount: 3,
     lowCount: 4
   })),
-  countLogsByErrorType: jest.fn(() => ({
+  countLogsByErrorType: vi.fn(() => ({
     'SQL_ERROR': 3,
     'API_ERROR': 2,
     'NETWORK_ERROR': 1
   })),
-  getTopErrorTypes: jest.fn(() => ({
+  getTopErrorTypes: vi.fn(() => ({
     'SQL_ERROR': 3,
     'API_ERROR': 2,
     'NETWORK_ERROR': 1

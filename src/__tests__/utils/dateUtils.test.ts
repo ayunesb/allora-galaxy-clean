@@ -6,6 +6,7 @@ import {
   getDayEnd, 
   isDateInDay 
 } from '@/components/admin/errors/utils/dateUtils';
+import { addDays } from 'date-fns';
 
 describe('dateUtils', () => {
   test('generateDateRange returns all days in a date range', () => {
