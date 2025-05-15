@@ -1,12 +1,12 @@
 
-// Make sure EdgeFunctionError is exported properly
 import React from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlloraError, ApiError } from '@/lib/errors/errorTypes';
 
 export interface EdgeFunctionErrorProps {
-  error: {
+  error: Error | AlloraError | ApiError | {
     message: string;
     requestId?: string;
     code?: string;
@@ -22,6 +22,55 @@ export interface EdgeFunctionErrorProps {
 }
 
 /**
+ * Extract standardized error information from different error types
+ */
+function normalizeError(error: EdgeFunctionErrorProps['error']): {
+  message: string;
+  requestId?: string;
+  code?: string;
+  status?: number;
+  details?: any;
+} {
+  // Handle AlloraError type
+  if (error instanceof AlloraError) {
+    return {
+      message: error.userMessage || error.message,
+      requestId: error.requestId,
+      code: error.code,
+      status: error.status,
+      details: error.context
+    };
+  }
+  
+  // Handle standard Error type
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      requestId: (error as any).requestId,
+      code: (error as any).code,
+      status: (error as any).status,
+      details: (error as any).details
+    };
+  }
+  
+  // Handle object with message property
+  if (typeof error === 'object' && error !== null) {
+    return {
+      message: error.message || 'Unknown error',
+      requestId: 'requestId' in error ? error.requestId : undefined,
+      code: 'code' in error ? error.code : undefined,
+      status: 'status' in error ? error.status : undefined,
+      details: 'details' in error ? error.details : undefined
+    };
+  }
+  
+  // Fallback for unknown error types
+  return {
+    message: String(error) || 'Unknown error'
+  };
+}
+
+/**
  * A specialized component for displaying edge function errors
  */
 export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
@@ -32,11 +81,14 @@ export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
   showRequestId = false,
   className
 }) => {
+  const normalizedError = normalizeError(error);
+  
   // Format the error message based on status code
   const getErrorMessage = () => {
-    const status = error.status || 500;
+    const message = normalizedError.message;
+    if (message) return message;
     
-    if (error.message) return error.message;
+    const status = normalizedError.status || 500;
     
     switch (status) {
       case 401: return 'Unauthorized. Please sign in to continue.';
@@ -62,25 +114,25 @@ export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
         <div className="text-sm">
           <p className="font-medium">{getErrorMessage()}</p>
           
-          {showRequestId && error.requestId && (
+          {(showRequestId || normalizedError.status === 500) && normalizedError.requestId && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Request ID: <code className="font-mono">{error.requestId}</code>
+              Request ID: <code className="font-mono">{normalizedError.requestId}</code>
             </p>
           )}
           
-          {error.code && (
+          {normalizedError.code && (
             <p className="text-xs text-muted-foreground">
-              Error Code: <code className="font-mono">{error.code}</code>
+              Error Code: <code className="font-mono">{normalizedError.code}</code>
             </p>
           )}
           
-          {showDetails && error.details && (
+          {showDetails && normalizedError.details && (
             <div className="mt-2">
               <p className="text-xs font-medium">Error Details:</p>
               <pre className="mt-1 max-h-20 overflow-auto rounded bg-muted p-2 text-xs">
-                {typeof error.details === 'object' 
-                  ? JSON.stringify(error.details, null, 2) 
-                  : String(error.details)}
+                {typeof normalizedError.details === 'object' 
+                  ? JSON.stringify(normalizedError.details, null, 2) 
+                  : String(normalizedError.details)}
               </pre>
             </div>
           )}
@@ -117,3 +169,5 @@ export function withEdgeFunctionErrorHandling<P extends object>(
     return <Component {...props as P} />;
   };
 }
+
+export { default as EdgeFunctionHandler } from './EdgeFunctionHandler';

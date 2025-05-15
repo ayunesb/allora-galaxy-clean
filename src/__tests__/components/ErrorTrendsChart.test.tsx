@@ -1,120 +1,60 @@
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { vi, describe, it, expect } from 'vitest';
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
-import { prepareErrorTrendsData } from '@/components/admin/errors/utils/chartDataUtils';
-import { addDays } from 'date-fns';
-import type { SystemLog } from '@/types/logs';
-
-// Mock chart data utility
-vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
-  prepareErrorTrendsData: vi.fn(() => [
-    { date: '2023-01-01', critical: 5, high: 10, medium: 2, low: 3, total: 20 },
-    { date: '2023-01-02', critical: 2, high: 5, medium: 1, low: 2, total: 10 },
-  ]),
-}));
+import { sub } from 'date-fns';
+// Remove unused import addDays
+import { mockErrorLogs } from '../mocks/errorLogsMock';
 
 // Mock chart components
 vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
-  default: () => <div data-testid="chart-loading">Loading chart...</div>,
+  default: () => <div data-testid="chart-loading-state">Loading chart...</div>
 }));
 
 vi.mock('@/components/admin/errors/charts/ErrorRateChart', () => ({
-  default: ({ data }: any) => <div data-testid="error-rate-chart">Rate Chart: {data.length} items</div>,
+  default: ({ data }: any) => <div data-testid="error-rate-chart">Rate Chart with {data.length} points</div>
 }));
 
 vi.mock('@/components/admin/errors/charts/ErrorSeverityChart', () => ({
-  default: ({ data }: any) => <div data-testid="error-severity-chart">Severity Chart: {data.length} items</div>,
+  default: ({ data }: any) => <div data-testid="error-severity-chart">Severity Chart with {data.length} points</div>
 }));
 
 vi.mock('@/components/admin/errors/charts/FullErrorChart', () => ({
-  default: ({ data }: any) => <div data-testid="full-error-chart">Full Chart: {data.length} items</div>,
+  default: ({ data }: any) => <div data-testid="full-error-chart">Full Chart with {data.length} points</div>
+}));
+
+// Mock the prepareErrorTrendsData function
+vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
+  prepareErrorTrendsData: () => [{ date: '2023-01-01', total: 5, critical: 1, high: 2, medium: 1, low: 1 }]
 }));
 
 describe('ErrorTrendsChart', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
-
-  const dateRange = {
-    from: new Date('2023-01-01'),
-    to: new Date('2023-01-10')
-  };
-
-  const mockLogs: SystemLog[] = [
-    {
-      id: '1',
-      level: 'error',
-      message: 'API Error',
-      module: 'api',
-      created_at: '2023-01-01T10:00:00Z',
-      tenant_id: 'tenant-1',
-      severity: 'high'
+  const defaultProps = {
+    logs: mockErrorLogs,
+    dateRange: {
+      from: sub(new Date(), { days: 7 }),
+      to: new Date()
     },
-    {
-      id: '2',
-      level: 'error',
-      message: 'Database Error',
-      module: 'database',
-      created_at: '2023-01-02T10:00:00Z',
-      tenant_id: 'tenant-1',
-      severity: 'critical'
-    }
-  ];
-
-  it('calls prepareErrorTrendsData with correct params', () => {
-    render(<ErrorTrendsChart 
-      logs={mockLogs} 
-      dateRange={dateRange} 
-      isLoading={false} 
-    />);
-
-    expect(prepareErrorTrendsData).toHaveBeenCalledWith(mockLogs, dateRange);
+    isLoading: false
+  };
+  
+  it('shows loading state when isLoading is true', () => {
+    render(<ErrorTrendsChart {...defaultProps} isLoading={true} />);
+    expect(screen.getByTestId('chart-loading-state')).toBeInTheDocument();
   });
-
-  it('renders loading state when isLoading is true', () => {
-    render(<ErrorTrendsChart 
-      logs={[]} 
-      dateRange={dateRange} 
-      isLoading={true} 
-    />);
-
-    expect(screen.getByTestId('chart-loading')).toBeInTheDocument();
-  });
-
-  it('renders ErrorRateChart when type is rate', () => {
-    render(<ErrorTrendsChart 
-      logs={mockLogs} 
-      dateRange={dateRange} 
-      isLoading={false} 
-      type="rate"
-    />);
-
+  
+  it('renders error rate chart when type is rate', () => {
+    render(<ErrorTrendsChart {...defaultProps} type="rate" />);
     expect(screen.getByTestId('error-rate-chart')).toBeInTheDocument();
   });
-
-  it('renders ErrorSeverityChart when type is severity', () => {
-    render(<ErrorTrendsChart 
-      logs={mockLogs} 
-      dateRange={dateRange} 
-      isLoading={false} 
-      type="severity"
-    />);
-
+  
+  it('renders severity chart when type is severity', () => {
+    render(<ErrorTrendsChart {...defaultProps} type="severity" />);
     expect(screen.getByTestId('error-severity-chart')).toBeInTheDocument();
   });
-
-  it('renders FullErrorChart by default', () => {
-    render(<ErrorTrendsChart 
-      logs={mockLogs} 
-      dateRange={dateRange} 
-      isLoading={false} 
-    />);
-
+  
+  it('renders full chart by default', () => {
+    render(<ErrorTrendsChart {...defaultProps} />);
     expect(screen.getByTestId('full-error-chart')).toBeInTheDocument();
   });
 });

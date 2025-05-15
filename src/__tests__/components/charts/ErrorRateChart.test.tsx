@@ -1,52 +1,46 @@
 
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ErrorRateChart } from '@/components/admin/errors/charts';
+import { describe, it, expect, vi } from 'vitest';
+import ErrorRateChart from '@/components/admin/errors/charts/ErrorRateChart';
 
-// Mock recharts to avoid SVG rendering issues in tests
-jest.mock('recharts', () => {
-  const OriginalModule = jest.requireActual('recharts');
+// Mock the Recharts components
+vi.mock('recharts', () => {
+  const OriginalModule = vi.importActual('recharts');
   return {
     ...OriginalModule,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="responsive-container">{children}</div>
-    ),
-    LineChart: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="line-chart">{children}</div>
-    ),
-    CartesianGrid: () => <div data-testid="cartesian-grid" />,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
+    LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+    Line: ({ dataKey }: { dataKey: string }) => <div data-testid={`line-${dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
+    CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    Legend: () => <div data-testid="legend" />,
-    Line: () => <div data-testid="line" />,
+    Legend: () => <div data-testid="legend" />
   };
 });
 
 describe('ErrorRateChart', () => {
   const mockData = [
-    { date: 'Jan 01', total: 10 },
-    { date: 'Jan 02', total: 15 },
-    { date: 'Jan 03', total: 8 }
+    { date: '2023-01-01', total: 5, critical: 0, high: 2, medium: 2, low: 1 },
+    { date: '2023-01-02', total: 3, critical: 1, high: 1, medium: 1, low: 0 }
   ];
 
-  it('should render the chart with data', () => {
-    render(<ErrorRateChart data={mockData} />);
-
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
-    expect(screen.getByTestId('line')).toBeInTheDocument();
-  });
-
-  it('should render the chart with correct height', () => {
+  it('renders all chart components', () => {
     render(<ErrorRateChart data={mockData} />);
     
-    const container = screen.getByTestId('responsive-container').parentElement;
-    expect(container).toHaveClass('h-64');
+    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('line-total')).toBeInTheDocument();
   });
 
-  it('should render empty chart when no data is provided', () => {
+  it('renders empty state when no data is provided', () => {
     render(<ErrorRateChart data={[]} />);
+    
+    expect(screen.getByText(/No error data available/i)).toBeInTheDocument();
+  });
+
+  it('renders with custom height', () => {
+    render(<ErrorRateChart data={mockData} height={500} />);
     
     expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
   });

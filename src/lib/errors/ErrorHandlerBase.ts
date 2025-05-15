@@ -59,6 +59,8 @@ export class ErrorHandlerBase {
             description: alloraError.message,
             error_code: alloraError.code,
             error_type: alloraError.constructor.name,
+            status: alloraError.status,
+            request_id: alloraError.requestId,
             ...enhancedContext
           },
           tenantId
@@ -95,8 +97,32 @@ export class ErrorHandlerBase {
     
     // Error instance but not AlloraError
     if (error instanceof Error) {
+      // Extract properties from Error object if they exist
+      const errorObj = error as any;
+      const status = errorObj.status || errorObj.statusCode;
+      const code = errorObj.code || errorObj.errorCode;
+      const requestId = errorObj.requestId || errorObj.request_id;
+      
       // Check for specific error patterns to categorize
       const errorString = error.toString().toLowerCase();
+      
+      // Edge function error response
+      if (errorObj.success === false && errorObj.error && errorObj.timestamp) {
+        return new AlloraError({
+          message: errorObj.error,
+          code: code || 'EDGE_ERROR',
+          severity: 'medium',
+          context: { 
+            details: errorObj.details,
+            originalError: error,
+            ...context 
+          },
+          userMessage: errorObj.userMessage || errorObj.error,
+          source: 'edge',
+          status: status || 500,
+          requestId: requestId
+        });
+      }
       
       // Network error patterns
       if (
@@ -113,7 +139,8 @@ export class ErrorHandlerBase {
           context: { originalError: error, ...context },
           userMessage: 'Connection problem. Please check your internet connection.',
           source: 'client',
-          retry: true
+          retry: true,
+          status: status || 503
         });
       }
       
@@ -132,15 +159,36 @@ export class ErrorHandlerBase {
           context: { originalError: error, ...context },
           userMessage: 'Your session may have expired. Please sign in again.',
           source: 'client',
-          retry: false
+          retry: false,
+          status: status || 401
+        });
+      }
+      
+      // Not found patterns
+      if (
+        errorString.includes('not found') ||
+        errorString.includes('404') ||
+        status === 404
+      ) {
+        return new AlloraError({
+          message: error.message,
+          code: 'NOT_FOUND',
+          severity: 'medium', 
+          context: { originalError: error, ...context },
+          userMessage: 'The requested resource could not be found.',
+          source: error.name?.includes('Api') ? 'server' : 'client',
+          status: 404
         });
       }
       
       // Otherwise, create a generic AlloraError
       return new AlloraError({
         message: error.message,
-        context: { originalError: error, ...context },
-        userMessage: 'An unexpected error occurred. Please try again later.'
+        code: code || 'UNKNOWN_ERROR',
+        context: { originalError: error, stack: error.stack, ...context },
+        userMessage: 'An unexpected error occurred. Please try again later.',
+        status: status,
+        requestId: requestId
       });
     }
     
@@ -151,6 +199,22 @@ export class ErrorHandlerBase {
         context,
         userMessage: error
       });
+    }
+    
+    // Handle edge error response objects
+    if (typeof error === 'object' && error !== null) {
+      const errorObj = error as any;
+      if (errorObj.success === false && errorObj.error) {
+        return new AlloraError({
+          message: errorObj.error,
+          code: errorObj.code || 'EDGE_ERROR',
+          context: { details: errorObj.details, ...context },
+          userMessage: errorObj.error,
+          source: 'edge',
+          status: errorObj.status || 500,
+          requestId: errorObj.requestId
+        });
+      }
     }
     
     // Handle other types (objects, etc.)
@@ -165,7 +229,7 @@ export class ErrorHandlerBase {
    * Show an error notification to the user
    */
   static showErrorNotification(error: AlloraError): void {
-    const isCritical = error.severity === 'critical';
+    const isCritical = error.severity === 'critical' || error.severity === 'high';
     const message = error.userMessage || error.message;
     
     if (isCritical) {
@@ -173,5 +237,25 @@ export class ErrorHandlerBase {
     } else {
       notifyWarning(message);
     }
+  }
+  
+  /**
+   * Serialize an error for transmission
+   */
+  static serializeError(error: unknown): Record<string, any> {
+    if (error instanceof AlloraError) {
+      return error.toJSON();
+    }
+    
+    // Convert to AlloraError first, then serialize
+    const alloraError = this.normalizeError(error);
+    return alloraError.toJSON();
+  }
+  
+  /**
+   * Deserialize an error from transmission
+   */
+  static deserializeError(serialized: Record<string, any>): AlloraError {
+    return AlloraError.fromJSON(serialized);
   }
 }

@@ -1,19 +1,24 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { processEdgeResponse, handleEdgeError } from '@/lib/errors/clientErrorHandler';
-
-// Only import the types we are actually using
-// Removed unused EdgeSuccessResponse import
+import { 
+  processEdgeResponse, 
+  handleEdgeError,
+  convertSupabaseResponse,
+  SupabaseFunctionResponse 
+} from '@/lib/errors/clientErrorHandler';
+import { ApiError } from '@/lib/errors/errorTypes';
 
 export interface EdgeFunctionQueryOptions<TData = any, TError = any> {
   queryKey: string[];
-  queryFn: () => Promise<TData>;
+  queryFn: () => Promise<TData | Response | SupabaseFunctionResponse<TData>>;
   onError?: (error: TError) => void;
   showToast?: boolean;
   errorMessage?: string;
   enabled?: boolean;
   staleTime?: number;
   retry?: boolean | number;
+  retryDelay?: number;
+  cacheTime?: number;
   // Include other UseQueryOptions properties as needed
 }
 
@@ -41,33 +46,32 @@ export function useEdgeFunctionQuery<TData = any, TError = any>(
         return processEdgeResponse<TData>(response);
       } 
       
-      // For Supabase edge function responses - safer property checking
+      // For Supabase edge function responses
       if (response && typeof response === 'object' && 'data' in response) {
-        // Create an adapter for Supabase functions response
-        const responseAdapter = new Response(
-          JSON.stringify(response.data), 
-          { status: 'error' in response && response.error ? 400 : 200 }
-        );
+        const supabaseResponse = response as SupabaseFunctionResponse<TData>;
         
-        // Add Supabase error to response if it exists
-        if ('error' in response && response.error) {
-          Object.defineProperty(responseAdapter, 'supabaseError', {
-            value: response.error,
-            writable: false
-          });
-        }
-        
-        return processEdgeResponse<TData>(responseAdapter);
+        // Convert to standard Response
+        const standardResponse = convertSupabaseResponse<TData>(supabaseResponse);
+        return processEdgeResponse<TData>(standardResponse);
       }
       
       return response as TData;
     } catch (error) {
-      handleEdgeError(error, {
+      const apiError = error instanceof ApiError 
+        ? error 
+        : new ApiError({
+            message: error instanceof Error ? error.message : String(error),
+            userMessage: errorMessage,
+            source: 'edge'
+          });
+      
+      handleEdgeError(apiError, {
         showToast,
         fallbackMessage: errorMessage,
         errorCallback: onError as ((e: any) => void) | undefined
       });
-      throw error;
+      
+      throw apiError;
     }
   };
 
@@ -81,7 +85,7 @@ export function useEdgeFunctionQuery<TData = any, TError = any>(
 // Simplifies usage with strongly typed edge function hooks
 export function createEdgeFunctionQuery<TParams extends any[], TData, TError = any>(
   baseKey: string,
-  fetcher: (...args: TParams) => Promise<TData>
+  fetcher: (...args: TParams) => Promise<TData | Response | SupabaseFunctionResponse<TData>>
 ) {
   return (...args: TParams) => {
     const options: EdgeFunctionQueryOptions<TData, TError> = {

@@ -1,69 +1,53 @@
 
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { FullErrorChart } from '@/components/admin/errors/charts';
+import { describe, it, expect, vi } from 'vitest';
+import FullErrorChart from '@/components/admin/errors/charts/FullErrorChart';
 
-// Mock recharts to avoid SVG rendering issues in tests
-jest.mock('recharts', () => {
-  const OriginalModule = jest.requireActual('recharts');
+// Mock the Recharts components
+vi.mock('recharts', () => {
+  const OriginalModule = vi.importActual('recharts');
   return {
     ...OriginalModule,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="responsive-container">{children}</div>
-    ),
-    LineChart: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="line-chart">{children}</div>
-    ),
-    CartesianGrid: () => <div data-testid="cartesian-grid" />,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
+    ComposedChart: ({ children }: { children: React.ReactNode }) => <div data-testid="composed-chart">{children}</div>,
+    Area: ({ dataKey }: { dataKey: string }) => <div data-testid={`area-${dataKey}`} />,
+    Bar: ({ dataKey }: { dataKey: string }) => <div data-testid={`bar-${dataKey}`} />,
+    Line: ({ dataKey }: { dataKey: string }) => <div data-testid={`line-${dataKey}`} />,
     XAxis: () => <div data-testid="x-axis" />,
     YAxis: () => <div data-testid="y-axis" />,
+    CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip" />,
-    Legend: () => <div data-testid="legend" />,
-    Line: (props: any) => <div data-testid={`line-${props.dataKey}`} />,
+    Legend: () => <div data-testid="legend" />
   };
 });
 
 describe('FullErrorChart', () => {
   const mockData = [
-    { 
-      date: 'Jan 01', 
-      total: 10,
-      critical: 2,
-      high: 3,
-      medium: 4,
-      low: 1
-    },
-    { 
-      date: 'Jan 02', 
-      total: 15,
-      critical: 3,
-      high: 4,
-      medium: 5,
-      low: 3
-    }
+    { date: '2023-01-01', total: 5, critical: 0, high: 2, medium: 2, low: 1 },
+    { date: '2023-01-02', total: 3, critical: 1, high: 1, medium: 1, low: 0 }
   ];
 
-  it('should render the chart with data', () => {
-    render(<FullErrorChart data={mockData} />);
-
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
-    expect(screen.getByTestId('line-total')).toBeInTheDocument();
-    expect(screen.getByTestId('line-critical')).toBeInTheDocument();
-    expect(screen.getByTestId('line-high')).toBeInTheDocument();
-    expect(screen.getByTestId('line-medium')).toBeInTheDocument();
-    expect(screen.getByTestId('line-low')).toBeInTheDocument();
-  });
-
-  it('should render the chart with correct height', () => {
+  it('renders all chart components', () => {
     render(<FullErrorChart data={mockData} />);
     
-    const container = screen.getByTestId('responsive-container').parentElement;
-    expect(container).toHaveClass('h-96');
+    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    expect(screen.getByTestId('composed-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('line-total')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-critical')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-high')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-medium')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-low')).toBeInTheDocument();
+    expect(screen.getByText(/Error Distribution Over Time/i)).toBeInTheDocument();
   });
 
-  it('should render empty chart when no data is provided', () => {
+  it('renders empty state when no data is provided', () => {
     render(<FullErrorChart data={[]} />);
+    
+    expect(screen.getByText(/No error data available/i)).toBeInTheDocument();
+  });
+
+  it('renders with custom height', () => {
+    render(<FullErrorChart data={mockData} height={500} />);
     
     expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
   });

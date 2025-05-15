@@ -3,6 +3,7 @@
  * Client-side error handler for edge function responses
  */
 import { toast } from "sonner";
+import { AlloraError, ApiError } from "./errorTypes";
 import { handleError } from "./ErrorHandler";
 
 export interface EdgeErrorResponse {
@@ -24,6 +25,16 @@ export interface EdgeSuccessResponse<T = any> {
 
 export type EdgeResponse<T = any> = EdgeSuccessResponse<T> | EdgeErrorResponse;
 
+export interface SupabaseFunctionResponse<T = any> {
+  data: T | null;
+  error: {
+    message: string;
+    status?: number;
+    details?: any;
+    code?: string;
+  } | null;
+}
+
 /**
  * Process an edge function response
  * @param response The response from the edge function
@@ -32,30 +43,101 @@ export type EdgeResponse<T = any> = EdgeSuccessResponse<T> | EdgeErrorResponse;
  */
 export async function processEdgeResponse<T = any>(response: Response): Promise<T> {
   if (!response.ok) {
-    let errorData: EdgeErrorResponse;
+    let errorData: EdgeErrorResponse | null = null;
     
     try {
       errorData = await response.json() as EdgeErrorResponse;
     } catch (e) {
       // If we can't parse the error, create a generic one
-      throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+      const error = new ApiError({
+        message: `Server Error: ${response.status} ${response.statusText}`,
+        status: response.status,
+        source: 'edge'
+      });
+      throw error;
     }
     
-    const error = new Error(errorData.error || 'Unknown error');
-    // Attach additional properties
-    Object.assign(error, {
-      statusCode: errorData.status || response.status,
-      code: errorData.code || 'UNKNOWN_ERROR',
-      details: errorData.details,
-      requestId: errorData.requestId,
-      timestamp: errorData.timestamp
+    // Check if this is a Supabase error attached to the response
+    if ('supabaseError' in response && response.supabaseError) {
+      const supabaseError = response.supabaseError;
+      throw new ApiError({
+        message: supabaseError.message || errorData?.error || 'Unknown Supabase error',
+        code: supabaseError.code || errorData?.code || 'SUPABASE_ERROR',
+        status: response.status,
+        context: {
+          details: supabaseError.details || errorData?.details,
+          supabaseError
+        },
+        source: 'edge',
+        requestId: errorData?.requestId
+      });
+    }
+    
+    // Standard edge error
+    const error = new ApiError({
+      message: errorData?.error || `Server Error: ${response.status} ${response.statusText}`,
+      code: errorData?.code || 'EDGE_ERROR',
+      status: errorData?.status || response.status,
+      context: { details: errorData?.details },
+      source: 'edge',
+      requestId: errorData?.requestId
     });
     
     throw error;
   }
   
-  const data = await response.json();
-  return (data.success === true ? data.data : data) as T;
+  try {
+    const data = await response.json();
+    // Handle standardized success response format
+    if (data && typeof data === 'object' && 'success' === true) {
+      return data.data as T;
+    }
+    return data as T;
+  } catch (e) {
+    // Handle non-JSON responses (should be rare)
+    throw new ApiError({
+      message: 'Invalid response format from server',
+      code: 'INVALID_RESPONSE_FORMAT',
+      status: 500,
+      source: 'edge'
+    });
+  }
+}
+
+/**
+ * Convert a Supabase FunctionsResponse to a standard Response object
+ * @param functionsResponse The response from Supabase Functions.invoke
+ * @returns A standard Response object
+ */
+export function convertSupabaseResponse<T>(functionsResponse: SupabaseFunctionResponse<T>): Response {
+  if (functionsResponse.error) {
+    const errorBody: EdgeErrorResponse = {
+      success: false,
+      error: functionsResponse.error.message,
+      status: functionsResponse.error.status || 400,
+      timestamp: new Date().toISOString(),
+      code: functionsResponse.error.code,
+      details: functionsResponse.error.details
+    };
+    
+    const response = new Response(JSON.stringify(errorBody), { 
+      status: functionsResponse.error.status || 400 
+    });
+    
+    // Attach original error for reference
+    Object.defineProperty(response, 'supabaseError', {
+      value: functionsResponse.error,
+      enumerable: false
+    });
+    
+    return response;
+  }
+  
+  return new Response(JSON.stringify({
+    success: true,
+    data: functionsResponse.data,
+    timestamp: new Date().toISOString()
+  }), { status: 200 });
 }
 
 /**
@@ -64,7 +146,7 @@ export async function processEdgeResponse<T = any>(response: Response): Promise<
  * @param options Options for handling the error
  * @returns true if the error was handled, false otherwise
  */
-export function handleEdgeError(error: any, options: {
+export function handleEdgeError(error: unknown, options: {
   showToast?: boolean;
   fallbackMessage?: string;
   logToConsole?: boolean;
@@ -83,12 +165,20 @@ export function handleEdgeError(error: any, options: {
     console.error('Edge function error:', error);
   }
   
-  const message = error.message || fallbackMessage;
-  const requestId = error.requestId || 'unknown';
+  // Convert to AlloraError if not already
+  const alloraError = error instanceof AlloraError 
+    ? error 
+    : new ApiError({
+        message: error instanceof Error ? error.message : String(error),
+        userMessage: fallbackMessage,
+        source: 'edge',
+        context: { originalError: error },
+        requestId: (error as any)?.requestId
+      });
   
   if (showToast) {
-    toast.error(message, {
-      description: `Request ID: ${requestId}`,
+    toast.error(alloraError.userMessage || alloraError.message, {
+      description: alloraError.requestId ? `Request ID: ${alloraError.requestId}` : undefined,
       action: retryHandler ? {
         label: 'Retry',
         onClick: retryHandler
@@ -100,7 +190,7 @@ export function handleEdgeError(error: any, options: {
   handleError(error, { 
     showNotification: false, // We already showed a toast
     context: { 
-      requestId,
+      requestId: alloraError.requestId,
       source: 'edge'
     }
   }).catch(e => console.error('Failed to log edge error:', e));

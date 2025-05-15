@@ -1,21 +1,81 @@
 
 import { corsHeaders } from '@/lib/env/environment';
 
+export enum ErrorCode {
+  BAD_REQUEST = 'BAD_REQUEST',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  FORBIDDEN = 'FORBIDDEN',
+  NOT_FOUND = 'NOT_FOUND',
+  RATE_LIMITED = 'RATE_LIMITED',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  CONFLICT = 'CONFLICT',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR'
+}
+
 export interface ErrorResponseData {
   success: false;
   error: string;
   details?: any;
   timestamp: string;
   code?: string;
-  requestId?: string;
+  requestId: string;
   status: number;
+  source?: string;
+  path?: string;
 }
 
 export interface SuccessResponseData<T = any> {
   success: true;
   data: T;
   timestamp: string;
-  requestId?: string;
+  requestId: string;
+}
+
+export type StandardResponseData<T = any> = SuccessResponseData<T> | ErrorResponseData;
+
+/**
+ * Generate a unique request ID for tracing
+ */
+export function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+}
+
+/**
+ * Normalize error object to extract consistent properties
+ */
+export function normalizeError(err: unknown): {
+  message: string;
+  code?: string;
+  status?: number;
+  details?: any;
+} {
+  if (err instanceof Error) {
+    return {
+      message: err.message,
+      code: (err as any).code,
+      status: (err as any).status || 500,
+      details: (err as any).details
+    };
+  }
+  
+  if (typeof err === 'object' && err !== null) {
+    const errorObj = err as Record<string, any>;
+    return {
+      message: errorObj.message || errorObj.error || 'Unknown error',
+      code: errorObj.code,
+      status: errorObj.status || 500,
+      details: errorObj.details
+    };
+  }
+  
+  return {
+    message: String(err) || 'Unknown error',
+    status: 500
+  };
 }
 
 /**
@@ -24,41 +84,32 @@ export interface SuccessResponseData<T = any> {
  * @param requestId Optional request ID for tracking
  * @returns A JSON response with the error message
  */
-export function handleEdgeError(err: any, requestId?: string): Response {
+export function handleEdgeError(err: any, requestId: string = generateRequestId()): Response {
   // Log the error for debugging
-  console.error(`Edge Function Error${requestId ? ` [${requestId}]` : ''}:`, err);
+  console.error(`Edge Function Error ${requestId}:`, err);
   
-  // Extract error details
-  const message = err?.message || 'Internal Server Error';
-  const status = err?.status || 500;
-  const code = err?.code || 'INTERNAL_ERROR';
-  const details = err?.details || undefined;
+  const { message, code, status, details } = normalizeError(err);
   
   // Create standardized error response
   const responseData: ErrorResponseData = { 
     success: false,
     error: message,
     timestamp: new Date().toISOString(),
-    status
+    status: status || 500,
+    requestId,
+    code: code || ErrorCode.INTERNAL_ERROR,
+    source: 'edge'
   };
   
   if (details) {
     responseData.details = details;
   }
   
-  if (code) {
-    responseData.code = code;
-  }
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
-  
   // Return formatted error response
   return new Response(
     JSON.stringify(responseData),
     { 
-      status,
+      status: status || 500,
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders
@@ -74,16 +125,17 @@ export function handleEdgeError(err: any, requestId?: string): Response {
  * @param requestId Optional request ID for tracking
  * @returns Success response
  */
-export function createSuccessResponse<T>(data: T, status: number = 200, requestId?: string): Response {
+export function createSuccessResponse<T>(
+  data: T, 
+  status: number = 200, 
+  requestId: string = generateRequestId()
+): Response {
   const responseData: SuccessResponseData<T> = {
     success: true,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    requestId
   };
-  
-  if (requestId) {
-    responseData.requestId = requestId;
-  }
   
   return new Response(
     JSON.stringify(responseData),
@@ -111,25 +163,19 @@ export function createErrorResponse(
   details?: any, 
   status: number = 500,
   code?: string,
-  requestId?: string
+  requestId: string = generateRequestId()
 ): Response {
   const responseData: ErrorResponseData = {
     success: false,
     error: message,
     timestamp: new Date().toISOString(),
-    status
+    status,
+    requestId,
+    code: code || getErrorCodeForStatus(status)
   };
   
   if (details !== undefined) {
     responseData.details = details;
-  }
-  
-  if (code) {
-    responseData.code = code;
-  }
-  
-  if (requestId) {
-    responseData.requestId = requestId;
   }
   
   return new Response(
@@ -145,10 +191,36 @@ export function createErrorResponse(
 }
 
 /**
+ * Get appropriate error code for HTTP status code
+ */
+function getErrorCodeForStatus(status: number): string {
+  switch (status) {
+    case 400: return ErrorCode.BAD_REQUEST;
+    case 401: return ErrorCode.UNAUTHORIZED;
+    case 403: return ErrorCode.FORBIDDEN;
+    case 404: return ErrorCode.NOT_FOUND;
+    case 409: return ErrorCode.CONFLICT;
+    case 429: return ErrorCode.RATE_LIMITED;
+    case 503: return ErrorCode.SERVICE_UNAVAILABLE;
+    default: return ErrorCode.INTERNAL_ERROR;
+  }
+}
+
+/**
  * Helper to create a unique request ID
  */
-export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+export function handleRequestWithErrorCapture<T>(
+  fn: (requestId: string) => Promise<Response>,
+  options: {
+    generateId?: boolean;
+    requestId?: string;
+  } = {}
+): Promise<Response> {
+  const requestId = options.requestId || (options.generateId !== false ? generateRequestId() : undefined);
+  
+  return fn(requestId || '').catch((err) => {
+    return handleEdgeError(err, requestId);
+  });
 }
 
 /**
