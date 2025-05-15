@@ -24,7 +24,7 @@ const SystemLogs: React.FC = () => {
     setDialogOpen(true);
   };
   
-  const handleFilterChange = (newFilters: LogFilters) => {
+  const handleFiltersChange = (newFilters: LogFilters) => {
     updateFilters(newFilters);
   };
   
@@ -39,7 +39,7 @@ const SystemLogs: React.FC = () => {
         <ErrorBoundary>
           <SystemLogFilters 
             filters={filters} 
-            onFiltersChange={handleFilterChange} 
+            onFiltersChange={handleFiltersChange} 
             isLoading={isLoading}
             onRefresh={refetch}
           />

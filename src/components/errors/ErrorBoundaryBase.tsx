@@ -1,118 +1,109 @@
 
-import React, { Component, ErrorInfo } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import ErrorFallback from './ErrorFallback';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-export interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ComponentType<ErrorBoundaryFallbackProps> | React.ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-}
-
-export interface ErrorBoundaryFallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: React.ComponentType<{ error: Error; resetErrorBoundary: () => void }>;
+  onError?: (error: Error, info: ErrorInfo) => void;
+  onReset?: () => void;
+  showToast?: boolean;
+  showLog?: boolean;
+  errorTitle?: string;
+  errorDescription?: string;
+  customMessage?: string;
+  logLevel?: 'info' | 'warning' | 'error';
+  hideResetButton?: boolean;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
-  errorInfo: ErrorInfo | null;
 }
 
-const DefaultFallback: React.FC<ErrorBoundaryFallbackProps> = ({ 
-  error, 
-  resetErrorBoundary 
-}) => {
-  return (
-    <Card className="border-destructive/50 bg-destructive/10">
-      <CardHeader>
-        <CardTitle className="flex items-center text-destructive">
-          <AlertCircle className="mr-2 h-5 w-5" />
-          Something went wrong
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        <p>An error occurred while rendering this component.</p>
-        <div className="rounded bg-muted/50 p-2 text-xs font-mono overflow-auto">
-          {error.message}
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button variant="outline" size="sm" onClick={resetErrorBoundary}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Try Again
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
-
+/**
+ * Base ErrorBoundary component that catches JavaScript errors in its child component tree and:
+ * 1. Displays a fallback UI instead of the component tree that crashed
+ * 2. Logs the error to the system logs
+ * 3. Shows a toast notification
+ * 4. Provides a way to recover (reset) from the error
+ */
 class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null
-    };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    return {
-      hasError: true,
-      error
-    };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Store the error info for potential display
-    this.setState({
-      errorInfo
-    });
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    const { onError, showLog = true, customMessage, logLevel = 'error' } = this.props;
 
-    // Call the onError callback if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+    if (showLog) {
+      // Log to system logs
+      logSystemEvent(
+        'ui', 
+        logLevel, 
+        {
+          error_type: error.name,
+          error_message: error.message,
+          component_stack: info.componentStack,
+          stack: error.stack,
+          description: customMessage || 'Error caught by ErrorBoundary'
+        }
+      ).catch(console.error);
     }
 
-    // Log the error to the console
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    // Call custom error handler if provided
+    if (onError) {
+      onError(error, info);
+    }
   }
 
-  resetErrorBoundary = (): void => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null
-    });
+  resetErrorBoundary = () => {
+    const { onReset } = this.props;
+    
+    if (onReset) {
+      onReset();
+    }
+    
+    this.setState({ hasError: false, error: null });
   };
 
-  render(): React.ReactNode {
+  render() {
+    const { 
+      children, 
+      fallback: FallbackComponent, 
+      showToast, 
+      errorTitle, 
+      errorDescription,
+      customMessage,
+      hideResetButton,
+      logLevel
+    } = this.props;
     const { hasError, error } = this.state;
-    const { children, fallback } = this.props;
 
     if (hasError && error) {
-      // Handle both React component and ReactNode fallback types
-      if (React.isValidElement(fallback)) {
-        return fallback;
-      } else if (typeof fallback === 'function') {
-        const FallbackComponent = fallback as React.ComponentType<ErrorBoundaryFallbackProps>;
-        return (
-          <FallbackComponent 
-            error={error} 
-            resetErrorBoundary={this.resetErrorBoundary} 
-          />
-        );
-      } else {
-        return (
-          <DefaultFallback 
-            error={error} 
-            resetErrorBoundary={this.resetErrorBoundary} 
-          />
-        );
+      if (FallbackComponent) {
+        return <FallbackComponent error={error} resetErrorBoundary={this.resetErrorBoundary} />;
       }
+
+      return (
+        <ErrorFallback
+          error={error}
+          resetErrorBoundary={this.resetErrorBoundary}
+          showToast={showToast}
+          showLog={false} // Already logged in componentDidCatch
+          title={errorTitle}
+          description={errorDescription}
+          customMessage={customMessage}
+          logLevel={logLevel}
+          hideResetButton={hideResetButton}
+        />
+      );
     }
 
     return children;

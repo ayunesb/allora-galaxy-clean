@@ -1,112 +1,80 @@
 
-import { toast as sonnerToast } from "sonner";
+import { toast as sonnerToast } from 'sonner';
+import { ToastOptions } from '@/components/ui/sonner';
 
-export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info';
+type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
 
-interface ToastOptions {
-  description?: string;
-  duration?: number;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  promise?: Promise<any>;
-  onSuccess?: string | ((data: any) => string);
-  onError?: string | ((error: Error) => string);
+interface ExtendedToastOptions extends ToastOptions {
+  variant?: ToastType;
 }
 
-/**
- * General notification function
- */
-export function notify(message: string, options?: ToastOptions & { variant?: ToastType }) {
-  const { variant = 'default', ...rest } = options || {};
-  
-  return sonnerToast[variant](message, rest);
-}
-
-/**
- * Success notification
- */
-export function notifySuccess(message: string, options?: ToastOptions) {
-  return notify(message, { ...options, variant: 'success' });
-}
-
-/**
- * Error notification
- */
-export function notifyError(message: string, options?: ToastOptions) {
-  return notify(message, { ...options, variant: 'error' });
-}
-
-/**
- * Warning notification
- */
-export function notifyWarning(message: string, options?: ToastOptions) {
-  return notify(message, { ...options, variant: 'warning' });
-}
-
-/**
- * Info notification
- */
-export function notifyInfo(message: string, options?: ToastOptions) {
-  return notify(message, { ...options, variant: 'info' });
-}
-
-/**
- * Promise-based notification that shows loading, success, and error states
- */
-export function notifyPromise<T>(
-  promise: Promise<T>,
-  options: {
-    loading: string;
-    success: string | ((data: T) => string);
-    error: string | ((error: Error) => string);
+// Enhanced toast function with variants
+export const toast = Object.assign(
+  (message: string | { title: string; description?: string }, options?: ExtendedToastOptions) => {
+    if (typeof message === 'string') {
+      return sonnerToast(message, options);
+    } else {
+      return sonnerToast(message.title, {
+        description: message.description,
+        ...options,
+      });
+    }
+  },
+  {
+    success: (message: string | { title: string; description?: string }, options?: ToastOptions) => {
+      if (typeof message === 'string') {
+        return sonnerToast.success(message, options);
+      } else {
+        return sonnerToast.success(message.title, {
+          description: message.description,
+          ...options,
+        });
+      }
+    },
+    error: (message: string | { title: string; description?: string }, options?: ToastOptions) => {
+      if (typeof message === 'string') {
+        return sonnerToast.error(message, options);
+      } else {
+        return sonnerToast.error(message.title, {
+          description: message.description,
+          ...options,
+        });
+      }
+    },
+    warning: (message: string | { title: string; description?: string }, options?: ToastOptions) => {
+      if (typeof message === 'string') {
+        return sonnerToast.warning(message, options);
+      } else {
+        return sonnerToast.warning(message.title, {
+          description: message.description,
+          ...options,
+        });
+      }
+    },
+    info: (message: string | { title: string; description?: string }, options?: ToastOptions) => {
+      if (typeof message === 'string') {
+        return sonnerToast.info(message, options);
+      } else {
+        return sonnerToast.info(message.title, {
+          description: message.description,
+          ...options,
+        });
+      }
+    },
+    loading: (message: string | { title: string; description?: string }, options?: ToastOptions) => {
+      if (typeof message === 'string') {
+        return sonnerToast.loading(message, options);
+      } else {
+        return sonnerToast.loading(message.title, {
+          description: message.description,
+          ...options,
+        });
+      }
+    },
+    dismiss: sonnerToast.dismiss,
+    custom: sonnerToast.custom,
+    promise: sonnerToast.promise,
   }
-) {
-  return sonnerToast.promise(promise, options);
-}
+);
 
-/**
- * Notify and log to system logs simultaneously
- */
-export function notifyAndLog(
-  message: string,
-  options: {
-    variant?: ToastType;
-    module?: string;
-    level?: 'info' | 'warning' | 'error';
-    context?: Record<string, any>;
-    tenant_id?: string;
-  } = {}
-) {
-  const { variant = 'default', module = 'system', level = 'info', context, tenant_id } = options;
-  
-  // Log to system logs
-  import('@/lib/system/logSystemEvent').then(({ logSystemEvent }) => {
-    logSystemEvent(
-      module,
-      level,
-      { description: message, ...context },
-      tenant_id
-    ).catch(err => console.error('Failed to log event:', err));
-  });
-  
-  // Show notification
-  return notify(message, { variant });
-}
-
-/**
- * Hook for accessing toast functionality within components
- */
-export function useToast() {
-  return {
-    toast: notify,
-    notify,
-    notifySuccess,
-    notifyError,
-    notifyWarning,
-    notifyInfo,
-    notifyPromise,
-    notifyAndLog
-  };
-}
+export default toast;

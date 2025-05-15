@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
@@ -5,7 +6,7 @@ import AgentEvolutionTab from './AgentEvolutionTab';
 import StrategyEvolutionTab from './StrategyEvolutionTab';
 import PluginEvolutionTab from './PluginEvolutionTab';
 import { supabase } from '@/lib/supabase';
-import { DateRange } from 'react-day-picker';
+import { DateRange } from '@/types/logs';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,9 +49,9 @@ const EvolutionDashboard: React.FC = () => {
     meta: {
       onError: (error: Error) => {
         toast({
+          variant: "destructive",
           title: "Failed to load audit logs",
-          description: error.message,
-          variant: "destructive"
+          description: error.message
         });
       }
     }

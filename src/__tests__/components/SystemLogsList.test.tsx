@@ -24,6 +24,11 @@ vi.mock('@/components/ui/data-table', () => ({
   )
 }));
 
+// Mock systemLogColumns
+vi.mock('@/lib/admin/systemLogColumns', () => ({
+  getSystemLogColumns: () => ([])
+}));
+
 // Import the component after mocking dependencies
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 
@@ -40,10 +45,10 @@ const createMockLogs = (count: number): Array<SystemLog> => {
     description: `Test log ${index}`,
     message: `Test message ${index}`,
     tenant_id: 'test-tenant',
-    severity: (index % 4 === 0 ? 'critical' : index % 4 === 1 ? 'high' : index % 4 === 2 ? 'medium' : 'low'),
+    severity: (index % 4 === 0 ? 'critical' : index % 4 === 1 ? 'high' : index % 4 === 2 ? 'medium' : 'low') as any,
     error_type: index % 3 === 0 ? 'TestError' : undefined,
     user_id: 'test-user',
-    context: {}, // This is now compatible
+    context: {}, 
     error_message: index % 3 === 0 ? 'An error occurred' : undefined,
   }));
 };

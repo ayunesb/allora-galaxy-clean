@@ -2,13 +2,13 @@
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SystemLog } from '@/types/shared';
+import { SystemLog } from '@/types/logs';
 import { Badge } from '@/components/ui/badge';
-import LogDetailDialog from './LogDetailDialog';
+import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Check, Copy, ExternalLink } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuditLogProps {
   logs: SystemLog[];
@@ -148,12 +148,13 @@ export default function AuditLog({
         )}
       </CardContent>
       
-      <LogDetailDialog 
-        log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={() => setDialogOpen(!dialogOpen)} 
-        onCopyId={handleCopyId} 
-      />
+      {selectedLog && (
+        <LogDetailDialog 
+          log={selectedLog} 
+          open={dialogOpen} 
+          onOpenChange={setDialogOpen}
+        />
+      )}
     </Card>
   );
 }

@@ -10,13 +10,13 @@ export interface LogEntry {
   user_id?: string;
   details?: any;
   metadata?: Record<string, any>;
-  context?: string | Record<string, any>; // Update to accept both string and object
+  context?: string | Record<string, any>;
   trace_id?: string;
   request_id?: string;
   component?: string;
 }
 
-export type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'warning'; // Add 'warning' for compatibility
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'warning';
 export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 // Helper functions for type checking
@@ -43,14 +43,14 @@ export interface SystemLog {
   event?: string;
   event_type?: string;
   description?: string;
-  context?: string | Record<string, any>; // Update to accept both string and object
+  context?: string | Record<string, any>;
   error_type?: string;
   severity?: LogSeverity;
   error_message?: string;
   user_facing?: boolean;
   affects_multiple_users?: boolean;
   metadata?: Record<string, any>;
-  title?: string;  // Add title property that some components use
+  title?: string;
 }
 
 // Helper function to check if a log has an error
@@ -91,14 +91,17 @@ export interface LogFilters {
   tenant_id?: string;
   dateRange?: DateRange;
   search?: string;
+  searchTerm?: string;
   fromDate?: string | Date;
   toDate?: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
   error_type?: string[];
   severity?: string[];
 }
 
 export interface DateRange {
-  from: Date;  // Make 'from' required
+  from: Date;  // 'from' is required
   to?: Date;
 }
 
@@ -125,7 +128,6 @@ export interface ErrorTrendDataPoint {
   severity?: LogSeverity;
   module?: string;
   errorType?: string;
-  // Add these properties for chart compatibility
   total?: number;
   critical?: number;
   high?: number;
