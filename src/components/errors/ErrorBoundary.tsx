@@ -1,57 +1,54 @@
 
 import React from 'react';
-import { ErrorBoundary as BaseErrorBoundary, FallbackProps } from './ErrorBoundaryBase';
+import ErrorBoundaryBase from './ErrorBoundaryBase';
 import ErrorFallback from './ErrorFallback';
-import { handleError } from '@/lib/errors/ErrorHandler';
+import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
-  onReset?: () => void;
-  onError?: (error: Error, info: React.ErrorInfo) => void;
-  captureContext?: Record<string, any>;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   resetKeys?: any[];
 }
 
 /**
- * A simplified error boundary component that wraps the base implementation
+ * ErrorBoundary component that catches errors in its child component tree
+ * and displays a fallback UI when an error occurs.
  */
-const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ 
-  children, 
-  fallback, 
-  onReset,
-  onError,
-  captureContext = {},
-  resetKeys
-}) => {
-  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-    // Log the error through the central error handling system
-    handleError(error, {
-      context: { 
-        componentStack: errorInfo.componentStack,
-        ...captureContext
-      }
-    }).catch(e => console.error('Failed to log error:', e));
+class ErrorBoundary extends React.Component<ErrorBoundaryProps> {
+  render() {
+    const { children, fallback, onError, resetKeys } = this.props;
     
-    // Call custom handler if provided
-    if (onError) {
-      onError(error, errorInfo);
-    }
-  };
-  
-  return (
-    <BaseErrorBoundary
-      fallbackRender={({error, resetErrorBoundary}: FallbackProps) => {
-        if (fallback) return <>{fallback}</>;
-        return <ErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />;
-      }}
-      onReset={onReset}
-      onError={handleError}
-      resetKeys={resetKeys}
-    >
-      {children}
-    </BaseErrorBoundary>
-  );
-};
+    // Handle error reporting using the central reporting system
+    const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+      // Report error to monitoring system
+      reportErrorFromErrorBoundary(error, errorInfo, {
+        module: 'ui'
+      }).catch(console.error);
+      
+      // Call the provided onError handler if defined
+      if (onError) {
+        onError(error, errorInfo);
+      }
+    };
+    
+    return (
+      <ErrorBoundaryBase
+        fallback={({ error, resetErrorBoundary }) => (
+          fallback || (
+            <ErrorFallback
+              error={error}
+              resetErrorBoundary={resetErrorBoundary}
+            />
+          )
+        )}
+        onError={handleError}
+        resetKeys={resetKeys}
+      >
+        {children}
+      </ErrorBoundaryBase>
+    );
+  }
+}
 
 export default ErrorBoundary;

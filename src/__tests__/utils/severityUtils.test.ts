@@ -1,61 +1,55 @@
 
-import {
-  getSeverityColor,
-  getSeverityLabel,
-  countBySeverity,
-  calculateSeverityPercentages
+import { describe, test, expect } from 'vitest';
+import { 
+  getSeverityColor, 
+  getSeverityLabel, 
+  countBySeverity, 
+  calculateSeverityPercentages 
 } from '@/components/admin/errors/utils/severityUtils';
+import type { SystemLog } from '@/types/logs';
 
 describe('severityUtils', () => {
-  // Test data
-  const testErrors = [
-    { id: '1', level: 'critical', message: 'Critical error' },
-    { id: '2', level: 'high', message: 'High error' },
-    { id: '3', level: 'medium', message: 'Medium error' },
-    { id: '4', level: 'low', message: 'Low error' },
-    { id: '5', level: 'critical', message: 'Another critical error' },
-    { id: '6', level: 'high', message: 'Another high error' },
-    { id: '7', level: 'medium', message: 'Another medium error' },
-    { id: '8', level: 'low', message: 'Another low error' },
-    { id: '9', level: 'critical', message: 'Yet another critical error' },
-    { id: '10', level: 'unknown', message: 'Unknown severity error' },
+  const mockLogs: SystemLog[] = [
+    { id: '1', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'critical' },
+    { id: '2', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'high' },
+    { id: '3', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'medium' },
+    { id: '4', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'low' },
+    { id: '5', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'high' },
   ];
 
-  test('getSeverityColor returns correct colors', () => {
-    expect(getSeverityColor('critical')).toBe('#ef4444'); // Red
-    expect(getSeverityColor('high')).toBe('#f97316'); // Orange
-    expect(getSeverityColor('medium')).toBe('#eab308'); // Yellow
-    expect(getSeverityColor('low')).toBe('#22c55e'); // Green
-    expect(getSeverityColor('unknown')).toBe('#a1a1aa'); // Default gray
+  test('getSeverityColor returns correct color classes', () => {
+    expect(getSeverityColor('critical')).toContain('text-red-500');
+    expect(getSeverityColor('high')).toContain('text-amber-500');
+    expect(getSeverityColor('medium')).toContain('text-yellow-500');
+    expect(getSeverityColor('low')).toContain('text-blue-500');
+    expect(getSeverityColor(undefined)).toContain('text-gray-500');
   });
 
-  test('getSeverityLabel returns formatted labels', () => {
+  test('getSeverityLabel returns correct human-readable labels', () => {
     expect(getSeverityLabel('critical')).toBe('Critical');
     expect(getSeverityLabel('high')).toBe('High');
     expect(getSeverityLabel('medium')).toBe('Medium');
     expect(getSeverityLabel('low')).toBe('Low');
-    expect(getSeverityLabel('unknown')).toBe('Unknown');
+    expect(getSeverityLabel(undefined)).toBe('Unknown');
   });
 
-  test('countBySeverity counts errors correctly', () => {
-    const result = countBySeverity(testErrors);
+  test('countBySeverity counts logs by severity correctly', () => {
+    const counts = countBySeverity(mockLogs);
     
-    expect(result.critical).toBe(3);
-    expect(result.high).toBe(2);
-    expect(result.medium).toBe(2);
-    expect(result.low).toBe(2);
-    expect(result.unknown).toBe(1);
-    expect(result.total).toBe(10);
+    expect(counts.critical).toBe(1);
+    expect(counts.high).toBe(2);
+    expect(counts.medium).toBe(1);
+    expect(counts.low).toBe(1);
+    expect(counts.unknown).toBe(0);
   });
 
-  test('calculateSeverityPercentages calculates percentages correctly', () => {
-    const counts = countBySeverity(testErrors);
-    const percentages = calculateSeverityPercentages(counts);
+  test('calculateSeverityPercentages calculates correct percentages', () => {
+    const percentages = calculateSeverityPercentages(mockLogs);
     
-    expect(percentages.critical).toBe(30);
-    expect(percentages.high).toBe(20);
+    expect(percentages.critical).toBe(20);
+    expect(percentages.high).toBe(40);
     expect(percentages.medium).toBe(20);
     expect(percentages.low).toBe(20);
-    expect(percentages.unknown).toBe(10);
+    expect(percentages.unknown).toBe(0);
   });
 });

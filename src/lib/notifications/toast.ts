@@ -1,69 +1,97 @@
 
+import { toast } from '@/components/ui/use-toast';
+
 /**
- * Toast notification utility
- * Provides a consistent API for displaying toast notifications throughout the app
+ * Display a success notification
  */
-
-import { toast as sonnerToast } from 'sonner';
-
-// Re-export toast with our custom configuration
-export const toast = {
-  /**
-   * Show a success toast notification
-   */
-  success: (message: string, options = {}) => {
-    return sonnerToast.success(message, {
-      duration: 3000,
-      ...options,
-    });
-  },
-
-  /**
-   * Show an error toast notification
-   */
-  error: (message: string, options = {}) => {
-    return sonnerToast.error(message, {
-      duration: 5000,
-      ...options,
-    });
-  },
-
-  /**
-   * Show a warning toast notification
-   */
-  warning: (message: string, options = {}) => {
-    return sonnerToast.warning(message, {
-      duration: 4000,
-      ...options,
-    });
-  },
-
-  /**
-   * Show an info toast notification
-   */
-  info: (message: string, options = {}) => {
-    return sonnerToast.info(message, {
-      duration: 3000,
-      ...options,
-    });
-  },
-
-  /**
-   * Show a loading toast notification
-   */
-  loading: (message: string, options = {}) => {
-    return sonnerToast.loading(message, {
-      duration: 0, // Infinite duration, must be manually dismissed
-      ...options,
-    });
-  },
-
-  /**
-   * Dismiss a toast notification
-   */
-  dismiss: (toastId?: string) => {
-    sonnerToast.dismiss(toastId);
-  }
+export const notifySuccess = (message: string, title = 'Success') => {
+  toast({
+    title,
+    description: message,
+    variant: 'default',
+  });
 };
 
-export default toast;
+/**
+ * Display an error notification
+ */
+export const notifyError = (message: string, title = 'Error') => {
+  toast({
+    title,
+    description: message,
+    variant: 'destructive',
+  });
+};
+
+/**
+ * Display a warning notification
+ */
+export const notifyWarning = (message: string, title = 'Warning') => {
+  toast({
+    title,
+    description: message,
+    variant: 'warning',
+  });
+};
+
+/**
+ * Display an info notification
+ */
+export const notifyInfo = (message: string, title = 'Info') => {
+  toast({
+    title,
+    description: message,
+  });
+};
+
+/**
+ * Display a notification for a promise with loading/success/error states
+ */
+export const notifyPromise = <T>(
+  promise: Promise<T>,
+  messages: {
+    loading: string;
+    success: string;
+    error: string;
+  }
+) => {
+  return toast.promise(promise, {
+    loading: { title: 'Loading', description: messages.loading },
+    success: { title: 'Success', description: messages.success },
+    error: { title: 'Error', description: messages.error },
+  });
+};
+
+/**
+ * Display a notification and log the event to system logs
+ */
+export const notifyAndLog = async (
+  message: string,
+  level: 'info' | 'warning' | 'error',
+  module = 'ui',
+  context = {}
+) => {
+  const { logSystemEvent } = await import('@/lib/system/logSystemEvent');
+  
+  switch (level) {
+    case 'error':
+      notifyError(message);
+      break;
+    case 'warning':
+      notifyWarning(message);
+      break;
+    default:
+      notifyInfo(message);
+  }
+  
+  await logSystemEvent(
+    module,
+    level,
+    {
+      description: message,
+      ...context
+    }
+  );
+};
+
+export { toast, useToast } from '@/components/ui/use-toast';

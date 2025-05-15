@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
+import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import { useSystemLogsData } from '@/hooks/useSystemLogsData';
 import { SystemLog, LogFilters } from '@/types/logs';
