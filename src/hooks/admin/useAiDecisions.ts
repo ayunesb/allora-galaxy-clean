@@ -1,104 +1,113 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { LogFilters, SystemLog } from '@/types/logs';
-import { useTenantId } from '@/hooks/useTenantId';
+import { notify } from '@/lib/notifications/toast';
+import type { SystemLog, LogFilters } from '@/types/logs';
 
-interface AIDecision extends SystemLog {
-  decision: string;
-  confidence: number;
-  model: string;
-  reasoning?: string;
+// Define filter interface specifically for AI decisions
+interface AiDecisionFilters extends Partial<LogFilters> {
+  startDate?: string;
+  endDate?: string;
+  confidence_threshold?: number;
+  decision_type?: string;
+  source?: string;
 }
 
-export const useAiDecisions = () => {
-  const { id: tenantId } = useTenantId();
-  
-  const [decisions, setDecisions] = useState<AIDecision[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState<Partial<LogFilters>>({
-    module: 'ai-decision-maker',
+export function useAiDecisions(initialFilters: AiDecisionFilters = {}) {
+  const [decisions, setDecisions] = useState<SystemLog[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [filters, setFilters] = useState<AiDecisionFilters>({
+    module: 'ai',
     startDate: undefined,
     endDate: undefined,
-    search: '',
+    confidence_threshold: undefined,
+    decision_type: undefined,
+    source: undefined,
+    ...initialFilters
   });
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
-  useEffect(() => {
-    if (tenantId) {
-      fetchDecisions();
-    }
-  }, [filters, tenantId]);
-
-  const fetchDecisions = async () => {
-    if (!tenantId) return;
-    
+  const fetchDecisions = useCallback(async () => {
     setIsLoading(true);
     
     try {
       let query = supabase
-        .from('system_logs')
-        .select('*')
-        .eq('module', 'ai-decision-maker')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
+        .from('ai_decisions')
+        .select('*', { count: 'exact' });
       
-      if (filters.event) {
-        query = query.eq('event', filters.event);
+      // Apply filters
+      if (filters.decision_type) {
+        query = query.eq('decision_type', filters.decision_type);
       }
       
-      // Use consistent naming between fromDate/startDate and toDate/endDate
-      const fromDate = filters.fromDate || filters.startDate;
-      const toDate = filters.toDate || filters.endDate;
-      
-      if (fromDate) {
-        query = query.gte('created_at', fromDate);
+      if (filters.source) {
+        query = query.eq('source', filters.source);
       }
       
-      if (toDate) {
-        query = query.lte('created_at', toDate);
+      if (filters.confidence_threshold) {
+        query = query.gte('confidence', filters.confidence_threshold);
       }
       
-      // Use consistent naming between search and searchTerm
-      const searchTerm = filters.searchTerm || filters.search;
-      if (searchTerm) {
-        query = query.or(`description.ilike.%${searchTerm}%,context.ilike.%${searchTerm}%`);
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate);
       }
       
-      const { data, error } = await query;
+      if (filters.endDate) {
+        query = query.lte('created_at', filters.endDate);
+      }
       
-      if (error) throw error;
+      // Pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       
-      // Transform data to AIDecision format
-      const aiDecisions: AIDecision[] = (data || []).map(log => {
-        const metadata = log.metadata || {};
-        return {
-          ...log,
-          timestamp: log.created_at,
-          decision: metadata.decision || 'Unknown',
-          confidence: metadata.confidence || 0,
-          model: metadata.model || 'Unknown',
-          reasoning: metadata.reasoning,
-          level: log.level || 'info',
-          event_type: log.event_type || 'info',
-        };
-      });
+      query = query
+        .order('created_at', { ascending: false })
+        .range(from, to);
       
-      setDecisions(aiDecisions);
-    } catch (err) {
-      console.error('Error fetching AI decisions:', err);
+      const { data, count: totalCount, error } = await query;
+      
+      if (error) {
+        throw new Error(`Error fetching AI decisions: ${error.message}`);
+      }
+      
+      setDecisions(data as SystemLog[]);
+      setCount(totalCount || 0);
+    } catch (error) {
+      console.error('Error in useAiDecisions:', error);
+      notify({ 
+        title: 'Error loading AI decisions',
+        description: error instanceof Error ? error.message : 'Unknown error'
+      }, { type: 'error' });
     } finally {
       setIsLoading(false);
     }
-  };
-  
+  }, [filters, page, pageSize]);
+
+  const updateFilters = useCallback((newFilters: Partial<AiDecisionFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    setPage(1); // Reset to first page when filters change
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilters({
+      module: 'ai'
+    });
+    setPage(1);
+  }, []);
+
   return {
     decisions,
+    count,
     isLoading,
     filters,
-    setFilters,
-    updateFilters: setFilters,
-    refetch: fetchDecisions,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    fetchDecisions,
+    updateFilters,
+    clearFilters
   };
-};
-
-export default useAiDecisions;
+}

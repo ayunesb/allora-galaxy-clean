@@ -4,98 +4,109 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LogGroup } from '@/types/logs';
+import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertTriangle, Info } from 'lucide-react';
+import type { LogGroup } from '@/types/logs';
 
 interface ErrorGroupsListProps {
   errorGroups: LogGroup[];
-  onViewDetails: (logGroupId: string) => void;
-  isLoading?: boolean;
+  isLoading: boolean;
+  onViewDetails: (errorGroup: LogGroup) => void;
+  title?: string;
 }
 
-const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
+export const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
   errorGroups,
+  isLoading,
   onViewDetails,
-  isLoading = false
+  title = 'Error Groups'
 }) => {
-  const groupByErrorType = (logs: LogGroup[]) => {
-    return logs.reduce((groups: Record<string, LogGroup[]>, log) => {
-      const message = log.message || 'Unknown Error';
-      if (!groups[message]) {
-        groups[message] = [];
-      }
-      groups[message].push(log);
-      return groups;
-    }, {});
-  };
-
-  const groupedErrors = groupByErrorType(errorGroups);
-
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Error Groups</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <ErrorGroupsListSkeleton />;
   }
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Error Groups</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-destructive" />
+          {title}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        {Object.keys(groupedErrors).length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-muted-foreground">No error groups found</p>
-          </div>
-        ) : (
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Error Message</TableHead>
-                <TableHead className="w-[100px] text-right">Count</TableHead>
-                <TableHead className="w-[150px]">Last Occurrence</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead>Module</TableHead>
+                <TableHead>Last Seen</TableHead>
+                <TableHead>First Seen</TableHead>
+                <TableHead className="text-right">Occurrences</TableHead>
+                <TableHead className="w-16">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(groupedErrors).map(([errorType, logs]) => (
-                <TableRow key={errorType}>
-                  <TableCell className="font-medium">{errorType}</TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline" className="bg-red-100 text-red-800">
-                      {logs.reduce((sum, log) => sum + log.count, 0)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(logs[0].last_occurred || logs[0].last_seen).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => onViewDetails(logs[0].id)}
-                    >
-                      Details
-                    </Button>
+              {errorGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    No errors found - everything is running smoothly!
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                errorGroups.map((errorGroup) => (
+                  <TableRow key={errorGroup.id}>
+                    <TableCell className="max-w-md truncate">
+                      {errorGroup.message}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{errorGroup.module}</Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {format(new Date(errorGroup.last_seen || Date.now()), 'yyyy-MM-dd HH:mm')}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {format(new Date(errorGroup.first_seen || Date.now()), 'yyyy-MM-dd HH:mm')}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {errorGroup.count}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onViewDetails(errorGroup)}
+                        title="View Details"
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        )}
+        </div>
       </CardContent>
     </Card>
   );
 };
+
+const ErrorGroupsListSkeleton = () => (
+  <Card className="w-full">
+    <CardHeader>
+      <Skeleton className="h-8 w-32" />
+    </CardHeader>
+    <CardContent className="p-0">
+      <div className="space-y-2 p-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default ErrorGroupsList;

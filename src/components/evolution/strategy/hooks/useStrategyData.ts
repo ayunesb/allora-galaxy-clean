@@ -1,108 +1,124 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Strategy } from '@/types/strategy';
+import { notify } from '@/lib/notifications/toast';
+import type { Strategy, StrategyVersion, StrategyExecution } from '@/types/strategy';
 
-export const useStrategyData = (strategyId: string) => {
-  // Query for the strategy data
-  const { 
-    data: strategy,
-    error: strategyError,
-    isLoading: isStrategyLoading
-  } = useQuery({
+interface StrategyDataResult {
+  strategy: UseQueryResult<Strategy | null>;
+  versions: UseQueryResult<StrategyVersion[]>;
+  executions: UseQueryResult<StrategyExecution[]>;
+  refetch: () => Promise<void>;
+  isLoading: boolean;
+  isError: boolean;
+}
+
+export const useStrategyData = (strategyId: string): StrategyDataResult => {
+  // Query for the strategy details
+  const strategyQuery = useQuery({
     queryKey: ['strategy', strategyId],
     queryFn: async (): Promise<Strategy | null> => {
-      if (!strategyId || strategyId === 'default') {
+      const { data, error } = await supabase
+        .from('strategies')
+        .select('*, created_by_user:created_by(*)')
+        .eq('id', strategyId)
+        .single();
+        
+      if (error) {
+        throw new Error(`Error fetching strategy: ${error.message}`);
+      }
+      
+      if (!data) {
         return null;
       }
       
-      const { data: strategyData, error } = await supabase
-        .from('strategies')
-        .select('*')
-        .eq('id', strategyId)
-        .maybeSingle();
-        
-      if (error) throw error;
-      
-      if (!strategyData) return null;
-      
+      // Transform the data to match Strategy interface
       return {
-        id: strategyData.id,
-        tenant_id: strategyData.tenant_id || '',
-        title: strategyData.title || '',
-        description: strategyData.description || '',
-        status: (strategyData.status as Strategy['status']) || 'draft',
-        created_by: strategyData.created_by || '',
-        created_at: strategyData.created_at || '',
-        updated_at: strategyData.updated_at || '',
-        approved_by: strategyData.approved_by || undefined,
-        approved_at: strategyData.approved_at || undefined,
-        rejected_by: strategyData.rejected_by || undefined,
-        rejected_at: strategyData.rejected_at || undefined,
-        priority: strategyData.priority as Strategy['priority'] || undefined,
-        tags: strategyData.tags || undefined,
-        completion_percentage: strategyData.completion_percentage || undefined,
-        due_date: strategyData.due_date || undefined
-      };
+        ...data,
+        rejected_at: data.rejected_at || undefined,
+        rejected_by: data.rejected_by || undefined,
+      } as Strategy;
     },
-    enabled: !!strategyId && strategyId !== 'default',
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Query for the creator user data
-  const { 
-    data: createdByUser,
-    error: createdByError,
-    isLoading: isCreatorLoading 
-  } = useQuery({
-    queryKey: ['user', strategy?.created_by],
-    queryFn: async () => {
+  // Query for strategy versions
+  const versionsQuery = useQuery({
+    queryKey: ['strategy-versions', strategyId],
+    queryFn: async (): Promise<StrategyVersion[]> => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('strategy_versions')
         .select('*')
-        .eq('id', strategy?.created_by)
-        .maybeSingle();
+        .eq('strategy_id', strategyId)
+        .order('created_at', { ascending: false });
         
-      if (error) throw error;
-      return data;
+      if (error) {
+        throw new Error(`Error fetching strategy versions: ${error.message}`);
+      }
+      
+      return data || [];
     },
-    enabled: !!strategy?.created_by,
+    enabled: !!strategyQuery.data,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Query for the approver user data
-  const { 
-    data: approvedByUser,
-    error: approvedByError,
-    isLoading: isApproverLoading 
-  } = useQuery({
-    queryKey: ['user', strategy?.approved_by],
-    queryFn: async () => {
+  // Query for strategy executions
+  const executionsQuery = useQuery({
+    queryKey: ['strategy-executions', strategyId],
+    queryFn: async (): Promise<StrategyExecution[]> => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('strategy_executions')
         .select('*')
-        .eq('id', strategy?.approved_by)
-        .maybeSingle();
+        .eq('strategy_id', strategyId)
+        .order('created_at', { ascending: false })
+        .limit(10);
         
-      if (error) throw error;
-      return data;
+      if (error) {
+        throw new Error(`Error fetching strategy executions: ${error.message}`);
+      }
+      
+      return data || [];
     },
-    enabled: !!strategy?.approved_by,
+    enabled: !!strategyQuery.data,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Combine all errors
-  const error = strategyError || createdByError || approvedByError || null;
-  
-  // Combined loading state
-  const loading = isStrategyLoading || 
-    (!!strategy?.created_by && isCreatorLoading) || 
-    (!!strategy?.approved_by && isApproverLoading);
+  // Handle error notifications only once when they occur
+  if (strategyQuery.isError) {
+    console.error('Strategy query error:', strategyQuery.error);
+    notify({ 
+      title: 'Error loading strategy', 
+      description: strategyQuery.error instanceof Error ? strategyQuery.error.message : 'Unknown error'
+    }, { type: 'error' });
+  }
+
+  const refetchAll = async () => {
+    try {
+      await Promise.all([
+        strategyQuery.refetch(),
+        versionsQuery.refetch(),
+        executionsQuery.refetch()
+      ]);
+      
+      notify({ title: 'Data refreshed' });
+    } catch (error) {
+      console.error('Error refetching data:', error);
+      notify({ 
+        title: 'Error refreshing data',
+        description: error instanceof Error ? error.message : 'Unknown error'
+      }, { type: 'error' });
+    }
+  };
 
   return {
-    strategy,
-    loading,
-    error: error ? (error as Error).message : null,
-    createdByUser,
-    approvedByUser
+    strategy: strategyQuery,
+    versions: versionsQuery,
+    executions: executionsQuery,
+    refetch: refetchAll,
+    isLoading: strategyQuery.isLoading || versionsQuery.isLoading || executionsQuery.isLoading,
+    isError: strategyQuery.isError || versionsQuery.isError || executionsQuery.isError
   };
 };
-
-export default useStrategyData;

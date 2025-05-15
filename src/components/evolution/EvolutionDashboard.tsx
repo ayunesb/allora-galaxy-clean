@@ -1,115 +1,90 @@
 
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import StrategyEvolutionTab from './StrategyEvolutionTab';
-import AgentEvolutionTab from './AgentEvolutionTab';
-import PluginEvolutionTab from './PluginEvolutionTab';
-import AuditLog from './AuditLog';
+import { AgentEvolutionTab } from './AgentEvolutionTab';
+import { StrategyEvolutionTab } from './StrategyEvolutionTab';
+import { PluginEvolutionTab } from './PluginEvolutionTab';
+import { AuditLog } from './AuditLog';
 import { useQuery } from '@tanstack/react-query';
-import { SystemLog, Log } from '@/types/logs';
+import { supabase } from '@/integrations/supabase/client';
+import { notify } from '@/lib/notifications/toast';
+import type { SystemLog } from '@/types/logs';
 
-// Import from the system lib
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-
-// Generate some mock logs for the example
-const generateMockLogs = (count: number): SystemLog[] => {
-  const modules = ['system', 'auth', 'api', 'database', 'strategy'];
-  const levels = ['info', 'warning', 'error'] as const;
+export const EvolutionDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('overview');
   
-  return Array.from({ length: count }).map((_, i) => {
-    const now = new Date();
-    const randomDate = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000);
-    const dateStr = randomDate.toISOString();
-    const module = modules[Math.floor(Math.random() * modules.length)];
-    const level = levels[Math.floor(Math.random() * levels.length)];
-    
-    return {
-      id: `log-${i}`,
-      created_at: dateStr,
-      timestamp: dateStr,
-      description: `Example ${level} log message for ${module}`,
-      message: `Example ${level} log message for ${module}`,
-      level,
-      module,
-      event: `${module}.${level === 'error' ? 'exception' : level}`,
-      event_type: level,
-      metadata: { source: 'mock' },
-      context: JSON.stringify({ page: 'evolution' }),
-      tenant_id: 'demo',
-      status: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'success'
-    };
-  });
-};
-
-const EvolutionDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('strategies');
-  
-  // Mock fetching logs with React Query
-  const { data: logsData = [], isLoading } = useQuery({
-    queryKey: ['evolution-logs'],
+  // Fetch system logs for the audit log
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ['system-logs', 'evolution'],
     queryFn: async () => {
-      // Log this action using the system logger
-      await logSystemEvent(
-        'evolution',
-        'info',
-        {
-          description: 'Fetched evolution logs',
-          log_count: 10
-        }
-      );
-      // Return mock data
-      return generateMockLogs(10);
-    }
+      const { data, error } = await supabase
+        .from('system_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+        
+      if (error) {
+        throw new Error(`Error fetching logs: ${error.message}`);
+      }
+      
+      return data as SystemLog[];
+    },
+    onError: (error) => {
+      notify({ 
+        title: 'Error loading logs', 
+        description: error instanceof Error ? error.message : 'Unknown error'
+      }, { type: 'error' });
+    },
+    staleTime: 1000 * 60 * 5 // 5 minutes
   });
-  
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-  
-  // Convert SystemLog[] to Log[] with the correct types
-  const auditLogs: Log[] = logsData.map(log => ({
-    id: log.id,
-    timestamp: log.timestamp || log.created_at,
-    description: log.description,
-    message: log.message || log.description,
-    level: log.level,
-    module: log.module,
-    event: log.event,
-    event_type: log.event_type,
-    status: log.status || (log.level === 'error' ? 'error' : 
-             log.level === 'warning' ? 'warning' : 'success'),
-    metadata: log.metadata,
-    context: log.context
-  }));
+
+  // Filter logs by module for each tab
+  const strategyLogs = logs.filter(log => log.module === 'strategy');
+  const agentLogs = logs.filter(log => log.module === 'agent');
+  const pluginLogs = logs.filter(log => log.module === 'plugin');
   
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">System Evolution Dashboard</h1>
-      
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-8">
-          <TabsTrigger value="strategies">Strategies</TabsTrigger>
-          <TabsTrigger value="agents">Agents</TabsTrigger>
-          <TabsTrigger value="plugins">Plugins</TabsTrigger>
-          <TabsTrigger value="audit-log">Audit Log</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="strategies" className="space-y-4">
-          <StrategyEvolutionTab />
-        </TabsContent>
-        
-        <TabsContent value="agents" className="space-y-4">
-          <AgentEvolutionTab />
-        </TabsContent>
-        
-        <TabsContent value="plugins" className="space-y-4">
-          <PluginEvolutionTab />
-        </TabsContent>
-        
-        <TabsContent value="audit-log" className="space-y-4">
-          <AuditLog logs={auditLogs} isLoading={isLoading} />
-        </TabsContent>
-      </Tabs>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Evolution Dashboard</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="strategies">Strategies</TabsTrigger>
+              <TabsTrigger value="agents">Agents</TabsTrigger>
+              <TabsTrigger value="plugins">Plugins</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-6">
+              <p className="text-muted-foreground">
+                The Evolution Dashboard provides insights into how your strategies, agents, and plugins are evolving over time.
+                View performance metrics, history logs, and track changes to the system.
+              </p>
+              
+              <AuditLog logs={logs} isLoading={isLoading} />
+            </TabsContent>
+            
+            <TabsContent value="strategies" className="space-y-6">
+              <StrategyEvolutionTab />
+              <AuditLog logs={strategyLogs} isLoading={isLoading} title="Strategy Audit Log" />
+            </TabsContent>
+            
+            <TabsContent value="agents" className="space-y-6">
+              <AgentEvolutionTab />
+              <AuditLog logs={agentLogs} isLoading={isLoading} title="Agent Audit Log" />
+            </TabsContent>
+            
+            <TabsContent value="plugins" className="space-y-6">
+              <PluginEvolutionTab />
+              <AuditLog logs={pluginLogs} isLoading={isLoading} title="Plugin Audit Log" />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };

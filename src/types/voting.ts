@@ -1,31 +1,23 @@
 
-export type VoteType = 'up' | 'down' | 'none';
+export type VoteType = 'upvote' | 'downvote';
 
 export interface Vote {
   id: string;
   agent_version_id: string;
   user_id: string;
   vote_type: VoteType;
-  comment?: string;
   created_at: string;
+  comment?: string;
 }
 
 export interface VoteStats {
   upvotes: number;
   downvotes: number;
-  total: number;
-  userVote?: VoteType;
-}
-
-export interface VoteParams {
-  agentVersionId: string;
-  voteType: VoteType;
-  comment?: string;
-  userId: string;
+  userVote?: Vote;
 }
 
 export interface VoteResponse {
   success: boolean;
   message: string;
-  voteStats?: VoteStats;
+  vote?: Vote;
 }

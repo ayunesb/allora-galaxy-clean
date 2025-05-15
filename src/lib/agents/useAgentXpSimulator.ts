@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { notify, useToast } from '@/lib/notifications/toast';
 import { v4 as uuidv4 } from 'uuid';
 
 interface SimulateXpOptions {
@@ -14,12 +14,35 @@ interface SimulateXpOptions {
   log_count?: number;
 }
 
+interface VoteSimulationResult {
+  agent_version_id: string;
+  votes: any[];
+}
+
+interface LogSimulationResult {
+  agent_version_id: string;
+  logs: any[];
+  xp_earned: number;
+}
+
+interface XpAccumulationResult {
+  votesResult: VoteSimulationResult | null;
+  logsResult: LogSimulationResult | null;
+  xpUpdated: {
+    agent_version_id: string;
+    previous: { xp: number; upvotes: number; downvotes: number };
+    current: { xp: number; upvotes: number; downvotes: number };
+    delta: { xp: number; upvotes: number; downvotes: number };
+  };
+  promotionCheck: any;
+}
+
 /**
  * Hook to help simulate agent XP accumulation for testing purposes
  */
 export function useAgentXpSimulator() {
   const [isLoading, setIsLoading] = useState(false);
-  const [lastResults, setLastResults] = useState<any>(null);
+  const [lastResults, setLastResults] = useState<XpAccumulationResult | null>(null);
   const { toast } = useToast();
   
   /**
@@ -30,7 +53,7 @@ export function useAgentXpSimulator() {
     tenant_id,
     upvotes = 0,
     downvotes = 0
-  }: SimulateXpOptions) => {
+  }: SimulateXpOptions): Promise<VoteSimulationResult | null> => {
     setIsLoading(true);
     try {
       const votes = [];
@@ -70,24 +93,28 @@ export function useAgentXpSimulator() {
           throw new Error(`Error inserting votes: ${error.message}`);
         }
         
-        toast({
+        notify({
           title: "Votes simulated",
-          description: `Added ${upvotes} upvotes and ${downvotes} downvotes to agent ${agent_version_id}`,
-          variant: "default"
+          description: `Added ${upvotes} upvotes and ${downvotes} downvotes to agent ${agent_version_id}`
         });
         
-        return data;
+        return {
+          agent_version_id,
+          votes: data || []
+        };
       }
       
-      return [];
+      return {
+        agent_version_id,
+        votes: []
+      };
     } catch (error: any) {
       console.error('Error simulating votes:', error);
       
-      toast({
+      notify({
         title: "Error simulating votes",
-        description: error.message,
-        variant: "destructive"
-      });
+        description: error.message
+      }, { type: 'error' });
       
       return null;
     } finally {
@@ -103,7 +130,7 @@ export function useAgentXpSimulator() {
     tenant_id,
     xp_amount = 100,
     log_count = 5
-  }: SimulateXpOptions) => {
+  }: SimulateXpOptions): Promise<LogSimulationResult | null> => {
     setIsLoading(true);
     try {
       // First get the plugin_id for this agent version
@@ -152,21 +179,23 @@ export function useAgentXpSimulator() {
         throw new Error(`Error inserting logs: ${error.message}`);
       }
       
-      toast({
+      notify({
         title: "Logs simulated",
-        description: `Added ${log_count} logs with total XP ${xp_amount} to agent ${agent_version_id}`,
-        variant: "default"
+        description: `Added ${log_count} logs with total XP ${xp_amount} to agent ${agent_version_id}`
       });
       
-      return data;
+      return {
+        agent_version_id,
+        logs: data || [],
+        xp_earned: xp_amount
+      };
     } catch (error: any) {
       console.error('Error simulating logs:', error);
       
-      toast({
+      notify({
         title: "Error simulating logs",
-        description: error.message,
-        variant: "destructive"
-      });
+        description: error.message
+      }, { type: 'error' });
       
       return null;
     } finally {
@@ -177,7 +206,7 @@ export function useAgentXpSimulator() {
   /**
    * Simulate XP accumulation through both votes and logs
    */
-  const simulateXpAccumulation = async (options: SimulateXpOptions) => {
+  const simulateXpAccumulation = async (options: SimulateXpOptions): Promise<XpAccumulationResult | null> => {
     setIsLoading(true);
     try {
       const {
@@ -257,7 +286,7 @@ export function useAgentXpSimulator() {
         console.warn('Error checking agent for promotion:', checkError);
       }
       
-      const results = {
+      const results: XpAccumulationResult = {
         votesResult,
         logsResult,
         xpUpdated: {
@@ -271,21 +300,19 @@ export function useAgentXpSimulator() {
       
       setLastResults(results);
       
-      toast({
+      notify({
         title: "XP Accumulation Simulated",
-        description: `Agent updated with ${xp_amount} XP and ${upvotes} upvotes`,
-        variant: "default"
+        description: `Agent updated with ${xp_amount} XP and ${upvotes} upvotes`
       });
       
       return results;
     } catch (error: any) {
       console.error('Error simulating XP accumulation:', error);
       
-      toast({
+      notify({
         title: "Error simulating XP accumulation",
-        description: error.message,
-        variant: "destructive"
-      });
+        description: error.message
+      }, { type: 'error' });
       
       return null;
     } finally {
@@ -296,7 +323,7 @@ export function useAgentXpSimulator() {
   /**
    * Reset agent XP and votes for testing
    */
-  const resetAgentXp = async (agent_version_id: string) => {
+  const resetAgentXp = async (agent_version_id: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       // Reset XP, upvotes, and downvotes
@@ -314,21 +341,19 @@ export function useAgentXpSimulator() {
         throw new Error(`Error resetting agent XP: ${updateError.message}`);
       }
       
-      toast({
+      notify({
         title: "Agent XP Reset",
-        description: `Agent ${agent_version_id} XP and votes have been reset to 0`,
-        variant: "default"
+        description: `Agent ${agent_version_id} XP and votes have been reset to 0`
       });
       
       return true;
     } catch (error: any) {
       console.error('Error resetting agent XP:', error);
       
-      toast({
+      notify({
         title: "Error resetting agent XP",
-        description: error.message,
-        variant: "destructive"
-      });
+        description: error.message
+      }, { type: 'error' });
       
       return false;
     } finally {

@@ -1,81 +1,119 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { LogFilters } from '@/types/logs';
+import { notify } from '@/lib/notifications/toast';
+import type { SystemLog, LogFilters } from '@/types/logs';
 
-export const useAdminLogs = () => {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+export function useAdminLogs(initialFilters: Partial<LogFilters> = {}) {
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filters, setFilters] = useState<LogFilters>({
+    level: undefined,
     module: undefined,
-    status: undefined,
+    tenant_id: undefined,
     startDate: undefined,
     endDate: undefined,
-    search: '',
+    searchTerm: undefined,
+    status: undefined,
+    ...initialFilters
   });
-  
-  useEffect(() => {
-    fetchLogs();
-  }, [filters]);
-  
-  const fetchLogs = async () => {
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await fetchLogsFromApi(filters);
+      let query = supabase
+        .from('system_logs')
+        .select('*', { count: 'exact' });
       
-      if (error) throw error;
+      // Apply filters
+      if (filters.level) {
+        query = query.eq('level', filters.level);
+      }
       
-      setLogs(data || []);
-    } catch (err) {
-      console.error('Error fetching logs:', err);
+      if (filters.module) {
+        query = query.eq('module', filters.module);
+      }
+      
+      if (filters.tenant_id) {
+        query = query.eq('tenant_id', filters.tenant_id);
+      }
+      
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate);
+      }
+      
+      if (filters.endDate) {
+        query = query.lte('created_at', filters.endDate);
+      }
+      
+      if (filters.searchTerm) {
+        query = query.ilike('message', `%${filters.searchTerm}%`);
+      }
+      
+      // Pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      query = query
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      
+      const { data, count: totalCount, error } = await query;
+      
+      if (error) {
+        throw new Error(`Error fetching logs: ${error.message}`);
+      }
+      
+      setLogs(data as SystemLog[]);
+      setCount(totalCount || 0);
+    } catch (error) {
+      console.error('Error in useAdminLogs:', error);
+      notify({ 
+        title: 'Error loading logs',
+        description: error instanceof Error ? error.message : 'Unknown error'
+      }, { type: 'error' });
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const fetchLogsFromApi = async (filters: LogFilters) => {
-    // This would typically be an API call
-    // For now, we'll use the Supabase client directly
-    let query = supabase
-      .from('system_logs')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (filters.module) {
-      query = query.eq('module', filters.module);
-    }
-    
-    if (filters.status) {
-      query = query.eq('status', filters.status);
-    }
-    
-    if (filters.fromDate) {
-      query = query.gte('created_at', filters.fromDate);
-    }
-    
-    if (filters.toDate) {
-      query = query.lte('created_at', filters.toDate);
-    }
-    
-    if (filters.searchTerm) {
-      query = query.ilike('description', `%${filters.searchTerm}%`);
-    }
-    
-    return query.limit(100);
-  };
-  
-  const updateFilters = (newFilters: Partial<LogFilters>) => {
-    setFilters(prev => ({...prev, ...newFilters}));
-  };
-  
+  }, [filters, page, pageSize]);
+
+  const updateFilters = useCallback((newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    setPage(1); // Reset to first page when filters change
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilters({
+      level: undefined,
+      module: undefined,
+      tenant_id: undefined,
+      startDate: undefined,
+      endDate: undefined,
+      searchTerm: undefined,
+      status: undefined
+    });
+    setPage(1);
+  }, []);
+
   return {
     logs,
+    count,
     isLoading,
     filters,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    fetchLogs,
     updateFilters,
-    refetch: fetchLogs,
+    clearFilters
   };
-};
-
-export default useAdminLogs;
+}
