@@ -18,10 +18,8 @@ export function useErrorMonitoring(tenantId?: string) {
   
   const checkErrorThreshold = async (config: ErrorAlertConfig) => {
     if (!tenantId) {
-      toast({
-        title: "Error",
-        description: "No tenant ID provided",
-        variant: "destructive"
+      toast("Error", {
+        description: "No tenant ID provided"
       });
       return null;
     }
@@ -40,10 +38,8 @@ export function useErrorMonitoring(tenantId?: string) {
       
       return data;
     } catch (error: any) {
-      toast({
-        title: "Failed to check error threshold",
-        description: error.message || "An unknown error occurred",
-        variant: "destructive"
+      toast("Failed to check error threshold", {
+        description: error.message || "An unknown error occurred"
       });
       return null;
     } finally {
@@ -53,10 +49,8 @@ export function useErrorMonitoring(tenantId?: string) {
   
   const configureAlerts = async (config: ErrorAlertConfig) => {
     if (!tenantId) {
-      toast({
-        title: "Error",
-        description: "No tenant ID provided",
-        variant: "destructive"
+      toast("Error", {
+        description: "No tenant ID provided"
       });
       return false;
     }
@@ -75,17 +69,14 @@ export function useErrorMonitoring(tenantId?: string) {
       
       if (error) throw error;
       
-      toast({
-        title: "Alert configuration saved",
+      toast("Alert configuration saved", {
         description: "Error monitoring alerts have been configured"
       });
       
       return true;
     } catch (error: any) {
-      toast({
-        title: "Failed to save alert configuration",
-        description: error.message || "An unknown error occurred",
-        variant: "destructive"
+      toast("Failed to save alert configuration", {
+        description: error.message || "An unknown error occurred"
       });
       return false;
     }

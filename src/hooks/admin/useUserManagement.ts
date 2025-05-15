@@ -65,10 +65,8 @@ export const useUserManagement = () => {
       setUsers(transformedUsers);
     } catch (error: any) {
       console.error('Error fetching users:', error);
-      toast({
-        title: "Error fetching users",
-        description: error.message,
-        variant: "destructive"
+      toast("Error fetching users", {
+        description: error.message
       });
     } finally {
       setLoading(false);
@@ -87,18 +85,15 @@ export const useUserManagement = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Role updated",
-        description: `User role updated to ${newRole}`,
+      toast("Role updated", {
+        description: `User role updated to ${newRole}`
       });
       
       await fetchUsers();
     } catch (error: any) {
       console.error('Error updating user role:', error);
-      toast({
-        title: "Error updating role",
-        description: error.message,
-        variant: "destructive"
+      toast("Error updating role", {
+        description: error.message
       });
     }
   };
@@ -115,18 +110,15 @@ export const useUserManagement = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "User removed",
-        description: "User has been removed from the workspace",
+      toast("User removed", {
+        description: "User has been removed from the workspace"
       });
       
       await fetchUsers();
     } catch (error: any) {
       console.error('Error removing user:', error);
-      toast({
-        title: "Error removing user",
-        description: error.message,
-        variant: "destructive"
+      toast("Error removing user", {
+        description: error.message
       });
     }
   };

@@ -10,6 +10,8 @@ export const useSystemLogsData = () => {
     search: '',
     startDate: undefined,
     endDate: undefined,
+    fromDate: undefined,  // Added for compatibility
+    toDate: undefined,    // Added for compatibility
     module: undefined,
     status: undefined,
     limit: 50,
@@ -67,7 +69,7 @@ export const useSystemLogsData = () => {
       const transformedLogs: SystemLog[] = (data || []).map(item => ({
         ...item,
         timestamp: item.created_at, // Ensure timestamp is set
-        message: item.message || item.description, // Ensure message is set
+        message: item.message || item.description || '', // Ensure message is set with fallback
         event_type: item.event_type || 'info', // Default event_type
       }));
       
@@ -92,7 +94,15 @@ export const useSystemLogsData = () => {
     isLoading,
     filters,
     updateFilters,
-    refetch: fetchLogs
+    refetch: fetchLogs,
+    // Add these properties for compatibility with other components
+    errorLogs: logs.filter(log => log.event_type === 'error'),
+    errorStats: {
+      criticalErrors: logs.filter(log => log.event_type === 'error' && log.priority === 'high').length,
+      highErrors: logs.filter(log => log.event_type === 'error' && log.priority === 'medium').length,
+      mediumErrors: logs.filter(log => log.event_type === 'error' && log.priority === 'medium').length,
+      lowErrors: logs.filter(log => log.event_type === 'error' && log.priority === 'low').length,
+    }
   };
 };
 

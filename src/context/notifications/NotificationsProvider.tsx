@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Notification } from './types';
 import NotificationsContext from './NotificationsContext';
@@ -15,10 +16,8 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     
     // Display toast for certain types of notifications
     if ((notification.metadata?.priority === 'high' || notification.priority === 'high')) {
-      toast({
-        title: notification.title,
-        description: notification.description || notification.message || '',
-        variant: "destructive"
+      toast(notification.title, {
+        description: notification.description || notification.message || ''
       });
     }
   }, [toast]);

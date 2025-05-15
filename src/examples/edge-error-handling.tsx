@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,14 +56,11 @@ export default function EdgeErrorHandlingExamples() {
         throw response.error;
       }
       
-      toast({
-        title: "Success",
+      toast("Success", {
         description: "Request processed successfully"
       });
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
+      toast("Validation Error", {
         description: err.message || "Invalid request data"
       });
     }
@@ -81,9 +79,7 @@ export default function EdgeErrorHandlingExamples() {
         throw response.error;
       }
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Not Found Error",
+      toast("Not Found Error", {
         description: err.message || "Resource not found"
       });
     }
@@ -189,9 +185,7 @@ export default function EdgeErrorHandlingExamples() {
                   supabase.functions.invoke('non-existent-function', {})
                     .then(() => {})
                     .catch(err => {
-                      toast({
-                        variant: "destructive",
-                        title: "Function Not Found",
+                      toast("Function Not Found", {
                         description: err.message || "Function does not exist"
                       });
                     });

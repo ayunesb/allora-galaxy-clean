@@ -24,4 +24,7 @@ export interface NotificationsContextValue {
   refreshNotifications: () => Promise<void>;
   loading: boolean;
   error: Error | null;
+  // Add missing properties
+  addNotification?: (notification: Notification) => void;
+  clearNotifications?: () => void;
 }

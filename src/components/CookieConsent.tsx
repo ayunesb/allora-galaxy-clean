@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,9 +34,8 @@ const CookieConsent: React.FC<CookieConsentProps> = ({
   const handleAccept = () => {
     localStorage.setItem(storageKey, 'accepted');
     setIsVisible(false);
-    toast({
-      title: "Cookies Accepted",
-      description: "Thank you for accepting our use of cookies.",
+    toast("Cookies Accepted", {
+      description: "Thank you for accepting our use of cookies."
     });
     if (onAccept) {
       onAccept();
@@ -45,9 +45,8 @@ const CookieConsent: React.FC<CookieConsentProps> = ({
   const handleDecline = () => {
     localStorage.setItem(storageKey, 'declined');
     setIsVisible(false);
-    toast({
-      title: "Cookies Declined",
-      description: "You have declined the use of cookies on this site.",
+    toast("Cookies Declined", {
+      description: "You have declined the use of cookies on this site."
     });
     if (onDecline) {
       onDecline();
