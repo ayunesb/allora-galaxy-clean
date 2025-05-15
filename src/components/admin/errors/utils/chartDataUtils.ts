@@ -1,61 +1,69 @@
 
-import { SystemLog, ErrorTrendDataPoint } from '@/types/logs';
-import { format, isAfter, isBefore, isEqual, parseISO } from 'date-fns';
+import { ErrorTrendDataPoint } from '@/types/logs';
 
 /**
- * Prepares data for error trends charts from system logs
- * 
- * @param {SystemLog[]} logs - System logs to process
- * @param {Object} dateRange - Date range to filter logs
- * @param {Date} dateRange.from - Start date
- * @param {Date} [dateRange.to] - End date (defaults to now)
- * @returns {ErrorTrendDataPoint[]} Data points for charts
+ * Format error data for recharts
  */
-export function prepareErrorTrendsData(
-  logs: SystemLog[],
-  dateRange: { from: Date; to?: Date }
-): ErrorTrendDataPoint[] {
-  const { from, to = new Date() } = dateRange;
-  
-  // Filter logs by date range
-  const filteredLogs = logs.filter(log => {
-    const logDate = parseISO(log.timestamp || log.created_at);
-    return (isAfter(logDate, from) || isEqual(logDate, from)) && 
-           (isBefore(logDate, to) || isEqual(logDate, to));
-  });
+export function formatErrorTrendData(rawData: any[]): ErrorTrendDataPoint[] {
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
   
   // Group by date
-  const groupedByDate: Record<string, SystemLog[]> = {};
-  
-  filteredLogs.forEach(log => {
-    const logDate = format(parseISO(log.timestamp || log.created_at), 'yyyy-MM-dd');
-    if (!groupedByDate[logDate]) {
-      groupedByDate[logDate] = [];
+  const dataByDate = rawData.reduce((acc: Record<string, any>, curr: any) => {
+    const date = new Date(curr.timestamp).toISOString().split('T')[0];
+    
+    if (!acc[date]) {
+      acc[date] = {
+        date,
+        total: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        count: 0
+      };
     }
-    groupedByDate[logDate].push(log);
-  });
-  
-  // Convert to chart data points
-  const result: ErrorTrendDataPoint[] = Object.entries(groupedByDate).map(([date, dateLogs]) => {
-    // Count by severity
-    const critical = dateLogs.filter(log => log.severity === 'critical').length;
-    const high = dateLogs.filter(log => log.severity === 'high').length;
-    const medium = dateLogs.filter(log => log.severity === 'medium').length;
-    const low = dateLogs.filter(log => log.severity === 'low').length;
     
-    // Total errors (logs with error level)
-    const total = dateLogs.filter(log => log.level === 'error').length;
+    acc[date].count += 1;
+    acc[date].total += 1;
     
-    return {
-      date,
-      total,
-      critical,
-      high,
-      medium,
-      low
-    };
-  });
+    // Increment severity counter
+    const severity = curr.severity || 'low';
+    if (severity === 'critical') acc[date].critical += 1;
+    else if (severity === 'high') acc[date].high += 1;
+    else if (severity === 'medium') acc[date].medium += 1;
+    else acc[date].low += 1;
+    
+    return acc;
+  }, {});
   
-  // Sort by date
-  return result.sort((a, b) => a.date.localeCompare(b.date));
+  // Convert to array and sort by date
+  return Object.values(dataByDate)
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()) as ErrorTrendDataPoint[];
+}
+
+/**
+ * Filter error trend data by date range
+ */
+export function filterErrorTrendDataByDateRange(
+  data: ErrorTrendDataPoint[],
+  startDate?: Date,
+  endDate?: Date
+): ErrorTrendDataPoint[] {
+  if (!startDate && !endDate) return data;
+  
+  return data.filter(point => {
+    const pointDate = new Date(point.date);
+    
+    if (startDate && pointDate < startDate) return false;
+    if (endDate) {
+      // Set end date to end of day for inclusive comparison
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (pointDate > endOfDay) return false;
+    }
+    
+    return true;
+  });
 }

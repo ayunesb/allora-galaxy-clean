@@ -1,34 +1,46 @@
 
-import React from 'react';
+import React, { ComponentType } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from '@/components/ErrorFallback';
-import type { ErrorFallbackProps } from '@/components/ErrorFallback';
+import ErrorFallback from './ErrorFallback';
 
-interface PageErrorBoundaryProps {
+export interface PageErrorBoundaryProps {
   children: React.ReactNode;
+  fallback?: React.ReactNode;
   tenantId?: string;
+  moduleName?: string;
+  FallbackComponent?: ComponentType<any>;
+  showDetails?: boolean;
 }
 
 /**
- * Error boundary specifically designed for wrapping page components
- * Uses a more full-page oriented fallback UI
+ * Error boundary component for pages
  */
 const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({
   children,
-  tenantId = 'system'
+  fallback,
+  tenantId,
+  moduleName,
+  FallbackComponent,
+  showDetails = false,
 }) => {
+  const handleError = (error: Error, info: { componentStack: string }) => {
+    console.error('Error caught by PageErrorBoundary:', error);
+    console.error('Component stack:', info.componentStack);
+    
+    // Log to monitoring system in production
+    if (process.env.NODE_ENV === 'production') {
+      // Add your error reporting logic here
+    }
+  };
+
   return (
     <ErrorBoundary
-      FallbackComponent={({ error, resetErrorBoundary }: ErrorFallbackProps) => (
-        <ErrorFallback 
-          error={error} 
-          resetErrorBoundary={resetErrorBoundary} 
-          tenantId={tenantId} 
-        />
-      )}
-      onError={(error, info) => {
-        console.error('Error caught by PageErrorBoundary:', error);
-        console.error('Component stack:', info.componentStack);
+      FallbackComponent={FallbackComponent || ErrorFallback}
+      onError={handleError}
+      fallbackProps={{
+        tenantId,
+        moduleName,
+        showDetails,
       }}
     >
       {children}

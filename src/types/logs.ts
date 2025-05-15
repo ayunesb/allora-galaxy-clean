@@ -1,90 +1,71 @@
 
-import { SystemEventModule } from './shared';
+export type LogModule =
+  | 'system'
+  | 'auth'
+  | 'billing'
+  | 'plugin'
+  | 'strategy'
+  | 'agent'
+  | 'tenant'
+  | 'user'
+  | 'notification'
+  | 'api';
 
-export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
-export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type LogSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info' | 'debug' | string;
 
-export interface DateRange {
-  from?: Date;
-  to?: Date;
-}
-
-export interface LogFilters {
-  search?: string;
-  searchTerm?: string; // For backward compatibility
-  level?: string;
-  module?: string | SystemEventModule | SystemEventModule[];
-  severity?: LogSeverity | string;
-  fromDate?: string;
-  toDate?: string;
-  dateRange?: DateRange;
-  tenant_id?: string;
-}
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 export interface SystemLog {
   id: string;
-  created_at: string;
+  tenant_id: string;
+  module: LogModule;
   timestamp: string;
-  module: string;
-  level?: LogLevel;
-  event: string;
-  event_type?: string;
-  description?: string;
-  message?: string;
-  tenant_id?: string;
+  level: LogLevel;
   severity?: LogSeverity;
-  error_type?: string;
-  user_id?: string;
+  message: string;
+  details?: Record<string, any>; // Add the details property
   context?: Record<string, any>;
-  error_message?: string;
-  details?: Record<string, any> | string;
+  user_id?: string;
+  source?: string;
+  trace_id?: string;
   metadata?: Record<string, any>;
-  request_id?: string;
-  priority?: string;
-  user_facing?: boolean;
-  affects_multiple_users?: boolean;
 }
 
 export interface LogGroup {
   id: string;
   message: string;
-  modules?: string[];
+  module: LogModule;
+  first_seen: string;
+  last_seen: string;
   count: number;
-  last_seen?: string;
-  first_seen?: string;
-  severity?: LogSeverity;
-  error_type?: string;
+  level: LogLevel;
+  severity: LogSeverity;
+  resolved?: boolean;
+  sources?: string[];
+  tenants?: string[];
 }
 
 export interface ErrorTrendDataPoint {
   date: string;
   count: number;
-  severity?: LogSeverity;
-  module?: string;
-  trend?: number;
+  total: number; // Add properties used in tests
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
 }
 
-export const isLogSeverity = (value: string): value is LogSeverity => {
-  return ['low', 'medium', 'high', 'critical'].includes(value);
-};
+export type LogSeverityCounts = Record<LogSeverity, number>;
+export type LogModuleCounts = Record<LogModule, number>;
 
-export const isLogLevel = (value: string): value is LogLevel => {
-  return ['info', 'warning', 'error', 'debug'].includes(value);
-};
-
-export const isSystemLog = (value: any): value is SystemLog => {
-  return typeof value === 'object' && 
-    value !== null && 
-    'id' in value && 
-    'timestamp' in value && 
-    'module' in value;
-};
-
-export const hasError = (log: SystemLog): boolean => {
-  return (
-    log.level === 'error' || 
-    !!log.error_message || 
-    !!log.error_type || 
-    (log.severity === 'high' || log.severity === 'critical')
-  );
-};
+export interface LogFilters {
+  module?: LogModule;
+  level?: LogLevel;
+  severity?: LogSeverity;
+  startDate?: string;
+  endDate?: string;
+  query?: string;
+  resolved?: boolean;
+  tenantId?: string;
+  source?: string;
+}

@@ -1,135 +1,69 @@
-import { toast } from '@/components/ui/use-toast';
 
-/**
- * ToastType enum for distinguishing toast types
- */
-export enum ToastType {
-  SUCCESS = 'success',
-  ERROR = 'error',
-  WARNING = 'warning',
-  INFO = 'info'
+import { toast, ToastOptions } from 'sonner';
+
+interface ToastParams {
+  title?: string;
+  description?: string;
+  variant?: string;
+  duration?: number;
+  position?: 'top-right' | 'top-center' | 'top-left' | 'bottom-right' | 'bottom-center' | 'bottom-left';
+  icon?: string;
 }
 
-/**
- * Generic notify function to show a toast
- */
-export function notify(
-  title: string, 
-  message?: string, 
-  type: ToastType = ToastType.INFO,
-  options: Partial<ToastOptions> = {}
-) {
-  const { toast } = useToast();
-  
-  switch(type) {
-    case ToastType.SUCCESS:
-      return notifySuccess(title, message, options);
-    case ToastType.ERROR:
-      return notifyError(title, message, options);
-    case ToastType.WARNING:
-      return notifyWarning(title, message, options);
-    case ToastType.INFO:
-      return notifyInfo(title, message, options);
-    default:
-      return toast({
-        title,
-        description: message,
-        ...options
-      });
+type ToastInput = string | ToastParams;
+
+function normalizeToastParams(input: ToastInput): [string, string | undefined, ToastOptions] {
+  if (typeof input === 'string') {
+    return [input, undefined, {}];
+  } else {
+    const { title = '', description, variant, duration, position, icon } = input;
+    const options: ToastOptions = {};
+    
+    if (description) options.description = description;
+    if (duration) options.duration = duration;
+    if (position) options.position = position;
+    if (icon) options.icon = icon;
+    
+    return [title, description, options];
   }
 }
 
 /**
- * Display a success notification
+ * Show a success toast notification
  */
-export const notifySuccess = (message: string, title = 'Success') => {
-  toast({
-    title,
-    description: message,
-    variant: 'default',
-  });
-};
+export function notifySuccess(input: ToastInput): void {
+  const [title, description, options] = normalizeToastParams(input);
+  toast.success(title, options);
+}
 
 /**
- * Display an error notification
+ * Show an error toast notification
  */
-export const notifyError = (message: string, title = 'Error') => {
-  toast({
-    title,
-    description: message,
-    variant: 'destructive',
-  });
-};
+export function notifyError(input: ToastInput): void {
+  const [title, description, options] = normalizeToastParams(input);
+  toast.error(title, options);
+}
 
 /**
- * Display a warning notification
+ * Show a warning toast notification
  */
-export const notifyWarning = (message: string, title = 'Warning') => {
-  toast({
-    title,
-    description: message,
-    variant: 'warning',
-  });
-};
+export function notifyWarning(input: ToastInput): void {
+  const [title, description, options] = normalizeToastParams(input);
+  toast.warning(title, options);
+}
 
 /**
- * Display an info notification
+ * Show an info toast notification
  */
-export const notifyInfo = (message: string, title = 'Info') => {
-  toast({
-    title,
-    description: message,
-  });
-};
+export function notifyInfo(input: ToastInput): void {
+  const [title, description, options] = normalizeToastParams(input);
+  toast.info(title, options);
+}
 
 /**
- * Display a notification for a promise with loading/success/error states
+ * Show a neutral/default toast notification
  */
-export const notifyPromise = <T>(
-  promise: Promise<T>,
-  messages: {
-    loading: string;
-    success: string;
-    error: string;
-  }
-) => {
-  return toast.promise(promise, {
-    loading: { title: 'Loading', description: messages.loading },
-    success: { title: 'Success', description: messages.success },
-    error: { title: 'Error', description: messages.error },
-  });
-};
-
-/**
- * Display a notification and log the event to system logs
- */
-export const notifyAndLog = async (
-  message: string,
-  level: 'info' | 'warning' | 'error',
-  module = 'ui',
-  context = {}
-) => {
-  const { logSystemEvent } = await import('@/lib/system/logSystemEvent');
-  
-  switch (level) {
-    case 'error':
-      notifyError(message);
-      break;
-    case 'warning':
-      notifyWarning(message);
-      break;
-    default:
-      notifyInfo(message);
-  }
-  
-  await logSystemEvent(
-    module,
-    level,
-    {
-      description: message,
-      ...context
-    }
-  );
-};
-
-export { toast, useToast } from '@/components/ui/use-toast';
+export function notifyDefault(input: ToastInput): void {
+  const [title, description, options] = normalizeToastParams(input);
+  toast(title, options);
+}

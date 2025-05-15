@@ -1,85 +1,75 @@
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReloadIcon } from '@radix-ui/react-icons';
+import { AlertCircle } from 'lucide-react';
 
-interface ErrorFallbackProps {
-  error: Error;
-  reset?: () => void;
+export interface ErrorFallbackProps {
+  error: Error | null;
   resetErrorBoundary?: () => void;
-  supportEmail?: string;
+  tenantId?: string;
+  moduleName?: string;
+  showDetails?: boolean;
 }
 
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, reset, resetErrorBoundary, supportEmail }) => {
-  const handleReset = () => {
-    if (resetErrorBoundary) {
-      resetErrorBoundary();
-    } else if (reset) {
-      reset();
-    }
-  };
-
+/**
+ * Fallback component that renders when an error occurs
+ */
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({
+  error,
+  resetErrorBoundary,
+  tenantId,
+  moduleName,
+  showDetails = false,
+}) => {
+  const errorMessage = error?.message || 'An unexpected error occurred';
+  
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center p-6">
-      <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong.</h1>
-      <p className="text-destructive mb-4">{error.message || 'An unexpected error occurred.'}</p>
-      
-      {supportEmail && (
-        <p className="text-sm text-muted-foreground mb-4">
-          Contact <a href={`mailto:${supportEmail}`} className="underline">{supportEmail}</a> for support.
-        </p>
-      )}
-      
-      <div className="space-x-4">
-        <Button onClick={() => {
-          toast.error("Error reported", {
-            description: "Thank you for reporting this error. Our team has been notified."
-          });
-        }}>
-          Report Error
-        </Button>
-        <Button variant="outline" onClick={() => {
-          window.location.reload();
-        }}>
-          Try Again
-        </Button>
-      </div>
-      
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button variant="destructive" className="mt-4">
-            Reset App State
+    <Card className="w-full max-w-xl mx-auto my-8">
+      <CardHeader>
+        <div className="flex items-center space-x-2">
+          <AlertCircle className="h-6 w-6 text-destructive" />
+          <CardTitle>{moduleName ? `Error in ${moduleName}` : 'Application Error'}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <p className="font-medium">{errorMessage}</p>
+          {showDetails && error?.stack && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium">Error details:</h4>
+              <pre className="text-xs mt-2 p-3 bg-muted rounded-md overflow-auto">
+                {error.stack}
+              </pre>
+            </div>
+          )}
+          {tenantId && (
+            <div className="text-xs text-muted-foreground">
+              Tenant ID: {tenantId}
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter>
+        {resetErrorBoundary && (
+          <Button 
+            onClick={resetErrorBoundary} 
+            className="flex items-center space-x-1"
+          >
+            <ReloadIcon className="h-4 w-4 mr-1" />
+            <span>Retry</span>
           </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action will reset the entire application state.
-              All unsaved data will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              handleReset();
-              window.location.reload();
-            }}>Continue</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        )}
+        <Button 
+          variant="outline" 
+          className="ml-2"
+          onClick={() => window.location.reload()}
+        >
+          Refresh page
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 
