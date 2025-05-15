@@ -13,7 +13,8 @@ export type SystemEventModule =
   | 'workspace'
   | 'admin'
   | 'api'
-  | 'onboarding';
+  | 'onboarding'
+  | 'database'; // Added database module to fix test errors
 
 // Additional shared types to fix type errors
 export interface PaginationOptions {
@@ -37,7 +38,7 @@ export type VoteType = 'upvote' | 'downvote';
 // Add TrendDirection to fix KPICard build error
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
-// Add LogFilters interface to fix test errors
+// Update LogFilters interface to fix test errors
 export interface LogFilters {
   module?: SystemEventModule | null;
   dateFrom?: string | null;
@@ -45,5 +46,22 @@ export interface LogFilters {
   search?: string;
   severity?: string;
   level?: string;
+  error_type?: string;
   // Add any other filter properties needed
+}
+
+// Add SystemLog interface to fix test errors
+export interface SystemLog {
+  id: string;
+  module: SystemEventModule;
+  event: string;
+  level: string;
+  message: string;
+  details?: Record<string, any>;
+  created_at: string;
+  tenant_id?: string;
+  user_id?: string;
+  error_type?: string;
+  severity?: string;
+  description?: string; // Added for test compatibility
 }

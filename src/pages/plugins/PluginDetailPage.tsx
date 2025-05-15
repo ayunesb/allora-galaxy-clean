@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { Plugin, AgentVersion } from '@/types/plugin';
+import { Plugin, AgentVersion, PluginLog } from '@/types/plugin';
 import { Terminal, Code2, GitBranch, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
+import { RoiExecutionTab } from '@/components/plugins/execution';
+import { ScatterDataPoint } from '@/components/plugins/execution/ScatterPlot';
 
 const PluginDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +22,7 @@ const PluginDetailPage: React.FC = () => {
   const [agentVersions, setAgentVersions] = useState<AgentVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [executionData, setExecutionData] = useState<ScatterDataPoint[]>([]);
   
   useEffect(() => {
     const fetchPluginDetails = async () => {
@@ -41,9 +44,30 @@ const PluginDetailPage: React.FC = () => {
           .order('created_at', { ascending: false });
           
         if (versionError) throw versionError;
+
+        // Fetch execution logs for the plugin
+        const { data: logData, error: logsError } = await supabase
+          .from('plugin_logs')
+          .select('*')
+          .eq('plugin_id', id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (logsError) throw logsError;
         
         setPlugin(pluginData);
         setAgentVersions(versionData);
+        
+        // Transform log data into scatter plot data points
+        if (logData) {
+          const scatterData: ScatterDataPoint[] = logData.map((log: PluginLog) => ({
+            execution_time: log.execution_time || 0,
+            xp_earned: log.xp_earned || 0,
+            status: log.status,
+            date: log.created_at ? format(new Date(log.created_at), 'PP') : ''
+          }));
+          setExecutionData(scatterData);
+        }
       } catch (err: any) {
         console.error('Error fetching plugin details:', err);
         setError(err.message);
@@ -264,9 +288,8 @@ const PluginDetailPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center text-muted-foreground py-4">
-                Execution logs feature coming soon
-              </p>
+              {/* Use our refactored RoiExecutionTab component */}
+              <RoiExecutionTab scatterData={executionData} />
             </CardContent>
           </Card>
         </TabsContent>
