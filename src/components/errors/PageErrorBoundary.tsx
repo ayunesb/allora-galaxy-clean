@@ -1,9 +1,55 @@
 
-import { Component, ErrorInfo, ReactNode } from 'react';
-import ErrorFallback from './ErrorFallback';
+import React, { Component, ErrorInfo } from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Home, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+interface ErrorFallbackProps {
+  error: Error | null;
+  resetErrorBoundary: () => void;
+}
+
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({ 
+  error, 
+  resetErrorBoundary 
+}) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md border-destructive/50 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="flex items-center text-destructive">
+            <AlertCircle className="mr-2 h-5 w-5" />
+            Something went wrong
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p>We apologize for the inconvenience. An error occurred while loading this page.</p>
+          {error && (
+            <div className="rounded bg-muted/50 p-2 text-xs font-mono overflow-auto">
+              {error.message}
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={resetErrorBoundary}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+          <Button variant="default" size="sm" asChild>
+            <Link to="/">
+              <Home className="mr-2 h-4 w-4" />
+              Return to Home
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
 
 interface PageErrorBoundaryProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface PageErrorBoundaryState {
@@ -12,10 +58,6 @@ interface PageErrorBoundaryState {
   errorInfo: ErrorInfo | null;
 }
 
-/**
- * A specialized error boundary for page-level errors
- * with a full-screen error display
- */
 class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBoundaryState> {
   constructor(props: PageErrorBoundaryProps) {
     super(props);
@@ -27,12 +69,17 @@ class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBound
   }
 
   static getDerivedStateFromError(error: Error): Partial<PageErrorBoundaryState> {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    this.setState({ errorInfo });
-    console.error("Page-level error caught:", error, errorInfo);
+    this.setState({
+      errorInfo
+    });
+    console.error('Error caught by PageErrorBoundary:', error, errorInfo);
   }
 
   resetErrorBoundary = (): void => {
@@ -43,18 +90,20 @@ class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBound
     });
   };
 
-  render(): ReactNode {
-    if (this.state.hasError) {
+  render(): React.ReactNode {
+    const { hasError, error } = this.state;
+    const { children } = this.props;
+
+    if (hasError) {
       return (
-        <ErrorFallback
-          error={this.state.error}
-          errorInfo={this.state.errorInfo}
-          resetErrorBoundary={this.resetErrorBoundary}
+        <ErrorFallback 
+          error={error} 
+          resetErrorBoundary={this.resetErrorBoundary} 
         />
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
 

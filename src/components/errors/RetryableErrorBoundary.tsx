@@ -1,69 +1,116 @@
 
-import React from 'react';
-import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
-import ErrorFallback from './ErrorFallback';
+import React, { Component, ErrorInfo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
-interface RetryableErrorBoundaryProps {
+export interface RetryableErrorBoundaryProps {
   children: React.ReactNode;
-  onError?: (error: Error, info: ErrorInfo) => void;
   maxRetries?: number;
+  fallback?: React.ComponentType<ErrorFallbackProps>;
+  onReset?: () => void; // Add the onReset prop
 }
 
-interface ErrorInfo {
-  componentStack: string;
+export interface ErrorFallbackProps {
+  error: any;
+  resetErrorBoundary: (...args: any[]) => void;
+  retryCount?: number; // Make retryCount optional
+  maxRetries?: number; // Make maxRetries optional
 }
 
-const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
-  children,
-  onError,
+interface RetryableErrorBoundaryState {
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+  retryCount: number;
+}
+
+const DefaultFallback: React.FC<ErrorFallbackProps> = ({
+  error,
+  resetErrorBoundary,
+  retryCount = 0,
   maxRetries = 3
 }) => {
-  const [retryCount, setRetryCount] = React.useState(0);
-
-  const handleReset = React.useCallback(() => {
-    setRetryCount((prevCount) => {
-      const newCount = prevCount + 1;
-      if (newCount > maxRetries) {
-        console.error(`Maximum retries (${maxRetries}) exceeded.`);
-        return prevCount; // Don't increment beyond max
-      }
-      return newCount;
-    });
-  }, [maxRetries]);
-
   return (
-    <ErrorBoundary
-      FallbackComponent={(props: FallbackProps) => (
-        <ErrorFallback
-          error={props.error}
-          resetErrorBoundary={props.resetErrorBoundary}
+    <Alert variant="destructive" className="my-4">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Something went wrong</AlertTitle>
+      <AlertDescription>
+        <div className="mb-4 text-sm">
+          {error.message}
+          {retryCount > 0 && (
+            <div className="mt-1 text-xs opacity-80">
+              Retry attempt {retryCount} of {maxRetries}
+            </div>
+          )}
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => resetErrorBoundary()}
+          disabled={retryCount >= maxRetries}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          {retryCount >= maxRetries ? 'Max retries reached' : 'Retry'}
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+};
+
+class RetryableErrorBoundary extends Component<RetryableErrorBoundaryProps, RetryableErrorBoundaryState> {
+  constructor(props: RetryableErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      error: null,
+      errorInfo: null,
+      retryCount: 0
+    };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<RetryableErrorBoundaryState> {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({ errorInfo });
+    console.error('Caught error:', error, errorInfo);
+  }
+
+  resetErrorBoundary = (...args: any[]): void => {
+    const { maxRetries = 3, onReset } = this.props;
+    const { retryCount } = this.state;
+
+    if (retryCount < maxRetries) {
+      this.setState(state => ({
+        error: null,
+        errorInfo: null,
+        retryCount: state.retryCount + 1
+      }));
+
+      // Call the onReset prop if provided
+      if (onReset) {
+        onReset();
+      }
+    }
+  };
+
+  render(): React.ReactNode {
+    const { error, retryCount } = this.state;
+    const { children, fallback: Fallback = DefaultFallback, maxRetries = 3 } = this.props;
+
+    if (error) {
+      return (
+        <Fallback 
+          error={error} 
+          resetErrorBoundary={this.resetErrorBoundary} 
           retryCount={retryCount}
           maxRetries={maxRetries}
         />
-      )}
-      onReset={handleReset}
-      onError={onError}
-    >
-      {children}
-    </ErrorBoundary>
-  );
-};
+      );
+    }
 
-export const withRetryableErrorBoundary = <P extends object>(
-  Component: React.ComponentType<P>,
-  options: Omit<RetryableErrorBoundaryProps, 'children'> = {}
-): React.FC<P> => {
-  const WithErrorBoundary: React.FC<P> = (props) => (
-    <RetryableErrorBoundary {...options}>
-      <Component {...props} />
-    </RetryableErrorBoundary>
-  );
-  
-  WithErrorBoundary.displayName = `WithRetryableErrorBoundary(${
-    Component.displayName || Component.name || 'Component'
-  })`;
-  
-  return WithErrorBoundary;
-};
+    return children;
+  }
+}
 
 export default RetryableErrorBoundary;

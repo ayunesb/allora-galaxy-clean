@@ -1,16 +1,17 @@
 
-import { Component, ErrorInfo, ReactNode } from 'react';
-import ErrorState from '@/components/ui/error-state';
+import React, { Component, ErrorInfo } from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
+export interface ErrorBoundaryProps {
+  children: React.ReactNode;
   fallback?: React.ComponentType<ErrorBoundaryFallbackProps>;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 export interface ErrorBoundaryFallbackProps {
-  error: Error | null;
-  componentStack?: string;
+  error: Error;
   resetErrorBoundary: () => void;
 }
 
@@ -19,6 +20,34 @@ interface ErrorBoundaryState {
   error: Error | null;
   errorInfo: ErrorInfo | null;
 }
+
+const DefaultFallback: React.FC<ErrorBoundaryFallbackProps> = ({ 
+  error, 
+  resetErrorBoundary 
+}) => {
+  return (
+    <Card className="border-destructive/50 bg-destructive/10">
+      <CardHeader>
+        <CardTitle className="flex items-center text-destructive">
+          <AlertCircle className="mr-2 h-5 w-5" />
+          Something went wrong
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        <p>An error occurred while rendering this component.</p>
+        <div className="rounded bg-muted/50 p-2 text-xs font-mono overflow-auto">
+          {error.message}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button variant="outline" size="sm" onClick={resetErrorBoundary}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Try Again
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
 
 class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
@@ -31,15 +60,25 @@ class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    this.setState({ errorInfo });
+    // Store the error info for potential display
+    this.setState({
+      errorInfo
+    });
+
+    // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-    console.error("Error caught by ErrorBoundary:", error, errorInfo);
+
+    // Log the error to the console
+    console.error('Error caught by ErrorBoundary:', error, errorInfo);
   }
 
   resetErrorBoundary = (): void => {
@@ -50,31 +89,20 @@ class ErrorBoundaryBase extends Component<ErrorBoundaryProps, ErrorBoundaryState
     });
   };
 
-  render(): ReactNode {
-    if (this.state.hasError) {
-      if (this.props.fallback) {
-        const FallbackComponent = this.props.fallback;
-        return (
-          <FallbackComponent
-            error={this.state.error}
-            componentStack={this.state.errorInfo?.componentStack || ''}
-            resetErrorBoundary={this.resetErrorBoundary}
-          />
-        );
-      }
+  render(): React.ReactNode {
+    const { hasError, error } = this.state;
+    const { children, fallback: Fallback = DefaultFallback } = this.props;
 
-      // Default fallback UI
+    if (hasError && error) {
       return (
-        <ErrorState 
-          title="Something went wrong"
-          error={this.state.error?.message || "An unexpected error occurred"}
-          errorDetails={this.state.errorInfo?.componentStack}
-          onRetry={this.resetErrorBoundary}
+        <Fallback 
+          error={error instanceof Error ? error : new Error(String(error))} 
+          resetErrorBoundary={this.resetErrorBoundary} 
         />
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
 
