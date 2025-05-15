@@ -1,102 +1,86 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/lib/notifications/toast';
+import { useState, useCallback, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
-// Define the step interfaces and other types
+export interface OnboardingWizardState {
+  currentStep: number;
+  totalSteps: number;
+  isSubmitting: boolean;
+}
 
-export const useOnboardingWizard = (steps: string[], initialData = {}) => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<Record<string, any>>(initialData);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [completed, setCompleted] = useState(false);
+export const useOnboardingWizard = (totalSteps: number, submitCallback: () => Promise<void>, redirectPath?: string) => {
+  const [state, setState] = useState<OnboardingWizardState>({
+    currentStep: 1,
+    totalSteps,
+    isSubmitting: false,
+  });
+  
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  // Reset errors when changing steps
-  useEffect(() => {
-    setErrors({});
-  }, [currentStep]);
-  
-  const updateFormData = useCallback((newData: Record<string, any>) => {
-    setFormData(prevData => ({
-      ...prevData,
-      ...newData
+  const nextStep = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      currentStep: Math.min(prev.currentStep + 1, prev.totalSteps),
     }));
   }, []);
   
-  const validateStep = useCallback((stepIndex: number): boolean => {
-    // This would contain step-specific validation logic
-    // For now, we'll just return true
-    return true;
-  }, []);
-  
-  const nextStep = useCallback(() => {
-    if (!validateStep(currentStep)) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the errors before continuing"
-      });
-      return;
-    }
-    
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      completeOnboarding();
-    }
-  }, [currentStep, steps, validateStep]);
-  
   const prevStep = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
-    }
-  }, [currentStep]);
+    setState((prev) => ({
+      ...prev,
+      currentStep: Math.max(prev.currentStep - 1, 1),
+    }));
+  }, []);
   
-  const goToStep = useCallback((index: number) => {
-    if (index >= 0 && index < steps.length) {
-      setCurrentStep(index);
-    }
-  }, [steps]);
+  const goToStep = useCallback((step: number) => {
+    setState((prev) => ({
+      ...prev,
+      currentStep: Math.min(Math.max(step, 1), prev.totalSteps),
+    }));
+  }, []);
   
-  const completeOnboarding = useCallback(() => {
-    // Here you would submit the completed form data
-    setLoading(true);
+  const submitForm = useCallback(async () => {
+    setState((prev) => ({ ...prev, isSubmitting: true }));
+    setError(null);
     
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      setCompleted(true);
+    try {
+      await submitCallback();
+      
       toast({
-        title: "Onboarding Complete",
-        description: "Thank you for completing the onboarding process!"
+        title: "Success",
+        description: "Onboarding completed successfully!",
+        variant: "default",
       });
-    }, 1500);
-  }, []);
-  
-  const handleError = useCallback((error: Error) => {
-    console.error('Onboarding error:', error);
-    toast({
+      
+      if (redirectPath) {
+        navigate(redirectPath);
+      }
+    } catch (err: any) {
+      console.error('Onboarding error:', err);
+      setError(err.message || 'Something went wrong during onboarding');
+      
+      toast({
         title: "Error",
-        description: error.message || "An unexpected error occurred"
-    });
-  }, []);
+        description: err.message || 'Something went wrong during onboarding',
+        variant: "destructive",
+      });
+    } finally {
+      setState((prev) => ({ ...prev, isSubmitting: false }));
+    }
+  }, [submitCallback, redirectPath, navigate, toast]);
   
   return {
-    currentStep,
-    totalSteps: steps.length,
-    formData,
-    updateFormData,
+    currentStep: state.currentStep,
+    totalSteps: state.totalSteps,
+    isSubmitting: state.isSubmitting,
     nextStep,
     prevStep,
     goToStep,
-    loading,
-    completed,
-    errors,
-    setErrors,
-    handleError,
-    stepName: steps[currentStep],
-    isLastStep: currentStep === steps.length - 1,
-    isFirstStep: currentStep === 0,
-    progress: ((currentStep + 1) / steps.length) * 100
+    submitForm,
+    error,
   };
 };
+
+export default useOnboardingWizard;

@@ -1,3 +1,4 @@
+
 /**
  * Strategy execution types
  */
@@ -69,11 +70,14 @@ export interface Strategy {
   created_by: string;
   created_at: string;
   updated_at: string;
-  due_date?: string; // Add this field to match mockStrategies usage
+  approved_by?: string | null;
+  approved_at?: string | null;  // Added approved_at
+  rejected_by?: string | null;  // Added rejected_by
+  rejected_at?: string | null;  // Added rejected_at
   priority?: string;
   tags?: string[];
   completion_percentage?: number;
-  approved_by?: string;
+  due_date?: string;
   created_by_ai?: boolean;
 }
 

@@ -66,6 +66,7 @@ export const useDataState = <T>(options: UseDataStateOptions<T> = {}) => {
         toast({
           title: "Error",
           description: errorMessage,
+          variant: "destructive",
         });
       }
       

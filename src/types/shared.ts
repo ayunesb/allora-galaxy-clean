@@ -46,3 +46,16 @@ export interface BaseFilter extends PaginationParams, SortParams {
   startDate?: string;
   endDate?: string;
 }
+
+// Add missing exports from other type files
+export type { VoteType } from './voting';
+export type { TrendDirection, KPITrend } from './kpi';
+export type { 
+  UserRole,
+  NavigationItem,
+  OnboardingStep,
+  BaseEntity,
+  ExecutionParams,
+  ExecutionType,
+  TenantFeature
+} from './fixed'; 

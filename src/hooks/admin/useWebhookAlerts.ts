@@ -21,7 +21,7 @@ export interface WebhookResponse {
 
 export const useWebhookAlerts = () => {
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const { toast, success: notifySuccess, error: notifyError, warning: notifyWarning } = useToast();
 
   const validateConfig = (config: WebhookAlertConfig): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
@@ -46,8 +46,7 @@ export const useWebhookAlerts = () => {
     const validation = validateConfig(config);
     
     if (!validation.valid) {
-      toast({
-        title: "Invalid webhook configuration",
+      notifyError("Invalid webhook configuration", {
         description: validation.errors.join(', ')
       });
       
@@ -77,8 +76,7 @@ export const useWebhookAlerts = () => {
 
       if (error) {
         console.error('Webhook error:', error);
-        toast({
-          title: "Webhook Error",
+        notifyError("Webhook Error", {
           description: error.message || 'Failed to send webhook'
         });
         
@@ -92,8 +90,7 @@ export const useWebhookAlerts = () => {
 
       // Log successful webhook
       console.log('Webhook sent successfully:', data);
-      toast({
-        title: "Webhook Sent",
+      notifySuccess("Webhook Sent", {
         description: "The webhook alert was sent successfully"
       });
       
@@ -105,8 +102,7 @@ export const useWebhookAlerts = () => {
       };
     } catch (err: any) {
       console.error('Webhook error:', err);
-      toast({
-        title: "Webhook Error",
+      notifyError("Webhook Error", {
         description: err.message || "Failed to send webhook"
       });
       
@@ -119,7 +115,7 @@ export const useWebhookAlerts = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [notifySuccess, notifyError]);
 
   const sendBatchWebhookAlerts = useCallback(async (configs: WebhookAlertConfig[]): Promise<WebhookResponse[]> => {
     const results: WebhookResponse[] = [];
@@ -133,19 +129,17 @@ export const useWebhookAlerts = () => {
     const totalCount = results.length;
     
     if (successCount === totalCount) {
-      toast({
-        title: "All Webhooks Sent",
+      notifySuccess("All Webhooks Sent", {
         description: `Successfully sent ${successCount} webhook alerts`
       });
     } else {
-      toast({
-        title: "Webhook Batch Completed",
+      notifyWarning("Webhook Batch Completed", {
         description: `Sent ${successCount}/${totalCount} webhook alerts successfully`
       });
     }
     
     return results;
-  }, [sendWebhookAlert, toast]);
+  }, [sendWebhookAlert, notifySuccess, notifyWarning]);
 
   return {
     sendWebhookAlert,

@@ -15,7 +15,7 @@ interface CreateWorkspaceDialogProps {
 export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }: CreateWorkspaceDialogProps) {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { toast, success: notifySuccess, error: notifyError } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +26,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast({
-        title: "Workspace created",
+      notifySuccess("Workspace created", {
         description: `Your workspace "${name}" has been created successfully.`
       });
       
@@ -37,9 +36,8 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
         onWorkspaceCreated();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create workspace. Please try again.",
+      notifyError("Error", {
+        description: "Failed to create workspace. Please try again."
       });
     } finally {
       setIsLoading(false);

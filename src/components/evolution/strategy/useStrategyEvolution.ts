@@ -27,6 +27,11 @@ export const useStrategyEvolution = (strategyId: string) => {
         description: 'A mock strategy for development',
         created_by: 'user-1',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(), // Add required field
+        approved_by: null,
+        approved_at: null,
+        priority: 'medium',
+        completion_percentage: 0,
       } as Strategy;
     },
     logs: async () => {

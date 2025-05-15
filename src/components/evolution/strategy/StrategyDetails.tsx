@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,15 +47,15 @@ const StrategyDetails: React.FC<StrategyDetailsProps> = ({ strategyId }) => {
             status: (strategyData.status as Strategy['status']) || 'draft',
             created_by: strategyData.created_by || '',
             created_at: strategyData.created_at || '',
-            approved_by: strategyData.approved_by || null,
-            approved_at: strategyData.approved_at || null,
-            rejected_by: strategyData.rejected_by || null,
-            rejected_at: strategyData.rejected_at || null,
-            priority: strategyData.priority as Strategy['priority'] || null,
-            tags: strategyData.tags || null,
-            completion_percentage: strategyData.completion_percentage || null,
-            due_date: strategyData.due_date || null,
-            updated_at: strategyData.updated_at || null
+            updated_at: strategyData.updated_at || '',
+            approved_by: strategyData.approved_by || undefined,
+            approved_at: strategyData.approved_at || undefined,
+            rejected_by: strategyData.rejected_by || undefined,
+            rejected_at: strategyData.rejected_at || undefined,
+            priority: strategyData.priority as Strategy['priority'] || undefined,
+            tags: strategyData.tags || undefined,
+            completion_percentage: strategyData.completion_percentage || undefined,
+            due_date: strategyData.due_date || undefined
           };
           
           setStrategy(typedStrategy);
