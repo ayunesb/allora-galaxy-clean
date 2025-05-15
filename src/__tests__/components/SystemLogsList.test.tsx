@@ -2,7 +2,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, test, expect, vi } from 'vitest';
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import { SystemLog } from '@/types/logs';
+import { SystemLog } from '@/types/shared'; // Updated to use shared type
 
 describe('SystemLogsList Component', () => {
   const mockLogs: SystemLog[] = [
@@ -11,25 +11,29 @@ describe('SystemLogsList Component', () => {
       created_at: '2023-05-01T12:00:00Z',
       level: 'info',
       module: 'system',
-      description: 'System started successfully',
-      message: 'System started successfully'
+      event: 'system_start', // Added required field
+      message: 'System started successfully',
+      description: 'System started successfully' // Kept for backward compatibility
     },
     {
       id: '2',
       created_at: '2023-05-01T12:05:00Z',
       level: 'warning',
       module: 'auth',
-      description: 'Failed login attempt',
-      message: 'Failed login attempt'
+      event: 'failed_login', // Added required field
+      message: 'Failed login attempt',
+      description: 'Failed login attempt' // Kept for backward compatibility
     },
     {
       id: '3',
       created_at: '2023-05-01T12:10:00Z',
       level: 'error',
       module: 'database',
-      description: 'Database connection failed',
+      event: 'connection_error', // Added required field
       message: 'Database connection failed',
-      error_message: 'Connection timeout'
+      error_type: 'Connection timeout', // Added field for error handling
+      description: 'Database connection failed', // Kept for backward compatibility
+      severity: 'high' // Added for compatibility
     }
   ];
 
