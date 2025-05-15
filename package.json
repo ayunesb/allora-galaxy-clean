@@ -45,6 +45,7 @@
     "@tanstack/react-query": "^5.56.2",
     "@tanstack/react-table": "^8.15.0",
     "@types/js-cookie": "^3.0.6",
+    "@types/lodash": "^4.17.16",
     "@types/react-datepicker": "^7.0.0",
     "browserslist": "^4.24.5",
     "caniuse-lite": "^1.0.30001717",

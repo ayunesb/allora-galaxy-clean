@@ -1,103 +1,70 @@
 
-import React, { Component, ErrorInfo } from 'react';
-import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
-import ErrorFallback from '@/components/ErrorFallback';
-import type { ErrorFallbackProps } from '@/components/ErrorFallback';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { ErrorState } from '@/components/ui/error-state';
 
-interface ErrorBoundaryState {
+export interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+}
+
+export interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
-  retryCount: number;
 }
 
-interface ErrorBoundaryProps {
-  fallback?: React.ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  onReset?: () => void;
-  componentName?: string;
-  tenantId?: string;
-  showDetails?: boolean;
-  maxRetries?: number;
-  children: React.ReactNode;
-}
-
-/**
- * Error boundary component that catches errors in its child component tree
- */
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null,
-      retryCount: 0
+      errorInfo: null
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return {
+      hasError: true,
+      error,
+      errorInfo: null
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Report to monitoring system
-    reportErrorFromErrorBoundary(error, { 
-      componentStack: errorInfo.componentStack || undefined 
-    }, {
-      module: 'ui',
-      tenantId: this.props.tenantId,
-      context: {
-        componentName: this.props.componentName,
-      }
-    }).catch(reportingError => {
-      console.error('Failed to report error:', reportingError);
+    // Update state with error details
+    this.setState({
+      errorInfo
     });
-    
-    this.setState({ errorInfo });
-    
+
+    // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
+
+    // Log the error to console
+    console.error('Error caught by ErrorBoundary:', error);
+    console.error('Component Stack:', errorInfo.componentStack);
   }
 
-  resetErrorBoundary = () => {
-    this.setState(prevState => ({
-      hasError: false,
-      retryCount: prevState.retryCount + 1
-    }));
-
-    if (this.props.onReset) {
-      this.props.onReset();
-    }
-  };
-
-  render() {
-    const { hasError, error, retryCount } = this.state;
-    const { children, fallback, componentName, showDetails, maxRetries = 3, tenantId } = this.props;
-
-    if (hasError && error) {
-      // Use custom fallback if provided
-      if (fallback) {
-        return fallback;
+  render(): ReactNode {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
       }
 
-      // Otherwise use default fallback
+      // Default error UI if no fallback is provided
       return (
-        <ErrorFallback
-          error={error}
-          resetErrorBoundary={this.resetErrorBoundary}
-          componentName={componentName}
-          showDetails={showDetails}
-          retryCount={retryCount}
-          maxRetries={maxRetries}
-          tenantId={tenantId}
-          componentStack={this.state.errorInfo?.componentStack}
+        <ErrorState
+          title="Something went wrong"
+          description={this.state.error?.message || "An unknown error occurred"}
+          errorDetails={this.state.errorInfo?.componentStack || undefined}
         />
       );
     }
 
-    return children;
+    return this.props.children;
   }
 }
 

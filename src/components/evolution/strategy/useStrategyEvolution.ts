@@ -1,211 +1,121 @@
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { notify } from '@/lib/notifications/toast';
-import type { Strategy, StrategyVersion } from '@/types/strategy';
+import { format } from 'date-fns';
 
-interface UseStrategyEvolutionResult {
+export interface StrategyHistoryItem {
+  id: string;
+  strategy_id: string;
+  change_type: string;
+  changed_by: string;
+  created_at: string;
+  details?: any;
+}
+
+export interface ExecutionLogItem {
+  id: string;
+  strategy_id: string;
+  execution_time: string;
+  status: string;
+  executed_by: string;
+  results?: any;
+  error?: string;
+}
+
+export interface UserItem {
+  id: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+export interface UseStrategyEvolutionResult {
   isLoading: boolean;
+  strategyHistory: StrategyHistoryItem[];
+  executionLogs: ExecutionLogItem[];
+  userList: UserItem[];
+  formatTimestamp: (date: string) => string;
   error: Error | null;
-  strategy: Strategy | null;
-  versions: StrategyVersion[];
-  contributors: { id: string; name: string; count: number }[];
-  latestVersion: StrategyVersion | null;
-  averageExecutionTime: number | null;
-  executionsCount: number;
-  successRate: number;
-  versionCount: number;
-  refetch: () => Promise<void>;
 }
 
 export function useStrategyEvolution(strategyId: string): UseStrategyEvolutionResult {
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [strategyHistory, setStrategyHistory] = useState<StrategyHistoryItem[]>([]);
+  const [executionLogs, setExecutionLogs] = useState<ExecutionLogItem[]>([]);
+  const [userList, setUserList] = useState<UserItem[]>([]);
   const [error, setError] = useState<Error | null>(null);
 
-  // Fetch strategy data
-  const strategyQuery = useQuery({
-    queryKey: ['strategy-evolution', strategyId],
-    queryFn: async (): Promise<Strategy> => {
-      const { data, error } = await supabase
-        .from('strategies')
-        .select('*')
-        .eq('id', strategyId)
-        .single();
-        
-      if (error) {
-        throw new Error(`Error fetching strategy: ${error.message}`);
-      }
-      
-      return data as Strategy;
-    },
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  // Fetch strategy versions
-  const versionsQuery = useQuery({
-    queryKey: ['strategy-evolution-versions', strategyId],
-    queryFn: async (): Promise<StrategyVersion[]> => {
-      const { data, error } = await supabase
-        .from('strategy_versions')
-        .select('*')
-        .eq('strategy_id', strategyId)
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        throw new Error(`Error fetching strategy versions: ${error.message}`);
-      }
-      
-      return data as StrategyVersion[];
-    },
-    enabled: !!strategyQuery.data,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  // Fetch execution statistics
-  const executionStatsQuery = useQuery({
-    queryKey: ['strategy-execution-stats', strategyId],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_strategy_execution_stats', {
-        strategy_id_param: strategyId
-      });
-      
-      if (error) {
-        throw new Error(`Error fetching execution stats: ${error.message}`);
-      }
-      
-      return data || {
-        total_executions: 0,
-        successful_executions: 0,
-        failed_executions: 0,
-        avg_execution_time: 0
-      };
-    },
-    enabled: !!strategyQuery.data,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  // Fetch contributors data
-  const contributorsQuery = useQuery({
-    queryKey: ['strategy-contributors', strategyId],
-    queryFn: async () => {
-      // Get unique contributors from versions
-      const { data, error } = await supabase
-        .from('strategy_versions')
-        .select('created_by')
-        .eq('strategy_id', strategyId);
-        
-      if (error) {
-        throw new Error(`Error fetching contributors: ${error.message}`);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!strategyId || strategyId === 'default') {
+        setIsLoading(false);
+        return;
       }
 
-      // Count unique contributors and fetch their names
-      const contributorIds = [...new Set(data.map(v => v.created_by))];
-      
-      if (contributorIds.length === 0) {
-        return [];
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Fetch strategy history
+        const { data: historyData, error: historyError } = await supabase
+          .from('strategy_history')
+          .select('*')
+          .eq('strategy_id', strategyId)
+          .order('created_at', { ascending: false });
+
+        if (historyError) throw historyError;
+        setStrategyHistory(historyData || []);
+
+        // Fetch execution logs
+        const { data: logsData, error: logsError } = await supabase
+          .from('strategy_executions')
+          .select('*')
+          .eq('strategy_id', strategyId)
+          .order('execution_time', { ascending: false });
+
+        if (logsError) throw logsError;
+        setExecutionLogs(logsData || []);
+
+        // Get unique user IDs from both datasets
+        const userIds = new Set<string>();
+        historyData?.forEach(item => item.changed_by && userIds.add(item.changed_by));
+        logsData?.forEach(item => item.executed_by && userIds.add(item.executed_by));
+
+        // Fetch user details if there are any user IDs
+        if (userIds.size > 0) {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id, email, first_name, last_name')
+            .in('id', Array.from(userIds));
+
+          if (userError) throw userError;
+          setUserList(userData || []);
+        }
+      } catch (err) {
+        console.error('Error fetching strategy evolution data:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch strategy data'));
+      } finally {
+        setIsLoading(false);
       }
-      
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, display_name, email')
-        .in('id', contributorIds);
-        
-      if (usersError) {
-        throw new Error(`Error fetching contributor details: ${usersError.message}`);
-      }
-      
-      // Create contributor objects with counts
-      return contributorIds.map(id => {
-        const user = users?.find(u => u.id === id);
-        const count = data.filter(v => v.created_by === id).length;
-        
-        return {
-          id,
-          name: user?.display_name || user?.email || 'Unknown User',
-          count
-        };
-      }).sort((a, b) => b.count - a.count);
-    },
-    enabled: versionsQuery.isSuccess && (versionsQuery.data?.length || 0) > 0,
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+    };
 
-  // Process all queries
-  const isLoading = strategyQuery.isLoading || versionsQuery.isLoading || 
-                    executionStatsQuery.isLoading || contributorsQuery.isLoading;
+    fetchData();
+  }, [strategyId]);
 
-  // Combine errors
-  if (strategyQuery.isError || versionsQuery.isError || 
-      executionStatsQuery.isError || contributorsQuery.isError) {
-    const actualError = 
-      strategyQuery.error || 
-      versionsQuery.error || 
-      executionStatsQuery.error || 
-      contributorsQuery.error;
-      
-    if (actualError && (!error || error.message !== actualError.message)) {
-      setError(actualError instanceof Error ? actualError : new Error(String(actualError)));
-      
-      notify({ 
-        title: 'Error loading evolution data',
-        description: actualError instanceof Error ? actualError.message : String(actualError)
-      }, { type: 'error' });
-    }
-  }
-
-  // Calculate derived values
-  const versions = versionsQuery.data || [];
-  const latestVersion = versions.length > 0 ? versions[0] : null;
-  const stats = executionStatsQuery.data || {
-    total_executions: 0,
-    successful_executions: 0,
-    failed_executions: 0,
-    avg_execution_time: 0
-  };
-  
-  const executionsCount = stats.total_executions || 0;
-  const successRate = executionsCount > 0 
-    ? (stats.successful_executions / executionsCount) * 100 
-    : 0;
-  const averageExecutionTime = stats.avg_execution_time || null;
-
-  // Combined refetch function
-  const refetch = async () => {
+  const formatTimestamp = (date: string) => {
     try {
-      await Promise.all([
-        strategyQuery.refetch(),
-        versionsQuery.refetch(),
-        executionStatsQuery.refetch(),
-        contributorsQuery.refetch()
-      ]);
-      
-      notify({ title: 'Evolution data refreshed' });
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      setError(new Error(errorMessage));
-      
-      notify({ 
-        title: 'Error refreshing data',
-        description: errorMessage
-      }, { type: 'error' });
+      return format(new Date(date), 'PPpp');
+    } catch (err) {
+      return date;
     }
   };
 
   return {
     isLoading,
-    error,
-    strategy: strategyQuery.data || null,
-    versions,
-    contributors: contributorsQuery.data || [],
-    latestVersion,
-    averageExecutionTime,
-    executionsCount,
-    successRate,
-    versionCount: versions.length,
-    refetch
+    strategyHistory,
+    executionLogs,
+    userList,
+    formatTimestamp,
+    error
   };
 }

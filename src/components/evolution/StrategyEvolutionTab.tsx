@@ -20,7 +20,7 @@ interface StrategyEvolutionTabProps {
 
 const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId = 'default' }) => {
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>(strategyId);
-  const { loading, history, logs, userMap, formatDate, error } = useStrategyEvolution(selectedStrategyId);
+  const { isLoading, strategyHistory, executionLogs, userList, formatTimestamp, error } = useStrategyEvolution(selectedStrategyId);
 
   const { data: strategies, isLoading: loadingStrategies } = useQuery({
     queryKey: ['strategies-for-evolution'],
@@ -39,7 +39,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
   const renderUser = (userId: string | undefined) => {
     if (!userId) return 'Unknown User';
     
-    const user = userMap[userId];
+    const user = userList.find(u => u.id === userId);
     if (!user) return userId.slice(0, 8);
     
     return user.first_name && user.last_name 
@@ -103,7 +103,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
         </Alert>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <StrategyLoadingSkeleton />
       ) : (
         <Tabs defaultValue="details" className="space-y-6">
@@ -119,17 +119,17 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ strategyId 
           
           <TabsContent value="history">
             <EvolutionHistory 
-              history={history} 
+              history={strategyHistory} 
               renderUser={renderUser}
-              formatDate={formatDate} 
+              formatDate={formatTimestamp} 
             />
           </TabsContent>
           
           <TabsContent value="executions">
             <ExecutionLogs 
-              logs={logs}
+              logs={executionLogs}
               renderUser={renderUser}
-              formatDate={formatDate}
+              formatDate={formatTimestamp}
             />
           </TabsContent>
         </Tabs>

@@ -1,48 +1,71 @@
 
-import React, { ComponentType } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from './ErrorFallback';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import ErrorFallback from '@/components/errors/ErrorFallback';
 
-export interface PageErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-  tenantId?: string;
-  moduleName?: string;
-  FallbackComponent?: ComponentType<any>;
-  showDetails?: boolean;
+interface PageErrorBoundaryProps {
+  children: ReactNode;
+  onError?: (error: Error, info: ErrorInfo) => void;
 }
 
-/**
- * Error boundary component for pages
- */
-const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({
-  children,
-  fallback,
-  tenantId,
-  moduleName,
-  FallbackComponent,
-  showDetails = false,
-}) => {
-  const handleError = (error: Error, info: { componentStack: string }) => {
-    console.error('Error caught by PageErrorBoundary:', error);
-    console.error('Component stack:', info.componentStack);
-    
-    // Log to monitoring system in production
-    if (process.env.NODE_ENV === 'production') {
-      // Add your error reporting logic here
-    }
-  };
+interface PageErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
 
-  return (
-    <ErrorBoundary
-      FallbackComponent={FallbackComponent || 
-        ((props) => <ErrorFallback {...props} tenantId={tenantId} moduleName={moduleName} showDetails={showDetails} />)
-      }
-      onError={handleError}
-    >
-      {children}
-    </ErrorBoundary>
-  );
-};
+class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBoundaryState> {
+  constructor(props: PageErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null
+    };
+  }
+
+  static getDerivedStateFromError(error: Error): PageErrorBoundaryState {
+    return {
+      hasError: true,
+      error,
+      errorInfo: null
+    };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // Update state with error details
+    this.setState({
+      errorInfo
+    });
+
+    // Log the error to console
+    console.error('Error caught by PageErrorBoundary:', error);
+    console.error('Component Stack:', errorInfo.componentStack);
+    
+    // Call the onError callback if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <ErrorFallback
+          error={this.state.error}
+          componentStack={this.state.errorInfo?.componentStack || ''}
+          resetErrorBoundary={() => {
+            this.setState({
+              hasError: false,
+              error: null,
+              errorInfo: null
+            });
+          }}
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default PageErrorBoundary;
