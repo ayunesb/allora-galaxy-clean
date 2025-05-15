@@ -44,5 +44,6 @@ export interface LogFilters {
   dateTo?: string | null;
   search?: string;
   severity?: string;
+  level?: string;
   // Add any other filter properties needed
 }
