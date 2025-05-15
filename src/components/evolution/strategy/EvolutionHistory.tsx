@@ -16,8 +16,10 @@ const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
   formatDate,
   renderUser
 }) => {
-  const getChangeTypeColor = (type: string) => {
-    switch (type?.toLowerCase()) {
+  const getChangeTypeColor = (type: string | undefined) => {
+    if (!type) return 'bg-gray-100 text-gray-800';
+    
+    switch (type.toLowerCase()) {
       case 'major': return 'bg-blue-100 text-blue-800';
       case 'minor': return 'bg-green-100 text-green-800';
       case 'patch': return 'bg-gray-100 text-gray-800';

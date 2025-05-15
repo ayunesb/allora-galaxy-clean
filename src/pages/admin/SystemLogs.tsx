@@ -39,7 +39,7 @@ const SystemLogs: React.FC = () => {
         <ErrorBoundary>
           <SystemLogFilters 
             filters={filters} 
-            onFilterChange={handleFilterChange} 
+            onFiltersChange={handleFilterChange} 
             isLoading={isLoading}
             onRefresh={refetch}
           />
@@ -49,7 +49,7 @@ const SystemLogs: React.FC = () => {
               <SystemLogsList 
                 logs={logs} 
                 isLoading={isLoading} 
-                onViewLog={handleViewLog}
+                onViewDetails={handleViewLog}
               />
             </CardContent>
           </Card>

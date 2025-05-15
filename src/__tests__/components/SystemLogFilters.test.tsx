@@ -30,7 +30,7 @@ describe('SystemLogFilters', () => {
     render(
       <SystemLogFilters
         filters={{}}
-        onFilterChange={() => {}}
+        onFiltersChange={() => {}}
         isLoading={false}
         onRefresh={() => {}}
       />
@@ -46,7 +46,7 @@ describe('SystemLogFilters', () => {
     render(
       <SystemLogFilters
         filters={{}}
-        onFilterChange={handleFilterChange}
+        onFiltersChange={handleFilterChange}
         isLoading={false}
         onRefresh={() => {}}
       />

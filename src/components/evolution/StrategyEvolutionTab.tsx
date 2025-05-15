@@ -46,11 +46,6 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
     return userId.substring(0, 8) + '...';
   };
 
-  // Create a user map for easier reference
-  const userMap = {
-    getUserName,
-  };
-
   return (
     <div className="grid gap-6">
       <Tabs defaultValue="details" className="space-y-6">

@@ -50,19 +50,19 @@ const createMockLogs = (count: number): Array<SystemLog> => {
 
 describe('SystemLogsList', () => {
   it('renders loading state when isLoading is true', () => {
-    render(<SystemLogsList logs={[]} isLoading={true} onViewLog={() => {}} />);
+    render(<SystemLogsList logs={[]} isLoading={true} onViewDetails={() => {}} />);
     expect(screen.getByTestId('loading')).toBeInTheDocument();
   });
   
   it('renders empty state when no logs are provided', () => {
-    render(<SystemLogsList logs={[]} isLoading={false} onViewLog={() => {}} />);
+    render(<SystemLogsList logs={[]} isLoading={false} onViewDetails={() => {}} />);
     expect(screen.getByText('No logs found')).toBeInTheDocument();
   });
   
   it('renders logs when provided', () => {
     const mockLogs = createMockLogs(5);
     
-    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewLog={() => {}} />);
+    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewDetails={() => {}} />);
     
     const logsCount = screen.getByTestId('logs-count');
     expect(logsCount).toHaveAttribute('data-count', '5');

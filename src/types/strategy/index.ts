@@ -36,7 +36,7 @@ export interface ValidationResult {
   errors: string[];
 }
 
-// Add missing types for StrategyVersion and StrategyExecution
+// Update StrategyVersion to include change_type and description
 export interface StrategyVersion {
   id: string;
   strategy_id: string;
@@ -49,8 +49,11 @@ export interface StrategyVersion {
   approved_by?: string;
   approval_date?: string;
   changes?: string[];
+  change_type?: string; // Add change_type field
+  description?: string; // Add description field
 }
 
+// Update StrategyExecution with required properties
 export interface StrategyExecution {
   id: string;
   strategy_id: string;
@@ -58,10 +61,13 @@ export interface StrategyExecution {
   start_time: string;
   end_time?: string;
   execution_time?: number;
-  result?: any;
+  result?: any; // Ensure this is named result (not results)
   error?: string;
   executed_by?: string;
   tenant_id?: string;
+  version?: string; // Add version field for component compatibility
+  duration_ms?: number; // Add duration_ms field for component compatibility
+  created_at?: string; // Add created_at field for component compatibility
 }
 
 // Add this interface for use with the useStrategyEvolution hook
@@ -72,4 +78,9 @@ export interface UseStrategyEvolutionResult {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
+}
+
+// Add this for the ExecutionLogs component
+export interface ExecutionLogItem extends StrategyExecution {
+  // Add any additional fields needed by ExecutionLogs component
 }

@@ -50,6 +50,7 @@ export interface SystemLog {
   user_facing?: boolean;
   affects_multiple_users?: boolean;
   metadata?: Record<string, any>;
+  title?: string;  // Add title property that some components use
 }
 
 // Helper function to check if a log has an error
@@ -97,7 +98,7 @@ export interface LogFilters {
 }
 
 export interface DateRange {
-  from: Date;
+  from: Date;  // Make 'from' required
   to?: Date;
 }
 

@@ -2,47 +2,49 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Calendar,
-  User,
-  Clock
-} from 'lucide-react';
+import { Clock, User, Check, X, AlertCircle, RefreshCw } from 'lucide-react';
 import type { StrategyExecution } from '@/types/strategy';
 
 interface ExecutionLogsProps {
   executions: StrategyExecution[];
-  formatDate: (date: string | Date) => string;
+  formatDate: (date: string) => string;
   renderUser: (userId: string | null) => string;
 }
 
-const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
+/**
+ * Execution Logs Component
+ * Displays a list of strategy executions with status, timestamps, and results
+ */
+const ExecutionLogs: React.FC<ExecutionLogsProps> = ({ 
   executions,
   formatDate,
   renderUser
 }) => {
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch(status.toLowerCase()) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <Check className="h-4 w-4 text-green-500" />;
+      case 'failure':
+        return <X className="h-4 w-4 text-red-500" />;
+      case 'running':
+        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-amber-500" />;
       default:
-        return null;
+        return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getStatusClass = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusColor = (status: string) => {
+    switch(status.toLowerCase()) {
       case 'success':
         return 'bg-green-100 text-green-800';
-      case 'error':
-      case 'failed':
+      case 'failure':
         return 'bg-red-100 text-red-800';
+      case 'running':
+        return 'bg-blue-100 text-blue-800';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-100 text-amber-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -51,7 +53,7 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Execution Logs</CardTitle>
+        <CardTitle>Execution History</CardTitle>
       </CardHeader>
       <CardContent>
         {executions.length === 0 ? (
@@ -59,59 +61,62 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
             <p className="text-muted-foreground">No execution logs available.</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {executions.map((execution) => (
-              <Card key={execution.id} className="overflow-hidden">
-                <div className="p-4 bg-muted/40">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      {getStatusIcon(execution.status)}
-                      <span className="ml-2 font-medium">{execution.id.substring(0, 8)}...</span>
-                      <Badge variant="outline" className={`ml-2 ${getStatusClass(execution.status)}`}>
-                        {execution.status}
+              <div 
+                key={execution.id} 
+                className="border rounded-lg p-4 hover:bg-muted/25 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={getStatusColor(execution.status)}>
+                      <span className="flex items-center">
+                        {getStatusIcon(execution.status)}
+                        <span className="ml-1">{execution.status}</span>
+                      </span>
+                    </Badge>
+                    
+                    {execution.version && (
+                      <Badge variant="outline">
+                        v{execution.version}
                       </Badge>
-                    </div>
-                    <div>
-                      <Badge variant="outline">{execution.version || 'Unknown'}</Badge>
-                    </div>
+                    )}
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      <span>{formatDate(execution.execution_time || execution.created_at)}</span>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-1" />
-                      <span>{execution.executed_by ? renderUser(execution.executed_by) : 'System'}</span>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span>
-                        {execution.duration_ms ? `${execution.duration_ms}ms` : 'N/A'}
-                      </span>
-                    </div>
+                  <Badge variant="outline" className="text-xs">
+                    {execution.created_at ? formatDate(execution.created_at) : formatDate(execution.start_time)}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-1" />
+                    <span>{execution.executed_by ? renderUser(execution.executed_by) : 'System'}</span>
                   </div>
+                  
+                  {execution.duration_ms !== undefined && (
+                    <div>Duration: {execution.duration_ms}ms</div>
+                  )}
                 </div>
                 
                 {execution.error && (
-                  <div className="p-4 border-t border-muted bg-red-50 dark:bg-red-900/10">
-                    <h4 className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">Error</h4>
-                    <p className="text-sm text-red-600 dark:text-red-300 whitespace-pre-wrap">{execution.error}</p>
+                  <div className="mt-2 p-2 bg-red-50 text-red-700 rounded-md text-sm">
+                    <p className="font-medium">Error:</p>
+                    <p className="font-mono text-xs break-all">{execution.error}</p>
                   </div>
                 )}
                 
-                {execution.results && (
-                  <div className="p-4 border-t border-muted">
-                    <h4 className="text-sm font-medium mb-1">Results</h4>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-32">
-                      {JSON.stringify(execution.results, null, 2)}
+                {execution.result && (
+                  <div className="mt-2 bg-muted/30 rounded-md p-3">
+                    <p className="font-medium text-sm mb-1">Result:</p>
+                    <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-32">
+                      {typeof execution.result === 'string' 
+                        ? execution.result 
+                        : JSON.stringify(execution.result, null, 2)}
                     </pre>
                   </div>
                 )}
-              </Card>
+              </div>
             ))}
           </div>
         )}
