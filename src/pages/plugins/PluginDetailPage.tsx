@@ -23,12 +23,16 @@ const PluginDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [executionData, setExecutionData] = useState<ScatterDataPoint[]>([]);
+  const [activeTab, setActiveTab] = useState('details');
   
   useEffect(() => {
     const fetchPluginDetails = async () => {
       try {
         if (!id) return;
         
+        setLoading(true);
+        setError(null);
+
         const { data: pluginData, error: pluginError } = await supabase
           .from('plugins')
           .select('*')
@@ -56,7 +60,7 @@ const PluginDetailPage: React.FC = () => {
         if (logsError) throw logsError;
         
         setPlugin(pluginData);
-        setAgentVersions(versionData);
+        setAgentVersions(versionData || []);
         
         // Transform log data into scatter plot data points
         if (logData) {
@@ -70,7 +74,7 @@ const PluginDetailPage: React.FC = () => {
         }
       } catch (err: any) {
         console.error('Error fetching plugin details:', err);
-        setError(err.message);
+        setError(err.message || 'Failed to load plugin details');
       } finally {
         setLoading(false);
       }
@@ -91,22 +95,42 @@ const PluginDetailPage: React.FC = () => {
     <div className="container mx-auto py-8">
       <PluginHeader plugin={plugin} id={id || ''} />
       
-      <Tabs defaultValue="details" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="versions">Versions ({agentVersions.length})</TabsTrigger>
-          <TabsTrigger value="logs">Execution Logs</TabsTrigger>
+      <Tabs 
+        defaultValue="details" 
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
+        <TabsList className="bg-muted/70 p-1">
+          <TabsTrigger 
+            value="details"
+            className="data-[state=active]:shadow-sm transition-all duration-200 relative"
+          >
+            Details
+          </TabsTrigger>
+          <TabsTrigger 
+            value="versions"
+            className="data-[state=active]:shadow-sm transition-all duration-200 relative"
+          >
+            Versions ({agentVersions.length})
+          </TabsTrigger>
+          <TabsTrigger 
+            value="logs"
+            className="data-[state=active]:shadow-sm transition-all duration-200 relative"
+          >
+            Execution Logs
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="details">
+        <TabsContent value="details" className="animate-fade-in">
           <PluginDetailsTab plugin={plugin} />
         </TabsContent>
         
-        <TabsContent value="versions">
+        <TabsContent value="versions" className="animate-fade-in">
           <AgentVersionsTab versions={agentVersions} />
         </TabsContent>
         
-        <TabsContent value="logs">
+        <TabsContent value="logs" className="animate-fade-in">
           <LogsExecutionTab executionData={executionData} />
         </TabsContent>
       </Tabs>
