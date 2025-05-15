@@ -35,13 +35,10 @@ const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({
 
   return (
     <ErrorBoundary
-      FallbackComponent={FallbackComponent || ErrorFallback}
+      FallbackComponent={FallbackComponent || 
+        ((props) => <ErrorFallback {...props} tenantId={tenantId} moduleName={moduleName} showDetails={showDetails} />)
+      }
       onError={handleError}
-      fallbackProps={{
-        tenantId,
-        moduleName,
-        showDetails,
-      }}
     >
       {children}
     </ErrorBoundary>

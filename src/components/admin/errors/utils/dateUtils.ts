@@ -1,96 +1,96 @@
 
-import { format, parseISO as parseISOBase } from 'date-fns';
+import { format, parse, parseISO as parseDateISO, subDays, startOfDay, endOfDay } from 'date-fns';
+import type { DateRange } from '@/types/logs';
 
 /**
- * Format a date to ISO format YYYY-MM-DD
+ * Format a date to ISO string format (YYYY-MM-DD)
  */
 export function formatDateToISO(date: Date): string {
   return format(date, 'yyyy-MM-dd');
 }
 
 /**
- * Parse ISO date string to Date object
+ * Parse an ISO string to Date object
+ * Re-exporting from date-fns for consistency
  */
-export function parseISO(dateString: string): Date {
-  return parseISOBase(dateString);
+export const parseISO = parseDateISO;
+
+/**
+ * Format a date to display format (MMM dd, yyyy)
+ */
+export function formatDateDisplay(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, 'MMM dd, yyyy');
 }
 
 /**
- * Format date for display
+ * Get date range based on period string
  */
-export function formatDateDisplay(date: Date): string {
-  return format(date, 'MMM d, yyyy');
-}
-
-/**
- * Get date range from a time period string
- */
-export function getDateRangeFromPeriod(period: string): { from: Date; to: Date } {
+export function getDateRangeFromPeriod(period: string): DateRange {
   const now = new Date();
-  const to = new Date();
-  let from = new Date();
-
+  const today = startOfDay(now);
+  
   switch (period) {
-    case '24h':
-      from.setHours(now.getHours() - 24);
-      break;
-    case '7d':
-      from.setDate(now.getDate() - 7);
-      break;
-    case '30d':
-      from.setDate(now.getDate() - 30);
-      break;
-    case '1y':
-      from.setFullYear(now.getFullYear() - 1);
-      break;
+    case 'today':
+      return {
+        from: today,
+        to: endOfDay(now)
+      };
+    case 'yesterday':
+      const yesterday = subDays(today, 1);
+      return {
+        from: yesterday,
+        to: endOfDay(yesterday)
+      };
+    case '7days':
+      return {
+        from: subDays(today, 7),
+        to: endOfDay(now)
+      };
+    case '30days':
+      return {
+        from: subDays(today, 30),
+        to: endOfDay(now)
+      };
+    case '90days':
+      return {
+        from: subDays(today, 90),
+        to: endOfDay(now)
+      };
     default:
-      // Default to 7 days
-      from.setDate(now.getDate() - 7);
+      return {
+        from: subDays(today, 7),
+        to: endOfDay(now)
+      };
   }
-
-  return { from, to };
 }
 
 /**
- * Get label for a time period
+ * Get a human-readable label for a time period
  */
 export function getTimePeriodLabel(period: string): string {
   switch (period) {
-    case '24h':
-      return 'Last 24 hours';
-    case '7d':
+    case 'today':
+      return 'Today';
+    case 'yesterday':
+      return 'Yesterday';
+    case '7days':
       return 'Last 7 days';
-    case '30d':
+    case '30days':
       return 'Last 30 days';
-    case '1y':
-      return 'Last year';
+    case '90days':
+      return 'Last 90 days';
     default:
-      return 'Custom period';
+      return period;
   }
 }
 
 /**
- * Format date with time
+ * Format a date range for display
  */
-export function formatDate(date: Date | string, formatStr: string = 'PPp'): string {
-  if (typeof date === 'string') {
-    date = parseISOBase(date);
-  }
-  return format(date, formatStr);
-}
-
-/**
- * Get formatted date range
- */
-export function formatDateRange(from: Date, to: Date): string {
-  return `${formatDateDisplay(from)} - ${formatDateDisplay(to)}`;
-}
-
-/**
- * Get date from days ago
- */
-export function getDaysAgo(days: number): Date {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date;
+export function formatDateRange(range: DateRange): string {
+  if (!range.from) return 'All time';
+  if (!range.to) return `Since ${formatDateDisplay(range.from)}`;
+  
+  return `${formatDateDisplay(range.from)} - ${formatDateDisplay(range.to)}`;
 }

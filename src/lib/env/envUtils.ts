@@ -1,141 +1,147 @@
 
 /**
- * Centralized environment variable handling with cross-platform support
- * 
- * This utility provides a unified approach to get environment variables in:
- * - Browser
- * - Edge functions
- * - Server environments
- * 
- * It enables safe fallbacks when variables are missing and works with both
- * import.meta.env (Vite) and process.env (Node.js, Deno) environments.
+ * Centralized environment variable handling for Allora OS
+ * Works in both browser and edge function environments
  */
 
-// Get environment variables from any environment
+// Constants for environment names
+export const ENV = {
+  DEVELOPMENT: 'development',
+  PRODUCTION: 'production',
+  TEST: 'test'
+};
+
+// Standard CORS headers
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+/**
+ * Get an environment variable safely
+ * Works in both browser and edge environments
+ */
 export function getEnv(key: string): string | undefined {
-  // Try browser environment first (Vite)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[key];
+  // Browser environment
+  if (typeof window !== 'undefined') {
+    return process.env[key] || process.env[`NEXT_PUBLIC_${key}`] || undefined;
   }
   
-  // Try Deno environment - using a type-safe approach
-  try {
-    const deno = (globalThis as any).Deno;
-    if (deno && typeof deno.env?.get === 'function') {
-      return deno.env.get(key);
+  // Edge function environment
+  if (typeof Deno !== 'undefined') {
+    try {
+      // @ts-ignore - Deno exists in edge functions
+      return Deno.env.get(key);
+    } catch (error) {
+      console.error(`Failed to get env variable ${key} in Deno environment:`, error);
+      return undefined;
     }
-  } catch (e) {
-    // Ignore errors if Deno is not available
-  }
-
-  // Try Node.js environment
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key];
-  }
-  
-  return undefined;
-}
-
-// Get environment variable with default value
-export function getEnvWithDefault(key: string, defaultValue: string): string {
-  const value = getEnv(key);
-  return value !== undefined ? value : defaultValue;
-}
-
-// Check if an environment variable is truthy
-export function isEnvTrue(key: string): boolean {
-  const value = getEnv(key);
-  if (!value) return false;
-  
-  return ['true', '1', 'yes', 'y'].includes(value.toLowerCase());
-}
-
-// Check if environment is development
-export function isDevelopment(): boolean {
-  const mode = getEnv('MODE') || getEnv('NODE_ENV');
-  return mode === 'development';
-}
-
-// Check if environment is production
-export function isProduction(): boolean {
-  const mode = getEnv('MODE') || getEnv('NODE_ENV');
-  return mode === 'production';
-}
-
-// Check if environment is test
-export function isTest(): boolean {
-  const mode = getEnv('MODE') || getEnv('NODE_ENV');
-  return mode === 'test';
-}
-
-// Get all environment variables with a specific prefix
-export function getEnvsByPrefix(prefix: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  
-  // Browser environment (Vite)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    Object.keys(import.meta.env).forEach(key => {
-      if (key.startsWith(prefix)) {
-        result[key] = import.meta.env[key];
-      }
-    });
-    return result;
   }
   
   // Node.js environment
-  if (typeof process !== 'undefined' && process.env) {
+  return process.env[key];
+}
+
+/**
+ * Get an environment variable with a default value
+ */
+export function getEnvWithDefault(key: string, defaultValue: string): string {
+  return getEnv(key) || defaultValue;
+}
+
+/**
+ * Get a "safe" environment variable - throws if not found
+ */
+export function getSafeEnv(key: string): string {
+  const value = getEnv(key);
+  if (!value) {
+    throw new Error(`Required environment variable ${key} is not set`);
+  }
+  return value;
+}
+
+/**
+ * Check if an environment variable is "true"
+ */
+export function isEnvTrue(key: string): boolean {
+  const value = getEnv(key);
+  return value === 'true' || value === '1';
+}
+
+/**
+ * Check if we're in development mode
+ */
+export function isDevelopment(): boolean {
+  return getEnv('NODE_ENV') === 'development';
+}
+
+/**
+ * Check if we're in production mode
+ */
+export function isProduction(): boolean {
+  return getEnv('NODE_ENV') === 'production';
+}
+
+/**
+ * Check if we're in test mode
+ */
+export function isTest(): boolean {
+  return getEnv('NODE_ENV') === 'test';
+}
+
+/**
+ * Get all environment variables with a certain prefix
+ */
+export function getEnvsByPrefix(prefix: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  
+  if (typeof window !== 'undefined') {
+    // Browser - check process.env
     Object.keys(process.env).forEach(key => {
       if (key.startsWith(prefix)) {
-        result[key] = process.env[key] as string;
+        const value = process.env[key];
+        if (value !== undefined) {
+          result[key] = value;
+        }
       }
     });
+  } else if (typeof Deno !== 'undefined') {
+    // Edge function - no way to get all env vars
+    // This is a limitation of Deno's security model
+    console.warn('getEnvsByPrefix is not fully supported in edge functions');
   }
   
   return result;
 }
 
-// Environment object for convenient access
-export const ENV = {
-  // Core application environment
-  NODE_ENV: getEnvWithDefault('NODE_ENV', 'development'),
-  APP_URL: getEnvWithDefault('VITE_APP_URL', 'http://localhost:3000'),
-  
-  // Supabase configuration
-  SUPABASE_URL: getEnvWithDefault('VITE_SUPABASE_URL', ''),
-  SUPABASE_ANON_KEY: getEnvWithDefault('VITE_SUPABASE_ANON_KEY', ''),
-  SUPABASE_SERVICE_KEY: getEnvWithDefault('SUPABASE_SERVICE_ROLE_KEY', ''),
-  
-  // Integration APIs
-  STRIPE_PUBLISHABLE_KEY: getEnvWithDefault('VITE_STRIPE_PUBLISHABLE_KEY', ''),
-  OPENAI_API_KEY: getEnvWithDefault('OPENAI_API_KEY', ''),
-  HUBSPOT_API_KEY: getEnvWithDefault('HUBSPOT_API_KEY', ''),
-  
-  // Analytics
-  GA_MEASUREMENT_ID: getEnvWithDefault('VITE_GA_MEASUREMENT_ID', ''),
-};
-
-// CORS headers for edge functions
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-};
-
-// Get base URL for the current environment
+/**
+ * Get the base URL for the application
+ */
 export function getBaseUrl(): string {
-  return ENV.APP_URL;
-}
-
-// Safe environment variable getter that logs warnings for missing critical variables
-export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
-  const value = getEnv(key) || defaultValue;
-  
-  if (required && (value === defaultValue || value === "")) {
-    console.warn(`⚠️ Critical environment variable ${key} is missing!`);
+  // Explicitly check edge environment first
+  if (typeof Deno !== 'undefined') {
+    // Edge function environment - try to use VERCEL_URL
+    // @ts-ignore - Deno exists in edge functions
+    const vercelUrl = Deno.env.get('VERCEL_URL');
+    if (vercelUrl) {
+      return `https://${vercelUrl}`;
+    }
+    
+    // Fallback for edge functions
+    return '';
   }
   
-  return value;
+  // Browser environment
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+  
+  // Server environment (Node.js)
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) {
+    return `https://${vercelUrl}`;
+  }
+  
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 }
-
-// For backward compatibility
-export { getEnvWithDefault as getEnvVar };

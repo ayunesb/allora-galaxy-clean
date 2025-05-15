@@ -81,17 +81,25 @@ export const notify = (
 /**
  * Helper functions for different toast types
  */
-export const notifySuccess = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
-  notify(messageOrOptions, { ...options, type: "success" });
+export const notifySuccess = (
+  messageOrOptions: string | ToastMessage, 
+  options?: ToastOptions
+): string => notify(messageOrOptions, { ...options, type: "success" });
 
-export const notifyError = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
-  notify(messageOrOptions, { ...options, type: "error" });
+export const notifyError = (
+  messageOrOptions: string | ToastMessage, 
+  options?: ToastOptions
+): string => notify(messageOrOptions, { ...options, type: "error" });
 
-export const notifyWarning = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
-  notify(messageOrOptions, { ...options, type: "warning" });
+export const notifyWarning = (
+  messageOrOptions: string | ToastMessage, 
+  options?: ToastOptions
+): string => notify(messageOrOptions, { ...options, type: "warning" });
 
-export const notifyInfo = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
-  notify(messageOrOptions, { ...options, type: "info" });
+export const notifyInfo = (
+  messageOrOptions: string | ToastMessage, 
+  options?: ToastOptions
+): string => notify(messageOrOptions, { ...options, type: "info" });
 
 /**
  * Promise toast helper that shows loading/success/error states

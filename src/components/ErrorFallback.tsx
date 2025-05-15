@@ -15,6 +15,7 @@ export interface ErrorFallbackProps {
   retryCount?: number;
   maxRetries?: number;
   componentStack?: string;
+  moduleName?: string; // Added for compatibility with PageErrorBoundary
 }
 
 /**
@@ -25,6 +26,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   resetErrorBoundary,
   tenantId = 'system',
   componentName,
+  moduleName,
   showDetails = false,
   componentStack
 }) => {
@@ -41,7 +43,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         componentStack
       }, {
         context: {
-          component: componentName || 'ErrorFallback',
+          component: componentName || moduleName || 'ErrorFallback',
           location: window.location.pathname
         },
         tenantId
