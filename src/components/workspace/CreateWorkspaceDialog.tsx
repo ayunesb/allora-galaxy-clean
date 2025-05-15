@@ -1,10 +1,9 @@
-
-import { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/lib/notifications/toast';
+import { useToast } from '@/components/ui/use-toast';
 
 interface CreateWorkspaceDialogProps {
   open: boolean;

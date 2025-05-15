@@ -1,152 +1,196 @@
-
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
+// Remove the unused toast import
+import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/lib/notifications/toast';
 
-export interface WebhookAlertConfig {
+interface WebhookAlert {
+  id: string;
+  created_at: string;
+  tenant_id: string;
   webhook_url: string;
   alert_type: string;
-  message: string;
-  tenant_id: string;
-  metadata?: Record<string, any>;
+  is_active: boolean;
+  headers: { [key: string]: string } | null;
+  payload: { [key: string]: any } | null;
 }
 
-export interface WebhookResponse {
-  success: boolean;
-  error?: string;
-  data?: any;
-  status?: number;
-  timestamp?: string;
+interface UseWebhookAlertsResult {
+  alerts: WebhookAlert[] | null;
+  loading: boolean;
+  error: string | null;
+  createAlert: (alert: Omit<WebhookAlert, 'id' | 'created_at'>) => Promise<void>;
+  updateAlert: (alert: WebhookAlert) => Promise<void>;
+  deleteAlert: (id: string) => Promise<void>;
+  toggleActive: (id: string, isActive: boolean) => Promise<void>;
 }
 
-export const useWebhookAlerts = () => {
+export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
+  const [alerts, setAlerts] = useState<WebhookAlert[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const { toast, success: notifySuccess, error: notifyError, warning: notifyWarning } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const validateConfig = (config: WebhookAlertConfig): { valid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-    
-    if (!config.webhook_url) errors.push('Webhook URL is required');
-    if (!config.alert_type) errors.push('Alert type is required');
-    if (!config.message) errors.push('Message is required');
-    if (!config.tenant_id) errors.push('Tenant ID is required');
-    
-    // Validate URL format
-    if (config.webhook_url && !config.webhook_url.match(/^https?:\/\/.+/)) {
-      errors.push('Invalid webhook URL format');
-    }
-    
-    return { 
-      valid: errors.length === 0,
-      errors
-    };
-  };
-
-  const sendWebhookAlert = useCallback(async (config: WebhookAlertConfig): Promise<WebhookResponse> => {
-    const validation = validateConfig(config);
-    
-    if (!validation.valid) {
-      notifyError("Invalid webhook configuration", {
-        description: validation.errors.join(', ')
-      });
-      
-      return { 
-        success: false, 
-        error: validation.errors.join(', ')
-      };
-    }
-
+  const fetchAlerts = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      
-      // Add timestamp metadata
-      const configWithTimestamp = {
-        ...config,
-        metadata: {
-          ...config.metadata,
-          sent_at: new Date().toISOString()
-        }
-      };
-      
       const { data, error } = await supabase
-        .functions
-        .invoke('send-webhook-alert', {
-          body: configWithTimestamp
-        });
+        .from('webhook_alerts')
+        .select('*')
+        .eq('tenant_id', tenantId);
 
       if (error) {
-        console.error('Webhook error:', error);
-        notifyError("Webhook Error", {
-          description: error.message || 'Failed to send webhook'
-        });
-        
-        return { 
-          success: false, 
-          error: error.message,
-          status: error.status || 500,
-          timestamp: new Date().toISOString()
-        };
+        throw new Error(error.message);
       }
 
-      // Log successful webhook
-      console.log('Webhook sent successfully:', data);
-      notifySuccess("Webhook Sent", {
-        description: "The webhook alert was sent successfully"
-      });
-      
-      return { 
-        success: true, 
-        data,
-        status: 200,
-        timestamp: new Date().toISOString()
-      };
+      setAlerts(data);
     } catch (err: any) {
-      console.error('Webhook error:', err);
-      notifyError("Webhook Error", {
-        description: err.message || "Failed to send webhook"
+      setError(err.message);
+      toast({
+        variant: "destructive",
+        description: `Failed to fetch alerts: ${err.message}`,
       });
-      
-      return { 
-        success: false, 
-        error: err.message || 'Failed to send webhook',
-        status: err.status || 500,
-        timestamp: new Date().toISOString()
-      };
     } finally {
       setLoading(false);
     }
-  }, [notifySuccess, notifyError]);
+  };
 
-  const sendBatchWebhookAlerts = useCallback(async (configs: WebhookAlertConfig[]): Promise<WebhookResponse[]> => {
-    const results: WebhookResponse[] = [];
-    
-    for (const config of configs) {
-      const result = await sendWebhookAlert(config);
-      results.push(result);
+  // Fetch alerts on component mount
+  useState(() => {
+    if (tenantId) {
+      fetchAlerts();
     }
-    
-    const successCount = results.filter(r => r.success).length;
-    const totalCount = results.length;
-    
-    if (successCount === totalCount) {
-      notifySuccess("All Webhooks Sent", {
-        description: `Successfully sent ${successCount} webhook alerts`
+  }, [tenantId]);
+
+  const createAlert = async (alert: Omit<WebhookAlert, 'id' | 'created_at'>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('webhook_alerts')
+        .insert([{ ...alert }])
+        .select('*');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setAlerts(prevAlerts => [...(prevAlerts || []), data[0]]);
+      toast({
+        description: 'Alert created successfully',
       });
-    } else {
-      notifyWarning("Webhook Batch Completed", {
-        description: `Sent ${successCount}/${totalCount} webhook alerts successfully`
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        variant: "destructive",
+        description: `Failed to create alert: ${err.message}`,
       });
+    } finally {
+      setLoading(false);
     }
-    
-    return results;
-  }, [sendWebhookAlert, notifySuccess, notifyWarning]);
+  };
+
+  const updateAlert = async (alert: WebhookAlert) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('webhook_alerts')
+        .update({ ...alert })
+        .eq('id', alert.id)
+        .select('*');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setAlerts(prevAlerts =>
+        (prevAlerts || []).map(existingAlert =>
+          existingAlert.id === alert.id ? data[0] : existingAlert
+        )
+      );
+      toast({
+        description: 'Alert updated successfully',
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        variant: "destructive",
+        description: `Failed to update alert: ${err.message}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteAlert = async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase
+        .from('webhook_alerts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setAlerts(prevAlerts => (prevAlerts || []).filter(alert => alert.id !== id));
+      toast({
+        description: 'Alert deleted successfully',
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        variant: "destructive",
+        description: `Failed to delete alert: ${err.message}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleActive = async (id: string, isActive: boolean) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('webhook_alerts')
+        .update({ is_active: isActive })
+        .eq('id', id)
+        .select('*');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setAlerts(prevAlerts =>
+        (prevAlerts || []).map(existingAlert =>
+          existingAlert.id === id ? data[0] : existingAlert
+        )
+      );
+      toast({
+        description: `Alert ${isActive ? 'activated' : 'deactivated'}`,
+      });
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        variant: "destructive",
+        description: `Failed to toggle alert: ${err.message}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
-    sendWebhookAlert,
-    sendBatchWebhookAlerts,
+    alerts,
     loading,
-    validateConfig
+    error,
+    createAlert,
+    updateAlert,
+    deleteAlert,
+    toggleActive,
   };
 };
-
-export default useWebhookAlerts;

@@ -1,85 +1,109 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { toast } from '@/components/ui/use-toast';
 
-export interface OnboardingWizardState {
-  currentStep: number;
-  totalSteps: number;
-  isSubmitting: boolean;
+export interface OnboardingStep {
+  id: string;
+  title: string;
+  description?: string;
+  isCompleted: boolean;
 }
 
-export const useOnboardingWizard = (totalSteps: number, submitCallback: () => Promise<void>, redirectPath?: string) => {
-  const [state, setState] = useState<OnboardingWizardState>({
-    currentStep: 1,
-    totalSteps,
-    isSubmitting: false,
-  });
+export const useOnboardingWizard = (initialSteps: OnboardingStep[]) => {
+  const [steps, setSteps] = useState<OnboardingStep[]>(initialSteps);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
   
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const navigate = useNavigate();
+  const currentStep = steps[currentStepIndex];
+  const totalSteps = steps.length;
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === totalSteps - 1;
+  const progress = Math.round(((currentStepIndex + 1) / totalSteps) * 100);
   
-  const nextStep = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentStep: Math.min(prev.currentStep + 1, prev.totalSteps),
-    }));
-  }, []);
+  const goToNextStep = () => {
+    if (isLastStep) return;
+    
+    // Mark current step as completed
+    setSteps(prev => 
+      prev.map((step, idx) => 
+        idx === currentStepIndex ? { ...step, isCompleted: true } : step
+      )
+    );
+    
+    setCurrentStepIndex(prev => prev + 1);
+  };
   
-  const prevStep = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentStep: Math.max(prev.currentStep - 1, 1),
-    }));
-  }, []);
+  const goToPrevStep = () => {
+    if (isFirstStep) return;
+    setCurrentStepIndex(prev => prev - 1);
+  };
   
-  const goToStep = useCallback((step: number) => {
-    setState((prev) => ({
-      ...prev,
-      currentStep: Math.min(Math.max(step, 1), prev.totalSteps),
-    }));
-  }, []);
+  const goToStep = (index: number) => {
+    if (index >= 0 && index < totalSteps) {
+      setCurrentStepIndex(index);
+    } else {
+      toast({
+        variant: "destructive",
+        description: 'Invalid step index',
+      });
+    }
+  };
   
-  const submitForm = useCallback(async () => {
-    setState((prev) => ({ ...prev, isSubmitting: true }));
-    setError(null);
+  const updateOnboardingData = (data: Record<string, any>) => {
+    setOnboardingData(prev => ({ ...prev, ...data }));
+  };
+  
+  const resetOnboardingWizard = () => {
+    setCurrentStepIndex(0);
+    setSteps(initialSteps);
+    setOnboardingData({});
+  };
+  
+  const completeOnboarding = async (submitFn?: (data: Record<string, any>) => Promise<any>) => {
+    setIsSubmitting(true);
     
     try {
-      await submitCallback();
+      // Mark all steps as completed
+      setSteps(prev => prev.map(step => ({ ...step, isCompleted: true })));
       
-      toast({
-        title: "Success",
-        description: "Onboarding completed successfully!",
-        variant: "default",
-      });
-      
-      if (redirectPath) {
-        navigate(redirectPath);
+      // If a submission function is provided, call it with the onboarding data
+      if (submitFn) {
+        await submitFn(onboardingData);
       }
-    } catch (err: any) {
-      console.error('Onboarding error:', err);
-      setError(err.message || 'Something went wrong during onboarding');
       
       toast({
-        title: "Error",
-        description: err.message || 'Something went wrong during onboarding',
-        variant: "destructive",
+        description: 'Onboarding completed successfully!',
       });
+      
+      return { success: true, data: onboardingData };
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        description: error.message || 'Failed to complete onboarding',
+      });
+      
+      return { success: false, error };
     } finally {
-      setState((prev) => ({ ...prev, isSubmitting: false }));
+      setIsSubmitting(false);
     }
-  }, [submitCallback, redirectPath, navigate, toast]);
+  };
   
   return {
-    currentStep: state.currentStep,
-    totalSteps: state.totalSteps,
-    isSubmitting: state.isSubmitting,
-    nextStep,
-    prevStep,
+    steps,
+    currentStep,
+    currentStepIndex,
+    isFirstStep,
+    isLastStep,
+    isSubmitting,
+    progress,
+    onboardingData,
+    goToNextStep,
+    goToPrevStep,
     goToStep,
-    submitForm,
-    error,
+    updateOnboardingData,
+    resetOnboardingWizard,
+    completeOnboarding,
   };
 };
 

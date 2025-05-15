@@ -1,99 +1,83 @@
 
 import { useState } from 'react';
-import { useToast } from '@/lib/notifications/toast';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 export const useOnboardingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
 
-  const submitOnboardingData = async (data: Record<string, any>) => {
+  const submitOnboardingData = async (data: any) => {
     setIsSubmitting(true);
     setSuccess(false);
-    
+    setError(null);
+
     try {
-      // Validate input
-      if (!data.tenant_id) {
-        toast({
-          title: "Missing Information",
-          description: "Tenant ID is required to complete onboarding"
+      // Validate the data before submission (simplified example)
+      if (!data || !data.tenant_name) {
+        throw new Error('Required fields are missing');
+      }
+      
+      // Submit to Supabase
+      const { error: submissionError } = await supabase
+        .from('onboarding_submissions')
+        .insert({
+          data: data,
         });
-        return { success: false, error: "Missing tenant_id" };
+
+      if (submissionError) {
+        throw submissionError;
       }
-      
-      // Mock onboarding submission to Supabase
-      // First update the company profile
-      if (data.company) {
-        const { error: companyError } = await supabase
-          .from('company_profiles')
-          .upsert({
-            tenant_id: data.tenant_id,
-            name: data.company.name,
-            industry: data.company.industry,
-            size: data.company.size,
-            description: data.company.description
-          });
-        
-        if (companyError) {
-          throw companyError;
-        }
-      }
-      
-      // Set onboarding as completed in user profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', data.user_id);
-      
-      if (profileError) {
-        throw profileError;
-      }
-      
-      // Create initial strategy if provided
-      if (data.strategy) {
-        const { error: strategyError } = await supabase
-          .from('strategies')
-          .insert({
-            tenant_id: data.tenant_id,
-            title: data.strategy.title,
-            description: data.strategy.description,
-            status: 'draft',
-            created_by: data.user_id
-          });
-        
-        if (strategyError) {
-          throw strategyError;
-        }
-      }
+
+      toast({
+        description: 'Onboarding data submitted successfully',
+      });
       
       setSuccess(true);
-      toast({
-        title: "Onboarding Complete",
-        description: "Your account setup has been completed successfully!"
-      });
+      
+      // Optionally create tenant directly
+      if (data.create_tenant_immediately) {
+        const { error: tenantError } = await supabase
+          .rpc('create_tenant_from_onboarding', { 
+            onboarding_data: data 
+          });
+          
+        if (tenantError) {
+          toast({
+            variant: "destructive",
+            description: `Tenant created but setup failed: ${tenantError.message}`,
+          });
+        } else {
+          toast({
+            description: 'Tenant created successfully',
+          });
+        }
+      }
       
       return { success: true };
-    } catch (error: any) {
-      console.error("Onboarding submission error:", error);
+    } catch (err: any) {
+      console.error('Onboarding submission error:', err);
+      const errorMessage = err.message || 'Failed to submit onboarding data';
       
       toast({
-        title: "Onboarding Error",
-        description: error.message || "Failed to complete onboarding process"
+        variant: "destructive",
+        description: errorMessage,
       });
       
-      return { 
-        success: false, 
-        error: error.message || "Unknown error occurred" 
-      };
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return {
+    submitOnboardingData,
     isSubmitting,
     success,
-    submitOnboardingData
+    error
   };
 };
+
+export default useOnboardingSubmission;

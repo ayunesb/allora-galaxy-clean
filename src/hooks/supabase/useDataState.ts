@@ -1,92 +1,78 @@
 
-import { useState, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from '@/components/ui/use-toast';
 
 interface UseDataStateOptions<T> {
-  initialData?: T;
-  onError?: (error: Error) => void;
-  showToast?: boolean;
+  fetchFn: () => Promise<T>;
+  queryKey: string | string[];
+  successMessage?: string;
   errorMessage?: string;
-  loadingMessage?: string;
+  onSuccess?: (data: T) => void;
+  onError?: (error: any) => void;
+  shouldFetch?: boolean;
 }
 
-export const useDataState = <T>(options: UseDataStateOptions<T> = {}) => {
-  const [data, setData] = useState<T | undefined>(options.initialData);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const { toast } = useToast();
-  
+export function useDataState<T>({
+  fetchFn,
+  queryKey,
+  successMessage,
+  errorMessage = 'Failed to fetch data',
+  onSuccess,
+  onError,
+  shouldFetch = true,
+}: UseDataStateOptions<T>) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const {
-    onError,
-    showToast = true,
-    errorMessage = 'An error occurred while fetching data',
-    loadingMessage = 'Loading data...',
-  } = options;
-  
-  const fetchData = useCallback(async (
-    fetchFunction: () => Promise<T>,
-    transformFunction?: (data: T) => T
-  ) => {
-    setIsLoading(true);
-    setError(null);
-    
-    let toastId: string | number | undefined;
-    if (showToast) {
-      toastId = toast({
-        title: "Loading",
-        description: loadingMessage,
-      });
-    }
-    
-    try {
-      // Execute the fetch function
-      const result = await fetchFunction();
-      
-      // Transform data if needed
-      const transformedData = transformFunction ? transformFunction(result) : result;
-      
-      // Update state
-      setData(transformedData);
-      
-      // Dismiss loading toast if it exists
-      if (toastId && showToast) {
-        toast({
-          title: "Success",
-          description: "Data loaded successfully",
-        });
-      }
-      
-      return transformedData;
-    } catch (err) {
-      // Handle error
-      const error = err instanceof Error ? err : new Error('Unknown error occurred');
-      setError(error);
-      
-      if (toastId && showToast) {
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-      
-      if (onError) {
-        onError(error);
-      }
-      
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast, showToast, errorMessage, loadingMessage, onError]);
-  
-  return {
     data,
-    setData,
     isLoading,
     error,
-    fetchData,
-  };
-};
+    refetch,
+  } = useQuery({
+    queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
+    queryFn: fetchFn,
+    enabled: shouldFetch,
+    onSuccess: (data) => {
+      if (successMessage) {
+        toast({
+          description: successMessage,
+        });
+      }
+      onSuccess?.(data);
+    },
+    onError: (err: any) => {
+      setIsRefreshing(false);
+      toast({
+        variant: "destructive",
+        description: errorMessage || err?.message || 'An error occurred',
+      });
+      onError?.(err);
+    },
+  });
 
-export default useDataState;
+  const refresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast({
+        description: "Data refreshed successfully",
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        description: err?.message || 'Failed to refresh data',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  return {
+    data,
+    isLoading: isLoading || isRefreshing,
+    error,
+    refresh,
+    isRefreshing,
+  };
+}
