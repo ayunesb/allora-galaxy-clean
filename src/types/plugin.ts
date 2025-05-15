@@ -1,31 +1,79 @@
 
-import { SystemLog, LogLevel, LogSeverity } from './logs';
+/**
+ * Plugin-related type definitions
+ */
 
 /**
- * Plugin log interface for storing plugin execution logs
+ * Represents a plugin in the system
  */
-export interface PluginLog extends Omit<SystemLog, 'plugin_id'> {
-  /** ID of the plugin */
-  plugin_id: string;
+export interface Plugin {
+  /** Unique identifier */
+  id: string;
   
-  /** Execution status */
-  execution_status?: 'success' | 'error' | 'warning';
+  /** Plugin display name */
+  name: string;
   
-  /** Input parameters */
-  input_params?: Record<string, any>;
+  /** Plugin description */
+  description?: string;
   
-  /** Output result */
-  output_result?: Record<string, any>;
+  /** Current status */
+  status: 'active' | 'inactive' | 'deprecated' | 'beta' | string;
   
-  /** Execution time in ms */
-  execution_time?: number;
+  /** Plugin category */
+  category?: string;
   
-  /** Experience points earned */
-  xp_earned?: number;
+  /** Icon identifier */
+  icon?: string;
   
-  /** Associated strategy ID */
-  strategy_id?: string;
+  /** Additional metadata */
+  metadata?: Record<string, any>;
+  
+  /** Tenant ID */
+  tenant_id?: string;
+  
+  /** Creation timestamp */
+  created_at?: string;
+  
+  /** Last update timestamp */
+  updated_at?: string;
+  
+  /** Experience points */
+  xp?: number;
+  
+  /** Return on investment score */
+  roi?: number;
 }
 
-// Export this type specifically for use across the app
-export type { PluginLog };
+/**
+ * Result of a plugin execution
+ */
+export interface PluginResult {
+  /** Whether execution was successful */
+  success: boolean;
+  
+  /** Data returned from plugin */
+  data?: any;
+  
+  /** Error information if unsuccessful */
+  error?: string;
+  
+  /** Execution metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Result of running a plugin chain
+ */
+export interface RunPluginChainResult {
+  /** Overall success status */
+  success: boolean;
+  
+  /** Individual plugin results */
+  results: PluginResult[];
+  
+  /** Combined data from all plugins */
+  data?: Record<string, any>;
+  
+  /** Error information if unsuccessful */
+  error?: string;
+}

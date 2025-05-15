@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Filter } from 'lucide-react';
-import { LogFilters } from '@/types/logs';
+import { LogFilters, LogSeverity, isLogSeverity } from '@/types/logs';
 import { SystemEventModule } from '@/types/shared';
 
 interface ErrorMonitoringFiltersProps {
@@ -31,7 +31,7 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   const handleSeverityChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      severity: value !== 'all' ? value : undefined
+      severity: value !== 'all' ? (isLogSeverity(value) ? value as LogSeverity : undefined) : undefined
     });
   };
 
@@ -59,7 +59,7 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
       </div>
       
       <Select
-        value={(filters.severity as string) || 'all'}
+        value={typeof filters.severity === 'string' ? filters.severity : 'all'}
         onValueChange={handleSeverityChange}
         disabled={isLoading}
       >

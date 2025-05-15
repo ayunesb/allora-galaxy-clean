@@ -99,6 +99,9 @@ export interface SystemLog {
   
   /** Whether this error affects multiple users */
   affects_multiple_users?: boolean;
+  
+  /** Additional details about the error - can be a record or string */
+  details?: Record<string, any> | string;
 }
 
 /**
@@ -216,6 +219,11 @@ export interface LogGroup {
   
   /** Example occurrences */
   examples: SystemLog[];
+  
+  /** Module (for backward compatibility) - redirects to first module in modules array */
+  get module(): string {
+    return this.modules && this.modules.length > 0 ? this.modules[0] : 'unknown';
+  }
 }
 
 /**

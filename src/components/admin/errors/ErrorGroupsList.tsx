@@ -61,7 +61,9 @@ export const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
                       {errorGroup.message}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{errorGroup.module}</Badge>
+                      <Badge variant="outline">
+                        {errorGroup.modules && errorGroup.modules.length > 0 ? errorGroup.modules[0] : 'unknown'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {format(new Date(errorGroup.last_seen || Date.now()), 'yyyy-MM-dd HH:mm')}
