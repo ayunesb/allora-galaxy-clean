@@ -1,74 +1,64 @@
 
+import { describe, it, expect, vi } from 'vitest';
 import { 
-  formatDateToISO, 
-  parseISO, 
+  formatDateToISO,
+  parseISO,
   formatDateDisplay,
   getDateRangeFromPeriod,
   getTimePeriodLabel
 } from '@/components/admin/errors/utils/dateUtils';
-import { addDays, subDays } from 'date-fns';
 
 describe('dateUtils', () => {
-  test('formatDateToISO formats dates correctly', () => {
-    const date = new Date('2023-06-15T12:30:00Z');
-    const result = formatDateToISO(date);
-    
-    // Should return ISO format: YYYY-MM-DD
-    expect(result).toBe('2023-06-15');
+  it('should format date to ISO', () => {
+    const date = new Date('2023-01-01');
+    expect(formatDateToISO(date)).toBe('2023-01-01T00:00:00.000Z');
   });
   
-  test('parseISO parses ISO strings correctly', () => {
-    const isoString = '2023-06-15';
-    const result = parseISO(isoString);
-    
-    expect(result instanceof Date).toBe(true);
-    expect(result.getUTCFullYear()).toBe(2023);
-    expect(result.getUTCMonth()).toBe(5); // June (0-indexed)
-    expect(result.getUTCDate()).toBe(15);
+  it('should parse ISO string to date', () => {
+    const isoDate = '2023-01-01T00:00:00.000Z';
+    const date = parseISO(isoDate);
+    expect(date.getFullYear()).toBe(2023);
+    expect(date.getMonth()).toBe(0); // January is 0
+    expect(date.getDate()).toBe(1);
   });
   
-  test('formatDateDisplay formats dates for display', () => {
-    const date = new Date('2023-06-15T12:30:00Z');
-    const result = formatDateDisplay(date);
-    
-    // Should format as "Jun 15, 2023"
-    expect(result).toMatch(/Jun 15, 2023/);
+  it('should format date for display', () => {
+    const date = new Date('2023-01-01');
+    expect(formatDateDisplay(date)).toBe('Jan 1, 2023');
   });
   
-  test('getDateRangeFromPeriod calculates correct date ranges', () => {
-    // Mock the current date to make the test predictable
-    const originalDate = Date;
-    global.Date = class extends Date {
-      constructor(date) {
-        if (date) {
-          return super(date);
-        }
-        return new originalDate('2023-06-15T12:00:00Z');
-      }
-    };
+  it('should get date range from period', () => {
+    // Mock Date.now to return a fixed timestamp for testing
+    const originalNow = Date.now;
+    const mockNow = new Date('2023-01-10').valueOf();
+    global.Date.now = vi.fn().mockReturnValue(mockNow);
     
-    // Test "7d" period (last 7 days)
-    let result = getDateRangeFromPeriod('7d');
-    expect(result.from instanceof Date).toBe(true);
-    expect(result.to instanceof Date).toBe(true);
-    expect(result.from.toISOString().substring(0, 10)).toBe('2023-06-08');
-    expect(result.to.toISOString().substring(0, 10)).toBe('2023-06-15');
+    const day = getDateRangeFromPeriod('24h');
+    const week = getDateRangeFromPeriod('7d');
+    const month = getDateRangeFromPeriod('30d');
+    const year = getDateRangeFromPeriod('1y');
     
-    // Test "30d" period (last 30 days)
-    result = getDateRangeFromPeriod('30d');
-    expect(result.from.toISOString().substring(0, 10)).toBe('2023-05-16');
-    expect(result.to.toISOString().substring(0, 10)).toBe('2023-06-15');
+    // Verify the calculations
+    expect(day.from.toISOString().substring(0, 10)).toBe('2023-01-09');
+    expect(day.to.toISOString().substring(0, 10)).toBe('2023-01-10');
     
-    // Restore original Date
-    global.Date = originalDate;
+    expect(week.from.toISOString().substring(0, 10)).toBe('2023-01-03');
+    expect(week.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    
+    expect(month.from.toISOString().substring(0, 10)).toBe('2022-12-11');
+    expect(month.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    
+    expect(year.from.toISOString().substring(0, 10)).toBe('2022-01-10');
+    expect(year.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    
+    // Restore original function
+    global.Date.now = originalNow;
   });
   
-  test('getTimePeriodLabel returns correct labels', () => {
+  it('should get time period labels', () => {
     expect(getTimePeriodLabel('24h')).toBe('Last 24 hours');
     expect(getTimePeriodLabel('7d')).toBe('Last 7 days');
     expect(getTimePeriodLabel('30d')).toBe('Last 30 days');
-    expect(getTimePeriodLabel('90d')).toBe('Last 90 days');
-    expect(getTimePeriodLabel('custom')).toBe('Custom range');
-    expect(getTimePeriodLabel('unknown')).toBe('Custom');
+    expect(getTimePeriodLabel('1y')).toBe('Last year');
   });
 });

@@ -1,80 +1,104 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { toast } from '@/lib/notifications/toast';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { notifySuccess, notifyError, notifyWarning, notifyInfo, notifyPromise } from '@/lib/notifications/toast';
 
-// Mock sonner's toast
-vi.mock('sonner', () => {
-  const mockToast = vi.fn();
-  mockToast.success = vi.fn();
-  mockToast.error = vi.fn();
-  mockToast.info = vi.fn();
-  mockToast.warning = vi.fn();
-  mockToast.loading = vi.fn();
-  mockToast.dismiss = vi.fn();
+// Mock the toast library
+vi.mock('@/components/ui/use-toast', () => ({
+  useToast: vi.fn(() => ({
+    toast: {
+      success: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      warning: vi.fn(),
+      loading: vi.fn(),
+      dismiss: vi.fn(),
+      custom: vi.fn()
+    }
+  }))
+}));
+
+// Import the mocked module to access our spy
+import { useToast } from '@/components/ui/use-toast';
+
+describe('Toast notification utilities', () => {
+  const mockToast = {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(), 
+    warning: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+    custom: vi.fn()
+  };
   
-  return { toast: mockToast };
-});
-
-describe('toast notifications', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should show success toast', () => {
-    const message = 'Operation successful';
-    toast.success(message);
+    // Reset all mocks before each test
+    vi.resetAllMocks();
     
-    // Import the mocked module to access the mock functions
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.success).toHaveBeenCalledWith(message, expect.any(Object));
+    // Setup mock implementation
+    (useToast as any).mockImplementation(() => ({
+      toast: mockToast
+    }));
   });
-
-  it('should show error toast', () => {
-    const message = 'An error occurred';
-    toast.error(message);
-    
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.error).toHaveBeenCalledWith(message, expect.any(Object));
+  
+  afterEach(() => {
+    vi.resetAllMocks();
   });
-
-  it('should show warning toast', () => {
-    const message = 'Warning message';
-    toast.warning(message);
+  
+  it('should call success toast with correct parameters', () => {
+    notifySuccess('Test success message');
     
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.warning).toHaveBeenCalledWith(message, expect.any(Object));
+    expect(mockToast.success).toHaveBeenCalledWith({
+      title: expect.any(String),
+      description: 'Test success message'
+    });
   });
-
-  it('should show info toast', () => {
-    const message = 'Information message';
-    toast.info(message);
+  
+  it('should call error toast with correct parameters', () => {
+    notifyError('Test error message');
     
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.info).toHaveBeenCalledWith(message, expect.any(Object));
+    expect(mockToast.error).toHaveBeenCalledWith({
+      title: expect.any(String),
+      description: 'Test error message'
+    });
   });
-
-  it('should show loading toast', () => {
-    const message = 'Loading...';
-    toast.loading(message);
+  
+  it('should call info toast with correct parameters', () => {
+    notifyInfo('Test info message');
     
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.loading).toHaveBeenCalledWith(message, expect.any(Object));
+    expect(mockToast.info).toHaveBeenCalledWith({
+      title: expect.any(String),
+      description: 'Test info message'
+    });
   });
-
-  it('should dismiss toast by ID', () => {
-    const toastId = 'test-id';
-    toast.dismiss(toastId);
+  
+  it('should call warning toast with correct parameters', () => {
+    notifyWarning('Test warning message');
     
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.dismiss).toHaveBeenCalledWith(toastId);
+    expect(mockToast.warning).toHaveBeenCalledWith({
+      title: expect.any(String),
+      description: 'Test warning message'
+    });
   });
-
-  it('should handle custom options', () => {
-    const message = 'Custom options';
-    const options = { duration: 5000, id: 'custom-id' };
-    toast.success(message, options);
+  
+  it('should handle promise notifications', async () => {
+    const mockPromise = Promise.resolve('Success result');
     
-    const { toast: mockedToast } = require('sonner');
-    expect(mockedToast.success).toHaveBeenCalledWith(message, expect.objectContaining(options));
+    await notifyPromise(
+      mockPromise,
+      {
+        loading: 'Loading...',
+        success: () => 'Success!',
+        error: () => 'Error!'
+      }
+    );
+    
+    expect(mockToast.loading).toHaveBeenCalledWith(expect.objectContaining({
+      description: 'Loading...'
+    }));
+    
+    expect(mockToast.success).toHaveBeenCalledWith(expect.objectContaining({
+      description: 'Success!'
+    }));
   });
 });

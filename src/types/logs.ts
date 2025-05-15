@@ -1,3 +1,4 @@
+
 /**
  * Type definitions for system logs and error monitoring
  * @module types/logs
@@ -7,13 +8,33 @@ import { SystemEventModule } from './shared';
 
 /**
  * Log severity levels
+ * @description Represents the severity of a log entry
  */
 export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 /**
  * Log level types
+ * @description Represents the level of a log entry
  */
 export type LogLevel = 'info' | 'warning' | 'error';
+
+/**
+ * Type guard for LogLevel
+ * @param value - The string to check
+ * @returns True if the value is a valid LogLevel
+ */
+export function isLogLevel(value: string): value is LogLevel {
+  return ['info', 'warning', 'error'].includes(value);
+}
+
+/**
+ * Type guard for LogSeverity
+ * @param value - The string to check
+ * @returns True if the value is a valid LogSeverity
+ */
+export function isLogSeverity(value: string): value is LogSeverity {
+  return ['low', 'medium', 'high', 'critical'].includes(value);
+}
 
 /**
  * System log entry interface
@@ -53,8 +74,8 @@ export interface SystemLog {
   /** User ID that triggered the event (if applicable) */
   user_id?: string;
   
-  /** Additional context data */
-  context?: Record<string, any>;
+  /** Additional context data - can be a record or string */
+  context?: Record<string, any> | string;
   
   /** Additional metadata */
   metadata?: Record<string, any>;
@@ -79,6 +100,33 @@ export interface SystemLog {
   
   /** Whether this error affects multiple users */
   affects_multiple_users?: boolean;
+}
+
+/**
+ * Type guard for SystemLog
+ * @param value - The object to check
+ * @returns True if the value is a valid SystemLog
+ */
+export function isSystemLog(value: any): value is SystemLog {
+  return (
+    value &&
+    typeof value === 'object' &&
+    typeof value.id === 'string' &&
+    typeof value.created_at === 'string' &&
+    typeof value.module === 'string' &&
+    typeof value.description === 'string' &&
+    typeof value.tenant_id === 'string' &&
+    (typeof value.level === 'string' && isLogLevel(value.level))
+  );
+}
+
+/**
+ * Check if a SystemLog contains error information
+ * @param log - The log to check
+ * @returns True if the log contains error information
+ */
+export function hasError(log: SystemLog): boolean {
+  return log.level === 'error' || !!log.error_type || !!log.error_message;
 }
 
 /**

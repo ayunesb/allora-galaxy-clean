@@ -55,6 +55,9 @@ describe('SystemLogFilters', () => {
     const searchInput = screen.getByTestId('search-input');
     fireEvent.change(searchInput, { target: { value: 'test search' } });
     
+    // Wait for debounce to complete
+    vi.advanceTimersByTime(300);
+    
     expect(handleFilterChange).toHaveBeenCalledWith({ search: 'test search' });
   });
 });

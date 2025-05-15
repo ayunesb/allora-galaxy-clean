@@ -39,7 +39,15 @@ export type VoteType = 'upvote' | 'downvote';
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
 // Update LogFilters interface to reference logs.ts implementation
-export { type LogFilters } from './logs';
+export { 
+  type LogFilters, 
+  type LogLevel, 
+  type LogSeverity,
+  type SystemLog,
+  type DateRange,
+  isLogLevel,
+  isLogSeverity,
+  isSystemLog,
+  hasError
+} from './logs';
 
-// Add SystemLog interface reference to fix test errors
-export { type SystemLog } from './logs';
