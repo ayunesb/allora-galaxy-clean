@@ -1,92 +1,86 @@
 
-import React from 'react';
-import { AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { ProgressCircle } from "./progress-circle";
+import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface RetryFeedbackProps {
+export interface RetryFeedbackProps {
   retryCount: number;
   maxRetries: number;
-  isRetrying: boolean;
+  isRetrying?: boolean;
   onRetry?: () => void;
   className?: string;
+  successful?: boolean;
+  showProgress?: boolean;
 }
 
-/**
- * Displays retry status and controls for operations that can be retried
- * 
- * @component 
- * @param {Object} props - Component props
- * @param {number} props.retryCount - Current retry attempt count
- * @param {number} props.maxRetries - Maximum number of retries allowed
- * @param {boolean} props.isRetrying - Whether a retry is currently in progress
- * @param {Function} [props.onRetry] - Callback for retry button
- * @param {string} [props.className] - Additional CSS classes
- */
-const RetryFeedback: React.FC<RetryFeedbackProps> = ({
+export function RetryFeedback({
   retryCount,
   maxRetries,
-  isRetrying,
+  isRetrying = false,
   onRetry,
-  className
-}) => {
-  const retriesExhausted = retryCount >= maxRetries;
-  const retriesRemaining = Math.max(0, maxRetries - retryCount);
+  className,
+  successful = false,
+  showProgress = true
+}: RetryFeedbackProps) {
+  // Calculate progress percentage
+  const progress = Math.min((retryCount / maxRetries) * 100, 100);
+  
+  // Determine status
+  const isMaxedOut = retryCount >= maxRetries;
+  const isComplete = successful || isMaxedOut;
   
   return (
     <div className={cn(
-      "text-sm flex items-center gap-2",
-      isRetrying ? "text-muted-foreground" : retriesExhausted ? "text-destructive" : "text-muted-foreground",
+      "flex items-center justify-between p-2 rounded-md text-sm",
+      isMaxedOut ? "bg-destructive/10" : successful ? "bg-success/10" : "bg-muted",
       className
     )}>
-      {isRetrying ? (
-        <>
+      <div className="flex items-center gap-2">
+        {successful ? (
+          <CheckCircle className="h-4 w-4 text-success" />
+        ) : isMaxedOut ? (
+          <AlertCircle className="h-4 w-4 text-destructive" />
+        ) : isRetrying ? (
           <RefreshCw className="h-4 w-4 animate-spin" />
-          <span>Retrying... (Attempt {retryCount + 1} of {maxRetries})</span>
-        </>
-      ) : retriesExhausted ? (
-        <>
-          <AlertCircle className="h-4 w-4" />
-          <span>All {maxRetries} retry attempts failed</span>
-          {onRetry && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="ml-auto h-7 px-2"
-              onClick={onRetry}
-            >
-              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-              Try again
-            </Button>
-          )}
-        </>
-      ) : retryCount === 0 ? (
-        <>
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <span>First attempt</span>
-        </>
-      ) : (
-        <>
+        ) : (
           <RefreshCw className="h-4 w-4" />
-          <span>
-            Retried {retryCount} {retryCount === 1 ? 'time' : 'times'}{' '}
-            ({retriesRemaining} {retriesRemaining === 1 ? 'retry' : 'retries'} remaining)
-          </span>
-          {onRetry && !isRetrying && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="ml-auto h-7 px-2"
-              onClick={onRetry}
-            >
-              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-              Retry
-            </Button>
+        )}
+        
+        <span>
+          {successful ? (
+            "Operation completed"
+          ) : isMaxedOut ? (
+            "Maximum retries reached"
+          ) : isRetrying ? (
+            `Retrying (${retryCount}/${maxRetries})...`
+          ) : (
+            `Retry ${retryCount} of ${maxRetries}`
           )}
-        </>
-      )}
+        </span>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {showProgress && !successful && (
+          <ProgressCircle 
+            value={progress} 
+            size="sm"
+            className={isMaxedOut ? "text-destructive" : ""}
+          />
+        )}
+        
+        {onRetry && !isRetrying && !successful && (
+          <button
+            onClick={onRetry}
+            className="text-xs hover:underline"
+            disabled={isComplete}
+          >
+            {isMaxedOut ? "Reset" : "Retry now"}
+          </button>
+        )}
+      </div>
     </div>
   );
-};
+}
 
 export default RetryFeedback;

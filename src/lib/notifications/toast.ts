@@ -1,55 +1,112 @@
 
-import { toast as sonnerToast } from 'sonner';
+import { toast as sonnerToast } from "sonner";
 
-// Define toast types
-type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info';
+export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info';
 
 interface ToastOptions {
-  duration?: number;
-  position?: 'top-right' | 'top-center' | 'top-left' | 'bottom-right' | 'bottom-center' | 'bottom-left';
-  icon?: React.ReactNode;
   description?: string;
+  duration?: number;
   action?: {
     label: string;
     onClick: () => void;
   };
+  promise?: Promise<any>;
+  onSuccess?: string | ((data: any) => string);
+  onError?: string | ((error: Error) => string);
 }
 
-// Create a wrapper for the toast function
-export const toast = {
-  show: (message: string, options?: ToastOptions) => {
-    return sonnerToast(message, options);
-  },
-  success: (message: string, options?: ToastOptions) => {
-    return sonnerToast.success(message, options);
-  },
-  error: (message: string, options?: ToastOptions) => {
-    return sonnerToast.error(message, options);
-  },
-  warning: (message: string, options?: ToastOptions) => {
-    return sonnerToast.warning(message, options);
-  },
-  info: (message: string, options?: ToastOptions) => {
-    return sonnerToast.info(message, options);
-  },
-  promise: <T>(
-    promise: Promise<T>,
-    messages: {
-      loading: string;
-      success: string | ((data: T) => string);
-      error: string | ((error: any) => string);
-    },
-    options?: ToastOptions
-  ) => {
-    return sonnerToast.promise(promise, messages, options);
-  },
-  dismiss: (toastId?: string) => {
-    return sonnerToast.dismiss(toastId);
-  },
-  custom: (component: React.ReactNode, options?: ToastOptions) => {
-    return sonnerToast.custom(component, options);
-  },
-};
+/**
+ * General notification function
+ */
+export function notify(message: string, options?: ToastOptions & { variant?: ToastType }) {
+  const { variant = 'default', ...rest } = options || {};
+  
+  return sonnerToast[variant](message, rest);
+}
 
-// Export named toast for compatibility
-export { toast };
+/**
+ * Success notification
+ */
+export function notifySuccess(message: string, options?: ToastOptions) {
+  return notify(message, { ...options, variant: 'success' });
+}
+
+/**
+ * Error notification
+ */
+export function notifyError(message: string, options?: ToastOptions) {
+  return notify(message, { ...options, variant: 'error' });
+}
+
+/**
+ * Warning notification
+ */
+export function notifyWarning(message: string, options?: ToastOptions) {
+  return notify(message, { ...options, variant: 'warning' });
+}
+
+/**
+ * Info notification
+ */
+export function notifyInfo(message: string, options?: ToastOptions) {
+  return notify(message, { ...options, variant: 'info' });
+}
+
+/**
+ * Promise-based notification that shows loading, success, and error states
+ */
+export function notifyPromise<T>(
+  promise: Promise<T>,
+  options: {
+    loading: string;
+    success: string | ((data: T) => string);
+    error: string | ((error: Error) => string);
+  }
+) {
+  return sonnerToast.promise(promise, options);
+}
+
+/**
+ * Notify and log to system logs simultaneously
+ */
+export function notifyAndLog(
+  message: string,
+  options: {
+    variant?: ToastType;
+    module?: string;
+    level?: 'info' | 'warning' | 'error';
+    context?: Record<string, any>;
+    tenant_id?: string;
+  } = {}
+) {
+  const { variant = 'default', module = 'system', level = 'info', context, tenant_id } = options;
+  
+  // Log to system logs
+  import('@/lib/system/logSystemEvent').then(({ logSystemEvent }) => {
+    logSystemEvent(
+      module,
+      level,
+      { description: message, ...context },
+      tenant_id
+    ).catch(err => console.error('Failed to log event:', err));
+  });
+  
+  // Show notification
+  return notify(message, { variant });
+}
+
+/**
+ * Hook for accessing toast functionality within components
+ */
+export function useToast() {
+  return {
+    toast: notify,
+    notify,
+    notifySuccess,
+    notifyError,
+    notifyWarning,
+    notifyInfo,
+    notifyPromise,
+    notifyAndLog
+  };
+}

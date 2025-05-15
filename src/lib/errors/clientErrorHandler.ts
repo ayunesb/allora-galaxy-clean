@@ -1,177 +1,112 @@
 
-import { toast } from 'sonner';
-import { ErrorHandlerBase } from './ErrorHandlerBase';
-import { AlloraError } from './errorTypes';
+import { toast } from "sonner";
+import { AlloraError } from "./errorTypes";
 
 /**
  * Process a response from an edge function
- * 
- * @param {Response} response - The fetch Response object
- * @returns {Promise<any>} The processed data
- * @throws {Error} If the response is not OK
+ * Handles standard response format and errors
  */
 export async function processEdgeResponse(response: Response): Promise<any> {
-  // Check if response is OK (status in the range 200-299)
+  // Check if the response is valid
   if (!response.ok) {
-    // Try to extract error details from JSON response
+    let errorData: any;
+    
     try {
-      const errorData = await response.json();
+      // Try to parse error response
+      errorData = await response.json();
       
-      // Handle structured error responses
-      if (errorData && errorData.error) {
-        const error = new Error(errorData.error);
-        
-        // Add additional error properties for proper handling
-        if (errorData.code) (error as any).code = errorData.code;
-        if (errorData.status) (error as any).status = errorData.status;
-        if (errorData.requestId) (error as any).requestId = errorData.requestId;
-        if (errorData.details) (error as any).details = errorData.details;
-        
+      // If response has detailed error format
+      if (errorData && !errorData.success) {
+        // Create error with details from response
+        const error: any = new Error(errorData.error || 'Unknown error');
+        error.status = errorData.status || response.status;
+        error.code = errorData.code;
+        error.details = errorData.details;
+        error.requestId = errorData.requestId;
+        error.timestamp = errorData.timestamp;
         throw error;
       }
-      
-      // If no structured error but response contains message
-      if (errorData && errorData.message) {
-        throw new Error(errorData.message);
-      }
-      
-      // Fall back to generic message with status
-      throw new Error(`Server Error: ${response.status} ${response.statusText}`);
     } catch (parseError) {
-      // If JSON parsing fails, throw error with status code
-      if (parseError instanceof Error && parseError.message !== 'invalid json response body') {
-        throw parseError;
-      }
+      // If response cannot be parsed as JSON, throw a generic error
       throw new Error(`Server Error: ${response.status} ${response.statusText}`);
     }
+    
+    // Fallback error if we get here
+    throw new Error(errorData?.message || `Request failed with status ${response.status}`);
   }
 
-  // For successful responses, try to extract data
-  try {
-    const data = await response.json();
-    
-    // Handle standard response format with data property
-    if ('data' in data) {
-      return data.data;
-    }
-    
-    // Legacy format might return data directly
-    return data;
-  } catch (error) {
-    // Handle case where response body is not valid JSON
-    console.error('Error parsing response:', error);
-    throw new Error('Invalid response format from server');
+  // Parse successful response
+  const data = await response.json();
+  
+  // Our standard edge function response format
+  if (data && typeof data.success === 'boolean' && data.success) {
+    return data.data;
   }
-}
-
-interface EdgeErrorHandlerOptions {
-  showToast?: boolean;
-  fallbackMessage?: string;
-  logToConsole?: boolean;
-  errorCallback?: (error: any) => void;
-  toastOptions?: Record<string, any>;
+  
+  // Non-standard response format, return as is
+  return data;
 }
 
 /**
- * Handle errors from edge functions with proper UI feedback
- * 
- * @param {any} error - The error object
- * @param {Object} options - Error handling options
+ * Handle edge function errors with standard display and logging
  */
 export function handleEdgeError(
   error: any,
-  options: EdgeErrorHandlerOptions = {}
-): void {
+  options: {
+    fallbackMessage?: string;
+    showToast?: boolean;
+    logToConsole?: boolean;
+    errorCallback?: (error: any) => void;
+  } = {}
+) {
   const {
-    showToast = true,
     fallbackMessage = 'An unexpected error occurred',
+    showToast = true,
     logToConsole = true,
-    errorCallback,
-    toastOptions = {}
+    errorCallback
   } = options;
-  
-  // Normalize the error for consistent handling
-  const normalizedError = ErrorHandlerBase.normalizeError(error);
-  
-  // Get user-friendly message
-  const message = normalizedError.userMessage || 
-                  normalizedError.message || 
-                  (error?.message || fallbackMessage);
-  
-  // Show toast notification
-  if (showToast) {
-    toast.error(message, {
-      description: normalizedError.requestId ? 
-        `Request ID: ${normalizedError.requestId}` : undefined,
-      ...toastOptions
-    });
-  }
+
+  // Get error message
+  const errorMessage = error?.message || error?.error || fallbackMessage;
   
   // Log to console
   if (logToConsole) {
-    console.error('Edge function error:', {
-      message: normalizedError.message,
-      code: normalizedError.code,
-      requestId: normalizedError.requestId,
-      details: normalizedError.context
+    console.error('Edge function error:', error);
+  }
+  
+  // Show toast notification
+  if (showToast) {
+    toast.error(errorMessage, {
+      description: error?.details ? `Reference ID: ${error.requestId || 'unknown'}` : undefined,
+      duration: 5000
     });
   }
   
-  // Call custom error handler if provided
-  if (errorCallback) {
+  // Call error callback if provided
+  if (errorCallback && typeof errorCallback === 'function') {
     errorCallback(error);
   }
-}
-
-interface EdgeFunctionOptions extends EdgeErrorHandlerOptions {
-  transformResult?: (data: any) => any;
-  silent?: boolean;
+  
+  return error;
 }
 
 /**
  * Create a wrapped edge function with error handling
- * 
- * @template T Input arguments type
- * @template R Return type
- * @param {Function} fn - The edge function to wrap
- * @param {Object} options - Configuration options
- * @returns {Function} Wrapped function with error handling
  */
-export function createEdgeFunction<T, R>(
-  fn: (arg: T) => Promise<R>, 
-  options: EdgeFunctionOptions = {}
-): (arg: T) => Promise<R | null> {
-  return async (arg: T): Promise<R | null> => {
-    const { 
-      transformResult, 
-      silent = false,
-      ...errorOptions
-    } = options;
-    
+export function createEdgeFunction<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  options: {
+    fallbackMessage?: string;
+    showToast?: boolean;
+    logToConsole?: boolean;
+  } = {}
+): (...args: Parameters<T>) => Promise<ReturnType<T> | null> {
+  return async (...args: Parameters<T>): Promise<ReturnType<T> | null> => {
     try {
-      // Call the original function
-      const result = await fn(arg);
-      
-      // Transform result if transformer provided
-      return transformResult ? transformResult(result) : result;
+      return await fn(...args);
     } catch (error) {
-      // Don't show UI notifications in silent mode
-      if (!silent) {
-        handleEdgeError(error, errorOptions);
-      }
-      
-      // Still log error in console even in silent mode
-      if (silent && errorOptions.logToConsole !== false) {
-        console.error('Silent edge function error:', error);
-      }
-      
+      handleEdgeError(error, options);
       return null;
     }
   };
 }
-
-export default {
-  processEdgeResponse,
-  handleEdgeError,
-  createEdgeFunction
-};

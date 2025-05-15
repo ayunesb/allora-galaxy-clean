@@ -1,106 +1,131 @@
 
 import React from "react";
+import { ErrorState } from "./error-state";
+import { Skeleton } from "./skeleton";
 
-export interface DataStateHandlerProps<T> {
-  isLoading?: boolean;
-  data: T | null;
-  error: Error | null | unknown;
-  className?: string;
+interface DataStateHandlerProps<T> {
+  data: T | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  children: (data: T) => React.ReactNode;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
   emptyComponent?: React.ReactNode;
-  emptyCondition?: boolean;
-  children: React.ReactNode;
+  onRetry?: () => void;
+  isEmpty?: (data: T) => boolean;
+  showLoadingStates?: boolean;
+  loadingStateCount?: number;
 }
 
 /**
- * DataStateHandler - A component to handle loading, error, and empty states for data fetching
+ * A component for handling loading, error, and empty states for data
  */
-export const DataStateHandler = <T,>({
-  isLoading = false,
+export function DataStateHandler<T>({
   data,
+  isLoading,
   error,
-  className = "",
+  children,
   loadingComponent,
   errorComponent,
   emptyComponent,
-  emptyCondition,
-  children,
-}: DataStateHandlerProps<T>) => {
-  // Show loading state
+  onRetry,
+  isEmpty = (data: T) => Array.isArray(data) ? data.length === 0 : !data,
+  showLoadingStates = true,
+  loadingStateCount = 3
+}: DataStateHandlerProps<T>) {
+  // Loading state
   if (isLoading) {
-    return loadingComponent || <p>Loading...</p>;
-  }
-
-  // Show error state
-  if (error) {
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : typeof error === 'string' 
-        ? error 
-        : 'An unknown error occurred';
-        
-    return errorComponent || <p>Error: {errorMessage}</p>;
-  }
-
-  // Show empty state if emptyCondition is true or data is empty
-  if (emptyCondition || !data) {
-    return emptyComponent || <p>No data available</p>;
-  }
-
-  // Default case: render children with data
-  return <div className={className}>{children}</div>;
-};
-
-export interface PartialDataStateHandlerProps<T> {
-  isLoading?: boolean;
-  data?: T | null;
-  error?: Error | null | unknown;
-  className?: string;
-  loadingComponent?: React.ReactNode;
-  errorComponent?: React.ReactNode;
-  emptyComponent?: React.ReactNode;
-  emptyCondition?: boolean;
-  children?: React.ReactNode;
-}
-
-export const PartialDataStateHandler = <T,>({
-  isLoading = false,
-  data,
-  error = null,
-  className = "",
-  loadingComponent,
-  errorComponent,
-  emptyComponent,
-  emptyCondition,
-  children,
-}: PartialDataStateHandlerProps<T>) => {
-  // If there's no data, return null if no empty component is provided
-  if (!data && !isLoading && !error && !emptyCondition && !emptyComponent) {
+    if (loadingComponent) {
+      return <>{loadingComponent}</>;
+    }
+    
+    if (showLoadingStates) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: loadingStateCount }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
     return null;
   }
   
-  // Show loading state
-  if (isLoading) {
-    return loadingComponent || <p>Loading...</p>;
-  }
-  
-  // Show error state
+  // Error state
   if (error) {
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : typeof error === 'string' 
-        ? error 
-        : 'An unknown error occurred';
-        
-    return errorComponent || <p>Error: {errorMessage}</p>;
+    if (errorComponent) {
+      return <>{errorComponent}</>;
+    }
+    
+    return (
+      <ErrorState
+        title="Failed to load data"
+        message={error.message}
+        retry={onRetry}
+        error={error}
+      />
+    );
   }
   
-  // Show empty state if emptyCondition is true or data is empty
-  if (emptyCondition || !data) {
-    return emptyComponent || <p>No data available</p>;
+  // Empty state
+  if (!data || (data && isEmpty(data))) {
+    if (emptyComponent) {
+      return <>{emptyComponent}</>;
+    }
+    
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">No data available</p>
+      </div>
+    );
   }
   
-  // Default case: render children with data
-  return <div className={className}>{children}</div>;
-};
+  // Data state
+  return <>{children(data)}</>;
+}
+
+interface PartialDataStateHandlerProps<T> {
+  data: T | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  children: (data: T | undefined) => React.ReactNode;
+  errorComponent?: React.ReactNode;
+  onRetry?: () => void;
+  showError?: boolean;
+}
+
+/**
+ * A data state handler that always renders children,
+ * even when loading or on error, passing undefined if data isn't available
+ */
+export function PartialDataStateHandler<T>({
+  data,
+  isLoading,
+  error,
+  children,
+  errorComponent,
+  onRetry,
+  showError = true
+}: PartialDataStateHandlerProps<T>) {
+  return (
+    <>
+      {error && showError && (
+        errorComponent || (
+          <div className="mb-4">
+            <ErrorState
+              title="Partial data error"
+              message={error.message}
+              retry={onRetry}
+              size="sm"
+            />
+          </div>
+        )
+      )}
+      {children(data)}
+    </>
+  );
+}
