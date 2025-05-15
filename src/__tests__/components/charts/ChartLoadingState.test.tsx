@@ -1,20 +1,32 @@
 
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import ChartLoadingState from '@/components/admin/errors/charts/ChartLoadingState';
 
+// Mock skeleton component
+vi.mock('@/components/ui/skeleton', () => ({
+  Skeleton: ({ className }: { className: string }) => (
+    <div data-testid="skeleton" className={className}></div>
+  )
+}));
+
 describe('ChartLoadingState', () => {
-  it('renders the loading skeletons', () => {
-    render(<ChartLoadingState />);
-    
-    expect(document.querySelector('.chart-loading-skeleton')).toBeInTheDocument();
+  it('renders with default height', () => {
+    const { getByTestId } = render(<ChartLoadingState />);
+    const loadingState = getByTestId('chart-loading-state');
+    expect(loadingState).toBeInTheDocument();
+    expect(loadingState.style.height).toBe('200px');
   });
-  
-  it('adjusts height based on props', () => {
-    render(<ChartLoadingState height={400} />);
-    
-    const skeleton = document.querySelector('.chart-loading-container');
-    expect(skeleton).toHaveStyle({ height: '400px' });
+
+  it('renders with custom height', () => {
+    const { getByTestId } = render(<ChartLoadingState height={300} />);
+    const loadingState = getByTestId('chart-loading-state');
+    expect(loadingState.style.height).toBe('300px');
+  });
+
+  it('applies custom className', () => {
+    const { getByTestId } = render(<ChartLoadingState className="test-class" />);
+    const loadingState = getByTestId('chart-loading-state');
+    expect(loadingState.className).toContain('test-class');
   });
 });

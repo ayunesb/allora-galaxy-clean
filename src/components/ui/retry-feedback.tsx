@@ -1,24 +1,27 @@
 
-import React, { memo } from 'react';
+import React from 'react';
+import { AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { RotateCw } from 'lucide-react';
 
 interface RetryFeedbackProps {
   retryCount: number;
   maxRetries: number;
   isRetrying: boolean;
-  onRetry: () => void;
+  onRetry?: () => void;
   className?: string;
 }
 
 /**
- * A component that shows retry status and controls for async operations
+ * Displays retry status and controls for operations that can be retried
  * 
- * @param retryCount Number of retry attempts so far
- * @param maxRetries Maximum number of retries allowed
- * @param isRetrying Whether a retry is currently in progress
- * @param onRetry Callback function for retry action
- * @param className Optional CSS class name
+ * @component 
+ * @param {Object} props - Component props
+ * @param {number} props.retryCount - Current retry attempt count
+ * @param {number} props.maxRetries - Maximum number of retries allowed
+ * @param {boolean} props.isRetrying - Whether a retry is currently in progress
+ * @param {Function} [props.onRetry] - Callback for retry button
+ * @param {string} [props.className] - Additional CSS classes
  */
 const RetryFeedback: React.FC<RetryFeedbackProps> = ({
   retryCount,
@@ -27,42 +30,63 @@ const RetryFeedback: React.FC<RetryFeedbackProps> = ({
   onRetry,
   className
 }) => {
-  const attemptsText = retryCount === 1 ? 'attempt' : 'attempts';
-  const retriesLeft = maxRetries - retryCount;
-  const retriesText = retriesLeft === 1 ? 'retry' : 'retries';
+  const retriesExhausted = retryCount >= maxRetries;
+  const retriesRemaining = Math.max(0, maxRetries - retryCount);
   
   return (
-    <div className={`bg-muted p-2.5 rounded-md text-xs ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          {isRetrying ? (
-            <>
-              <RotateCw className="h-3.5 w-3.5 mr-2 animate-spin" />
-              <span>Retrying...</span>
-            </>
-          ) : (
-            <span>
-              {retryCount} {attemptsText} made. {retriesLeft} {retriesText} left.
-            </span>
+    <div className={cn(
+      "text-sm flex items-center gap-2",
+      isRetrying ? "text-muted-foreground" : retriesExhausted ? "text-destructive" : "text-muted-foreground",
+      className
+    )}>
+      {isRetrying ? (
+        <>
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span>Retrying... (Attempt {retryCount + 1} of {maxRetries})</span>
+        </>
+      ) : retriesExhausted ? (
+        <>
+          <AlertCircle className="h-4 w-4" />
+          <span>All {maxRetries} retry attempts failed</span>
+          {onRetry && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-auto h-7 px-2"
+              onClick={onRetry}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Try again
+            </Button>
           )}
-        </div>
-        
-        {!isRetrying && retriesLeft > 0 && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 text-xs px-2 py-0"
-            onClick={onRetry}
-            disabled={isRetrying}
-          >
-            <RotateCw className="h-3 w-3 mr-1" />
-            Retry Now
-          </Button>
-        )}
-      </div>
+        </>
+      ) : retryCount === 0 ? (
+        <>
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <span>First attempt</span>
+        </>
+      ) : (
+        <>
+          <RefreshCw className="h-4 w-4" />
+          <span>
+            Retried {retryCount} {retryCount === 1 ? 'time' : 'times'}{' '}
+            ({retriesRemaining} {retriesRemaining === 1 ? 'retry' : 'retries'} remaining)
+          </span>
+          {onRetry && !isRetrying && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-auto h-7 px-2"
+              onClick={onRetry}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Retry
+            </Button>
+          )}
+        </>
+      )}
     </div>
   );
 };
 
-// Export memoized component for performance optimization
-export default memo(RetryFeedback);
+export default RetryFeedback;

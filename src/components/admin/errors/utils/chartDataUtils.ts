@@ -1,54 +1,61 @@
 
-import { SystemLog } from '@/types/logs';
-import { 
-  generateDateRange, 
-  formatDay, 
-  getDayStart, 
-  getDayEnd, 
-  isDateInDay 
-} from './dateUtils';
-import { 
-  countLogsBySeverity, 
-  countLogsByErrorType, 
-  getTopErrorTypes 
-} from './severityUtils';
+import { SystemLog, ErrorTrendDataPoint } from '@/types/logs';
+import { format, isAfter, isBefore, isEqual, parseISO } from 'date-fns';
 
 /**
- * Prepares chart data from system logs based on a date range
+ * Prepares data for error trends charts from system logs
+ * 
+ * @param {SystemLog[]} logs - System logs to process
+ * @param {Object} dateRange - Date range to filter logs
+ * @param {Date} dateRange.from - Start date
+ * @param {Date} [dateRange.to] - End date (defaults to now)
+ * @returns {ErrorTrendDataPoint[]} Data points for charts
  */
-export function prepareErrorTrendsData(logs: SystemLog[], dateRange: { from: Date; to: Date | undefined }) {
-  if (!dateRange.to) return [];
+export function prepareErrorTrendsData(
+  logs: SystemLog[],
+  dateRange: { from: Date; to?: Date }
+): ErrorTrendDataPoint[] {
+  const { from, to = new Date() } = dateRange;
   
-  // Generate all days in the range
-  const days = generateDateRange(dateRange);
+  // Filter logs by date range
+  const filteredLogs = logs.filter(log => {
+    const logDate = parseISO(log.timestamp || log.created_at);
+    return (isAfter(logDate, from) || isEqual(logDate, from)) && 
+           (isBefore(logDate, to) || isEqual(logDate, to));
+  });
   
-  // Prepare data for each day
-  return days.map(day => {
-    const dayStart = getDayStart(day);
-    const dayEnd = getDayEnd(day);
-    const dayFormatted = formatDay(day);
+  // Group by date
+  const groupedByDate: Record<string, SystemLog[]> = {};
+  
+  filteredLogs.forEach(log => {
+    const logDate = format(parseISO(log.timestamp || log.created_at), 'yyyy-MM-dd');
+    if (!groupedByDate[logDate]) {
+      groupedByDate[logDate] = [];
+    }
+    groupedByDate[logDate].push(log);
+  });
+  
+  // Convert to chart data points
+  const result: ErrorTrendDataPoint[] = Object.entries(groupedByDate).map(([date, dateLogs]) => {
+    // Count by severity
+    const critical = dateLogs.filter(log => log.severity === 'critical').length;
+    const high = dateLogs.filter(log => log.severity === 'high').length;
+    const medium = dateLogs.filter(log => log.severity === 'medium').length;
+    const low = dateLogs.filter(log => log.severity === 'low').length;
     
-    // Filter logs for this day
-    const dayLogs = logs.filter(log => {
-      const logDate = new Date(log.created_at);
-      return isDateInDay(logDate, dayStart, dayEnd);
-    });
-    
-    // Count errors by severity
-    const { criticalCount, highCount, mediumCount, lowCount } = countLogsBySeverity(dayLogs);
-    
-    // Count error types and get top ones
-    const errorTypes = countLogsByErrorType(dayLogs);
-    const topErrorTypes = getTopErrorTypes(errorTypes);
+    // Total errors (logs with error level)
+    const total = dateLogs.filter(log => log.level === 'error').length;
     
     return {
-      date: dayFormatted,
-      total: dayLogs.length,
-      critical: criticalCount,
-      high: highCount,
-      medium: mediumCount,
-      low: lowCount,
-      ...topErrorTypes
+      date,
+      total,
+      critical,
+      high,
+      medium,
+      low
     };
   });
+  
+  // Sort by date
+  return result.sort((a, b) => a.date.localeCompare(b.date));
 }

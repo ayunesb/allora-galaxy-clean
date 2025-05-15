@@ -1,179 +1,96 @@
 
-/**
- * Mock data for error trends testing
- */
-export const mockErrorTrends = [
-  {
-    id: '1',
-    date: '2023-01-01',
-    created_at: '2023-01-01T10:00:00Z',
-    timestamp: '2023-01-01T10:00:00Z',
-    module: 'api',
-    level: 'error',
-    event: 'api_error',
-    event_type: 'error',
-    description: 'API request failed',
-    message: 'API Error',
-    severity: 'high',
-    error_type: 'NetworkError',
-    context: { url: '/api/data' },
-    metadata: { severity: 'high' },
-    request_id: 'req-123',
-    tenant_id: 'tenant-1',
-    error_message: 'Network request failed with status 500'
-  },
-  {
-    id: '2',
-    date: '2023-01-02',
-    created_at: '2023-01-02T11:30:00Z',
-    timestamp: '2023-01-02T11:30:00Z',
-    module: 'auth',
-    level: 'error',
-    event: 'auth_error',
-    event_type: 'error',
-    description: 'Authentication failed',
-    message: 'Auth Error',
-    severity: 'critical',
-    error_type: 'AuthError',
-    context: { userId: '123' },
-    metadata: { severity: 'critical' },
-    request_id: 'req-124',
-    tenant_id: 'tenant-1',
-    error_message: 'Invalid JWT token'
-  },
-  {
-    id: '3',
-    date: '2023-01-02',
-    created_at: '2023-01-02T14:15:00Z',
-    timestamp: '2023-01-02T14:15:00Z',
-    module: 'database',
-    level: 'error',
-    event: 'db_error',
-    event_type: 'error',
-    description: 'Database query failed',
-    message: 'Database Error',
-    severity: 'medium',
-    error_type: 'DatabaseError',
-    context: { query: 'SELECT * FROM users' },
-    metadata: { severity: 'medium' },
-    request_id: 'req-125',
-    tenant_id: 'tenant-1',
-    error_message: 'Constraint violation'
-  },
-  {
-    id: '4',
-    date: '2023-01-03',
-    created_at: '2023-01-03T09:45:00Z',
-    timestamp: '2023-01-03T09:45:00Z',
-    module: 'system',
-    level: 'error',
-    event: 'system_error',
-    event_type: 'error',
-    description: 'System process failed',
-    message: 'System Error',
-    severity: 'low',
-    error_type: 'SystemError',
-    context: { processId: '789' },
-    metadata: { severity: 'low' },
-    request_id: 'req-126',
-    tenant_id: 'tenant-1',
-    error_message: 'Process terminated unexpectedly'
-  },
-  {
-    id: '5',
-    date: '2023-01-04',
-    created_at: '2023-01-04T16:20:00Z',
-    timestamp: '2023-01-04T16:20:00Z',
-    module: 'api',
-    level: 'error',
-    event: 'api_error',
-    event_type: 'error',
-    description: 'External API timeout',
-    message: 'API Timeout',
-    severity: 'high',
-    error_type: 'TimeoutError',
-    context: { endpoint: '/external/data' },
-    metadata: { severity: 'high' },
-    request_id: 'req-127',
-    tenant_id: 'tenant-1',
-    error_message: 'Request timed out after 30s'
-  }
-];
+import { ErrorTrendDataPoint, SystemLog } from '@/types/logs';
+import { addDays, format } from 'date-fns';
 
 /**
- * Mock data for error groups testing
+ * Creates mock SystemLog entries for testing
+ * 
+ * @param {number} count - Number of log entries to create
+ * @returns {SystemLog[]} Array of mock SystemLog entries
  */
-export const mockErrorGroups = [
-  {
-    id: 'group-1',
-    error_type: 'NetworkError',
-    message: 'API request failed',
-    count: 12,
-    severity: 'high',
-    first_seen: '2023-01-01T10:00:00Z',
-    last_seen: '2023-01-04T14:30:00Z',
-    affected_users: 5,
-    affected_tenants: 1,
-    modules: ['api'],
-    examples: [mockErrorTrends[0]]
-  },
-  {
-    id: 'group-2',
-    error_type: 'AuthError',
-    message: 'Authentication failed',
-    count: 8,
-    severity: 'critical',
-    first_seen: '2023-01-02T11:30:00Z',
-    last_seen: '2023-01-05T09:15:00Z',
-    affected_users: 3,
-    affected_tenants: 1,
-    modules: ['auth'],
-    examples: [mockErrorTrends[1]]
-  },
-  {
-    id: 'group-3',
-    error_type: 'DatabaseError',
-    message: 'Database query failed',
-    count: 5,
-    severity: 'medium',
-    first_seen: '2023-01-02T14:15:00Z',
-    last_seen: '2023-01-04T11:40:00Z',
-    affected_users: 2,
-    affected_tenants: 1,
-    modules: ['database'],
-    examples: [mockErrorTrends[2]]
-  }
-];
-
-/**
- * Function to generate mock error trends data for a date range
- */
-export function generateMockErrorData(startDate: Date, endDate: Date, baseCount = 10) {
-  const result = [];
-  const currentDate = new Date(startDate);
+export function createMockErrorLogs(count: number = 20): SystemLog[] {
+  const logs: SystemLog[] = [];
+  const now = new Date();
   
-  while (currentDate <= endDate) {
-    const dateString = currentDate.toISOString().split('T')[0];
-    const randomFactor = Math.random() * 0.5 + 0.75; // Random between 0.75 and 1.25
+  for (let i = 0; i < count; i++) {
+    const severity = i % 4 === 0 ? 'critical' : i % 4 === 1 ? 'high' : i % 4 === 2 ? 'medium' : 'low';
+    const level = i % 3 === 0 ? 'error' : i % 3 === 1 ? 'warning' : 'info';
+    const module = ['system', 'api', 'auth', 'database'][i % 4];
+    const timestamp = addDays(now, -Math.floor(i / 3)).toISOString();
     
-    const criticalCount = Math.floor(baseCount * 0.1 * randomFactor);
-    const highCount = Math.floor(baseCount * 0.3 * randomFactor);
-    const mediumCount = Math.floor(baseCount * 0.4 * randomFactor);
-    const lowCount = Math.floor(baseCount * 0.2 * randomFactor);
-    const totalCount = criticalCount + highCount + mediumCount + lowCount;
+    logs.push({
+      id: `err-${i}`,
+      created_at: timestamp,
+      timestamp,
+      level,
+      module,
+      description: `Mock ${level} in ${module}`,
+      message: `Mock ${level} message #${i}`,
+      tenant_id: 'test-tenant',
+      severity,
+      event: level,
+      event_type: level,
+      context: {},
+      error_type: level === 'error' ? 'TestError' : undefined,
+      error_message: level === 'error' ? `Test error #${i}` : undefined,
+      user_id: i % 2 === 0 ? 'user-1' : 'user-2',
+      user_facing: i % 3 === 0,
+      affects_multiple_users: i % 5 === 0
+    });
+  }
+  
+  return logs;
+}
+
+/**
+ * Mock error trends data for charts
+ */
+export const mockErrorTrends: ErrorTrendDataPoint[] = (() => {
+  const result: ErrorTrendDataPoint[] = [];
+  const now = new Date();
+  
+  for (let i = 14; i >= 0; i--) {
+    const date = addDays(now, -i);
+    const total = Math.floor(Math.random() * 30) + 5;
+    const critical = Math.floor(Math.random() * 5);
+    const high = Math.floor(Math.random() * 8) + 2;
+    const medium = Math.floor(Math.random() * 10) + 3;
+    const low = total - critical - high - medium;
     
     result.push({
-      date: dateString,
-      total: totalCount,
-      critical: criticalCount,
-      high: highCount,  
-      medium: mediumCount,
-      low: lowCount
+      date: format(date, 'yyyy-MM-dd'),
+      total,
+      critical,
+      high,
+      medium,
+      low
     });
-    
-    // Increment to next day
-    currentDate.setDate(currentDate.getDate() + 1);
   }
   
   return result;
+})();
+
+/**
+ * Creates mock error group data for testing
+ */
+export function createMockErrorGroups(count: number = 5) {
+  const groups = [];
+  
+  for (let i = 0; i < count; i++) {
+    groups.push({
+      id: `group-${i}`,
+      error_type: ['ValidationError', 'NetworkError', 'DatabaseError', 'AuthError', 'UnknownError'][i % 5],
+      message: `Mock error group #${i}`,
+      count: Math.floor(Math.random() * 100) + 10,
+      severity: ['critical', 'high', 'medium', 'low'][i % 4],
+      first_seen: addDays(new Date(), -30).toISOString(),
+      last_seen: addDays(new Date(), -i).toISOString(),
+      affected_users: Math.floor(Math.random() * 20) + 1,
+      affected_tenants: Math.floor(Math.random() * 5) + 1,
+      modules: ['system', 'api', 'auth', 'database'].slice(0, (i % 4) + 1),
+      examples: createMockErrorLogs(2)
+    });
+  }
+  
+  return groups;
 }

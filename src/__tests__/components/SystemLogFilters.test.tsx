@@ -1,32 +1,32 @@
 
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock the component since it's missing
-vi.mock('@/components/admin/logs/SystemLogFilters', () => ({
-  default: ({ onSearchChange, filters }) => (
-    <div data-testid="mock-filters">
-      <input 
-        type="text"
-        data-testid="search-input"
-        value={filters?.search || ''}
-        onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-      />
-    </div>
-  )
+// Mock UI components used by SystemLogFilters
+vi.mock('@/components/ui/card', () => ({
+  Card: ({ children }: { children: React.ReactNode }) => <div data-testid="card">{children}</div>,
+  CardContent: ({ children }: { children: React.ReactNode }) => <div data-testid="card-content">{children}</div>,
 }));
 
-// Import after mocking
+vi.mock('@/components/ui/input', () => ({
+  Input: (props: any) => (
+    <input 
+      data-testid="search-input"
+      type="text"
+      {...props}
+    />
+  ),
+}));
+
+vi.mock('@/components/ui/date-range-picker', () => ({
+  DateRangePicker: () => <div data-testid="date-range-picker">Date Range</div>
+}));
+
+// Import the component after mocking dependencies
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 
 describe('SystemLogFilters', () => {
-  const mockOnSearchChange = vi.fn();
-  const mockOnModuleFilterChange = vi.fn();
-  const mockOnDateRangeChange = vi.fn();
-  const mockOnReset = vi.fn();
-
-  it('renders the mocked component', () => {
+  it('renders the filters component', () => {
     render(
       <SystemLogFilters
         filters={{}}
@@ -36,6 +36,25 @@ describe('SystemLogFilters', () => {
       />
     );
     
-    expect(screen.getByTestId('mock-filters')).toBeInTheDocument();
+    expect(screen.getByTestId('card')).toBeInTheDocument();
+    expect(screen.getByTestId('search-input')).toBeInTheDocument();
+  });
+  
+  it('handles search input changes', () => {
+    const handleFilterChange = vi.fn();
+    
+    render(
+      <SystemLogFilters
+        filters={{}}
+        onFilterChange={handleFilterChange}
+        isLoading={false}
+        onRefresh={() => {}}
+      />
+    );
+    
+    const searchInput = screen.getByTestId('search-input');
+    fireEvent.change(searchInput, { target: { value: 'test search' } });
+    
+    expect(handleFilterChange).toHaveBeenCalledWith({ search: 'test search' });
   });
 });

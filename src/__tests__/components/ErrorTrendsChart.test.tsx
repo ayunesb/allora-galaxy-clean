@@ -1,128 +1,98 @@
 
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import React from 'react';
+import { render } from '@testing-library/react';
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
-import { SystemLog, LogLevel } from '@/types/logs';
+import { vi } from 'vitest';
 
-// Properly typed mock data for SystemLog
-const createMockLogs = (): SystemLog[] => {
-  const levels: LogLevel[] = ['info', 'warning', 'error'];
-  
-  return [
-    {
-      id: '1',
-      created_at: '2023-01-01T10:00:00Z',
-      timestamp: '2023-01-01T10:00:00Z',
-      module: 'system',
-      level: 'error',
-      event: 'error_occurred',
-      event_type: 'system_error',
-      description: 'System error occurred',
-      message: 'System error occurred',
-      tenant_id: 'tenant-1',
-      severity: 'high',
-      error_type: 'system_failure',
-      user_id: 'user-1',
-      context: { details: 'Error details' },
-      metadata: { data: 'Additional data' },
-      request_id: 'req-1',
-      error_message: 'System failed',
-    },
-    {
-      id: '2',
-      created_at: '2023-01-02T10:00:00Z',
-      timestamp: '2023-01-02T10:00:00Z',
-      module: 'auth',
-      level: 'warning',
-      event: 'login_failed',
-      description: 'Login attempt failed',
-      tenant_id: 'tenant-1'
-    },
-    {
-      id: '3',
-      created_at: '2023-01-03T10:00:00Z',
-      timestamp: '2023-01-03T10:00:00Z',
-      module: 'api',
-      level: 'info',
-      event: 'api_call',
-      description: 'API was called',
-      tenant_id: 'tenant-1'
-    },
-    {
-      id: '4',
-      created_at: '2023-01-04T10:00:00Z',
-      timestamp: '2023-01-04T10:00:00Z',
-      module: 'database',
-      level: 'error',
-      event: 'query_failed',
-      description: 'Database query failed',
-      tenant_id: 'tenant-1',
-      error_type: 'query_error'
-    },
-    {
-      id: '5',
-      created_at: '2023-01-05T10:00:00Z',
-      timestamp: '2023-01-05T10:00:00Z',
-      module: 'system',
-      level: 'info',
-      event: 'system_started',
-      description: 'System started successfully',
-      tenant_id: 'tenant-1'
-    }
-  ];
-};
+// Mock the chart utility function
+vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
+  prepareErrorTrendsData: vi.fn(() => [
+    { date: '2023-01-01', total: 10, critical: 2, high: 3, medium: 3, low: 2 }
+  ])
+}));
+
+// Mock chart components
+vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
+  default: () => <div data-testid="chart-loading-state">Loading</div>
+}));
+
+vi.mock('@/components/admin/errors/charts/ErrorRateChart', () => ({
+  default: () => <div data-testid="error-rate-chart">Rate Chart</div>
+}));
+
+vi.mock('@/components/admin/errors/charts/ErrorSeverityChart', () => ({
+  default: () => <div data-testid="error-severity-chart">Severity Chart</div>
+}));
+
+vi.mock('@/components/admin/errors/charts/FullErrorChart', () => ({
+  default: () => <div data-testid="full-error-chart">Full Chart</div>
+}));
 
 describe('ErrorTrendsChart', () => {
-  const mockDateRange = { from: new Date('2023-01-01'), to: new Date('2023-01-31') };
+  const mockLogs = [
+    {
+      id: 'log-1',
+      level: 'error',
+      severity: 'high',
+      created_at: '2023-01-01T10:00:00Z',
+      timestamp: '2023-01-01T10:00:00Z',
+      module: 'test',
+      description: 'Test error',
+      message: 'Test error',
+      tenant_id: 'tenant-1',
+      event: 'error',
+      event_type: 'error',
+      context: 'test',
+      error_type: 'TestError',
+      error_message: 'Test error occurred'
+    }
+  ];
   
-  it('renders the chart when provided with logs', () => {
-    render(
-      <ErrorTrendsChart
-        logs={createMockLogs()}
-        dateRange={mockDateRange}
-        isLoading={false}
-        type="full"
+  const dateRange = { from: new Date('2023-01-01'), to: new Date('2023-01-31') };
+  
+  it('renders the loading state when isLoading is true', () => {
+    const { getByTestId } = render(
+      <ErrorTrendsChart 
+        logs={[]} 
+        dateRange={dateRange} 
+        isLoading={true} 
       />
     );
-    
-    expect(document.querySelector('svg')).toBeInTheDocument();
+    expect(getByTestId('chart-loading-state')).toBeInTheDocument();
   });
   
-  it('renders a loading state when isLoading is true', () => {
-    render(
-      <ErrorTrendsChart
-        logs={[]}
-        dateRange={mockDateRange}
-        isLoading={true}
-      />
-    );
-    
-    expect(document.querySelector('.chart-loading-skeleton')).toBeInTheDocument();
-  });
-  
-  it('renders a rate chart when type is rate', () => {
-    render(
-      <ErrorTrendsChart
-        logs={createMockLogs()}
-        dateRange={mockDateRange}
+  it('renders the rate chart when type is "rate"', () => {
+    const { getByTestId } = render(
+      <ErrorTrendsChart 
+        logs={mockLogs} 
+        dateRange={dateRange} 
         isLoading={false}
         type="rate"
       />
     );
-    
-    expect(document.querySelector('svg')).toBeInTheDocument();
+    expect(getByTestId('error-rate-chart')).toBeInTheDocument();
   });
   
-  it('renders a severity chart when type is severity', () => {
-    render(
-      <ErrorTrendsChart
-        logs={createMockLogs()}
-        dateRange={mockDateRange}
+  it('renders the severity chart when type is "severity"', () => {
+    const { getByTestId } = render(
+      <ErrorTrendsChart 
+        logs={mockLogs} 
+        dateRange={dateRange} 
         isLoading={false}
         type="severity"
       />
     );
-    
-    expect(document.querySelector('svg')).toBeInTheDocument();
+    expect(getByTestId('error-severity-chart')).toBeInTheDocument();
+  });
+  
+  it('renders the full chart by default', () => {
+    const { getByTestId } = render(
+      <ErrorTrendsChart 
+        logs={mockLogs} 
+        dateRange={dateRange} 
+        isLoading={false}
+      />
+    );
+    expect(getByTestId('full-error-chart')).toBeInTheDocument();
   });
 });
