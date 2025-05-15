@@ -51,14 +51,26 @@ const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
       });
       
       // Count errors by severity (using level as fallback)
-      const criticalCount = dayLogs.filter(log => (log.severity === 'critical' || log.level === 'error')).length;
-      const highCount = dayLogs.filter(log => (log.severity === 'high' || log.level === 'error')).length;
-      const mediumCount = dayLogs.filter(log => (log.severity === 'medium' || log.level === 'warning')).length;
-      const lowCount = dayLogs.filter(log => (log.severity === 'low' || log.level === 'info')).length;
+      const criticalCount = dayLogs.filter(log => 
+        (log.severity === 'critical' || (log.level === 'error' && (!log.severity || log.severity === 'critical')))
+      ).length;
+      
+      const highCount = dayLogs.filter(log => 
+        (log.severity === 'high' || (log.level === 'error' && (!log.severity || log.severity === 'high')))
+      ).length;
+      
+      const mediumCount = dayLogs.filter(log => 
+        (log.severity === 'medium' || (log.level === 'warning' && (!log.severity || log.severity === 'medium')))
+      ).length;
+      
+      const lowCount = dayLogs.filter(log => 
+        (log.severity === 'low' || (log.level === 'info' && (!log.severity || log.severity === 'low')))
+      ).length;
       
       // Count error types - using error_type or level as fallback
       const errorTypes: Record<string, number> = {};
       dayLogs.forEach(log => {
+        // Use optional chaining to safely access error_type
         const errorType = log.error_type || log.level || 'unknown';
         errorTypes[errorType] = (errorTypes[errorType] || 0) + 1;
       });

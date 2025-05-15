@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Filter } from 'lucide-react';
 import { LogFilters } from '@/types/shared';
+import { SystemEventModule } from '@/types/shared';
 
 interface ErrorMonitoringFiltersProps {
   filters: LogFilters;
@@ -34,9 +35,12 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   };
 
   const handleModuleChange = (value: string) => {
+    // Cast to SystemEventModule or undefined to fix type error
+    const moduleValue = value !== 'all' ? (value as SystemEventModule) : undefined;
+    
     onFiltersChange({
       ...filters,
-      module: value !== 'all' ? value : undefined
+      module: moduleValue
     });
   };
 

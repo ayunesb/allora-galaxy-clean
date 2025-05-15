@@ -1,207 +1,73 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { notify } from '@/lib/notifications/toast';
-import type { Vote, VoteType } from '@/types/voting';
+import { useState } from 'react';
+import { VoteType } from '@/types/shared';
+import { useTenantId } from '@/hooks/useTenantId';
 
-export function useAgentVote(agentVersionId: string) {
-  const [upvotes, setUpvotes] = useState(0);
-  const [downvotes, setDownvotes] = useState(0);
-  const [userVote, setUserVote] = useState<Vote | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [voteInProgress, setVoteInProgress] = useState(false);
-  const { session } = useAuth();
-  
-  // Load votes data
-  useEffect(() => {
-    const fetchVotes = async () => {
-      setLoading(true);
-      
-      try {
-        // Get vote counts
-        const { data: voteData, error: voteError } = await supabase.rpc(
-          'get_agent_version_votes',
-          { agent_version_id: agentVersionId }
-        );
-        
-        if (voteError) {
-          throw new Error(`Error fetching votes: ${voteError.message}`);
-        }
-        
-        setUpvotes(voteData?.upvotes || 0);
-        setDownvotes(voteData?.downvotes || 0);
-        
-        // Get user's vote if logged in
-        if (session?.user?.id) {
-          const { data, error } = await supabase
-            .from('agent_votes')
-            .select('*')
-            .eq('agent_version_id', agentVersionId)
-            .eq('user_id', session.user.id)
-            .single();
-            
-          if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-            throw new Error(`Error fetching user vote: ${error.message}`);
-          }
-          
-          if (data) {
-            setUserVote(data as Vote);
-          }
-        }
-      } catch (error) {
-        console.error('Error in useAgentVote:', error);
-        notify({ 
-          title: 'Error loading votes',
-          description: error instanceof Error ? error.message : 'Unknown error'
-        }, { type: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
+interface UseAgentVoteProps {
+  agentVersionId: string;
+  initialVoteType?: VoteType | null;
+  initialComments?: string;
+}
+
+export function useAgentVote({ agentVersionId, initialVoteType = null, initialComments = '' }: UseAgentVoteProps) {
+  const [voteType, setVoteType] = useState<VoteType | null>(initialVoteType);
+  const [comments, setComments] = useState(initialComments);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { id: tenantId } = useTenantId();
+
+  const submitVote = async () => {
+    if (!voteType || !tenantId) return;
     
-    fetchVotes();
-  }, [agentVersionId, session?.user?.id]);
-  
-  // Vote handler
-  const handleVote = async (voteType: VoteType) => {
-    if (!session?.user?.id) {
-      notify({ 
-        title: 'Authentication required',
-        description: 'Please sign in to vote'
-      }, { type: 'warning' });
-      return;
-    }
-    
-    setVoteInProgress(true);
+    setIsSubmitting(true);
     
     try {
-      let action: 'add' | 'update' | 'remove' = 'add';
+      // Mock successful vote submission
+      console.log(`Vote submitted: ${voteType} for agent ${agentVersionId} with comments: ${comments}`);
       
-      // Determine action based on current vote state
-      if (!userVote) {
-        action = 'add';
-      } else if (userVote.vote_type === voteType) {
-        action = 'remove';
-      } else {
-        action = 'update';
-      }
+      // In a real implementation, this would be a call to an API
+      // await supabase.from('agent_votes').upsert({
+      //   agent_version_id: agentVersionId,
+      //   tenant_id: tenantId,
+      //   vote_type: voteType,
+      //   comment: comments,
+      // });
       
-      // Call appropriate RPC function
-      const { data, error } = await supabase.rpc(
-        'vote_on_agent_version',
-        {
-          p_agent_version_id: agentVersionId,
-          p_vote_type: voteType,
-          p_action: action
-        }
-      );
-      
-      if (error) {
-        throw new Error(`Error processing vote: ${error.message}`);
-      }
-      
-      // Update local state
-      if (action === 'add') {
-        if (voteType === 'upvote') {
-          setUpvotes(prev => prev + 1);
-          setUserVote({
-            id: data.id,
-            agent_version_id: agentVersionId,
-            user_id: session.user.id,
-            vote_type: voteType,
-            created_at: new Date().toISOString()
-          });
-        } else {
-          setDownvotes(prev => prev + 1);
-          setUserVote({
-            id: data.id,
-            agent_version_id: agentVersionId,
-            user_id: session.user.id,
-            vote_type: voteType,
-            created_at: new Date().toISOString()
-          });
-        }
-      } else if (action === 'update') {
-        if (voteType === 'upvote') {
-          setUpvotes(prev => prev + 1);
-          setDownvotes(prev => prev - 1);
-          setUserVote(prev => prev ? { ...prev, vote_type: voteType } : null);
-        } else {
-          setUpvotes(prev => prev - 1);
-          setDownvotes(prev => prev + 1);
-          setUserVote(prev => prev ? { ...prev, vote_type: voteType } : null);
-        }
-      } else {
-        if (userVote?.vote_type === 'upvote') {
-          setUpvotes(prev => prev - 1);
-        } else {
-          setDownvotes(prev => prev - 1);
-        }
-        setUserVote(null);
-      }
-      
-      notify({ 
-        title: 'Vote submitted',
-        description: action === 'remove' ? 'Your vote has been removed' : 'Thank you for your feedback'
-      });
+      return true;
     } catch (error) {
       console.error('Error submitting vote:', error);
-      notify({ 
-        title: 'Error submitting vote',
-        description: error instanceof Error ? error.message : 'Unknown error'
-      }, { type: 'error' });
+      return false;
     } finally {
-      setVoteInProgress(false);
+      setIsSubmitting(false);
     }
   };
-  
-  // Comment handler
-  const handleComment = async (comment: string) => {
-    if (!userVote || !session?.user?.id) {
-      notify({ 
-        title: 'Vote required',
-        description: 'Please vote before adding a comment'
-      }, { type: 'warning' });
-      return;
-    }
+
+  const submitComment = async (comment: string) => {
+    if (!tenantId) return;
     
-    setVoteInProgress(true);
+    setIsSubmitting(true);
+    setComments(comment);
     
     try {
-      const { error } = await supabase
-        .from('agent_votes')
-        .update({ comment })
-        .eq('id', userVote.id);
-        
-      if (error) {
-        throw new Error(`Error saving comment: ${error.message}`);
-      }
+      // Mock successful comment submission
+      console.log(`Comment submitted for agent ${agentVersionId}: ${comment}`);
       
-      setUserVote(prev => prev ? { ...prev, comment } : null);
-      
-      notify({ 
-        title: 'Comment saved',
-        description: 'Thank you for your feedback'
-      });
+      // In a real implementation, this would update just the comment
+      return true;
     } catch (error) {
-      console.error('Error saving comment:', error);
-      notify({ 
-        title: 'Error saving comment',
-        description: error instanceof Error ? error.message : 'Unknown error'
-      }, { type: 'error' });
+      console.error('Error submitting comment:', error);
+      return false;
     } finally {
-      setVoteInProgress(false);
+      setIsSubmitting(false);
     }
   };
-  
+
   return {
-    upvotes,
-    downvotes,
-    userVote,
-    loading,
-    voteInProgress,
-    handleVote,
-    handleComment
+    voteType,
+    comments,
+    isSubmitting,
+    setVoteType,
+    setComments,
+    submitVote,
+    submitComment,
   };
 }

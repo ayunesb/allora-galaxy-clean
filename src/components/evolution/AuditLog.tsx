@@ -1,198 +1,159 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { LogDetailDialog } from './LogDetailDialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Info, ArrowUpDown, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/lib/notifications/toast';
-import type { SystemLog } from '@/types/logs';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SystemLog } from '@/types/shared';
+import { Badge } from '@/components/ui/badge';
+import LogDetailDialog from './LogDetailDialog';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { Check, Copy, ExternalLink } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface AuditLogProps {
   logs: SystemLog[];
-  isLoading: boolean;
+  isLoading?: boolean;
   title?: string;
+  description?: string;
+  limit?: number;
+  userMap?: Record<string, string>;
 }
 
-export const AuditLog = ({ logs, isLoading, title = 'Audit Log' }: AuditLogProps) => {
+export default function AuditLog({
+  logs,
+  isLoading = false,
+  title = "Audit Log",
+  description = "Recent system actions and events",
+  limit = 10,
+  userMap = {}
+}: AuditLogProps) {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [sortColumn, setSortColumn] = useState<string>('created_at');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const handleViewDetails = (log: SystemLog) => {
-    setSelectedLog(log);
-  };
-
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-
-  const sortedLogs = [...logs].sort((a, b) => {
-    if (sortColumn === 'created_at') {
-      const dateA = new Date(a.created_at || Date.now()).getTime();
-      const dateB = new Date(b.created_at || Date.now()).getTime();
-      return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-    }
-    
-    // Default string comparison for other columns
-    const valA = String(a[sortColumn as keyof SystemLog] || '');
-    const valB = String(b[sortColumn as keyof SystemLog] || '');
-    return sortDirection === 'asc' 
-      ? valA.localeCompare(valB)
-      : valB.localeCompare(valA);
-  });
-
-  const filteredLogs = searchTerm 
-    ? sortedLogs.filter(log => 
-        log.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.module?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.level?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : sortedLogs;
-
-  const handleCopyLogId = (id: string) => {
+  
+  // Filter logs
+  const visibleLogs = logs.slice(0, limit);
+  
+  // Handle copy log ID
+  const handleCopyId = (id: string) => {
     navigator.clipboard.writeText(id);
+    setCopiedId(id);
     toast({
-      title: "Copied to clipboard",
-      description: `Log ID: ${id}`
+      title: "Copied!",
+      description: "Log ID copied to clipboard"
     });
+    
+    setTimeout(() => setCopiedId(null), 2000);
   };
-
-  if (isLoading) {
-    return <AuditLogSkeleton />;
-  }
-
+  
+  // Handle view log details
+  const handleViewLog = (log: SystemLog) => {
+    setSelectedLog(log);
+    setDialogOpen(true);
+  };
+  
+  // Get badge color based on log level
+  const getLevelBadgeClass = (level: string) => {
+    switch (level) {
+      case 'error':
+        return 'bg-destructive/15 text-destructive hover:bg-destructive/25';
+      case 'warning':
+        return 'bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25';
+      case 'info':
+        return 'bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+  
+  // Get user name
+  const getUserName = (userId: string | undefined) => {
+    if (!userId) return 'System';
+    return userMap[userId] || 'Unknown User';
+  };
+  
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <CardTitle>{title}</CardTitle>
-          <div className="w-full sm:w-64">
-            <Input
-              placeholder="Search logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-              prefix={<Search className="w-4 h-4 text-muted-foreground" />}
-            />
-          </div>
-        </div>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead onClick={() => handleSort('created_at')} className="cursor-pointer">
-                  <div className="flex items-center gap-1">
-                    Timestamp
-                    <ArrowUpDown className="h-3 w-3" />
-                  </div>
-                </TableHead>
-                <TableHead onClick={() => handleSort('level')} className="cursor-pointer">
-                  <div className="flex items-center gap-1">
-                    Level
-                    <ArrowUpDown className="h-3 w-3" />
-                  </div>
-                </TableHead>
-                <TableHead onClick={() => handleSort('module')} className="cursor-pointer">
-                  <div className="flex items-center gap-1">
-                    Module
-                    <ArrowUpDown className="h-3 w-3" />
-                  </div>
-                </TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    No logs found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {log.created_at ? format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss') : 'Unknown'}
-                    </TableCell>
-                    <TableCell>
-                      <LogLevelBadge level={log.level} />
-                    </TableCell>
-                    <TableCell>{log.module}</TableCell>
-                    <TableCell className="max-w-md truncate">{log.message}</TableCell>
-                    <TableCell>
+      <CardContent className="space-y-4 p-6">
+        {isLoading ? (
+          <div className="animate-pulse space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-16 bg-muted rounded-md" />
+            ))}
+          </div>
+        ) : visibleLogs.length > 0 ? (
+          visibleLogs.map((log) => (
+            <div
+              key={log.id}
+              className="flex flex-col gap-2 p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={getLevelBadgeClass(log.level)}>
+                    {log.level}
+                  </Badge>
+                  <span className="font-medium">{log.module}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(log.created_at), 'MMM d, h:mm a')}
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleViewDetails(log)}
-                        title="View Details"
+                        className="h-6 w-6"
+                        onClick={() => handleCopyId(log.id)}
                       >
-                        <Info className="h-4 w-4" />
+                        {copiedId === log.id ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">Copy ID</TooltipContent>
+                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleViewLog(log)}
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm">{log.message || log.description}</p>
+                {log.user_id && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    By {getUserName(log.user_id)}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-6 text-muted-foreground">
+            No logs available
+          </div>
+        )}
       </CardContent>
-
-      <LogDetailDialog
-        log={selectedLog}
-        open={!!selectedLog}
-        onOpenChange={() => setSelectedLog(null)}
-        onCopyId={handleCopyLogId}
+      
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={dialogOpen} 
+        onOpenChange={() => setDialogOpen(!dialogOpen)} 
+        onCopyId={handleCopyId} 
       />
     </Card>
   );
-};
-
-const LogLevelBadge = ({ level }: { level: string }) => {
-  switch (level) {
-    case 'error':
-      return <Badge variant="destructive">{level}</Badge>;
-    case 'warning':
-      return <Badge variant="default" className="bg-amber-500">{level}</Badge>;
-    case 'info':
-      return <Badge variant="secondary">{level}</Badge>;
-    default:
-      return <Badge variant="outline">{level}</Badge>;
-  }
-};
-
-const AuditLogSkeleton = () => (
-  <Card className="w-full">
-    <CardHeader>
-      <div className="flex justify-between items-center">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-10 w-64" />
-      </div>
-    </CardHeader>
-    <CardContent className="p-0">
-      <div className="space-y-2 p-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-      </div>
-    </CardContent>
-  </Card>
-);
-
-export default AuditLog;
+}

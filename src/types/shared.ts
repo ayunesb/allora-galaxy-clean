@@ -40,7 +40,7 @@ export type TrendDirection = 'up' | 'down' | 'neutral';
 
 // Update LogFilters interface to fix test errors
 export interface LogFilters {
-  module?: SystemEventModule | null;
+  module?: SystemEventModule | string | string[] | null;
   dateFrom?: string | null;
   dateTo?: string | null;
   search?: string;
@@ -52,18 +52,27 @@ export interface LogFilters {
   // Add any other filter properties needed
 }
 
-// Add SystemLog interface to fix test errors
+// Add SystemLog interface to fix test errors with complete properties
 export interface SystemLog {
   id: string;
   module: SystemEventModule;
   event: string;
   level: string;
   message: string;
+  description?: string;
   details?: Record<string, any>;
   created_at: string;
   tenant_id?: string;
   user_id?: string;
   error_type?: string;
   severity?: string;
-  description?: string; // Added for test compatibility
+  timestamp?: string;
+  context?: string;
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
+  metadata?: any;
+  request_id?: string;
+  error_message?: string;
+  event_type?: string;
+  priority?: string;
 }
