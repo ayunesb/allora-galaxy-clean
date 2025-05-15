@@ -1,5 +1,5 @@
 
-import { format, parse, parseISO as parseISOBase } from 'date-fns';
+import { format, parseISO as parseISOBase } from 'date-fns';
 
 /**
  * Format a date to ISO format YYYY-MM-DD
@@ -40,8 +40,8 @@ export function getDateRangeFromPeriod(period: string): { from: Date; to: Date }
     case '30d':
       from.setDate(now.getDate() - 30);
       break;
-    case '90d':
-      from.setDate(now.getDate() - 90);
+    case '1y':
+      from.setFullYear(now.getFullYear() - 1);
       break;
     default:
       // Default to 7 days
@@ -62,8 +62,8 @@ export function getTimePeriodLabel(period: string): string {
       return 'Last 7 days';
     case '30d':
       return 'Last 30 days';
-    case '90d':
-      return 'Last 90 days';
+    case '1y':
+      return 'Last year';
     default:
       return 'Custom period';
   }
