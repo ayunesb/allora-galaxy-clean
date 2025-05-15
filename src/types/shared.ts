@@ -30,3 +30,19 @@ export interface TimeRange {
   value: string;
   label: string;
 }
+
+// Export VoteType to fix test errors
+export type VoteType = 'upvote' | 'downvote';
+
+// Add TrendDirection to fix KPICard build error
+export type TrendDirection = 'up' | 'down' | 'neutral';
+
+// Add LogFilters interface to fix test errors
+export interface LogFilters {
+  module?: SystemEventModule | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  search?: string;
+  severity?: string;
+  // Add any other filter properties needed
+}
