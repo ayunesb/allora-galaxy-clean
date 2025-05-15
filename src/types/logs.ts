@@ -55,7 +55,7 @@ export interface LogGroup {
   level: LogLevel;
   severity: LogSeverity;
   resolved?: boolean;
-  sources?: string[];
+  source?: string;
   tenants?: string[];
 }
 
@@ -95,15 +95,22 @@ export interface LogFilterState {
 }
 
 export interface LogFilters {
-  module?: LogModule;
-  level?: LogLevel;
-  severity?: LogSeverity;
+  module?: LogModule | LogModule[];
+  level?: LogLevel | LogLevel[];
+  severity?: LogSeverity | LogSeverity[];
   startDate?: string;
   endDate?: string;
+  fromDate?: string;
+  toDate?: string;
   query?: string;
+  search?: string; // Added search property
+  searchTerm?: string; // Alternative name used in some components
   resolved?: boolean;
   tenantId?: string;
   source?: string;
+  error_type?: string | string[];
+  tenant_id?: string;
+  dateRange?: DateRange;
 }
 
 export interface DateRange {

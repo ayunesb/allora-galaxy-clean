@@ -62,7 +62,7 @@ export const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {errorGroup.modules && errorGroup.modules.length > 0 ? errorGroup.modules[0] : 'unknown'}
+                        {errorGroup.module}
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">

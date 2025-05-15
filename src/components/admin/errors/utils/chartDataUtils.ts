@@ -1,6 +1,5 @@
 
 import { SystemLog, ErrorTrendDataPoint } from '@/types/logs';
-import { formatDateToISO } from './dateUtils';
 
 /**
  * Prepare error trends data for charts from system logs

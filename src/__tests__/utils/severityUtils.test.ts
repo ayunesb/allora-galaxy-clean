@@ -10,11 +10,11 @@ import type { SystemLog } from '@/types/logs';
 
 describe('severityUtils', () => {
   const mockLogs: SystemLog[] = [
-    { id: '1', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'critical' },
-    { id: '2', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'high' },
-    { id: '3', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'medium' },
-    { id: '4', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'low' },
-    { id: '5', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', tenant_id: 'test', severity: 'high' },
+    { id: '1', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', message: 'Test error 1', tenant_id: 'test', severity: 'critical', context: {} },
+    { id: '2', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', message: 'Test error 2', tenant_id: 'test', severity: 'high', context: {} },
+    { id: '3', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', message: 'Test error 3', tenant_id: 'test', severity: 'medium', context: {} },
+    { id: '4', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', message: 'Test error 4', tenant_id: 'test', severity: 'low', context: {} },
+    { id: '5', created_at: '2023-01-01', timestamp: '2023-01-01', module: 'test', level: 'error', event: 'test', event_type: 'error', description: 'Test', message: 'Test error 5', tenant_id: 'test', severity: 'high', context: {} },
   ];
 
   test('getSeverityColor returns correct color classes', () => {

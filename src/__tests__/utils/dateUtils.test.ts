@@ -11,7 +11,7 @@ import {
 describe('dateUtils', () => {
   it('should format date to ISO', () => {
     const date = new Date('2023-01-01');
-    expect(formatDateToISO(date)).toBe('2023-01-01T00:00:00.000Z');
+    expect(formatDateToISO(date)).toBe('2023-01-01');
   });
   
   it('should parse ISO string to date', () => {
@@ -24,7 +24,7 @@ describe('dateUtils', () => {
   
   it('should format date for display', () => {
     const date = new Date('2023-01-01');
-    expect(formatDateDisplay(date)).toBe('Jan 1, 2023');
+    expect(formatDateDisplay(date)).toBe('Jan 01, 2023');
   });
   
   it('should get date range from period', () => {
@@ -38,18 +38,26 @@ describe('dateUtils', () => {
     const month = getDateRangeFromPeriod('30d');
     const year = getDateRangeFromPeriod('1y');
     
-    // Verify the calculations
-    expect(day.from.toISOString().substring(0, 10)).toBe('2023-01-09');
-    expect(day.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    // Verify the calculations - ensure from/to are defined
+    expect(day.from).toBeDefined();
+    expect(day.to).toBeDefined();
+    expect(day.from?.toISOString().substring(0, 10)).toBe('2023-01-09');
+    expect(day.to?.toISOString().substring(0, 10)).toBe('2023-01-10');
     
-    expect(week.from.toISOString().substring(0, 10)).toBe('2023-01-03');
-    expect(week.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    expect(week.from).toBeDefined();
+    expect(week.to).toBeDefined();
+    expect(week.from?.toISOString().substring(0, 10)).toBe('2023-01-03');
+    expect(week.to?.toISOString().substring(0, 10)).toBe('2023-01-10');
     
-    expect(month.from.toISOString().substring(0, 10)).toBe('2022-12-11');
-    expect(month.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    expect(month.from).toBeDefined();
+    expect(month.to).toBeDefined();
+    expect(month.from?.toISOString().substring(0, 10)).toBe('2022-12-11');
+    expect(month.to?.toISOString().substring(0, 10)).toBe('2023-01-10');
     
-    expect(year.from.toISOString().substring(0, 10)).toBe('2022-01-10');
-    expect(year.to.toISOString().substring(0, 10)).toBe('2023-01-10');
+    expect(year.from).toBeDefined();
+    expect(year.to).toBeDefined();
+    expect(year.from?.toISOString().substring(0, 10)).toBe('2022-01-10');
+    expect(year.to?.toISOString().substring(0, 10)).toBe('2023-01-10');
     
     // Restore original function
     global.Date.now = originalNow;

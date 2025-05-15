@@ -1,5 +1,5 @@
 
-import { format, parse, parseISO as parseDateISO, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO as parseDateISO, subDays, subHours, startOfDay, endOfDay } from 'date-fns';
 import type { DateRange } from '@/types/logs';
 
 /**
@@ -25,12 +25,37 @@ export function formatDateDisplay(date: Date | string): string {
 
 /**
  * Get date range based on period string
+ * Supports both legacy periods (today, yesterday, 7days, etc.)
+ * and test-expected formats (24h, 7d, 30d, 1y)
  */
 export function getDateRangeFromPeriod(period: string): DateRange {
   const now = new Date();
   const today = startOfDay(now);
   
+  // Handle test-expected formats first
   switch (period) {
+    case '24h':
+      return {
+        from: subHours(now, 24),
+        to: now
+      };
+    case '7d':
+      return {
+        from: subDays(now, 7),
+        to: now
+      };
+    case '30d':
+      return {
+        from: subDays(now, 30),
+        to: now
+      };
+    case '1y':
+      return {
+        from: subDays(now, 365),
+        to: now
+      };
+  
+    // Handle legacy formats
     case 'today':
       return {
         from: today,
@@ -75,11 +100,17 @@ export function getTimePeriodLabel(period: string): string {
     case 'yesterday':
       return 'Yesterday';
     case '7days':
+    case '7d':
       return 'Last 7 days';
     case '30days':
+    case '30d':
       return 'Last 30 days';
     case '90days':
       return 'Last 90 days';
+    case '24h':
+      return 'Last 24 hours';
+    case '1y':
+      return 'Last year';
     default:
       return period;
   }

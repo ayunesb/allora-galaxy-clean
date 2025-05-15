@@ -1,69 +1,71 @@
 
 import { toast, ToastOptions } from 'sonner';
 
+export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info';
+
 interface ToastParams {
   title?: string;
   description?: string;
-  variant?: string;
+  variant?: ToastType;
   duration?: number;
   position?: 'top-right' | 'top-center' | 'top-left' | 'bottom-right' | 'bottom-center' | 'bottom-left';
-  icon?: string;
+  icon?: React.ReactNode;
+  [key: string]: any; // Allow additional options
 }
 
-type ToastInput = string | ToastParams;
+export type ToastInput = string | ToastParams;
 
-function normalizeToastParams(input: ToastInput): [string, string | undefined, ToastOptions] {
-  if (typeof input === 'string') {
-    return [input, undefined, {}];
-  } else {
-    const { title = '', description, variant, duration, position, icon } = input;
-    const options: ToastOptions = {};
-    
-    if (description) options.description = description;
-    if (duration) options.duration = duration;
-    if (position) options.position = position;
-    if (icon) options.icon = icon;
-    
-    return [title, description, options];
+// For object-style calls
+export function notify(params: ToastParams): void {
+  const { title = '', description, variant = 'default', ...options } = params;
+  
+  const toastOptions: ToastOptions = {
+    ...options,
+    description
+  };
+
+  switch (variant) {
+    case 'success':
+      toast.success(title, toastOptions);
+      break;
+    case 'error':
+      toast.error(title, toastOptions);
+      break;
+    case 'warning':
+      toast.warning(title, toastOptions);
+      break;
+    case 'info':
+      toast.info(title, toastOptions);
+      break;
+    default:
+      toast.custom((t) => {
+        // Custom toast can render React components directly
+        return typeof title === 'string' ? title : 'Notification';
+      }, toastOptions);
+      break;
   }
 }
 
-/**
- * Show a success toast notification
- */
-export function notifySuccess(input: ToastInput): void {
-  const [title, description, options] = normalizeToastParams(input);
+// For string-style calls with optional config object
+export function notifySuccess(title: string, options: Partial<ToastParams> = {}): void {
   toast.success(title, options);
 }
 
-/**
- * Show an error toast notification
- */
-export function notifyError(input: ToastInput): void {
-  const [title, description, options] = normalizeToastParams(input);
+export function notifyError(title: string, options: Partial<ToastParams> = {}): void {
   toast.error(title, options);
 }
 
-/**
- * Show a warning toast notification
- */
-export function notifyWarning(input: ToastInput): void {
-  const [title, description, options] = normalizeToastParams(input);
+export function notifyWarning(title: string, options: Partial<ToastParams> = {}): void {
   toast.warning(title, options);
 }
 
-/**
- * Show an info toast notification
- */
-export function notifyInfo(input: ToastInput): void {
-  const [title, description, options] = normalizeToastParams(input);
+export function notifyInfo(title: string, options: Partial<ToastParams> = {}): void {
   toast.info(title, options);
 }
 
-/**
- * Show a neutral/default toast notification
- */
-export function notifyDefault(input: ToastInput): void {
-  const [title, description, options] = normalizeToastParams(input);
+export function notifyDefault(title: string, options: Partial<ToastParams> = {}): void {
   toast(title, options);
 }
+
+// Re-export useToast from sonner
+export { useToast } from 'sonner';
