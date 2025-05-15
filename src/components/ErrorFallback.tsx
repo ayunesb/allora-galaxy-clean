@@ -1,15 +1,20 @@
 
 import React from 'react';
-import { useErrorHandler } from '@/lib/errors/useErrorHandler';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
+import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
 
 export interface ErrorFallbackProps {
   error: Error;
   resetErrorBoundary?: () => void;
   tenantId?: string;
+  componentName?: string;
+  showDetails?: boolean;
+  retryCount?: number;
+  maxRetries?: number;
+  componentStack?: string;
 }
 
 /**
@@ -18,19 +23,25 @@ export interface ErrorFallbackProps {
 const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   error,
   resetErrorBoundary,
-  tenantId = 'system'
+  tenantId = 'system',
+  componentName,
+  showDetails = false,
+  componentStack
 }) => {
-  const { handleReportError, isReporting } = useErrorHandler();
   const { toast } = useToast();
+  const [isReporting, setIsReporting] = React.useState(false);
 
   /**
    * Handle reporting the error to the system
    */
   const reportError = async () => {
+    setIsReporting(true);
     try {
-      await handleReportError(error, {
+      await reportErrorFromErrorBoundary(error, {
+        componentStack
+      }, {
         context: {
-          component: 'ErrorFallback',
+          component: componentName || 'ErrorFallback',
           location: window.location.pathname
         },
         tenantId
@@ -47,6 +58,8 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         description: 'There was an error reporting this issue. Please try again later.'
       });
       console.error('Error reporting error:', reportError);
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -64,10 +77,17 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         <h3 className="text-sm font-semibold mb-2">Error details:</h3>
         <pre className="bg-muted p-4 rounded-md text-xs whitespace-pre-wrap">
           {error.message || 'An unknown error occurred'}
-          {error.stack && (
+          {error.stack && showDetails && (
             <>
               <br /><br />
               {error.stack}
+            </>
+          )}
+          {componentStack && showDetails && (
+            <>
+              <br /><br />
+              <strong>Component stack:</strong><br />
+              {componentStack}
             </>
           )}
         </pre>
@@ -77,7 +97,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         {resetErrorBoundary && (
           <Button onClick={resetErrorBoundary} className="flex items-center gap-2">
             <RefreshCcw className="h-4 w-4" />
-            Retry
+            Try Again
           </Button>
         )}
         

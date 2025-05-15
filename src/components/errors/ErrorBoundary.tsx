@@ -1,6 +1,8 @@
+
 import React, { Component, ErrorInfo } from 'react';
 import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
 import ErrorFallback from '@/components/ErrorFallback';
+import type { ErrorFallbackProps } from '@/components/ErrorFallback';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -10,7 +12,7 @@ interface ErrorBoundaryState {
 }
 
 interface ErrorBoundaryProps {
-  fallback?: React.ComponentType<{ error: Error; resetErrorBoundary: () => void }>;
+  fallback?: React.ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   onReset?: () => void;
   componentName?: string;
@@ -72,13 +74,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render() {
     const { hasError, error, retryCount } = this.state;
-    const { children, fallback, componentName, showDetails, maxRetries = 3 } = this.props;
+    const { children, fallback, componentName, showDetails, maxRetries = 3, tenantId } = this.props;
 
     if (hasError && error) {
       // Use custom fallback if provided
       if (fallback) {
-        const FallbackComponent = fallback;
-        return <FallbackComponent error={error} resetErrorBoundary={this.resetErrorBoundary} />;
+        return fallback;
       }
 
       // Otherwise use default fallback
@@ -90,8 +91,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           showDetails={showDetails}
           retryCount={retryCount}
           maxRetries={maxRetries}
-          tenantId={this.props.tenantId}
-          componentStack={this.state.errorInfo?.componentStack || undefined}
+          tenantId={tenantId}
+          componentStack={this.state.errorInfo?.componentStack}
         />
       );
     }

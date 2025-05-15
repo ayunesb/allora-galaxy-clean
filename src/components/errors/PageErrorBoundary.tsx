@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from './ErrorFallback';
+import ErrorFallback from '@/components/ErrorFallback';
+import type { ErrorFallbackProps } from '@/components/ErrorFallback';
 
 interface PageErrorBoundaryProps {
   children: React.ReactNode;
@@ -18,8 +19,12 @@ const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({
 }) => {
   return (
     <ErrorBoundary
-      FallbackComponent={(props) => (
-        <ErrorFallback {...props} tenantId={tenantId} />
+      FallbackComponent={({ error, resetErrorBoundary }: ErrorFallbackProps) => (
+        <ErrorFallback 
+          error={error} 
+          resetErrorBoundary={resetErrorBoundary} 
+          tenantId={tenantId} 
+        />
       )}
       onError={(error, info) => {
         console.error('Error caught by PageErrorBoundary:', error);

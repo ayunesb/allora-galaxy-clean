@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ErrorBoundary, ErrorBoundaryProps } from 'react-error-boundary';
+import type { FallbackProps } from 'react-error-boundary';
 
 /**
  * Interface for the RetryableErrorBoundary component
@@ -29,7 +30,7 @@ interface RetryableErrorBoundaryProps extends Omit<ErrorBoundaryProps, 'Fallback
   /**
    * FallbackComponent to show when max retries exceeded
    */
-  FallbackComponent?: React.ComponentType<{ error: Error; resetErrorBoundary: () => void }>;
+  FallbackComponent?: React.ComponentType<FallbackProps>;
 }
 
 /**
@@ -47,12 +48,9 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
 }) => {
   const [retryCount, setRetryCount] = React.useState(0);
   const [isRetrying, setIsRetrying] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
   
   // Auto-reset the error boundary if maxRetries not exceeded
   const handleError = React.useCallback((error: Error, info: React.ErrorInfo) => {
-    setError(error);
-    
     if (retryCount < maxRetries) {
       setIsRetrying(true);
       
@@ -67,9 +65,7 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
     }
     
     // Call the original onError
-    props.onError?.(error, {
-      componentStack: info.componentStack
-    });
+    props.onError?.(error, info);
   }, [retryCount, maxRetries, retryDelay, props]);
   
   // Reset the retry count when successfully rendered
@@ -77,7 +73,6 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
     return () => {
       setRetryCount(0);
       setIsRetrying(false);
-      setError(null);
     };
   }, [children]);
   
@@ -112,7 +107,7 @@ export default RetryableErrorBoundary;
 export function withRetryableErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   errorBoundaryProps: Omit<RetryableErrorBoundaryProps, 'children'> = {}
-) {
+): React.FC<P> {
   const displayName = Component.displayName || Component.name || 'Component';
   
   const WrappedComponent = (props: P) => {

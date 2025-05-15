@@ -38,6 +38,11 @@ export interface SystemLog {
   context?: Record<string, any>;
   error_message?: string;
   details?: Record<string, any> | string;
+  metadata?: Record<string, any>;
+  request_id?: string;
+  priority?: string;
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
 }
 
 export interface LogGroup {
@@ -51,6 +56,35 @@ export interface LogGroup {
   error_type?: string;
 }
 
+export interface ErrorTrendDataPoint {
+  date: string;
+  count: number;
+  severity?: LogSeverity;
+  module?: string;
+  trend?: number;
+}
+
 export const isLogSeverity = (value: string): value is LogSeverity => {
   return ['low', 'medium', 'high', 'critical'].includes(value);
+};
+
+export const isLogLevel = (value: string): value is LogLevel => {
+  return ['info', 'warning', 'error', 'debug'].includes(value);
+};
+
+export const isSystemLog = (value: any): value is SystemLog => {
+  return typeof value === 'object' && 
+    value !== null && 
+    'id' in value && 
+    'timestamp' in value && 
+    'module' in value;
+};
+
+export const hasError = (log: SystemLog): boolean => {
+  return (
+    log.level === 'error' || 
+    !!log.error_message || 
+    !!log.error_type || 
+    (log.severity === 'high' || log.severity === 'critical')
+  );
 };
