@@ -1,53 +1,102 @@
-
-import React from 'react';
-import ErrorBoundaryBase from './ErrorBoundaryBase';
-import ErrorFallback from './ErrorFallback';
+import React, { Component, ErrorInfo } from 'react';
 import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
+import ErrorFallback from '@/components/ErrorFallback';
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+  retryCount: number;
+}
 
 interface ErrorBoundaryProps {
+  fallback?: React.ComponentType<{ error: Error; resetErrorBoundary: () => void }>;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onReset?: () => void;
+  componentName?: string;
+  tenantId?: string;
+  showDetails?: boolean;
+  maxRetries?: number;
   children: React.ReactNode;
-  fallback?: React.ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-  resetKeys?: any[];
 }
 
 /**
- * ErrorBoundary component that catches errors in its child component tree
- * and displays a fallback UI when an error occurs.
+ * Error boundary component that catches errors in its child component tree
  */
-class ErrorBoundary extends React.Component<ErrorBoundaryProps> {
-  render() {
-    const { children, fallback, onError, resetKeys } = this.props;
-    
-    // Handle error reporting using the central reporting system
-    const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-      // Report error to monitoring system
-      reportErrorFromErrorBoundary(error, errorInfo, {
-        module: 'ui'
-      }).catch(console.error);
-      
-      // Call the provided onError handler if defined
-      if (onError) {
-        onError(error, errorInfo);
-      }
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0
     };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // Report to monitoring system
+    reportErrorFromErrorBoundary(error, { 
+      componentStack: errorInfo.componentStack || undefined 
+    }, {
+      module: 'ui',
+      tenantId: this.props.tenantId,
+      context: {
+        componentName: this.props.componentName,
+      }
+    }).catch(reportingError => {
+      console.error('Failed to report error:', reportingError);
+    });
     
-    return (
-      <ErrorBoundaryBase
-        fallback={({ error, resetErrorBoundary }) => (
-          fallback || (
-            <ErrorFallback
-              error={error}
-              resetErrorBoundary={resetErrorBoundary}
-            />
-          )
-        )}
-        onError={handleError}
-        resetKeys={resetKeys}
-      >
-        {children}
-      </ErrorBoundaryBase>
-    );
+    this.setState({ errorInfo });
+    
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+  }
+
+  resetErrorBoundary = () => {
+    this.setState(prevState => ({
+      hasError: false,
+      retryCount: prevState.retryCount + 1
+    }));
+
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
+
+  render() {
+    const { hasError, error, retryCount } = this.state;
+    const { children, fallback, componentName, showDetails, maxRetries = 3 } = this.props;
+
+    if (hasError && error) {
+      // Use custom fallback if provided
+      if (fallback) {
+        const FallbackComponent = fallback;
+        return <FallbackComponent error={error} resetErrorBoundary={this.resetErrorBoundary} />;
+      }
+
+      // Otherwise use default fallback
+      return (
+        <ErrorFallback
+          error={error}
+          resetErrorBoundary={this.resetErrorBoundary}
+          componentName={componentName}
+          showDetails={showDetails}
+          retryCount={retryCount}
+          maxRetries={maxRetries}
+          tenantId={this.props.tenantId}
+          componentStack={this.state.errorInfo?.componentStack || undefined}
+        />
+      );
+    }
+
+    return children;
   }
 }
 
