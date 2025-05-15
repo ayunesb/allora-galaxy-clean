@@ -11,6 +11,7 @@ export { default as EdgeFunctionHandler } from './EdgeFunctionHandler';
 export { default as CardErrorState } from './CardErrorState';
 export { default as InlineError } from './InlineError';
 export { default as PartialErrorState } from './PartialErrorState';
+export { default as ErrorState } from './ErrorState';
 
 // Export empty states
 export { 

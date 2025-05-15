@@ -16,14 +16,16 @@ const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
   formatDate,
   renderUser
 }) => {
-  const getChangeTypeColor = (type: string | undefined) => {
+  const getChangeTypeColor = (type: StrategyChangeType | undefined) => {
     if (!type) return 'bg-gray-100 text-gray-800';
     
-    switch (type.toLowerCase()) {
-      case 'major': return 'bg-blue-100 text-blue-800';
-      case 'minor': return 'bg-green-100 text-green-800';
-      case 'patch': return 'bg-gray-100 text-gray-800';
-      case 'initial': return 'bg-purple-100 text-purple-800';
+    switch (type) {
+      case 'creation': return 'bg-purple-100 text-purple-800';
+      case 'update': return 'bg-blue-100 text-blue-800';
+      case 'approval': return 'bg-green-100 text-green-800';
+      case 'rejection': return 'bg-red-100 text-red-800';
+      case 'execution': return 'bg-amber-100 text-amber-800';
+      case 'parameter_change': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };

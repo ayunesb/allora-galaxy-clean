@@ -1,7 +1,7 @@
 
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { notify } from '@/lib/notifications/toast';
+import { toast } from '@/lib/notifications/toast';
 import type { Strategy, StrategyVersion, StrategyExecution } from '@/types/strategy';
 
 interface StrategyDataResult {
@@ -89,7 +89,7 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
   // Handle error notifications only once when they occur
   if (strategyQuery.isError) {
     console.error('Strategy query error:', strategyQuery.error);
-    notify({ 
+    toast.error({ 
       title: 'Error loading strategy', 
       description: strategyQuery.error instanceof Error ? strategyQuery.error.message : 'Unknown error'
     });
@@ -103,10 +103,10 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
         executionsQuery.refetch()
       ]);
       
-      notify({ title: 'Data refreshed' });
+      toast.success({ title: 'Data refreshed' });
     } catch (error) {
       console.error('Error refetching data:', error);
-      notify({ 
+      toast.error({ 
         title: 'Error refreshing data',
         description: error instanceof Error ? error.message : 'Unknown error'
       });

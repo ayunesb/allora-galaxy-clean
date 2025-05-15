@@ -22,8 +22,10 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
 }) => {
   const getStatusIcon = (status: string) => {
     switch(status.toLowerCase()) {
+      case 'completed':
       case 'success':
         return <Check className="h-4 w-4 text-green-500" />;
+      case 'failed':
       case 'failure':
         return <X className="h-4 w-4 text-red-500" />;
       case 'running':
@@ -37,8 +39,10 @@ const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
 
   const getStatusColor = (status: string) => {
     switch(status.toLowerCase()) {
+      case 'completed':
       case 'success':
         return 'bg-green-100 text-green-800';
+      case 'failed':
       case 'failure':
         return 'bg-red-100 text-red-800';
       case 'running':

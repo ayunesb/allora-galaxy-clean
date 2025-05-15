@@ -68,10 +68,8 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
               </Card>
             }
           >
-            {(strategyData: Strategy) => (
-              <StrategyDetails 
-                strategyId={strategyData?.id || selectedStrategyId} 
-              />
+            {(strategyData: Strategy | null) => (
+              strategyData && <StrategyDetails strategyId={strategyData.id || selectedStrategyId} />
             )}
           </AsyncDataRenderer>
         </TabsContent>
@@ -114,7 +112,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
           >
             {(executionData: StrategyExecution[]) => (
               <ExecutionLogs 
-                executions={executionData}
+                executions={executionData as StrategyExecution[]}
                 formatDate={formatDate}
                 renderUser={getUserName}
               />

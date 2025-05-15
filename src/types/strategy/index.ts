@@ -34,6 +34,10 @@ export interface StrategyVersion {
   approved_by?: string;
   status?: StrategyStatus;
   metadata?: Record<string, any>;
+  changes?: any[];
+  content?: string;
+  updated_at?: string;
+  approval_date?: string;
 }
 
 export interface StrategyExecution {
@@ -51,6 +55,7 @@ export interface StrategyExecution {
   executed_by?: string;
   tenant_id?: string;
   metadata?: Record<string, any>;
+  execution_time?: number;
 }
 
 export interface StrategyParameter {
@@ -111,7 +116,7 @@ export interface StrategyValidation {
   message?: string;
 }
 
-// Fixed type for ExecutionLogItem
+// Fixed type for ExecutionLogItem to align with StrategyExecution
 export interface ExecutionLogItem {
   id: string;
   strategy_id: string;
@@ -119,9 +124,13 @@ export interface ExecutionLogItem {
   parameters?: Record<string, any>;
   result?: Record<string, any>;
   error?: string;
+  start_time: string;
   created_at: string;
   duration_ms?: number;
   version: number;
+  end_time?: string;
+  executed_by?: string;
+  tenant_id?: string;
 }
 
 export * from './fixed';
