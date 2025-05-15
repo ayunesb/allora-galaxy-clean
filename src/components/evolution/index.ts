@@ -8,10 +8,10 @@ export { default as AuditLog } from './AuditLog';
 export { default as LogDetailDialog } from './LogDetailDialog';
 
 // Strategy evolution components
-export { StrategyDetails } from './strategy/StrategyDetails';
-export { EvolutionHistory } from './strategy/EvolutionHistory';
-export { ExecutionLogs } from './strategy/ExecutionLogs';
-export { StrategyLoadingSkeleton } from './strategy/StrategyLoadingSkeleton';
+export { default as StrategyDetails } from './strategy/StrategyDetails';
+export { default as EvolutionHistory } from './strategy/EvolutionHistory';
+export { default as ExecutionLogs } from './strategy/ExecutionLogs';
+export { default as StrategyLoadingSkeleton } from './strategy/StrategyLoadingSkeleton';
 
 // Strategy component parts
 export { default as StrategyStatusBadge } from './strategy/components/StrategyStatusBadge';

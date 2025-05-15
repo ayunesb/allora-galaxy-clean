@@ -49,6 +49,7 @@ export interface SystemLog {
   error_message?: string;
   user_facing?: boolean;
   affects_multiple_users?: boolean;
+  metadata?: Record<string, any>;
 }
 
 // Helper function to check if a log has an error
@@ -67,6 +68,20 @@ export const isSystemLog = (value: any): value is SystemLog => {
     'message' in value
   );
 };
+
+// Add LogGroup interface for ErrorGroupsList
+export interface LogGroup {
+  id: string;
+  message: string;
+  module: string;
+  count: number;
+  first_seen?: string;
+  last_seen?: string;
+  severity?: LogSeverity;
+  error_type?: string;
+  status?: string;
+  tenant_id?: string;
+}
 
 export interface LogFilters {
   level?: string[];

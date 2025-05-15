@@ -9,10 +9,10 @@ import {
 import { Card } from '@/components/ui/card';
 import { useStrategyEvolution } from './strategy/useStrategyEvolution';
 import { AsyncDataRenderer } from '@/components/ui/async-data-renderer';
-import { StrategyDetails } from './strategy/StrategyDetails';
-import { EvolutionHistory } from './strategy/EvolutionHistory';
-import { ExecutionLogs } from './strategy/ExecutionLogs';
-import { StrategyLoadingSkeleton } from './strategy/StrategyLoadingSkeleton';
+import StrategyDetails from './strategy/StrategyDetails';
+import EvolutionHistory from './strategy/EvolutionHistory';
+import ExecutionLogs from './strategy/ExecutionLogs';
+import StrategyLoadingSkeleton from './strategy/StrategyLoadingSkeleton';
 import type { Strategy, StrategyVersion, StrategyExecution } from '@/types/strategy';
 
 interface StrategyEvolutionTabProps {
@@ -22,12 +22,12 @@ interface StrategyEvolutionTabProps {
 const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ 
   strategyId = 'default' 
 }) => {
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string>(strategyId);
+  const [selectedStrategyId] = useState<string>(strategyId);
   
   const { 
-    strategy, 
-    versions, 
-    executions, 
+    strategy,
+    versions,
+    executions,
     isLoading, 
     error, 
     refetch 
@@ -62,9 +62,9 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
         
         <TabsContent value="details">
           <AsyncDataRenderer 
-            data={strategy.data}
-            isLoading={isLoading || strategy.isLoading}
-            error={error || strategy.error}
+            data={strategy}
+            isLoading={isLoading}
+            error={error}
             onRetry={refetch}
             loadingComponent={<StrategyLoadingSkeleton />}
             emptyComponent={
@@ -85,9 +85,9 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
         
         <TabsContent value="evolution">
           <AsyncDataRenderer 
-            data={versions.data}
-            isLoading={isLoading || versions.isLoading}
-            error={error || versions.error}
+            data={versions}
+            isLoading={isLoading}
+            error={error}
             onRetry={refetch}
             loadingComponent={<StrategyLoadingSkeleton />}
             emptyComponent={
@@ -108,9 +108,9 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
         
         <TabsContent value="executions">
           <AsyncDataRenderer 
-            data={executions.data}
-            isLoading={isLoading || executions.isLoading}
-            error={error || executions.error}
+            data={executions}
+            isLoading={isLoading}
+            error={error}
             onRetry={refetch}
             loadingComponent={<StrategyLoadingSkeleton />}
             emptyComponent={

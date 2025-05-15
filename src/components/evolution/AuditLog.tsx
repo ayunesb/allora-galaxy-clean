@@ -101,7 +101,7 @@ export default function AuditLog({
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-muted-foreground">
-                    {format(new Date(log.created_at), 'MMM d, h:mm a')}
+                    {log.created_at ? format(new Date(log.created_at), 'MMM d, h:mm a') : 'N/A'}
                   </span>
                   <Tooltip>
                     <TooltipTrigger asChild>

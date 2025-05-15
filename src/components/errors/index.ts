@@ -12,8 +12,8 @@ export { default as CardErrorState } from './CardErrorState';
 export { default as PartialErrorState } from './PartialErrorState';
 
 // Edge function error components
-export { EdgeFunctionErrorDisplay } from './EdgeFunctionErrorDisplay';
-export { EdgeFunctionErrorHandler } from './EdgeFunctionErrorHandler';
+export { default as EdgeFunctionErrorDisplay } from './EdgeFunctionErrorDisplay';
+export { default as EdgeFunctionError } from './EdgeFunctionErrorHandler';
 export { default as EdgeFunctionHandler } from './EdgeFunctionHandler';
 export { withEdgeFunctionErrorHandling } from './withEdgeFunctionErrorHandling';
 

@@ -23,25 +23,22 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFiltersChange({
       ...filters,
-      search: e.target.value,
-      searchTerm: e.target.value // Keep both for backward compatibility
+      search: e.target.value
     });
   };
 
   const handleSeverityChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      severity: value !== 'all' ? (isLogSeverity(value) ? value as LogSeverity : undefined) : undefined
+      severity: value !== 'all' ? [value] : undefined
     });
   };
 
   const handleModuleChange = (value: string) => {
     // Cast to SystemEventModule or undefined to fix type error
-    const moduleValue = value !== 'all' ? (value as SystemEventModule) : undefined;
-    
     onFiltersChange({
       ...filters,
-      module: moduleValue
+      module: value !== 'all' ? [value] : undefined
     });
   };
 
@@ -59,7 +56,7 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
       </div>
       
       <Select
-        value={typeof filters.severity === 'string' ? filters.severity : 'all'}
+        value={Array.isArray(filters.severity) && filters.severity.length > 0 ? filters.severity[0] : 'all'}
         onValueChange={handleSeverityChange}
         disabled={isLoading}
       >
@@ -76,7 +73,7 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
       </Select>
       
       <Select
-        value={(filters.module as string) || 'all'}
+        value={Array.isArray(filters.module) && filters.module.length > 0 ? filters.module[0] : 'all'}
         onValueChange={handleModuleChange}
         disabled={isLoading}
       >
