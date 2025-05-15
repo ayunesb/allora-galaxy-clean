@@ -20,7 +20,7 @@ interface ErrorRateChartProps {
  * @param {boolean} [props.isLoading=false] - Loading state indicator
  * @param {number} [props.height=300] - Chart height in pixels
  */
-const ErrorRateChart: React.FC<ErrorRateChartProps> = ({ 
+export const ErrorRateChart: React.FC<ErrorRateChartProps> = ({ 
   data,
   isLoading = false,
   height = 300
@@ -71,4 +71,4 @@ const ErrorRateChart: React.FC<ErrorRateChartProps> = ({
   );
 };
 
-export default React.memo(ErrorRateChart);
+export default ErrorRateChart;

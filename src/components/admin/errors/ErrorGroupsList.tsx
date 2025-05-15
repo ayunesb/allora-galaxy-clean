@@ -66,10 +66,10 @@ export const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {format(new Date(errorGroup.last_seen || Date.now()), 'yyyy-MM-dd HH:mm')}
+                      {format(new Date(errorGroup.lastSeen || Date.now()), 'yyyy-MM-dd HH:mm')}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {format(new Date(errorGroup.first_seen || Date.now()), 'yyyy-MM-dd HH:mm')}
+                      {format(new Date(errorGroup.firstSeen || Date.now()), 'yyyy-MM-dd HH:mm')}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {errorGroup.count}

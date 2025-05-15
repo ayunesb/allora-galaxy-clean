@@ -122,6 +122,8 @@ export interface LogGroup {
   id: string;
   /** Group title/name */
   name: string;
+  /** Error message text */
+  message: string;
   /** Count of logs in the group */
   count: number;
   /** Most recent occurrence timestamp */

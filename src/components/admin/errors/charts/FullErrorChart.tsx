@@ -20,7 +20,7 @@ interface FullErrorChartProps {
  * @param {boolean} [props.isLoading=false] - Loading state indicator
  * @param {number} [props.height=300] - Chart height in pixels
  */
-const FullErrorChart: React.FC<FullErrorChartProps> = ({ 
+export const FullErrorChart: React.FC<FullErrorChartProps> = ({ 
   data,
   isLoading = false,
   height = 300
@@ -68,4 +68,4 @@ const FullErrorChart: React.FC<FullErrorChartProps> = ({
   );
 };
 
-export default React.memo(FullErrorChart);
+export default FullErrorChart;

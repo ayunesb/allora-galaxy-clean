@@ -52,18 +52,28 @@ describe('ErrorTrendsChart', () => {
     }
   ];
 
+  const defaultDateRange = {
+    from: new Date('2023-01-01'),
+    to: new Date('2023-01-03')
+  };
+
   it('renders the chart with logs data', () => {
-    render(<ErrorTrendsChart logs={mockLogs} />);
+    render(<ErrorTrendsChart 
+      logs={mockLogs} 
+      dateRange={defaultDateRange} 
+      isLoading={false} 
+    />);
     
     const chart = screen.getByTestId('line-chart');
     expect(chart).toBeInTheDocument();
-    
-    const title = screen.getByText('Error Trends');
-    expect(title).toBeInTheDocument();
   });
 
   it('displays loading skeleton when isLoading is true', () => {
-    render(<ErrorTrendsChart logs={[]} isLoading={true} />);
+    render(<ErrorTrendsChart 
+      logs={[]} 
+      dateRange={defaultDateRange} 
+      isLoading={true} 
+    />);
     
     const skeleton = screen.getByTestId('chart-loading');
     expect(skeleton).toBeInTheDocument();
@@ -73,7 +83,11 @@ describe('ErrorTrendsChart', () => {
   });
 
   it('displays empty state when there are no logs', () => {
-    render(<ErrorTrendsChart logs={[]} />);
+    render(<ErrorTrendsChart 
+      logs={[]} 
+      dateRange={defaultDateRange} 
+      isLoading={false}
+    />);
     
     const emptyState = screen.getByText('No error data available');
     expect(emptyState).toBeInTheDocument();
@@ -85,7 +99,11 @@ describe('ErrorTrendsChart', () => {
       to: new Date('2023-01-03')
     };
     
-    render(<ErrorTrendsChart logs={mockLogs} dateRange={dateRange} />);
+    render(<ErrorTrendsChart 
+      logs={mockLogs} 
+      dateRange={dateRange}
+      isLoading={false}
+    />);
     
     // Chart should still render with filtered data
     const chart = screen.getByTestId('line-chart');

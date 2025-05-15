@@ -7,33 +7,51 @@ import type { LogSeverity, SystemLog } from '@/types/logs';
 export const getSeverityColor = (severity: LogSeverity | undefined): string => {
   switch (severity) {
     case 'critical':
-      return 'text-red-500 bg-red-100 dark:bg-red-900/20';
+      return '#ef4444'; // red-500
     case 'high':
-      return 'text-amber-500 bg-amber-100 dark:bg-amber-900/20';
+      return '#f97316'; // orange-500
     case 'medium':
-      return 'text-yellow-500 bg-yellow-100 dark:bg-yellow-900/20';
+      return '#eab308'; // yellow-500
     case 'low':
-      return 'text-blue-500 bg-blue-100 dark:bg-blue-900/20';
+      return '#22c55e'; // green-500
     default:
-      return 'text-gray-500 bg-gray-100 dark:bg-gray-800';
+      return '#6b7280'; // gray-500
   }
 };
 
 /**
- * Get human-readable label for severity level
+ * Get text color class for severity level
  */
-export const getSeverityLabel = (severity: LogSeverity | undefined): string => {
+export const getSeverityTextColor = (severity: LogSeverity | undefined): string => {
   switch (severity) {
     case 'critical':
-      return 'Critical';
+      return 'text-red-500';
     case 'high':
-      return 'High';
+      return 'text-orange-500';
     case 'medium':
-      return 'Medium';
+      return 'text-yellow-500';
     case 'low':
-      return 'Low';
+      return 'text-green-500';
     default:
-      return 'Unknown';
+      return 'text-gray-500';
+  }
+};
+
+/**
+ * Get badge variant name for severity level
+ */
+export const getSeverityBadgeVariant = (severity: LogSeverity | undefined): string => {
+  switch (severity) {
+    case 'critical':
+      return 'destructive';
+    case 'high':
+      return 'orange';
+    case 'medium':
+      return 'yellow';
+    case 'low':
+      return 'blue';
+    default:
+      return 'secondary';
   }
 };
 
@@ -64,6 +82,28 @@ export const countLogsBySeverity = (logs: SystemLog[]): Record<LogSeverity | str
  * Alias for countLogsBySeverity for backward compatibility
  */
 export const countBySeverity = countLogsBySeverity;
+
+/**
+ * Calculate overall severity from a set of logs
+ * Returns the highest severity level found in the logs
+ */
+export const calculateOverallSeverity = (logs: SystemLog[]): LogSeverity => {
+  if (logs.length === 0) return 'low';
+  
+  if (logs.some(log => log.severity === 'critical')) {
+    return 'critical';
+  }
+  
+  if (logs.some(log => log.severity === 'high')) {
+    return 'high';
+  }
+  
+  if (logs.some(log => log.severity === 'medium')) {
+    return 'medium';
+  }
+  
+  return 'low';
+};
 
 /**
  * Calculate percentages for each severity level

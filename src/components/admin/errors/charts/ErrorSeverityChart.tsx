@@ -20,7 +20,7 @@ interface ErrorSeverityChartProps {
  * @param {boolean} [props.isLoading=false] - Loading state indicator
  * @param {number} [props.height=300] - Chart height in pixels
  */
-const ErrorSeverityChart: React.FC<ErrorSeverityChartProps> = ({ 
+export const ErrorSeverityChart: React.FC<ErrorSeverityChartProps> = ({ 
   data,
   isLoading = false,
   height = 300
@@ -69,4 +69,4 @@ const ErrorSeverityChart: React.FC<ErrorSeverityChartProps> = ({
   );
 };
 
-export default React.memo(ErrorSeverityChart);
+export default ErrorSeverityChart;

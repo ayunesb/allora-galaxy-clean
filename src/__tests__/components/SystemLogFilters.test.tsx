@@ -1,7 +1,7 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import SystemLogFilters from '@/components/admin/errors/SystemLogFilters';
+import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import { LogFilters } from '@/types/logs';
 
 describe('SystemLogFilters', () => {
@@ -41,9 +41,9 @@ describe('SystemLogFilters', () => {
     expect(screen.getByPlaceholderText('Search logs...')).toBeInTheDocument();
     
     // Check for filter sections
-    expect(screen.getByText('Module')).toBeInTheDocument();
-    expect(screen.getByText('Level')).toBeInTheDocument();
-    expect(screen.getByText('Severity')).toBeInTheDocument();
+    expect(screen.getByText('All Levels')).toBeInTheDocument();
+    expect(screen.getByText('All Modules')).toBeInTheDocument();
+    expect(screen.getByText('All Severities')).toBeInTheDocument();
     expect(screen.getByText('Date Range')).toBeInTheDocument();
   });
   
