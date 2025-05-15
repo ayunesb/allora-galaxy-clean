@@ -55,14 +55,14 @@ export interface LogFilters {
   startDate?: string;
   endDate?: string;
   search?: string;
-  searchTerm?: string; // Keeping for backward compatibility
+  searchTerm?: string; // Kept for backward compatibility
   status?: string | string[];
-  fromDate?: string; // Added for compatibility
-  toDate?: string; // Added for compatibility
+  fromDate?: string; // Alias for startDate, kept for compatibility
+  toDate?: string; // Alias for endDate, kept for compatibility
   error_type?: string | string[];
   severity?: string | string[];
-  dateFrom?: string | null; // Added for compatibility
-  dateTo?: string | null; // Added for compatibility
+  dateFrom?: string | null; // Another alias, kept for compatibility
+  dateTo?: string | null; // Another alias, kept for compatibility
 }
 
 export interface LogsResponse {
@@ -73,4 +73,9 @@ export interface LogsResponse {
 export interface LogGroupsResponse {
   data: LogGroup[];
   count: number;
+}
+
+export interface DateRange {
+  from: Date;
+  to?: Date;
 }

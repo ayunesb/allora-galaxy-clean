@@ -12,6 +12,9 @@ export interface AsyncDataRendererProps<T> {
   renderData?: (data: T) => React.ReactElement;
   children?: React.ReactNode | ((data: T) => React.ReactNode);
   loadingText?: string;
+  retryCount?: number;
+  maxRetries?: number;
+  isRetrying?: boolean;
 }
 
 export function AsyncDataRenderer<T>({
@@ -22,6 +25,9 @@ export function AsyncDataRenderer<T>({
   renderData,
   children,
   loadingText = 'Loading data...',
+  retryCount = 0,
+  maxRetries = 3,
+  isRetrying = false,
 }: AsyncDataRendererProps<T>) {
   // Render states
   if (isLoading) {
@@ -36,16 +42,32 @@ export function AsyncDataRenderer<T>({
   }
 
   if (error) {
-    // If we have a retry function, render the RetryFeedback component
-    if (onRetry) {
+    // If we have a retry function and retry information is provided, render the RetryFeedback component
+    if (onRetry && (retryCount > 0 || isRetrying)) {
       return (
-        <RetryFeedback
-          retryCount={1}
-          maxRetries={3}
-          isRetrying={false}
-          onRetry={onRetry}
-          className="min-h-[200px]"
-        />
+        <>
+          <RetryFeedback
+            retryCount={retryCount}
+            maxRetries={maxRetries}
+            isRetrying={isRetrying}
+            onRetry={onRetry}
+            className="mb-4"
+          />
+          <ErrorState
+            title="Failed to load data"
+            message={error.message}
+            action={
+              onRetry ? (
+                <button
+                  onClick={onRetry}
+                  className="text-primary hover:underline"
+                >
+                  Try again
+                </button>
+              ) : undefined
+            }
+          />
+        </>
       );
     }
     
@@ -76,14 +98,19 @@ export function AsyncDataRenderer<T>({
     );
   }
 
-  // Render data using the appropriate pattern
+  // Render data using the appropriate pattern:
+  // 1. If renderData function is provided, use it
   if (renderData) {
     return renderData(data);
   }
 
+  // 2. If children is a function, call it with the data
   if (typeof children === 'function') {
     return <>{children(data)}</>;
   }
 
+  // 3. Otherwise just render children
   return <>{children}</>;
 }
+
+export default AsyncDataRenderer;

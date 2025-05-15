@@ -2,20 +2,19 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import { LogFilters } from '@/types/shared';
+import { LogFilters } from '@/types/logs';
 
 describe('SystemLogFilters Component', () => {
   const initialFilters: LogFilters = {
     search: '',
     module: undefined,
-    level: [],
+    level: undefined,
     fromDate: undefined,
     toDate: undefined
   };
   
   const mockOnFilterChange = vi.fn();
   const mockOnRefresh = vi.fn();
-  const mockOnReset = vi.fn(); // Added mock reset function to fix TS errors
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,7 +26,6 @@ describe('SystemLogFilters Component', () => {
         filters={initialFilters} 
         onFilterChange={mockOnFilterChange} 
         onRefresh={mockOnRefresh}
-        onReset={mockOnReset} // Added to fix TS error
       />
     );
     
@@ -43,7 +41,6 @@ describe('SystemLogFilters Component', () => {
       <SystemLogFilters 
         filters={initialFilters} 
         onFilterChange={mockOnFilterChange}
-        onReset={mockOnReset} // Added to fix TS error
       />
     );
     
@@ -52,7 +49,8 @@ describe('SystemLogFilters Component', () => {
     
     expect(mockOnFilterChange).toHaveBeenCalledWith({
       ...initialFilters,
-      search: 'error'
+      search: 'error',
+      searchTerm: 'error'
     });
   });
 
@@ -61,7 +59,6 @@ describe('SystemLogFilters Component', () => {
       <SystemLogFilters 
         filters={initialFilters} 
         onFilterChange={mockOnFilterChange}
-        onReset={mockOnReset} // Added to fix TS error
       />
     );
     
@@ -87,7 +84,6 @@ describe('SystemLogFilters Component', () => {
         filters={initialFilters} 
         onFilterChange={mockOnFilterChange} 
         onRefresh={mockOnRefresh}
-        onReset={mockOnReset} // Added to fix TS error
       />
     );
     
@@ -103,7 +99,6 @@ describe('SystemLogFilters Component', () => {
         filters={initialFilters} 
         onFilterChange={mockOnFilterChange} 
         onRefresh={mockOnRefresh}
-        onReset={mockOnReset} // Added to fix TS error
         isLoading={true}
       />
     );

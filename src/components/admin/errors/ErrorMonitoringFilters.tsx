@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Filter } from 'lucide-react';
-import { LogFilters } from '@/types/shared';
+import { LogFilters } from '@/types/logs';
 import { SystemEventModule } from '@/types/shared';
 
 interface ErrorMonitoringFiltersProps {
@@ -23,7 +23,8 @@ const ErrorMonitoringFilters: React.FC<ErrorMonitoringFiltersProps> = ({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFiltersChange({
       ...filters,
-      search: e.target.value
+      search: e.target.value,
+      searchTerm: e.target.value // Keep both for backward compatibility
     });
   };
 

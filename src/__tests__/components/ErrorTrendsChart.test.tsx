@@ -1,86 +1,120 @@
 
-import { describe, it, expect, jest, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
+import { prepareErrorTrendsData } from '@/components/admin/errors/utils/chartDataUtils';
+import { addDays } from 'date-fns';
+import type { SystemLog } from '@/types/logs';
 
-// Mock the recharts components to avoid rendering issues in tests
-vi.mock('recharts', () => {
-  const OriginalModule = vi.importActual('recharts');
-  return {
-    ...OriginalModule,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-    LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
-    Line: vi.fn().mockImplementation(() => <div data-testid="chart-line" />),
-    XAxis: vi.fn().mockImplementation(() => <div data-testid="x-axis" />),
-    YAxis: vi.fn().mockImplementation(() => <div data-testid="y-axis" />),
-    CartesianGrid: vi.fn().mockImplementation(() => <div data-testid="cartesian-grid" />),
-    Tooltip: vi.fn().mockImplementation(() => <div data-testid="tooltip" />),
-    Legend: vi.fn().mockImplementation(() => <div data-testid="legend" />),
-  };
-});
-
-// Mock chart utility functions
+// Mock chart data utility
 vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
-  groupErrorsByDate: vi.fn(() => [
-    { date: '2025-01-01', errorCount: 5, warningCount: 3, infoCount: 2 },
-    { date: '2025-01-02', errorCount: 2, warningCount: 4, infoCount: 6 },
+  prepareErrorTrendsData: vi.fn(() => [
+    { date: '2023-01-01', critical: 5, high: 10, medium: 2, low: 3, total: 20 },
+    { date: '2023-01-02', critical: 2, high: 5, medium: 1, low: 2, total: 10 },
   ]),
 }));
 
-describe('ErrorTrendsChart Component', () => {
-  const mockErrorLogs = [
+// Mock chart components
+vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
+  default: () => <div data-testid="chart-loading">Loading chart...</div>,
+}));
+
+vi.mock('@/components/admin/errors/charts/ErrorRateChart', () => ({
+  default: ({ data }: any) => <div data-testid="error-rate-chart">Rate Chart: {data.length} items</div>,
+}));
+
+vi.mock('@/components/admin/errors/charts/ErrorSeverityChart', () => ({
+  default: ({ data }: any) => <div data-testid="error-severity-chart">Severity Chart: {data.length} items</div>,
+}));
+
+vi.mock('@/components/admin/errors/charts/FullErrorChart', () => ({
+  default: ({ data }: any) => <div data-testid="full-error-chart">Full Chart: {data.length} items</div>,
+}));
+
+describe('ErrorTrendsChart', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const dateRange = {
+    from: new Date('2023-01-01'),
+    to: new Date('2023-01-10')
+  };
+
+  const mockLogs: SystemLog[] = [
     {
       id: '1',
       level: 'error',
-      message: 'Test error',
-      module: 'system',
-      created_at: '2025-01-01T12:00:00Z',
-      tenant_id: 'test-tenant'
+      message: 'API Error',
+      module: 'api',
+      created_at: '2023-01-01T10:00:00Z',
+      tenant_id: 'tenant-1',
+      severity: 'high'
     },
     {
       id: '2',
-      level: 'warning',
-      message: 'Test warning',
-      module: 'auth',
-      created_at: '2025-01-01T14:00:00Z',
-      tenant_id: 'test-tenant'
-    },
-    {
-      id: '3',
-      level: 'info',
-      message: 'Test info',
-      module: 'api',
-      created_at: '2025-01-02T09:00:00Z',
-      tenant_id: 'test-tenant'
-    },
+      level: 'error',
+      message: 'Database Error',
+      module: 'database',
+      created_at: '2023-01-02T10:00:00Z',
+      tenant_id: 'tenant-1',
+      severity: 'critical'
+    }
   ];
 
-  it('renders the error trends chart correctly', () => {
-    render(<ErrorTrendsChart logs={mockErrorLogs} isLoading={false} />);
-    
-    // Check that the chart and its components are rendered
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
+  it('calls prepareErrorTrendsData with correct params', () => {
+    render(<ErrorTrendsChart 
+      logs={mockLogs} 
+      dateRange={dateRange} 
+      isLoading={false} 
+    />);
+
+    expect(prepareErrorTrendsData).toHaveBeenCalledWith(mockLogs, dateRange);
   });
 
-  it('shows loading state when isLoading is true', () => {
-    render(<ErrorTrendsChart logs={[]} isLoading={true} />);
-    
-    // Check that the loading state is shown
+  it('renders loading state when isLoading is true', () => {
+    render(<ErrorTrendsChart 
+      logs={[]} 
+      dateRange={dateRange} 
+      isLoading={true} 
+    />);
+
     expect(screen.getByTestId('chart-loading')).toBeInTheDocument();
   });
 
-  it('shows empty state when no logs are provided', () => {
-    render(<ErrorTrendsChart logs={[]} isLoading={false} />);
-    
-    // Check that the empty state is shown
-    expect(screen.getByText(/No error data available/i)).toBeInTheDocument();
+  it('renders ErrorRateChart when type is rate', () => {
+    render(<ErrorTrendsChart 
+      logs={mockLogs} 
+      dateRange={dateRange} 
+      isLoading={false} 
+      type="rate"
+    />);
+
+    expect(screen.getByTestId('error-rate-chart')).toBeInTheDocument();
   });
 
-  it('renders with proper height when height prop is provided', () => {
-    render(<ErrorTrendsChart logs={mockErrorLogs} isLoading={false} height={400} />);
-    
-    // Check that the container has the proper height
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+  it('renders ErrorSeverityChart when type is severity', () => {
+    render(<ErrorTrendsChart 
+      logs={mockLogs} 
+      dateRange={dateRange} 
+      isLoading={false} 
+      type="severity"
+    />);
+
+    expect(screen.getByTestId('error-severity-chart')).toBeInTheDocument();
+  });
+
+  it('renders FullErrorChart by default', () => {
+    render(<ErrorTrendsChart 
+      logs={mockLogs} 
+      dateRange={dateRange} 
+      isLoading={false} 
+    />);
+
+    expect(screen.getByTestId('full-error-chart')).toBeInTheDocument();
   });
 });

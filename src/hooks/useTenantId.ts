@@ -13,6 +13,8 @@ export function useTenantId(): UseTenantIdResult {
   return {
     id: currentWorkspace?.id,
     isLoading,
-    error
+    error: error || null
   };
 }
+
+export default useTenantId;

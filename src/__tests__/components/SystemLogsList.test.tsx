@@ -2,9 +2,10 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SystemLogsList } from '@/components/admin/logs/SystemLogsList';
+import type { SystemLog } from '@/types/logs';
 
 describe('SystemLogsList', () => {
-  const mockLogs = [
+  const mockLogs: SystemLog[] = [
     {
       id: '1',
       created_at: '2025-01-01T12:00:00Z',
