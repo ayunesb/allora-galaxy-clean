@@ -1,54 +1,54 @@
 
+import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
 import FullErrorChart from '@/components/admin/errors/charts/FullErrorChart';
+import { mockErrorTrends } from '../../mocks/errorLogsMock';
 
-// Mock the Recharts components
+// Mock the recharts components
 vi.mock('recharts', () => {
   const OriginalModule = vi.importActual('recharts');
   return {
     ...OriginalModule,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-    ComposedChart: ({ children }: { children: React.ReactNode }) => <div data-testid="composed-chart">{children}</div>,
-    Area: ({ dataKey }: { dataKey: string }) => <div data-testid={`area-${dataKey}`} />,
-    Bar: ({ dataKey }: { dataKey: string }) => <div data-testid={`bar-${dataKey}`} />,
-    Line: ({ dataKey }: { dataKey: string }) => <div data-testid={`line-${dataKey}`} />,
-    XAxis: () => <div data-testid="x-axis" />,
-    YAxis: () => <div data-testid="y-axis" />,
-    CartesianGrid: () => <div data-testid="cartesian-grid" />,
-    Tooltip: () => <div data-testid="tooltip" />,
-    Legend: () => <div data-testid="legend" />
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-responsive-container">{children}</div>
+    ),
+    ComposedChart: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-composed-chart">{children}</div>
+    ),
+    Line: ({ dataKey }: { dataKey: string }) => (
+      <div data-testid={`recharts-line-${dataKey}`}></div>
+    ),
+    Bar: ({ dataKey }: { dataKey: string }) => (
+      <div data-testid={`recharts-bar-${dataKey}`}></div>
+    ),
   };
 });
 
-describe('FullErrorChart', () => {
-  const mockData = [
-    { date: '2023-01-01', total: 5, critical: 0, high: 2, medium: 2, low: 1 },
-    { date: '2023-01-02', total: 3, critical: 1, high: 1, medium: 1, low: 0 }
-  ];
+// Mock the ChartLoadingState component
+vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
+  default: () => <div data-testid="chart-loading-state">Loading State</div>
+}));
 
-  it('renders all chart components', () => {
-    render(<FullErrorChart data={mockData} />);
-    
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-    expect(screen.getByTestId('composed-chart')).toBeInTheDocument();
-    expect(screen.getByTestId('line-total')).toBeInTheDocument();
-    expect(screen.getByTestId('bar-critical')).toBeInTheDocument();
-    expect(screen.getByTestId('bar-high')).toBeInTheDocument();
-    expect(screen.getByTestId('bar-medium')).toBeInTheDocument();
-    expect(screen.getByTestId('bar-low')).toBeInTheDocument();
-    expect(screen.getByText(/Error Distribution Over Time/i)).toBeInTheDocument();
+describe('FullErrorChart', () => {
+  it('renders loading state when isLoading is true', () => {
+    render(<FullErrorChart data={[]} isLoading={true} />);
+    expect(screen.getByTestId('chart-loading-state')).toBeInTheDocument();
   });
 
-  it('renders empty state when no data is provided', () => {
-    render(<FullErrorChart data={[]} />);
-    
+  it('renders empty state message when no data is provided', () => {
+    render(<FullErrorChart data={[]} isLoading={false} />);
     expect(screen.getByText(/No error data available/i)).toBeInTheDocument();
   });
 
-  it('renders with custom height', () => {
-    render(<FullErrorChart data={mockData} height={500} />);
+  it('renders the chart when data is provided', () => {
+    render(<FullErrorChart data={mockErrorTrends} isLoading={false} />);
     
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    // Check if chart components are rendered
+    expect(screen.getByTestId('recharts-composed-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-line-total')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-bar-critical')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-bar-high')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-bar-medium')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-bar-low')).toBeInTheDocument();
   });
 });

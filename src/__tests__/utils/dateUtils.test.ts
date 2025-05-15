@@ -1,76 +1,74 @@
 
 import { 
-  generateDateRange, 
-  formatDay, 
-  getDayStart, 
-  getDayEnd, 
-  isDateInDay 
+  formatDateToISO, 
+  parseISO, 
+  formatDateDisplay,
+  getDateRangeFromPeriod,
+  getTimePeriodLabel
 } from '@/components/admin/errors/utils/dateUtils';
-import { addDays } from 'date-fns';
+import { addDays, subDays } from 'date-fns';
 
 describe('dateUtils', () => {
-  test('generateDateRange returns all days in a date range', () => {
-    const from = new Date('2025-01-01');
-    const to = new Date('2025-01-03');
+  test('formatDateToISO formats dates correctly', () => {
+    const date = new Date('2023-06-15T12:30:00Z');
+    const result = formatDateToISO(date);
     
-    const days = generateDateRange({ from, to });
-    
-    expect(days.length).toBe(3);
-    expect(days[0].toISOString().substring(0, 10)).toBe('2025-01-01');
-    expect(days[1].toISOString().substring(0, 10)).toBe('2025-01-02');
-    expect(days[2].toISOString().substring(0, 10)).toBe('2025-01-03');
+    // Should return ISO format: YYYY-MM-DD
+    expect(result).toBe('2023-06-15');
   });
-
-  test('generateDateRange returns empty array when "to" is undefined', () => {
-    const from = new Date('2025-01-01');
-    const days = generateDateRange({ from, to: undefined });
-    expect(days).toEqual([]);
+  
+  test('parseISO parses ISO strings correctly', () => {
+    const isoString = '2023-06-15';
+    const result = parseISO(isoString);
+    
+    expect(result instanceof Date).toBe(true);
+    expect(result.getUTCFullYear()).toBe(2023);
+    expect(result.getUTCMonth()).toBe(5); // June (0-indexed)
+    expect(result.getUTCDate()).toBe(15);
   });
-
-  test('formatDay formats a date correctly', () => {
-    const day = new Date('2025-01-15');
-    expect(formatDay(day)).toBe('Jan 15');
+  
+  test('formatDateDisplay formats dates for display', () => {
+    const date = new Date('2023-06-15T12:30:00Z');
+    const result = formatDateDisplay(date);
+    
+    // Should format as "Jun 15, 2023"
+    expect(result).toMatch(/Jun 15, 2023/);
   });
-
-  test('getDayStart returns start of day', () => {
-    const day = new Date('2025-01-15T12:30:45');
-    const startOfDay = getDayStart(day);
+  
+  test('getDateRangeFromPeriod calculates correct date ranges', () => {
+    // Mock the current date to make the test predictable
+    const originalDate = Date;
+    global.Date = class extends Date {
+      constructor(date) {
+        if (date) {
+          return super(date);
+        }
+        return new originalDate('2023-06-15T12:00:00Z');
+      }
+    };
     
-    expect(startOfDay.getHours()).toBe(0);
-    expect(startOfDay.getMinutes()).toBe(0);
-    expect(startOfDay.getSeconds()).toBe(0);
-    expect(startOfDay.getMilliseconds()).toBe(0);
+    // Test "7d" period (last 7 days)
+    let result = getDateRangeFromPeriod('7d');
+    expect(result.from instanceof Date).toBe(true);
+    expect(result.to instanceof Date).toBe(true);
+    expect(result.from.toISOString().substring(0, 10)).toBe('2023-06-08');
+    expect(result.to.toISOString().substring(0, 10)).toBe('2023-06-15');
+    
+    // Test "30d" period (last 30 days)
+    result = getDateRangeFromPeriod('30d');
+    expect(result.from.toISOString().substring(0, 10)).toBe('2023-05-16');
+    expect(result.to.toISOString().substring(0, 10)).toBe('2023-06-15');
+    
+    // Restore original Date
+    global.Date = originalDate;
   });
-
-  test('getDayEnd returns end of day', () => {
-    const day = new Date('2025-01-15T12:30:45');
-    const endOfDay = getDayEnd(day);
-    
-    expect(endOfDay.getHours()).toBe(23);
-    expect(endOfDay.getMinutes()).toBe(59);
-    expect(endOfDay.getSeconds()).toBe(59);
-    expect(endOfDay.getMilliseconds()).toBe(999);
-  });
-
-  test('isDateInDay correctly identifies if a date falls within a day', () => {
-    const day = new Date('2025-01-15');
-    const dayStart = getDayStart(day);
-    const dayEnd = getDayEnd(day);
-    
-    // Date within the day
-    const dateInDay = new Date('2025-01-15T12:00:00');
-    expect(isDateInDay(dateInDay, dayStart, dayEnd)).toBe(true);
-    
-    // Date before the day
-    const dateBefore = new Date('2025-01-14T23:59:59');
-    expect(isDateInDay(dateBefore, dayStart, dayEnd)).toBe(false);
-    
-    // Date after the day
-    const dateAfter = new Date('2025-01-16T00:00:00');
-    expect(isDateInDay(dateAfter, dayStart, dayEnd)).toBe(false);
-    
-    // Edge cases - exactly at start and end
-    expect(isDateInDay(dayStart, dayStart, dayEnd)).toBe(true);
-    expect(isDateInDay(dayEnd, dayStart, dayEnd)).toBe(true);
+  
+  test('getTimePeriodLabel returns correct labels', () => {
+    expect(getTimePeriodLabel('24h')).toBe('Last 24 hours');
+    expect(getTimePeriodLabel('7d')).toBe('Last 7 days');
+    expect(getTimePeriodLabel('30d')).toBe('Last 30 days');
+    expect(getTimePeriodLabel('90d')).toBe('Last 90 days');
+    expect(getTimePeriodLabel('custom')).toBe('Custom range');
+    expect(getTimePeriodLabel('unknown')).toBe('Custom');
   });
 });

@@ -3,46 +3,48 @@ export interface Strategy {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed';
-  tenant_id?: string;
-  created_by: string;
+  status: string;
+  priority?: string;
+  tags?: string[];
   created_at: string;
   updated_at: string;
+  created_by?: string;
   approved_by?: string;
-  approved_at?: string;
-  priority?: 'low' | 'medium' | 'high';
   completion_percentage?: number;
-  tags?: string[];
-  created_by_ai?: boolean;
   due_date?: string;
+  tenant_id?: string;
 }
 
 export interface StrategyVersion {
   id: string;
   strategy_id: string;
-  version: number;
+  version: string;
   content: string;
-  changes: string;
+  status: string;
   created_at: string;
-  created_by: string;
+  updated_at?: string;
+  created_by?: string;
+  approved_by?: string;
+  approval_date?: string;
+  changes?: string[];
 }
 
 export interface StrategyExecution {
   id: string;
   strategy_id: string;
-  started_at: string;
-  completed_at?: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: 'success' | 'failure' | 'running' | 'pending';
+  start_time: string;
+  end_time?: string;
+  execution_time?: number;
   result?: any;
   error?: string;
-  executed_by: string;
-  execution_time?: number;
+  executed_by?: string;
+  tenant_id?: string;
 }
 
-export interface StrategyMetrics {
-  strategy_id: string;
-  executions_count: number;
-  success_rate: number;
-  average_execution_time: number;
-  last_execution_at?: string;
+export interface StrategyExecutionStats {
+  total_executions: number;
+  successful_executions: number;
+  failed_executions: number;
+  avg_execution_time: number;
 }

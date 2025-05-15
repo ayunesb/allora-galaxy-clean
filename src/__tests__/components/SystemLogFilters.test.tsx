@@ -1,113 +1,52 @@
 
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, test, expect, beforeEach, vi } from 'vitest';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import { LogFilters } from '@/types/logs';
 
-describe('SystemLogFilters Component', () => {
-  const initialFilters: LogFilters = {
-    search: '',
-    module: undefined,
-    level: undefined,
-    fromDate: undefined,
-    toDate: undefined
+describe('SystemLogFilters', () => {
+  const mockOnSearchChange = vi.fn();
+  const mockOnModuleFilterChange = vi.fn();
+  const mockOnDateRangeChange = vi.fn();
+  const mockOnReset = vi.fn();
+  
+  const defaultProps = {
+    searchTerm: '',
+    onSearchChange: mockOnSearchChange,
+    moduleFilter: 'all',
+    onModuleFilterChange: mockOnModuleFilterChange,
+    dateRange: undefined,
+    onDateRangeChange: mockOnDateRangeChange,
+    onReset: mockOnReset,
   };
   
-  const mockOnFilterChange = vi.fn();
-  const mockOnRefresh = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
-
-  test('renders correctly with default values', () => {
-    render(
-      <SystemLogFilters 
-        filters={initialFilters} 
-        onFilterChange={mockOnFilterChange} 
-        onRefresh={mockOnRefresh}
-      />
-    );
+  
+  test('renders all filter components', () => {
+    render(<SystemLogFilters {...defaultProps} />);
     
-    expect(screen.getByPlaceholderText('Search logs...')).toBeInTheDocument();
-    expect(screen.getByTestId('module-select')).toBeInTheDocument();
-    expect(screen.getByTestId('level-select')).toBeInTheDocument();
-    expect(screen.getByText('Date range')).toBeInTheDocument();
-    expect(screen.getByTestId('refresh-button')).toBeInTheDocument();
+    expect(screen.getByLabelText(/search/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/module/i)).toBeInTheDocument();
+    expect(screen.getByText(/date range/i)).toBeInTheDocument();
+    expect(screen.getByText(/reset filters/i)).toBeInTheDocument();
   });
-
-  test('calls onFilterChange when search input changes', () => {
-    render(
-      <SystemLogFilters 
-        filters={initialFilters} 
-        onFilterChange={mockOnFilterChange}
-      />
-    );
+  
+  test('calls onSearchChange when search input changes', () => {
+    render(<SystemLogFilters {...defaultProps} />);
     
-    const searchInput = screen.getByPlaceholderText('Search logs...');
-    fireEvent.change(searchInput, { target: { value: 'error' } });
+    const searchInput = screen.getByLabelText(/search/i);
+    fireEvent.change(searchInput, { target: { value: 'test search' } });
     
-    expect(mockOnFilterChange).toHaveBeenCalledWith({
-      ...initialFilters,
-      search: 'error',
-      searchTerm: 'error'
-    });
+    expect(mockOnSearchChange).toHaveBeenCalledWith('test search');
   });
-
-  test('calls onFilterChange when module changes', () => {
-    render(
-      <SystemLogFilters 
-        filters={initialFilters} 
-        onFilterChange={mockOnFilterChange}
-      />
-    );
+  
+  test('calls onReset when reset button is clicked', () => {
+    render(<SystemLogFilters {...defaultProps} />);
     
-    // Open the select
-    const moduleSelect = screen.getByTestId('module-select');
-    fireEvent.click(moduleSelect);
+    const resetButton = screen.getByText(/reset filters/i);
+    fireEvent.click(resetButton);
     
-    // Wait for content to be visible and select an option
-    setTimeout(() => {
-      const systemOption = screen.getByText('System');
-      fireEvent.click(systemOption);
-      
-      expect(mockOnFilterChange).toHaveBeenCalledWith({
-        ...initialFilters,
-        module: 'system'
-      });
-    }, 0);
-  });
-
-  test('calls onRefresh when refresh button is clicked', () => {
-    render(
-      <SystemLogFilters 
-        filters={initialFilters} 
-        onFilterChange={mockOnFilterChange} 
-        onRefresh={mockOnRefresh}
-      />
-    );
-    
-    const refreshButton = screen.getByTestId('refresh-button');
-    fireEvent.click(refreshButton);
-    
-    expect(mockOnRefresh).toHaveBeenCalled();
-  });
-
-  test('disables inputs when isLoading is true', () => {
-    render(
-      <SystemLogFilters 
-        filters={initialFilters} 
-        onFilterChange={mockOnFilterChange} 
-        onRefresh={mockOnRefresh}
-        isLoading={true}
-      />
-    );
-    
-    const searchInput = screen.getByPlaceholderText('Search logs...');
-    const refreshButton = screen.getByTestId('refresh-button');
-    
-    expect(searchInput).toBeDisabled();
-    expect(refreshButton).toBeDisabled();
-    expect(refreshButton.querySelector('svg')).toHaveClass('animate-spin');
+    expect(mockOnReset).toHaveBeenCalled();
   });
 });

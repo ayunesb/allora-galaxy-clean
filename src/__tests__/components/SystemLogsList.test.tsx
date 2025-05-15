@@ -1,59 +1,67 @@
 
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { SystemLogsList } from '@/components/admin/logs/SystemLogsList';
-import type { SystemLog } from '@/types/logs';
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 
 describe('SystemLogsList', () => {
-  const mockLogs: SystemLog[] = [
+  const mockOnViewLog = vi.fn();
+  
+  const mockLogs = [
     {
       id: '1',
-      created_at: '2025-01-01T12:00:00Z',
-      level: 'info',
-      module: 'system',
-      event: 'user_login',
-      message: 'User logged in',
-      description: 'User successfully authenticated',
-      tenant_id: 'tenant-1'
+      module: 'api',
+      event: 'api_call_failed',
+      description: 'Failed to call external API',
+      created_at: '2023-06-01T10:00:00Z',
+      tenant_id: 'tenant-1',
+      context: { error: 'Timeout' }
     },
     {
       id: '2',
-      created_at: '2025-01-01T12:30:00Z',
-      level: 'warning',
       module: 'auth',
-      event: 'failed_login',
-      message: 'Failed login attempt',
-      description: 'Invalid credentials provided',
-      tenant_id: 'tenant-1'
-    },
-    {
-      id: '3',
-      created_at: '2025-01-01T13:00:00Z',
-      level: 'error',
-      module: 'database',
-      event: 'query_failed',
-      message: 'Database query failed',
-      error_type: 'SQL_ERROR',
-      description: 'Syntax error in query',
-      severity: 'high',
-      tenant_id: 'tenant-1'
-    },
+      event: 'login_failed',
+      description: 'User login attempt failed',
+      created_at: '2023-06-01T09:30:00Z',
+      tenant_id: 'tenant-1',
+      context: { userId: '123' }
+    }
   ];
-
-  it('renders the logs list', () => {
-    render(<SystemLogsList logs={mockLogs} isLoading={false} />);
-    expect(screen.getByText('User logged in')).toBeInTheDocument();
-    expect(screen.getByText('Failed login attempt')).toBeInTheDocument();
-    expect(screen.getByText('Database query failed')).toBeInTheDocument();
+  
+  test('renders loading state correctly', () => {
+    render(<SystemLogsList logs={[]} isLoading={true} onViewLog={mockOnViewLog} />);
+    
+    // Should show loading skeleton
+    expect(screen.getByText('System Logs')).toBeInTheDocument();
+    expect(screen.getAllByRole('cell')).toHaveLength(0); // No table rows should be visible
   });
-
-  it('shows loading state when isLoading is true', () => {
-    render(<SystemLogsList logs={[]} isLoading={true} />);
-    expect(screen.getByTestId('logs-loading')).toBeInTheDocument();
+  
+  test('renders empty state when no logs', () => {
+    render(<SystemLogsList logs={[]} isLoading={false} onViewLog={mockOnViewLog} />);
+    
+    expect(screen.getByText('No logs found. Adjust your filters or try again.')).toBeInTheDocument();
   });
-
-  it('shows empty state when no logs are available', () => {
-    render(<SystemLogsList logs={[]} isLoading={false} />);
-    expect(screen.getByText(/No logs found/i)).toBeInTheDocument();
+  
+  test('renders logs when provided', () => {
+    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewLog={mockOnViewLog} />);
+    
+    // Check table headers
+    expect(screen.getByText('Time')).toBeInTheDocument();
+    expect(screen.getByText('Module')).toBeInTheDocument();
+    expect(screen.getByText('Event')).toBeInTheDocument();
+    
+    // Check log content
+    expect(screen.getByText('api')).toBeInTheDocument();
+    expect(screen.getByText('auth')).toBeInTheDocument();
+    expect(screen.getByText('api_call_failed')).toBeInTheDocument();
+    expect(screen.getByText('login_failed')).toBeInTheDocument();
+  });
+  
+  test('calls onViewLog when view button is clicked', () => {
+    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewLog={mockOnViewLog} />);
+    
+    const viewButtons = screen.getAllByText('View');
+    fireEvent.click(viewButtons[0]);
+    
+    expect(mockOnViewLog).toHaveBeenCalledWith(mockLogs[0]);
   });
 });

@@ -1,60 +1,51 @@
 
+import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { vi, describe, it, expect } from 'vitest';
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
-import { sub } from 'date-fns';
-// Remove unused import addDays
-import { mockErrorLogs } from '../mocks/errorLogsMock';
+import { mockErrorTrends } from '../mocks/errorLogsMock';
 
-// Mock chart components
-vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
-  default: () => <div data-testid="chart-loading-state">Loading chart...</div>
-}));
-
-vi.mock('@/components/admin/errors/charts/ErrorRateChart', () => ({
-  default: ({ data }: any) => <div data-testid="error-rate-chart">Rate Chart with {data.length} points</div>
-}));
-
-vi.mock('@/components/admin/errors/charts/ErrorSeverityChart', () => ({
-  default: ({ data }: any) => <div data-testid="error-severity-chart">Severity Chart with {data.length} points</div>
-}));
-
-vi.mock('@/components/admin/errors/charts/FullErrorChart', () => ({
-  default: ({ data }: any) => <div data-testid="full-error-chart">Full Chart with {data.length} points</div>
-}));
-
-// Mock the prepareErrorTrendsData function
-vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
-  prepareErrorTrendsData: () => [{ date: '2023-01-01', total: 5, critical: 1, high: 2, medium: 1, low: 1 }]
-}));
+// Mock the recharts library
+vi.mock('recharts', () => {
+  const OriginalModule = vi.importActual('recharts');
+  return {
+    ...OriginalModule,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-responsive-container">{children}</div>
+    ),
+    LineChart: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-line-chart">{children}</div>
+    ),
+    Line: ({ dataKey }: { dataKey: string }) => (
+      <div data-testid={`recharts-line-${dataKey}`}></div>
+    ),
+  };
+});
 
 describe('ErrorTrendsChart', () => {
-  const defaultProps = {
-    logs: mockErrorLogs,
-    dateRange: {
-      from: sub(new Date(), { days: 7 }),
-      to: new Date()
-    },
-    isLoading: false
-  };
-  
-  it('shows loading state when isLoading is true', () => {
-    render(<ErrorTrendsChart {...defaultProps} isLoading={true} />);
-    expect(screen.getByTestId('chart-loading-state')).toBeInTheDocument();
+  const mockData = mockErrorTrends;
+
+  it('renders loading state correctly', () => {
+    render(<ErrorTrendsChart data={[]} isLoading={true} />);
+    expect(screen.getByText('Loading chart data...')).toBeInTheDocument();
   });
-  
-  it('renders error rate chart when type is rate', () => {
-    render(<ErrorTrendsChart {...defaultProps} type="rate" />);
-    expect(screen.getByTestId('error-rate-chart')).toBeInTheDocument();
+
+  it('renders empty state when no data', () => {
+    render(<ErrorTrendsChart data={[]} isLoading={false} />);
+    expect(screen.getByText('No error data available for the selected time period.')).toBeInTheDocument();
   });
-  
-  it('renders severity chart when type is severity', () => {
-    render(<ErrorTrendsChart {...defaultProps} type="severity" />);
-    expect(screen.getByTestId('error-severity-chart')).toBeInTheDocument();
-  });
-  
-  it('renders full chart by default', () => {
-    render(<ErrorTrendsChart {...defaultProps} />);
-    expect(screen.getByTestId('full-error-chart')).toBeInTheDocument();
+
+  it('renders chart when data is provided', () => {
+    render(<ErrorTrendsChart data={mockData} isLoading={false} />);
+    
+    // Check if chart container is rendered
+    expect(screen.getByTestId('recharts-responsive-container')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-line-chart')).toBeInTheDocument();
+    
+    // Check if lines for each severity are rendered
+    expect(screen.getByTestId('recharts-line-total')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-line-critical')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-line-high')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-line-medium')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-line-low')).toBeInTheDocument();
   });
 });

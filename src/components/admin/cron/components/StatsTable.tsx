@@ -1,10 +1,8 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { TableCell, TableRow, TableHead, TableHeader, TableBody, Table } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-// Define the Stats interface for the component
 export interface CronJobStats {
   total: number;
   active: number;
@@ -20,47 +18,55 @@ interface StatsTableProps {
 
 export const StatsTable: React.FC<StatsTableProps> = ({ stats, isLoading }) => {
   if (isLoading) {
-    return <StatsSkeleton />;
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
   }
 
-  const statItems = [
-    { label: 'Total Jobs', value: stats.total },
-    { label: 'Active', value: stats.active },
-    { label: 'Pending', value: stats.pending },
-    { label: 'Failed', value: stats.failed },
-    { label: 'Completed', value: stats.completed },
-  ];
-
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Metric</TableHead>
-              <TableHead className="text-right">Count</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {statItems.map((item) => (
-              <TableRow key={item.label}>
-                <TableCell>{item.label}</TableCell>
-                <TableCell className="text-right font-medium">{item.value}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Metric</TableHead>
+          <TableHead>Count</TableHead>
+          <TableHead>Percentage</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell>Total Jobs</TableCell>
+          <TableCell>{stats.total}</TableCell>
+          <TableCell>100%</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Active Jobs</TableCell>
+          <TableCell>{stats.active}</TableCell>
+          <TableCell>{stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Pending Jobs</TableCell>
+          <TableCell>{stats.pending}</TableCell>
+          <TableCell>{stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}%</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Failed Jobs</TableCell>
+          <TableCell>{stats.failed}</TableCell>
+          <TableCell>{stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>Completed Jobs</TableCell>
+          <TableCell>{stats.completed}</TableCell>
+          <TableCell>{stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
   );
 };
 
-const StatsSkeleton = () => (
-  <div className="space-y-2">
-    <Skeleton className="h-6 w-full" />
-    <Skeleton className="h-6 w-full" />
-    <Skeleton className="h-6 w-full" />
-    <Skeleton className="h-6 w-full" />
-    <Skeleton className="h-6 w-full" />
-  </div>
-);
+export default StatsTable;

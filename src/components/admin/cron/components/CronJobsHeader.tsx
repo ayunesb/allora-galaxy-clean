@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
 
 interface CronJobsHeaderProps {
@@ -12,32 +12,31 @@ interface CronJobsHeaderProps {
   onRefresh: () => void;
 }
 
-export const CronJobsHeader: React.FC<CronJobsHeaderProps> = ({
+export const CronJobsHeader: React.FC<CronJobsHeaderProps> = ({ 
   timeRange,
   isLoading,
   onTimeRangeChange,
   onRefresh
 }) => {
   return (
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-xl font-semibold">CRON Jobs Monitoring</CardTitle>
-      <div className="flex items-center space-x-2">
+    <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+      <CardTitle>CRON Jobs</CardTitle>
+      <div className="flex items-center gap-2 mt-2 sm:mt-0">
         <Select value={timeRange} onValueChange={onTimeRangeChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select time range" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1h">Last hour</SelectItem>
-            <SelectItem value="24h">Last 24 hours</SelectItem>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="day">Last 24 hours</SelectItem>
+            <SelectItem value="week">Last 7 days</SelectItem>
+            <SelectItem value="month">Last 30 days</SelectItem>
+            <SelectItem value="all">All time</SelectItem>
           </SelectContent>
         </Select>
-        
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onRefresh}
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={onRefresh} 
           disabled={isLoading}
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />

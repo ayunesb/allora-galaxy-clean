@@ -1,47 +1,53 @@
 
+import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
 import ErrorRateChart from '@/components/admin/errors/charts/ErrorRateChart';
+import { mockErrorTrends } from '../../mocks/errorLogsMock';
 
-// Mock the Recharts components
+// Mock the recharts components
 vi.mock('recharts', () => {
   const OriginalModule = vi.importActual('recharts');
   return {
     ...OriginalModule,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-    LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
-    Line: ({ dataKey }: { dataKey: string }) => <div data-testid={`line-${dataKey}`} />,
-    XAxis: () => <div data-testid="x-axis" />,
-    YAxis: () => <div data-testid="y-axis" />,
-    CartesianGrid: () => <div data-testid="cartesian-grid" />,
-    Tooltip: () => <div data-testid="tooltip" />,
-    Legend: () => <div data-testid="legend" />
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-responsive-container">{children}</div>
+    ),
+    LineChart: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-line-chart">{children}</div>
+    ),
+    Line: ({ dataKey }: { dataKey: string }) => (
+      <div data-testid={`recharts-line-${dataKey}`}></div>
+    ),
+    AreaChart: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="recharts-area-chart">{children}</div>
+    ),
+    Area: ({ dataKey }: { dataKey: string }) => (
+      <div data-testid={`recharts-area-${dataKey}`}></div>
+    ),
   };
 });
 
+// Mock the ChartLoadingState component
+vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
+  default: () => <div data-testid="chart-loading-state">Loading State</div>
+}));
+
 describe('ErrorRateChart', () => {
-  const mockData = [
-    { date: '2023-01-01', total: 5, critical: 0, high: 2, medium: 2, low: 1 },
-    { date: '2023-01-02', total: 3, critical: 1, high: 1, medium: 1, low: 0 }
-  ];
-
-  it('renders all chart components', () => {
-    render(<ErrorRateChart data={mockData} />);
-    
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-    expect(screen.getByTestId('line-chart')).toBeInTheDocument();
-    expect(screen.getByTestId('line-total')).toBeInTheDocument();
+  it('renders loading state when isLoading is true', () => {
+    render(<ErrorRateChart data={[]} isLoading={true} />);
+    expect(screen.getByTestId('chart-loading-state')).toBeInTheDocument();
   });
 
-  it('renders empty state when no data is provided', () => {
-    render(<ErrorRateChart data={[]} />);
-    
-    expect(screen.getByText(/No error data available/i)).toBeInTheDocument();
+  it('renders empty state message when no data is provided', () => {
+    render(<ErrorRateChart data={[]} isLoading={false} />);
+    expect(screen.getByText(/No error rate data available/i)).toBeInTheDocument();
   });
 
-  it('renders with custom height', () => {
-    render(<ErrorRateChart data={mockData} height={500} />);
+  it('renders the chart when data is provided', () => {
+    render(<ErrorRateChart data={mockErrorTrends} isLoading={false} />);
     
-    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    // Check if chart components are rendered
+    expect(screen.getByTestId('recharts-area-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('recharts-area-total')).toBeInTheDocument();
   });
 });
