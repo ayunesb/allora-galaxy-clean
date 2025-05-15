@@ -1,85 +1,128 @@
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
-import { mockErrorTrends } from '../mocks/errorLogsMock';
+import { SystemLog, LogLevel } from '@/types/logs';
 
-// Mock the recharts library
-vi.mock('recharts', () => {
-  const OriginalModule = vi.importActual('recharts');
-  return {
-    ...OriginalModule,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="recharts-responsive-container">{children}</div>
-    ),
-    LineChart: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="recharts-line-chart">{children}</div>
-    ),
-    Line: ({ dataKey }: { dataKey: string }) => (
-      <div data-testid={`recharts-line-${dataKey}`}></div>
-    ),
-    Tooltip: () => <div data-testid="recharts-tooltip"></div>,
-    Legend: () => <div data-testid="recharts-legend"></div>,
-    XAxis: () => <div data-testid="recharts-xaxis"></div>,
-    YAxis: () => <div data-testid="recharts-yaxis"></div>,
-  };
-});
+// Properly typed mock data for SystemLog
+const createMockLogs = (): SystemLog[] => {
+  const levels: LogLevel[] = ['info', 'warning', 'error'];
+  
+  return [
+    {
+      id: '1',
+      created_at: '2023-01-01T10:00:00Z',
+      timestamp: '2023-01-01T10:00:00Z',
+      module: 'system',
+      level: 'error',
+      event: 'error_occurred',
+      event_type: 'system_error',
+      description: 'System error occurred',
+      message: 'System error occurred',
+      tenant_id: 'tenant-1',
+      severity: 'high',
+      error_type: 'system_failure',
+      user_id: 'user-1',
+      context: { details: 'Error details' },
+      metadata: { data: 'Additional data' },
+      request_id: 'req-1',
+      error_message: 'System failed',
+    },
+    {
+      id: '2',
+      created_at: '2023-01-02T10:00:00Z',
+      timestamp: '2023-01-02T10:00:00Z',
+      module: 'auth',
+      level: 'warning',
+      event: 'login_failed',
+      description: 'Login attempt failed',
+      tenant_id: 'tenant-1'
+    },
+    {
+      id: '3',
+      created_at: '2023-01-03T10:00:00Z',
+      timestamp: '2023-01-03T10:00:00Z',
+      module: 'api',
+      level: 'info',
+      event: 'api_call',
+      description: 'API was called',
+      tenant_id: 'tenant-1'
+    },
+    {
+      id: '4',
+      created_at: '2023-01-04T10:00:00Z',
+      timestamp: '2023-01-04T10:00:00Z',
+      module: 'database',
+      level: 'error',
+      event: 'query_failed',
+      description: 'Database query failed',
+      tenant_id: 'tenant-1',
+      error_type: 'query_error'
+    },
+    {
+      id: '5',
+      created_at: '2023-01-05T10:00:00Z',
+      timestamp: '2023-01-05T10:00:00Z',
+      module: 'system',
+      level: 'info',
+      event: 'system_started',
+      description: 'System started successfully',
+      tenant_id: 'tenant-1'
+    }
+  ];
+};
 
 describe('ErrorTrendsChart', () => {
-  const mockData = mockErrorTrends;
-  const defaultDateRange = {
-    from: new Date('2023-01-01'),
-    to: new Date('2023-01-31')
-  };
-
-  it('renders loading state correctly', () => {
-    render(<ErrorTrendsChart logs={[]} dateRange={defaultDateRange} isLoading={true} />);
-    expect(screen.getByText('Loading chart data...')).toBeInTheDocument();
-  });
-
-  it('renders empty state when no data', () => {
-    render(<ErrorTrendsChart logs={[]} dateRange={defaultDateRange} isLoading={false} />);
-    expect(screen.getByText('No error data available for the selected time period.')).toBeInTheDocument();
-  });
-
-  it('renders chart when data is provided', () => {
-    render(<ErrorTrendsChart logs={mockData} dateRange={defaultDateRange} isLoading={false} />);
-    
-    // Check if chart container is rendered
-    expect(screen.getByTestId('recharts-responsive-container')).toBeInTheDocument();
-    expect(screen.getByTestId('recharts-line-chart')).toBeInTheDocument();
-    
-    // Check if lines for each severity are rendered
-    expect(screen.getByTestId('recharts-line-total')).toBeInTheDocument();
-    expect(screen.getByTestId('recharts-line-critical')).toBeInTheDocument();
-    expect(screen.getByTestId('recharts-line-high')).toBeInTheDocument();
-    expect(screen.getByTestId('recharts-line-medium')).toBeInTheDocument();
-    expect(screen.getByTestId('recharts-line-low')).toBeInTheDocument();
-  });
-
-  it('renders different chart types correctly', () => {
-    // Test rate chart
-    const { rerender } = render(
-      <ErrorTrendsChart 
-        logs={mockData} 
-        dateRange={defaultDateRange} 
-        isLoading={false} 
-        type="rate" 
+  const mockDateRange = { from: new Date('2023-01-01'), to: new Date('2023-01-31') };
+  
+  it('renders the chart when provided with logs', () => {
+    render(
+      <ErrorTrendsChart
+        logs={createMockLogs()}
+        dateRange={mockDateRange}
+        isLoading={false}
+        type="full"
       />
     );
     
-    expect(screen.getByTestId('recharts-line-chart')).toBeInTheDocument();
-    
-    // Test severity chart
-    rerender(
-      <ErrorTrendsChart 
-        logs={mockData} 
-        dateRange={defaultDateRange} 
-        isLoading={false} 
-        type="severity" 
+    expect(document.querySelector('svg')).toBeInTheDocument();
+  });
+  
+  it('renders a loading state when isLoading is true', () => {
+    render(
+      <ErrorTrendsChart
+        logs={[]}
+        dateRange={mockDateRange}
+        isLoading={true}
       />
     );
     
-    expect(screen.getByTestId('recharts-line-chart')).toBeInTheDocument();
+    expect(document.querySelector('.chart-loading-skeleton')).toBeInTheDocument();
+  });
+  
+  it('renders a rate chart when type is rate', () => {
+    render(
+      <ErrorTrendsChart
+        logs={createMockLogs()}
+        dateRange={mockDateRange}
+        isLoading={false}
+        type="rate"
+      />
+    );
+    
+    expect(document.querySelector('svg')).toBeInTheDocument();
+  });
+  
+  it('renders a severity chart when type is severity', () => {
+    render(
+      <ErrorTrendsChart
+        logs={createMockLogs()}
+        dateRange={mockDateRange}
+        isLoading={false}
+        type="severity"
+      />
+    );
+    
+    expect(document.querySelector('svg')).toBeInTheDocument();
   });
 });

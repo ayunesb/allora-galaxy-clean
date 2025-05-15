@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,19 @@ export interface ErrorStateProps {
   className?: string;
 }
 
+/**
+ * ErrorState - Standardized error display component
+ * 
+ * @param title - Error title
+ * @param message - Error message
+ * @param error - Error object
+ * @param retry - Retry handler function
+ * @param showDetails - Whether to show technical details
+ * @param children - Additional content
+ * @param size - Component size
+ * @param action - Custom action element
+ * @param className - Additional CSS classes
+ */
 export const ErrorState: React.FC<ErrorStateProps> = ({ 
   title = "Something went wrong",
   message = "We encountered an error while processing your request.",
@@ -73,4 +86,5 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   );
 };
 
-export default ErrorState;
+// Export memoized component for performance optimization
+export default memo(ErrorState);

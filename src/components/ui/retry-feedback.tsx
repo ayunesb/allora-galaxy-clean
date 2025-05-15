@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCw } from 'lucide-react';
 
@@ -13,6 +13,12 @@ interface RetryFeedbackProps {
 
 /**
  * A component that shows retry status and controls for async operations
+ * 
+ * @param retryCount Number of retry attempts so far
+ * @param maxRetries Maximum number of retries allowed
+ * @param isRetrying Whether a retry is currently in progress
+ * @param onRetry Callback function for retry action
+ * @param className Optional CSS class name
  */
 const RetryFeedback: React.FC<RetryFeedbackProps> = ({
   retryCount,
@@ -58,4 +64,5 @@ const RetryFeedback: React.FC<RetryFeedbackProps> = ({
   );
 };
 
-export default RetryFeedback;
+// Export memoized component for performance optimization
+export default memo(RetryFeedback);
