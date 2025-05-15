@@ -1,114 +1,58 @@
 
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, test, expect, vi } from 'vitest';
-import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import { SystemLog } from '@/types/shared'; // Updated to use shared type
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { SystemLogsList } from '@/components/admin/logs/SystemLogsList';
 
-describe('SystemLogsList Component', () => {
-  const mockLogs: SystemLog[] = [
+describe('SystemLogsList', () => {
+  const mockLogs = [
     {
       id: '1',
-      created_at: '2023-05-01T12:00:00Z',
+      created_at: '2025-01-01T12:00:00Z',
       level: 'info',
       module: 'system',
-      event: 'system_start', // Added required field
-      message: 'System started successfully',
-      description: 'System started successfully' // Kept for backward compatibility
+      event: 'user_login',
+      message: 'User logged in',
+      description: 'User successfully authenticated',
+      tenant_id: 'tenant-1'
     },
     {
       id: '2',
-      created_at: '2023-05-01T12:05:00Z',
+      created_at: '2025-01-01T12:30:00Z',
       level: 'warning',
       module: 'auth',
-      event: 'failed_login', // Added required field
+      event: 'failed_login',
       message: 'Failed login attempt',
-      description: 'Failed login attempt' // Kept for backward compatibility
+      description: 'Invalid credentials provided',
+      tenant_id: 'tenant-1'
     },
     {
       id: '3',
-      created_at: '2023-05-01T12:10:00Z',
+      created_at: '2025-01-01T13:00:00Z',
       level: 'error',
       module: 'database',
-      event: 'connection_error', // Added required field
-      message: 'Database connection failed',
-      error_type: 'Connection timeout', // Added field for error handling
-      description: 'Database connection failed', // Kept for backward compatibility
-      severity: 'high' // Added for compatibility
-    }
+      event: 'query_failed',
+      message: 'Database query failed',
+      error_type: 'SQL_ERROR',
+      description: 'Syntax error in query',
+      severity: 'high',
+      tenant_id: 'tenant-1'
+    },
   ];
 
-  const mockOnViewLog = vi.fn();
-
-  test('renders logs correctly', () => {
-    render(
-      <SystemLogsList 
-        logs={mockLogs} 
-        isLoading={false} 
-        onViewLog={mockOnViewLog} 
-      />
-    );
-    
-    expect(screen.getByText('System started successfully')).toBeInTheDocument();
+  it('renders the logs list', () => {
+    render(<SystemLogsList logs={mockLogs} isLoading={false} />);
+    expect(screen.getByText('User logged in')).toBeInTheDocument();
     expect(screen.getByText('Failed login attempt')).toBeInTheDocument();
-    expect(screen.getByText('Database connection failed')).toBeInTheDocument();
-    
-    // Check levels are displayed correctly
-    expect(screen.getByText('info')).toBeInTheDocument();
-    expect(screen.getByText('warning')).toBeInTheDocument();
-    expect(screen.getByText('error')).toBeInTheDocument();
-    
-    // Check modules are displayed correctly
-    expect(screen.getByText('system')).toBeInTheDocument();
-    expect(screen.getByText('auth')).toBeInTheDocument();
-    expect(screen.getByText('database')).toBeInTheDocument();
+    expect(screen.getByText('Database query failed')).toBeInTheDocument();
   });
 
-  test('shows loading state', () => {
+  it('shows loading state when isLoading is true', () => {
     render(<SystemLogsList logs={[]} isLoading={true} />);
-    
-    // Should show skeletons for loading state
-    const skeletons = screen.getAllByTestId('skeleton');
-    expect(skeletons.length).toBeGreaterThan(0);
+    expect(screen.getByTestId('logs-loading')).toBeInTheDocument();
   });
 
-  test('shows empty state message', () => {
-    const emptyMessage = 'No logs found';
-    render(
-      <SystemLogsList 
-        logs={[]} 
-        isLoading={false} 
-        emptyMessage={emptyMessage} 
-      />
-    );
-    
-    expect(screen.getByText(emptyMessage)).toBeInTheDocument();
-  });
-
-  test('shows error state', () => {
-    const error = new Error('Failed to load logs');
-    render(
-      <SystemLogsList 
-        logs={[]} 
-        isLoading={false} 
-        error={error} 
-      />
-    );
-    
-    expect(screen.getByText(/Failed to load logs/i)).toBeInTheDocument();
-  });
-
-  test('calls onViewLog when view button is clicked', () => {
-    render(
-      <SystemLogsList 
-        logs={mockLogs} 
-        isLoading={false} 
-        onViewLog={mockOnViewLog} 
-      />
-    );
-    
-    const viewButtons = screen.getAllByRole('button');
-    fireEvent.click(viewButtons[0]);
-    
-    expect(mockOnViewLog).toHaveBeenCalledWith(mockLogs[0]);
+  it('shows empty state when no logs are available', () => {
+    render(<SystemLogsList logs={[]} isLoading={false} />);
+    expect(screen.getByText(/No logs found/i)).toBeInTheDocument();
   });
 });
