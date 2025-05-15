@@ -15,17 +15,19 @@ export interface NotificationContent {
 export interface Notification {
   id: string;
   title: string;
-  description?: string;
+  message: string;
+  description?: string; // Keep both for backward compatibility
   user_id: string;
   tenant_id: string;
   is_read?: boolean;
   created_at: string;
   updated_at?: string;
-  read_at?: string;
+  read_at: string | null; // Updated from string | undefined to string | null
   type: string;
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
+  priority?: 'high' | 'medium' | 'low'; // Added priority field
 }
 
 export interface NotificationsContextValue {
@@ -42,10 +44,12 @@ export interface NotificationsContextValue {
 export interface CreateNotificationInput {
   title: string;
   description?: string;
+  message?: string; // Added for consistency
   tenant_id: string;
   user_id: string;
   type?: string;
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
+  priority?: 'high' | 'medium' | 'low'; // Added priority field
 }

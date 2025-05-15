@@ -23,10 +23,12 @@ const generateMockLogs = (count: number): SystemLog[] => {
     const tenant = tenants[Math.floor(Math.random() * tenants.length)];
     const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
     
-    return {
+    const record: SystemLog = {
       id: `log-${i}`,
       created_at: randomDate.toISOString(),
+      timestamp: randomDate.toISOString(), // Added timestamp field
       description: `Example ${level} log message for ${module}`,
+      message: `Example ${level} log message for ${module}`, // Added for backward compatibility
       level: level as any,
       module,
       tenant_id: tenant,
@@ -41,11 +43,15 @@ const generateMockLogs = (count: number): SystemLog[] => {
       request_id: `req-${Math.random().toString(36).substring(2, 10)}`,
       error_type: errorType,
       severity: severity,
-      error: `${errorType}: Something went wrong in ${module}`,
+      error_message: Math.random() > 0.5 ? `${errorType}: Something went wrong in ${module}` : undefined,
       event: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'info',
+      event_type: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'info', // Added event_type
+      context: module, // Added context field
       user_facing: Math.random() > 0.7,
       affects_multiple_users: Math.random() > 0.8
     };
+    
+    return record;
   });
 };
 
@@ -126,7 +132,7 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
       result = result.filter(log => 
         log.description.toLowerCase().includes(searchLower) || 
         log.module.toLowerCase().includes(searchLower) ||
-        (log.error && log.error.toLowerCase().includes(searchLower))
+        (log.error_message && log.error_message.toLowerCase().includes(searchLower))
       );
     }
     

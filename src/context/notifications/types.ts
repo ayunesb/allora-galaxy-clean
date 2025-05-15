@@ -12,7 +12,7 @@ export interface Notification {
   metadata?: Record<string, any>;
   action_url?: string;
   action_label?: string;
-  priority?: 'high' | 'medium' | 'low'; // Added for NotificationsProvider
+  priority?: 'high' | 'medium' | 'low'; // Added priority field
 }
 
 export interface NotificationsContextValue {

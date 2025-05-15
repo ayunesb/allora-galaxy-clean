@@ -127,12 +127,11 @@ export function useSupabaseForm<TFieldValues extends FieldValues = FieldValues>(
       // Format and set error
       setSubmitError(error);
       
-      // Show error message
-      if (errorMessage) {
-        notifyError(errorMessage, {
-          description: error.message || 'An unexpected error occurred',
-        });
-      }
+      // Show error message with description using object format
+      notifyError({
+        title: errorMessage,
+        description: error.message || 'An unexpected error occurred'
+      });
       
       // Handle specific error types
       if (error?.code === '23505') {

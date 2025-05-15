@@ -17,6 +17,9 @@ export type SystemEventModule =
   | 'cron'
   | 'evolution';
 
+// User role type throughout the system
+export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
+
 // Status types used across the application
 export type Status = 'idle' | 'loading' | 'success' | 'error';
 

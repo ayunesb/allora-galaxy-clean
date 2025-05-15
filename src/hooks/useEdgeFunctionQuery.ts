@@ -1,5 +1,5 @@
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { processEdgeResponse, handleEdgeError } from '@/lib/errors/clientErrorHandler';
 
 // Only import the types we are actually using
@@ -41,16 +41,16 @@ export function useEdgeFunctionQuery<TData = any, TError = any>(
         return processEdgeResponse<TData>(response);
       } 
       
-      // For Supabase edge function responses
+      // For Supabase edge function responses - safer property checking
       if (response && typeof response === 'object' && 'data' in response) {
         // Create an adapter for Supabase functions response
         const responseAdapter = new Response(
           JSON.stringify(response.data), 
-          { status: response.error ? 400 : 200 }
+          { status: 'error' in response && response.error ? 400 : 200 }
         );
         
         // Add Supabase error to response if it exists
-        if (response.error) {
+        if ('error' in response && response.error) {
           Object.defineProperty(responseAdapter, 'supabaseError', {
             value: response.error,
             writable: false
