@@ -1,16 +1,34 @@
 
-import { ErrorTrendDataPoint } from '@/types/logs';
+import { SystemLog, ErrorTrendDataPoint } from '@/types/logs';
+import { formatDateToISO } from './dateUtils';
+
+/**
+ * Prepare error trends data for charts from system logs
+ */
+export function prepareErrorTrendsData(
+  logs: SystemLog[],
+  dateRange: { from: Date; to: Date | undefined }
+): ErrorTrendDataPoint[] {
+  // Filter logs to only include errors
+  const errorLogs = logs.filter(log => log.level === 'error');
+  
+  // Format data for charts
+  const trendData = formatErrorTrendData(errorLogs);
+  
+  // Filter by date range if provided
+  return filterErrorTrendDataByDateRange(trendData, dateRange.from, dateRange.to);
+}
 
 /**
  * Format error data for recharts
  */
-export function formatErrorTrendData(rawData: any[]): ErrorTrendDataPoint[] {
+export function formatErrorTrendData(rawData: SystemLog[]): ErrorTrendDataPoint[] {
   if (!rawData || !Array.isArray(rawData)) {
     return [];
   }
   
   // Group by date
-  const dataByDate = rawData.reduce((acc: Record<string, any>, curr: any) => {
+  const dataByDate = rawData.reduce((acc: Record<string, any>, curr: SystemLog) => {
     const date = new Date(curr.timestamp).toISOString().split('T')[0];
     
     if (!acc[date]) {

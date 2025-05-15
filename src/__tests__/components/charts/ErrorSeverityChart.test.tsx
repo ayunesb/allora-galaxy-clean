@@ -38,7 +38,8 @@ const mockErrorTrends: ErrorTrendDataPoint[] = [
     critical: 2,
     high: 4,
     medium: 6,
-    low: 3
+    low: 3,
+    count: 15 // Add count property
   },
   {
     date: '2023-01-02',
@@ -46,7 +47,8 @@ const mockErrorTrends: ErrorTrendDataPoint[] = [
     critical: 1,
     high: 2,
     medium: 4,
-    low: 3
+    low: 3,
+    count: 10 // Add count property
   }
 ];
 

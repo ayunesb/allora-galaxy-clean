@@ -2,7 +2,10 @@
 import { SystemLog, LogLevel, LogSeverity } from '@/types/logs';
 
 /**
- * Generate a mock system log entry
+ * Creates mock SystemLog entries for testing
+ * 
+ * @param {number} count - Number of log entries to create
+ * @returns {SystemLog[]} Array of mock SystemLog entries
  */
 export function createMockLog(overrides: Partial<SystemLog> = {}): SystemLog {
   const now = new Date();
@@ -17,19 +20,15 @@ export function createMockLog(overrides: Partial<SystemLog> = {}): SystemLog {
     event: 'test_event',
     description: 'Test log entry',
     tenant_id: 'tenant_1',
-    // Optional fields with defaults
     message: overrides.message || 'Test log entry',
     event_type: overrides.event_type || 'test',
-    user_id: overrides.user_id || undefined,
+    user_id: overrides.user_id,
     context: overrides.context || {},
-    metadata: overrides.metadata || {},
-    request_id: overrides.request_id || `req_${id.substring(4)}`,
-    error_type: overrides.error_type || undefined,
-    severity: overrides.severity || undefined,
-    priority: overrides.priority || undefined,
-    error_message: overrides.error_message || undefined,
-    user_facing: overrides.user_facing || false,
-    affects_multiple_users: overrides.affects_multiple_users || false,
+    error_type: overrides.error_type,
+    severity: overrides.severity,
+    error_message: overrides.error_message,
+    user_facing: overrides.user_facing,
+    affects_multiple_users: overrides.affects_multiple_users,
     ...overrides
   };
 }

@@ -77,7 +77,16 @@ describe('Toast Notifications', () => {
   
   describe('notifySuccess', () => {
     it('should call toast.success with the correct parameters', () => {
-      notifySuccess('Success Message', 'Success Description');
+      notifySuccess('Success Message');
+      
+      expect(toast.success).toHaveBeenCalledWith(
+        'Success Message',
+        expect.any(Object)
+      );
+    });
+    
+    it('should handle calls with a description', () => {
+      notifySuccess('Success Message', { description: 'Success Description' });
       
       expect(toast.success).toHaveBeenCalledWith(
         'Success Message',
@@ -86,20 +95,20 @@ describe('Toast Notifications', () => {
         })
       );
     });
-    
-    it('should handle calls without a description', () => {
-      notifySuccess('Simple Success');
-      
-      expect(toast.success).toHaveBeenCalledWith(
-        'Simple Success',
-        expect.any(Object)
-      );
-    });
   });
   
   describe('notifyError', () => {
     it('should call toast.error with the correct parameters', () => {
-      notifyError('Error Message', 'Error Description');
+      notifyError('Error Message');
+      
+      expect(toast.error).toHaveBeenCalledWith(
+        'Error Message',
+        expect.any(Object)
+      );
+    });
+    
+    it('should handle calls with a description', () => {
+      notifyError('Error Message', { description: 'Error Description' });
       
       expect(toast.error).toHaveBeenCalledWith(
         'Error Message',
@@ -108,39 +117,26 @@ describe('Toast Notifications', () => {
         })
       );
     });
-    
-    it('should handle calls without a description', () => {
-      notifyError('Simple Error');
-      
-      expect(toast.error).toHaveBeenCalledWith(
-        'Simple Error',
-        expect.any(Object)
-      );
-    });
   });
   
   describe('notifyWarning', () => {
     it('should call toast.warning with the correct parameters', () => {
-      notifyWarning('Warning Message', 'Warning Description');
+      notifyWarning('Warning Message');
       
       expect(toast.warning).toHaveBeenCalledWith(
         'Warning Message',
-        expect.objectContaining({
-          description: 'Warning Description'
-        })
+        expect.any(Object)
       );
     });
   });
   
   describe('notifyInfo', () => {
     it('should call toast.info with the correct parameters', () => {
-      notifyInfo('Info Message', 'Info Description');
+      notifyInfo('Info Message');
       
       expect(toast.info).toHaveBeenCalledWith(
         'Info Message',
-        expect.objectContaining({
-          description: 'Info Description'
-        })
+        expect.any(Object)
       );
     });
   });

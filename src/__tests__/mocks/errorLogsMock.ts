@@ -56,6 +56,7 @@ export const mockErrorTrends: ErrorTrendDataPoint[] = (() => {
     const high = Math.floor(Math.random() * 8) + 2;
     const medium = Math.floor(Math.random() * 10) + 3;
     const low = total - critical - high - medium;
+    const count = total; // Ensure count matches total
     
     result.push({
       date: format(date, 'yyyy-MM-dd'),
@@ -63,7 +64,8 @@ export const mockErrorTrends: ErrorTrendDataPoint[] = (() => {
       critical,
       high,
       medium,
-      low
+      low,
+      count
     });
   }
   

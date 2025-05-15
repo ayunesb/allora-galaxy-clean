@@ -40,42 +40,33 @@ type LoggedToastOptions = ToastOptions & {
  */
 export const notify = (
   messageOrOptions: string | ToastMessage, 
-  options?: LoggedToastOptions & { type?: ToastType }
+  description?: string | ToastOptions,
+  options?: ToastOptions
 ): string => {
-  const {
-    type = 'default',
-    description: optionsDescription,
-    duration,
-    position,
-    action,
-    cancel,
-    ...restOptions
-  } = options || {};
+  // Handle different argument patterns for backward compatibility
+  let title: string;
+  let finalOptions: ToastOptions = {};
+  
+  // Handle the case where second argument is options object
+  if (description && typeof description === 'object') {
+    options = description;
+    description = undefined;
+  }
+
+  // Merge options
+  finalOptions = { ...finalOptions, ...options };
   
   // Handle both string and object message formats
-  let title: string;
-  let description: ReactNode | undefined;
-  
   if (typeof messageOrOptions === 'string') {
     title = messageOrOptions;
-    description = optionsDescription;
+    finalOptions.description = description as string || finalOptions.description;
   } else {
     title = messageOrOptions.title;
-    description = messageOrOptions.description || optionsDescription;
+    finalOptions.description = messageOrOptions.description || finalOptions.description;
   }
   
   // Show the toast notification
-  if (type === 'success' && sonnerToast.success) {
-    return sonnerToast.success(title, { description, duration, position, action, cancel });
-  } else if (type === 'error' && sonnerToast.error) {
-    return sonnerToast.error(title, { description, duration, position, action, cancel });
-  } else if (type === 'warning' && sonnerToast.warning) {
-    return sonnerToast.warning(title, { description, duration, position, action, cancel });
-  } else if (type === 'info' && sonnerToast.info) {
-    return sonnerToast.info(title, { description, duration, position, action, cancel });
-  } else {
-    return sonnerToast(title, { description, duration, position, action, cancel });
-  }
+  return sonnerToast(title, finalOptions);
 };
 
 /**
@@ -83,23 +74,111 @@ export const notify = (
  */
 export const notifySuccess = (
   messageOrOptions: string | ToastMessage, 
+  description?: string | ToastOptions,
   options?: ToastOptions
-): string => notify(messageOrOptions, { ...options, type: "success" });
+): string => {
+  // Handle different argument patterns
+  if (typeof description === 'object') {
+    options = description;
+    description = undefined;
+  }
+  
+  const finalOptions = { ...options };
+  
+  // Create toast with success variant
+  if (typeof messageOrOptions === 'string') {
+    return sonnerToast.success(messageOrOptions, {
+      description: description as string,
+      ...finalOptions
+    });
+  } else {
+    return sonnerToast.success(messageOrOptions.title, {
+      description: messageOrOptions.description,
+      ...finalOptions
+    });
+  }
+};
 
 export const notifyError = (
   messageOrOptions: string | ToastMessage, 
+  description?: string | ToastOptions,
   options?: ToastOptions
-): string => notify(messageOrOptions, { ...options, type: "error" });
+): string => {
+  // Handle different argument patterns
+  if (typeof description === 'object') {
+    options = description;
+    description = undefined;
+  }
+  
+  const finalOptions = { ...options };
+  
+  // Create toast with error variant
+  if (typeof messageOrOptions === 'string') {
+    return sonnerToast.error(messageOrOptions, {
+      description: description as string,
+      ...finalOptions
+    });
+  } else {
+    return sonnerToast.error(messageOrOptions.title, {
+      description: messageOrOptions.description,
+      ...finalOptions
+    });
+  }
+};
 
 export const notifyWarning = (
   messageOrOptions: string | ToastMessage, 
+  description?: string | ToastOptions,
   options?: ToastOptions
-): string => notify(messageOrOptions, { ...options, type: "warning" });
+): string => {
+  // Handle different argument patterns
+  if (typeof description === 'object') {
+    options = description;
+    description = undefined;
+  }
+  
+  const finalOptions = { ...options };
+  
+  // Create toast with warning variant
+  if (typeof messageOrOptions === 'string') {
+    return sonnerToast.warning(messageOrOptions, {
+      description: description as string,
+      ...finalOptions
+    });
+  } else {
+    return sonnerToast.warning(messageOrOptions.title, {
+      description: messageOrOptions.description,
+      ...finalOptions
+    });
+  }
+};
 
 export const notifyInfo = (
   messageOrOptions: string | ToastMessage, 
+  description?: string | ToastOptions,
   options?: ToastOptions
-): string => notify(messageOrOptions, { ...options, type: "info" });
+): string => {
+  // Handle different argument patterns
+  if (typeof description === 'object') {
+    options = description;
+    description = undefined;
+  }
+  
+  const finalOptions = { ...options };
+  
+  // Create toast with info variant
+  if (typeof messageOrOptions === 'string') {
+    return sonnerToast.info(messageOrOptions, {
+      description: description as string,
+      ...finalOptions
+    });
+  } else {
+    return sonnerToast.info(messageOrOptions.title, {
+      description: messageOrOptions.description,
+      ...finalOptions
+    });
+  }
+};
 
 /**
  * Promise toast helper that shows loading/success/error states

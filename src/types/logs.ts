@@ -25,19 +25,24 @@ export interface SystemLog {
   created_at: string;
   timestamp: string; 
   module: LogModule;
-  level: 'info' | 'warning' | 'error';
+  level: LogLevel;
   event: string;
   event_type: string;
   description: string;
   message: string;
   tenant_id: string;
   context: Record<string, any>;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
+  severity?: LogSeverity;
   error_type?: string;
   error_message?: string;
   details?: Record<string, any>; // Added for LogDetailDialog
-  user_id?: string; // Added for proper typing
-  source?: string; // Added for filtering
+  user_id?: string;
+  source?: string;
+  request_id?: string;
+  metadata?: Record<string, any>;
+  priority?: string;
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
 }
 
 export interface LogGroup {
