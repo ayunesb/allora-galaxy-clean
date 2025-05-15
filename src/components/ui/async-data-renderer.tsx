@@ -9,7 +9,8 @@ export interface AsyncDataRendererProps<T> {
   isLoading: boolean;
   error: Error | null;
   onRetry?: () => void;
-  renderData: (data: T) => React.ReactElement;
+  renderData?: (data: T) => React.ReactElement;
+  children?: React.ReactNode | ((data: T) => React.ReactNode);
   loadingText?: string;
 }
 
@@ -19,6 +20,7 @@ export function AsyncDataRenderer<T>({
   error,
   onRetry,
   renderData,
+  children,
   loadingText = 'Loading data...',
 }: AsyncDataRendererProps<T>) {
   // Render states
@@ -74,5 +76,14 @@ export function AsyncDataRenderer<T>({
     );
   }
 
-  return renderData(data);
+  // Render data using the appropriate pattern
+  if (renderData) {
+    return renderData(data);
+  }
+
+  if (typeof children === 'function') {
+    return <>{children(data)}</>;
+  }
+
+  return <>{children}</>;
 }

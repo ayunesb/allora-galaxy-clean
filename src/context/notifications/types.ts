@@ -2,8 +2,8 @@
 export interface Notification {
   id: string;
   title: string;
-  message: string;
-  description?: string; // Added for compatibility
+  message: string; // Added to ensure compatibility
+  description?: string; // Added for backward compatibility
   user_id: string;
   tenant_id: string;
   created_at: string;
@@ -13,6 +13,7 @@ export interface Notification {
   action_url?: string;
   action_label?: string;
   priority?: 'high' | 'medium' | 'low'; // Added priority field
+  is_read?: boolean; // For backward compatibility
 }
 
 export interface NotificationsContextValue {
@@ -24,7 +25,7 @@ export interface NotificationsContextValue {
   refreshNotifications: () => Promise<void>;
   loading: boolean;
   error: Error | null;
-  // Add missing properties
-  addNotification?: (notification: Notification) => void;
-  clearNotifications?: () => void;
+  // Added missing properties
+  addNotification: (notification: Notification) => void;
+  clearNotifications: () => void;
 }

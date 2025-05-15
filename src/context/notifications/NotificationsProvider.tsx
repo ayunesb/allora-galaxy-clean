@@ -15,9 +15,12 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
     setUnreadCount(prev => prev + 1);
     
     // Display toast for certain types of notifications
-    if ((notification.metadata?.priority === 'high' || notification.priority === 'high')) {
-      toast(notification.title, {
-        description: notification.description || notification.message || ''
+    if (notification.priority === 'high' || 
+        (notification.metadata && notification.metadata.priority === 'high')) {
+      toast({
+        title: notification.title,
+        description: notification.message || notification.description || '',
+        variant: notification.type === 'error' ? 'destructive' : 'default'
       });
     }
   }, [toast]);
@@ -57,7 +60,6 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
   }, []);
 
   const deleteNotification = useCallback(async (id: string): Promise<void> => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
     // Update unread count if necessary
     setNotifications(prev => {
       const deletedNotification = prev.find(n => n.id === id);

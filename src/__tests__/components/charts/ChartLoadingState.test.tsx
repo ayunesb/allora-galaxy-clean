@@ -1,20 +1,20 @@
 
-import React from 'react';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ChartLoadingState } from '@/components/admin/errors/charts';
+import { ChartLoadingState } from '@/components/admin/errors/charts/ChartLoadingState';
 
 describe('ChartLoadingState', () => {
-  it('should render the loading spinner', () => {
+  it('renders the loading skeleton with default height', () => {
     render(<ChartLoadingState />);
-    
-    const spinner = screen.getByTestId('chart-loading-spinner');
-    expect(spinner).toBeInTheDocument();
+    const skeleton = screen.getByTestId('chart-loading');
+    expect(skeleton).toBeInTheDocument();
   });
 
-  it('should have correct height', () => {
-    render(<ChartLoadingState />);
-    
-    const container = screen.getByTestId('chart-loading-container');
-    expect(container).toHaveClass('h-64');
+  it('renders the loading skeleton with custom height', () => {
+    const customHeight = 400;
+    render(<ChartLoadingState height={customHeight} />);
+    const skeleton = screen.getByTestId('chart-loading');
+    expect(skeleton).toBeInTheDocument();
+    expect(skeleton).toHaveStyle(`height: ${customHeight}px`);
   });
 });
