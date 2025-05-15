@@ -38,41 +38,8 @@ export type VoteType = 'upvote' | 'downvote';
 // Add TrendDirection to fix KPICard build error
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
-// Update LogFilters interface to fix test errors
-export interface LogFilters {
-  module?: SystemEventModule | string | string[] | null;
-  dateFrom?: string | null;
-  dateTo?: string | null;
-  search?: string;
-  severity?: string | string[];
-  level?: string | string[];
-  error_type?: string | string[];
-  fromDate?: string;
-  toDate?: string;
-  // Add any other filter properties needed
-}
+// Update LogFilters interface to reference logs.ts implementation
+export { type LogFilters } from './logs';
 
-// Add SystemLog interface to fix test errors with complete properties
-export interface SystemLog {
-  id: string;
-  module: SystemEventModule;
-  event: string;
-  level: string;
-  message: string;
-  description?: string;
-  details?: Record<string, any>;
-  created_at: string;
-  tenant_id?: string;
-  user_id?: string;
-  error_type?: string;
-  severity?: string;
-  timestamp?: string;
-  context?: string;
-  user_facing?: boolean;
-  affects_multiple_users?: boolean;
-  metadata?: any;
-  request_id?: string;
-  error_message?: string;
-  event_type?: string;
-  priority?: string;
-}
+// Add SystemLog interface reference to fix test errors
+export { type SystemLog } from './logs';

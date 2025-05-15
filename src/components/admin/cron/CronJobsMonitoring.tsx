@@ -54,11 +54,19 @@ const CronJobsMonitoring: React.FC = () => {
   // Map status from API to our component's expected values
   function mapStatus(status: string): 'active' | 'inactive' | 'running' | 'failed' {
     switch (status) {
-      case 'success': return 'active';
-      case 'running': return 'running';
-      case 'failure': return 'failed';
-      case 'scheduled': return 'inactive';
-      default: return 'inactive';
+      case 'active':
+      case 'success': 
+        return 'active';
+      case 'running': 
+        return 'running';
+      case 'error':
+      case 'failure': 
+        return 'failed';
+      case 'inactive':
+      case 'scheduled': 
+        return 'inactive';
+      default: 
+        return 'inactive';
     }
   }
 

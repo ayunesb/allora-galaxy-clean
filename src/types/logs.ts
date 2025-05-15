@@ -11,6 +11,19 @@ export interface SystemLog {
   created_at: string;
   user_id?: string;
   status?: 'success' | 'failure' | 'pending';
+  description?: string;
+  timestamp?: string;
+  error_type?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  context?: string;
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
+  metadata?: any;
+  request_id?: string;
+  error_message?: string;
+  event?: string;
+  event_type?: string;
+  priority?: string;
 }
 
 export interface PluginLog {
@@ -36,13 +49,20 @@ export interface LogGroup {
 }
 
 export interface LogFilters {
-  level?: string;
-  module?: string;
+  level?: string | string[];
+  module?: string | string[] | SystemEventModule | null;
   tenant_id?: string;
   startDate?: string;
   endDate?: string;
-  searchTerm?: string;
-  status?: string;
+  search?: string;
+  searchTerm?: string; // Keeping for backward compatibility
+  status?: string | string[];
+  fromDate?: string; // Added for compatibility
+  toDate?: string; // Added for compatibility
+  error_type?: string | string[];
+  severity?: string | string[];
+  dateFrom?: string | null; // Added for compatibility
+  dateTo?: string | null; // Added for compatibility
 }
 
 export interface LogsResponse {

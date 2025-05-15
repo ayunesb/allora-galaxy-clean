@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,12 +27,12 @@ interface CronExecution {
   created_at: string;
 }
 
-interface CronJobStat {
+export interface CronJobStat {
   status: string;
   count: number;
 }
 
-interface TimeRange {
+export interface TimeRange {
   value: string;
   label: string;
 }
@@ -203,12 +202,66 @@ export const useCronJobsMonitoring = () => {
     setTimeRange,
     setSelectedJobId,
     setActiveTab,
-    pauseJob,
-    resumeJob,
-    runJob,
+    pauseJob: async (jobId: string) => {
+      try {
+        const { error } = await supabase
+          .from('cron_jobs')
+          .update({ status: 'inactive' })
+          .eq('id', jobId);
+        
+        if (error) throw error;
+        notifySuccess('Job paused successfully');
+        fetchJobs();
+      } catch (err) {
+        notifyError('Failed to pause job');
+        console.error('Error pausing job:', err);
+      }
+    },
+    resumeJob: async (jobId: string) => {
+      try {
+        const { error } = await supabase
+          .from('cron_jobs')
+          .update({ status: 'active' })
+          .eq('id', jobId);
+        
+        if (error) throw error;
+        notifySuccess('Job resumed successfully');
+        fetchJobs();
+      } catch (err) {
+        notifyError('Failed to resume job');
+        console.error('Error resuming job:', err);
+      }
+    },
+    runJob: async (jobId: string) => {
+      try {
+        // Directly call the edge function without extra arguments
+        const { error } = await supabase.functions.invoke('triggerCronJob', {
+          body: { jobId }
+        });
+        
+        if (error) throw error;
+        notifySuccess('Job triggered successfully');
+      } catch (err) {
+        notifyError('Failed to trigger job');
+        console.error('Error triggering job:', err);
+      }
+    },
     fetchJobs,
     refreshJobs: fetchJobs,
-    triggerJobNow: runJob,
+    triggerJobNow: runJob: async (jobId: string) => {
+      try {
+        // Directly call the edge function without extra arguments
+        const { error } = await supabase.functions.invoke('triggerCronJob', {
+          body: { jobId }
+        });
+        
+        if (error) throw error;
+        notifySuccess('Job triggered successfully');
+      } catch (err) {
+        notifyError('Failed to trigger job');
+        console.error('Error triggering job:', err);
+      }
+    },
   };
 };
 
