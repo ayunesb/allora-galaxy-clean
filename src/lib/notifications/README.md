@@ -1,7 +1,7 @@
 
-# Allora OS Notification System
+# Notification System
 
-This directory contains the notification system for Allora OS.
+This directory contains the notification system for the application.
 
 ## Overview
 
@@ -13,21 +13,22 @@ The notification system provides standardized ways to notify users about events,
 
 ## Key Components
 
-### Toast Notifications
+### Toast Notifications (`toast.ts`)
 
 The `toast.ts` module provides a variety of toast notification functions:
 
-- `notify`: Base notification function
-- `notifySuccess`: Success notification
-- `notifyError`: Error notification
-- `notifyWarning`: Warning notification
-- `notifyInfo`: Information notification
-- `notifyPromise`: Handle async operations with loading/success/error states
+- `toast`: Base notification function
+- `toast.success`: Success notification
+- `toast.error`: Error notification
+- `toast.warning`: Warning notification
+- `toast.info`: Information notification
+- `toast.loading`: Loading notification
+- `toast.promise`: Handle async operations with loading/success/error states
 - `notifyAndLog`: Show toast notification and log to system logs
 
 ### Persistent Notifications
 
-The `sendNotification.ts` module handles sending persistent notifications to users that are stored in the database:
+The persistent notification system handles notifications that are stored in the database:
 
 - `sendNotification`: Send a notification to a specific user
 - `sendTenantNotification`: Send a notification to all users in a tenant
@@ -46,19 +47,25 @@ The `NotificationsProvider` React context provider manages the notification stat
 ### Toast Notifications
 
 ```typescript
-import { notifySuccess, notifyError, notifyPromise } from '@/lib/notifications/toast';
+import { toast } from '@/lib/notifications/toast';
 
-// Success notification
-notifySuccess('Operation completed successfully');
+// Simple success notification
+toast.success('Operation completed successfully');
 
-// Error notification
-notifyError('Something went wrong', {
-  description: 'Please try again later'
+// Error notification with title and description
+toast.error({
+  title: 'Failed to save',
+  description: 'Please check your connection and try again'
+});
+
+// Info notification with custom duration
+toast.info('New updates available', {
+  duration: 5000
 });
 
 // Handle async operations with toast feedback
 const promise = fetchData();
-notifyPromise(promise, {
+toast.promise(promise, {
   loading: 'Loading data...',
   success: 'Data loaded successfully',
   error: 'Failed to load data'
@@ -68,41 +75,24 @@ notifyPromise(promise, {
 ### Toast with System Logging
 
 ```typescript
-import { notifyAndLog } from '@/lib/notifications/toast';
+import { notifyAndLog } from '@/lib/notifications/notifyAndLog';
 
 // Show toast and log to system logs
 await notifyAndLog(
-  'api', // module
-  'error', // level
-  'API Error', // title
-  'Failed to fetch data', // description
-  'error', // toast type
-  'tenant-123', // tenant ID
-  { endpoint: '/api/data', statusCode: 500 } // additional context
+  'api',                     // module
+  'error',                   // level
+  'API Error',               // title
+  'Failed to fetch data',    // description
+  'error',                   // toast type
+  'tenant-123',              // tenant ID
+  { endpoint: '/api/data', statusCode: 500 }  // additional context
 );
-```
-
-### Persistent Notifications
-
-```typescript
-import { sendNotification } from '@/lib/notifications/sendNotification';
-
-// Send a notification to a specific user
-await sendNotification({
-  title: 'New Message',
-  description: 'You have received a new message',
-  type: 'info',
-  user_id: 'user-123',
-  tenant_id: 'tenant-456',
-  action_url: '/messages/123',
-  action_label: 'View Message'
-});
 ```
 
 ### Using the Context Provider
 
 ```tsx
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications } from '@/context/notifications';
 
 function NotificationsBell() {
   const { 
@@ -140,8 +130,16 @@ function NotificationsBell() {
 3. Keep notification messages clear and concise
 4. Use consistent tone and style across all notifications
 5. Use appropriate notification types (success, error, warning, info)
-6. Log important notifications to system logs for audit trailing
+6. For persistent notifications, provide clear actions when applicable
+7. Consider notification priority and avoid overwhelming users
+8. Use the notifyAndLog utility for important system events
 
-## Testing
+## Configuration
 
-The notification system has comprehensive test coverage. See the test files in `__tests__/notifications` for examples.
+The notification system can be configured through the application settings:
+
+- Toast duration
+- Maximum number of toasts visible at once
+- Toast position (top-right, bottom-left, etc.)
+- Notification sound options
+- Auto-dismiss behavior

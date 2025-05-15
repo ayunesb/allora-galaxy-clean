@@ -1,18 +1,24 @@
 
 /**
- * Error type definitions for the Allora OS error handling system
+ * Error type definitions for the application's error handling system
  * Defines a hierarchy of error types for different scenarios
  * 
  * @module errorTypes
  */
 
 /**
- * Severity levels for errors
+ * Severity levels for errors, indicating business impact
  */
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 /**
  * Source of the error (where it originated)
+ * - client: Browser/client-side errors
+ * - server: API server errors
+ * - database: Database operation errors
+ * - edge: Edge function errors
+ * - external: Third-party service errors
+ * - unknown: Source couldn't be determined
  */
 export type ErrorSource = 'client' | 'server' | 'database' | 'edge' | 'external' | 'unknown';
 
@@ -23,7 +29,7 @@ export interface ErrorInitOptions {
   /** Human-readable error message */
   message: string;
   
-  /** Optional error code */
+  /** Optional error code for categorization */
   code?: string;
   
   /** Optional HTTP status code */
@@ -49,11 +55,27 @@ export interface ErrorInitOptions {
 }
 
 /**
- * Base error class for Allora OS
+ * Base error class for the application
  * All specialized errors inherit from this class
  * 
  * @class AlloraError
  * @extends Error
+ * @example
+ * ```typescript
+ * // Creating a basic error
+ * const error = new AlloraError({
+ *   message: 'Failed to process request',
+ *   code: 'PROCESS_ERROR',
+ *   status: 500,
+ *   severity: 'high'
+ * });
+ * 
+ * // Converting to JSON for logging or transmission
+ * const errorJson = error.toJSON();
+ * 
+ * // Reconstructing from JSON
+ * const reconstructedError = AlloraError.fromJSON(errorJson);
+ * ```
  */
 export class AlloraError extends Error {
   /** Error code for categorization */
@@ -153,9 +175,18 @@ export class AlloraError extends Error {
 
 /**
  * API-related errors
+ * Used for errors that occur during API calls
  * 
  * @class ApiError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new ApiError({
+ *   message: 'Failed to fetch user data',
+ *   status: 503,
+ *   context: { endpoint: '/users/123' }
+ * });
+ * ```
  */
 export class ApiError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -170,9 +201,17 @@ export class ApiError extends AlloraError {
 
 /**
  * Authentication-related errors
+ * Used for login failures, token validation issues, etc.
  * 
  * @class AuthError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new AuthError({
+ *   message: 'Invalid credentials',
+ *   userMessage: 'The email or password you entered is incorrect'
+ * });
+ * ```
  */
 export class AuthError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -188,9 +227,17 @@ export class AuthError extends AlloraError {
 
 /**
  * Permission-related errors
+ * Used when a user attempts an action they don't have permission for
  * 
  * @class PermissionError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new PermissionError({
+ *   message: 'User does not have admin privileges',
+ *   userMessage: 'You need administrator access to perform this action'
+ * });
+ * ```
  */
 export class PermissionError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -206,9 +253,17 @@ export class PermissionError extends AlloraError {
 
 /**
  * Not found errors
+ * Used when a requested resource cannot be found
  * 
  * @class NotFoundError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new NotFoundError({
+ *   message: 'User with ID 123 not found',
+ *   userMessage: 'The requested user could not be found'
+ * });
+ * ```
  */
 export class NotFoundError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -224,9 +279,17 @@ export class NotFoundError extends AlloraError {
 
 /**
  * Input validation errors
+ * Used when user input fails validation
  * 
  * @class ValidationError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new ValidationError({
+ *   message: 'Email format is invalid',
+ *   context: { field: 'email', value: 'invalid-email' }
+ * });
+ * ```
  */
 export class ValidationError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -242,9 +305,18 @@ export class ValidationError extends AlloraError {
 
 /**
  * Database-related errors
+ * Used for database connection issues, constraint violations, etc.
  * 
  * @class DatabaseError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new DatabaseError({
+ *   message: 'Failed to insert record due to unique constraint violation',
+ *   code: 'DB_CONSTRAINT_ERROR',
+ *   context: { table: 'users', constraint: 'users_email_key' }
+ * });
+ * ```
  */
 export class DatabaseError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -259,9 +331,17 @@ export class DatabaseError extends AlloraError {
 
 /**
  * Network-related errors
+ * Used for connectivity issues, timeouts, etc.
  * 
  * @class NetworkError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new NetworkError({
+ *   message: 'Request timed out after 30 seconds',
+ *   retry: true
+ * });
+ * ```
  */
 export class NetworkError extends AlloraError {
   constructor(options: ErrorInitOptions) {
@@ -277,9 +357,18 @@ export class NetworkError extends AlloraError {
 
 /**
  * Configuration errors
+ * Used for missing or invalid configuration settings
  * 
  * @class ConfigError
  * @extends AlloraError
+ * @example
+ * ```typescript
+ * throw new ConfigError({
+ *   message: 'Missing required API key',
+ *   code: 'MISSING_API_KEY',
+ *   retry: false
+ * });
+ * ```
  */
 export class ConfigError extends AlloraError {
   constructor(options: ErrorInitOptions) {

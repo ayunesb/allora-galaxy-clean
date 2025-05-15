@@ -1,100 +1,94 @@
 
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-
-// Import the component to test
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
 import { SystemLog } from '@/types/logs';
 
-// Mock the chart utility function
-vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
-  prepareErrorTrendsData: vi.fn(() => [
-    { date: '2023-01-01', count: 10, total: 10, critical: 2, high: 3, medium: 3, low: 2 }
-  ])
-}));
-
-// Mock chart components
-vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
-  default: () => <div data-testid="chart-loading-state">Loading</div>
-}));
-
-vi.mock('@/components/admin/errors/charts/ErrorRateChart', () => ({
-  default: () => <div data-testid="error-rate-chart">Rate Chart</div>
-}));
-
-vi.mock('@/components/admin/errors/charts/ErrorSeverityChart', () => ({
-  default: () => <div data-testid="error-severity-chart">Severity Chart</div>
-}));
-
-vi.mock('@/components/admin/errors/charts/FullErrorChart', () => ({
-  default: () => <div data-testid="full-error-chart">Full Chart</div>
-}));
+// Mock the recharts library
+vi.mock('recharts', () => {
+  return {
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+    Line: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    XAxis: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    YAxis: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    CartesianGrid: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    Legend: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  };
+});
 
 describe('ErrorTrendsChart', () => {
   const mockLogs: SystemLog[] = [
     {
-      id: 'log-1',
-      level: 'error',
-      severity: 'high',
-      created_at: '2023-01-01T10:00:00Z',
-      timestamp: '2023-01-01T10:00:00Z',
-      module: 'test',
-      description: 'Test error',
-      message: 'Test error',
+      id: '1',
       tenant_id: 'tenant-1',
-      event: 'error',
-      event_type: 'error',
-      context: {}, // This is now compatible with the updated type
-      error_type: 'TestError',
-      error_message: 'Test error occurred'
+      level: 'error',
+      message: 'Test error 1',
+      created_at: '2023-01-01T12:00:00Z',
+      severity: 'high',
+      details: { source: 'test' },
+      timestamp: '2023-01-01T12:00:00Z'
+    },
+    {
+      id: '2',
+      tenant_id: 'tenant-1',
+      level: 'error',
+      message: 'Test error 2',
+      created_at: '2023-01-02T12:00:00Z',
+      severity: 'critical',
+      details: { source: 'test' },
+      timestamp: '2023-01-02T12:00:00Z'
+    },
+    {
+      id: '3',
+      tenant_id: 'tenant-1',
+      level: 'error',
+      message: 'Test error 3',
+      created_at: '2023-01-03T12:00:00Z',
+      severity: 'medium',
+      details: { source: 'test' },
+      timestamp: '2023-01-03T12:00:00Z'
     }
   ];
-  
-  const dateRange = { from: new Date('2023-01-01'), to: new Date('2023-01-31') };
-  
-  it('renders the loading state when isLoading is true', () => {
-    const { getByTestId } = render(
-      <ErrorTrendsChart 
-        logs={[]} 
-        dateRange={dateRange} 
-        isLoading={true} 
-      />
-    );
-    expect(getByTestId('chart-loading-state')).toBeInTheDocument();
+
+  it('renders the chart with logs data', () => {
+    render(<ErrorTrendsChart logs={mockLogs} />);
+    
+    const chart = screen.getByTestId('line-chart');
+    expect(chart).toBeInTheDocument();
+    
+    const title = screen.getByText('Error Trends');
+    expect(title).toBeInTheDocument();
   });
-  
-  it('renders the rate chart when type is "rate"', () => {
-    const { getByTestId } = render(
-      <ErrorTrendsChart 
-        logs={mockLogs} 
-        dateRange={dateRange} 
-        isLoading={false}
-        type="rate"
-      />
-    );
-    expect(getByTestId('error-rate-chart')).toBeInTheDocument();
+
+  it('displays loading skeleton when isLoading is true', () => {
+    render(<ErrorTrendsChart logs={[]} isLoading={true} />);
+    
+    const skeleton = screen.getByTestId('chart-loading');
+    expect(skeleton).toBeInTheDocument();
+    
+    const chart = screen.queryByTestId('line-chart');
+    expect(chart).not.toBeInTheDocument();
   });
-  
-  it('renders the severity chart when type is "severity"', () => {
-    const { getByTestId } = render(
-      <ErrorTrendsChart 
-        logs={mockLogs} 
-        dateRange={dateRange} 
-        isLoading={false}
-        type="severity"
-      />
-    );
-    expect(getByTestId('error-severity-chart')).toBeInTheDocument();
+
+  it('displays empty state when there are no logs', () => {
+    render(<ErrorTrendsChart logs={[]} />);
+    
+    const emptyState = screen.getByText('No error data available');
+    expect(emptyState).toBeInTheDocument();
   });
-  
-  it('renders the full chart by default', () => {
-    const { getByTestId } = render(
-      <ErrorTrendsChart 
-        logs={mockLogs} 
-        dateRange={dateRange} 
-        isLoading={false}
-      />
-    );
-    expect(getByTestId('full-error-chart')).toBeInTheDocument();
+
+  it('filters logs by date range if provided', () => {
+    const dateRange = {
+      from: new Date('2023-01-02'),
+      to: new Date('2023-01-03')
+    };
+    
+    render(<ErrorTrendsChart logs={mockLogs} dateRange={dateRange} />);
+    
+    // Chart should still render with filtered data
+    const chart = screen.getByTestId('line-chart');
+    expect(chart).toBeInTheDocument();
   });
 });

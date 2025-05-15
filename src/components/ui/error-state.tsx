@@ -4,16 +4,60 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props for the ErrorState component
+ */
 export interface ErrorStateProps {
+  /** Main error title/heading */
   title?: string;
+  /** Error message or description */
   message?: string;
+  /** Original error object for detailed information */
   error?: Error | null;
+  /** Callback function to retry the operation */
   retry?: () => void;
+  /** Size variant controlling vertical spacing */
   size?: 'sm' | 'md' | 'lg';
+  /** Optional additional CSS classes */
   className?: string;
+  /** Whether to show detailed error information */
   showDetails?: boolean;
 }
 
+/**
+ * ErrorState - A component for displaying error states in the UI
+ * 
+ * Provides a consistent way to represent errors across the application with
+ * options for retry functionality and detailed error information.
+ * 
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <ErrorState 
+ *   title="Failed to load data" 
+ *   message="Please check your connection and try again" 
+ * />
+ * 
+ * // With retry functionality
+ * <ErrorState
+ *   title="Error loading dashboard"
+ *   message="Could not connect to the server"
+ *   retry={() => refetch()}
+ * />
+ * 
+ * // With error details for debugging
+ * <ErrorState
+ *   error={error}
+ *   showDetails={true}
+ * />
+ * 
+ * // In a small container
+ * <ErrorState
+ *   title="Chart data error"
+ *   size="sm"
+ * />
+ * ```
+ */
 export function ErrorState({
   title = 'Something went wrong',
   message = 'An error occurred while loading data',

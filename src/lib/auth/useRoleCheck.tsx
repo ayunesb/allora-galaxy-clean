@@ -2,12 +2,49 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Options for the useRoleCheck hook
+ */
 export interface UseRoleCheckOptions {
+  /** Array of role names that should be granted access */
   roles?: string[];
+  /** Whether to scope role checks to a specific tenant */
   tenantScoped?: boolean;
+  /** Tenant ID to check roles against (required if tenantScoped is true) */
   tenantId?: string;
 }
 
+/**
+ * A hook that checks if the current user has any of the specified roles
+ * 
+ * This hook verifies user permissions based on their assigned roles,
+ * either globally or within a specific tenant. It handles loading states
+ * and caches the result for performance.
+ * 
+ * @param options Configuration options for the role check
+ * @returns Object containing access status, loading state, and user roles
+ * 
+ * @example
+ * ```tsx
+ * // Check for global admin access
+ * const { hasAccess, loading } = useRoleCheck({
+ *   roles: ['admin', 'super_admin']
+ * });
+ * 
+ * // Check for tenant-specific roles
+ * const { hasAccess, loading, userRoles } = useRoleCheck({
+ *   roles: ['editor', 'owner'],
+ *   tenantScoped: true,
+ *   tenantId: 'tenant-123'
+ * });
+ * 
+ * if (loading) {
+ *   return <LoadingSpinner />;
+ * }
+ * 
+ * return hasAccess ? <ProtectedContent /> : <AccessDenied />;
+ * ```
+ */
 export function useRoleCheck(options: UseRoleCheckOptions = {}) {
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);

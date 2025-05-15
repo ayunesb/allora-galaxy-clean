@@ -1,11 +1,36 @@
 
 /**
  * Log system events for monitoring and debugging
+ * This utility provides consistent logging across the application
+ * 
  * @param module The module where the event occurred
  * @param level The severity level
- * @param data Event data
+ * @param data Event data (must include a description property)
  * @param tenantId Optional tenant ID for multi-tenant environments
  * @returns Promise resolving to the log ID
+ * 
+ * @example
+ * ```typescript
+ * // Basic info log
+ * await logSystemEvent(
+ *   'auth',
+ *   'info',
+ *   { description: 'User logged in successfully' }
+ * );
+ * 
+ * // Error log with context data
+ * await logSystemEvent(
+ *   'api',
+ *   'error',
+ *   { 
+ *     description: 'API call failed',
+ *     endpoint: '/users',
+ *     statusCode: 500,
+ *     responseTime: 1250
+ *   },
+ *   'tenant-123'
+ * );
+ * ```
  */
 export async function logSystemEvent(
   module: string,
@@ -29,6 +54,26 @@ export default logSystemEvent;
 
 /**
  * Convenience method for logging errors
+ * 
+ * @param module The module where the error occurred
+ * @param error The error object or message
+ * @param context Additional context data
+ * @param tenantId Optional tenant ID
+ * @returns Promise resolving to the log result
+ * 
+ * @example
+ * ```typescript
+ * try {
+ *   await saveData();
+ * } catch (error) {
+ *   await logSystemError(
+ *     'data-service',
+ *     error,
+ *     { operation: 'saveData', recordId: '123' },
+ *     'tenant-456'
+ *   );
+ * }
+ * ```
  */
 export function logSystemError(
   module: string, 
@@ -53,6 +98,26 @@ export function logSystemError(
 
 /**
  * Convenience method for logging info events
+ * 
+ * @param module The module where the event occurred
+ * @param description Description of the event
+ * @param data Additional event data
+ * @param tenantId Optional tenant ID
+ * @returns Promise resolving to the log result
+ * 
+ * @example
+ * ```typescript
+ * await logSystemInfo(
+ *   'payment-processor',
+ *   'Payment processed successfully',
+ *   { 
+ *     paymentId: 'pay_123',
+ *     amount: 99.99,
+ *     currency: 'USD'
+ *   },
+ *   'tenant-789'
+ * );
+ * ```
  */
 export function logSystemInfo(
   module: string,

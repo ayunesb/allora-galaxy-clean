@@ -1,98 +1,145 @@
 
-import { ErrorTrendDataPoint, SystemLog, LogLevel, LogSeverity } from '@/types/logs';
-import { addDays, format } from 'date-fns';
+import { SystemLog, ErrorTrendDataPoint } from '@/types/logs';
 
 /**
- * Creates mock SystemLog entries for testing
- * 
- * @param {number} count - Number of log entries to create
- * @returns {SystemLog[]} Array of mock SystemLog entries
+ * Mock error trend data for testing charts
  */
-export function createMockErrorLogs(count: number = 20): SystemLog[] {
-  const logs: SystemLog[] = [];
-  const now = new Date();
-  
-  for (let i = 0; i < count; i++) {
-    const severity = i % 4 === 0 ? 'critical' : i % 4 === 1 ? 'high' : i % 4 === 2 ? 'medium' : 'low';
-    const level = i % 3 === 0 ? 'error' : i % 3 === 1 ? 'warning' : 'info';
-    const module = ['system', 'api', 'auth', 'database'][i % 4];
-    const timestamp = addDays(now, -Math.floor(i / 3)).toISOString();
-    
-    logs.push({
-      id: `err-${i}`,
-      created_at: timestamp,
-      timestamp,
-      level: level as LogLevel,
-      module,
-      description: `Mock ${level} in ${module}`,
-      message: `Mock ${level} message #${i}`,
-      tenant_id: 'test-tenant',
-      severity: severity as LogSeverity,
-      event: level,
-      event_type: level,
-      context: '', // Fix: Use string instead of empty object
-      error_type: level === 'error' ? 'TestError' : undefined,
-      error_message: level === 'error' ? `Test error #${i}` : undefined,
-      user_id: i % 2 === 0 ? 'user-1' : 'user-2',
-      user_facing: i % 3 === 0,
-      affects_multiple_users: i % 5 === 0
-    });
+export const mockErrorTrendData: ErrorTrendDataPoint[] = [
+  {
+    date: '2023-01-01',
+    count: 5,
+    total: 100,
+    critical: 1,
+    high: 2,
+    medium: 1,
+    low: 1
+  },
+  {
+    date: '2023-01-02',
+    count: 8,
+    total: 120,
+    critical: 2,
+    high: 3,
+    medium: 2,
+    low: 1
+  },
+  {
+    date: '2023-01-03',
+    count: 3,
+    total: 95,
+    critical: 0,
+    high: 1,
+    medium: 1,
+    low: 1
+  },
+  {
+    date: '2023-01-04',
+    count: 12,
+    total: 150,
+    critical: 3,
+    high: 5,
+    medium: 2,
+    low: 2
+  },
+  {
+    date: '2023-01-05',
+    count: 6,
+    total: 110,
+    critical: 1,
+    high: 2,
+    medium: 2,
+    low: 1
   }
-  
-  return logs;
-}
+];
 
 /**
- * Mock error trends data for charts
+ * Mock error logs for testing
  */
-export const mockErrorTrends: ErrorTrendDataPoint[] = (() => {
-  const result: ErrorTrendDataPoint[] = [];
-  const now = new Date();
-  
-  for (let i = 14; i >= 0; i--) {
-    const date = addDays(now, -i);
-    const total = Math.floor(Math.random() * 30) + 5;
-    const critical = Math.floor(Math.random() * 5);
-    const high = Math.floor(Math.random() * 8) + 2;
-    const medium = Math.floor(Math.random() * 10) + 3;
-    const low = total - critical - high - medium;
-    const count = total; // Ensure count matches total
-    
-    result.push({
-      date: format(date, 'yyyy-MM-dd'),
-      count,
-      total, // Now compatible with updated type
-      critical,
-      high,
-      medium,
-      low
-    });
+export const mockErrorLogs: SystemLog[] = [
+  {
+    id: '1',
+    tenant_id: 'tenant-1',
+    level: 'error',
+    message: 'Database connection failed',
+    description: 'Failed to connect to the database after 3 retries',
+    module: 'database',
+    details: {
+      connectionString: 'postgresql://localhost:5432/db',
+      retries: 3,
+      errorCode: 'ECONNREFUSED'
+    },
+    created_at: '2023-01-01T10:00:00Z',
+    severity: 'critical',
+    request_id: 'req-123',
+    timestamp: '2023-01-01T10:00:00Z'
+  },
+  {
+    id: '2',
+    tenant_id: 'tenant-1',
+    level: 'error',
+    message: 'API request failed',
+    description: 'The external API returned a 500 status code',
+    module: 'api',
+    details: {
+      endpoint: '/users',
+      statusCode: 500,
+      response: { error: 'Internal Server Error' }
+    },
+    created_at: '2023-01-01T11:15:00Z',
+    severity: 'high',
+    request_id: 'req-124',
+    timestamp: '2023-01-01T11:15:00Z'
+  },
+  {
+    id: '3',
+    tenant_id: 'tenant-2',
+    level: 'error',
+    message: 'Payment processing failed',
+    description: 'Credit card declined by payment processor',
+    module: 'payments',
+    details: {
+      paymentId: 'pay-456',
+      errorCode: 'card_declined',
+      processor: 'stripe'
+    },
+    created_at: '2023-01-02T09:30:00Z',
+    severity: 'high',
+    request_id: 'req-125',
+    timestamp: '2023-01-02T09:30:00Z'
+  },
+  {
+    id: '4',
+    tenant_id: 'tenant-1',
+    level: 'error',
+    message: 'Authentication failed',
+    description: 'Invalid credentials provided',
+    module: 'auth',
+    details: {
+      method: 'password',
+      attempts: 3
+    },
+    created_at: '2023-01-03T14:20:00Z',
+    severity: 'medium',
+    request_id: 'req-126',
+    timestamp: '2023-01-03T14:20:00Z'
+  },
+  {
+    id: '5',
+    tenant_id: 'tenant-3',
+    level: 'error',
+    message: 'File upload failed',
+    description: 'Could not upload file to storage',
+    module: 'storage',
+    details: {
+      fileSize: '15MB',
+      fileName: 'report.pdf',
+      errorCode: 'STORAGE_ERROR'
+    },
+    created_at: '2023-01-04T08:45:00Z',
+    severity: 'medium',
+    request_id: 'req-127',
+    timestamp: '2023-01-04T08:45:00Z'
   }
-  
-  return result;
-})();
+];
 
-/**
- * Creates mock error group data for testing
- */
-export function createMockErrorGroups(count: number = 5) {
-  const groups = [];
-  
-  for (let i = 0; i < count; i++) {
-    groups.push({
-      id: `group-${i}`,
-      error_type: ['ValidationError', 'NetworkError', 'DatabaseError', 'AuthError', 'UnknownError'][i % 5],
-      message: `Mock error group #${i}`,
-      count: Math.floor(Math.random() * 100) + 10,
-      severity: ['critical', 'high', 'medium', 'low'][i % 4],
-      first_seen: addDays(new Date(), -30).toISOString(),
-      last_seen: addDays(new Date(), -i).toISOString(),
-      affected_users: Math.floor(Math.random() * 20) + 1,
-      affected_tenants: Math.floor(Math.random() * 5) + 1,
-      modules: ['system', 'api', 'auth', 'database'].slice(0, (i % 4) + 1),
-      examples: createMockErrorLogs(2)
-    });
-  }
-  
-  return groups;
-}
+export default { mockErrorTrendData, mockErrorLogs };

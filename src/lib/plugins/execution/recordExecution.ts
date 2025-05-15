@@ -4,10 +4,36 @@ import { ExecutionRecordInput } from '@/types/execution';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
 /**
- * Record an execution in the database
+ * Record an execution in the database for tracking and analysis
+ * 
+ * This function creates a new execution record in the database with details about
+ * a plugin, strategy, or agent execution. It handles the conversion of camelCase 
+ * properties to snake_case for database compatibility and provides error handling.
  * 
  * @param data The execution data to record
- * @returns The result of the operation
+ * @returns Promise resolving to an object indicating success or failure
+ * 
+ * @example
+ * ```typescript
+ * // Record a plugin execution
+ * const result = await recordExecution({
+ *   tenantId: 'tenant-123',
+ *   type: 'plugin',
+ *   pluginId: 'plugin-456',
+ *   status: 'success',
+ *   executedBy: 'user-789',
+ *   input: { param1: 'value1' },
+ *   output: { result: 'processed data' },
+ *   executionTime: 1250, // ms
+ *   xpEarned: 10
+ * });
+ * 
+ * if (result.success) {
+ *   console.log('Execution recorded:', result.data);
+ * } else {
+ *   console.error('Failed to record execution:', result.error);
+ * }
+ * ```
  */
 export async function recordExecution(data: ExecutionRecordInput) {
   try {
