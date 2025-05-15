@@ -4,11 +4,12 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Import the component to test
 import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
+import { SystemLog } from '@/types/logs';
 
 // Mock the chart utility function
 vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
   prepareErrorTrendsData: vi.fn(() => [
-    { date: '2023-01-01', total: 10, critical: 2, high: 3, medium: 3, low: 2 }
+    { date: '2023-01-01', count: 10, total: 10, critical: 2, high: 3, medium: 3, low: 2 }
   ])
 }));
 
@@ -30,11 +31,11 @@ vi.mock('@/components/admin/errors/charts/FullErrorChart', () => ({
 }));
 
 describe('ErrorTrendsChart', () => {
-  const mockLogs = [
+  const mockLogs: SystemLog[] = [
     {
       id: 'log-1',
-      level: 'error' as const,
-      severity: 'high' as const,
+      level: 'error',
+      severity: 'high',
       created_at: '2023-01-01T10:00:00Z',
       timestamp: '2023-01-01T10:00:00Z',
       module: 'test',
@@ -43,7 +44,7 @@ describe('ErrorTrendsChart', () => {
       tenant_id: 'tenant-1',
       event: 'error',
       event_type: 'error',
-      context: {},
+      context: {}, // This is now compatible with the updated type
       error_type: 'TestError',
       error_message: 'Test error occurred'
     }

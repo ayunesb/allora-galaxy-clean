@@ -1,5 +1,5 @@
 
-import { ErrorTrendDataPoint, SystemLog } from '@/types/logs';
+import { ErrorTrendDataPoint, SystemLog, LogLevel, LogSeverity } from '@/types/logs';
 import { addDays, format } from 'date-fns';
 
 /**
@@ -22,15 +22,15 @@ export function createMockErrorLogs(count: number = 20): SystemLog[] {
       id: `err-${i}`,
       created_at: timestamp,
       timestamp,
-      level,
+      level: level as LogLevel,
       module,
       description: `Mock ${level} in ${module}`,
       message: `Mock ${level} message #${i}`,
       tenant_id: 'test-tenant',
-      severity,
+      severity: severity as LogSeverity,
       event: level,
       event_type: level,
-      context: {},
+      context: '', // Fix: Use string instead of empty object
       error_type: level === 'error' ? 'TestError' : undefined,
       error_message: level === 'error' ? `Test error #${i}` : undefined,
       user_id: i % 2 === 0 ? 'user-1' : 'user-2',
@@ -60,12 +60,12 @@ export const mockErrorTrends: ErrorTrendDataPoint[] = (() => {
     
     result.push({
       date: format(date, 'yyyy-MM-dd'),
-      total,
+      count,
+      total, // Now compatible with updated type
       critical,
       high,
       medium,
-      low,
-      count
+      low
     });
   }
   

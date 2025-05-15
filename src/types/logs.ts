@@ -10,18 +10,18 @@ export interface LogEntry {
   user_id?: string;
   details?: any;
   metadata?: Record<string, any>;
-  context?: string;
+  context?: string | Record<string, any>; // Update to accept both string and object
   trace_id?: string;
   request_id?: string;
   component?: string;
 }
 
-export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'warning'; // Add 'warning' for compatibility
 export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 // Helper functions for type checking
 export const isLogLevel = (value: string): value is LogLevel => {
-  return ['info', 'warn', 'error', 'debug'].includes(value);
+  return ['info', 'warn', 'error', 'debug', 'warning'].includes(value);
 };
 
 export const isLogSeverity = (value: string): value is LogSeverity => {
@@ -43,7 +43,7 @@ export interface SystemLog {
   event?: string;
   event_type?: string;
   description?: string;
-  context?: string;
+  context?: string | Record<string, any>; // Update to accept both string and object
   error_type?: string;
   severity?: LogSeverity;
   error_message?: string;
@@ -72,8 +72,13 @@ export interface LogFilters {
   level?: string[];
   module?: string[];
   tenant?: string[];
+  tenant_id?: string;
   dateRange?: DateRange;
   search?: string;
+  fromDate?: string | Date;
+  toDate?: string | Date;
+  error_type?: string[];
+  severity?: string[];
 }
 
 export interface DateRange {
@@ -96,7 +101,7 @@ export interface LogsResponse {
   pageSize: number;
 }
 
-// Add ErrorTrendDataPoint for chart components
+// Update ErrorTrendDataPoint for chart components
 export interface ErrorTrendDataPoint {
   date: string;
   count: number;
@@ -104,6 +109,12 @@ export interface ErrorTrendDataPoint {
   severity?: LogSeverity;
   module?: string;
   errorType?: string;
+  // Add these properties for chart compatibility
+  total?: number;
+  critical?: number;
+  high?: number;
+  medium?: number;
+  low?: number;
 }
 
 export interface ErrorDistributionData {

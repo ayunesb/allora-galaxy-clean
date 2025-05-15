@@ -27,15 +27,15 @@ const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
   }
   
   if (type === 'rate') {
-    return <ErrorRateChart data={chartData} />;
+    return <ErrorRateChart data={chartData} isLoading={false} />;
   }
   
   if (type === 'severity') {
-    return <ErrorSeverityChart data={chartData} />;
+    return <ErrorSeverityChart data={chartData} isLoading={false} />;
   }
   
   // Default to full chart
-  return <FullErrorChart data={chartData} />;
+  return <FullErrorChart data={chartData} isLoading={false} />;
 };
 
 export default ErrorTrendsChart;

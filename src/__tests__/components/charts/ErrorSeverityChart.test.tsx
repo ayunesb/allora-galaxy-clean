@@ -34,21 +34,21 @@ vi.mock('@/components/admin/errors/charts/ChartLoadingState', () => ({
 const mockErrorTrends: ErrorTrendDataPoint[] = [
   {
     date: '2023-01-01',
-    total: 15,
+    count: 15,
+    total: 15, // Now compatible with updated type
     critical: 2,
     high: 4,
     medium: 6,
-    low: 3,
-    count: 15 // Add count property
+    low: 3
   },
   {
     date: '2023-01-02',
-    total: 10,
+    count: 10,
+    total: 10, // Now compatible with updated type
     critical: 1,
     high: 2,
     medium: 4,
-    low: 3,
-    count: 10 // Add count property
+    low: 3
   }
 ];
 

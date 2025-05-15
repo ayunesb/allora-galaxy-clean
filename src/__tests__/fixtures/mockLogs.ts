@@ -16,14 +16,14 @@ export function createMockLog(overrides: Partial<SystemLog> = {}): SystemLog {
     created_at: now.toISOString(),
     timestamp: now.toISOString(),
     module: 'system',
-    level: 'info',
+    level: 'info' as LogLevel,
     event: 'test_event',
     description: 'Test log entry',
     tenant_id: 'tenant_1',
     message: overrides.message || 'Test log entry',
     event_type: overrides.event_type || 'test',
     user_id: overrides.user_id,
-    context: overrides.context || {},
+    context: overrides.context || '', // Fix: Use string instead of empty object
     error_type: overrides.error_type,
     severity: overrides.severity,
     error_message: overrides.error_message,
@@ -46,7 +46,7 @@ export function createMockLogs(count = 10, baseDate = new Date()): SystemLog[] {
     const date = new Date(baseDate);
     date.setDate(date.getDate() - i);
     
-    const level = levels[i % levels.length];
+    const level = levels[i % levels.length] as LogLevel;
     const isError = level === 'error';
     
     logs.push(createMockLog({

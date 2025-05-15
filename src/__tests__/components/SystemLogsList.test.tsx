@@ -1,7 +1,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import type { SystemLog } from '@/types/logs';
+import type { SystemLog, LogLevel } from '@/types/logs';
 
 // Mock UI components used by SystemLogsList
 vi.mock('@/components/ui/table', () => ({
@@ -34,7 +34,7 @@ const createMockLogs = (count: number): Array<SystemLog> => {
     created_at: new Date().toISOString(),
     timestamp: new Date().toISOString(),
     module: 'test-module',
-    level: (index % 3 === 0 ? 'error' : index % 3 === 1 ? 'warning' : 'info'),
+    level: (index % 3 === 0 ? 'error' : index % 3 === 1 ? 'warning' : 'info') as LogLevel,
     event: 'test-event',
     event_type: 'test',
     description: `Test log ${index}`,
@@ -43,7 +43,7 @@ const createMockLogs = (count: number): Array<SystemLog> => {
     severity: (index % 4 === 0 ? 'critical' : index % 4 === 1 ? 'high' : index % 4 === 2 ? 'medium' : 'low'),
     error_type: index % 3 === 0 ? 'TestError' : undefined,
     user_id: 'test-user',
-    context: {},
+    context: {}, // This is now compatible
     error_message: index % 3 === 0 ? 'An error occurred' : undefined,
   }));
 };

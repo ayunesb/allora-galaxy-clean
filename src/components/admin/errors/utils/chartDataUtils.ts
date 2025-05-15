@@ -33,12 +33,12 @@ export function formatErrorTrendData(rawData: SystemLog[]): ErrorTrendDataPoint[
     if (!acc[date]) {
       acc[date] = {
         date,
+        count: 0,
         total: 0,
         critical: 0,
         high: 0,
         medium: 0,
-        low: 0,
-        count: 0
+        low: 0
       };
     }
     

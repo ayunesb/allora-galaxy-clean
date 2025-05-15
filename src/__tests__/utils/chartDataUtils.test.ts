@@ -17,7 +17,7 @@ describe('chartDataUtils', () => {
       tenant_id: 'test-tenant',
       event: 'error',
       event_type: 'error',
-      context: {}
+      context: '' // Fix: Use string instead of empty object
     },
     { 
       id: '2', 
@@ -31,7 +31,7 @@ describe('chartDataUtils', () => {
       tenant_id: 'test-tenant',
       event: 'warning',
       event_type: 'warning',
-      context: {}
+      context: '' // Fix: Use string instead of empty object
     },
     { 
       id: '3', 
@@ -45,7 +45,7 @@ describe('chartDataUtils', () => {
       tenant_id: 'test-tenant',
       event: 'info',
       event_type: 'info',
-      context: {}
+      context: '' // Fix: Use string instead of empty object
     },
     { 
       id: '4', 
@@ -59,7 +59,7 @@ describe('chartDataUtils', () => {
       tenant_id: 'test-tenant',
       event: 'error',
       event_type: 'error',
-      context: {}
+      context: '' // Fix: Use string instead of empty object
     }
   ];
 
