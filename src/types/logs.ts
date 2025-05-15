@@ -1,4 +1,3 @@
-
 /**
  * Type definitions for system logs and error monitoring
  * @module types/logs
@@ -83,11 +82,22 @@ export interface SystemLog {
 }
 
 /**
+ * Date range interface for date filters
+ */
+export interface DateRange {
+  from: Date;
+  to: Date;
+}
+
+/**
  * Filters for querying logs
  */
 export interface LogFilters {
   /** Text search across log fields */
   search?: string;
+  
+  /** Search term (alias for search) for backwards compatibility */
+  searchTerm?: string;
   
   /** Filter by module(s) */
   module?: string | string[];
@@ -101,8 +111,20 @@ export interface LogFilters {
   /** Filter by date range - start date */
   fromDate?: string;
   
+  /** Start date alias for backwards compatibility */
+  startDate?: string;
+  
+  /** Date from alias for backwards compatibility */
+  dateFrom?: string;
+  
   /** Filter by date range - end date */
   toDate?: string;
+  
+  /** End date alias for backwards compatibility */
+  endDate?: string;
+  
+  /** Date to alias for backwards compatibility */
+  dateTo?: string;
   
   /** Filter by error type */
   error_type?: string | string[];

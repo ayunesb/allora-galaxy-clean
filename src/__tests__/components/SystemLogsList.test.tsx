@@ -1,5 +1,5 @@
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock UI components used by SystemLogsList
@@ -12,6 +12,17 @@ vi.mock('@/components/ui/table', () => ({
   TableCell: ({ children }: { children: React.ReactNode }) => <td data-testid="table-cell">{children}</td>,
 }));
 
+// Mock DataTable component
+vi.mock('@/components/ui/data-table', () => ({
+  DataTable: ({ data }: any) => (
+    <div data-testid="data-table">
+      {data.map((item: any, index: number) => (
+        <div key={index} data-testid="table-row">{item.id}</div>
+      ))}
+    </div>
+  )
+}));
+
 // Mock fixtures for testing
 const createMockLogs = (count: number) => {
   return Array(count).fill(0).map((_, index) => ({
@@ -19,13 +30,13 @@ const createMockLogs = (count: number) => {
     created_at: new Date().toISOString(),
     timestamp: new Date().toISOString(),
     module: 'test-module',
-    level: index % 3 === 0 ? 'error' : index % 3 === 1 ? 'warning' : 'info',
+    level: index % 3 === 0 ? 'error' as const : index % 3 === 1 ? 'warning' as const : 'info' as const,
     event: 'test-event',
     event_type: 'test',
     description: `Test log ${index}`,
     message: `Test message ${index}`,
     tenant_id: 'test-tenant',
-    severity: index % 4 === 0 ? 'critical' : index % 4 === 1 ? 'high' : index % 4 === 2 ? 'medium' : 'low',
+    severity: index % 4 === 0 ? 'critical' as const : index % 4 === 1 ? 'high' as const : index % 4 === 2 ? 'medium' as const : 'low' as const,
     error_type: index % 3 === 0 ? 'TestError' : undefined,
     user_id: 'test-user',
     context: {},

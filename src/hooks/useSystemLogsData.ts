@@ -1,13 +1,27 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import type { SystemLog, LogFilters } from '@/types/logs';
+import type { SystemLog, LogFilters, LogLevel, LogSeverity } from '@/types/logs';
 import { logSystemEvent } from '@/lib/system/logSystemEvent';
+
+/**
+ * Type guard for LogLevel
+ */
+const isLogLevel = (value: string): value is LogLevel => {
+  return ['info', 'warning', 'error'].includes(value);
+};
+
+/**
+ * Type guard for LogSeverity
+ */
+const isLogSeverity = (value: string): value is LogSeverity => {
+  return ['low', 'medium', 'high', 'critical'].includes(value);
+};
 
 // Mock data for example purposes
 const generateMockLogs = (count: number): SystemLog[] => {
   const modules = ['system', 'auth', 'api', 'database', 'strategy'];
-  const levels: ('info' | 'warning' | 'error')[] = ['info', 'warning', 'error'];
-  const severities: ('low' | 'medium' | 'high' | 'critical')[] = ['low', 'medium', 'high', 'critical'];
+  const levels: LogLevel[] = ['info', 'warning', 'error'];
+  const severities: LogSeverity[] = ['low', 'medium', 'high', 'critical'];
   const tenants = ['tenant1', 'tenant2', 'tenant3', 'system'];
   const errorTypes = ['RuntimeError', 'ValidationError', 'NetworkError', 'AuthError', 'DatabaseError'];
   
@@ -17,7 +31,7 @@ const generateMockLogs = (count: number): SystemLog[] => {
       now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000
     );
     
-    const module = modules[Math.floor(Math.random() * modules.length)] as SystemEventModule;
+    const module = modules[Math.floor(Math.random() * modules.length)];
     const level = levels[Math.floor(Math.random() * levels.length)];
     const severity = severities[Math.floor(Math.random() * severities.length)];
     const tenant = tenants[Math.floor(Math.random() * tenants.length)];
@@ -38,18 +52,17 @@ const generateMockLogs = (count: number): SystemLog[] => {
         severity,
         user_facing: Math.random() > 0.7,
         affects_multiple_users: Math.random() > 0.8,
-        error_type: errorType
       },
       request_id: `req-${Math.random().toString(36).substring(2, 10)}`,
-      error_type: errorType,
+      error_type: level === 'error' ? errorType : undefined,
       severity,
-      error_message: Math.random() > 0.5 ? `${errorType}: Something went wrong in ${module}` : undefined,
+      priority: severity,
+      error_message: level === 'error' ? `${errorType}: Something went wrong in ${module}` : undefined,
       event: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'info',
       event_type: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'info',
-      context: module,
+      context: {},
       user_facing: Math.random() > 0.7,
-      affects_multiple_users: Math.random() > 0.8,
-      priority: severity
+      affects_multiple_users: Math.random() > 0.8
     };
     
     return record;
@@ -112,13 +125,13 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
       }
     }
     
-    // Filter by module - handle string, string[], and SystemEventModule
+    // Filter by module - handle both string and string[] cases
     if (filters.module) {
       const moduleFilters = Array.isArray(filters.module) 
         ? filters.module 
         : [filters.module];
       
-      if (moduleFilters.length > 0 && moduleFilters[0] !== null) {
+      if (moduleFilters.length > 0) {
         result = result.filter(log => moduleFilters.includes(log.module));
       }
     }
@@ -128,7 +141,7 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
       result = result.filter(log => log.tenant_id === filters.tenant_id);
     }
     
-    // Filter by date range - handle all possible date field names for compatibility
+    // Filter by date range - handle all date field aliases
     const fromDate = filters.fromDate || filters.startDate || filters.dateFrom;
     if (fromDate) {
       const dateFrom = new Date(fromDate);
@@ -141,7 +154,7 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
       result = result.filter(log => new Date(log.created_at) <= dateTo);
     }
     
-    // Filter by search term - handle both search and searchTerm for compatibility
+    // Filter by search term - handle both search and searchTerm aliases
     const searchQuery = filters.search || filters.searchTerm;
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
@@ -154,7 +167,7 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
     }
     
     // Filter by error type
-    if (filters.error_type && filters.error_type.length > 0) {
+    if (filters.error_type) {
       const errorTypeFilters = Array.isArray(filters.error_type) 
         ? filters.error_type 
         : [filters.error_type];
@@ -165,7 +178,7 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
     }
     
     // Filter by severity
-    if (filters.severity && filters.severity.length > 0) {
+    if (filters.severity) {
       const severityFilters = Array.isArray(filters.severity) 
         ? filters.severity 
         : [filters.severity];
@@ -221,10 +234,13 @@ export function useSystemLogsData(initialFilters: Partial<LogFilters> = {}) {
   // Calculate error stats
   const errorLogs = logs.filter(log => log.level === 'error');
   const errorStats = {
+    totalErrors: errorLogs.length,
     criticalErrors: errorLogs.filter(log => log.severity === 'critical').length,
     highErrors: errorLogs.filter(log => log.severity === 'high').length,
     mediumErrors: errorLogs.filter(log => log.severity === 'medium').length,
     lowErrors: errorLogs.filter(log => log.severity === 'low').length,
+    userFacingErrors: errorLogs.filter(log => log.user_facing === true).length,
+    affectedUsers: new Set(errorLogs.map(log => log.user_id).filter(Boolean)).size,
   };
 
   return {

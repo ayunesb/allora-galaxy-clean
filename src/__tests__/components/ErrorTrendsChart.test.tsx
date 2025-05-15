@@ -1,8 +1,6 @@
 
-import React from 'react';
-import { render } from '@testing-library/react';
-import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
-import { vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock the chart utility function
 vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({
@@ -32,8 +30,8 @@ describe('ErrorTrendsChart', () => {
   const mockLogs = [
     {
       id: 'log-1',
-      level: 'error',
-      severity: 'high',
+      level: 'error' as const,
+      severity: 'high' as const,
       created_at: '2023-01-01T10:00:00Z',
       timestamp: '2023-01-01T10:00:00Z',
       module: 'test',
@@ -42,7 +40,7 @@ describe('ErrorTrendsChart', () => {
       tenant_id: 'tenant-1',
       event: 'error',
       event_type: 'error',
-      context: 'test',
+      context: {},
       error_type: 'TestError',
       error_message: 'Test error occurred'
     }
