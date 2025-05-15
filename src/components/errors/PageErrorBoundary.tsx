@@ -1,30 +1,30 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import ErrorBoundary from './ErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
 import ErrorFallback from './ErrorFallback';
 
 interface PageErrorBoundaryProps {
   children: React.ReactNode;
+  tenantId?: string;
 }
 
-const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({ children }) => {
-  const navigate = useNavigate();
-
-  const handleReset = () => {
-    // Navigate to home page when error boundary is reset from page level
-    navigate('/');
-  };
-
+/**
+ * Error boundary specifically designed for wrapping page components
+ * Uses a more full-page oriented fallback UI
+ */
+const PageErrorBoundary: React.FC<PageErrorBoundaryProps> = ({
+  children,
+  tenantId = 'system'
+}) => {
   return (
     <ErrorBoundary
-      fallback={
-        <ErrorFallback
-          error={new Error("An error occurred in this page")}
-          resetErrorBoundary={handleReset}
-          supportEmail="support@allora.io"
-        />
-      }
+      FallbackComponent={(props) => (
+        <ErrorFallback {...props} tenantId={tenantId} />
+      )}
+      onError={(error, info) => {
+        console.error('Error caught by PageErrorBoundary:', error);
+        console.error('Component stack:', info.componentStack);
+      }}
     >
       {children}
     </ErrorBoundary>

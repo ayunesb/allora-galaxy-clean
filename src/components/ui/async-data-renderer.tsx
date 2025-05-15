@@ -1,126 +1,59 @@
 
-import React, { memo } from 'react';
-import { LoadingIndicator } from './loading-spinner';
-import ErrorState from './error-state';
-import RetryFeedback from './retry-feedback';
+import React from "react";
+import { ErrorState } from "./error-state";
+import { LoadingSpinner } from "./loading-spinner";
 
 export interface AsyncDataRendererProps<T> {
-  data: T | null;
+  data: T | undefined;
   isLoading: boolean;
-  error: Error | null;
+  error?: Error | unknown;
   onRetry?: () => void;
-  renderData?: (data: T) => React.ReactElement;
-  children?: React.ReactNode | ((data: T) => React.ReactNode);
-  loadingText?: string;
-  retryCount?: number;
-  maxRetries?: number;
-  isRetrying?: boolean;
-  fallback?: React.ReactNode;
-  loadingFallback?: React.ReactNode;
-  errorFallback?: React.ReactNode;
-  showDetails?: boolean;
-  loadingSize?: 'sm' | 'md' | 'lg' | 'xl';
-  loadingClassName?: string;
+  emptyState?: React.ReactNode;
+  loadingComponent?: React.ReactNode;
+  errorComponent?: React.ReactNode;
+  children: (data: T) => React.ReactNode;
 }
 
-/**
- * Renders data with proper loading, error, and retry states
- * 
- * @template T The type of data being rendered
- */
-function AsyncDataRenderer<T>({
+export function AsyncDataRenderer<T>({
   data,
   isLoading,
   error,
   onRetry,
-  renderData,
+  emptyState,
+  loadingComponent,
+  errorComponent,
   children,
-  loadingText = 'Loading data...',
-  retryCount = 0,
-  maxRetries = 3,
-  isRetrying = false,
-  fallback,
-  loadingFallback,
-  errorFallback,
-  showDetails = false,
-  loadingSize = 'md',
-  loadingClassName,
 }: AsyncDataRendererProps<T>) {
-  // Render custom fallback if provided
-  if (fallback && (isLoading || error || !data)) {
-    return <>{fallback}</>;
-  }
-  
-  // Render loading state
+  // Show loading state
   if (isLoading) {
-    if (loadingFallback) {
-      return <>{loadingFallback}</>;
-    }
-    
-    return (
-      <div className="flex justify-center items-center p-8 min-h-[200px]">
-        <LoadingIndicator 
-          size={loadingSize} 
-          text={loadingText} 
-          className={loadingClassName}
-        />
+    return loadingComponent || (
+      <div className="w-full flex justify-center p-8">
+        <LoadingSpinner />
       </div>
     );
   }
 
-  // Render error state
+  // Show error state
   if (error) {
-    // Use custom error fallback if provided
-    if (errorFallback) {
-      return <>{errorFallback}</>;
-    }
-    
-    // If we have a retry function and retry information is provided, render the RetryFeedback component
-    return (
-      <>
-        {onRetry && (retryCount > 0 || isRetrying) && (
-          <RetryFeedback
-            retryCount={retryCount}
-            maxRetries={maxRetries}
-            isRetrying={isRetrying}
-            onRetry={onRetry}
-            className="mb-4"
-          />
-        )}
-        <ErrorState
-          title="Failed to load data"
-          message={error.message}
-          error={error}
-          showDetails={showDetails}
-          retry={onRetry}
-        />
-      </>
+    return errorComponent || (
+      <ErrorState
+        error={error as Error}
+        onRetry={onRetry}
+      />
     );
   }
 
-  // Render empty state
+  // Show empty state
   if (!data) {
-    return (
-      <div className="text-center p-8 text-muted-foreground">
-        No data available.
+    return emptyState || (
+      <div className="text-center py-8 text-muted-foreground">
+        No data available
       </div>
     );
   }
 
-  // Render data using the appropriate pattern:
-  // 1. If renderData function is provided, use it
-  if (renderData) {
-    return renderData(data);
-  }
-
-  // 2. If children is a function, call it with the data
-  if (typeof children === 'function') {
-    return <>{children(data)}</>;
-  }
-
-  // 3. Otherwise just render children
-  return <>{children}</>;
+  // Render children with data
+  return <>{children(data)}</>;
 }
 
-// Export memoized component for performance optimization
-export default memo(AsyncDataRenderer) as typeof AsyncDataRenderer;
+export type { AsyncDataRendererProps };

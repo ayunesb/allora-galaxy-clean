@@ -1,111 +1,96 @@
 
-import { format, parseISO, isValid, formatDistance } from 'date-fns';
+import { format, parse, parseISO as parseISOBase } from 'date-fns';
 
 /**
- * Format a date string or object to a standardized format
- * @param dateInput Date string or Date object
- * @param formatString Optional format string (defaults to 'yyyy-MM-dd HH:mm:ss')
- * @returns Formatted date string or 'Invalid date' if invalid
+ * Format a date to ISO format YYYY-MM-DD
  */
-export function formatDate(
-  dateInput: string | Date | null | undefined,
-  formatString: string = 'yyyy-MM-dd HH:mm:ss'
-): string {
-  if (!dateInput) return 'N/A';
-  
-  try {
-    let dateObj: Date;
-    
-    if (typeof dateInput === 'string') {
-      dateObj = parseISO(dateInput);
-    } else {
-      dateObj = dateInput;
-    }
-    
-    if (!isValid(dateObj)) {
-      return 'Invalid date';
-    }
-    
-    return format(dateObj, formatString);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid date';
+export function formatDateToISO(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
+}
+
+/**
+ * Parse ISO date string to Date object
+ */
+export function parseISO(dateString: string): Date {
+  return parseISOBase(dateString);
+}
+
+/**
+ * Format date for display
+ */
+export function formatDateDisplay(date: Date): string {
+  return format(date, 'MMM d, yyyy');
+}
+
+/**
+ * Get date range from a time period string
+ */
+export function getDateRangeFromPeriod(period: string): { from: Date; to: Date } {
+  const now = new Date();
+  const to = new Date();
+  let from = new Date();
+
+  switch (period) {
+    case '24h':
+      from.setHours(now.getHours() - 24);
+      break;
+    case '7d':
+      from.setDate(now.getDate() - 7);
+      break;
+    case '30d':
+      from.setDate(now.getDate() - 30);
+      break;
+    case '90d':
+      from.setDate(now.getDate() - 90);
+      break;
+    default:
+      // Default to 7 days
+      from.setDate(now.getDate() - 7);
+  }
+
+  return { from, to };
+}
+
+/**
+ * Get label for a time period
+ */
+export function getTimePeriodLabel(period: string): string {
+  switch (period) {
+    case '24h':
+      return 'Last 24 hours';
+    case '7d':
+      return 'Last 7 days';
+    case '30d':
+      return 'Last 30 days';
+    case '90d':
+      return 'Last 90 days';
+    default:
+      return 'Custom period';
   }
 }
 
 /**
- * Format a date as a relative time (e.g., "2 hours ago")
- * @param dateInput Date string or Date object
- * @returns Relative time string or 'Invalid date' if invalid
+ * Format date with time
  */
-export function formatRelativeTime(dateInput: string | Date | null | undefined): string {
-  if (!dateInput) return 'N/A';
-  
-  try {
-    let dateObj: Date;
-    
-    if (typeof dateInput === 'string') {
-      dateObj = parseISO(dateInput);
-    } else {
-      dateObj = dateInput;
-    }
-    
-    if (!isValid(dateObj)) {
-      return 'Invalid date';
-    }
-    
-    return formatDistance(dateObj, new Date(), { addSuffix: true });
-  } catch (error) {
-    console.error('Error formatting relative time:', error);
-    return 'Invalid date';
+export function formatDate(date: Date | string, formatStr: string = 'PPp'): string {
+  if (typeof date === 'string') {
+    date = parseISOBase(date);
   }
+  return format(date, formatStr);
 }
 
 /**
- * Create a date range filter function
- * @param startDate Start date (inclusive)
- * @param endDate End date (inclusive)
- * @returns Filter function that checks if a date is within the range
+ * Get formatted date range
  */
-export function createDateRangeFilter(
-  startDate: Date | null,
-  endDate: Date | null
-): (dateStr: string | Date | null | undefined) => boolean {
-  return (dateStr: string | Date | null | undefined): boolean => {
-    if (!dateStr) return false;
-    
-    try {
-      let dateObj: Date;
-      
-      if (typeof dateStr === 'string') {
-        dateObj = parseISO(dateStr);
-      } else {
-        dateObj = dateStr;
-      }
-      
-      if (!isValid(dateObj)) {
-        return false;
-      }
-      
-      // Check if date is within range
-      if (startDate && dateObj < startDate) {
-        return false;
-      }
-      
-      if (endDate) {
-        // Set end date to end of day
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        if (dateObj > endOfDay) {
-          return false;
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in date range filter:', error);
-      return false;
-    }
-  };
+export function formatDateRange(from: Date, to: Date): string {
+  return `${formatDateDisplay(from)} - ${formatDateDisplay(to)}`;
+}
+
+/**
+ * Get date from days ago
+ */
+export function getDaysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
 }

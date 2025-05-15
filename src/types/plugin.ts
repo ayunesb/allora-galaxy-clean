@@ -1,60 +1,31 @@
 
-export interface Plugin {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  icon?: string;
-  status: string;
-  tenant_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  metadata?: Record<string, any>;
-  xp?: number;
-  roi?: number;
-}
+import { SystemLog, LogLevel, LogSeverity } from './logs';
 
-export interface AgentVersion {
-  id: string;
+/**
+ * Plugin log interface for storing plugin execution logs
+ */
+export interface PluginLog extends Omit<SystemLog, 'plugin_id'> {
+  /** ID of the plugin */
   plugin_id: string;
-  version: string;
-  prompt: string;
-  status: string;
-  created_at?: string;
-  created_by?: string;
-  upvotes?: number;
-  downvotes?: number;
-  xp?: number;
-}
-
-export interface PluginLog {
-  id: string;
-  tenant_id?: string;
-  plugin_id?: string;
-  agent_version_id?: string;
-  strategy_id?: string;
-  status: string;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
-  error?: string;
+  
+  /** Execution status */
+  execution_status?: 'success' | 'error' | 'warning';
+  
+  /** Input parameters */
+  input_params?: Record<string, any>;
+  
+  /** Output result */
+  output_result?: Record<string, any>;
+  
+  /** Execution time in ms */
   execution_time?: number;
+  
+  /** Experience points earned */
   xp_earned?: number;
-  created_at?: string;
+  
+  /** Associated strategy ID */
+  strategy_id?: string;
 }
 
-export interface PluginResult {
-  plugin_id: string;
-  success: boolean;
-  status: 'success' | 'failure' | 'pending';
-  output: any;
-  error?: string;
-  executionTime: number;
-  xpEarned: number;
-}
-
-export interface RunPluginChainResult {
-  success: boolean;
-  results: PluginResult[];
-  output?: Record<string, any>;
-  error?: string;
-}
+// Export this type specifically for use across the app
+export type { PluginLog };

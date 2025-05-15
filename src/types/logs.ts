@@ -1,4 +1,3 @@
-
 /**
  * Type definitions for system logs and error monitoring
  * @module types/logs
@@ -184,7 +183,7 @@ export interface LogFilters {
 /**
  * Error group represents a collection of related errors
  */
-export interface ErrorGroup {
+export interface LogGroup {
   /** Group identifier */
   id: string;
   

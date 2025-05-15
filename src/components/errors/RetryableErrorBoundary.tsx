@@ -1,77 +1,103 @@
 
 import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
-import ErrorFallback from '@/components/ErrorFallback';
-import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
+import { ErrorBoundary, ErrorBoundaryProps } from 'react-error-boundary';
 
-interface RetryableErrorBoundaryProps {
-  children: React.ReactNode;
+/**
+ * Interface for the RetryableErrorBoundary component
+ */
+interface RetryableErrorBoundaryProps extends Omit<ErrorBoundaryProps, 'FallbackComponent'> {
+  /**
+   * Maximum number of retries before showing the fallback
+   */
   maxRetries?: number;
-  fallbackRender?: React.ComponentType<any>;
-  componentName?: string;
-  tenantId?: string;
-  showDetails?: boolean;
-  onReset?: () => void;
-  onError?: (error: Error, info: { componentStack?: string }) => void;
+  
+  /**
+   * Delay between retries in milliseconds
+   */
+  retryDelay?: number;
+  
+  /**
+   * Whether to show a loading indicator during retries
+   */
+  showLoading?: boolean;
+  
+  /**
+   * Component to show during retries
+   */
+  loadingComponent?: React.ReactNode;
+  
+  /**
+   * FallbackComponent to show when max retries exceeded
+   */
+  FallbackComponent?: React.ComponentType<{ error: Error; resetErrorBoundary: () => void }>;
 }
 
 /**
- * Enhanced error boundary with automatic retry capabilities
- * Uses react-error-boundary underneath for better handling
+ * RetryableErrorBoundary - An error boundary that auto-retries before showing the fallback.
+ * Useful for handling transient errors without interrupting the user experience.
  */
 const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
   children,
   maxRetries = 3,
-  fallbackRender,
-  componentName,
-  tenantId,
-  showDetails = false,
-  onReset,
-  onError
+  retryDelay = 1000,
+  showLoading = true,
+  loadingComponent,
+  FallbackComponent,
+  ...props
 }) => {
   const [retryCount, setRetryCount] = React.useState(0);
+  const [isRetrying, setIsRetrying] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
   
-  const handleReset = React.useCallback(() => {
-    setRetryCount(prev => prev + 1);
-    if (onReset) {
-      onReset();
-    }
-  }, [onReset]);
-  
-  const handleError = React.useCallback((error: Error, info: { componentStack?: string }) => {
-    // Report to telemetry system
-    reportErrorFromErrorBoundary(error, info, {
-      module: 'ui',
-      tenantId,
-      context: {
-        componentName,
-        retryCount
-      }
-    }).catch(reportingError => {
-      console.error('Failed to report error:', reportingError);
-    });
+  // Auto-reset the error boundary if maxRetries not exceeded
+  const handleError = React.useCallback((error: Error, info: React.ErrorInfo) => {
+    setError(error);
     
-    // Call custom error handler if provided
-    if (onError) {
-      onError(error, info);
+    if (retryCount < maxRetries) {
+      setIsRetrying(true);
+      
+      // Retry after delay
+      const timeoutId = setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setIsRetrying(false);
+        props.onReset?.();
+      }, retryDelay);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [componentName, tenantId, retryCount, onError]);
+    
+    // Call the original onError
+    props.onError?.(error, {
+      componentStack: info.componentStack
+    });
+  }, [retryCount, maxRetries, retryDelay, props]);
+  
+  // Reset the retry count when successfully rendered
+  React.useEffect(() => {
+    return () => {
+      setRetryCount(0);
+      setIsRetrying(false);
+      setError(null);
+    };
+  }, [children]);
+  
+  if (isRetrying && showLoading) {
+    return (
+      <>
+        {loadingComponent || (
+          <div className="flex items-center justify-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        )}
+      </>
+    );
+  }
   
   return (
     <ErrorBoundary
-      FallbackComponent={fallbackRender || (props => (
-        <ErrorFallback
-          {...props}
-          componentName={componentName}
-          showDetails={showDetails}
-          retryCount={retryCount}
-          maxRetries={maxRetries}
-          tenantId={tenantId}
-        />
-      ))}
-      onReset={handleReset}
       onError={handleError}
-      resetKeys={[retryCount]}
+      FallbackComponent={FallbackComponent}
+      {...props}
     >
       {children}
     </ErrorBoundary>
@@ -79,3 +105,25 @@ const RetryableErrorBoundary: React.FC<RetryableErrorBoundaryProps> = ({
 };
 
 export default RetryableErrorBoundary;
+
+/**
+ * Higher-order component to wrap a component with RetryableErrorBoundary
+ */
+export function withRetryableErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>,
+  errorBoundaryProps: Omit<RetryableErrorBoundaryProps, 'children'> = {}
+) {
+  const displayName = Component.displayName || Component.name || 'Component';
+  
+  const WrappedComponent = (props: P) => {
+    return (
+      <RetryableErrorBoundary {...errorBoundaryProps}>
+        <Component {...props} />
+      </RetryableErrorBoundary>
+    );
+  };
+  
+  WrappedComponent.displayName = `withRetryableErrorBoundary(${displayName})`;
+  
+  return WrappedComponent;
+}

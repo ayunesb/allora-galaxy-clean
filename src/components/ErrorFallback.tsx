@@ -1,134 +1,105 @@
 
 import React from 'react';
+import { useErrorHandler } from '@/lib/errors/useErrorHandler';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertCircle, RefreshCcw } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/use-toast';
 
-interface ErrorFallbackProps {
+export interface ErrorFallbackProps {
   error: Error;
   resetErrorBoundary?: () => void;
-  componentStack?: string;
   tenantId?: string;
-  componentName?: string;
-  showDetails?: boolean;
-  retryCount?: number;
-  maxRetries?: number;
 }
 
 /**
- * Default error fallback component for error boundaries
+ * Fallback component displayed when an error occurs within an ErrorBoundary
  */
 const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   error,
   resetErrorBoundary,
-  componentStack,
-  componentName,
-  showDetails = false,
-  retryCount = 0,
-  maxRetries = 3
+  tenantId = 'system'
 }) => {
-  const [isRetrying, setIsRetrying] = React.useState(false);
-  const [countdown, setCountdown] = React.useState(0);
+  const { handleReportError, isReporting } = useErrorHandler();
+  const { toast } = useToast();
 
-  const canRetry = retryCount < maxRetries && typeof resetErrorBoundary === 'function';
-  
-  // Reset with exponential backoff
-  const handleRetry = React.useCallback(() => {
-    if (!resetErrorBoundary) return;
-    
-    setIsRetrying(true);
-    
-    // Calculate backoff time with exponential increase 
-    const backoffSeconds = Math.min(Math.pow(2, retryCount), 30);
-    setCountdown(backoffSeconds);
-    
-    // Update countdown timer
-    const intervalId = setInterval(() => {
-      setCountdown(prev => {
-        const newVal = prev - 1;
-        if (newVal <= 0) {
-          clearInterval(intervalId);
-          setIsRetrying(false);
-          resetErrorBoundary();
-        }
-        return newVal;
-      });
-    }, 1000);
-    
-    return () => clearInterval(intervalId);
-  }, [resetErrorBoundary, retryCount]);
-  
-  // Attempt to report error
-  React.useEffect(() => {
+  /**
+   * Handle reporting the error to the system
+   */
+  const reportError = async () => {
     try {
-      // Report error to monitoring system if available
-      if (typeof window !== 'undefined' && 'reportError' in window) {
-        (window as any).reportError(error, {
-          source: 'react_error_boundary',
-          componentName,
-          componentStack: componentStack || '',
-          tenant_id: tenantId
-        });
-      }
-    } catch (reportingError) {
-      console.error('Failed to report error to monitoring system:', reportingError);
+      await handleReportError(error, {
+        context: {
+          component: 'ErrorFallback',
+          location: window.location.pathname
+        },
+        tenantId
+      });
+      
+      toast({
+        title: 'Error Reported',
+        description: 'Thank you for reporting this error. Our team has been notified.'
+      });
+    } catch (reportError) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Report Error',
+        description: 'There was an error reporting this issue. Please try again later.'
+      });
+      console.error('Error reporting error:', reportError);
     }
-  }, [error, componentStack, componentName, tenantId]);
+  };
 
   return (
-    <div className="p-4 border border-destructive/20 rounded-md bg-destructive/5 flex flex-col items-center text-center space-y-4">
-      <div className="flex items-center justify-center space-x-2 text-destructive">
-        <AlertCircle className="h-5 w-5" />
-        <h3 className="font-medium">
-          {componentName ? `Error in ${componentName}` : 'Something went wrong'}
-        </h3>
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Something went wrong</AlertTitle>
+        <AlertDescription>
+          We've encountered an unexpected error. Our team has been notified.
+        </AlertDescription>
+      </Alert>
+      
+      <div className="mb-6 overflow-x-auto">
+        <h3 className="text-sm font-semibold mb-2">Error details:</h3>
+        <pre className="bg-muted p-4 rounded-md text-xs whitespace-pre-wrap">
+          {error.message || 'An unknown error occurred'}
+          {error.stack && (
+            <>
+              <br /><br />
+              {error.stack}
+            </>
+          )}
+        </pre>
       </div>
       
-      <p className="text-sm text-muted-foreground max-w-md">
-        {error.message || 'An unexpected error occurred'}
-      </p>
-      
-      {showDetails && error.stack && (
-        <details className="text-left w-full">
-          <summary className="text-xs text-muted-foreground cursor-pointer">
-            Error details
-          </summary>
-          <pre className="mt-2 p-2 bg-muted text-xs rounded-sm overflow-auto max-h-40">
-            {error.stack}
-          </pre>
-        </details>
-      )}
-      
-      {canRetry && (
-        <div className="flex flex-col items-center space-y-1">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRetry} 
-            disabled={isRetrying}
-          >
-            {isRetrying ? (
-              <>
-                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                Retrying in {countdown}s
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-3 w-3" />
-                {retryCount > 0 ? `Retry (${retryCount + 1}/${maxRetries})` : "Try again"}
-              </>
-            )}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {resetErrorBoundary && (
+          <Button onClick={resetErrorBoundary} className="flex items-center gap-2">
+            <RefreshCcw className="h-4 w-4" />
+            Retry
           </Button>
-          
-          {retryCount > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {retryCount === maxRetries - 1 
-                ? 'Final retry attempt' 
-                : `Attempt ${retryCount + 1} of ${maxRetries}`}
-            </span>
+        )}
+        
+        <Button 
+          variant="outline" 
+          onClick={reportError} 
+          disabled={isReporting}
+          className="flex items-center gap-2"
+        >
+          {isReporting ? (
+            <>
+              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Reporting...
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-4 w-4" />
+              Report Issue
+            </>
           )}
-        </div>
-      )}
+        </Button>
+      </div>
     </div>
   );
 };

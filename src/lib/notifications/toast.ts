@@ -1,5 +1,43 @@
-
 import { toast } from '@/components/ui/use-toast';
+
+/**
+ * ToastType enum for distinguishing toast types
+ */
+export enum ToastType {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  WARNING = 'warning',
+  INFO = 'info'
+}
+
+/**
+ * Generic notify function to show a toast
+ */
+export function notify(
+  title: string, 
+  message?: string, 
+  type: ToastType = ToastType.INFO,
+  options: Partial<ToastOptions> = {}
+) {
+  const { toast } = useToast();
+  
+  switch(type) {
+    case ToastType.SUCCESS:
+      return notifySuccess(title, message, options);
+    case ToastType.ERROR:
+      return notifyError(title, message, options);
+    case ToastType.WARNING:
+      return notifyWarning(title, message, options);
+    case ToastType.INFO:
+      return notifyInfo(title, message, options);
+    default:
+      return toast({
+        title,
+        description: message,
+        ...options
+      });
+  }
+}
 
 /**
  * Display a success notification
