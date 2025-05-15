@@ -1,31 +1,23 @@
 
-import React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface LoadingSpinnerProps {
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
-export const LoadingSpinner = ({
-  size = "md",
-  className,
-}: LoadingSpinnerProps) => {
+export const LoadingSpinner = ({ size = 'md', className }: LoadingSpinnerProps) => {
   const sizeClasses = {
-    sm: "h-4 w-4 border-2",
-    md: "h-8 w-8 border-3",
-    lg: "h-12 w-12 border-4",
+    sm: 'h-4 w-4',
+    md: 'h-6 w-6',
+    lg: 'h-8 w-8'
   };
 
   return (
-    <div
-      className={cn(
-        "animate-spin rounded-full border-b-transparent border-primary",
-        sizeClasses[size],
-        className
-      )}
-    />
+    <div className={cn('flex items-center justify-center', className)}>
+      <div className={cn('animate-spin rounded-full border-t-transparent border-2', sizeClasses[size])}>
+        <span className="sr-only">Loading...</span>
+      </div>
+    </div>
   );
 };
-
-export const LoadingIndicator = LoadingSpinner;

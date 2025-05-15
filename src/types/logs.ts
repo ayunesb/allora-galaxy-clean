@@ -150,3 +150,19 @@ export interface ErrorSummary {
   trend: ErrorTrendDataPoint[];
   recentErrors: SystemLog[];
 }
+
+// Add PluginLog interface for PluginLogItem component
+export interface PluginLog {
+  id: string;
+  plugin_id: string;
+  execution_id: string;
+  timestamp: string;
+  created_at: string;
+  level: LogLevel;
+  message: string;
+  details?: any;
+  status: string;
+  context?: Record<string, any>;
+  xp_earned: number;
+  agent_version_id?: string;
+}

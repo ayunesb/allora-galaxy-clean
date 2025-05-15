@@ -1,119 +1,80 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { notify } from '@/lib/notifications/toast';
-import type { SystemLog, LogFilters } from '@/types/logs';
+import { SystemLog, LogFilters, DateRange } from '@/types/logs';
 
-export function useAdminLogs(initialFilters: Partial<LogFilters> = {}) {
+export const useAdminLogs = (initialFilters: LogFilters = {}) => {
   const [logs, setLogs] = useState<SystemLog[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [filters, setFilters] = useState<LogFilters>({
-    level: undefined,
-    module: undefined,
-    tenant_id: undefined,
-    startDate: undefined,
-    endDate: undefined,
-    searchTerm: undefined,
-    status: undefined,
-    ...initialFilters
-  });
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(25);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState<LogFilters>(initialFilters);
 
-  const fetchLogs = useCallback(async () => {
-    setIsLoading(true);
-    
+  const updateFilters = (newFilters: Partial<LogFilters>) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters,
+    }));
+  };
+
+  const fetchLogs = async () => {
+    setLoading(true);
     try {
       let query = supabase
         .from('system_logs')
-        .select('*', { count: 'exact' });
-      
+        .select('*')
+        .order('created_at', { ascending: false });
+        
       // Apply filters
-      if (filters.level) {
-        query = query.eq('level', filters.level);
+      if (filters.search) {
+        query = query.ilike('message', `%${filters.search}%`);
       }
       
-      if (filters.module) {
-        query = query.eq('module', filters.module);
+      if (filters.level && filters.level.length) {
+        query = query.in('level', filters.level);
+      }
+      
+      if (filters.module && filters.module.length) {
+        query = query.in('module', filters.module);
       }
       
       if (filters.tenant_id) {
         query = query.eq('tenant_id', filters.tenant_id);
       }
       
-      if (filters.status) {
-        query = query.eq('status', filters.status);
+      if (filters.dateRange?.from) {
+        const fromDate = filters.dateRange.from.toISOString();
+        query = query.gte('created_at', fromDate);
       }
       
-      if (filters.startDate) {
-        query = query.gte('created_at', filters.startDate);
+      if (filters.dateRange?.to) {
+        const toDate = filters.dateRange.to.toISOString();
+        query = query.lte('created_at', toDate);
       }
       
-      if (filters.endDate) {
-        query = query.lte('created_at', filters.endDate);
+      const { data, error: err } = await query.limit(100);
+      
+      if (err) {
+        throw err;
       }
       
-      if (filters.searchTerm) {
-        query = query.ilike('message', `%${filters.searchTerm}%`);
-      }
-      
-      // Pagination
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      
-      query = query
-        .order('created_at', { ascending: false })
-        .range(from, to);
-      
-      const { data, count: totalCount, error } = await query;
-      
-      if (error) {
-        throw new Error(`Error fetching logs: ${error.message}`);
-      }
-      
-      setLogs(data as SystemLog[]);
-      setCount(totalCount || 0);
-    } catch (error) {
-      console.error('Error in useAdminLogs:', error);
-      notify({ 
-        title: 'Error loading logs',
-        description: error instanceof Error ? error.message : 'Unknown error'
-      }, { type: 'error' });
+      setLogs(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch logs'));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [filters, page, pageSize]);
-
-  const updateFilters = useCallback((newFilters: Partial<LogFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    setPage(1); // Reset to first page when filters change
-  }, []);
-
-  const clearFilters = useCallback(() => {
-    setFilters({
-      level: undefined,
-      module: undefined,
-      tenant_id: undefined,
-      startDate: undefined,
-      endDate: undefined,
-      searchTerm: undefined,
-      status: undefined
-    });
-    setPage(1);
-  }, []);
-
+  };
+  
+  useEffect(() => {
+    fetchLogs();
+  }, [filters]);
+  
   return {
     logs,
-    count,
-    isLoading,
+    loading,
+    error,
     filters,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
-    fetchLogs,
     updateFilters,
-    clearFilters
+    refresh: fetchLogs
   };
-}
+};

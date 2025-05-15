@@ -70,7 +70,7 @@ const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
           >
             {(strategyData: Strategy) => (
               <StrategyDetails 
-                strategyId={strategyData.id} 
+                strategyId={strategyData?.id || selectedStrategyId} 
               />
             )}
           </AsyncDataRenderer>
