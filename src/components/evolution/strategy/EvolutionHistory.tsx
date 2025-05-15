@@ -1,96 +1,125 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useMemo } from 'react';
+import { format } from 'date-fns';
+import {
+  Timeline,
+  TimelineItem,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+  TimelineHeader,
+  TimelineSeparator,
+} from '@/components/ui/timeline';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, GitCommit } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { StrategyVersion } from '@/types/strategy';
 
+type StrategyChangeType = 'major' | 'minor' | 'patch';
+
 interface EvolutionHistoryProps {
-  history: StrategyVersion[];
-  formatDate: (date: string | Date) => string;
-  renderUser: (userId: string | null) => string;
+  versions: StrategyVersion[];
+  isLoading?: boolean;
+  maxHeight?: string | number;
+  className?: string;
 }
 
 const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
-  history,
-  formatDate,
-  renderUser
+  versions,
+  isLoading = false,
+  maxHeight = '500px',
+  className = '',
 }) => {
-  const getChangeTypeColor = (type: StrategyChangeType | undefined) => {
-    if (!type) return 'bg-gray-100 text-gray-800';
-    
-    switch (type) {
-      case 'creation': return 'bg-purple-100 text-purple-800';
-      case 'update': return 'bg-blue-100 text-blue-800';
-      case 'approval': return 'bg-green-100 text-green-800';
-      case 'rejection': return 'bg-red-100 text-red-800';
-      case 'execution': return 'bg-amber-100 text-amber-800';
-      case 'parameter_change': return 'bg-indigo-100 text-indigo-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Get color for the change type badge
+  const getChangeTypeColor = (changeType: StrategyChangeType | undefined) => {
+    switch (changeType) {
+      case 'major':
+        return 'bg-red-500';
+      case 'minor':
+        return 'bg-amber-500';
+      case 'patch':
+        return 'bg-green-500';
+      default:
+        return 'bg-blue-500';
     }
   };
 
+  // Format the date
+  const formatVersionDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), 'MMM d, yyyy h:mm a');
+    } catch (err) {
+      return 'Invalid date';
+    }
+  };
+
+  // Memoize versions to prevent unnecessary re-rendering
+  const sortedVersions = useMemo(() => {
+    return [...versions].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [versions]);
+
+  if (isLoading) {
+    return (
+      <div className={`space-y-4 ${className}`}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-4">
+              <div className="h-5 bg-muted rounded w-1/3 mb-2" />
+              <div className="h-4 bg-muted rounded w-1/2 mb-4" />
+              <div className="h-20 bg-muted rounded w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (versions.length === 0) {
+    return (
+      <div className={`text-center p-8 text-muted-foreground ${className}`}>
+        No version history available.
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Evolution History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {history.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No evolution history available.</p>
-          </div>
-        ) : (
-          <div className="relative space-y-8 before:absolute before:inset-0 before:left-3.5 before:h-full before:w-0.5 before:bg-muted before:-z-10 pl-8">
-            {history.map((version, index) => (
-              <div key={version.id} className="relative">
-                <div className="absolute -left-8 mt-1.5 h-7 w-7 rounded-full bg-muted flex items-center justify-center">
-                  <GitCommit className="h-4 w-4 text-muted-foreground" />
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-medium">v{version.version}</h3>
-                    <Badge variant="outline" className={getChangeTypeColor(version.change_type)}>
-                      {version.change_type || 'Update'}
+    <ScrollArea style={{ maxHeight }} className={className}>
+      <Timeline>
+        {sortedVersions.map((version, index) => (
+          <TimelineItem key={version.id}>
+            <TimelineSeparator>
+              <TimelineDot />
+              {index < versions.length - 1 && <TimelineConnector />}
+            </TimelineSeparator>
+            <TimelineContent>
+              <TimelineHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-medium">Version {version.version}</div>
+                  {version.change_type && (
+                    <Badge className={getChangeTypeColor(version.change_type as StrategyChangeType)}>
+                      {version.change_type.toUpperCase()}
                     </Badge>
-                    {index === 0 && (
-                      <Badge variant="outline" className="bg-primary/20 text-primary">
-                        Latest
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span>{formatDate(version.created_at)}</span>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-1" />
-                      <span>{version.created_by ? renderUser(version.created_by) : 'System'}</span>
-                    </div>
-                  </div>
-                  
-                  {version.description && (
-                    <p className="text-sm mt-1">{version.description}</p>
-                  )}
-                  
-                  {version.changes && (
-                    <div className="mt-2 bg-muted/30 rounded-md p-3">
-                      <h4 className="text-sm font-medium mb-1">Changes</h4>
-                      <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(version.changes, null, 2)}</pre>
-                    </div>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                <div className="text-sm text-muted-foreground mb-2">
+                  {formatVersionDate(version.created_at)}
+                </div>
+                {(version.change_summary || version.description) && (
+                  <Card>
+                    <CardContent className="p-3 text-sm">
+                      <p>{version.change_summary || version.description || 'No description provided'}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TimelineHeader>
+            </TimelineContent>
+          </TimelineItem>
+        ))}
+      </Timeline>
+    </ScrollArea>
   );
 };
 
-export default EvolutionHistory;
+export default React.memo(EvolutionHistory);

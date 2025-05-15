@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import EdgeFunctionErrorDisplay from './EdgeFunctionErrorDisplay';
 import { toast } from '@/lib/notifications/toast';
 
@@ -17,7 +17,8 @@ const withEdgeFunctionErrorHandling = <P extends object>(
   const WithEdgeFunctionErrorHandling: React.FC<P> = (props) => {
     const [error, setError] = useState<Error | null>(null);
 
-    const handleEdgeFunctionError = (err: Error) => {
+    // Memoize error handler to prevent recreation on each render
+    const handleEdgeFunctionError = useCallback((err: Error) => {
       console.error('Edge function error caught by HOC:', err);
       
       // Show toast notification
@@ -28,15 +29,22 @@ const withEdgeFunctionErrorHandling = <P extends object>(
       
       // Set the error state to trigger error display
       setError(err);
-    };
+    }, []);
 
-    // Reset error if props change
+    // Reset error if props change - memoize the deps array
+    const propsSignature = JSON.stringify(props);
     useEffect(() => {
       setError(null);
-    }, [props]);
+    }, [propsSignature]);
+
+    // Memoize the error display component to prevent unnecessary re-renders
+    const ErrorComponent = useMemo(() => {
+      if (!error) return null;
+      return <EdgeFunctionErrorDisplay error={error} onRetry={() => setError(null)} />;
+    }, [error]);
 
     if (error) {
-      return <EdgeFunctionErrorDisplay error={error} onRetry={() => setError(null)} />;
+      return ErrorComponent;
     }
 
     return <WrappedComponent {...props} onEdgeFunctionError={handleEdgeFunctionError} />;
@@ -45,7 +53,8 @@ const withEdgeFunctionErrorHandling = <P extends object>(
   const displayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
   WithEdgeFunctionErrorHandling.displayName = `withEdgeFunctionErrorHandling(${displayName})`;
 
-  return WithEdgeFunctionErrorHandling;
+  // Use memo to prevent unnecessary re-renders of the HOC itself
+  return memo(WithEdgeFunctionErrorHandling);
 };
 
 export default withEdgeFunctionErrorHandling;

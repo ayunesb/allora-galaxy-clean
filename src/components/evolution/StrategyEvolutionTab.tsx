@@ -1,127 +1,159 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
-import { useStrategyEvolution } from './strategy/useStrategyEvolution';
-import { AsyncDataRenderer } from '@/components/ui/async-data-renderer';
-import StrategyDetails from './strategy/StrategyDetails';
-import EvolutionHistory from './strategy/EvolutionHistory';
-import ExecutionLogs from './strategy/ExecutionLogs';
-import StrategyLoadingSkeleton from './strategy/StrategyLoadingSkeleton';
-import type { Strategy, StrategyVersion, StrategyExecution } from '@/types/strategy';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import StrategyLoadingSkeleton from '@/components/evolution/strategy/StrategyLoadingSkeleton';
+import EvolutionHistory from '@/components/evolution/strategy/EvolutionHistory';
+import ExecutionLogs from '@/components/evolution/strategy/ExecutionLogs';
+import StrategyDetails from '@/components/evolution/strategy/StrategyDetails';
+import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
+import useOptimizedStrategyData from '@/hooks/useOptimizedStrategyData';
+import { OptimizedAsyncDataRenderer } from '@/components/ui/optimized-async-data-renderer';
+import { toast } from '@/lib/notifications/toast';
+import type { SystemLog } from '@/types/logs';
 
 interface StrategyEvolutionTabProps {
-  strategyId?: string;
+  strategyId: string;
 }
 
-const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({ 
-  strategyId = 'default' 
+const StrategyEvolutionTab: React.FC<StrategyEvolutionTabProps> = ({
+  strategyId
 }) => {
-  const [selectedStrategyId] = useState<string>(strategyId);
-  
-  const { 
+  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
+
+  const {
     strategy,
     versions,
     executions,
-    isLoading, 
-    error, 
-    refetch 
-  } = useStrategyEvolution(selectedStrategyId);
+    refetch,
+    isLoading,
+    isError
+  } = useOptimizedStrategyData(strategyId);
+  
+  // Handle refresh button click
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refetch();
+    } catch (error) {
+      toast.error({ 
+        title: 'Refresh failed', 
+        description: error instanceof Error ? error.message : 'An unknown error occurred' 
+      });
+    }
+  }, [refetch]);
 
-  // Format date helper
-  const formatDate = (date: string | Date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleString();
-  };
+  // Close log detail dialog
+  const handleCloseLogDetail = useCallback(() => {
+    setSelectedLog(null);
+  }, []);
 
-  // Extract user data for display
-  const getUserName = (userId: string | null) => {
-    if (!userId) return 'System';
-    // In a real app, map userId to actual name from users data
-    return userId.substring(0, 8) + '...';
-  };
+  // View execution details
+  const handleViewExecution = useCallback((execution: any) => {
+    // Convert execution to system log format for viewing in detail dialog
+    const log: SystemLog = {
+      id: execution.id,
+      created_at: execution.created_at,
+      timestamp: execution.start_time,
+      description: `Execution ${execution.status}`,
+      message: execution.error || `Strategy execution ${execution.status}`,
+      level: execution.error ? 'error' : execution.status === 'completed' ? 'info' : 'warning',
+      module: 'strategy',
+      tenant_id: '',
+      metadata: {
+        executionId: execution.id,
+        parameters: execution.parameters,
+        result: execution.result,
+        duration: execution.duration_ms
+      },
+      severity: execution.error ? 'high' : 'low',
+      priority: execution.error ? 'high' : 'low',
+      event: execution.status,
+      event_type: execution.status,
+      context: {},
+      user_facing: false,
+      affects_multiple_users: false
+    };
+    
+    setSelectedLog(log);
+  }, []);
 
   return (
-    <div className="grid gap-6">
-      <Tabs defaultValue="details" className="space-y-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Strategy Evolution</h2>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+      
+      <OptimizedAsyncDataRenderer
+        data={strategy.data}
+        isLoading={strategy.isLoading}
+        error={strategy.error instanceof Error ? strategy.error : null}
+        onRetry={refetch}
+      >
+        {(strategyData) => (
+          <StrategyDetails strategy={strategyData} />
+        )}
+      </OptimizedAsyncDataRenderer>
+
+      <Tabs defaultValue="history">
         <TabsList>
-          <TabsTrigger value="details">Strategy Details</TabsTrigger>
-          <TabsTrigger value="evolution">Evolution History</TabsTrigger>
+          <TabsTrigger value="history">Version History</TabsTrigger>
           <TabsTrigger value="executions">Execution Logs</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="details">
-          <AsyncDataRenderer 
-            data={strategy}
-            isLoading={isLoading}
-            error={error}
+        <TabsContent value="history">
+          <OptimizedAsyncDataRenderer
+            data={versions.data}
+            isLoading={versions.isLoading}
+            error={versions.error instanceof Error ? versions.error : null}
             onRetry={refetch}
-            loadingComponent={<StrategyLoadingSkeleton />}
-            emptyComponent={
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">No strategy data available</p>
-              </Card>
-            }
           >
-            {(strategyData: Strategy | null) => (
-              strategyData && <StrategyDetails strategyId={strategyData.id || selectedStrategyId} />
+            {(versionsData) => (
+              <EvolutionHistory versions={versionsData} />
             )}
-          </AsyncDataRenderer>
-        </TabsContent>
-        
-        <TabsContent value="evolution">
-          <AsyncDataRenderer 
-            data={versions}
-            isLoading={isLoading}
-            error={error}
-            onRetry={refetch}
-            loadingComponent={<StrategyLoadingSkeleton />}
-            emptyComponent={
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">No evolution history available</p>
-              </Card>
-            }
-          >
-            {(historyData: StrategyVersion[]) => (
-              <EvolutionHistory 
-                history={historyData}
-                formatDate={formatDate}
-                renderUser={getUserName}
-              />
-            )}
-          </AsyncDataRenderer>
+          </OptimizedAsyncDataRenderer>
         </TabsContent>
         
         <TabsContent value="executions">
-          <AsyncDataRenderer 
-            data={executions}
-            isLoading={isLoading}
-            error={error}
+          <OptimizedAsyncDataRenderer
+            data={executions.data}
+            isLoading={executions.isLoading}
+            error={executions.error instanceof Error ? executions.error : null}
             onRetry={refetch}
-            loadingComponent={<StrategyLoadingSkeleton />}
-            emptyComponent={
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">No execution logs available</p>
-              </Card>
-            }
+            virtualize={true}
           >
-            {(executionData: StrategyExecution[]) => (
+            {(executionsData) => (
               <ExecutionLogs 
-                executions={executionData as StrategyExecution[]}
-                formatDate={formatDate}
-                renderUser={getUserName}
+                executions={executionsData} 
+                onViewDetails={handleViewExecution}
               />
             )}
-          </AsyncDataRenderer>
+          </OptimizedAsyncDataRenderer>
         </TabsContent>
       </Tabs>
+
+      {/* Log detail dialog for viewing execution details */}
+      <LogDetailDialog 
+        log={selectedLog} 
+        open={selectedLog !== null}
+        onClose={handleCloseLogDetail}
+      />
     </div>
   );
 };
 
-export default StrategyEvolutionTab;
+export default React.memo(StrategyEvolutionTab);

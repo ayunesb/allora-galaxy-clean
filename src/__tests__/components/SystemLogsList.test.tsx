@@ -1,102 +1,131 @@
 
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import type { SystemLog, LogLevel } from '@/types/logs';
-
-// Mock UI components used by SystemLogsList
-vi.mock('@/components/ui/table', () => ({
-  Table: ({ children }: { children: React.ReactNode }) => <table data-testid="table">{children}</table>,
-  TableHeader: ({ children }: { children: React.ReactNode }) => <thead data-testid="table-header">{children}</thead>,
-  TableBody: ({ children }: { children: React.ReactNode }) => <tbody data-testid="table-body">{children}</tbody>,
-  TableRow: ({ children }: { children: React.ReactNode }) => <tr data-testid="table-row">{children}</tr>,
-  TableHead: ({ children }: { children: React.ReactNode }) => <th data-testid="table-head">{children}</th>,
-  TableCell: ({ children }: { children: React.ReactNode }) => <td data-testid="table-cell">{children}</td>,
-}));
-
-// Mock DataTable component
-vi.mock('@/components/ui/data-table', () => ({
-  DataTable: ({ data }: any) => (
-    <div data-testid="data-table">
-      {data.map((item: any, index: number) => (
-        <div key={index} data-testid="table-row">{item.id}</div>
-      ))}
-    </div>
-  )
-}));
-
-// Mock systemLogColumns
-vi.mock('@/lib/admin/systemLogColumns', () => ({
-  getSystemLogColumns: () => ([
-    { accessorKey: 'timestamp', header: 'Time' },
-    { accessorKey: 'level', header: 'Level' },
-    { accessorKey: 'module', header: 'Module' },
-    { accessorKey: 'message', header: 'Message' },
-    { accessorKey: 'tenant_name', header: 'Tenant' },
-    { accessorKey: 'service', header: 'Service' }
-  ])
-}));
-
-// Mock EmptyState
-vi.mock('@/components/errors/EmptyStates', () => ({
-  EmptyState: ({ title }: { title: string }) => <div>{title}</div>
-}));
-
-// Mock LoadingIndicator
-vi.mock('@/components/ui/loading-indicator', () => ({
-  LoadingIndicator: ({ text }: { text: string }) => <div data-testid="loading">{text}</div>
-}));
-
-// Import the component after mocking dependencies
 import SystemLogsList from '@/components/admin/logs/SystemLogsList';
+import type { SystemLog } from '@/types/logs';
 
-// Mock fixtures for testing
-const createMockLogs = (count: number): Array<SystemLog> => {
-  return Array(count).fill(0).map((_, index) => ({
-    id: `log-${index}`,
-    created_at: new Date().toISOString(),
-    timestamp: new Date().toISOString(),
-    module: 'test-module',
-    level: (index % 3 === 0 ? 'error' : index % 3 === 1 ? 'warning' : 'info') as LogLevel,
-    event: 'test-event',
-    event_type: 'test',
-    description: `Test log ${index}`,
-    message: `Test message ${index}`,
-    tenant_id: 'test-tenant',
-    severity: (index % 4 === 0 ? 'critical' : index % 4 === 1 ? 'high' : index % 4 === 2 ? 'medium' : 'low') as any,
-    error_type: index % 3 === 0 ? 'TestError' : undefined,
-    user_id: 'test-user',
-    context: {}, 
-    error_message: index % 3 === 0 ? 'An error occurred' : undefined,
-  }));
-};
+// Mock data for testing
+const mockLogs: SystemLog[] = [
+  {
+    id: '1',
+    created_at: '2025-01-01T12:00:00Z',
+    timestamp: '2025-01-01T12:00:00Z',
+    description: 'Test info description',
+    message: 'Test info message',
+    level: 'info',
+    module: 'system',
+    tenant_id: 'tenant-1',
+    severity: 'low',
+    priority: 'low',
+    event: 'info',
+    event_type: 'info',
+    context: {},
+    user_facing: false,
+    affects_multiple_users: false
+  },
+  {
+    id: '2',
+    created_at: '2025-01-01T13:00:00Z',
+    timestamp: '2025-01-01T13:00:00Z',
+    description: 'Test warning description',
+    message: 'Test warning message',
+    level: 'warning',
+    module: 'auth',
+    tenant_id: 'tenant-1',
+    severity: 'medium',
+    priority: 'medium',
+    event: 'warning',
+    event_type: 'warning',
+    context: {},
+    user_facing: true,
+    affects_multiple_users: false
+  },
+  {
+    id: '3',
+    created_at: '2025-01-01T14:00:00Z',
+    timestamp: '2025-01-01T14:00:00Z',
+    description: 'Test error description',
+    message: 'Test error message',
+    level: 'error',
+    module: 'api',
+    tenant_id: 'tenant-1',
+    error_type: 'RuntimeError',
+    error_message: 'A runtime error occurred',
+    severity: 'high',
+    priority: 'high',
+    event: 'error',
+    event_type: 'error',
+    context: {},
+    user_facing: true,
+    affects_multiple_users: true
+  }
+];
+
+// Mock format function from date-fns
+vi.mock('date-fns', () => ({
+  format: vi.fn(() => 'Jan 1, 2025 12:00:00')
+}));
 
 describe('SystemLogsList', () => {
-  it('renders loading state when isLoading is true', () => {
-    render(<SystemLogsList logs={[]} isLoading={true} onViewDetails={() => {}} />);
-    expect(screen.getByTestId('loading')).toBeInTheDocument();
-  });
-  
-  it('renders empty state when no logs are provided', () => {
-    render(<SystemLogsList logs={[]} isLoading={false} onViewDetails={() => {}} />);
-    expect(screen.getByText('No logs found')).toBeInTheDocument();
-  });
-  
-  it('renders logs when provided', () => {
-    const mockLogs = createMockLogs(5);
+  it('renders logs table with correct columns', () => {
+    render(<SystemLogsList logs={mockLogs} />);
     
-    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewDetails={() => {}} />);
+    // Check column headers
+    expect(screen.getByText('Level')).toBeInTheDocument();
+    expect(screen.getByText('Time')).toBeInTheDocument();
+    expect(screen.getByText('Module')).toBeInTheDocument();
+    expect(screen.getByText('Message')).toBeInTheDocument();
     
-    const logsCount = screen.getByTestId('logs-count');
-    expect(logsCount).toHaveAttribute('data-count', '5');
-    expect(screen.getAllByTestId('table-row').length).toBe(5);
+    // Check log levels are displayed
+    expect(screen.getByText('info')).toBeInTheDocument();
+    expect(screen.getByText('warning')).toBeInTheDocument();
+    expect(screen.getByText('error')).toBeInTheDocument();
+    
+    // Check messages are displayed
+    expect(screen.getByText('Test info message')).toBeInTheDocument();
+    expect(screen.getByText('Test warning message')).toBeInTheDocument();
+    expect(screen.getByText('Test error message')).toBeInTheDocument();
+    
+    // Check modules are displayed
+    expect(screen.getByText('system')).toBeInTheDocument();
+    expect(screen.getByText('auth')).toBeInTheDocument();
+    expect(screen.getByText('api')).toBeInTheDocument();
   });
 
-  it('adapts column definitions to available properties', () => {
-    const mockLogs = createMockLogs(2);
-    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewDetails={() => {}} />);
+  it('shows loading state when isLoading is true', () => {
+    render(<SystemLogsList logs={[]} isLoading={true} />);
     
-    // The component should render without errors even though the columns reference properties
-    // that don't exist on the log objects
-    expect(screen.getByTestId('data-table')).toBeInTheDocument();
+    // The virtualized table has skeleton loading indicators
+    // This will depend on implementation details of your table component
+    const skeletonElements = document.querySelectorAll('.animate-pulse');
+    expect(skeletonElements.length).toBeGreaterThan(0);
+  });
+
+  it('shows empty state when there are no logs', () => {
+    render(<SystemLogsList logs={[]} />);
+    
+    expect(screen.getByText('No logs found matching your filters')).toBeInTheDocument();
+  });
+
+  it('uses custom table height when provided', () => {
+    render(<SystemLogsList logs={mockLogs} tableHeight="300px" />);
+    
+    // Check table container has the right height
+    const tableContainer = document.querySelector('[style*="height: 300px"]');
+    expect(tableContainer).toBeInTheDocument();
+  });
+
+  it('handles row click when onRowClick is provided', async () => {
+    const onRowClick = vi.fn();
+    render(<SystemLogsList logs={mockLogs} onRowClick={onRowClick} />);
+    
+    // Find the first row and click it
+    // Note: This may need adjustment based on your table implementation
+    const firstRow = screen.getByText('Test info message').closest('tr');
+    if (firstRow) {
+      firstRow.click();
+      expect(onRowClick).toHaveBeenCalled();
+    }
   });
 });

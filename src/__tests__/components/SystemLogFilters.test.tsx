@@ -1,94 +1,153 @@
 
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock UI components used by SystemLogFilters
-vi.mock('@/components/ui/card', () => ({
-  Card: ({ children }: { children: React.ReactNode }) => <div data-testid="card">{children}</div>,
-  CardContent: ({ children }: { children: React.ReactNode }) => <div data-testid="card-content">{children}</div>,
-}));
-
-vi.mock('@/components/ui/input', () => ({
-  Input: (props: any) => (
-    <input 
-      data-testid="search-input"
-      type="text"
-      {...props}
-    />
-  ),
-}));
-
-vi.mock('@/components/ui/date-range-picker', () => ({
-  DateRangePicker: () => <div data-testid="date-range-picker">Date Range</div>
-}));
-
-// Mock the debounce hook to run immediately in tests
-vi.mock('@/hooks/useDebounce', () => ({
-  useDebounce: (value: any) => value
-}));
-
-// Import the component after mocking dependencies
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
+import type { LogFilters } from '@/types/logs';
+
+// Mock date-fns to avoid timezone issues in tests
+vi.mock('date-fns', () => ({
+  format: vi.fn(() => 'Jan 1, 2025'),
+}));
+
+// Reset mocks after each test
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('SystemLogFilters', () => {
-  const defaultFilters = { search: '' };
-  let onFiltersChange: any;
-  
-  beforeEach(() => {
-    onFiltersChange = vi.fn();
-    vi.useFakeTimers();
+  it('renders all filter controls when all flags are enabled', () => {
+    const filters: LogFilters = {};
+    const onFiltersChange = vi.fn();
+    
+    render(
+      <SystemLogFilters 
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        showModuleFilter={true}
+        showLevelFilter={true}
+        showSeverityFilter={true}
+        showDateFilter={true}
+        showSearchFilter={true}
+      />
+    );
+    
+    expect(screen.getByPlaceholderText('Search logs...')).toBeInTheDocument();
+    expect(screen.getByText('Level')).toBeInTheDocument();
+    expect(screen.getByText('Module')).toBeInTheDocument();
+    expect(screen.getByText('Severity')).toBeInTheDocument();
+    expect(screen.getByText('Date range')).toBeInTheDocument();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-  
-  it('renders the filters component', () => {
+  it('calls onFiltersChange when search input changes', async () => {
+    const filters: LogFilters = {};
+    const onFiltersChange = vi.fn();
+    
     render(
-      <SystemLogFilters
-        filters={defaultFilters}
+      <SystemLogFilters 
+        filters={filters}
         onFiltersChange={onFiltersChange}
-        isLoading={false}
-        onRefresh={() => {}}
       />
     );
     
-    expect(screen.getByTestId('card')).toBeInTheDocument();
-    expect(screen.getByTestId('search-input')).toBeInTheDocument();
-    expect(screen.getByTestId('date-range-picker')).toBeInTheDocument();
+    const searchInput = screen.getByPlaceholderText('Search logs...');
+    fireEvent.change(searchInput, { target: { value: 'error' } });
+    
+    // Wait for debounce
+    await waitFor(() => {
+      expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({
+        search: 'error',
+        searchTerm: 'error'
+      }));
+    }, { timeout: 350 });
   });
-  
-  it('handles search input changes', () => {
+
+  it('calls onFiltersChange when level changes', () => {
+    const filters: LogFilters = {};
+    const onFiltersChange = vi.fn();
+    
     render(
-      <SystemLogFilters
-        filters={defaultFilters}
+      <SystemLogFilters 
+        filters={filters}
         onFiltersChange={onFiltersChange}
-        isLoading={false}
-        onRefresh={() => {}}
       />
     );
     
-    const searchInput = screen.getByTestId('search-input');
-    fireEvent.change(searchInput, { target: { value: 'test search' } });
+    // Open the level dropdown
+    fireEvent.click(screen.getByText('Level'));
     
-    // Wait for debounce to complete
-    act(() => {
-      vi.advanceTimersByTime(300);
+    // Select 'Error'
+    fireEvent.click(screen.getByText('Error'));
+    
+    expect(onFiltersChange).toHaveBeenCalledWith({ level: 'error' });
+  });
+
+  it('handles reset filters correctly', () => {
+    const filters: LogFilters = { 
+      level: 'error',
+      search: 'test'
+    };
+    const onFiltersChange = vi.fn();
+    
+    render(
+      <SystemLogFilters 
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+      />
+    );
+    
+    // Find and click the reset button
+    fireEvent.click(screen.getByText('Reset filters'));
+    
+    expect(onFiltersChange).toHaveBeenCalledWith({
+      level: undefined,
+      module: undefined,
+      severity: undefined,
+      fromDate: undefined,
+      toDate: undefined,
+      date_range: undefined,
+      dateRange: undefined,
+      search: '',
+      searchTerm: ''
     });
-    
-    expect(onFiltersChange).toHaveBeenCalledWith({ search: 'test search' });
   });
 
-  it('disables inputs when loading', () => {
+  it('displays active filter count correctly', () => {
+    const filters: LogFilters = { 
+      level: 'error',
+      module: 'system',
+      search: 'test'
+    };
+    const onFiltersChange = vi.fn();
+    
     render(
-      <SystemLogFilters
-        filters={defaultFilters}
+      <SystemLogFilters 
+        filters={filters}
         onFiltersChange={onFiltersChange}
-        isLoading={true}
-        onRefresh={() => {}}
       />
     );
     
-    expect(screen.getByTestId('search-input')).toHaveAttribute('disabled');
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('applies custom modules when provided', () => {
+    const filters: LogFilters = {};
+    const onFiltersChange = vi.fn();
+    const customModules = ['custom1', 'custom2'];
+    
+    render(
+      <SystemLogFilters 
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        modules={customModules}
+      />
+    );
+    
+    // Open the module dropdown
+    fireEvent.click(screen.getByText('Module'));
+    
+    // Check if custom modules are displayed
+    expect(screen.getByText('Custom1')).toBeInTheDocument();
+    expect(screen.getByText('Custom2')).toBeInTheDocument();
   });
 });

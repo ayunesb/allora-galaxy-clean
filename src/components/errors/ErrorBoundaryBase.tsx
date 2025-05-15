@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import ErrorFallback from './ErrorFallback';
 
 interface ErrorBoundaryBaseProps {
   children: React.ReactNode;
   fallback?: React.ComponentType<FallbackProps>;
-  onError?: (error: Error, info: { componentStack: string }) => void;
+  onError?: (error: Error, info: React.ErrorInfo) => void;
   onReset?: () => void;
   resetKeys?: any[];
   showToast?: boolean;
@@ -35,7 +35,8 @@ const ErrorBoundaryBase = ({
   customMessage,
   hideResetButton = false
 }: ErrorBoundaryBaseProps) => {
-  const handleError = (error: Error, info: { componentStack: string }) => {
+  // Memoize the error handler to avoid recreating it on every render
+  const handleError = useCallback((error: Error, info: React.ErrorInfo) => {
     // Log the error to console
     console.error('Error caught by ErrorBoundary:', error);
     console.error('Component stack:', info.componentStack);
@@ -44,9 +45,9 @@ const ErrorBoundaryBase = ({
     if (onError) {
       onError(error, info);
     }
-  };
+  }, [onError]);
 
-  // Use custom fallback or default ErrorFallback
+  // Use custom fallback or default ErrorFallback - memoize this to avoid recreating on every render
   const FallbackComponent = fallback || function DefaultFallback(props: FallbackProps) {
     return (
       <ErrorFallback
@@ -75,4 +76,5 @@ const ErrorBoundaryBase = ({
   );
 };
 
-export default ErrorBoundaryBase;
+// Use memo to prevent unnecessary re-renders
+export default React.memo(ErrorBoundaryBase);

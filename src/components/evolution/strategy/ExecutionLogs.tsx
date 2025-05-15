@@ -1,132 +1,217 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useMemo, useCallback } from 'react';
+import { format } from 'date-fns';
+import { Check, X, Clock } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Check, X, AlertCircle, RefreshCw } from 'lucide-react';
-import type { StrategyExecution } from '@/types/strategy';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { LoadingIndicator } from '@/components/ui/loading-indicator';
+import { type StrategyExecution } from '@/types/strategy';
 
 interface ExecutionLogsProps {
   executions: StrategyExecution[];
-  formatDate: (date: string) => string;
-  renderUser: (userId: string | null) => string;
+  isLoading?: boolean;
+  onViewDetails?: (execution: StrategyExecution) => void;
+  className?: string;
+  maxHeight?: string | number;
 }
 
-/**
- * Execution Logs Component
- * Displays a list of strategy executions with status, timestamps, and results
- */
-const ExecutionLogs: React.FC<ExecutionLogsProps> = ({ 
+const ExecutionLogs: React.FC<ExecutionLogsProps> = ({
   executions,
-  formatDate,
-  renderUser
+  isLoading = false,
+  onViewDetails,
+  className = '',
+  maxHeight = '400px',
 }) => {
-  const getStatusIcon = (status: string) => {
-    switch(status.toLowerCase()) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Get status icon
+  const getStatusIcon = useCallback((status: string) => {
+    switch (status?.toLowerCase()) {
       case 'completed':
-      case 'success':
         return <Check className="h-4 w-4 text-green-500" />;
       case 'failed':
-      case 'failure':
         return <X className="h-4 w-4 text-red-500" />;
-      case 'running':
-        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
       case 'pending':
+      case 'running':
+      default:
         return <Clock className="h-4 w-4 text-amber-500" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
-    switch(status.toLowerCase()) {
+  // Get status badge color
+  const getStatusBadge = useCallback((status: string) => {
+    switch (status?.toLowerCase()) {
       case 'completed':
-      case 'success':
-        return 'bg-green-100 text-green-800';
+        return <Badge variant="success">Completed</Badge>;
       case 'failed':
-      case 'failure':
-        return 'bg-red-100 text-red-800';
+        return <Badge variant="destructive">Failed</Badge>;
       case 'running':
-        return 'bg-blue-100 text-blue-800';
+        return <Badge variant="default" className="bg-blue-500">Running</Badge>;
       case 'pending':
-        return 'bg-amber-100 text-amber-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <Badge variant="outline">Pending</Badge>;
     }
-  };
+  }, []);
+
+  // Format date
+  const formatDate = useCallback((dateStr: string) => {
+    try {
+      return format(new Date(dateStr), 'MMM d, yyyy h:mm a');
+    } catch (err) {
+      return 'Invalid date';
+    }
+  }, []);
+
+  // Format duration
+  const formatDuration = useCallback((ms?: number) => {
+    if (!ms) return 'N/A';
+    
+    if (ms < 1000) return `${ms}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(0);
+    return `${minutes}m ${seconds}s`;
+  }, []);
+
+  // Toggle row expansion
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Handle view details click
+  const handleViewDetails = useCallback((execution: StrategyExecution) => {
+    if (onViewDetails) {
+      onViewDetails(execution);
+    }
+  }, [onViewDetails]);
+
+  // Memoize the sorted executions to prevent unnecessary re-renders
+  const sortedExecutions = useMemo(() => {
+    return [...executions].sort((a, b) => 
+      new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+    );
+  }, [executions]);
+
+  if (isLoading) {
+    return (
+      <div className={`flex justify-center items-center h-48 ${className}`}>
+        <LoadingIndicator size="md" text="Loading execution history..." />
+      </div>
+    );
+  }
+
+  if (sortedExecutions.length === 0) {
+    return (
+      <div className={`text-center p-8 text-muted-foreground ${className}`}>
+        No execution logs available.
+      </div>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Execution History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {executions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No execution logs available.</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {executions.map((execution) => (
-              <div 
-                key={execution.id} 
-                className="border rounded-lg p-4 hover:bg-muted/25 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getStatusColor(execution.status)}>
-                      <span className="flex items-center">
-                        {getStatusIcon(execution.status)}
-                        <span className="ml-1">{execution.status}</span>
-                      </span>
-                    </Badge>
-                    
-                    {execution.version && (
-                      <Badge variant="outline">
-                        v{execution.version}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  <Badge variant="outline" className="text-xs">
-                    {execution.created_at ? formatDate(execution.created_at) : formatDate(execution.start_time)}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 mr-1" />
-                    <span>{execution.executed_by ? renderUser(execution.executed_by) : 'System'}</span>
-                  </div>
-                  
-                  {execution.duration_ms !== undefined && (
-                    <div>Duration: {execution.duration_ms}ms</div>
-                  )}
-                </div>
-                
-                {execution.error && (
-                  <div className="mt-2 p-2 bg-red-50 text-red-700 rounded-md text-sm">
-                    <p className="font-medium">Error:</p>
-                    <p className="font-mono text-xs break-all">{execution.error}</p>
-                  </div>
+    <div className={className}>
+      <ScrollArea style={{ maxHeight }}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Status</TableHead>
+              <TableHead>Execution Time</TableHead>
+              <TableHead>Duration</TableHead>
+              <TableHead>Version</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedExecutions.map((execution) => (
+              <React.Fragment key={execution.id}>
+                <TableRow className="hover:bg-muted/50">
+                  <TableCell>
+                    <div className="flex items-center">
+                      {getStatusIcon(execution.status)}
+                      <span className="ml-2">{getStatusBadge(execution.status)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatDate(execution.start_time)}</TableCell>
+                  <TableCell>
+                    {formatDuration(execution.duration_ms)}
+                  </TableCell>
+                  <TableCell>v{execution.version}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleExpand(execution.id)}
+                      >
+                        {expandedIds.has(execution.id) ? 'Hide' : 'Show'} Details
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(execution)}
+                      >
+                        View Logs
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {expandedIds.has(execution.id) && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="bg-muted/50 p-4">
+                      <div className="space-y-2">
+                        <div>
+                          <span className="font-medium">Parameters:</span>
+                          <pre className="text-xs mt-1 bg-muted p-2 rounded overflow-x-auto">
+                            {JSON.stringify(execution.parameters || {}, null, 2)}
+                          </pre>
+                        </div>
+                        
+                        {execution.result && (
+                          <div>
+                            <span className="font-medium">Result:</span>
+                            <pre className="text-xs mt-1 bg-muted p-2 rounded overflow-x-auto">
+                              {JSON.stringify(execution.result, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        
+                        {execution.error && (
+                          <div>
+                            <span className="font-medium text-destructive">Error:</span>
+                            <pre className="text-xs mt-1 bg-destructive/10 text-destructive p-2 rounded overflow-x-auto">
+                              {execution.error}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 )}
-                
-                {execution.result && (
-                  <div className="mt-2 bg-muted/30 rounded-md p-3">
-                    <p className="font-medium text-sm mb-1">Result:</p>
-                    <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-32">
-                      {typeof execution.result === 'string' 
-                        ? execution.result 
-                        : JSON.stringify(execution.result, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
+              </React.Fragment>
             ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </TableBody>
+        </Table>
+      </ScrollArea>
+    </div>
   );
 };
 
-export default ExecutionLogs;
+export default React.memo(ExecutionLogs);
