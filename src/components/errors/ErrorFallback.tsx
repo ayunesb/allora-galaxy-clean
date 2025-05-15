@@ -1,74 +1,88 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ReloadIcon } from '@radix-ui/react-icons';
-import { AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle } from 'lucide-react';
+import { toast } from '@/lib/notifications/toast';
+import { logSystemEvent } from '@/lib/system/logSystemEvent';
 
-export interface ErrorFallbackProps {
-  error: Error | null;
-  resetErrorBoundary?: () => void;
-  tenantId?: string;
-  moduleName?: string;
-  showDetails?: boolean;
+interface ErrorFallbackProps {
+  error: Error;
+  resetErrorBoundary: () => void;
+  title?: string;
+  description?: string;
+  showToast?: boolean;
+  showLog?: boolean;
+  hideResetButton?: boolean;
+  customMessage?: string;
+  logLevel?: 'info' | 'warning' | 'error';
 }
 
-/**
- * Fallback component that renders when an error occurs
- */
 const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   error,
   resetErrorBoundary,
-  tenantId,
-  moduleName,
-  showDetails = false,
+  title = 'Something went wrong',
+  description = 'An unexpected error occurred in this component.',
+  showToast = true,
+  showLog = true,
+  hideResetButton = false,
+  customMessage,
+  logLevel = 'error'
 }) => {
-  const errorMessage = error?.message || 'An unexpected error occurred';
-  
+  useEffect(() => {
+    // Log to system logs
+    if (showLog) {
+      logSystemEvent(
+        'ui', 
+        logLevel, 
+        {
+          error_type: error.name,
+          error_message: error.message,
+          stack: error.stack,
+          description: customMessage || 'UI component error caught by ErrorBoundary'
+        }
+      ).catch(console.error);
+    }
+
+    // Show toast notification
+    if (showToast) {
+      toast.error({
+        title,
+        description: customMessage || error.message
+      });
+    }
+  }, [error, showToast, showLog, customMessage, title, logLevel]);
+
   return (
-    <Card className="w-full max-w-xl mx-auto my-8">
-      <CardHeader>
-        <div className="flex items-center space-x-2">
-          <AlertCircle className="h-6 w-6 text-destructive" />
-          <CardTitle>{moduleName ? `Error in ${moduleName}` : 'Application Error'}</CardTitle>
-        </div>
+    <Card className="w-full shadow-lg border-red-200 bg-red-50/50">
+      <CardHeader className="bg-red-100/50 border-b border-red-200">
+        <CardTitle className="text-red-800 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" />
+          {title}
+        </CardTitle>
+        <CardDescription className="text-red-600">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <p className="font-medium">{errorMessage}</p>
-          {showDetails && error?.stack && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium">Error details:</h4>
-              <pre className="text-xs mt-2 p-3 bg-muted rounded-md overflow-auto">
-                {error.stack}
-              </pre>
-            </div>
-          )}
-          {tenantId && (
-            <div className="text-xs text-muted-foreground">
-              Tenant ID: {tenantId}
-            </div>
+      <CardContent className="pt-4">
+        <div className="bg-white/80 rounded p-3 border border-red-200 font-mono text-sm overflow-auto max-h-40">
+          <p className="font-semibold">{error.name}: {error.message}</p>
+          {error.stack && (
+            <pre className="text-xs mt-2 text-gray-700 whitespace-pre-wrap">
+              {error.stack.split('\n').slice(1).join('\n')}
+            </pre>
           )}
         </div>
       </CardContent>
-      <CardFooter>
-        {resetErrorBoundary && (
+      {!hideResetButton && (
+        <CardFooter className="justify-end border-t border-red-200 bg-red-50/30">
           <Button 
-            onClick={resetErrorBoundary} 
-            className="flex items-center space-x-1"
+            variant="outline" 
+            onClick={resetErrorBoundary}
+            className="hover:bg-red-100 border-red-200"
           >
-            <ReloadIcon className="h-4 w-4 mr-1" />
-            <span>Retry</span>
+            Try again
           </Button>
-        )}
-        <Button 
-          variant="outline" 
-          className="ml-2"
-          onClick={() => window.location.reload()}
-        >
-          Refresh page
-        </Button>
-      </CardFooter>
+        </CardFooter>
+      )}
     </Card>
   );
 };

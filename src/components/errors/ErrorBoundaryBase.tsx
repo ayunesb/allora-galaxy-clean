@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import ErrorFallback from './ErrorFallback';
 
 interface ErrorBoundaryBaseProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<any>;
+  fallback?: React.ComponentType<FallbackProps>;
   onError?: (error: Error, info: { componentStack: string }) => void;
   onReset?: () => void;
   resetKeys?: any[];
@@ -47,7 +47,7 @@ const ErrorBoundaryBase = ({
   };
 
   // Use custom fallback or default ErrorFallback
-  const FallbackComponent = fallback || function DefaultFallback(props: any) {
+  const FallbackComponent = fallback || function DefaultFallback(props: FallbackProps) {
     return (
       <ErrorFallback
         error={props.error}

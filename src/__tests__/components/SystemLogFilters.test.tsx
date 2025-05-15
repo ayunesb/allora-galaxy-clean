@@ -1,6 +1,6 @@
 
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock UI components used by SystemLogFilters
 vi.mock('@/components/ui/card', () => ({
@@ -22,15 +22,32 @@ vi.mock('@/components/ui/date-range-picker', () => ({
   DateRangePicker: () => <div data-testid="date-range-picker">Date Range</div>
 }));
 
+// Mock the debounce hook to run immediately in tests
+vi.mock('@/hooks/useDebounce', () => ({
+  useDebounce: (value: any) => value
+}));
+
 // Import the component after mocking dependencies
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 
 describe('SystemLogFilters', () => {
+  const defaultFilters = { search: '' };
+  let onFiltersChange: any;
+  
+  beforeEach(() => {
+    onFiltersChange = vi.fn();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+  
   it('renders the filters component', () => {
     render(
       <SystemLogFilters
-        filters={{}}
-        onFiltersChange={() => {}}
+        filters={defaultFilters}
+        onFiltersChange={onFiltersChange}
         isLoading={false}
         onRefresh={() => {}}
       />
@@ -38,15 +55,14 @@ describe('SystemLogFilters', () => {
     
     expect(screen.getByTestId('card')).toBeInTheDocument();
     expect(screen.getByTestId('search-input')).toBeInTheDocument();
+    expect(screen.getByTestId('date-range-picker')).toBeInTheDocument();
   });
   
   it('handles search input changes', () => {
-    const handleFilterChange = vi.fn();
-    
     render(
       <SystemLogFilters
-        filters={{}}
-        onFiltersChange={handleFilterChange}
+        filters={defaultFilters}
+        onFiltersChange={onFiltersChange}
         isLoading={false}
         onRefresh={() => {}}
       />
@@ -56,8 +72,23 @@ describe('SystemLogFilters', () => {
     fireEvent.change(searchInput, { target: { value: 'test search' } });
     
     // Wait for debounce to complete
-    vi.advanceTimersByTime(300);
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
     
-    expect(handleFilterChange).toHaveBeenCalledWith({ search: 'test search' });
+    expect(onFiltersChange).toHaveBeenCalledWith({ search: 'test search' });
+  });
+
+  it('disables inputs when loading', () => {
+    render(
+      <SystemLogFilters
+        filters={defaultFilters}
+        onFiltersChange={onFiltersChange}
+        isLoading={true}
+        onRefresh={() => {}}
+      />
+    );
+    
+    expect(screen.getByTestId('search-input')).toHaveAttribute('disabled');
   });
 });

@@ -1,118 +1,101 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  AlertCircle, 
-  RefreshCcw, 
-  Search, 
-  Info, 
-  FileX, 
-  Database, 
-  CircleSlash
-} from 'lucide-react';
+import { InboxIcon, ClipboardList, Search, AlertCircle, ShieldAlert, FileQuestion } from 'lucide-react';
 
 interface EmptyStateProps {
   title: string;
   description?: string;
   icon?: React.ReactNode;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
+  action?: React.ReactNode;
   className?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
-  icon = <CircleSlash className="h-12 w-12 text-muted-foreground/60" />,
+  icon,
   action,
-  className = '',
+  className = ''
 }) => {
   return (
-    <div className={`flex flex-col items-center justify-center text-center p-6 ${className}`}>
-      <div className="mb-4">
-        {icon}
+    <div className={`flex flex-col items-center justify-center p-6 text-center ${className}`}>
+      <div className="rounded-full bg-muted p-3 mb-4">
+        {icon || <InboxIcon className="h-6 w-6 text-muted-foreground" />}
       </div>
       <h3 className="text-lg font-medium mb-2">{title}</h3>
-      {description && <p className="text-muted-foreground max-w-sm mb-4">{description}</p>}
-      {action && (
-        <Button variant="outline" onClick={action.onClick}>
-          {action.label}
-        </Button>
-      )}
+      {description && <p className="text-muted-foreground mb-4 max-w-sm">{description}</p>}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 };
 
 export const NoResultsEmptyState: React.FC<{ onReset?: () => void }> = ({ onReset }) => (
   <EmptyState
-    icon={<Search className="h-12 w-12 text-muted-foreground/60" />}
     title="No results found"
-    description="Try adjusting your search or filters to find what you're looking for."
+    description="Try adjusting your search or filter to find what you're looking for."
+    icon={<Search className="h-6 w-6 text-muted-foreground" />}
     action={
-      onReset
-        ? {
-            label: 'Reset filters',
-            onClick: onReset,
-          }
-        : undefined
+      onReset && (
+        <Button variant="outline" onClick={onReset}>
+          Reset filters
+        </Button>
+      )
     }
   />
 );
 
-export const ErrorEmptyState: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
-  <EmptyState
-    icon={<AlertCircle className="h-12 w-12 text-destructive" />}
-    title="Something went wrong"
-    description="There was an error loading this content. Please try again."
-    action={
-      onRetry
-        ? {
-            label: 'Try again',
-            onClick: onRetry,
-          }
-        : undefined
-    }
-  />
-);
-
-export const NoDataEmptyState: React.FC<{ onAction?: () => void; actionLabel?: string }> = ({
-  onAction,
-  actionLabel = 'Create new',
+export const ErrorEmptyState: React.FC<{ onRetry?: () => void; message?: string }> = ({ 
+  onRetry, 
+  message 
 }) => (
   <EmptyState
-    icon={<Database className="h-12 w-12 text-muted-foreground/60" />}
-    title="No data available"
-    description="There's no data to display here yet."
+    title="Error loading data"
+    description={message || "We encountered a problem while loading this data."}
+    icon={<AlertCircle className="h-6 w-6 text-destructive" />}
     action={
-      onAction
-        ? {
-            label: actionLabel,
-            onClick: onAction,
-          }
-        : undefined
+      onRetry && (
+        <Button variant="outline" onClick={onRetry}>
+          Try again
+        </Button>
+      )
+    }
+  />
+);
+
+export const NoDataEmptyState: React.FC<{ entityName?: string; onAdd?: () => void }> = ({ 
+  entityName = "items", 
+  onAdd 
+}) => (
+  <EmptyState
+    title={`No ${entityName} yet`}
+    description={`When you add ${entityName}, they'll appear here.`}
+    icon={<ClipboardList className="h-6 w-6 text-muted-foreground" />}
+    action={
+      onAdd && (
+        <Button onClick={onAdd}>
+          Add {entityName}
+        </Button>
+      )
     }
   />
 );
 
 export const NoAccessEmptyState: React.FC = () => (
   <EmptyState
-    icon={<FileX className="h-12 w-12 text-destructive" />}
-    title="Access denied"
-    description="You don't have permission to access this resource."
+    title="Access restricted"
+    description="You don't have permission to view this content."
+    icon={<ShieldAlert className="h-6 w-6 text-warning" />}
   />
 );
 
-export const InfoEmptyState: React.FC<{
-  title: string;
-  description?: string;
-}> = ({ title, description }) => (
+export const InfoEmptyState: React.FC<{ title: string; description?: string }> = ({ 
+  title, 
+  description 
+}) => (
   <EmptyState
-    icon={<Info className="h-12 w-12 text-blue-500" />}
     title={title}
     description={description}
+    icon={<FileQuestion className="h-6 w-6 text-primary" />}
   />
 );
-
-export default EmptyState;

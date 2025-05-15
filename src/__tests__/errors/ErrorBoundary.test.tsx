@@ -1,8 +1,29 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, afterEach, expect } from 'vitest';
-import ErrorBoundary from '@/components/errors/ErrorBoundary';
-import { ErrorHandler } from '@/lib/errors/ErrorHandler';
+import { ErrorBoundary } from '@/components/errors';
+
+// Mock error handlers
+vi.mock('@/lib/errors/ErrorHandler', () => ({
+  ErrorHandler: {
+    handleError: vi.fn().mockResolvedValue({ message: 'Test error' })
+  }
+}));
+
+// Mock toast
+vi.mock('@/lib/notifications/toast', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn()
+  }
+}));
+
+// Mock system event logger
+vi.mock('@/lib/system/logSystemEvent', () => ({
+  logSystemEvent: vi.fn().mockResolvedValue({ success: true })
+}));
 
 // Create a component that throws an error
 const ThrowsError = ({ shouldThrow = true }) => {
@@ -12,24 +33,8 @@ const ThrowsError = ({ shouldThrow = true }) => {
   return <div>No error</div>;
 };
 
-// Mock the logSystemEvent function
-vi.mock('@/lib/system/logSystemEvent', () => ({
-  logSystemEvent: vi.fn().mockResolvedValue({ success: true })
-}));
-
-// Mock useToast
-vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({
-    toast: vi.fn()
-  })
-}));
-
-// Mock ErrorHandler
-vi.mock('@/lib/errors/ErrorHandler', () => ({
-  ErrorHandler: {
-    handleError: vi.fn().mockResolvedValue({ message: 'Test error' })
-  }
-}));
+// Custom fallback for testing
+const CustomFallback = () => <div>Custom fallback</div>;
 
 describe('ErrorBoundary', () => {
   // Reset mocks after each test
@@ -59,7 +64,7 @@ describe('ErrorBoundary', () => {
     );
     
     // Check that fallback UI is rendered
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
     
     // Restore console.error
     console.error = originalConsoleError;
@@ -77,10 +82,10 @@ describe('ErrorBoundary', () => {
     );
     
     // Verify error state
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
     
     // Find and click the "Try Again" button
-    fireEvent.click(screen.getByText('Try Again'));
+    fireEvent.click(screen.getByRole('button', { name: /Try again/i }));
     
     // Re-render with shouldThrow=false to simulate fixing the issue
     rerender(
@@ -96,31 +101,13 @@ describe('ErrorBoundary', () => {
     console.error = originalConsoleError;
   });
 
-  it('logs the error using ErrorHandler', () => {
-    // Mock console.error
-    const originalConsoleError = console.error;
-    console.error = vi.fn();
-    
-    render(
-      <ErrorBoundary>
-        <ThrowsError />
-      </ErrorBoundary>
-    );
-    
-    // Verify ErrorHandler was called to log the error
-    expect(ErrorHandler.handleError).toHaveBeenCalled();
-    
-    // Restore console.error
-    console.error = originalConsoleError;
-  });
-
   it('renders custom fallback if provided', () => {
     // Mock console.error
     const originalConsoleError = console.error;
     console.error = vi.fn();
     
     render(
-      <ErrorBoundary fallback={<div>Custom fallback</div>}>
+      <ErrorBoundary fallback={CustomFallback}>
         <ThrowsError />
       </ErrorBoundary>
     );

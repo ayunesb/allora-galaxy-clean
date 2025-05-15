@@ -26,7 +26,24 @@ vi.mock('@/components/ui/data-table', () => ({
 
 // Mock systemLogColumns
 vi.mock('@/lib/admin/systemLogColumns', () => ({
-  getSystemLogColumns: () => ([])
+  getSystemLogColumns: () => ([
+    { accessorKey: 'timestamp', header: 'Time' },
+    { accessorKey: 'level', header: 'Level' },
+    { accessorKey: 'module', header: 'Module' },
+    { accessorKey: 'message', header: 'Message' },
+    { accessorKey: 'tenant_name', header: 'Tenant' },
+    { accessorKey: 'service', header: 'Service' }
+  ])
+}));
+
+// Mock EmptyState
+vi.mock('@/components/errors/EmptyStates', () => ({
+  EmptyState: ({ title }: { title: string }) => <div>{title}</div>
+}));
+
+// Mock LoadingIndicator
+vi.mock('@/components/ui/loading-indicator', () => ({
+  LoadingIndicator: ({ text }: { text: string }) => <div data-testid="loading">{text}</div>
 }));
 
 // Import the component after mocking dependencies
@@ -71,6 +88,15 @@ describe('SystemLogsList', () => {
     
     const logsCount = screen.getByTestId('logs-count');
     expect(logsCount).toHaveAttribute('data-count', '5');
-    expect(screen.getAllByTestId('table-row').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('table-row').length).toBe(5);
+  });
+
+  it('adapts column definitions to available properties', () => {
+    const mockLogs = createMockLogs(2);
+    render(<SystemLogsList logs={mockLogs} isLoading={false} onViewDetails={() => {}} />);
+    
+    // The component should render without errors even though the columns reference properties
+    // that don't exist on the log objects
+    expect(screen.getByTestId('data-table')).toBeInTheDocument();
   });
 });

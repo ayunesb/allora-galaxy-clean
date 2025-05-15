@@ -3,12 +3,16 @@ import React, { useState, useEffect } from 'react';
 import EdgeFunctionErrorDisplay from './EdgeFunctionErrorDisplay';
 import { toast } from '@/lib/notifications/toast';
 
+interface WithEdgeFunctionErrorHandlingProps {
+  onEdgeFunctionError?: (err: Error) => void;
+}
+
 /**
  * Higher-order component that adds edge function error handling
  * @param WrappedComponent The component to wrap with error handling
  */
 const withEdgeFunctionErrorHandling = <P extends object>(
-  WrappedComponent: React.ComponentType<P>
+  WrappedComponent: React.ComponentType<P & WithEdgeFunctionErrorHandlingProps>
 ): React.FC<P> => {
   const WithEdgeFunctionErrorHandling: React.FC<P> = (props) => {
     const [error, setError] = useState<Error | null>(null);
@@ -37,6 +41,9 @@ const withEdgeFunctionErrorHandling = <P extends object>(
 
     return <WrappedComponent {...props} onEdgeFunctionError={handleEdgeFunctionError} />;
   };
+
+  const displayName = WrappedComponent.displayName || WrappedComponent.name || 'Component';
+  WithEdgeFunctionErrorHandling.displayName = `withEdgeFunctionErrorHandling(${displayName})`;
 
   return WithEdgeFunctionErrorHandling;
 };
