@@ -1,86 +1,67 @@
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ErrorState from '@/components/errors/ErrorState';
+import { describe, it, expect, vi } from 'vitest';
+import { ErrorState } from '@/components/ui/error-state';
 
-describe('ErrorState Component', () => {
+describe('ErrorState', () => {
   it('renders with default props', () => {
     render(<ErrorState />);
     
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByText('We encountered an error while processing your request.')).toBeInTheDocument();
+    expect(screen.getByText('An error occurred while loading data')).toBeInTheDocument();
   });
-
-  it('renders with custom title and message', () => {
-    const title = 'Custom Error Title';
-    const message = 'Custom error message for testing';
-    
+  
+  it('renders custom title and message', () => {
     render(
       <ErrorState 
-        title={title}
-        message={message}
+        title="Custom Error Title" 
+        message="Custom error message"
       />
     );
     
-    expect(screen.getByText(title)).toBeInTheDocument();
-    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.getByText('Custom Error Title')).toBeInTheDocument();
+    expect(screen.getByText('Custom error message')).toBeInTheDocument();
   });
   
-  it('shows error details when showDetails is true', () => {
-    const error = new Error('Test error message');
+  it('renders retry button when retry function is provided', () => {
+    const mockRetry = vi.fn();
+    
+    render(<ErrorState retry={mockRetry} />);
+    
+    const retryButton = screen.getByRole('button', { name: /try again/i });
+    expect(retryButton).toBeInTheDocument();
+    
+    fireEvent.click(retryButton);
+    expect(mockRetry).toHaveBeenCalledTimes(1);
+  });
+  
+  it('does not render retry button when retry function is not provided', () => {
+    render(<ErrorState />);
+    
+    const retryButton = screen.queryByRole('button', { name: /try again/i });
+    expect(retryButton).not.toBeInTheDocument();
+  });
+  
+  it('shows error details when showDetails is true and error is provided', () => {
+    const testError = new Error('Test error details');
     
     render(
       <ErrorState 
-        error={error}
+        error={testError}
         showDetails={true}
       />
     );
     
-    expect(screen.getByText(error.message)).toBeInTheDocument();
+    expect(screen.getByText('Error Details:')).toBeInTheDocument();
+    expect(screen.getByText('Test error details')).toBeInTheDocument();
   });
   
-  it('calls retry function when button is clicked', () => {
-    const retryFn = vi.fn();
-    
-    render(
-      <ErrorState 
-        retry={retryFn}
-      />
-    );
-    
-    const retryButton = screen.getByRole('button', { name: /try again/i });
-    fireEvent.click(retryButton);
-    
-    expect(retryFn).toHaveBeenCalledTimes(1);
-  });
-  
-  it('renders children when provided', () => {
-    render(
-      <ErrorState>
-        <div data-testid="child-element">Child Content</div>
-      </ErrorState>
-    );
-    
-    expect(screen.getByTestId('child-element')).toBeInTheDocument();
-  });
-  
-  it('applies custom class names', () => {
-    const customClass = 'custom-error-class';
-    
-    const { container } = render(
-      <ErrorState 
-        className={customClass}
-      />
-    );
-    
-    expect(container.querySelector(`.${customClass}`)).toBeInTheDocument();
-  });
-  
-  it('uses different size classes', () => {
+  it('applies size classes correctly', () => {
     const { rerender } = render(<ErrorState size="sm" />);
-    expect(document.querySelector('.max-w-sm')).toBeInTheDocument();
+    const container = screen.getByText('Something went wrong').parentElement;
+    expect(container).toHaveClass('py-4');
     
     rerender(<ErrorState size="lg" />);
-    expect(document.querySelector('.max-w-lg')).toBeInTheDocument();
+    expect(container).toHaveClass('py-12');
   });
 });

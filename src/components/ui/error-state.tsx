@@ -1,6 +1,7 @@
 
-import React, { memo } from 'react';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import React from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export interface ErrorStateProps {
@@ -8,83 +9,52 @@ export interface ErrorStateProps {
   message?: string;
   error?: Error | null;
   retry?: () => void;
-  showDetails?: boolean;
-  children?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
-  action?: React.ReactNode;
   className?: string;
+  showDetails?: boolean;
 }
 
-/**
- * ErrorState - Standardized error display component
- * 
- * @param title - Error title
- * @param message - Error message
- * @param error - Error object
- * @param retry - Retry handler function
- * @param showDetails - Whether to show technical details
- * @param children - Additional content
- * @param size - Component size
- * @param action - Custom action element
- * @param className - Additional CSS classes
- */
-export const ErrorState: React.FC<ErrorStateProps> = ({ 
-  title = "Something went wrong",
-  message = "We encountered an error while processing your request.",
+export function ErrorState({
+  title = 'Something went wrong',
+  message = 'An error occurred while loading data',
   error,
   retry,
-  showDetails = false,
-  children,
   size = 'md',
-  action,
-  className = '',
-}) => {
-  // Size-based class mapping
+  className,
+  showDetails = false
+}: ErrorStateProps) {
   const sizeClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg'
+    sm: "py-4",
+    md: "py-8",
+    lg: "py-12"
   };
   
   return (
     <div className={cn(
-      'flex flex-col items-center justify-center p-6 text-center',
+      "flex flex-col items-center justify-center text-center px-4",
       sizeClasses[size],
       className
     )}>
-      <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
-        <ExclamationTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
-      </div>
-      
+      <AlertCircle className="h-10 w-10 text-destructive mb-4" />
       <h3 className="text-lg font-medium mb-2">{title}</h3>
-      {message && <p className="text-muted-foreground mb-4">{message}</p>}
-      
-      {showDetails && error && (
-        <div className="w-full mb-4 p-3 bg-muted rounded-md text-xs text-left overflow-auto">
-          <p className="font-semibold">{error.message}</p>
-          {error.stack && (
-            <pre className="mt-2 whitespace-pre-wrap">{error.stack}</pre>
-          )}
+      <p className="text-muted-foreground mb-4">{message}</p>
+      {showDetails && error?.message && (
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm text-destructive max-w-md overflow-auto">
+          <p className="font-medium mb-1">Error Details:</p>
+          <p className="font-mono">{error.message}</p>
         </div>
       )}
-      
-      {children && <div className="mb-4">{children}</div>}
-      
       {retry && (
-        <button
+        <Button 
+          variant="outline" 
           onClick={retry}
-          className="text-primary hover:underline"
+          className="gap-2"
         >
-          Try again
-        </button>
-      )}
-      
-      {action && (
-        <div className="mt-3">{action}</div>
+          <RefreshCw className="h-4 w-4" /> Try again
+        </Button>
       )}
     </div>
   );
-};
+}
 
-// Export memoized component for performance optimization
-export default memo(ErrorState);
+export default ErrorState;

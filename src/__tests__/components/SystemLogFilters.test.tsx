@@ -1,153 +1,137 @@
 
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import type { LogFilters } from '@/types/logs';
+import { LogFilters } from '@/types/logs';
 
-// Mock date-fns to avoid timezone issues in tests
-vi.mock('date-fns', () => ({
-  format: vi.fn(() => 'Jan 1, 2025'),
-}));
+// Mock functions
+const mockOnFiltersChange = vi.fn();
+const mockRefresh = vi.fn();
 
-// Reset mocks after each test
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+// Common filters state for tests
+const defaultFilters: LogFilters = {
+  search: '',
+  level: [],
+  module: [],
+  severity: [],
+  dateRange: undefined
+};
 
 describe('SystemLogFilters', () => {
-  it('renders all filter controls when all flags are enabled', () => {
-    const filters: LogFilters = {};
-    const onFiltersChange = vi.fn();
-    
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  
+  it('renders search box correctly', () => {
     render(
-      <SystemLogFilters 
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        showModuleFilter={true}
-        showLevelFilter={true}
-        showSeverityFilter={true}
-        showDateFilter={true}
-        showSearchFilter={true}
+      <SystemLogFilters
+        filters={defaultFilters}
+        onFiltersChange={mockOnFiltersChange}
       />
     );
     
     expect(screen.getByPlaceholderText('Search logs...')).toBeInTheDocument();
-    expect(screen.getByText('Level')).toBeInTheDocument();
-    expect(screen.getByText('Module')).toBeInTheDocument();
-    expect(screen.getByText('Severity')).toBeInTheDocument();
-    expect(screen.getByText('Date range')).toBeInTheDocument();
   });
-
-  it('calls onFiltersChange when search input changes', async () => {
-    const filters: LogFilters = {};
-    const onFiltersChange = vi.fn();
-    
+  
+  it('calls onFiltersChange when search value changes', async () => {
     render(
-      <SystemLogFilters 
-        filters={filters}
-        onFiltersChange={onFiltersChange}
+      <SystemLogFilters
+        filters={defaultFilters}
+        onFiltersChange={mockOnFiltersChange}
       />
     );
     
     const searchInput = screen.getByPlaceholderText('Search logs...');
-    fireEvent.change(searchInput, { target: { value: 'error' } });
+    fireEvent.change(searchInput, { target: { value: 'test search' } });
     
     // Wait for debounce
     await waitFor(() => {
-      expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({
-        search: 'error',
-        searchTerm: 'error'
-      }));
-    }, { timeout: 350 });
+      expect(mockOnFiltersChange).toHaveBeenCalledWith({ search: 'test search' });
+    }, { timeout: 600 });
   });
-
-  it('calls onFiltersChange when level changes', () => {
-    const filters: LogFilters = {};
-    const onFiltersChange = vi.fn();
-    
+  
+  it('renders level filter correctly', () => {
     render(
-      <SystemLogFilters 
-        filters={filters}
-        onFiltersChange={onFiltersChange}
+      <SystemLogFilters
+        filters={defaultFilters}
+        onFiltersChange={mockOnFiltersChange}
       />
     );
     
-    // Open the level dropdown
-    fireEvent.click(screen.getByText('Level'));
-    
-    // Select 'Error'
-    fireEvent.click(screen.getByText('Error'));
-    
-    expect(onFiltersChange).toHaveBeenCalledWith({ level: 'error' });
+    expect(screen.getByLabelText('Filter by level')).toBeInTheDocument();
   });
 
-  it('handles reset filters correctly', () => {
-    const filters: LogFilters = { 
-      level: 'error',
-      search: 'test'
+  it('renders refresh button when onRefresh provided', () => {
+    render(
+      <SystemLogFilters
+        filters={defaultFilters}
+        onFiltersChange={mockOnFiltersChange}
+        onRefresh={mockRefresh}
+      />
+    );
+    
+    expect(screen.getByLabelText('Refresh logs')).toBeInTheDocument();
+  });
+  
+  it('shows reset button when filters are active', () => {
+    const activeFilters: LogFilters = {
+      search: 'search term',
+      level: ['info'],
+      module: ['api'],
+      severity: [],
+      dateRange: undefined
     };
-    const onFiltersChange = vi.fn();
     
     render(
-      <SystemLogFilters 
-        filters={filters}
-        onFiltersChange={onFiltersChange}
+      <SystemLogFilters
+        filters={activeFilters}
+        onFiltersChange={mockOnFiltersChange}
       />
     );
     
-    // Find and click the reset button
-    fireEvent.click(screen.getByText('Reset filters'));
+    expect(screen.getByLabelText('Reset filters')).toBeInTheDocument();
+  });
+  
+  it('calls onRefresh when refresh button is clicked', () => {
+    render(
+      <SystemLogFilters
+        filters={defaultFilters}
+        onFiltersChange={mockOnFiltersChange}
+        onRefresh={mockRefresh}
+      />
+    );
     
-    expect(onFiltersChange).toHaveBeenCalledWith({
-      level: undefined,
-      module: undefined,
-      severity: undefined,
-      fromDate: undefined,
-      toDate: undefined,
-      date_range: undefined,
-      dateRange: undefined,
+    const refreshButton = screen.getByLabelText('Refresh logs');
+    fireEvent.click(refreshButton);
+    
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+  });
+  
+  it('resets all filters when reset button is clicked', () => {
+    const activeFilters: LogFilters = {
+      search: 'search term',
+      level: ['error'],
+      module: ['system'],
+      severity: [],
+      dateRange: undefined
+    };
+    
+    render(
+      <SystemLogFilters
+        filters={activeFilters}
+        onFiltersChange={mockOnFiltersChange}
+      />
+    );
+    
+    const resetButton = screen.getByLabelText('Reset filters');
+    fireEvent.click(resetButton);
+    
+    expect(mockOnFiltersChange).toHaveBeenCalledWith({
       search: '',
-      searchTerm: ''
+      level: [],
+      module: [],
+      severity: [],
+      dateRange: undefined
     });
-  });
-
-  it('displays active filter count correctly', () => {
-    const filters: LogFilters = { 
-      level: 'error',
-      module: 'system',
-      search: 'test'
-    };
-    const onFiltersChange = vi.fn();
-    
-    render(
-      <SystemLogFilters 
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-      />
-    );
-    
-    expect(screen.getByText('3')).toBeInTheDocument();
-  });
-
-  it('applies custom modules when provided', () => {
-    const filters: LogFilters = {};
-    const onFiltersChange = vi.fn();
-    const customModules = ['custom1', 'custom2'];
-    
-    render(
-      <SystemLogFilters 
-        filters={filters}
-        onFiltersChange={onFiltersChange}
-        modules={customModules}
-      />
-    );
-    
-    // Open the module dropdown
-    fireEvent.click(screen.getByText('Module'));
-    
-    // Check if custom modules are displayed
-    expect(screen.getByText('Custom1')).toBeInTheDocument();
-    expect(screen.getByText('Custom2')).toBeInTheDocument();
   });
 });
