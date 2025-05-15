@@ -1,5 +1,6 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 import { LogFilters } from '@/types/shared';
 
@@ -12,11 +13,11 @@ describe('SystemLogFilters Component', () => {
     toDate: undefined
   };
   
-  const mockOnFilterChange = jest.fn();
-  const mockOnRefresh = jest.fn();
+  const mockOnFilterChange = vi.fn();
+  const mockOnRefresh = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders correctly with default values', () => {
