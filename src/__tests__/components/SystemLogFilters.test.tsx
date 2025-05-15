@@ -1,5 +1,5 @@
 
-import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
 
@@ -10,43 +10,64 @@ describe('SystemLogFilters', () => {
   const mockOnReset = vi.fn();
   
   const defaultProps = {
-    searchTerm: '',
-    onSearchChange: mockOnSearchChange,
-    moduleFilter: 'all',
-    onModuleFilterChange: mockOnModuleFilterChange,
-    dateRange: undefined,
-    onDateRangeChange: mockOnDateRangeChange,
-    onReset: mockOnReset,
+    filters: {
+      search: '',
+      module: [],
+      level: [],
+      fromDate: undefined,
+      toDate: undefined
+    },
+    onFilterChange: vi.fn(),
+    isLoading: false,
+    onRefresh: vi.fn()
   };
   
   beforeEach(() => {
     vi.clearAllMocks();
   });
   
-  test('renders all filter components', () => {
+  it('renders all filter components', () => {
     render(<SystemLogFilters {...defaultProps} />);
     
-    expect(screen.getByLabelText(/search/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/module/i)).toBeInTheDocument();
     expect(screen.getByText(/date range/i)).toBeInTheDocument();
-    expect(screen.getByText(/reset filters/i)).toBeInTheDocument();
+    expect(screen.getByText(/reset/i)).toBeInTheDocument();
   });
   
-  test('calls onSearchChange when search input changes', () => {
+  it('calls onFilterChange when search input changes', () => {
     render(<SystemLogFilters {...defaultProps} />);
     
-    const searchInput = screen.getByLabelText(/search/i);
+    const searchInput = screen.getByPlaceholderText(/search/i);
     fireEvent.change(searchInput, { target: { value: 'test search' } });
     
-    expect(mockOnSearchChange).toHaveBeenCalledWith('test search');
+    expect(defaultProps.onFilterChange).toHaveBeenCalledWith(expect.objectContaining({ 
+      search: 'test search' 
+    }));
   });
   
-  test('calls onReset when reset button is clicked', () => {
+  it('calls onReset when reset button is clicked', () => {
     render(<SystemLogFilters {...defaultProps} />);
     
-    const resetButton = screen.getByText(/reset filters/i);
+    const resetButton = screen.getByText(/reset/i);
     fireEvent.click(resetButton);
     
-    expect(mockOnReset).toHaveBeenCalled();
+    expect(defaultProps.onFilterChange).toHaveBeenCalledWith({
+      search: '',
+      module: [],
+      level: [],
+      fromDate: undefined,
+      toDate: undefined
+    });
+  });
+
+  it('applies module filter when module is selected', () => {
+    render(<SystemLogFilters {...defaultProps} />);
+    
+    // Note: This is simplified since actual dropdown selection testing would require more setup
+    const moduleDropdown = screen.getByLabelText(/module/i);
+    fireEvent.change(moduleDropdown, { target: { value: 'auth' } });
+    
+    expect(defaultProps.onFilterChange).toHaveBeenCalled();
   });
 });

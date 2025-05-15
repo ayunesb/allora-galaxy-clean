@@ -1,83 +1,179 @@
 
-export const mockErrorLogs = [
+/**
+ * Mock data for error trends testing
+ */
+export const mockErrorTrends = [
   {
     id: '1',
-    message: 'Connection timeout',
-    module: 'database',
+    date: '2023-01-01',
+    created_at: '2023-01-01T10:00:00Z',
+    timestamp: '2023-01-01T10:00:00Z',
+    module: 'api',
     level: 'error',
-    count: 5,
-    first_seen: '2023-06-01T10:00:00Z',
-    last_seen: '2023-06-01T11:00:00Z',
+    event: 'api_error',
+    event_type: 'error',
+    description: 'API request failed',
+    message: 'API Error',
+    severity: 'high',
+    error_type: 'NetworkError',
+    context: { url: '/api/data' },
+    metadata: { severity: 'high' },
+    request_id: 'req-123',
+    tenant_id: 'tenant-1',
+    error_message: 'Network request failed with status 500'
   },
   {
     id: '2',
-    message: 'API rate limit exceeded',
-    module: 'api',
-    level: 'warning',
-    count: 12,
-    first_seen: '2023-06-01T09:30:00Z',
-    last_seen: '2023-06-01T10:45:00Z',
-  },
-  {
-    id: '3',
-    message: 'User authentication failed',
+    date: '2023-01-02',
+    created_at: '2023-01-02T11:30:00Z',
+    timestamp: '2023-01-02T11:30:00Z',
     module: 'auth',
     level: 'error',
-    count: 3,
-    first_seen: '2023-06-01T08:15:00Z',
-    last_seen: '2023-06-01T09:20:00Z',
-  }
-];
-
-export const mockErrorTrends = [
-  { date: '2023-05-25', total: 12, critical: 2, high: 4, medium: 4, low: 2 },
-  { date: '2023-05-26', total: 8, critical: 1, high: 3, medium: 2, low: 2 },
-  { date: '2023-05-27', total: 15, critical: 3, high: 5, medium: 4, low: 3 },
-  { date: '2023-05-28', total: 10, critical: 1, high: 3, medium: 4, low: 2 },
-  { date: '2023-05-29', total: 7, critical: 0, high: 2, medium: 3, low: 2 },
-  { date: '2023-05-30', total: 14, critical: 2, high: 4, medium: 5, low: 3 },
-  { date: '2023-05-31', total: 11, critical: 1, high: 3, medium: 4, low: 3 },
-];
-
-export const mockErrorGroups = [
-  {
-    id: '1',
-    name: 'Database Connection Issues',
-    count: 245,
+    event: 'auth_error',
+    event_type: 'error',
+    description: 'Authentication failed',
+    message: 'Auth Error',
     severity: 'critical',
-    last_occurred: '2023-06-01T10:30:00Z',
-    trend: 'increasing',
-    affected_users: 58,
-    first_seen: '2023-05-15T08:25:00Z',
-  },
-  {
-    id: '2',
-    name: 'Authentication Failures',
-    count: 187,
-    severity: 'high',
-    last_occurred: '2023-06-01T09:15:00Z',
-    trend: 'stable',
-    affected_users: 42,
-    first_seen: '2023-05-20T14:10:00Z',
+    error_type: 'AuthError',
+    context: { userId: '123' },
+    metadata: { severity: 'critical' },
+    request_id: 'req-124',
+    tenant_id: 'tenant-1',
+    error_message: 'Invalid JWT token'
   },
   {
     id: '3',
-    name: 'API Response Timeouts',
-    count: 136,
+    date: '2023-01-02',
+    created_at: '2023-01-02T14:15:00Z',
+    timestamp: '2023-01-02T14:15:00Z',
+    module: 'database',
+    level: 'error',
+    event: 'db_error',
+    event_type: 'error',
+    description: 'Database query failed',
+    message: 'Database Error',
     severity: 'medium',
-    last_occurred: '2023-06-01T11:05:00Z',
-    trend: 'decreasing',
-    affected_users: 87,
-    first_seen: '2023-05-18T11:30:00Z',
+    error_type: 'DatabaseError',
+    context: { query: 'SELECT * FROM users' },
+    metadata: { severity: 'medium' },
+    request_id: 'req-125',
+    tenant_id: 'tenant-1',
+    error_message: 'Constraint violation'
   },
   {
     id: '4',
-    name: 'UI Rendering Errors',
-    count: 98,
+    date: '2023-01-03',
+    created_at: '2023-01-03T09:45:00Z',
+    timestamp: '2023-01-03T09:45:00Z',
+    module: 'system',
+    level: 'error',
+    event: 'system_error',
+    event_type: 'error',
+    description: 'System process failed',
+    message: 'System Error',
     severity: 'low',
-    last_occurred: '2023-06-01T08:45:00Z',
-    trend: 'increasing',
-    affected_users: 31,
-    first_seen: '2023-05-25T16:20:00Z',
+    error_type: 'SystemError',
+    context: { processId: '789' },
+    metadata: { severity: 'low' },
+    request_id: 'req-126',
+    tenant_id: 'tenant-1',
+    error_message: 'Process terminated unexpectedly'
   },
+  {
+    id: '5',
+    date: '2023-01-04',
+    created_at: '2023-01-04T16:20:00Z',
+    timestamp: '2023-01-04T16:20:00Z',
+    module: 'api',
+    level: 'error',
+    event: 'api_error',
+    event_type: 'error',
+    description: 'External API timeout',
+    message: 'API Timeout',
+    severity: 'high',
+    error_type: 'TimeoutError',
+    context: { endpoint: '/external/data' },
+    metadata: { severity: 'high' },
+    request_id: 'req-127',
+    tenant_id: 'tenant-1',
+    error_message: 'Request timed out after 30s'
+  }
 ];
+
+/**
+ * Mock data for error groups testing
+ */
+export const mockErrorGroups = [
+  {
+    id: 'group-1',
+    error_type: 'NetworkError',
+    message: 'API request failed',
+    count: 12,
+    severity: 'high',
+    first_seen: '2023-01-01T10:00:00Z',
+    last_seen: '2023-01-04T14:30:00Z',
+    affected_users: 5,
+    affected_tenants: 1,
+    modules: ['api'],
+    examples: [mockErrorTrends[0]]
+  },
+  {
+    id: 'group-2',
+    error_type: 'AuthError',
+    message: 'Authentication failed',
+    count: 8,
+    severity: 'critical',
+    first_seen: '2023-01-02T11:30:00Z',
+    last_seen: '2023-01-05T09:15:00Z',
+    affected_users: 3,
+    affected_tenants: 1,
+    modules: ['auth'],
+    examples: [mockErrorTrends[1]]
+  },
+  {
+    id: 'group-3',
+    error_type: 'DatabaseError',
+    message: 'Database query failed',
+    count: 5,
+    severity: 'medium',
+    first_seen: '2023-01-02T14:15:00Z',
+    last_seen: '2023-01-04T11:40:00Z',
+    affected_users: 2,
+    affected_tenants: 1,
+    modules: ['database'],
+    examples: [mockErrorTrends[2]]
+  }
+];
+
+/**
+ * Function to generate mock error trends data for a date range
+ */
+export function generateMockErrorData(startDate: Date, endDate: Date, baseCount = 10) {
+  const result = [];
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    const dateString = currentDate.toISOString().split('T')[0];
+    const randomFactor = Math.random() * 0.5 + 0.75; // Random between 0.75 and 1.25
+    
+    const criticalCount = Math.floor(baseCount * 0.1 * randomFactor);
+    const highCount = Math.floor(baseCount * 0.3 * randomFactor);
+    const mediumCount = Math.floor(baseCount * 0.4 * randomFactor);
+    const lowCount = Math.floor(baseCount * 0.2 * randomFactor);
+    const totalCount = criticalCount + highCount + mediumCount + lowCount;
+    
+    result.push({
+      date: dateString,
+      total: totalCount,
+      critical: criticalCount,
+      high: highCount,  
+      medium: mediumCount,
+      low: lowCount
+    });
+    
+    // Increment to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return result;
+}

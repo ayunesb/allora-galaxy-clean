@@ -1,110 +1,199 @@
 
-import type { SystemEventModule } from './shared';
+/**
+ * Type definitions for system logs and error monitoring
+ * @module types/logs
+ */
 
+import { SystemEventModule } from './shared';
+
+/**
+ * Log severity levels
+ */
+export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+/**
+ * Log level types
+ */
+export type LogLevel = 'info' | 'warning' | 'error';
+
+/**
+ * System log entry interface
+ * Represents a log entry in the system_logs table
+ */
 export interface SystemLog {
+  /** Unique identifier for the log */
   id: string;
-  tenant_id: string;
-  level: 'info' | 'warning' | 'error';
-  module: SystemEventModule;
-  message: string;
-  details?: Record<string, any>;
+  
+  /** When the log was created */
   created_at: string;
-  user_id?: string;
-  status?: 'success' | 'failure' | 'pending';
-  description?: string;
-  timestamp?: string;
-  error_type?: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
-  context?: string;
-  user_facing?: boolean;
-  affects_multiple_users?: boolean;
-  metadata?: any;
-  request_id?: string;
-  error_message?: string;
-  event?: string;
-  event_type?: string;
-  priority?: string;
-}
-
-export interface PluginLog {
-  id: string;
-  tenant_id: string;
-  plugin_id: string;
-  execution_id: string;
-  status: string;
-  xp_earned: number;
-  context: Record<string, any>;
-  created_at: string;
-  agent_version_id?: string;
-}
-
-export interface LogGroup {
-  id: string;
-  message: string;
-  level: string;
+  
+  /** Timestamp in ISO format */
+  timestamp: string;
+  
+  /** System module that generated the log */
   module: string;
-  count: number;
-  first_seen: string;
-  last_seen: string; // Standardized property name for consistency
+  
+  /** Log level (info, warning, error) */
+  level: LogLevel;
+  
+  /** Event type identifier */
+  event: string;
+  
+  /** Alternative name for event */
+  event_type?: string;
+  
+  /** Log description */
+  description: string;
+  
+  /** Log message (for backward compatibility) */
+  message?: string;
+  
+  /** Tenant ID */
+  tenant_id: string;
+  
+  /** User ID that triggered the event (if applicable) */
+  user_id?: string;
+  
+  /** Additional context data */
+  context?: Record<string, any>;
+  
+  /** Additional metadata */
+  metadata?: Record<string, any>;
+  
+  /** Request ID for tracing */
+  request_id?: string;
+  
+  /** Error type if this is an error log */
+  error_type?: string;
+  
+  /** Severity level of the error */
+  severity?: LogSeverity;
+  
+  /** Priority (alias for severity) */
+  priority?: LogSeverity;
+  
+  /** Error message if this is an error log */
+  error_message?: string;
+  
+  /** Whether this error affects user experience */
+  user_facing?: boolean;
+  
+  /** Whether this error affects multiple users */
+  affects_multiple_users?: boolean;
 }
 
+/**
+ * Filters for querying logs
+ */
 export interface LogFilters {
-  level?: string | string[];
-  module?: string | string[] | SystemEventModule | null;
+  /** Text search across log fields */
+  search?: string;
+  
+  /** Filter by module(s) */
+  module?: string | string[];
+  
+  /** Filter by log level(s) */
+  level?: LogLevel | LogLevel[];
+  
+  /** Filter by tenant */
   tenant_id?: string;
-  startDate?: string; // Standard property
-  endDate?: string; // Standard property
-  search?: string; // Standard property for search terms
-  searchTerm?: string; // Alias for search, kept for backward compatibility
-  status?: string | string[];
-  fromDate?: string; // Alias for startDate, kept for compatibility
-  toDate?: string; // Alias for endDate, kept for compatibility
+  
+  /** Filter by date range - start date */
+  fromDate?: string;
+  
+  /** Filter by date range - end date */
+  toDate?: string;
+  
+  /** Filter by error type */
   error_type?: string | string[];
-  severity?: string | string[];
-  dateFrom?: string | null; // Another alias, kept for compatibility
-  dateTo?: string | null; // Another alias, kept for compatibility
+  
+  /** Filter by severity */
+  severity?: LogSeverity | LogSeverity[];
 }
 
-export interface LogsResponse {
-  data: SystemLog[];
+/**
+ * Error group represents a collection of related errors
+ */
+export interface ErrorGroup {
+  /** Group identifier */
+  id: string;
+  
+  /** Error type */
+  error_type: string;
+  
+  /** Error message */
+  message: string;
+  
+  /** Number of occurrences */
   count: number;
-}
-
-export interface LogGroupsResponse {
-  data: LogGroup[];
-  count: number;
-}
-
-export interface DateRange {
-  from: Date;
-  to?: Date;
-}
-
-// Type guard function to check if a property exists on a SystemLog
-export function hasLogProperty<K extends keyof SystemLog>(
-  log: SystemLog | undefined,
-  prop: K
-): log is SystemLog & { [key in K]: NonNullable<SystemLog[K]> } {
-  return !!log && prop in log && log[prop] !== undefined && log[prop] !== null;
-}
-
-// Type guard for specific log severity
-export function hasLogSeverity(
-  log: SystemLog | undefined
-): log is SystemLog & { severity: NonNullable<SystemLog['severity']> } {
-  return !!log && !!log.severity;
-}
-
-// Convert possibly varied date formats to standardized dates
-export function normalizeLogFilters(filters: LogFilters): LogFilters {
-  const normalized: LogFilters = { ...filters };
   
-  // Normalize date fields
-  normalized.startDate = filters.startDate || filters.fromDate || filters.dateFrom || undefined;
-  normalized.endDate = filters.endDate || filters.toDate || filters.dateTo || undefined;
+  /** Error severity */
+  severity: LogSeverity;
   
-  // Normalize search term
-  normalized.search = filters.search || filters.searchTerm || undefined;
+  /** When this error was first seen */
+  first_seen: string;
   
-  return normalized;
+  /** When this error was last seen */
+  last_seen: string;
+  
+  /** Number of affected users */
+  affected_users: number;
+  
+  /** Number of affected tenants */
+  affected_tenants: number;
+  
+  /** Modules where this error occurred */
+  modules: string[];
+  
+  /** Example occurrences */
+  examples: SystemLog[];
+}
+
+/**
+ * Data point for error trends chart
+ */
+export interface ErrorTrendDataPoint {
+  /** Date string (YYYY-MM-DD) */
+  date: string;
+  
+  /** Total error count */
+  total: number;
+  
+  /** Critical errors count */
+  critical: number;
+  
+  /** High severity errors count */
+  high: number;
+  
+  /** Medium severity errors count */
+  medium: number;
+  
+  /** Low severity errors count */
+  low: number;
+}
+
+/**
+ * Error statistics summary
+ */
+export interface ErrorStats {
+  /** Total error count */
+  totalErrors: number;
+  
+  /** Critical errors count */
+  criticalErrors: number;
+  
+  /** High severity errors count */
+  highErrors: number;
+  
+  /** Medium severity errors count */
+  mediumErrors: number;
+  
+  /** Low severity errors count */
+  lowErrors: number;
+  
+  /** User-facing errors count */
+  userFacingErrors: number;
+  
+  /** Number of affected users */
+  affectedUsers: number;
 }

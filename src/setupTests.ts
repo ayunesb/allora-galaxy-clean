@@ -1,25 +1,25 @@
 
+/**
+ * Test setup file for Vitest
+ * This file is automatically loaded before running tests
+ */
+
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// Mock window functions that might not exist in the test environment
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
+// Mock match media
+window.matchMedia = window.matchMedia || function() {
+  return {
     matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+    addListener: () => {},
+    removeListener: () => {}
+  };
+};
 
-// IntersectionObserver mock
+// Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  constructor(callback: IntersectionObserverCallback) {}
+  constructor(private callback: IntersectionObserverCallback) {}
+  
   disconnect() { return null; }
   observe() { return null; }
   takeRecords() { return []; }
@@ -28,8 +28,24 @@ global.IntersectionObserver = class IntersectionObserver {
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
-  constructor(callback: ResizeObserverCallback) {}
+  constructor(private callback: ResizeObserverCallback) {}
+  
   disconnect() { return null; }
   observe() { return null; }
   unobserve() { return null; }
+};
+
+// Mock window.scrollTo
+Object.defineProperty(window, 'scrollTo', {
+  value: vi.fn(),
+  writable: true
+});
+
+// Suppress React 18 console errors about act()
+const originalError = console.error;
+console.error = (...args) => {
+  if (/Warning.*not wrapped in act/.test(args[0])) {
+    return;
+  }
+  originalError(...args);
 };
