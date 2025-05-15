@@ -1,7 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { notifySuccess, notifyError } from '@/components/ui/BetterToast';
+import { useToast } from '@/lib/notifications/toast';
 
 export interface WebhookAlertConfig {
   webhook_url: string;
@@ -11,54 +11,147 @@ export interface WebhookAlertConfig {
   metadata?: Record<string, any>;
 }
 
+export interface WebhookResponse {
+  success: boolean;
+  error?: string;
+  data?: any;
+  status?: number;
+  timestamp?: string;
+}
+
 export const useWebhookAlerts = () => {
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const sendWebhookAlert = async (config: WebhookAlertConfig) => {
-    if (!config.webhook_url || !config.alert_type || !config.message || !config.tenant_id) {
-      notifyError({
-        title: 'Invalid webhook configuration',
-        description: 'All required fields must be provided'
+  const validateConfig = (config: WebhookAlertConfig): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    if (!config.webhook_url) errors.push('Webhook URL is required');
+    if (!config.alert_type) errors.push('Alert type is required');
+    if (!config.message) errors.push('Message is required');
+    if (!config.tenant_id) errors.push('Tenant ID is required');
+    
+    // Validate URL format
+    if (config.webhook_url && !config.webhook_url.match(/^https?:\/\/.+/)) {
+      errors.push('Invalid webhook URL format');
+    }
+    
+    return { 
+      valid: errors.length === 0,
+      errors
+    };
+  };
+
+  const sendWebhookAlert = useCallback(async (config: WebhookAlertConfig): Promise<WebhookResponse> => {
+    const validation = validateConfig(config);
+    
+    if (!validation.valid) {
+      toast({
+        title: "Invalid webhook configuration",
+        description: validation.errors.join(', ')
       });
-      return { success: false, error: 'Invalid webhook configuration' };
+      
+      return { 
+        success: false, 
+        error: validation.errors.join(', ')
+      };
     }
 
     try {
       setLoading(true);
       
+      // Add timestamp metadata
+      const configWithTimestamp = {
+        ...config,
+        metadata: {
+          ...config.metadata,
+          sent_at: new Date().toISOString()
+        }
+      };
+      
       const { data, error } = await supabase
         .functions
         .invoke('send-webhook-alert', {
-          body: config
+          body: configWithTimestamp
         });
 
       if (error) {
-        notifyError({
-          title: 'Webhook Error',
-          description: error.message
+        console.error('Webhook error:', error);
+        toast({
+          title: "Webhook Error",
+          description: error.message || 'Failed to send webhook'
         });
-        return { success: false, error: error.message };
+        
+        return { 
+          success: false, 
+          error: error.message,
+          status: error.status || 500,
+          timestamp: new Date().toISOString()
+        };
       }
 
-      notifySuccess({
-        title: 'Webhook Sent',
-        description: 'The webhook alert was sent successfully'
+      // Log successful webhook
+      console.log('Webhook sent successfully:', data);
+      toast({
+        title: "Webhook Sent",
+        description: "The webhook alert was sent successfully"
       });
-      return { success: true, data };
+      
+      return { 
+        success: true, 
+        data,
+        status: 200,
+        timestamp: new Date().toISOString()
+      };
     } catch (err: any) {
-      notifyError({
-        title: 'Webhook Error',
-        description: err.message || 'Failed to send webhook'
+      console.error('Webhook error:', err);
+      toast({
+        title: "Webhook Error",
+        description: err.message || "Failed to send webhook"
       });
-      return { success: false, error: err.message || 'Failed to send webhook' };
+      
+      return { 
+        success: false, 
+        error: err.message || 'Failed to send webhook',
+        status: err.status || 500,
+        timestamp: new Date().toISOString()
+      };
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  const sendBatchWebhookAlerts = useCallback(async (configs: WebhookAlertConfig[]): Promise<WebhookResponse[]> => {
+    const results: WebhookResponse[] = [];
+    
+    for (const config of configs) {
+      const result = await sendWebhookAlert(config);
+      results.push(result);
+    }
+    
+    const successCount = results.filter(r => r.success).length;
+    const totalCount = results.length;
+    
+    if (successCount === totalCount) {
+      toast({
+        title: "All Webhooks Sent",
+        description: `Successfully sent ${successCount} webhook alerts`
+      });
+    } else {
+      toast({
+        title: "Webhook Batch Completed",
+        description: `Sent ${successCount}/${totalCount} webhook alerts successfully`
+      });
+    }
+    
+    return results;
+  }, [sendWebhookAlert, toast]);
 
   return {
     sendWebhookAlert,
-    loading
+    sendBatchWebhookAlerts,
+    loading,
+    validateConfig
   };
 };
 

@@ -1,4 +1,3 @@
-
 // Add missing types for SystemLog
 export interface SystemLog {
   id: string;
@@ -15,7 +14,13 @@ export interface SystemLog {
   tenant_id?: string; // Added for compatibility
   status?: 'success' | 'error' | 'warning'; // Added for compatibility
   severity?: 'critical' | 'high' | 'medium' | 'low'; // Added for ErrorTrendsChart
+  priority?: 'high' | 'medium' | 'low' | 'critical'; // Added for compatibility with filtering
   error_type?: string; // Added for ErrorTrendsChart
+  error_message?: string; // Added for compatibility
+  user_facing?: boolean;
+  affects_multiple_users?: boolean;
+  request_id?: string;
+  user_id?: string;
 }
 
 export interface Log {

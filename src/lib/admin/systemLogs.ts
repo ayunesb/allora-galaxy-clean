@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { DateRange } from '@/types/shared';
+import { DateRange } from '@/types/logs';
 
 export interface SystemLogFilter {
   searchTerm?: string;

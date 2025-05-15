@@ -26,7 +26,8 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast("Workspace created", {
+      toast({
+        title: "Workspace created",
         description: `Your workspace "${name}" has been created successfully.`
       });
       
@@ -36,9 +37,9 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
         onWorkspaceCreated();
       }
     } catch (error) {
-      toast("Error", {
+      toast({
+        title: "Error",
         description: "Failed to create workspace. Please try again.",
-        variant: "destructive"
       });
     } finally {
       setIsLoading(false);

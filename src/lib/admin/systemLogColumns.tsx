@@ -2,7 +2,7 @@
 import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
-import { SystemLog } from '@/types';
+import { SystemLog } from '@/types/logs';
 
 export const getSystemLogColumns = (onRowClick: (log: SystemLog) => void): ColumnDef<SystemLog, any>[] => [
   {

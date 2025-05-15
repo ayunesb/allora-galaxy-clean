@@ -1,44 +1,83 @@
+/**
+ * Strategy execution types
+ */
 
-// Strategy related types
+import { ValidationResult } from './index';
+
+export interface ValidationResult {
+  valid: boolean;
+  errors?: string[];
+  warnings?: string[];
+}
+
+export interface ExecuteStrategyParams {
+  tenant_id: string;
+  strategy_id: string;
+  user_id?: string;
+  options?: {
+    dryRun?: boolean;
+    force?: boolean;
+    timeout?: number;
+  };
+}
+
+export type StrategyExecutionStatus = 
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'aborted';
+
+export interface StrategyExecutionResult {
+  success: boolean;
+  strategy_id: string;
+  execution_id?: string;
+  status: StrategyExecutionStatus;
+  message?: string;
+  errors?: string[];
+  warnings?: string[];
+  execution_time_ms?: number;
+  plugins_executed?: number;
+  successful_plugins?: number;
+  xp_earned?: number;
+  data?: Record<string, any>;
+  error?: string;
+  execution_time?: number;
+  outputs?: any;
+  results?: any;
+  logs?: any;
+}
+
+export interface ExecuteStrategyInput {
+  strategy_id: string;
+  tenant_id: string;
+  user_id?: string;
+  options?: Record<string, any>;
+}
+
+// Type for strategy execution response
+export interface ExecuteStrategyResult extends StrategyExecutionResult {
+  // Additional fields can be added here
+}
+
 export interface Strategy {
   id: string;
   tenant_id: string;
   title: string;
   description: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'completed' | 'in_progress';
-  priority?: 'low' | 'medium' | 'high' | null;
+  status: string;
   created_by: string;
   created_at: string;
-  approved_by?: string | null;
-  approved_at?: string | null;
-  rejected_by?: string | null;
-  rejected_at?: string | null;
-  tags?: string[] | null;
-  completion_percentage?: number | null;
-  due_date?: string | null;
-  updated_at?: string | null;
-  metadata?: Record<string, any> | null;
-}
-
-export interface StrategyFilter {
-  status?: string[];
-  query?: string;
+  updated_at: string;
+  due_date?: string; // Add this field to match mockStrategies usage
+  priority?: string;
   tags?: string[];
-  priority?: string[];
+  completion_percentage?: number;
+  approved_by?: string;
+  created_by_ai?: boolean;
 }
 
-export interface StrategyExecution {
-  id: string;
-  strategy_id: string;
-  status: string;
-  started_at: string;
-  completed_at?: string;
-  executed_by?: string;
-  results?: Record<string, any>;
-}
-
-// Define validation result
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[] | Record<string, string>;
+// Type for strategy execution response
+export interface ExecuteStrategyResult extends StrategyExecutionResult {
+  // Additional fields can be added here
 }

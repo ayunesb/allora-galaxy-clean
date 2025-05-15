@@ -51,10 +51,8 @@ export const useDataState = <T>(options: UseDataStateOptions<T> = {}) => {
       // Dismiss loading toast if it exists
       if (toastId && showToast) {
         toast({
-          id: toastId,
           title: "Success",
           description: "Data loaded successfully",
-          variant: "default",
         });
       }
       
@@ -66,10 +64,8 @@ export const useDataState = <T>(options: UseDataStateOptions<T> = {}) => {
       
       if (toastId && showToast) {
         toast({
-          id: toastId,
           title: "Error",
           description: errorMessage,
-          variant: "destructive",
         });
       }
       

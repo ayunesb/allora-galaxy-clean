@@ -1,90 +1,99 @@
 
 import { useState } from 'react';
-import { OnboardingFormData } from '@/types/onboarding';
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { sendNotification } from '@/lib/notifications/sendNotification';
-import { completeOnboarding } from '@/services/onboardingService';
+import { useToast } from '@/lib/notifications/toast';
+import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Hook for managing onboarding form submission
- */
-export function useOnboardingSubmission() {
+export const useOnboardingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const [success, setSuccess] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (formData: OnboardingFormData) => {
-    if (!user) {
-      setError('User must be logged in to complete onboarding');
-      toast({
-        title: 'Authentication Error',
-        description: 'You must be logged in to complete onboarding',
-        variant: 'destructive'
-      });
-      return false;
-    }
-
+  const submitOnboardingData = async (data: Record<string, any>) => {
+    setIsSubmitting(true);
+    setSuccess(false);
+    
     try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      // Complete the onboarding process
-      const result = await completeOnboarding(user.id, formData);
-      
-      if (result.success && result.tenantId) {
-        // Send notification
-        await sendNotification({
-          title: 'Welcome to Allora OS',
-          description: 'Your workspace is ready! We\'ve created your initial strategy.',
-          type: 'success',
-          tenant_id: result.tenantId,
-          user_id: user.id,
-          action_label: 'View Dashboard',
-          action_url: '/dashboard'
-        }).catch(err => {
-          console.warn('Failed to send welcome notification:', err);
-          // Non-critical error, continue with onboarding success
-        });
-        
+      // Validate input
+      if (!data.tenant_id) {
         toast({
-          title: 'Welcome to Allora OS!',
-          description: 'Your workspace has been created successfully.',
+          title: "Missing Information",
+          description: "Tenant ID is required to complete onboarding"
         });
-        
-        return true;
-      } else {
-        setError(result.error || 'Failed to create workspace');
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to create workspace',
-          variant: 'destructive',
-        });
-        return false;
+        return { success: false, error: "Missing tenant_id" };
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      
+      // Mock onboarding submission to Supabase
+      // First update the company profile
+      if (data.company) {
+        const { error: companyError } = await supabase
+          .from('company_profiles')
+          .upsert({
+            tenant_id: data.tenant_id,
+            name: data.company.name,
+            industry: data.company.industry,
+            size: data.company.size,
+            description: data.company.description
+          });
+        
+        if (companyError) {
+          throw companyError;
+        }
+      }
+      
+      // Set onboarding as completed in user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', data.user_id);
+      
+      if (profileError) {
+        throw profileError;
+      }
+      
+      // Create initial strategy if provided
+      if (data.strategy) {
+        const { error: strategyError } = await supabase
+          .from('strategies')
+          .insert({
+            tenant_id: data.tenant_id,
+            title: data.strategy.title,
+            description: data.strategy.description,
+            status: 'draft',
+            created_by: data.user_id
+          });
+        
+        if (strategyError) {
+          throw strategyError;
+        }
+      }
+      
+      setSuccess(true);
       toast({
-        title: 'Error',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive',
+        title: "Onboarding Complete",
+        description: "Your account setup has been completed successfully!"
       });
-      console.error('Onboarding error:', err);
-      return false;
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error("Onboarding submission error:", error);
+      
+      toast({
+        title: "Onboarding Error",
+        description: error.message || "Failed to complete onboarding process"
+      });
+      
+      return { 
+        success: false, 
+        error: error.message || "Unknown error occurred" 
+      };
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const resetError = () => {
-    setError(null);
-  };
-
+  
   return {
     isSubmitting,
-    error,
-    handleSubmit,
-    resetError
+    success,
+    submitOnboardingData
   };
-}
+};

@@ -1,138 +1,102 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { useStrategyGeneration } from '@/hooks/useStrategyGeneration';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/lib/notifications/toast';
 
-export function useOnboardingWizard() {
+// Define the step interfaces and other types
+
+export const useOnboardingWizard = (steps: string[], initialData = {}) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState<Record<string, any>>(initialData);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const { isGenerating, generateStrategy } = useStrategyGeneration();
-
-  // Current step in the onboarding process
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   
-  // Form data state with required fields initialized
-  const [formData, setFormData] = useState<OnboardingFormData>({
-    companyInfo: {
-      name: '',
-      industry: '',
-      size: '',
-    },
-    persona: {
-      name: '',
-      goals: [],
-      tone: 'professional',
-    },
-    additionalInfo: {
-      targetAudience: '',
-      keyCompetitors: '',
-      uniqueSellingPoints: '',
-    }
-  });
-
-  // Handle form data updates
-  const updateFormData = (data: Partial<OnboardingFormData>) => {
+  // Reset errors when changing steps
+  useEffect(() => {
+    setErrors({});
+  }, [currentStep]);
+  
+  const updateFormData = useCallback((newData: Record<string, any>) => {
     setFormData(prevData => ({
       ...prevData,
-      ...data,
-      // Ensure nested objects are properly merged
-      companyInfo: {
-        ...prevData.companyInfo,
-        ...(data.companyInfo || {})
-      },
-      persona: {
-        ...prevData.persona,
-        ...(data.persona || {})
-      },
-      additionalInfo: {
-        ...prevData.additionalInfo,
-        ...(data.additionalInfo || {})
-      }
+      ...newData
     }));
-  };
-
-  // Progress to the next step
-  const nextStep = () => {
-    switch (currentStep) {
-      case 'welcome':
-        setCurrentStep('company-info');
-        break;
-      case 'company-info':
-        setCurrentStep('persona');
-        break;
-      case 'persona':
-        setCurrentStep('additional-info');
-        break;
-      case 'additional-info':
-        setCurrentStep('strategy-generation');
-        break;
-      case 'strategy-generation':
-        setCurrentStep('completed');
-        break;
-      case 'completed':
-        navigate('/dashboard');
-        break;
-    }
-  };
-
-  // Go back to previous step
-  const prevStep = () => {
-    switch (currentStep) {
-      case 'company-info':
-        setCurrentStep('welcome');
-        break;
-      case 'persona':
-        setCurrentStep('company-info');
-        break;
-      case 'additional-info':
-        setCurrentStep('persona');
-        break;
-      case 'strategy-generation':
-        setCurrentStep('additional-info');
-        break;
-      case 'completed':
-        setCurrentStep('strategy-generation');
-        break;
-    }
-  };
-
-  // Submit onboarding data and generate initial strategy
-  const handleSubmit = async () => {
-    try {
-      const result = await generateStrategy(formData);
-      
-      if (result.success) {
-        toast({
-          title: 'Onboarding complete!',
-          description: 'Your strategy has been generated successfully',
-        });
-        nextStep();
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: 'Onboarding failed',
-          description: result.error || 'Something went wrong',
-          variant: 'destructive',
-        });
-      }
-    } catch (error: any) {
+  }, []);
+  
+  const validateStep = useCallback((stepIndex: number): boolean => {
+    // This would contain step-specific validation logic
+    // For now, we'll just return true
+    return true;
+  }, []);
+  
+  const nextStep = useCallback(() => {
+    if (!validateStep(currentStep)) {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to complete onboarding',
-        variant: 'destructive',
+        title: "Validation Error",
+        description: "Please fix the errors before continuing"
       });
+      return;
     }
-  };
-
+    
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      completeOnboarding();
+    }
+  }, [currentStep, steps, validateStep]);
+  
+  const prevStep = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  }, [currentStep]);
+  
+  const goToStep = useCallback((index: number) => {
+    if (index >= 0 && index < steps.length) {
+      setCurrentStep(index);
+    }
+  }, [steps]);
+  
+  const completeOnboarding = useCallback(() => {
+    // Here you would submit the completed form data
+    setLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setLoading(false);
+      setCompleted(true);
+      toast({
+        title: "Onboarding Complete",
+        description: "Thank you for completing the onboarding process!"
+      });
+    }, 1500);
+  }, []);
+  
+  const handleError = useCallback((error: Error) => {
+    console.error('Onboarding error:', error);
+    toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred"
+    });
+  }, []);
+  
   return {
     currentStep,
+    totalSteps: steps.length,
     formData,
-    isGenerating,
     updateFormData,
     nextStep,
     prevStep,
-    handleSubmit,
+    goToStep,
+    loading,
+    completed,
+    errors,
+    setErrors,
+    handleError,
+    stepName: steps[currentStep],
+    isLastStep: currentStep === steps.length - 1,
+    isFirstStep: currentStep === 0,
+    progress: ((currentStep + 1) / steps.length) * 100
   };
-}
+};

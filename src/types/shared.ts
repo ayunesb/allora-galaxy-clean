@@ -1,66 +1,48 @@
 
-// Base system event modules for logging
+// Basic shared types used across the application
+
+import { DateRange } from './logs';
+
+// Common time periods
+export type TimePeriod = '1h' | '24h' | '7d' | '30d' | 'all';
+
+// Common status types
+export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'failed' | 'warning';
+
+// System event modules for logging
 export type SystemEventModule = 
   | 'system'
   | 'auth'
-  | 'onboarding'
+  | 'api'
+  | 'database'
   | 'strategy'
-  | 'execution'
   | 'plugin'
   | 'agent'
-  | 'database'
-  | 'api'
+  | 'execution'
+  | 'webhook'
   | 'notification'
+  | 'tenant'
   | 'user'
-  | 'billing'
-  | 'workspace'
-  | 'cron'
-  | 'evolution';
+  | string;
 
-// User role type throughout the system
-export type UserRole = 'admin' | 'owner' | 'member' | 'viewer' | 'guest';
+// Re-export DateRange for backward compatibility 
+export { DateRange };
 
-// Status types used across the application
-export type Status = 'idle' | 'loading' | 'success' | 'error';
-
-// Common response format for API calls
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-  code?: string;
-  status?: number;
-}
-
-// Base pagination params
+// Define pagination params for API requests
 export interface PaginationParams {
   page?: number;
   limit?: number;
-  offset?: number;
 }
 
-// Base filter params for listings
-export interface FilterParams {
+// Define sorting params for API requests
+export interface SortParams {
   sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// Export basic filter interface that can be extended by specific filters
+export interface BaseFilter extends PaginationParams, SortParams {
   search?: string;
-  status?: string;
   startDate?: string;
   endDate?: string;
 }
-
-// Base timestamp fields for database tables
-export interface TimestampFields {
-  created_at: string;
-  updated_at?: string;
-}
-
-// Generic key-value record
-export type KeyValueRecord = Record<string, any>;
-
-// Vote type for agent voting
-export type VoteType = 'upvote' | 'downvote' | 'neutral';
-
-// Trend direction for KPIs
-export type TrendDirection = 'up' | 'down' | 'neutral';

@@ -1,194 +1,126 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { notifyError, notifySuccess } from '@/lib/notifications/toast';
 
-import { useState, useCallback } from 'react';
-import { UseFormReturn, FieldValues, SubmitHandler } from 'react-hook-form';
-import { notifySuccess, notifyError } from '@/lib/notifications/toast';
-import { handleSupabaseError } from '@/lib/errors/ErrorHandler';
-import { supabase } from '@/lib/supabase/supabaseClient';
-
-export interface UseSupabaseFormOptions<TFieldValues extends FieldValues = FieldValues> {
-  table?: string;
+interface UseSupabaseFormOptions<T extends Record<string, any>> {
+  tableName: string;
+  mode: 'insert' | 'update' | 'upsert' | 'custom';
+  idField?: string;
+  initialValues?: T;
+  showSuccessMessage?: boolean;
   successMessage?: string;
-  errorMessage?: string;
   resetOnSuccess?: boolean;
-  redirectOnSuccess?: string;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: T, result: any) => void;
   onError?: (error: any) => void;
-  formMethods: UseFormReturn<TFieldValues>;
-  transformData?: (data: TFieldValues) => any;
-  operation?: 'insert' | 'update' | 'upsert' | 'delete';
-  matchField?: string;
-  matchValue?: any;
+  validationSchema?: any;
+  transformer?: (data: T) => any;
+  customOperation?: (data: T) => Promise<any>;
 }
 
-/**
- * A hook for handling form submission to Supabase with error handling and notifications
- */
-export function useSupabaseForm<TFieldValues extends FieldValues = FieldValues>({
-  table,
-  successMessage = 'Successfully saved',
-  errorMessage = 'Failed to save',
-  resetOnSuccess = false,
-  redirectOnSuccess,
-  onSuccess,
-  onError,
-  formMethods,
-  transformData,
-  operation = 'insert',
-  matchField = 'id',
-  matchValue,
-}: UseSupabaseFormOptions<TFieldValues>) {
-  const { handleSubmit, reset, setError, formState } = formMethods;
+export const useSupabaseForm = <T extends Record<string, any>>(options: UseSupabaseFormOptions<T>) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<any>(null);
+  const [finalData, setFinalData] = useState<T | null>(null);
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<Error | null>(null);
-  const [submitResult, setSubmitResult] = useState<any>(null);
+  const {
+    tableName,
+    mode,
+    idField,
+    initialValues,
+    showSuccessMessage = true,
+    successMessage,
+    resetOnSuccess = false,
+    onSuccess,
+    onError,
+    validationSchema,
+    transformer,
+    customOperation,
+  } = options;
+  
+  const handleSubmit = async (formData: T) => {
+    setIsLoading(true);
+    setFormError(null);
+    setFinalData(null);
 
-  const onSubmit: SubmitHandler<TFieldValues> = useCallback(async (data) => {
-    if (!table) {
-      throw new Error('Table name is required for Supabase form submission');
-    }
-    
-    setIsSubmitting(true);
-    setSubmitError(null);
-    
     try {
-      // Transform the data if needed
-      const finalData = transformData ? transformData(data) : data;
+      if (validationSchema) {
+        try {
+          await validationSchema.validate(formData, { abortEarly: false });
+        } catch (validationError: any) {
+          setFormError(validationError);
+          setIsLoading(false);
+          return { error: validationError, success: false };
+        }
+      }
+      
+      // Apply transformations if specified
+      const processedData = transformer ? transformer(formData) : formData;
       
       let result;
       
-      switch (operation) {
-        case 'update':
-          if (!matchValue) {
-            throw new Error('matchValue is required for update operations');
-          }
-          result = await supabase
-            .from(table)
-            .update(finalData)
-            .eq(matchField, matchValue)
-            .select();
-          break;
-          
-        case 'upsert':
-          result = await supabase
-            .from(table)
-            .upsert(finalData)
-            .select();
-          break;
-          
-        case 'delete':
-          if (!matchValue) {
-            throw new Error('matchValue is required for delete operations');
-          }
-          result = await supabase
-            .from(table)
-            .delete()
-            .eq(matchField, matchValue)
-            .select();
-          break;
-          
-        case 'insert':
-        default:
-          result = await supabase
-            .from(table)
-            .insert(finalData)
-            .select();
-          break;
+      if (mode === 'insert') {
+        result = await supabase.from(tableName).insert(processedData).select();
+      } else if (mode === 'update') {
+        if (!idField || !formData[idField]) {
+          throw new Error(`ID field "${idField}" is not defined or has no value`);
+        }
+        result = await supabase
+          .from(tableName)
+          .update(processedData)
+          .eq(idField, formData[idField])
+          .select();
+      } else if (mode === 'upsert') {
+        result = await supabase.from(tableName).upsert(processedData).select();
+      } else if (mode === 'custom' && customOperation) {
+        result = await customOperation(processedData);
+      } else {
+        throw new Error('Invalid operation mode or missing customOperation function');
       }
       
       if (result.error) {
         throw result.error;
       }
       
-      setSubmitResult(result.data);
+      const resultData = result.data;
+      setFinalData(resultData);
       
-      // Show success message
-      if (successMessage) {
-        notifySuccess(successMessage);
-      }
-      
-      // Reset form if needed
-      if (resetOnSuccess) {
-        reset();
-      }
-      
-      // Redirect if needed
-      if (redirectOnSuccess) {
-        window.location.href = redirectOnSuccess;
-      }
-      
-      // Call onSuccess callback
       if (onSuccess) {
-        onSuccess(result.data);
+        onSuccess(processedData, resultData);
       }
       
-      return result.data;
+      if (showSuccessMessage) {
+        notifySuccess({
+          title: successMessage || 'Success',
+          description: `${tableName} ${mode === 'insert' ? 'created' : 'updated'} successfully`
+        });
+      }
+      
+      return { data: resultData, success: true };
     } catch (error: any) {
-      // Format and set error
-      setSubmitError(error);
+      console.error(`Error ${mode}ing ${tableName}:`, error);
+      setFormError(error);
       
-      // Show error message with description using object format
-      notifyError({
-        title: errorMessage,
-        description: error.message || 'An unexpected error occurred'
-      });
-      
-      // Handle specific error types
-      if (error?.code === '23505') {
-        // Handle unique constraint violation
-        const detail = error?.details || '';
-        const match = detail.match(/\(([^)]+)\)=/);
-        const field = match ? match[1] : null;
-        
-        if (field && formMethods.getValues(field as any) !== undefined) {
-          setError(field as any, {
-            type: 'unique',
-            message: `This ${field} already exists`
-          });
-        }
-      }
-      
-      // Log error to system
-      handleSupabaseError(error, {
-        context: {
-          table,
-          operation,
-          submitData: finalData
-        }
-      });
-      
-      // Call onError callback
       if (onError) {
         onError(error);
       }
       
-      throw error;
+      notifyError({
+        title: 'Error',
+        description: error.message || `Failed to ${mode} ${tableName}`
+      });
+      
+      return { error, success: false };
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
-  }, [table, operation, matchField, matchValue, successMessage, errorMessage,
-      resetOnSuccess, redirectOnSuccess, onSuccess, onError, reset, transformData, setError, formMethods]);
-
-  const wrappedHandleSubmit = handleSubmit(onSubmit);
-  
-  const submitForm = useCallback(async (event?: React.FormEvent) => {
-    if (event) {
-      event.preventDefault();
-    }
-    return wrappedHandleSubmit(event as any);
-  }, [wrappedHandleSubmit]);
-
-  return {
-    submitForm,
-    isSubmitting,
-    isSubmitSuccessful: !!submitResult && !submitError,
-    submitError,
-    submitResult,
-    reset: () => {
-      reset();
-      setSubmitError(null);
-      setSubmitResult(null);
-    },
-    formState
   };
-}
+  
+  return {
+    isLoading,
+    formError,
+    handleSubmit,
+    finalData
+  };
+};
+
+export default useSupabaseForm;

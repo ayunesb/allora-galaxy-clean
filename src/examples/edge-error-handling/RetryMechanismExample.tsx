@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AsyncDataRenderer } from "@/components/ui/async-data-renderer";
 
 export const RetryMechanismExample = () => {
-  // Removed unused 'data' variable
+  const [data, setData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -22,7 +22,9 @@ export const RetryMechanismExample = () => {
         throw new Error("Simulated network failure. Try again!");
       }
       
-      return "Data successfully loaded after retry";
+      const result = "Data successfully loaded after retry";
+      setData(result);
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Unknown error occurred"));
       throw err;
@@ -40,6 +42,7 @@ export const RetryMechanismExample = () => {
   
   const handleInitialFetch = () => {
     setRetryCount(0);
+    setData(null);
     fetchData().catch(() => {
       // Error is already set in fetchData
     });
@@ -65,7 +68,7 @@ export const RetryMechanismExample = () => {
       
       <div className="border rounded-md p-4">
         <AsyncDataRenderer
-          data={retryCount > 0 ? "Data successfully loaded after retry" : null}
+          data={data}
           isLoading={isLoading}
           error={error}
           onRetry={handleRetry}
