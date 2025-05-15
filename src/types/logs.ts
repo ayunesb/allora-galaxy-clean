@@ -1,71 +1,70 @@
 
-export type LogModule =
-  | 'system'
-  | 'auth'
-  | 'billing'
-  | 'plugin'
-  | 'strategy'
-  | 'agent'
-  | 'tenant'
-  | 'user'
+// Define the LogModule as a union of string literals
+export type LogModule = 
+  | 'strategy' 
+  | 'agent' 
+  | 'plugin' 
+  | 'auth' 
+  | 'tenant' 
+  | 'system' 
+  | 'api'
+  | 'edge'
+  | 'cron'
+  | 'webhook'
   | 'notification'
-  | 'api';
-
-export type LogSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info' | 'debug' | string;
-
-export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+  | 'user'
+  | 'billing'
+  | 'test-module' // Added for testing purposes
+  | string; // Allow string for dynamic modules and backward compatibility
 
 export interface SystemLog {
   id: string;
+  created_at: string;
+  timestamp: string; 
+  module: LogModule;
+  level: 'info' | 'warning' | 'error';
+  event: string;
+  event_type: string;
+  description: string;
+  message: string;
   tenant_id: string;
-  module: LogModule;
-  timestamp: string;
-  level: LogLevel;
-  severity?: LogSeverity;
-  message: string;
-  details?: Record<string, any>; // Add the details property
-  context?: Record<string, any>;
-  user_id?: string;
-  source?: string;
-  trace_id?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface LogGroup {
-  id: string;
-  message: string;
-  module: LogModule;
-  first_seen: string;
-  last_seen: string;
-  count: number;
-  level: LogLevel;
-  severity: LogSeverity;
-  resolved?: boolean;
-  sources?: string[];
-  tenants?: string[];
+  context: Record<string, any>;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  error_type?: string;
+  error_message?: string;
 }
 
 export interface ErrorTrendDataPoint {
   date: string;
   count: number;
-  total: number; // Add properties used in tests
+  total: number;
   critical: number;
   high: number;
   medium: number;
   low: number;
 }
 
-export type LogSeverityCounts = Record<LogSeverity, number>;
-export type LogModuleCounts = Record<LogModule, number>;
+export interface LogsApiResponse {
+  logs: SystemLog[];
+  totalCount: number;
+}
 
-export interface LogFilters {
-  module?: LogModule;
-  level?: LogLevel;
-  severity?: LogSeverity;
+export interface LogsQuery {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  level?: string;
+  module?: string;
   startDate?: string;
   endDate?: string;
-  query?: string;
-  resolved?: boolean;
+  search?: string;
   tenantId?: string;
-  source?: string;
+}
+
+export interface LogFilterState {
+  level: string;
+  module: string;
+  dateRange: [Date | null, Date | null];
+  search: string;
 }

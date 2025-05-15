@@ -3,6 +3,7 @@
 export { 
   useToast, 
   notify as toast,
+  notify,
   notifySuccess,
   notifyError,
   notifyWarning,

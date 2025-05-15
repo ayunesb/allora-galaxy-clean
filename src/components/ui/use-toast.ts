@@ -3,6 +3,7 @@
 import { 
   useToast, 
   notify as toast,
+  notify,
   notifySuccess,
   notifyError,
   notifyWarning,
@@ -11,7 +12,8 @@ import {
 
 export { 
   useToast, 
-  toast, 
+  toast,
+  notify,
   notifySuccess,
   notifyError,
   notifyWarning,

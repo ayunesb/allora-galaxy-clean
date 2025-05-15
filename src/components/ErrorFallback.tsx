@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/lib/notifications/toast';
 import { reportErrorFromErrorBoundary } from '@/lib/telemetry/errorReporter';
 
 export interface ErrorFallbackProps {
