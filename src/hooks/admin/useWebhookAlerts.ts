@@ -1,5 +1,5 @@
-import { useState } from 'react';
-// Remove the unused toast import
+
+import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,7 +48,8 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
       setError(err.message);
       toast({
         variant: "destructive",
-        description: `Failed to fetch alerts: ${err.message}`,
+        title: "Failed to fetch alerts",
+        description: err.message,
       });
     } finally {
       setLoading(false);
@@ -56,7 +57,7 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
   };
 
   // Fetch alerts on component mount
-  useState(() => {
+  useEffect(() => {
     if (tenantId) {
       fetchAlerts();
     }
@@ -77,13 +78,14 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
 
       setAlerts(prevAlerts => [...(prevAlerts || []), data[0]]);
       toast({
-        description: 'Alert created successfully',
+        title: "Alert created successfully",
       });
     } catch (err: any) {
       setError(err.message);
       toast({
         variant: "destructive",
-        description: `Failed to create alert: ${err.message}`,
+        title: "Failed to create alert",
+        description: err.message,
       });
     } finally {
       setLoading(false);
@@ -110,13 +112,14 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
         )
       );
       toast({
-        description: 'Alert updated successfully',
+        title: "Alert updated successfully",
       });
     } catch (err: any) {
       setError(err.message);
       toast({
         variant: "destructive",
-        description: `Failed to update alert: ${err.message}`,
+        title: "Failed to update alert",
+        description: err.message,
       });
     } finally {
       setLoading(false);
@@ -138,13 +141,14 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
 
       setAlerts(prevAlerts => (prevAlerts || []).filter(alert => alert.id !== id));
       toast({
-        description: 'Alert deleted successfully',
+        title: "Alert deleted successfully",
       });
     } catch (err: any) {
       setError(err.message);
       toast({
         variant: "destructive",
-        description: `Failed to delete alert: ${err.message}`,
+        title: "Failed to delete alert",
+        description: err.message,
       });
     } finally {
       setLoading(false);
@@ -171,13 +175,14 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
         )
       );
       toast({
-        description: `Alert ${isActive ? 'activated' : 'deactivated'}`,
+        title: `Alert ${isActive ? 'activated' : 'deactivated'}`,
       });
     } catch (err: any) {
       setError(err.message);
       toast({
         variant: "destructive",
-        description: `Failed to toggle alert: ${err.message}`,
+        title: "Failed to toggle alert",
+        description: err.message,
       });
     } finally {
       setLoading(false);

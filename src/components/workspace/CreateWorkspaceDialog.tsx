@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,7 @@ interface CreateWorkspaceDialogProps {
 export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }: CreateWorkspaceDialogProps) {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast, success: notifySuccess, error: notifyError } = useToast();
+  const { success: notifySuccess, error: notifyError } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

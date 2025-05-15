@@ -33,22 +33,24 @@ export function useDataState<T>({
     queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
     queryFn: fetchFn,
     enabled: shouldFetch,
-    onSuccess: (data) => {
-      if (successMessage) {
+    meta: {
+      onSuccess: (data: T) => {
+        if (successMessage) {
+          toast({
+            title: successMessage,
+          });
+        }
+        onSuccess?.(data);
+      },
+      onError: (err: any) => {
+        setIsRefreshing(false);
         toast({
-          description: successMessage,
+          variant: "destructive",
+          title: errorMessage || err?.message || 'An error occurred',
         });
-      }
-      onSuccess?.(data);
-    },
-    onError: (err: any) => {
-      setIsRefreshing(false);
-      toast({
-        variant: "destructive",
-        description: errorMessage || err?.message || 'An error occurred',
-      });
-      onError?.(err);
-    },
+        onError?.(err);
+      },
+    }
   });
 
   const refresh = async () => {
@@ -56,12 +58,12 @@ export function useDataState<T>({
     try {
       await refetch();
       toast({
-        description: "Data refreshed successfully",
+        title: "Data refreshed successfully",
       });
     } catch (err: any) {
       toast({
         variant: "destructive",
-        description: err?.message || 'Failed to refresh data',
+        title: err?.message || 'Failed to refresh data',
       });
     } finally {
       setIsRefreshing(false);

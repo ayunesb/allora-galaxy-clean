@@ -22,6 +22,11 @@ export interface ToastOptions {
   };
 }
 
+export interface ToastMessage {
+  title: string;
+  description?: ReactNode;
+}
+
 type LoggedToastOptions = ToastOptions & {
   log?: boolean;
   logLevel?: 'info' | 'warning' | 'error';
@@ -34,18 +39,30 @@ type LoggedToastOptions = ToastOptions & {
  * Base toast notification function
  */
 export const notify = (
-  title: string, 
+  messageOrOptions: string | ToastMessage, 
   options?: LoggedToastOptions & { type?: ToastType }
 ): string => {
   const {
     type = 'default',
-    description,
+    description: optionsDescription,
     duration,
     position,
     action,
     cancel,
     ...restOptions
   } = options || {};
+  
+  // Handle both string and object message formats
+  let title: string;
+  let description: ReactNode | undefined;
+  
+  if (typeof messageOrOptions === 'string') {
+    title = messageOrOptions;
+    description = optionsDescription;
+  } else {
+    title = messageOrOptions.title;
+    description = messageOrOptions.description || optionsDescription;
+  }
   
   // Show the toast notification
   if (type === 'success' && sonnerToast.success) {
@@ -64,17 +81,17 @@ export const notify = (
 /**
  * Helper functions for different toast types
  */
-export const notifySuccess = (title: string, options?: ToastOptions) => 
-  notify(title, { ...options, type: "success" });
+export const notifySuccess = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
+  notify(messageOrOptions, { ...options, type: "success" });
 
-export const notifyError = (title: string, options?: ToastOptions) => 
-  notify(title, { ...options, type: "error" });
+export const notifyError = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
+  notify(messageOrOptions, { ...options, type: "error" });
 
-export const notifyWarning = (title: string, options?: ToastOptions) => 
-  notify(title, { ...options, type: "warning" });
+export const notifyWarning = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
+  notify(messageOrOptions, { ...options, type: "warning" });
 
-export const notifyInfo = (title: string, options?: ToastOptions) => 
-  notify(title, { ...options, type: "info" });
+export const notifyInfo = (messageOrOptions: string | ToastMessage, options?: ToastOptions) => 
+  notify(messageOrOptions, { ...options, type: "info" });
 
 /**
  * Promise toast helper that shows loading/success/error states

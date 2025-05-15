@@ -18,7 +18,7 @@ export const useStrategyEvolution = (strategyId: string) => {
   } = usePartialDataFetch({
     strategy: async () => {
       // Mock fetching a strategy
-      return {
+      const mockStrategy = {
         id: strategyId,
         name: `Strategy ${strategyId}`,
         status: 'pending' as const,
@@ -27,12 +27,13 @@ export const useStrategyEvolution = (strategyId: string) => {
         description: 'A mock strategy for development',
         created_by: 'user-1',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(), // Add required field
-        approved_by: null,
-        approved_at: null,
+        updated_at: new Date().toISOString(),
+        approved_by: undefined,
+        approved_at: undefined,
         priority: 'medium',
         completion_percentage: 0,
-      } as Strategy;
+      };
+      return mockStrategy as Strategy;
     },
     logs: async () => {
       // Mock fetching strategy logs
