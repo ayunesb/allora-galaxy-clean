@@ -1,6 +1,7 @@
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import type { SystemLog, LogLevel } from '@/types/logs';
 
 // Mock UI components used by SystemLogsList
 vi.mock('@/components/ui/table', () => ({
@@ -23,29 +24,29 @@ vi.mock('@/components/ui/data-table', () => ({
   )
 }));
 
+// Import the component after mocking dependencies
+import SystemLogsList from '@/components/admin/logs/SystemLogsList';
+
 // Mock fixtures for testing
-const createMockLogs = (count: number) => {
+const createMockLogs = (count: number): SystemLog[] => {
   return Array(count).fill(0).map((_, index) => ({
     id: `log-${index}`,
     created_at: new Date().toISOString(),
     timestamp: new Date().toISOString(),
     module: 'test-module',
-    level: index % 3 === 0 ? 'error' as const : index % 3 === 1 ? 'warning' as const : 'info' as const,
+    level: (index % 3 === 0 ? 'error' : index % 3 === 1 ? 'warning' : 'info') as LogLevel,
     event: 'test-event',
     event_type: 'test',
     description: `Test log ${index}`,
     message: `Test message ${index}`,
     tenant_id: 'test-tenant',
-    severity: index % 4 === 0 ? 'critical' as const : index % 4 === 1 ? 'high' as const : index % 4 === 2 ? 'medium' as const : 'low' as const,
+    severity: (index % 4 === 0 ? 'critical' : index % 4 === 1 ? 'high' : index % 4 === 2 ? 'medium' : 'low') as const,
     error_type: index % 3 === 0 ? 'TestError' : undefined,
     user_id: 'test-user',
     context: {},
     error_message: index % 3 === 0 ? 'An error occurred' : undefined,
   }));
 };
-
-// Import the component after mocking dependencies
-import SystemLogsList from '@/components/admin/logs/SystemLogsList';
 
 describe('SystemLogsList', () => {
   it('renders loading state when isLoading is true', () => {

@@ -1,6 +1,9 @@
 
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+
+// Import the component to test
+import ErrorTrendsChart from '@/components/admin/errors/ErrorTrendsChart';
 
 // Mock the chart utility function
 vi.mock('@/components/admin/errors/utils/chartDataUtils', () => ({

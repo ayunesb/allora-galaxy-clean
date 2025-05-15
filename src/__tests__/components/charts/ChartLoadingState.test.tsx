@@ -1,6 +1,6 @@
 
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import ChartLoadingState from '@/components/admin/errors/charts/ChartLoadingState';
 
 describe('ChartLoadingState', () => {
