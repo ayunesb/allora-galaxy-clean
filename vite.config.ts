@@ -2,7 +2,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -19,7 +18,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 8080,
     host: "::",
-    allowedHosts: ["9c3148d9-ab17-4b9a-908f-dd75ce70b6c1.lovableproject.com"]
   },
   build: {
     chunkSizeWarningLimit: 1200,
