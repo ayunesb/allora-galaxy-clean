@@ -1,3 +1,1 @@
-export default function StrategyPage() {
-  return <div>Strategy Page</div>;
-}
+export default function StrategyPage() { return <div>Strategy Page</div>; }

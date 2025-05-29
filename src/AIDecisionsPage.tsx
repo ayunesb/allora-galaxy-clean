@@ -1,4 +1,3 @@
-// Placeholder content for src/pages/admin/AIDecisionsPage.tsx
 
 const AIDecisionsPage = () => {
   return (

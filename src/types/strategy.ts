@@ -1,1 +1,1 @@
-// Placeholder for strategy.ts
+export interface Strategy { id: string; name: string; }

@@ -1,22 +1,53 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient"; // Adjust import if your client is elsewhere
 
-export interface PluginFeedback {
+type PluginFeedback = {
   id: string;
-  pluginId: string;
-  comment: string;
-  rating: number;
-}
+  plugin_id: string;
+  message: string;
+  sentiment: string;
+  // ...other fields as needed...
+};
 
-export const usePluginFeedback = () => {
-  const [feedbackList, setFeedbackList] = useState<PluginFeedback[]>([]);
+export function usePluginFeedback(pluginId: string) {
+  const [feedback, setFeedback] = useState<PluginFeedback[]>([]);
 
   useEffect(() => {
-    // Simulated fetch - replace with actual fetch logic
-    setFeedbackList([
-      { id: "1", pluginId: "a", comment: "Great!", rating: 5 },
-      { id: "2", pluginId: "b", comment: "Needs improvement", rating: 3 },
-    ]);
-  }, []);
+    const sub = supabase
+      .from(`plugin_logs:plugin_id=eq.${pluginId}`)
+      .on("INSERT", (payload) => {
+        setFeedback((prev) => [...prev, payload.new]);
+      })
+      .subscribe();
 
-  return { feedbackList };
-};
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [pluginId]);
+
+  return feedback;
+}
+
+export function usePluginFeedbackLive(pluginId: string, onUpdate: () => void) {
+  useEffect(() => {
+    const channel = supabase
+      .channel("plugin_feedback_live")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "plugin_logs",
+          filter: `plugin_id=eq.${pluginId}`,
+        },
+        () => {
+          onUpdate();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [pluginId, onUpdate]);
+}
