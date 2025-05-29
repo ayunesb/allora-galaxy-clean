@@ -1,6 +1,6 @@
 import type { AgentVersion } from "@/types/agents";
 
-export function AgentCard({ version }: { version: AgentVersion }) {
+export default function AgentCard({ version }: { version: AgentVersion }) {
   return (
     <div className="p-4 border rounded-xl shadow bg-muted/10">
       <div className="flex justify-between items-center">

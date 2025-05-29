@@ -1,12 +1,14 @@
+import React from "react";
 import { Outlet } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
 
-export default function MainLayout() {
+const MainLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <header className="mb-6 text-xl">Allora Galaxy</header>
-      <main>
-        <Outlet />
-      </main>
+    <div className="min-h-screen">
+      <Sidebar />
+      <main>{children}</main>
     </div>
   );
-}
+};
+
+export default MainLayout;

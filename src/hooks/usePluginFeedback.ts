@@ -31,17 +31,13 @@ export function usePluginFeedback(pluginId: string) {
 export function usePluginFeedbackLive(pluginId: string, onUpdate: () => void) {
   useEffect(() => {
     const channel = supabase
-      .channel("plugin_feedback_live")
+      .channel("plugin-feedback")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "plugin_logs",
-          filter: `plugin_id=eq.${pluginId}`,
-        },
-        () => {
-          onUpdate();
+        { event: "*", schema: "public", table: "plugin_logs" },
+        (payload) => {
+          console.log("🔁 Plugin feedback changed:", payload);
+          setFeedback((prev) => [...prev, payload.new]);
         }
       )
       .subscribe();

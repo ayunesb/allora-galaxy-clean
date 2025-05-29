@@ -1,1 +1,3 @@
-{ "compilerOptions": { "target": "ESNext" } }
+{ "compilerOptions": {
+    "jsx": "react", "target": "ESNext" 
+} }
