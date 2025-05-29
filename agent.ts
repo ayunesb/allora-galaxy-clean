@@ -1,0 +1,1 @@
+// Placeholder for src/types/agent.ts

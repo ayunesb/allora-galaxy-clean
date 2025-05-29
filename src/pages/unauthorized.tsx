@@ -1,13 +1,19 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ShieldAlert, Home, ArrowLeft } from 'lucide-react';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ShieldAlert, Home, ArrowLeft } from "lucide-react";
 
 const Unauthorized: React.FC = () => {
   const navigate = useNavigate();
-  
+
   return (
     <div className="container mx-auto px-4 flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md">
@@ -22,22 +28,23 @@ const Unauthorized: React.FC = () => {
         </CardHeader>
         <CardContent className="text-center">
           <p className="text-muted-foreground">
-            This page requires higher privileges than your current role provides. 
-            Please contact your workspace administrator if you believe you should have access.
+            This page requires higher privileges than your current role
+            provides. Please contact your workspace administrator if you believe
+            you should have access.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
-          <Button 
-            variant="default" 
-            className="w-full" 
-            onClick={() => navigate('/')}
+          <Button
+            variant="default"
+            className="w-full"
+            onClick={() => navigate("/")}
           >
             <Home className="mr-2 h-4 w-4" />
             Go to Dashboard
           </Button>
-          <Button 
-            variant="outline" 
-            className="w-full" 
+          <Button
+            variant="outline"
+            className="w-full"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />

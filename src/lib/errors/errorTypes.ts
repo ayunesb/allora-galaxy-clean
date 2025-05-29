@@ -1,15 +1,14 @@
-
 /**
  * Error type definitions for the application's error handling system
  * Defines a hierarchy of error types for different scenarios
- * 
+ *
  * @module errorTypes
  */
 
 /**
  * Severity levels for errors, indicating business impact
  */
-export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type ErrorSeverity = "low" | "medium" | "high" | "critical";
 
 /**
  * Source of the error (where it originated)
@@ -20,7 +19,13 @@ export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
  * - external: Third-party service errors
  * - unknown: Source couldn't be determined
  */
-export type ErrorSource = 'client' | 'server' | 'database' | 'edge' | 'external' | 'unknown';
+export type ErrorSource =
+  | "client"
+  | "server"
+  | "database"
+  | "edge"
+  | "external"
+  | "unknown";
 
 /**
  * Base interface for error initialization options
@@ -28,28 +33,28 @@ export type ErrorSource = 'client' | 'server' | 'database' | 'edge' | 'external'
 export interface ErrorInitOptions {
   /** Human-readable error message */
   message: string;
-  
+
   /** Optional error code for categorization */
   code?: string;
-  
+
   /** Optional HTTP status code */
   status?: number;
-  
+
   /** Additional context data for debugging */
   context?: Record<string, any>;
-  
+
   /** User-friendly message to display */
   userMessage?: string;
-  
+
   /** Where the error originated */
   source?: ErrorSource;
-  
+
   /** Whether the operation can be retried */
   retry?: boolean;
-  
+
   /** Severity level of the error */
   severity?: ErrorSeverity;
-  
+
   /** Request ID for tracing */
   requestId?: string;
 }
@@ -57,7 +62,7 @@ export interface ErrorInitOptions {
 /**
  * Base error class for the application
  * All specialized errors inherit from this class
- * 
+ *
  * @class AlloraError
  * @extends Error
  * @example
@@ -69,10 +74,10 @@ export interface ErrorInitOptions {
  *   status: 500,
  *   severity: 'high'
  * });
- * 
+ *
  * // Converting to JSON for logging or transmission
  * const errorJson = error.toJSON();
- * 
+ *
  * // Reconstructing from JSON
  * const reconstructedError = AlloraError.fromJSON(errorJson);
  * ```
@@ -80,57 +85,57 @@ export interface ErrorInitOptions {
 export class AlloraError extends Error {
   /** Error code for categorization */
   code: string;
-  
+
   /** HTTP status code */
   status: number;
-  
+
   /** Context data for debugging */
   context: Record<string, any>;
-  
+
   /** User-friendly message that can be displayed in UI */
   userMessage: string;
-  
+
   /** Where the error originated */
   source: ErrorSource;
-  
+
   /** Whether the operation can be retried */
   retry: boolean;
-  
+
   /** Error severity level */
   severity: ErrorSeverity;
-  
+
   /** Timestamp when error occurred */
   timestamp: string;
-  
+
   /** Request ID for tracing */
   requestId?: string;
 
   /**
    * Create a new AlloraError
-   * 
+   *
    * @param {ErrorInitOptions} options - Error initialization options
    */
   constructor(options: ErrorInitOptions) {
     super(options.message);
-    
+
     this.name = this.constructor.name;
-    this.code = options.code || 'UNKNOWN_ERROR';
+    this.code = options.code || "UNKNOWN_ERROR";
     this.status = options.status || 500;
     this.context = options.context || {};
     this.userMessage = options.userMessage || options.message;
-    this.source = options.source || 'unknown';
+    this.source = options.source || "unknown";
     this.retry = options.retry !== undefined ? options.retry : true;
-    this.severity = options.severity || 'medium';
+    this.severity = options.severity || "medium";
     this.timestamp = new Date().toISOString();
     this.requestId = options.requestId;
-    
+
     // Ensure proper prototype chaining
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
   /**
    * Convert error to JSON for serialization
-   * 
+   *
    * @returns {Record<string, any>} JSON representation of the error
    */
   toJSON(): Record<string, any> {
@@ -145,13 +150,13 @@ export class AlloraError extends Error {
       retry: this.retry,
       severity: this.severity,
       timestamp: this.timestamp,
-      requestId: this.requestId
+      requestId: this.requestId,
     };
   }
 
   /**
    * Create AlloraError from JSON representation
-   * 
+   *
    * @param {Record<string, any>} json - JSON representation of the error
    * @returns {AlloraError} Reconstructed AlloraError instance
    */
@@ -165,9 +170,9 @@ export class AlloraError extends Error {
       source: json.source as ErrorSource,
       retry: json.retry,
       severity: json.severity as ErrorSeverity,
-      requestId: json.requestId
+      requestId: json.requestId,
     });
-    
+
     error.timestamp = json.timestamp;
     return error;
   }
@@ -176,7 +181,7 @@ export class AlloraError extends Error {
 /**
  * API-related errors
  * Used for errors that occur during API calls
- * 
+ *
  * @class ApiError
  * @extends AlloraError
  * @example
@@ -189,12 +194,14 @@ export class AlloraError extends Error {
  * ```
  */
 export class ApiError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'API_ERROR',
-      source: options.source || 'server',
-      severity: options.severity || 'medium'
+      message,
+      code: "API_ERROR",
+      status: 500,
+      context: details,
+      source: "server",
+      severity: "medium",
     });
   }
 }
@@ -202,7 +209,7 @@ export class ApiError extends AlloraError {
 /**
  * Authentication-related errors
  * Used for login failures, token validation issues, etc.
- * 
+ *
  * @class AuthError
  * @extends AlloraError
  * @example
@@ -214,13 +221,14 @@ export class ApiError extends AlloraError {
  * ```
  */
 export class AuthError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'AUTH_ERROR',
-      status: options.status || 401,
-      source: options.source || 'client',
-      severity: options.severity || 'high'
+      message,
+      code: "AUTH_ERROR",
+      status: 401,
+      context: details,
+      source: "client",
+      severity: "high",
     });
   }
 }
@@ -228,7 +236,7 @@ export class AuthError extends AlloraError {
 /**
  * Permission-related errors
  * Used when a user attempts an action they don't have permission for
- * 
+ *
  * @class PermissionError
  * @extends AlloraError
  * @example
@@ -240,13 +248,14 @@ export class AuthError extends AlloraError {
  * ```
  */
 export class PermissionError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'PERMISSION_ERROR',
-      status: options.status || 403,
-      source: options.source || 'server',
-      severity: options.severity || 'high'
+      message,
+      code: "PERMISSION_ERROR",
+      status: 403,
+      context: details,
+      source: "server",
+      severity: "high",
     });
   }
 }
@@ -254,7 +263,7 @@ export class PermissionError extends AlloraError {
 /**
  * Not found errors
  * Used when a requested resource cannot be found
- * 
+ *
  * @class NotFoundError
  * @extends AlloraError
  * @example
@@ -266,13 +275,14 @@ export class PermissionError extends AlloraError {
  * ```
  */
 export class NotFoundError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'NOT_FOUND',
-      status: options.status || 404,
-      source: options.source || 'server',
-      severity: options.severity || 'medium'
+      message,
+      code: "NOT_FOUND",
+      status: 404,
+      context: details,
+      source: "server",
+      severity: "medium",
     });
   }
 }
@@ -280,7 +290,7 @@ export class NotFoundError extends AlloraError {
 /**
  * Input validation errors
  * Used when user input fails validation
- * 
+ *
  * @class ValidationError
  * @extends AlloraError
  * @example
@@ -292,13 +302,14 @@ export class NotFoundError extends AlloraError {
  * ```
  */
 export class ValidationError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'VALIDATION_ERROR',
-      status: options.status || 400,
-      source: options.source || 'client',
-      severity: options.severity || 'medium'
+      message,
+      code: "VALIDATION_ERROR",
+      status: 400,
+      context: details,
+      source: "client",
+      severity: "medium",
     });
   }
 }
@@ -306,7 +317,7 @@ export class ValidationError extends AlloraError {
 /**
  * Database-related errors
  * Used for database connection issues, constraint violations, etc.
- * 
+ *
  * @class DatabaseError
  * @extends AlloraError
  * @example
@@ -319,12 +330,14 @@ export class ValidationError extends AlloraError {
  * ```
  */
 export class DatabaseError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'DATABASE_ERROR',
-      source: options.source || 'database',
-      severity: options.severity || 'high'
+      message,
+      code: "DATABASE_ERROR",
+      status: 500,
+      context: details,
+      source: "database",
+      severity: "high",
     });
   }
 }
@@ -332,7 +345,7 @@ export class DatabaseError extends AlloraError {
 /**
  * Network-related errors
  * Used for connectivity issues, timeouts, etc.
- * 
+ *
  * @class NetworkError
  * @extends AlloraError
  * @example
@@ -344,13 +357,15 @@ export class DatabaseError extends AlloraError {
  * ```
  */
 export class NetworkError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'NETWORK_ERROR',
-      source: options.source || 'client',
-      severity: options.severity || 'medium',
-      retry: options.retry !== undefined ? options.retry : true
+      message,
+      code: "NETWORK_ERROR",
+      status: 500,
+      context: details,
+      source: "client",
+      severity: "medium",
+      retry: true,
     });
   }
 }
@@ -358,7 +373,7 @@ export class NetworkError extends AlloraError {
 /**
  * Configuration errors
  * Used for missing or invalid configuration settings
- * 
+ *
  * @class ConfigError
  * @extends AlloraError
  * @example
@@ -371,13 +386,15 @@ export class NetworkError extends AlloraError {
  * ```
  */
 export class ConfigError extends AlloraError {
-  constructor(options: ErrorInitOptions) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super({
-      ...options,
-      code: options.code || 'CONFIG_ERROR',
-      source: options.source || 'server',
-      severity: options.severity || 'high',
-      retry: options.retry !== undefined ? options.retry : false
+      message,
+      code: "CONFIG_ERROR",
+      status: 500,
+      context: details,
+      source: "server",
+      severity: "high",
+      retry: false,
     });
   }
 }

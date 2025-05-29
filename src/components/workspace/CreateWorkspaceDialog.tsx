@@ -1,10 +1,15 @@
-
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CreateWorkspaceDialogProps {
   open: boolean;
@@ -12,8 +17,12 @@ interface CreateWorkspaceDialogProps {
   onWorkspaceCreated?: () => void;
 }
 
-export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }: CreateWorkspaceDialogProps) {
-  const [name, setName] = useState('');
+export function CreateWorkspaceDialog({
+  open,
+  onOpenChange,
+  onWorkspaceCreated,
+}: CreateWorkspaceDialogProps) {
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { success: notifySuccess, error: notifyError } = useToast();
 
@@ -24,20 +33,20 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
     setIsLoading(true);
     try {
       // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       notifySuccess("Workspace created", {
-        description: `Your workspace "${name}" has been created successfully.`
+        description: `Your workspace "${name}" has been created successfully.`,
       });
-      
-      setName('');
+
+      setName("");
       onOpenChange(false);
       if (onWorkspaceCreated) {
         onWorkspaceCreated();
       }
     } catch (error) {
       notifyError("Error", {
-        description: "Failed to create workspace. Please try again."
+        description: "Failed to create workspace. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -50,7 +59,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
         <DialogHeader>
           <DialogTitle>Create New Workspace</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -64,9 +73,14 @@ export function CreateWorkspaceDialog({ open, onOpenChange, onWorkspaceCreated }
               />
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={!name.trim() || isLoading}>

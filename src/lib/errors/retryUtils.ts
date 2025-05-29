@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 interface RetryOptions {
   maxRetries?: number;
@@ -14,7 +13,7 @@ interface RetryOptions {
 const circuitBreakerState = {
   failures: 0,
   lastFailure: 0,
-  status: 'closed' as 'closed' | 'open' | 'half-open',
+  status: "closed" as "closed" | "open" | "half-open",
   resetTimeout: 60000, // 1 minute
 };
 
@@ -23,7 +22,7 @@ const circuitBreakerState = {
  */
 export async function withRetry<T>(
   operation: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const {
     maxRetries = 3,
@@ -31,57 +30,63 @@ export async function withRetry<T>(
     maxDelay = 30000,
     backoffFactor = 2,
     onRetry,
-    retryCondition = () => true
+    retryCondition = () => true,
   } = options;
 
   let attempt = 0;
-  let lastError: Error;
+  // Fix: Ensure lastError is Error | null
+  let lastError: Error | null = null;
 
   while (attempt <= maxRetries) {
     try {
       // Check circuit breaker
-      if (circuitBreakerState.status === 'open') {
-        const timeSinceLastFailure = Date.now() - circuitBreakerState.lastFailure;
+      if (circuitBreakerState.status === "open") {
+        const timeSinceLastFailure =
+          Date.now() - circuitBreakerState.lastFailure;
         if (timeSinceLastFailure < circuitBreakerState.resetTimeout) {
-          throw new Error('Circuit breaker is open');
+          throw new Error("Circuit breaker is open");
         }
-        circuitBreakerState.status = 'half-open';
+        circuitBreakerState.status = "half-open";
       }
-      
+
       if (attempt > 0 && onRetry) {
-        const delay = Math.min(initialDelay * Math.pow(backoffFactor, attempt - 1), maxDelay);
+        const delay = Math.min(
+          initialDelay * Math.pow(backoffFactor, attempt - 1),
+          maxDelay,
+        );
         onRetry(attempt, delay);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
       const result = await operation();
-      
+
       // Reset circuit breaker on success
-      if (circuitBreakerState.status === 'half-open') {
-        circuitBreakerState.status = 'closed';
+      if (circuitBreakerState.status === "half-open") {
+        circuitBreakerState.status = "closed";
         circuitBreakerState.failures = 0;
       }
-      
+
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
-      
+
       // Update circuit breaker
-      if (circuitBreakerState.status === 'half-open') {
-        circuitBreakerState.status = 'open';
+      if (circuitBreakerState.status === "half-open") {
+        circuitBreakerState.status = "open";
         circuitBreakerState.lastFailure = Date.now();
-      } else if (circuitBreakerState.status === 'closed') {
+      } else if (circuitBreakerState.status === "closed") {
         circuitBreakerState.failures++;
-        if (circuitBreakerState.failures >= 5) { // Trip after 5 consecutive failures
-          circuitBreakerState.status = 'open';
+        if (circuitBreakerState.failures >= 5) {
+          // Trip after 5 consecutive failures
+          circuitBreakerState.status = "open";
           circuitBreakerState.lastFailure = Date.now();
         }
       }
-      
-      if (!retryCondition(error)) {
+
+      if (!retryCondition(error as Error)) {
         throw error;
       }
-      
+
       attempt++;
       if (attempt > maxRetries) {
         throw error;
@@ -95,9 +100,11 @@ export async function withRetry<T>(
 /**
  * Create a function with built-in retry capability
  */
-export function createRetryableFunction<T extends (...args: any[]) => Promise<any>>(
+export function createRetryableFunction<
+  T extends (...args: any[]) => Promise<any>,
+>(
   fn: T,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): (...args: Parameters<T>) => Promise<ReturnType<T>> {
   return (...args: Parameters<T>): Promise<ReturnType<T>> => {
     return withRetry(() => fn(...args), options);
@@ -115,8 +122,9 @@ export function getCircuitBreakerStatus() {
     timeSinceLastFailure: Date.now() - circuitBreakerState.lastFailure,
     resetTimeRemaining: Math.max(
       0,
-      circuitBreakerState.resetTimeout - (Date.now() - circuitBreakerState.lastFailure)
-    )
+      circuitBreakerState.resetTimeout -
+        (Date.now() - circuitBreakerState.lastFailure),
+    ),
   };
 }
 
@@ -124,7 +132,7 @@ export function getCircuitBreakerStatus() {
  * Reset circuit breaker
  */
 export function resetCircuitBreaker() {
-  circuitBreakerState.status = 'closed';
+  circuitBreakerState.status = "closed";
   circuitBreakerState.failures = 0;
   circuitBreakerState.lastFailure = 0;
   return getCircuitBreakerStatus();
@@ -136,32 +144,35 @@ export function resetCircuitBreaker() {
 export function useRetry() {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
-  
-  const retry = useCallback(async <T>(
-    operation: () => Promise<T>,
-    options: RetryOptions = {}
-  ): Promise<T> => {
-    setIsRetrying(true);
-    try {
-      const result = await withRetry(operation, {
-        ...options,
-        onRetry: (attempt) => {
-          setRetryCount(attempt);
-          if (options.onRetry) {
-            options.onRetry(attempt, 0);
-          }
-        }
-      });
-      return result;
-    } finally {
-      setIsRetrying(false);
-    }
-  }, []);
-  
+
+  const retry = useCallback(
+    async <T>(
+      operation: () => Promise<T>,
+      options: RetryOptions = {},
+    ): Promise<T> => {
+      setIsRetrying(true);
+      try {
+        const result = await withRetry(operation, {
+          ...options,
+          onRetry: (attempt) => {
+            setRetryCount(attempt);
+            if (options.onRetry) {
+              options.onRetry(attempt, 0);
+            }
+          },
+        });
+        return result;
+      } finally {
+        setIsRetrying(false);
+      }
+    },
+    [],
+  );
+
   return {
     retry,
     retryCount,
     isRetrying,
-    resetRetry: () => setRetryCount(0)
+    resetRetry: () => setRetryCount(0),
   };
 }

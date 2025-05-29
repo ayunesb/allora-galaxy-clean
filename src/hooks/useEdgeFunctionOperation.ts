@@ -1,11 +1,10 @@
-
-import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { 
-  processEdgeResponse, 
-  handleEdgeError 
-} from '@/lib/errors/clientErrorHandler';
+import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  processEdgeResponse,
+  handleEdgeError,
+} from "@/lib/errors/clientErrorHandler";
 
 interface UseEdgeFunctionOperationOptions<T> {
   functionName: string;
@@ -35,16 +34,16 @@ interface EdgeFunctionState<T> {
  * Hook for handling edge function operations with consistent loading and error states
  */
 export function useEdgeFunctionOperation<T = any, P = any>(
-  options: UseEdgeFunctionOperationOptions<T>
+  options: UseEdgeFunctionOperationOptions<T>,
 ) {
   const {
     functionName,
     showLoadingToast = false,
     showSuccessToast = false,
     showErrorToast = true,
-    loadingMessage = 'Processing...',
-    successMessage = 'Operation successful',
-    errorMessage = 'Operation failed',
+    loadingMessage = "Processing...",
+    successMessage = "Operation successful",
+    errorMessage = "Operation failed",
     onSuccess,
     onError,
     maxRetries = 3,
@@ -67,16 +66,16 @@ export function useEdgeFunctionOperation<T = any, P = any>(
   const execute = useCallback(
     async (params?: P): Promise<T | null> => {
       let toastId;
-      
+
       setLastParams(params);
-      
-      setState(prev => ({ 
-        ...prev, 
+
+      setState((prev) => ({
+        ...prev,
         isLoading: true,
         isSuccess: false,
         isError: false,
         error: null,
-        isRetrying: prev.retryCount > 0
+        isRetrying: prev.retryCount > 0,
       }));
 
       if (showLoadingToast) {
@@ -87,21 +86,20 @@ export function useEdgeFunctionOperation<T = any, P = any>(
         const response = await supabase.functions.invoke(functionName, {
           body: params || {},
         });
-        
+
         // Create an adapter to convert FunctionsResponse to Response
-        const responseAdapter = new Response(
-          JSON.stringify(response.data), 
-          { status: response.error ? 400 : 200 }
-        );
-        
+        const responseAdapter = new Response(JSON.stringify(response.data), {
+          status: response.error ? 400 : 200,
+        });
+
         // Add Supabase error to response if it exists
         if (response.error) {
-          Object.defineProperty(responseAdapter, 'supabaseError', {
+          Object.defineProperty(responseAdapter, "supabaseError", {
             value: response.error,
-            writable: false
+            writable: false,
           });
         }
-        
+
         const result = await processEdgeResponse<T>(responseAdapter);
 
         setState({
@@ -129,7 +127,7 @@ export function useEdgeFunctionOperation<T = any, P = any>(
 
         return result;
       } catch (error) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           error,
           isLoading: false,
@@ -146,7 +144,7 @@ export function useEdgeFunctionOperation<T = any, P = any>(
           showToast: showErrorToast,
           fallbackMessage: errorMessage,
           retryHandler: retry,
-          errorCallback: onError
+          errorCallback: onError,
         });
 
         return null;
@@ -161,8 +159,8 @@ export function useEdgeFunctionOperation<T = any, P = any>(
       showSuccessToast,
       showErrorToast,
       onSuccess,
-      onError
-    ]
+      onError,
+    ],
   );
 
   const retry = useCallback(async () => {
@@ -171,14 +169,14 @@ export function useEdgeFunctionOperation<T = any, P = any>(
       return null;
     }
 
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       retryCount: prev.retryCount + 1,
       isRetrying: true,
     }));
 
     // Add a small delay before retrying
-    await new Promise(resolve => setTimeout(resolve, retryDelay));
+    await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
     return execute(lastParams);
   }, [lastParams, state.retryCount, maxRetries, retryDelay, execute]);

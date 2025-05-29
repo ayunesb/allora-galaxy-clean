@@ -1,6 +1,5 @@
-
-import { RequireAuth } from '@/components/auth/RequireAuth';
-import EvolutionDashboard from '@/components/evolution/EvolutionDashboard';
+import { RequireAuth } from "@/components/auth/RequireAuth";
+import EvolutionDashboard from "@/components/evolution/EvolutionDashboard";
 
 const EvolutionPage = () => {
   return (

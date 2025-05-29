@@ -1,12 +1,11 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
-import { EdgeFunctionError } from './EdgeFunctionErrorHandler';
-import { LoadingIndicator } from '@/components/ui/loading-indicator';
-import { cn } from '@/lib/utils';
-import RetryFeedback from '@/components/ui/retry-feedback';
-import { reportApiError } from '@/lib/telemetry/errorReporter';
-import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from "react";
+import { EdgeFunctionError } from "./EdgeFunctionErrorHandler";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { cn } from "@/lib/utils";
+import RetryFeedback from "@/components/ui/retry-feedback";
+import { reportApiError } from "@/lib/telemetry/errorReporter";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw } from "lucide-react";
 
 export interface EdgeFunctionHandlerProps {
   isLoading: boolean;
@@ -35,15 +34,15 @@ export const EdgeFunctionHandler: React.FC<EdgeFunctionHandlerProps> = ({
   children,
   onRetry,
   showDetails = false,
-  loadingText = 'Processing...',
+  loadingText = "Processing...",
   className,
   loadingComponent,
   retryCount = 0,
   maxRetries = 3,
   isRetrying = false,
-  functionName = 'unknown',
+  functionName = "unknown",
   autoRetry = false,
-  fallback
+  fallback,
 }) => {
   const [autoRetryCount, setAutoRetryCount] = useState(0);
   const [autoRetrying, setAutoRetrying] = useState(false);
@@ -55,11 +54,11 @@ export const EdgeFunctionHandler: React.FC<EdgeFunctionHandlerProps> = ({
       reportApiError(functionName, error, undefined, {
         context: {
           retryCount: retryCount + autoRetryCount,
-          component: 'EdgeFunctionHandler',
-          autoRetry
-        }
-      }).catch(reportError => {
-        console.error('Failed to report edge function error:', reportError);
+          component: "EdgeFunctionHandler",
+          autoRetry,
+        },
+      }).catch((reportError) => {
+        console.error("Failed to report edge function error:", reportError);
       });
     }
   }, [error, functionName, retryCount, autoRetryCount, autoRetrying]);
@@ -67,41 +66,46 @@ export const EdgeFunctionHandler: React.FC<EdgeFunctionHandlerProps> = ({
   // Handle auto retry with exponential backoff
   const handleAutoRetry = useCallback(async () => {
     if (!onRetry || autoRetryCount >= maxRetries || !error) return;
-    
+
     const backoffMs = Math.min(1000 * Math.pow(2, autoRetryCount), 10000);
     setAutoRetrying(true);
     setCountdown(Math.floor(backoffMs / 1000));
-    
+
     // Update countdown timer
     const intervalId = setInterval(() => {
-      setCountdown(prev => (prev <= 1 ? 0 : prev - 1));
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
-    
+
     // Wait for backoff period
-    await new Promise(resolve => setTimeout(resolve, backoffMs));
+    await new Promise((resolve) => setTimeout(resolve, backoffMs));
     clearInterval(intervalId);
-    
-    setAutoRetryCount(count => count + 1);
+
+    setAutoRetryCount((count) => count + 1);
     setAutoRetrying(false);
-    
+
     // Execute retry
     onRetry();
   }, [onRetry, autoRetryCount, maxRetries, error]);
-  
+
   // Auto retry if enabled
   useEffect(() => {
     if (autoRetry && error && !autoRetrying && autoRetryCount < maxRetries) {
       handleAutoRetry();
     }
-  }, [autoRetry, error, autoRetrying, autoRetryCount, maxRetries, handleAutoRetry]);
+  }, [
+    autoRetry,
+    error,
+    autoRetrying,
+    autoRetryCount,
+    maxRetries,
+    handleAutoRetry,
+  ]);
 
   // Loading state rendering
   if (isLoading) {
     return (
       <div className={cn("relative", className)}>
-        {loadingComponent || (
-          <LoadingIndicator text={loadingText} />
-        )}
+        {loadingComponent || <LoadingIndicator text={loadingText} />}
       </div>
     );
   }
@@ -115,7 +119,7 @@ export const EdgeFunctionHandler: React.FC<EdgeFunctionHandlerProps> = ({
 
     const totalRetryCount = retryCount + autoRetryCount;
     const totalRetrying = isRetrying || autoRetrying;
-    
+
     return (
       <div className={cn("space-y-4", className)}>
         {(totalRetryCount > 0 || totalRetrying) && (
@@ -126,7 +130,7 @@ export const EdgeFunctionHandler: React.FC<EdgeFunctionHandlerProps> = ({
               isRetrying={totalRetrying}
               onRetry={onRetry}
             />
-            
+
             {autoRetrying && countdown > 0 && (
               <div className="flex items-center mt-2 text-xs">
                 <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
@@ -135,18 +139,18 @@ export const EdgeFunctionHandler: React.FC<EdgeFunctionHandlerProps> = ({
             )}
           </div>
         )}
-        
+
         <EdgeFunctionError
           error={error}
           retry={onRetry}
           showDetails={showDetails}
         />
-        
+
         {autoRetry && autoRetryCount >= maxRetries && onRetry && (
           <div className="flex justify-center">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setAutoRetryCount(0);
                 onRetry();

@@ -1,17 +1,14 @@
-
-import { z } from 'zod';
-
 /**
  * Represents the severity level of a log entry
  * Used to categorize logs by their importance
  */
-export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
+export type LogLevel = "info" | "warning" | "error" | "debug";
 
 /**
  * Represents the business impact severity of a log event
  * Used for prioritization and alerting
  */
-export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type LogSeverity = "low" | "medium" | "high" | "critical";
 
 /**
  * Interface for the system log data structure
@@ -21,9 +18,9 @@ export interface SystemLog {
   /** Unique identifier for the log entry */
   id: string;
   /** Tenant identifier for multi-tenant isolation */
-  tenant_id: string;
+  tenant_id?: string;
   /** Severity level of the log */
-  level: LogLevel;
+  level?: LogLevel;
   /** Primary log message */
   message: string;
   /** Optional detailed description */
@@ -33,13 +30,21 @@ export interface SystemLog {
   /** Additional contextual data as key-value pairs */
   details?: Record<string, any>;
   /** ISO timestamp when the log was created */
-  created_at: string;
+  created_at?: string;
   /** Business impact severity */
-  severity?: LogSeverity;
+  severity?: "low" | "medium" | "high" | "critical";
   /** Optional request ID for tracing related logs */
   request_id?: string;
   /** ISO timestamp alias for compatibility with different systems */
   timestamp?: string;
+  /** Error message for the log */
+  error_message: string;
+  /** Type of error for the log */
+  error_type: string;
+  /** Indicates if the error is user-facing */
+  user_facing?: boolean;
+  /** Optional user ID associated with the log */
+  user_id?: string;
 }
 
 /**
@@ -49,32 +54,37 @@ export interface SystemLog {
 export interface LogFilters {
   /** Text search filter applied to log message and description */
   search?: string;
+  /** Text search filter applied to log message and description */
+  searchTerm?: string;
   /** Filter by specific log levels */
   level?: string[];
   /** Filter by system modules */
   module?: string[];
-  /** Filter by business impact severity */
-  severity?: string[];
-  /** Filter logs within a date range */
-  dateRange?: {
-    from: Date;
-    to?: Date;
-  };
+  /** Filter by tenant ID */
+  tenant_id?: string;
+  /** Filter logs from a specific start date */
+  fromDate?: string;
+  /** Filter logs to a specific end date */
+  toDate?: string;
+  /** Filter logs starting from this date */
+  startDate?: string;
+  /** Filter logs ending on this date */
+  endDate?: string;
+  /** Filter logs from this date */
+  dateFrom?: string;
+  /** Filter logs to this date */
+  dateTo?: string;
 }
 
 /**
- * Zod schema for validating log filter inputs
- * Ensures proper data types for log filtering
- */
-export const LogFiltersSchema = z.object({
-  search: z.string().optional(),
-  level: z.array(z.string()).optional(),
   module: z.array(z.string()).optional(),
   severity: z.array(z.string()).optional(),
-  dateRange: z.object({
-    from: z.date(),
-    to: z.date().optional(),
-  }).optional(),
+  dateRange: z
+    .object({
+      from: z.date(),
+      to: z.date().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -151,4 +161,9 @@ export interface DateRange {
 /**
  * Type for system event classification
  */
-export type SystemEventType = 'info' | 'warning' | 'error' | 'audit' | 'security';
+export type SystemEventType =
+  | "info"
+  | "warning"
+  | "error"
+  | "audit"
+  | "security";

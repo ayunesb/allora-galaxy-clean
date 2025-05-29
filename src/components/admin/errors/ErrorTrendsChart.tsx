@@ -1,22 +1,19 @@
+import React, { useMemo } from "react";
+import type { SystemLog } from "@/types/logs";
+import { prepareErrorTrendsData } from "./utils/chartDataUtils";
+import ChartLoadingState from "./charts/ChartLoadingState";
+import { ErrorRateChart } from "./charts/ErrorRateChart";
+import { ErrorSeverityChart } from "./charts/ErrorSeverityChart";
+import { FullErrorChart } from "./charts/FullErrorChart";
 
-import React, { useMemo } from 'react';
-import type { SystemLog } from '@/types/logs';
-import { prepareErrorTrendsData } from './utils/chartDataUtils';
-import ChartLoadingState from './charts/ChartLoadingState';
-import { ErrorRateChart } from './charts/ErrorRateChart';
-import { ErrorSeverityChart } from './charts/ErrorSeverityChart';
-import { FullErrorChart } from './charts/FullErrorChart';
-
-interface ErrorTrendsChartProps {
-  logs: SystemLog[];
-  dateRange: { from: Date; to: Date | undefined };
+export interface ErrorTrendsChartProps {
+  data: any;
   isLoading: boolean;
-  type?: 'rate' | 'severity' | 'full';
 }
 
 /**
  * ErrorTrendsChart - A component that wraps different chart types for error trends
- * 
+ *
  * @component
  * @param {Object} props - Component props
  * @param {SystemLog[]} props.logs - System logs to analyze
@@ -28,23 +25,26 @@ const ErrorTrendsChart: React.FC<ErrorTrendsChartProps> = ({
   logs,
   dateRange,
   isLoading,
-  type = 'full'
+  type = "full",
 }) => {
   // Process chart data
-  const chartData = useMemo(() => prepareErrorTrendsData(logs, dateRange), [logs, dateRange]);
-  
+  const chartData = useMemo(
+    () => prepareErrorTrendsData(logs, dateRange),
+    [logs, dateRange],
+  );
+
   // Display loading state
   if (isLoading) {
     return <ChartLoadingState />;
   }
-  
+
   // Return appropriate chart type
   switch (type) {
-    case 'rate':
+    case "rate":
       return <ErrorRateChart data={chartData} isLoading={false} />;
-    case 'severity':
+    case "severity":
       return <ErrorSeverityChart data={chartData} isLoading={false} />;
-    case 'full':
+    case "full":
     default:
       return <FullErrorChart data={chartData} isLoading={false} />;
   }

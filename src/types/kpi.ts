@@ -1,4 +1,3 @@
-
 export interface KPI {
   id: string;
   name: string;
@@ -12,17 +11,11 @@ export interface KPI {
   updated_at: string;
 }
 
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type TrendDirection = "up" | "down" | "flat";
 
 export interface KpiTrend {
-  kpi_id: string;
-  name: string;
-  current_value: number;
-  previous_value: number;
-  change_percentage: number;
-  direction: TrendDirection;
-  dates: string[];
-  values: number[];
+  kpiId: string;
+  trendValue: number;
 }
 
 export interface KpiCategory {

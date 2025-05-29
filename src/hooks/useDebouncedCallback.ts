@@ -1,5 +1,4 @@
-
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from "react";
 
 /**
  * Hook for debouncing function calls
@@ -9,7 +8,7 @@ import { useCallback, useState } from 'react';
  */
 export const useDebouncedCallback = <T extends (...args: any[]) => any>(
   callback: T,
-  delay: number
+  delay: number,
 ) => {
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | undefined>();
 
@@ -21,10 +20,10 @@ export const useDebouncedCallback = <T extends (...args: any[]) => any>(
       setTimeoutId(
         setTimeout(() => {
           callback(...args);
-        }, delay)
+        }, delay),
       );
     },
-    [callback, delay, timeoutId]
+    [callback, delay, timeoutId],
   );
 
   return debouncedCallback;

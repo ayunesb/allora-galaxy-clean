@@ -1,4 +1,3 @@
-
 // Any code specific to this file - fix TypeScript error by using the HubSpotCompany type
 interface HubSpotCompany {
   id: string;
@@ -18,7 +17,7 @@ const transformCompany = (company: HubSpotCompany) => {
     name: company.properties.name,
     domain: company.properties.domain,
     industry: company.properties.industry,
-    description: company.properties.description
+    description: company.properties.description,
   };
 };
 

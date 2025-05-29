@@ -1,9 +1,8 @@
-
-import React from 'react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React from "react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface EdgeFunctionErrorProps {
   error: Error | { message: string; status?: number; details?: any } | null;
@@ -12,13 +11,20 @@ export interface EdgeFunctionErrorProps {
 
 export const EdgeFunctionErrorDisplay: React.FC<EdgeFunctionErrorProps> = ({
   error,
-  onRetry
+  onRetry,
 }) => {
   if (!error) return null;
 
-  const errorMessage = typeof error === 'object' && error !== null ? error.message : String(error);
-  const errorStatus = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
-  const errorDetails = typeof error === 'object' && error !== null && 'details' in error ? error.details : undefined;
+  const errorMessage =
+    typeof error === "object" && error !== null ? error.message : String(error);
+  const errorStatus =
+    typeof error === "object" && error !== null && "status" in error
+      ? error.status
+      : undefined;
+  const errorDetails =
+    typeof error === "object" && error !== null && "details" in error
+      ? error.details
+      : undefined;
 
   return (
     <Alert variant="destructive" className="mb-4">
@@ -30,7 +36,9 @@ export const EdgeFunctionErrorDisplay: React.FC<EdgeFunctionErrorProps> = ({
         <p>{errorMessage}</p>
         {errorDetails && (
           <ScrollArea className="h-[200px] rounded-md border p-4 bg-background/50 mt-2">
-            <pre className="text-xs">{JSON.stringify(errorDetails, null, 2)}</pre>
+            <pre className="text-xs">
+              {JSON.stringify(errorDetails, null, 2)}
+            </pre>
           </ScrollArea>
         )}
         {onRetry && (

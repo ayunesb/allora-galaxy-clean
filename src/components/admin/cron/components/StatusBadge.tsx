@@ -1,33 +1,41 @@
-
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import React from "react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface StatusBadgeProps {
   status: string;
   errorMessage?: string | null;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, errorMessage }) => {
-  let variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'success' = 'default';
-  
+export const StatusBadge: React.FC<StatusBadgeProps> = ({
+  status,
+  errorMessage,
+}) => {
+  let variant: "default" | "destructive" | "outline" | "secondary" | "success" =
+    "default";
+
   switch (status) {
-    case 'completed':
-      variant = 'success';
+    case "completed":
+      variant = "success";
       break;
-    case 'failed':
-      variant = 'destructive';
+    case "failed":
+      variant = "destructive";
       break;
-    case 'started':
-      variant = 'secondary';
+    case "started":
+      variant = "secondary";
       break;
-    case 'pending':
-      variant = 'outline';
+    case "pending":
+      variant = "outline";
       break;
     default:
-      variant = 'default';
+      variant = "default";
   }
-  
+
   if (errorMessage) {
     return (
       <TooltipProvider>
@@ -42,6 +50,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, errorMessage }
       </TooltipProvider>
     );
   }
-  
+
   return <Badge variant={variant}>{status}</Badge>;
 };

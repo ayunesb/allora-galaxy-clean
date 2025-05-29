@@ -1,6 +1,5 @@
-
 // Mock implementation of Supabase client for testing
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 // Create a comprehensive mock of the Supabase client
 export const supabase = {
@@ -10,8 +9,8 @@ export const supabase = {
       data: {
         session: {
           user: {
-            id: 'mock-user-id',
-            email: 'test@example.com',
+            id: "mock-user-id",
+            email: "test@example.com",
           },
         },
       },
@@ -65,7 +64,11 @@ export const supabase = {
       download: vi.fn(),
       remove: vi.fn(),
       list: vi.fn(),
-      getPublicUrl: vi.fn().mockImplementation(() => ({ data: { publicUrl: 'https://mock-url.com/image.png' } })),
+      getPublicUrl: vi
+        .fn()
+        .mockImplementation(() => ({
+          data: { publicUrl: "https://mock-url.com/image.png" },
+        })),
     })),
   },
   channel: vi.fn().mockImplementation(() => ({

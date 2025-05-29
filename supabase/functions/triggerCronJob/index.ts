@@ -1,6 +1,9 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
+
+// Deno deploy functions should use remote URLs for imports and .ts extensions.
+// If you are running locally with Node, you will get errors for these imports.
+// To run/test locally, use Deno, not Node, or set up a Deno-compatible environment.
 
 // CORS Headers
 const corsHeaders = {

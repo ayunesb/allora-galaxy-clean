@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Chart } from '@/components/ui/chart';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Chart } from "@/components/ui/chart";
 
 interface ErrorImpactData {
   name: string;
@@ -15,7 +14,7 @@ interface ErrorImpactAnalysisProps {
 
 const ErrorImpactAnalysis: React.FC<ErrorImpactAnalysisProps> = ({
   data,
-  isLoading = false
+  isLoading = false,
 }) => {
   if (isLoading) {
     return (
@@ -47,8 +46,11 @@ const ErrorImpactAnalysis: React.FC<ErrorImpactAnalysisProps> = ({
               data={data}
               dataKeys={["value"]} // Changed from dataKey to dataKeys array
               xKey="name" // Changed from nameKey to xKey
-              colors={['#f43f5e', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b']}
-              tooltipFormatter={(value: number) => [`${value} errors`, 'Errors']}
+              colors={["#f43f5e", "#8b5cf6", "#3b82f6", "#10b981", "#f59e0b"]}
+              tooltipFormatter={(value: number) => [
+                `${value} errors`,
+                "Errors",
+              ]}
             />
           </div>
         )}

@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Options for the useRoleCheck hook
@@ -16,32 +15,32 @@ export interface UseRoleCheckOptions {
 
 /**
  * A hook that checks if the current user has any of the specified roles
- * 
+ *
  * This hook verifies user permissions based on their assigned roles,
  * either globally or within a specific tenant. It handles loading states
  * and caches the result for performance.
- * 
+ *
  * @param options Configuration options for the role check
  * @returns Object containing access status, loading state, and user roles
- * 
+ *
  * @example
  * ```tsx
  * // Check for global admin access
  * const { hasAccess, loading } = useRoleCheck({
  *   roles: ['admin', 'super_admin']
  * });
- * 
+ *
  * // Check for tenant-specific roles
  * const { hasAccess, loading, userRoles } = useRoleCheck({
  *   roles: ['editor', 'owner'],
  *   tenantScoped: true,
  *   tenantId: 'tenant-123'
  * });
- * 
+ *
  * if (loading) {
  *   return <LoadingSpinner />;
  * }
- * 
+ *
  * return hasAccess ? <ProtectedContent /> : <AccessDenied />;
  * ```
  */
@@ -71,25 +70,25 @@ export function useRoleCheck(options: UseRoleCheckOptions = {}) {
         // If tenant scoped, we need to check the user's role for that tenant
         if (options.tenantScoped) {
           const tenantId = options.tenantId;
-          
+
           if (!tenantId) {
-            console.error('Tenant scoped role check requires a tenantId');
+            console.error("Tenant scoped role check requires a tenantId");
             setHasAccess(false);
             return;
           }
-          
+
           // Get the user's role for this tenant
           const { data: roleData } = await supabase
-            .from('tenant_user_roles')
-            .select('role')
-            .eq('tenant_id', tenantId)
-            .eq('user_id', session.user.id)
+            .from("tenant_user_roles")
+            .select("role")
+            .eq("tenant_id", tenantId)
+            .eq("user_id", session.user.id)
             .single();
-          
+
           if (roleData) {
             const userRole = roleData.role;
             setUserRoles([userRole]);
-            
+
             // Check if the user's role is in the allowed roles
             setHasAccess(options.roles.includes(userRole));
           } else {
@@ -97,14 +96,14 @@ export function useRoleCheck(options: UseRoleCheckOptions = {}) {
           }
         } else {
           // Global role check from user's claims
-          const userRole = session.user.app_metadata?.role || 'user';
+          const userRole = session.user.app_metadata?.role || "user";
           setUserRoles([userRole]);
-          
+
           // Check if the user's role is in the allowed roles
           setHasAccess(options.roles.includes(userRole));
         }
       } catch (error) {
-        console.error('Error checking user role:', error);
+        console.error("Error checking user role:", error);
         setHasAccess(false);
       } finally {
         setLoading(false);

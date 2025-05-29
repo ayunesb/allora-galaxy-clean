@@ -1,7 +1,6 @@
-
-import { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WebhookAlert {
   id: string;
@@ -18,7 +17,9 @@ interface UseWebhookAlertsResult {
   alerts: WebhookAlert[] | null;
   loading: boolean;
   error: string | null;
-  createAlert: (alert: Omit<WebhookAlert, 'id' | 'created_at'>) => Promise<void>;
+  createAlert: (
+    alert: Omit<WebhookAlert, "id" | "created_at">,
+  ) => Promise<void>;
   updateAlert: (alert: WebhookAlert) => Promise<void>;
   deleteAlert: (id: string) => Promise<void>;
   toggleActive: (id: string, isActive: boolean) => Promise<void>;
@@ -35,9 +36,9 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
     setError(null);
     try {
       const { data, error } = await supabase
-        .from('webhook_alerts')
-        .select('*')
-        .eq('tenant_id', tenantId);
+        .from("webhook_alerts")
+        .select("*")
+        .eq("tenant_id", tenantId);
 
       if (error) {
         throw new Error(error.message);
@@ -63,20 +64,22 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
     }
   }, [tenantId]);
 
-  const createAlert = async (alert: Omit<WebhookAlert, 'id' | 'created_at'>) => {
+  const createAlert = async (
+    alert: Omit<WebhookAlert, "id" | "created_at">,
+  ) => {
     setLoading(true);
     setError(null);
     try {
       const { data, error } = await supabase
-        .from('webhook_alerts')
+        .from("webhook_alerts")
         .insert([{ ...alert }])
-        .select('*');
+        .select("*");
 
       if (error) {
         throw new Error(error.message);
       }
 
-      setAlerts(prevAlerts => [...(prevAlerts || []), data[0]]);
+      setAlerts((prevAlerts) => [...(prevAlerts || []), data[0]]);
       toast({
         title: "Alert created successfully",
       });
@@ -97,19 +100,19 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
     setError(null);
     try {
       const { data, error } = await supabase
-        .from('webhook_alerts')
+        .from("webhook_alerts")
         .update({ ...alert })
-        .eq('id', alert.id)
-        .select('*');
+        .eq("id", alert.id)
+        .select("*");
 
       if (error) {
         throw new Error(error.message);
       }
 
-      setAlerts(prevAlerts =>
-        (prevAlerts || []).map(existingAlert =>
-          existingAlert.id === alert.id ? data[0] : existingAlert
-        )
+      setAlerts((prevAlerts) =>
+        (prevAlerts || []).map((existingAlert) =>
+          existingAlert.id === alert.id ? data[0] : existingAlert,
+        ),
       );
       toast({
         title: "Alert updated successfully",
@@ -131,15 +134,17 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
     setError(null);
     try {
       const { error } = await supabase
-        .from('webhook_alerts')
+        .from("webhook_alerts")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      setAlerts(prevAlerts => (prevAlerts || []).filter(alert => alert.id !== id));
+      setAlerts((prevAlerts) =>
+        (prevAlerts || []).filter((alert) => alert.id !== id),
+      );
       toast({
         title: "Alert deleted successfully",
       });
@@ -160,22 +165,22 @@ export const useWebhookAlerts = (tenantId: string): UseWebhookAlertsResult => {
     setError(null);
     try {
       const { data, error } = await supabase
-        .from('webhook_alerts')
+        .from("webhook_alerts")
         .update({ is_active: isActive })
-        .eq('id', id)
-        .select('*');
+        .eq("id", id)
+        .select("*");
 
       if (error) {
         throw new Error(error.message);
       }
 
-      setAlerts(prevAlerts =>
-        (prevAlerts || []).map(existingAlert =>
-          existingAlert.id === id ? data[0] : existingAlert
-        )
+      setAlerts((prevAlerts) =>
+        (prevAlerts || []).map((existingAlert) =>
+          existingAlert.id === id ? data[0] : existingAlert,
+        ),
       );
       toast({
-        title: `Alert ${isActive ? 'activated' : 'deactivated'}`,
+        title: `Alert ${isActive ? "activated" : "deactivated"}`,
       });
     } catch (err: any) {
       setError(err.message);

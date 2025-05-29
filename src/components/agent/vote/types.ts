@@ -1,5 +1,4 @@
-
-import { VoteType } from '@/types/shared';
+import { VoteType } from "@/types/shared";
 
 export interface AgentVoteProps {
   agentVersionId: string;
@@ -11,7 +10,7 @@ export interface AgentVoteProps {
 export interface VoteButtonProps {
   count: number;
   isActive: boolean;
-  type: 'up' | 'down';
+  type: "up" | "down";
   onClick: () => void;
   disabled: boolean;
 }
@@ -34,7 +33,7 @@ export interface UseAgentVoteParams {
 export interface UseAgentVoteReturn {
   upvotes: number;
   downvotes: number;
-  userVote: 'up' | 'down' | null;
+  userVote: "up" | "down" | null;
   comment: string;
   setComment: (comment: string) => void;
   showComment: boolean;

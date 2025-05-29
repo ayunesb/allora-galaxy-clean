@@ -1,0 +1,1 @@
+// Voting data table component

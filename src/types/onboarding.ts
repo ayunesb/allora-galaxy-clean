@@ -1,6 +1,11 @@
-
 // Onboarding step type
-export type OnboardingStep = 'welcome' | 'company-info' | 'persona' | 'additional-info' | 'strategy-generation' | 'completed';
+export type OnboardingStep =
+  | "welcome"
+  | "company-info"
+  | "persona"
+  | "additional-info"
+  | "strategy-generation"
+  | "completed";
 
 // Define persona type
 export interface PersonaProfile {
@@ -63,7 +68,7 @@ export interface OnboardingStoreActions {
 export type OnboardingStore = OnboardingState & OnboardingStoreActions;
 
 // Legacy action type - for compatibility
-export type OnboardingAction = 
+export type OnboardingAction =
   | { type: "SET_STEP"; payload: OnboardingStep }
   | { type: "UPDATE_DATA"; payload: Partial<OnboardingFormData> }
   | { type: "SET_LOADING"; payload: boolean }

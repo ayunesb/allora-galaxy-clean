@@ -1,4 +1,3 @@
-
 export interface CookiePreferencesState {
   necessary: boolean;
   analytics: boolean;

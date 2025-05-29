@@ -1,6 +1,9 @@
-
-import React from 'react';
-import { ScatterPlot, ScatterDataPoint, ExecutionEmptyState } from '@/components/plugins/execution';
+import React from "react";
+import {
+  ScatterPlot,
+  ScatterDataPoint,
+  ExecutionEmptyState,
+} from "@/components/plugins/execution";
 
 interface RoiExecutionTabProps {
   scatterData: ScatterDataPoint[];

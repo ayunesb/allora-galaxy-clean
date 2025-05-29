@@ -1,8 +1,7 @@
-
-import { WorkspaceOverview } from './dashboard/WorkspaceOverview';
-import { UserManagementCard } from './dashboard/UserManagementCard';
-import { CronJobsCard } from './dashboard/CronJobsCard';
-import { useUserData } from './dashboard/useUserData';
+import { WorkspaceOverview } from "./dashboard/WorkspaceOverview";
+import { UserManagementCard } from "./dashboard/UserManagementCard";
+import { CronJobsCard } from "./dashboard/CronJobsCard";
+import { useUserData } from "./dashboard/useUserData";
 
 const AdminDashboardContent = () => {
   const {
@@ -11,12 +10,12 @@ const AdminDashboardContent = () => {
     searchQuery,
     handleSearchChange,
     handleUpdateRole,
-    handleRemoveUser
+    handleRemoveUser,
   } = useUserData();
 
   const handleOpenInviteDialog = () => {
     // Logic to open invite dialog
-    console.log('Open invite dialog');
+    console.log("Open invite dialog");
   };
 
   return (
@@ -26,7 +25,7 @@ const AdminDashboardContent = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <WorkspaceOverview />
 
-        <UserManagementCard 
+        <UserManagementCard
           users={users}
           loading={loading}
           searchQuery={searchQuery}

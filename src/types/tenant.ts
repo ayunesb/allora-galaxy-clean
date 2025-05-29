@@ -1,6 +1,5 @@
-
 // Tenant related types
-import { UserRole } from './user';
+import { UserRole } from "./user";
 
 export interface Tenant {
   id: string;

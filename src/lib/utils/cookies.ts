@@ -1,4 +1,3 @@
-
 /**
  * Cookie management utilities
  */
@@ -9,11 +8,11 @@
  * @returns Parsed cookie value or null if not found
  */
 export function getCookie<T = any>(name: string): T | null {
-  if (typeof document === 'undefined') return null;
-  
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split('=');
+  if (typeof document === "undefined") return null;
+
+  const cookies = document.cookie.split(";");
+  for (const cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split("=");
     if (cookieName === name) {
       try {
         return JSON.parse(decodeURIComponent(cookieValue)) as T;
@@ -36,22 +35,25 @@ export function setCookie(
   name: string,
   value: any,
   maxAge: number = 86400, // 1 day default
-  path: string = '/',
-  secure: boolean = true
+  path: string = "/",
+  secure: boolean = true,
 ): void {
-  if (typeof document === 'undefined') return;
-  
-  const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  if (typeof document === "undefined") return;
+
+  const stringValue =
+    typeof value === "object" ? JSON.stringify(value) : String(value);
   const encodedValue = encodeURIComponent(stringValue);
-  
+
   const cookieOptions = [
     `${name}=${encodedValue}`,
     `max-age=${maxAge}`,
     `path=${path}`,
-    secure ? 'secure' : '',
-    'SameSite=Lax'
-  ].filter(Boolean).join('; ');
-  
+    secure ? "secure" : "",
+    "SameSite=Lax",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
   document.cookie = cookieOptions;
 }
 
@@ -60,7 +62,7 @@ export function setCookie(
  * @param name Cookie name
  * @param path Cookie path
  */
-export function deleteCookie(name: string, path: string = '/'): void {
-  if (typeof document === 'undefined') return;
+export function deleteCookie(name: string, path: string = "/"): void {
+  if (typeof document === "undefined") return;
   document.cookie = `${name}=; max-age=0; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }

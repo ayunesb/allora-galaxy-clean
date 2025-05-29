@@ -1,6 +1,5 @@
-
-import { AlloraError } from '@/lib/errors/errorTypes';
-import { logSystemEvent, logSystemError } from '@/lib/system/logSystemEvent';
+import { AlloraError } from "@/lib/errors/errorTypes";
+import { logSystemError } from "@/lib/system/logSystemEvent";
 
 interface ErrorReportOptions {
   /** The module or component where the error occurred */
@@ -21,55 +20,48 @@ interface ErrorReportOptions {
 
 /**
  * Reports an error to the centralized error monitoring system
- * 
+ *
  * @param error The error that occurred
  * @param options Configuration options for error reporting
  * @returns Promise resolving to a report ID
  */
 export async function reportError(
   error: Error | AlloraError | string,
-  options: ErrorReportOptions = {}
+  options: ErrorReportOptions = {},
 ): Promise<string> {
   const {
-    module = 'application',
+    module = "application",
     context = {},
     userId,
-    tenantId = 'system',
+    tenantId = "system",
     reportToExternal = true,
     code,
-    stack
+    stack,
   } = options;
-  
+
   // Create a standardized error object
-  const errorMessage = typeof error === 'string' 
-    ? error 
-    : error.message;
-  
-  const errorStack = typeof error === 'string' 
-    ? stack 
-    : error.stack || stack;
-  
-  const errorCode = error instanceof AlloraError 
-    ? error.code 
-    : code;
-  
-  const errorContext = error instanceof AlloraError
-    ? { ...error.context, ...context }
-    : context;
+  const errorMessage = typeof error === "string" ? error : error.message;
+
+  const errorStack = typeof error === "string" ? stack : error.stack || stack;
+
+  const errorCode = error instanceof AlloraError ? error.code : code;
+
+  const errorContext =
+    error instanceof AlloraError ? { ...error.context, ...context } : context;
 
   // Log to system event logs
   const { id } = await logSystemError(
     module,
-    typeof error === 'string' ? new Error(error) : error,
+    typeof error === "string" ? new Error(error) : error,
     {
       ...errorContext,
       user_id: userId,
       code: errorCode,
-      reported_at: new Date().toISOString()
+      reported_at: new Date().toISOString(),
     },
-    tenantId
+    tenantId,
   );
-  
+
   // Send to external monitoring system if enabled
   if (reportToExternal) {
     try {
@@ -82,32 +74,37 @@ export async function reportError(
         tenantId,
         module,
         timestamp: new Date().toISOString(),
-        reportId: id
+        reportId: id,
       });
     } catch (reportingError) {
       // Don't let reporting errors cascade
-      console.error('Failed to send error to external monitoring:', reportingError);
+      console.error(
+        "Failed to send error to external monitoring:",
+        reportingError,
+      );
     }
   }
-  
-  return id || 'unknown';
+
+  return id || "unknown";
 }
 
 /**
  * Send error data to an external monitoring service
  * This would be implemented to connect to a service like Sentry, LogRocket, etc.
  */
-async function sendToExternalMonitoring(data: Record<string, any>): Promise<void> {
+async function sendToExternalMonitoring(
+  data: Record<string, any>,
+): Promise<void> {
   // This is a placeholder for connecting to an external service
   // In a real implementation, this would send to Sentry, LogRocket, etc.
-  
+
   // For now, just log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.group('Error telemetry data:');
+  if (process.env.NODE_ENV === "development") {
+    console.group("Error telemetry data:");
     console.log(data);
     console.groupEnd();
   }
-  
+
   // In production, you would implement actual service calls:
   // Example for Sentry:
   // Sentry.captureException(error, {
@@ -121,16 +118,16 @@ async function sendToExternalMonitoring(data: Record<string, any>): Promise<void
 export function reportErrorFromErrorBoundary(
   error: Error,
   errorInfo?: { componentStack?: string },
-  options: ErrorReportOptions = {}
+  options: ErrorReportOptions = {},
 ): Promise<string> {
   return reportError(error, {
-    module: 'ui',
+    module: "ui",
     context: {
       componentStack: errorInfo?.componentStack,
       reactErrorBoundary: true,
-      ...options.context
+      ...options.context,
     },
-    ...options
+    ...options,
   });
 }
 
@@ -141,17 +138,17 @@ export function reportOperationError(
   operation: string,
   error: Error | string,
   duration: number,
-  options: ErrorReportOptions = {}
+  options: ErrorReportOptions = {},
 ): Promise<string> {
   return reportError(error, {
-    module: options.module || 'operations',
+    module: options.module || "operations",
     context: {
       operation,
       duration_ms: duration,
       failed: true,
-      ...options.context
+      ...options.context,
     },
-    ...options
+    ...options,
   });
 }
 
@@ -162,16 +159,16 @@ export function reportApiError(
   endpoint: string,
   error: Error | string,
   requestData?: Record<string, any>,
-  options: ErrorReportOptions = {}
+  options: ErrorReportOptions = {},
 ): Promise<string> {
   return reportError(error, {
-    module: 'api',
+    module: "api",
     context: {
       endpoint,
       requestData,
-      ...options.context
+      ...options.context,
     },
-    ...options
+    ...options,
   });
 }
 
@@ -182,6 +179,6 @@ export function useErrorReporting() {
   return {
     reportError,
     reportApiError,
-    reportOperationError
+    reportOperationError,
   };
 }

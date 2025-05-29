@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ErrorState } from "./error-state";
 import { Skeleton } from "./skeleton";
@@ -29,16 +28,16 @@ export function DataStateHandler<T>({
   errorComponent,
   emptyComponent,
   onRetry,
-  isEmpty = (data: T) => Array.isArray(data) ? data.length === 0 : !data,
+  isEmpty = (data: T) => (Array.isArray(data) ? data.length === 0 : !data),
   showLoadingStates = true,
-  loadingStateCount = 3
+  loadingStateCount = 3,
 }: DataStateHandlerProps<T>) {
   // Loading state
   if (isLoading) {
     if (loadingComponent) {
       return <>{loadingComponent}</>;
     }
-    
+
     if (showLoadingStates) {
       return (
         <div className="space-y-4">
@@ -51,16 +50,16 @@ export function DataStateHandler<T>({
         </div>
       );
     }
-    
+
     return null;
   }
-  
+
   // Error state
   if (error) {
     if (errorComponent) {
       return <>{errorComponent}</>;
     }
-    
+
     return (
       <ErrorState
         title="Failed to load data"
@@ -70,20 +69,20 @@ export function DataStateHandler<T>({
       />
     );
   }
-  
+
   // Empty state
   if (!data || (data && isEmpty(data))) {
     if (emptyComponent) {
       return <>{emptyComponent}</>;
     }
-    
+
     return (
       <div className="py-8 text-center">
         <p className="text-muted-foreground">No data available</p>
       </div>
     );
   }
-  
+
   // Data state
   return <>{children(data)}</>;
 }
@@ -109,12 +108,13 @@ export function PartialDataStateHandler<T>({
   children,
   errorComponent,
   onRetry,
-  showError = true
+  showError = true,
 }: PartialDataStateHandlerProps<T>) {
   return (
     <>
-      {error && showError && (
-        errorComponent || (
+      {error &&
+        showError &&
+        (errorComponent || (
           <div className="mb-4">
             <ErrorState
               title="Partial data error"
@@ -123,8 +123,7 @@ export function PartialDataStateHandler<T>({
               size="sm"
             />
           </div>
-        )
-      )}
+        ))}
       {children(data)}
     </>
   );

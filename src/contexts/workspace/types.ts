@@ -1,4 +1,3 @@
-
 export interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
   setCurrentWorkspace: (workspace: Workspace) => void;
@@ -6,9 +5,15 @@ export interface WorkspaceContextType {
   loading: boolean;
   error: any;
   refreshWorkspaces: () => Promise<void>;
-  createWorkspace: (name: string, slug?: string) => Promise<Workspace | undefined>;
+  createWorkspace: (
+    name: string,
+    slug?: string,
+  ) => Promise<Workspace | undefined>;
   deleteWorkspace: (workspaceId: string) => Promise<void>;
-  updateWorkspace: (workspaceId: string, updates: { name?: string; slug?: string }) => Promise<Workspace | undefined>;
+  updateWorkspace: (
+    workspaceId: string,
+    updates: { name?: string; slug?: string },
+  ) => Promise<Workspace | undefined>;
   userRole: string | null;
   isLoading: boolean;
   tenant: any | null;

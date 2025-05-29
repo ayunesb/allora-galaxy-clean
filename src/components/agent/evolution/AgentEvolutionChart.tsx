@@ -1,20 +1,34 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { AgentEvolutionHistory } from '@/types/agent';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import { AgentEvolutionHistory } from "@/types/agent";
 
 interface AgentEvolutionChartProps {
   history: AgentEvolutionHistory[];
 }
 
-export const AgentEvolutionChart: React.FC<AgentEvolutionChartProps> = ({ history }) => {
+export const AgentEvolutionChart: React.FC<AgentEvolutionChartProps> = ({
+  history,
+}) => {
   // Transform history data for chart
-  const chartData = history.map(item => ({
+  const chartData = history.map((item) => ({
     version: item.version,
-    successRate: item.performance?.successRate ? Math.round(item.performance.successRate * 100) : 0,
-    errorRate: item.performance?.errorRate ? Math.round(item.performance.errorRate * 100) : 0,
-    avgXp: item.performance?.averageXp || 0
+    successRate: item.performance?.successRate
+      ? Math.round(item.performance.successRate * 100)
+      : 0,
+    errorRate: item.performance?.errorRate
+      ? Math.round(item.performance.errorRate * 100)
+      : 0,
+    avgXp: item.performance?.averageXp || 0,
   }));
 
   return (
@@ -48,7 +62,7 @@ export const AgentEvolutionChart: React.FC<AgentEvolutionChartProps> = ({ histor
                 stroke="#10b981"
                 activeDot={{ r: 8 }}
               />
-              <Line 
+              <Line
                 yAxisId="left"
                 type="monotone"
                 dataKey="errorRate"

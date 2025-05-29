@@ -1,4 +1,3 @@
-
 /**
  * Safe environment variable access for edge functions
  */
@@ -8,7 +7,7 @@
  */
 export function safeGetDenoEnv(key: string): string | undefined {
   try {
-    // @ts-ignore - Deno exists in edge functions
+    // @ts-expect-error - Deno exists in edge functions
     return Deno.env.get(key);
   } catch (error) {
     console.error(`Error accessing Deno.env.get for key ${key}:`, error);
@@ -19,7 +18,7 @@ export function safeGetDenoEnv(key: string): string | undefined {
 /**
  * Get environment variable in edge function environment
  */
-export function getEdgeEnv(key: string, defaultValue: string = ''): string {
+export function getEdgeEnv(key: string, defaultValue: string = ""): string {
   const value = safeGetDenoEnv(key);
   return value !== undefined ? value : defaultValue;
 }
@@ -27,9 +26,9 @@ export function getEdgeEnv(key: string, defaultValue: string = ''): string {
 /**
  * Get the current environment name in edge functions
  */
-export function getEdgeEnvironment(): 'development' | 'production' | 'test' {
-  const env = safeGetDenoEnv('NODE_ENV');
-  if (env === 'production') return 'production';
-  if (env === 'test') return 'test';
-  return 'development';
+export function getEdgeEnvironment(): "development" | "production" | "test" {
+  const env = safeGetDenoEnv("NODE_ENV");
+  if (env === "production") return "production";
+  if (env === "test") return "test";
+  return "development";
 }

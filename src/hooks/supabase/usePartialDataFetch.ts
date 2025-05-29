@@ -1,6 +1,5 @@
-
-import { useState, useCallback, useEffect } from 'react';
-import { notifyError } from '@/lib/notifications/toast';
+import { useState, useCallback, useEffect } from "react";
+import { notifyError } from "@/lib/notifications/toast";
 
 type QueryOptions = {
   enabled?: boolean;
@@ -14,7 +13,7 @@ type QueryOptions = {
  */
 export function usePartialDataFetch<T extends Record<string, any>>(
   queries: Record<string, () => Promise<any>>,
-  options: QueryOptions = {}
+  options: QueryOptions = {},
 ) {
   const [state, setState] = useState<{
     data: Partial<T>;
@@ -31,13 +30,13 @@ export function usePartialDataFetch<T extends Record<string, any>>(
   });
 
   const fetchData = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true }));
-    
+    setState((prev) => ({ ...prev, isLoading: true }));
+
     const results: Partial<T> = {};
     const errors: Record<string, Error | null> = {};
     const completedQueries: string[] = [];
     const failedQueries: string[] = [];
-    
+
     await Promise.all(
       Object.entries(queries).map(async ([key, queryFn]) => {
         try {
@@ -45,19 +44,22 @@ export function usePartialDataFetch<T extends Record<string, any>>(
           results[key as keyof T] = result;
           completedQueries.push(key);
         } catch (error: any) {
-          errors[key] = error instanceof Error ? error : new Error(error?.message || 'Unknown error');
+          errors[key] =
+            error instanceof Error
+              ? error
+              : new Error(error?.message || "Unknown error");
           failedQueries.push(key);
-          
+
           if (options.showErrorToast) {
             notifyError({
               title: `Error loading ${key}`,
-              description: error?.message || 'Failed to load data'
+              description: error?.message || "Failed to load data",
             });
           }
         }
-      })
+      }),
     );
-    
+
     setState({
       data: results,
       isLoading: false,
@@ -65,7 +67,7 @@ export function usePartialDataFetch<T extends Record<string, any>>(
       completedQueries,
       failedQueries,
     });
-    
+
     return { results, errors };
   }, [queries, options.showErrorToast]);
 
@@ -75,50 +77,60 @@ export function usePartialDataFetch<T extends Record<string, any>>(
     }
   }, [fetchData, options.enabled]);
 
-  const retryQuery = useCallback(async (key: string) => {
-    if (!queries[key]) return;
-    
-    setState(prev => ({
-      ...prev,
-      errors: { ...prev.errors, [key]: null },
-    }));
-    
-    try {
-      const result = await queries[key]();
-      setState(prev => ({
+  const retryQuery = useCallback(
+    async (key: string) => {
+      if (!queries[key]) return;
+
+      setState((prev) => ({
         ...prev,
-        data: { ...prev.data, [key]: result },
-        completedQueries: [...prev.completedQueries.filter(k => k !== key), key],
-        failedQueries: prev.failedQueries.filter(k => k !== key),
         errors: { ...prev.errors, [key]: null },
       }));
-      
-      return result;
-    } catch (error: any) {
-      const formattedError = error instanceof Error ? error : new Error(error?.message || 'Unknown error');
-      setState(prev => ({
-        ...prev,
-        errors: { ...prev.errors, [key]: formattedError },
-        failedQueries: [...prev.failedQueries.filter(k => k !== key), key],
-        completedQueries: prev.completedQueries.filter(k => k !== key),
-      }));
-      
-      if (options.showErrorToast) {
-        notifyError({
-          title: `Error loading ${key}`,
-          description: error?.message || 'Failed to load data'
-        });
+
+      try {
+        const result = await queries[key]();
+        setState((prev) => ({
+          ...prev,
+          data: { ...prev.data, [key]: result },
+          completedQueries: [
+            ...prev.completedQueries.filter((k) => k !== key),
+            key,
+          ],
+          failedQueries: prev.failedQueries.filter((k) => k !== key),
+          errors: { ...prev.errors, [key]: null },
+        }));
+
+        return result;
+      } catch (error: any) {
+        const formattedError =
+          error instanceof Error
+            ? error
+            : new Error(error?.message || "Unknown error");
+        setState((prev) => ({
+          ...prev,
+          errors: { ...prev.errors, [key]: formattedError },
+          failedQueries: [...prev.failedQueries.filter((k) => k !== key), key],
+          completedQueries: prev.completedQueries.filter((k) => k !== key),
+        }));
+
+        if (options.showErrorToast) {
+          notifyError({
+            title: `Error loading ${key}`,
+            description: error?.message || "Failed to load data",
+          });
+        }
+
+        throw error;
       }
-      
-      throw error;
-    }
-  }, [queries, options.showErrorToast]);
+    },
+    [queries, options.showErrorToast],
+  );
 
   return {
     ...state,
     refetch: fetchData,
     retryQuery,
-    isPartialData: state.failedQueries.length > 0 && state.completedQueries.length > 0,
+    isPartialData:
+      state.failedQueries.length > 0 && state.completedQueries.length > 0,
     isComplete: state.completedQueries.length === Object.keys(queries).length,
   };
 }

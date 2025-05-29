@@ -1,10 +1,15 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import withRoleCheck from '@/lib/auth/withRoleCheck';
-import { UserRole } from '@/types/user';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import withRoleCheck from "@/lib/auth/withRoleCheck";
+import { UserRole } from "@/types/user";
 
 const AlloraBrainPage: React.FC = () => {
   const executeAction = (actionType: string) => {
@@ -15,14 +20,14 @@ const AlloraBrainPage: React.FC = () => {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Allora Brain</h1>
-      
+
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="control-panel">Control Panel</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
           <Card>
             <CardHeader>
@@ -33,38 +38,37 @@ const AlloraBrainPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p>
-                Allora Brain is the central AI system that powers all your automated workflows,
-                strategies, and agent behavior. It continuously learns from your data and evolves
-                to better serve your business goals.
+                Allora Brain is the central AI system that powers all your
+                automated workflows, strategies, and agent behavior. It
+                continuously learns from your data and evolves to better serve
+                your business goals.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <InfoCard 
-                  title="87%" 
+                <InfoCard
+                  title="87%"
                   description="Overall System Health"
-                  status="positive" 
+                  status="positive"
                 />
-                <InfoCard 
-                  title="143" 
+                <InfoCard
+                  title="143"
                   description="Running Strategies"
-                  status="neutral" 
+                  status="neutral"
                 />
-                <InfoCard 
-                  title="16" 
+                <InfoCard
+                  title="16"
                   description="Pending Actions"
-                  status="warning" 
+                  status="warning"
                 />
               </div>
             </CardContent>
           </Card>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
                 <CardTitle>Performance</CardTitle>
-                <CardDescription>
-                  System performance metrics
-                </CardDescription>
+                <CardDescription>System performance metrics</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -72,7 +76,7 @@ const AlloraBrainPage: React.FC = () => {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Integration Status</CardTitle>
@@ -88,7 +92,7 @@ const AlloraBrainPage: React.FC = () => {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="control-panel">
           <Card>
             <CardHeader>
@@ -99,34 +103,32 @@ const AlloraBrainPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <ActionCard 
-                  title="Sync Data" 
+                <ActionCard
+                  title="Sync Data"
                   description="Synchronize data from external sources"
-                  onAction={() => executeAction('sync')}
+                  onAction={() => executeAction("sync")}
                 />
-                <ActionCard 
-                  title="Run Analysis" 
+                <ActionCard
+                  title="Run Analysis"
                   description="Analyze current data and generate insights"
-                  onAction={() => executeAction('analyze')}
+                  onAction={() => executeAction("analyze")}
                 />
-                <ActionCard 
-                  title="Reset System" 
+                <ActionCard
+                  title="Reset System"
                   description="Reset system to default state"
-                  onAction={() => executeAction('reset')}
+                  onAction={() => executeAction("reset")}
                   variant="destructive"
                 />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="logs">
           <Card>
             <CardHeader>
               <CardTitle>System Logs</CardTitle>
-              <CardDescription>
-                Detailed system activity logs
-              </CardDescription>
+              <CardDescription>Detailed system activity logs</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
@@ -143,19 +145,23 @@ const AlloraBrainPage: React.FC = () => {
 interface InfoCardProps {
   title: string;
   description: string;
-  status: 'positive' | 'negative' | 'neutral' | 'warning';
+  status: "positive" | "negative" | "neutral" | "warning";
 }
 
 const InfoCard: React.FC<InfoCardProps> = ({ title, description, status }) => {
   const getStatusColor = () => {
-    switch(status) {
-      case 'positive': return 'text-green-500';
-      case 'negative': return 'text-red-500';
-      case 'warning': return 'text-amber-500';
-      default: return 'text-blue-500';
+    switch (status) {
+      case "positive":
+        return "text-green-500";
+      case "negative":
+        return "text-red-500";
+      case "warning":
+        return "text-amber-500";
+      default:
+        return "text-blue-500";
     }
   };
-  
+
   return (
     <div className="border rounded-lg p-4 text-center">
       <p className={`text-2xl font-bold ${getStatusColor()}`}>{title}</p>
@@ -168,24 +174,20 @@ interface ActionCardProps {
   title: string;
   description: string;
   onAction: () => void;
-  variant?: 'default' | 'destructive';
+  variant?: "default" | "destructive";
 }
 
-const ActionCard: React.FC<ActionCardProps> = ({ 
-  title, 
-  description, 
+const ActionCard: React.FC<ActionCardProps> = ({
+  title,
+  description,
   onAction,
-  variant = 'default' 
+  variant = "default",
 }) => {
   return (
     <div className="border rounded-lg p-4">
       <h3 className="font-medium mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground mb-4">{description}</p>
-      <Button 
-        onClick={onAction}
-        variant={variant}
-        className="w-full"
-      >
+      <Button onClick={onAction} variant={variant} className="w-full">
         Execute
       </Button>
     </div>
@@ -193,6 +195,6 @@ const ActionCard: React.FC<ActionCardProps> = ({
 };
 
 export default withRoleCheck(AlloraBrainPage, {
-  roles: ['admin' as UserRole, 'user' as UserRole, 'owner' as UserRole],
-  redirectTo: '/unauthorized'
+  roles: ["admin" as UserRole, "user" as UserRole, "owner" as UserRole],
+  redirectTo: "/unauthorized",
 });

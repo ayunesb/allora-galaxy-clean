@@ -1,7 +1,6 @@
-
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Separator } from "@/components/ui/separator"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 export const SidebarSeparator = React.forwardRef<
   React.ElementRef<typeof Separator>,
@@ -14,6 +13,6 @@ export const SidebarSeparator = React.forwardRef<
       className={cn("mx-2 w-auto bg-sidebar-border", className)}
       {...props}
     />
-  )
-})
-SidebarSeparator.displayName = "SidebarSeparator"
+  );
+});
+SidebarSeparator.displayName = "SidebarSeparator";

@@ -1,4 +1,3 @@
-
 /**
  * Validation utilities for edge functions
  */

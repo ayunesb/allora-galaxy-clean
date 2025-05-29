@@ -1,11 +1,10 @@
-
-import React from 'react';
-import { Notification, NotificationType } from '@/types/notifications';
-import NotificationCenterEmptyState from './NotificationCenterEmptyState';
-import NotificationCenterLoading from './NotificationCenterLoading';
-import { Button } from '@/components/ui/button';
-import NotificationCenterTabs from './NotificationCenterTabs';
-import { NotificationContent } from '@/types/notifications';
+import React from "react";
+import { Notification, NotificationType } from "@/types/notifications";
+import NotificationCenterEmptyState from "./NotificationCenterEmptyState";
+import NotificationCenterLoading from "./NotificationCenterLoading";
+import { Button } from "@/components/ui/button";
+import NotificationCenterTabs from "./NotificationCenterTabs";
+import { NotificationContent } from "@/types/notifications";
 
 export interface NotificationCenterContentProps {
   notifications: Notification[];
@@ -24,7 +23,7 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   loading = false,
   onMarkAllAsRead,
   activeFilter,
-  setActiveFilter
+  setActiveFilter,
 }) => {
   if (loading) {
     return <NotificationCenterLoading />;
@@ -35,35 +34,33 @@ const NotificationCenterContent: React.FC<NotificationCenterContentProps> = ({
   }
 
   // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   // Map to UI-ready format
-  const notificationItems: NotificationContent[] = notifications.map(notification => ({
-    id: notification.id,
-    title: notification.title,
-    message: notification.description || '',
-    timestamp: notification.created_at,
-    read: notification.is_read || false,
-    type: notification.type as NotificationType,
-    action_url: notification.action_url,
-    action_label: notification.action_label,
-  }));
+  const notificationItems: NotificationContent[] = notifications.map(
+    (notification) => ({
+      id: notification.id,
+      title: notification.title,
+      message: notification.description || "",
+      timestamp: notification.created_at,
+      read: notification.is_read || false,
+      type: notification.type as NotificationType,
+      action_url: notification.action_url,
+      action_label: notification.action_label,
+    }),
+  );
 
   return (
     <div className="space-y-2">
       {onMarkAllAsRead && unreadCount > 0 && (
         <div className="flex justify-end p-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => onMarkAllAsRead()}
-          >
+          <Button variant="ghost" size="sm" onClick={() => onMarkAllAsRead()}>
             Mark all as read
           </Button>
         </div>
       )}
-      
-      <NotificationCenterTabs 
+
+      <NotificationCenterTabs
         value={activeFilter}
         onValueChange={setActiveFilter}
         notifications={notificationItems}

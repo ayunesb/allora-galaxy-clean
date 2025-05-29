@@ -1,80 +1,66 @@
-
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { runStrategy } from '@/lib/strategy/runStrategy';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { runStrategy } from "@/lib/strategy/runStrategy";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const StrategyEngine: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState<boolean>(false);
   const [strategy, setStrategy] = useState<any>(null);
   const [executionResult, setExecutionResult] = useState<any>(null);
-  const { toast } = useToast();
+  const { notifySuccess, notifyError } = useToast();
 
   useEffect(() => {
     const fetchStrategy = async () => {
       if (!id) return;
-      
+
       try {
         const { data, error } = await supabase
-          .from('strategies')
-          .select('*')
-          .eq('id', id)
+          .from("strategies")
+          .select("*")
+          .eq("id", id)
           .single();
-          
+
         if (error) throw error;
         setStrategy(data);
       } catch (error: any) {
-        console.error('Error fetching strategy:', error);
-        toast({
-          title: "Error",
-          description: `Failed to load strategy: ${error.message}`,
-          variant: "destructive"
-        });
+        console.error("Error fetching strategy:", error);
+        notifyError(`Failed to load strategy: ${error.message}`);
       }
     };
-    
+
     fetchStrategy();
-  }, [id, toast]);
+  }, [id, notifyError]);
 
   const handleRunStrategy = async () => {
     if (!strategy) return;
-    
+
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const result = await runStrategy({
         strategyId: strategy.id,
         tenantId: strategy.tenant_id,
         userId: user?.id,
       });
-      
+
       setExecutionResult(result);
-      
+
       if (result.success) {
-        toast({
-          title: "Success",
-          description: "Strategy executed successfully",
-        });
+        notifySuccess("Strategy executed successfully");
       } else {
-        toast({
-          title: "Execution Error",
-          description: result.error || "Failed to execute strategy",
-          variant: "destructive"
-        });
+        notifyError(result.error || "Failed to execute strategy");
       }
     } catch (error: any) {
-      console.error('Error running strategy:', error);
-      toast({
-        title: "Error",
-        description: `Failed to run strategy: ${error.message}`,
-        variant: "destructive"
-      });
+      console.error("Error running strategy:", error);
+      notifyError(`Failed to run strategy: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -92,15 +78,12 @@ const StrategyEngine: React.FC = () => {
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{strategy.title}</h1>
-        <Button 
-          onClick={handleRunStrategy} 
-          disabled={loading}
-        >
+        <Button onClick={handleRunStrategy} disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Run Strategy
         </Button>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Strategy Details</CardTitle>
@@ -119,9 +102,13 @@ const StrategyEngine: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       {executionResult && (
-        <Card className={executionResult.success ? "border-green-500" : "border-red-500"}>
+        <Card
+          className={
+            executionResult.success ? "border-green-500" : "border-red-500"
+          }
+        >
           <CardHeader>
             <CardTitle>Execution Result</CardTitle>
           </CardHeader>
@@ -134,7 +121,11 @@ const StrategyEngine: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-medium">Execution Time</h3>
-                  <p>{executionResult.execution_time ? `${executionResult.execution_time.toFixed(2)}s` : 'N/A'}</p>
+                  <p>
+                    {executionResult.execution_time
+                      ? `${executionResult.execution_time.toFixed(2)}s`
+                      : "N/A"}
+                  </p>
                 </div>
                 {executionResult.plugins_executed && (
                   <>
@@ -144,7 +135,10 @@ const StrategyEngine: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-medium">Successful Plugins</h3>
-                      <p>{executionResult.successful_plugins} / {executionResult.plugins_executed}</p>
+                      <p>
+                        {executionResult.successful_plugins} /{" "}
+                        {executionResult.plugins_executed}
+                      </p>
                     </div>
                   </>
                 )}
@@ -155,11 +149,15 @@ const StrategyEngine: React.FC = () => {
                   </div>
                 )}
               </div>
-              
+
               {executionResult.error && (
                 <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-                  <h3 className="font-medium text-red-700 dark:text-red-300">Error</h3>
-                  <p className="text-red-600 dark:text-red-400">{executionResult.error}</p>
+                  <h3 className="font-medium text-red-700 dark:text-red-300">
+                    Error
+                  </h3>
+                  <p className="text-red-600 dark:text-red-400">
+                    {executionResult.error}
+                  </p>
                 </div>
               )}
             </div>

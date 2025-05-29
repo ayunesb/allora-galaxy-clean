@@ -1,10 +1,15 @@
-
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import EdgeFunctionErrorPatterns from './EdgeFunctionErrorPatterns';
-import RetryMechanismExample from './RetryMechanismExample';
-import CustomErrorBoundaryExample from './CustomErrorBoundaryExample';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EdgeFunctionErrorPatterns from "./EdgeFunctionErrorPatterns";
+import RetryMechanismExample from "./RetryMechanismExample";
+import CustomErrorBoundaryExample from "./CustomErrorBoundaryExample";
 
 const EdgeErrorHandlingExamples: React.FC = () => {
   return (
@@ -23,15 +28,15 @@ const EdgeErrorHandlingExamples: React.FC = () => {
               <TabsTrigger value="retry">Retry Mechanism</TabsTrigger>
               <TabsTrigger value="boundary">Error Boundary</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="patterns" className="mt-4">
               <EdgeFunctionErrorPatterns />
             </TabsContent>
-            
+
             <TabsContent value="retry" className="mt-4">
               <RetryMechanismExample />
             </TabsContent>
-            
+
             <TabsContent value="boundary" className="mt-4">
               <CustomErrorBoundaryExample />
             </TabsContent>

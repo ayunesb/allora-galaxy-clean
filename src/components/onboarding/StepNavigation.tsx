@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Save, Loader2 } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, Save, Loader2 } from "lucide-react";
 
 export interface StepNavigationProps {
   currentStep: number;
@@ -22,20 +21,20 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
   onNext,
   onPrev,
   onSubmit,
-  isGenerating = false
+  isGenerating = false,
 }) => {
   const isLastStep = currentStep === totalSteps - 1;
 
   return (
     <div className="flex justify-between items-center border-t mt-4 pt-4 px-4 md:px-0">
       {currentStep > 0 ? (
-        <Button 
-          type="button" 
-          variant="outline" 
+        <Button
+          type="button"
+          variant="outline"
           onClick={onPrev}
           disabled={isSubmitting || isGenerating}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> 
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
       ) : (
@@ -43,26 +42,26 @@ const StepNavigation: React.FC<StepNavigationProps> = ({
       )}
 
       {isLastStep ? (
-        <Button 
-          type="button" 
-          onClick={onSubmit} 
+        <Button
+          type="button"
+          onClick={onSubmit}
           disabled={isSubmitting || isNextDisabled || isGenerating}
         >
           {isSubmitting || isGenerating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {isGenerating ? 'Generating...' : 'Saving...'}
+              {isGenerating ? "Generating..." : "Saving..."}
             </>
           ) : (
             <>
-              <Save className="mr-2 h-4 w-4" /> 
+              <Save className="mr-2 h-4 w-4" />
               Create Workspace
             </>
           )}
         </Button>
       ) : (
-        <Button 
-          type="button" 
+        <Button
+          type="button"
           onClick={onNext}
           disabled={isNextDisabled || isSubmitting || isGenerating}
         >

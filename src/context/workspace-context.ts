@@ -1,5 +1,4 @@
-
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from "react";
 
 export interface Workspace {
   id: string;
@@ -18,13 +17,17 @@ export interface WorkspaceContextType {
 }
 
 // Default empty context
-export const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
+export const WorkspaceContext = createContext<WorkspaceContextType | null>(
+  null,
+);
 
 // Custom hook for using the workspace context
 export const useWorkspaceContext = () => {
   const context = useContext(WorkspaceContext);
   if (!context) {
-    throw new Error('useWorkspaceContext must be used within a WorkspaceProvider');
+    throw new Error(
+      "useWorkspaceContext must be used within a WorkspaceProvider",
+    );
   }
   return context;
 };

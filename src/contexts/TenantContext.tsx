@@ -1,6 +1,11 @@
-
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useEffect,
+} from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Tenant {
   id: string;
@@ -21,7 +26,7 @@ const TenantContext = createContext<TenantContextType>({
   setTenant: () => {},
   currentTenant: null,
   setCurrentTenant: () => {},
-  isLoading: true
+  isLoading: true,
 });
 
 interface TenantProviderProps {
@@ -37,33 +42,37 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
   useEffect(() => {
     const fetchTenantData = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         if (session?.user) {
           // Fetch user's tenant
           const { data, error } = await supabase
-            .from('tenants')
-            .select('*')
-            .eq('user_id', session.user.id)
+            .from("tenants")
+            .select("*")
+            .eq("user_id", session.user.id)
             .single();
-            
+
           if (!error && data) {
             setTenant(data);
             setCurrentTenant(data);
           }
         }
       } catch (error) {
-        console.error('Error fetching tenant:', error);
+        console.error("Error fetching tenant:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchTenantData();
   }, []);
 
   return (
-    <TenantContext.Provider value={{ tenant, setTenant, currentTenant, setCurrentTenant, isLoading }}>
+    <TenantContext.Provider
+      value={{ tenant, setTenant, currentTenant, setCurrentTenant, isLoading }}
+    >
       {children}
     </TenantContext.Provider>
   );

@@ -1,7 +1,9 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { notify } from '@/lib/notifications/toast';
-import { handleEdgeError, createEdgeFunction } from '@/lib/errors/clientErrorHandler';
+import { supabase } from "@/integrations/supabase/client";
+import { notify } from "@/lib/notifications/toast";
+import {
+  handleEdgeError,
+  createEdgeFunction,
+} from "@/lib/errors/clientErrorHandler";
 
 export interface WebhookAlertConfig {
   webhook_url: string;
@@ -22,24 +24,34 @@ export interface WebhookResult {
  * @param config Alert configuration
  * @returns Result of the webhook operation
  */
-export const sendWebhookAlert = async (config: WebhookAlertConfig): Promise<WebhookResult> => {
+export const sendWebhookAlert = async (
+  config: WebhookAlertConfig,
+): Promise<WebhookResult> => {
   try {
     // Validate required fields
-    if (!config.webhook_url || !config.alert_type || !config.message || !config.tenant_id) {
-      throw new Error('Missing required webhook alert configuration fields');
+    if (
+      !config.webhook_url ||
+      !config.alert_type ||
+      !config.message ||
+      !config.tenant_id
+    ) {
+      throw new Error("Missing required webhook alert configuration fields");
     }
 
     // Call the webhook alert function
-    const { data, error } = await supabase.functions.invoke('send-webhook-alert', {
-      body: config
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "send-webhook-alert",
+      {
+        body: config,
+      },
+    );
 
     if (error) {
       throw error;
     }
 
     notify({
-      title: 'Webhook alert sent successfully',
+      title: "Webhook alert sent successfully",
       description: `Alert "${config.alert_type}" was sent to the webhook`,
     });
 
@@ -48,13 +60,13 @@ export const sendWebhookAlert = async (config: WebhookAlertConfig): Promise<Webh
     // Use the centralized error handling system
     handleEdgeError(error, {
       showToast: true,
-      fallbackMessage: 'Failed to send webhook alert',
+      fallbackMessage: "Failed to send webhook alert",
       logToConsole: true,
     });
 
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error'
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 };
@@ -64,7 +76,7 @@ export const sendWebhookAlert = async (config: WebhookAlertConfig): Promise<Webh
  */
 export const retryWebhookAlert = async (
   config: WebhookAlertConfig,
-  retryOptions = { maxAttempts: 3, delayMs: 1000 }
+  retryOptions = { maxAttempts: 3, delayMs: 1000 },
 ): Promise<WebhookResult> => {
   let attempts = 0;
   let result: WebhookResult;
@@ -72,19 +84,18 @@ export const retryWebhookAlert = async (
   do {
     if (attempts > 0) {
       console.log(`Retry attempt ${attempts} for webhook alert...`);
-      await new Promise(resolve => setTimeout(resolve, retryOptions.delayMs));
+      await new Promise((resolve) => setTimeout(resolve, retryOptions.delayMs));
     }
-    
+
     result = await sendWebhookAlert(config);
     attempts++;
-    
   } while (!result.success && attempts < retryOptions.maxAttempts);
 
   if (!result.success && attempts >= retryOptions.maxAttempts) {
     notify({
-      title: 'Webhook alert failed',
+      title: "Webhook alert failed",
       description: `Failed to send alert after ${attempts} attempts`,
-      variant: 'destructive'
+      variant: "destructive",
     });
   }
 
@@ -98,7 +109,7 @@ export const retryWebhookAlert = async (
 export const sendWebhookAlertWithErrorHandling = createEdgeFunction(
   sendWebhookAlert,
   {
-    fallbackMessage: 'Failed to send webhook alert',
-    showToast: true
-  }
+    fallbackMessage: "Failed to send webhook alert",
+    showToast: true,
+  },
 );

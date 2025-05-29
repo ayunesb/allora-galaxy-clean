@@ -1,15 +1,14 @@
-
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface WorkspaceContextType {
   // Basic workspace properties
   currentTenant: string | null;
   setCurrentTenant: (tenantId: string | null) => void;
-  
+
   // Additional workspace state
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
-  
+
   // Error handling state
   error: Error | null;
   setError: (error: Error | null) => void;
@@ -24,7 +23,9 @@ const defaultWorkspaceContext: WorkspaceContextType = {
   setError: () => {},
 };
 
-export const WorkspaceContext = createContext<WorkspaceContextType>(defaultWorkspaceContext);
+export const WorkspaceContext = createContext<WorkspaceContextType>(
+  defaultWorkspaceContext,
+);
 
 export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const [currentTenant, setCurrentTenant] = useState<string | null>(null);

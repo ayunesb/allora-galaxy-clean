@@ -1,5 +1,14 @@
-
-export type NotificationType = 'system' | 'campaign' | 'user' | 'strategy' | 'plugin' | 'agent' | 'info' | 'success' | 'warning' | 'error';
+export type NotificationType =
+  | "system"
+  | "campaign"
+  | "user"
+  | "strategy"
+  | "plugin"
+  | "agent"
+  | "info"
+  | "success"
+  | "warning"
+  | "error";
 
 export interface NotificationContent {
   id: string;
@@ -27,7 +36,7 @@ export interface Notification {
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
-  priority?: 'high' | 'medium' | 'low'; // Added priority field
+  priority?: "high" | "medium" | "low"; // Added priority field
 }
 
 export interface NotificationsContextValue {
@@ -51,5 +60,5 @@ export interface CreateNotificationInput {
   action_url?: string;
   action_label?: string;
   metadata?: Record<string, any>;
-  priority?: 'high' | 'medium' | 'low'; // Added priority field
+  priority?: "high" | "medium" | "low"; // Added priority field
 }

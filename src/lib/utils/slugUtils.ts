@@ -1,4 +1,3 @@
-
 /**
  * Generate a slug from a string (e.g., company name)
  * @param text The text to convert to a slug
@@ -7,11 +6,11 @@
 export const generateSlug = (text: string): string => {
   return text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove non-word chars (except spaces and hyphens)
-    .replace(/\s+/g, '-')     // Replace spaces with hyphens
-    .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
-    .trim()                   // Trim whitespace from start and end
-    .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    .replace(/[^\w\s-]/g, "") // Remove non-word chars (except spaces and hyphens)
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+    .trim() // Trim whitespace from start and end
+    .replace(/^-+|-+$/g, ""); // Trim hyphens from start and end
 };
 
 /**
@@ -20,15 +19,18 @@ export const generateSlug = (text: string): string => {
  * @param existingSlugs Array of existing slugs to check against
  * @returns A unique slug
  */
-export const ensureUniqueSlug = (slug: string, existingSlugs: string[]): string => {
+export const ensureUniqueSlug = (
+  slug: string,
+  existingSlugs: string[],
+): string => {
   let uniqueSlug = slug;
   let counter = 1;
-  
+
   while (existingSlugs.includes(uniqueSlug)) {
     uniqueSlug = `${slug}-${counter}`;
     counter++;
   }
-  
+
   return uniqueSlug;
 };
 

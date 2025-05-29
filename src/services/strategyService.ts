@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Fetch strategies for a specific tenant
@@ -10,22 +9,22 @@ export const fetchStrategies = async (tenantId?: string) => {
   if (!tenantId) {
     return [];
   }
-  
+
   try {
     const { data, error } = await supabase
-      .from('strategies')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
-    
+      .from("strategies")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false });
+
     if (error) {
-      console.error('Error fetching strategies:', error);
+      console.error("Error fetching strategies:", error);
       return [];
     }
-    
+
     return data || [];
   } catch (err) {
-    console.error('Error in fetchStrategies:', err);
+    console.error("Error in fetchStrategies:", err);
     return [];
   }
 };
@@ -38,19 +37,19 @@ export const fetchStrategies = async (tenantId?: string) => {
 export const fetchStrategyById = async (strategyId: string) => {
   try {
     const { data, error } = await supabase
-      .from('strategies')
-      .select('*')
-      .eq('id', strategyId)
+      .from("strategies")
+      .select("*")
+      .eq("id", strategyId)
       .maybeSingle();
-    
+
     if (error) {
-      console.error('Error fetching strategy:', error);
+      console.error("Error fetching strategy:", error);
       return null;
     }
-    
+
     return data;
   } catch (err) {
-    console.error('Error in fetchStrategyById:', err);
+    console.error("Error in fetchStrategyById:", err);
     return null;
   }
 };
@@ -61,21 +60,24 @@ export const fetchStrategyById = async (strategyId: string) => {
  * @param status New status value
  * @returns Promise with success status
  */
-export const updateStrategyStatus = async (strategyId: string, status: string) => {
+export const updateStrategyStatus = async (
+  strategyId: string,
+  status: string,
+) => {
   try {
     const { error } = await supabase
-      .from('strategies')
+      .from("strategies")
       .update({ status })
-      .eq('id', strategyId);
-    
+      .eq("id", strategyId);
+
     if (error) {
-      console.error('Error updating strategy status:', error);
+      console.error("Error updating strategy status:", error);
       return { success: false, error: error.message };
     }
-    
+
     return { success: true };
   } catch (err: any) {
-    console.error('Error in updateStrategyStatus:', err);
+    console.error("Error in updateStrategyStatus:", err);
     return { success: false, error: err.message };
   }
 };

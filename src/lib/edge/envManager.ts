@@ -1,4 +1,3 @@
-
 /**
  * Universal environment variable getter that works in both Deno and Node environments
  * @param key The environment variable key to retrieve
@@ -9,29 +8,28 @@ export function getEnv(key: string, defaultValue: string = ""): string {
   try {
     // First try Deno environment
     // @ts-ignore - Deno may be available in edge functions
-    if (typeof globalThis !== 'undefined' && globalThis.Deno?.env?.get) {
-      // @ts-ignore
+    if (typeof globalThis !== "undefined" && globalThis.Deno?.env?.get) {
+      // @ts-expect-error
       const value = globalThis.Deno.env.get(key);
       if (value !== undefined) return value;
     }
-    
+
     // Fall back to process.env for Node environments
-    if (typeof process !== 'undefined' && process?.env) {
+    if (typeof process !== "undefined" && process?.env) {
       const value = process.env[key];
       if (value !== undefined) return value;
     }
-    
+
     // Use import.meta.env for browser/Vite environments
     try {
       // @ts-ignore - import.meta is available in Vite
       if (import.meta?.env && import.meta.env[key] !== undefined) {
-        // @ts-ignore
         return import.meta.env[key];
       }
     } catch (e) {
       // Ignore errors accessing import.meta (not available in all contexts)
     }
-    
+
     return defaultValue;
   } catch (err) {
     console.warn(`Error accessing env variable ${key}:`, err);
@@ -43,27 +41,28 @@ export function getEnv(key: string, defaultValue: string = ""): string {
  * Default CORS headers for edge functions
  */
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
 // Re-export getEnvWithDefault for convenience
-export { getEnvWithDefault } from '@/lib/env';
+export { getEnvWithDefault } from "@/lib/env";
 
 /**
  * Check if we're in a production environment
  */
 export function isProduction(): boolean {
-  const env = getEnv('NODE_ENV', '');
-  return env === 'production';
+  const env = getEnv("NODE_ENV", "");
+  return env === "production";
 }
 
 /**
  * Get base URL for the current environment
  */
 export function getBaseUrl(): string {
-  return getEnv('VITE_APP_URL', 'http://localhost:8080');
+  return getEnv("VITE_APP_URL", "http://localhost:8080");
 }
 
 /**
@@ -72,12 +71,16 @@ export function getBaseUrl(): string {
  * @param defaultValue Default value if not found
  * @param required Whether this variable is critical (will log warning if missing)
  */
-export function getSafeEnv(key: string, defaultValue: string = "", required: boolean = false): string {
+export function getSafeEnv(
+  key: string,
+  defaultValue: string = "",
+  required: boolean = false,
+): string {
   const value = getEnv(key, defaultValue);
-  
+
   if (required && (value === defaultValue || value === "")) {
     console.warn(`⚠️ Critical environment variable ${key} is missing!`);
   }
-  
+
   return value;
 }

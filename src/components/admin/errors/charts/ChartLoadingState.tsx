@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2 } from 'lucide-react';
+import React from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface ChartLoadingStateProps {
   height?: number;
@@ -9,14 +8,16 @@ interface ChartLoadingStateProps {
 
 /**
  * ChartLoadingState - Loading skeleton component for charts
- * 
+ *
  * @component
  * @param {Object} props - Component props
  * @param {number} [props.height=300] - Height of the loading state in pixels
  */
-const ChartLoadingState: React.FC<ChartLoadingStateProps> = ({ height = 300 }) => {
+const ChartLoadingState: React.FC<ChartLoadingStateProps> = ({
+  height = 300,
+}) => {
   return (
-    <div 
+    <div
       className="flex flex-col items-center justify-center bg-card rounded-md border"
       style={{ height }}
       data-testid="chart-loading"

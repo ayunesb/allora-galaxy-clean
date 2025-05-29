@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface KpiSectionProps {
   title: string;
@@ -9,11 +8,11 @@ export interface KpiSectionProps {
   isLoading?: boolean;
 }
 
-export const KpiSection: React.FC<KpiSectionProps> = ({ 
-  title, 
-  children, 
+export const KpiSection: React.FC<KpiSectionProps> = ({
+  title,
+  children,
   kpiData = [],
-  isLoading = false 
+  isLoading = false,
 }) => {
   return (
     <Card>
@@ -24,7 +23,7 @@ export const KpiSection: React.FC<KpiSectionProps> = ({
         {isLoading && (
           <p className="text-sm text-muted-foreground">Loading KPI data...</p>
         )}
-        
+
         {!isLoading && kpiData && kpiData.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {kpiData.map((kpi, index) => (
@@ -35,12 +34,14 @@ export const KpiSection: React.FC<KpiSectionProps> = ({
             ))}
           </div>
         )}
-        
-        {!isLoading && (!kpiData || kpiData.length === 0) && (
-          children || (
-            <p className="text-sm text-muted-foreground">No KPI data available.</p>
-          )
-        )}
+
+        {!isLoading &&
+          (!kpiData || kpiData.length === 0) &&
+          (children || (
+            <p className="text-sm text-muted-foreground">
+              No KPI data available.
+            </p>
+          ))}
       </CardContent>
     </Card>
   );

@@ -1,4 +1,3 @@
-
 /**
  * Environment variable utilities for edge functions
  */

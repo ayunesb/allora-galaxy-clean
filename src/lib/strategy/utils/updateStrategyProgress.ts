@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Updates a strategy's progress based on execution results
@@ -12,23 +11,23 @@ import { supabase } from '@/integrations/supabase/client';
 export async function updateStrategyProgress(
   strategyId: string,
   tenantId: string,
-  status: 'success' | 'partial' | 'failure',
-  currentPercentage: number = 0
+  status: "success" | "partial" | "failure",
+  currentPercentage: number = 0,
 ): Promise<boolean> {
-  if (status === 'failure') {
+  if (status === "failure") {
     return false;
   }
-  
+
   try {
     // Update strategy progress if execution was successful
     const { error } = await supabase
-      .from('strategies')
+      .from("strategies")
       .update({
-        completion_percentage: Math.min(100, currentPercentage + 25)
+        completion_percentage: Math.min(100, currentPercentage + 25),
       })
-      .eq('id', strategyId)
-      .eq('tenant_id', tenantId);
-      
+      .eq("id", strategyId)
+      .eq("tenant_id", tenantId);
+
     return !error;
   } catch (error) {
     console.error(`Error updating strategy progress for ${strategyId}:`, error);

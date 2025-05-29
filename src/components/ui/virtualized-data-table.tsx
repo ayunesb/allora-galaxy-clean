@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -8,7 +7,7 @@ import {
   useReactTable,
   ColumnDef,
   getPaginationRowModel,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -16,10 +15,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface VirtualizedDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -66,11 +65,14 @@ export function VirtualizedDataTable<TData, TValue>({
     },
   });
 
-  const handleRowClick = useCallback((row: TData) => {
-    if (onRowClick) {
-      onRowClick(row);
-    }
-  }, [onRowClick]);
+  const handleRowClick = useCallback(
+    (row: TData) => {
+      if (onRowClick) {
+        onRowClick(row);
+      }
+    },
+    [onRowClick],
+  );
 
   if (isLoading) {
     return (
@@ -119,7 +121,7 @@ export function VirtualizedDataTable<TData, TValue>({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   ))}
@@ -133,13 +135,15 @@ export function VirtualizedDataTable<TData, TValue>({
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     onClick={() => handleRowClick(row.original)}
-                    className={onRowClick ? "cursor-pointer hover:bg-muted/60" : ""}
+                    className={
+                      onRowClick ? "cursor-pointer hover:bg-muted/60" : ""
+                    }
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -170,7 +174,8 @@ export function VirtualizedDataTable<TData, TValue>({
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
           </span>
           <Button
             variant="outline"

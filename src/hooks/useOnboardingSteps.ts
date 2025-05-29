@@ -1,22 +1,24 @@
-import { useState } from 'react';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { useState } from "react";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
 
 export interface OnboardingStepItem {
   id: string;
   label: string;
 }
 
-export function useOnboardingSteps(validateCurrentStep: () => { valid: boolean, errors: Record<string, string> }) {
+export function useOnboardingSteps(
+  validateCurrentStep: () => { valid: boolean; errors: Record<string, string> },
+) {
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   // Define steps
   const steps: OnboardingStepItem[] = [
-    { id: 'company-info', label: 'Company Info' },
-    { id: 'persona', label: 'Target Persona' },
-    { id: 'additional-info', label: 'Additional Info' },
-    { id: 'strategy-generation', label: 'Strategy' },
+    { id: "company-info", label: "Company Info" },
+    { id: "persona", label: "Target Persona" },
+    { id: "additional-info", label: "Additional Info" },
+    { id: "strategy-generation", label: "Strategy" },
   ];
-  
+
   // Navigate to next step
   const handleNextStep = () => {
     if (currentStep < steps.length - 1) {
@@ -25,21 +27,17 @@ export function useOnboardingSteps(validateCurrentStep: () => { valid: boolean, 
       if (!validationResult.valid) {
         return false;
       }
-      
+
       setCurrentStep(currentStep + 1);
-      
+
       // Log step completion
-      logSystemEvent(
-        'system',
-        'info',
-        {
-          description: `Onboarding step completed: ${steps[currentStep].id}, moving to ${steps[currentStep + 1].id}`,
-          step: steps[currentStep].id,
-          next_step: steps[currentStep + 1].id,
-          context: 'onboarding'
-        }
-      ).catch(err => console.error('Failed to log step:', err));
-      
+      logSystemEvent("system", "info", {
+        description: `Onboarding step completed: ${steps[currentStep].id}, moving to ${steps[currentStep + 1].id}`,
+        step: steps[currentStep].id,
+        next_step: steps[currentStep + 1].id,
+        context: "onboarding",
+      }).catch((err) => console.error("Failed to log step:", err));
+
       return true;
     }
     return false;

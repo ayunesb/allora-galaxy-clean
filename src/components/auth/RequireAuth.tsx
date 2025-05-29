@@ -1,43 +1,8 @@
+import { Navigate, Outlet } from "react-router-dom";
 
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-
-export interface RequireAuthProps {
-  children: React.ReactNode;
-  roles?: string[];
-}
-
-export const RequireAuth: React.FC<RequireAuthProps> = ({ children, roles }) => {
-  const { user, loading: authLoading } = useAuth();
-  const { userRole, loading: workspaceLoading } = useWorkspace();
-  const location = useLocation();
-
-  const isLoading = authLoading || workspaceLoading;
-
-  // When loading, show a loading state
-  if (isLoading) {
-    return <div className="flex h-screen w-full items-center justify-center">
-      <div className="animate-spin h-10 w-10 border-t-2 border-b-2 border-primary rounded-full"></div>
-    </div>;
-  }
-
-  // If user is not authenticated, redirect to login
-  if (!user) {
-    return <Navigate to="/auth/login" state={{ from: location }} replace />;
-  }
-
-  // If roles are specified, check if user has the required role
-  if (roles && roles.length > 0) {
-    if (!userRole || !roles.includes(userRole)) {
-      // User doesn't have the required role, redirect to unauthorized
-      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
-    }
-  }
-
-  // User is authenticated and has the required role (if specified)
-  return <>{children}</>;
+const RequireAuth = () => {
+  const isAuthenticated = true; // Replace with real auth logic
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 export default RequireAuth;

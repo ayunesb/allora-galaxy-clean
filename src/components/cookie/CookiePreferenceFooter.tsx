@@ -1,8 +1,7 @@
-
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface CookiePreferenceFooterProps {
   loading: boolean;
@@ -15,7 +14,7 @@ const CookiePreferenceFooter: React.FC<CookiePreferenceFooterProps> = ({
   loading,
   onRejectAll,
   onSaveCustom,
-  onAcceptAll
+  onAcceptAll,
 }) => {
   const { t } = useTranslation();
 
@@ -27,7 +26,7 @@ const CookiePreferenceFooter: React.FC<CookiePreferenceFooterProps> = ({
         onClick={onRejectAll}
         disabled={loading}
       >
-        {t('cookies.rejectAll')}
+        {t("cookies.rejectAll")}
       </Button>
       <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
         <Button
@@ -36,14 +35,10 @@ const CookiePreferenceFooter: React.FC<CookiePreferenceFooterProps> = ({
           onClick={onSaveCustom}
           disabled={loading}
         >
-          {t('cookies.saveCustom')}
+          {t("cookies.saveCustom")}
         </Button>
-        <Button
-          type="button"
-          onClick={onAcceptAll}
-          disabled={loading}
-        >
-          {t('cookies.acceptAll')}
+        <Button type="button" onClick={onAcceptAll} disabled={loading}>
+          {t("cookies.acceptAll")}
         </Button>
       </div>
     </DialogFooter>

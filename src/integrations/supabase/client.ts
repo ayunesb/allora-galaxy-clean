@@ -1,21 +1,26 @@
-
-import { createClient } from '@supabase/supabase-js';
-import { getEnvWithDefault } from '@/lib/env';
+import { createClient } from "@supabase/supabase-js";
+import { getEnvWithDefault } from "@/lib/env";
 
 // Get Supabase URL and key with hardcoded fallbacks to prevent blank screens
-const supabaseUrl = getEnvWithDefault('VITE_SUPABASE_URL', 'https://ijrnwpgsqsxzqdemtknz.supabase.co');
-const supabaseAnonKey = getEnvWithDefault('VITE_SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo');
+const supabaseUrl = getEnvWithDefault(
+  "VITE_SUPABASE_URL",
+  "https://ijrnwpgsqsxzqdemtknz.supabase.co",
+);
+const supabaseAnonKey = getEnvWithDefault(
+  "VITE_SUPABASE_ANON_KEY",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqcm53cGdzcXN4enFkZW10a256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1ODM4MTgsImV4cCI6MjA2MjE1OTgxOH0.aIwahrPEK098sxdqAvsAJBDRCvyQpa9tb42gYn1hoRo",
+);
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storageKey: 'allora_auth_token',
+    storageKey: "allora_auth_token",
     persistSession: true,
     detectSessionInUrl: true,
     autoRefreshToken: true,
   },
   global: {
     headers: {
-      'x-application-name': 'allora-os',
+      "x-application-name": "allora-os",
     },
   },
 });
@@ -24,7 +29,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const supabaseWithErrorHandler = {
   from: (table: string) => {
     const client = supabase.from(table);
-    
+
     // Enhanced error handling for common Supabase operations
     return {
       ...client,
@@ -32,7 +37,10 @@ export const supabaseWithErrorHandler = {
         try {
           return client.select(...args).throwOnError();
         } catch (error: any) {
-          console.error('Database Error:', error.message || 'Failed to fetch data');
+          console.error(
+            "Database Error:",
+            error.message || "Failed to fetch data",
+          );
           throw error;
         }
       },
@@ -40,7 +48,10 @@ export const supabaseWithErrorHandler = {
         try {
           return client.insert(...args).throwOnError();
         } catch (error: any) {
-          console.error('Database Insert Error:', error.message || 'Failed to insert data');
+          console.error(
+            "Database Insert Error:",
+            error.message || "Failed to insert data",
+          );
           throw error;
         }
       },
@@ -48,7 +59,10 @@ export const supabaseWithErrorHandler = {
         try {
           return client.update(...args).throwOnError();
         } catch (error: any) {
-          console.error('Database Update Error:', error.message || 'Failed to update data');
+          console.error(
+            "Database Update Error:",
+            error.message || "Failed to update data",
+          );
           throw error;
         }
       },
@@ -56,7 +70,10 @@ export const supabaseWithErrorHandler = {
         try {
           return client.delete(...args).throwOnError();
         } catch (error: any) {
-          console.error('Database Delete Error:', error.message || 'Failed to delete data');
+          console.error(
+            "Database Delete Error:",
+            error.message || "Failed to delete data",
+          );
           throw error;
         }
       },
@@ -64,18 +81,24 @@ export const supabaseWithErrorHandler = {
         try {
           return client.upsert(...args).throwOnError();
         } catch (error: any) {
-          console.error('Database Upsert Error:', error.message || 'Failed to upsert data');
+          console.error(
+            "Database Upsert Error:",
+            error.message || "Failed to upsert data",
+          );
           throw error;
         }
-      }
+      },
     };
   },
   rpc: (fn: string, params?: Record<string, any>) => {
     try {
       return supabase.rpc(fn, params).throwOnError();
     } catch (error: any) {
-      console.error(`RPC Error (${fn}):`, error.message || 'Failed to execute RPC');
+      console.error(
+        `RPC Error (${fn}):`,
+        error.message || "Failed to execute RPC",
+      );
       throw error;
     }
-  }
+  },
 };

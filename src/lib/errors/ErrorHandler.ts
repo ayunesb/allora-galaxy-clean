@@ -1,15 +1,20 @@
-
 /**
  * Central error handler module for the application
  * Provides standardized error handling across the application
- * 
+ *
  * @module ErrorHandler
  */
 
-import { AlloraError } from './errorTypes';
-import { ErrorHandlerBase } from './ErrorHandlerBase';
-import { SupabaseErrorHandler, handleSupabaseError } from './SupabaseErrorHandler';
-import { EdgeFunctionErrorHandler, handleEdgeFunctionError } from './EdgeFunctionErrorHandler';
+import { AlloraError } from "./errorTypes";
+import { ErrorHandlerBase } from "./ErrorHandlerBase";
+import {
+  SupabaseErrorHandler,
+  handleSupabaseError,
+} from "./SupabaseErrorHandler";
+import {
+  EdgeFunctionErrorHandler,
+  handleEdgeFunctionError,
+} from "./EdgeFunctionErrorHandler";
 
 /**
  * Options for error handling
@@ -34,7 +39,7 @@ export interface ErrorHandlerOptions {
 /**
  * Centralized error handler for the application
  * This class extends base functionality and integrates specialized handlers
- * 
+ *
  * @class ErrorHandler
  * @extends ErrorHandlerBase
  * @example
@@ -46,7 +51,7 @@ export interface ErrorHandlerOptions {
  *   const standardError = await ErrorHandler.handleError(error);
  *   console.log(standardError.severity); // Access standardized properties
  * }
- * 
+ *
  * // With custom options
  * try {
  *   await saveData();
@@ -66,7 +71,7 @@ export class ErrorHandler extends ErrorHandlerBase {
    * Use for errors from Supabase client operations
    */
   static readonly supabase = SupabaseErrorHandler;
-  
+
   /**
    * Handler for Edge Function errors
    * Use for errors from Supabase Edge Function invocations
@@ -77,7 +82,7 @@ export class ErrorHandler extends ErrorHandlerBase {
 /**
  * Utility function to handle any type of error
  * Converts raw errors to standardized AlloraError format
- * 
+ *
  * @param {unknown} error - The error to handle
  * @param {ErrorHandlerOptions} [options={}] - Options for error handling
  * @returns {Promise<AlloraError>} A standardized AlloraError object
@@ -90,7 +95,7 @@ export class ErrorHandler extends ErrorHandlerBase {
  *   const standardError = await handleError(error);
  *   console.log(standardError.code); // Access standardized error code
  * }
- * 
+ *
  * // With notification and logging
  * try {
  *   await submitForm();
@@ -104,8 +109,8 @@ export class ErrorHandler extends ErrorHandlerBase {
  * ```
  */
 export function handleError(
-  error: unknown, 
-  options: ErrorHandlerOptions = {}
+  error: unknown,
+  options: ErrorHandlerOptions = {},
 ): Promise<AlloraError> {
   return ErrorHandler.handleError(error, options);
 }

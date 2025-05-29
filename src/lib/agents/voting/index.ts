@@ -1,9 +1,8 @@
-
 // Re-export the agent voting functions
-export { 
+export {
   voteOnAgentVersion,
   getUserVote,
-  upvoteAgentVersion, 
+  upvoteAgentVersion,
   downvoteAgentVersion,
-  castVote
-} from './voteOnAgentVersion';
+  castVote,
+} from "./voteOnAgentVersion";

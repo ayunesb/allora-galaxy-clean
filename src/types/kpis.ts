@@ -1,0 +1,1 @@
+export type KPI = { id: string; value: number };

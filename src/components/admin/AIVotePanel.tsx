@@ -1,0 +1,1 @@
+// AI Vote Panel component

@@ -1,11 +1,16 @@
-
-import React from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  Legend, ResponsiveContainer
-} from 'recharts';
-import { BarChart2 } from 'lucide-react';
-import { EmptyState } from '@/components/ui/EmptyState';
+import React from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { BarChart2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface XpHistoryTabProps {
   xpHistoryData: Array<{ date: string; xp: number; count: number }>;
@@ -33,14 +38,21 @@ const XpHistoryTab: React.FC<XpHistoryTabProps> = ({ xpHistoryData }) => {
           <XAxis dataKey="date" />
           <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
           <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-          <RechartsTooltip 
+          <RechartsTooltip
             formatter={(value: any, name: string) => {
-              return name === 'xp' ? [`${value} XP`, 'XP Earned'] : [value, 'Executions'];
+              return name === "xp"
+                ? [`${value} XP`, "XP Earned"]
+                : [value, "Executions"];
             }}
           />
           <Legend />
           <Bar yAxisId="left" dataKey="xp" name="XP Earned" fill="#8884d8" />
-          <Bar yAxisId="right" dataKey="count" name="Executions" fill="#82ca9d" />
+          <Bar
+            yAxisId="right"
+            dataKey="count"
+            name="Executions"
+            fill="#82ca9d"
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

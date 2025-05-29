@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Button } from "@/components/ui/button";
 
 export interface ViewModeSelectorProps {
   viewMode: string;
@@ -9,12 +8,12 @@ export interface ViewModeSelectorProps {
 
 export const ViewModeSelector: React.FC<ViewModeSelectorProps> = ({
   viewMode,
-  onModeChange
+  onModeChange,
 }) => {
   const modes = [
-    { id: 'strategy', label: 'Strategy' },
-    { id: 'plugin', label: 'Plugin' },
-    { id: 'agent', label: 'Agent' },
+    { id: "strategy", label: "Strategy" },
+    { id: "plugin", label: "Plugin" },
+    { id: "agent", label: "Agent" },
   ];
 
   return (
@@ -22,7 +21,7 @@ export const ViewModeSelector: React.FC<ViewModeSelectorProps> = ({
       {modes.map((mode) => (
         <Button
           key={mode.id}
-          variant={viewMode === mode.id ? 'default' : 'ghost'}
+          variant={viewMode === mode.id ? "default" : "ghost"}
           size="sm"
           onClick={() => onModeChange(mode.id)}
           className="text-xs"

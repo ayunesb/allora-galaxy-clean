@@ -1,23 +1,26 @@
-
-import { useState } from 'react';
-import { useToast } from '@/lib/notifications/toast';
-import { simulateVotes } from './voteSimulator';
-import { simulateLogs } from './logSimulator';
-import { updateAgentXp, resetAgentXp, checkAgentEvolution } from './xpManager';
-import type { SimulateXpOptions, XpAccumulationResult } from './types';
+import { useState } from "react";
+import { useToast } from "@/lib/notifications/toast";
+import { simulateVotes } from "./voteSimulator";
+import { simulateLogs } from "./logSimulator";
+import { updateAgentXp, resetAgentXp, checkAgentEvolution } from "./xpManager";
+import type { SimulateXpOptions, XpAccumulationResult } from "./types";
 
 /**
  * Hook to help simulate agent XP accumulation for testing purposes
  */
 export function useAgentXpSimulator() {
   const [isLoading, setIsLoading] = useState(false);
-  const [lastResults, setLastResults] = useState<XpAccumulationResult | null>(null);
-  const { toast } = useToast();
-  
+  const [lastResults, setLastResults] = useState<XpAccumulationResult | null>(
+    null,
+  );
+  const { notifyError, notifySuccess } = useToast();
+
   /**
    * Simulate XP accumulation through both votes and logs
    */
-  const simulateXpAccumulation = async (options: SimulateXpOptions): Promise<XpAccumulationResult | null> => {
+  const simulateXpAccumulation = async (
+    options: SimulateXpOptions,
+  ): Promise<XpAccumulationResult | null> => {
     setIsLoading(true);
     try {
       const {
@@ -27,17 +30,17 @@ export function useAgentXpSimulator() {
         upvotes = 1,
         downvotes = 0,
         simulate_logs = true,
-        log_count = 5
+        log_count = 5,
       } = options;
-      
+
       // Simulate votes
       const votesResult = await simulateVotes({
         agent_version_id,
         tenant_id,
         upvotes,
-        downvotes
+        downvotes,
       });
-      
+
       // Simulate logs if requested
       let logsResult = null;
       if (simulate_logs) {
@@ -45,76 +48,73 @@ export function useAgentXpSimulator() {
           agent_version_id,
           tenant_id,
           xp_amount,
-          log_count
+          log_count,
         });
       }
-      
+
       // Update agent version with XP
       const xpUpdate = await updateAgentXp(
         agent_version_id,
         xp_amount,
         upvotes,
-        downvotes
+        downvotes,
       );
-      
+
       if (!xpUpdate) {
-        throw new Error('Failed to update agent XP');
+        throw new Error("Failed to update agent XP");
       }
-      
+
       // Check if agent is eligible for promotion
       const promotionCheck = await checkAgentEvolution(tenant_id);
-      
+
       const results: XpAccumulationResult = {
         votesResult,
         logsResult,
         xpUpdated: {
           agent_version_id,
-          previous: xpUpdate.previous,
-          current: xpUpdate.current,
+          previous: xpUpdate.previous?.xp ?? 0,
+          current: xpUpdate.current?.xp ?? 0,
           delta: { 
             xp: xp_amount, 
             upvotes, 
             downvotes 
-          }
+          },
         },
-        promotionCheck
+        promotionCheck,
       };
-      
+
       setLastResults(results);
-      
-      toast({
-        title: "XP Accumulation Simulated",
-        description: `Agent updated with ${xp_amount} XP and ${upvotes} upvotes`
-      });
-      
+
+      notifySuccess(
+        `XP Accumulation Simulated: Agent updated with ${xp_amount} XP and ${upvotes} upvotes`,
+      );
+
       return results;
-    } catch (error: any) {
-      console.error('Error simulating XP accumulation:', error);
-      
-      toast({
-        title: "Error simulating XP accumulation",
-        description: error.message,
-        variant: "destructive"
-      });
-      
+    } catch (error) {
+      console.error("Error simulating XP accumulation:", error);
+      notifyError(
+        `Error simulating XP accumulation: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       return null;
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return {
     simulateVotes,
     simulateLogs,
     simulateXpAccumulation,
     resetAgentXp,
     isLoading,
-    lastResults
+    lastResults,
   };
 }
 
 // Re-export all the simulator functions for direct usage
-export * from './types';
-export * from './voteSimulator';
-export * from './logSimulator';
-export * from './xpManager';
+export * from "./types";
+export * from "./voteSimulator";
+export * from "./logSimulator";
+export * from "./xpManager";

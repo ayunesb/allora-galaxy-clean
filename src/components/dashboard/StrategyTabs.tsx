@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, LineChart, Settings, History } from 'lucide-react';
-import { EdgeFunctionHandler } from '@/components/errors/EdgeFunctionHandler';
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, LineChart, Settings, History } from "lucide-react";
+import { EdgeFunctionHandler } from "@/components/errors/EdgeFunctionHandler";
 
 interface Strategy {
   id: string;
@@ -28,12 +34,12 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
   error,
   onNewStrategy,
   onEditStrategy,
-  onRunStrategy
+  onRunStrategy,
 }) => {
   const [activeTab, setActiveTab] = useState("active");
 
   // Filter strategies based on active tab
-  const filteredStrategies = strategies.filter(strategy => {
+  const filteredStrategies = strategies.filter((strategy) => {
     if (activeTab === "active") return strategy.status === "active";
     if (activeTab === "draft") return strategy.status === "draft";
     if (activeTab === "archived") return strategy.status === "archived";
@@ -41,13 +47,10 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
   });
 
   return (
-    <EdgeFunctionHandler
-      isLoading={isLoading}
-      error={error}
-    >
-      <Tabs 
-        defaultValue="active" 
-        onValueChange={setActiveTab} 
+    <EdgeFunctionHandler isLoading={isLoading} error={error}>
+      <Tabs
+        defaultValue="active"
+        onValueChange={setActiveTab}
         className="w-full"
       >
         <div className="flex justify-between items-center mb-6">
@@ -56,7 +59,7 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
             <TabsTrigger value="draft">Draft</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
           </TabsList>
-          
+
           <Button onClick={onNewStrategy} className="gap-2">
             <PlusCircle size={16} /> New Strategy
           </Button>
@@ -65,14 +68,14 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
         <TabsContent value="active" className="m-0">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredStrategies.length === 0 ? (
-              <EmptyState 
+              <EmptyState
                 message="No active strategies yet"
                 description="Start by creating a new strategy"
                 action={onNewStrategy}
                 actionLabel="Create Strategy"
               />
             ) : (
-              filteredStrategies.map(strategy => (
+              filteredStrategies.map((strategy) => (
                 <StrategyCard
                   key={strategy.id}
                   strategy={strategy}
@@ -83,18 +86,18 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
             )}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="draft" className="m-0">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredStrategies.length === 0 ? (
-              <EmptyState 
+              <EmptyState
                 message="No draft strategies"
                 description="Drafts are strategies that are still in development"
                 action={onNewStrategy}
                 actionLabel="Create Draft"
               />
             ) : (
-              filteredStrategies.map(strategy => (
+              filteredStrategies.map((strategy) => (
                 <StrategyCard
                   key={strategy.id}
                   strategy={strategy}
@@ -105,16 +108,16 @@ const StrategyTabs: React.FC<StrategyTabsProps> = ({
             )}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="archived" className="m-0">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredStrategies.length === 0 ? (
-              <EmptyState 
+              <EmptyState
                 message="No archived strategies"
                 description="Archived strategies are no longer active but preserved for reference"
               />
             ) : (
-              filteredStrategies.map(strategy => (
+              filteredStrategies.map((strategy) => (
                 <StrategyCard
                   key={strategy.id}
                   strategy={strategy}
@@ -136,11 +139,17 @@ interface StrategyCardProps {
   onRun: () => void;
 }
 
-const StrategyCard: React.FC<StrategyCardProps> = ({ strategy, onEdit, onRun }) => {
+const StrategyCard: React.FC<StrategyCardProps> = ({
+  strategy,
+  onEdit,
+  onRun,
+}) => {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{strategy.name || "Unnamed Strategy"}</CardTitle>
+        <CardTitle className="text-lg">
+          {strategy.name || "Unnamed Strategy"}
+        </CardTitle>
         <CardDescription className="line-clamp-2">
           {strategy.description || "No description provided"}
         </CardDescription>
@@ -171,11 +180,11 @@ interface EmptyStateProps {
   actionLabel?: string;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ 
-  message, 
-  description, 
-  action, 
-  actionLabel 
+const EmptyState: React.FC<EmptyStateProps> = ({
+  message,
+  description,
+  action,
+  actionLabel,
 }) => (
   <Card className="col-span-full p-8 flex flex-col items-center justify-center text-center">
     <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center mb-4">

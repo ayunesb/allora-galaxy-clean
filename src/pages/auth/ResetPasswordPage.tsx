@@ -1,6 +1,5 @@
-
-import React from 'react';
-import AuthPage from './AuthPage';
+import React from "react";
+import AuthPage from "./AuthPage";
 
 const ResetPasswordPage: React.FC = () => {
   return <AuthPage />;

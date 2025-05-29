@@ -1,9 +1,8 @@
-
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 /**
  * A hook that provides optimized debounced state management
- * 
+ *
  * @param initialValue The initial value
  * @param delay The debounce delay in milliseconds
  * @returns Object with value, debouncedValue, and setSearchValue function

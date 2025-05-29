@@ -1,7 +1,6 @@
-
-import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { afterEach, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import "@testing-library/jest-dom";
 
 // Automatically reset the DOM after each test
 afterEach(() => {
@@ -9,7 +8,7 @@ afterEach(() => {
 });
 
 // Mock the matchMedia function which is not available in JSDOM
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
     matches: false,

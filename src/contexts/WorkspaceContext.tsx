@@ -1,7 +1,6 @@
-
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useWorkspaceState } from './workspace/useWorkspaceState';
-import { WorkspaceContextType } from './workspace/types';
+import React, { createContext, useContext, ReactNode } from "react";
+import { useWorkspaceState } from "./workspace/useWorkspaceState";
+import { WorkspaceContextType } from "./workspace/types";
 
 // Create the initial context
 const WorkspaceContext = createContext<WorkspaceContextType>({
@@ -24,10 +23,12 @@ interface WorkspaceProviderProps {
   children: ReactNode;
 }
 
-export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }) => {
+export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
+  children,
+}) => {
   // Use our custom hook to manage workspace state
   const workspaceState = useWorkspaceState();
-  
+
   return (
     <WorkspaceContext.Provider value={workspaceState}>
       {children}

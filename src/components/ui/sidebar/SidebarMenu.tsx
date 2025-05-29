@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useSidebar } from './SidebarProvider';
+import React, { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSidebar } from "./SidebarProvider";
 
 export interface SidebarMenuProps {
   title: string;
@@ -34,15 +33,16 @@ export function SidebarMenu({
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpenState, setIsOpen] = useState(defaultOpen);
-  
+
   // Determine if isOpen is controlled or uncontrolled
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : isOpenState;
-  
+  const isOpen =
+    controlledIsOpen !== undefined ? controlledIsOpen : isOpenState;
+
   // Toggle open state
   const toggleOpen = () => {
     setIsOpen(!isOpen);
   };
-  
+
   // Handle click on menu item
   const handleClick = () => {
     if (link) {
@@ -55,10 +55,10 @@ export function SidebarMenu({
       onClick();
     }
   };
-  
+
   // Determine if the current route matches the link
   const isActiveLink = isActive || (link && location.pathname === link);
-  
+
   return (
     <div className={cn("flex flex-col", className)}>
       <button
@@ -66,7 +66,7 @@ export function SidebarMenu({
         className={cn(
           "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
           isActiveLink && "bg-accent text-accent-foreground font-medium",
-          !collapsed ? "justify-start" : "justify-center"
+          !collapsed ? "justify-start" : "justify-center",
         )}
       >
         {icon && (
@@ -74,17 +74,19 @@ export function SidebarMenu({
             {icon}
           </span>
         )}
-        {(!collapsed) && (
-          <span className="flex-1 truncate">{title}</span>
-        )}
+        {!collapsed && <span className="flex-1 truncate">{title}</span>}
         {badge && !collapsed && <span className="ml-auto">{badge}</span>}
         {children && !collapsed && (
           <span className="ml-auto">
-            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </span>
         )}
       </button>
-      
+
       {children && isOpen && !collapsed && (
         <div className="pl-6 mt-1">{children}</div>
       )}

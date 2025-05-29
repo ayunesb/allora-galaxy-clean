@@ -1,0 +1,1 @@
+// Supabase edge function for logging plugin evolution votes

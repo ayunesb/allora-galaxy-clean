@@ -1,8 +1,7 @@
-
-import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { NotificationContent } from '@/types/notifications';
-import NotificationItem from './NotificationItem';
+import React from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { NotificationContent } from "@/types/notifications";
+import NotificationItem from "./NotificationItem";
 
 interface NotificationListProps {
   notifications: NotificationContent[];
@@ -17,7 +16,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   onMarkAsRead,
   onDelete,
   filter,
-  loading
+  loading,
 }) => {
   if (loading) {
     return (
@@ -30,7 +29,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   if (notifications.length === 0) {
     return (
       <div className="py-6 text-center text-muted-foreground">
-        <p>No {filter !== 'all' ? filter : ''} notifications</p>
+        <p>No {filter !== "all" ? filter : ""} notifications</p>
       </div>
     );
   }

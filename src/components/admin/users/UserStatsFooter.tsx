@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { CardFooter } from '@/components/ui/card';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { CardFooter } from "@/components/ui/card";
 
 interface UserStatsFooterProps {
   userCount: number;
@@ -10,12 +9,12 @@ interface UserStatsFooterProps {
 
 export const UserStatsFooter: React.FC<UserStatsFooterProps> = ({
   userCount,
-  onRefresh
+  onRefresh,
 }) => {
   return (
     <CardFooter className="flex justify-between">
       <div className="text-sm text-muted-foreground">
-        {userCount} user{userCount !== 1 ? 's' : ''} in this workspace
+        {userCount} user{userCount !== 1 ? "s" : ""} in this workspace
       </div>
       <Button variant="outline" size="sm" onClick={onRefresh}>
         Refresh

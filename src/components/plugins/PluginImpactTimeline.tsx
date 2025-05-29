@@ -1,0 +1,1 @@
+// Plugin impact timeline visualization

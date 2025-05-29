@@ -1,4 +1,3 @@
-
 export interface Notification {
   id: string;
   title: string;
@@ -12,7 +11,7 @@ export interface Notification {
   metadata?: Record<string, any>;
   action_url?: string;
   action_label?: string;
-  priority?: 'high' | 'medium' | 'low'; // Added priority field
+  priority?: "high" | "medium" | "low"; // Added priority field
   is_read?: boolean; // For backward compatibility
 }
 

@@ -1,11 +1,17 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Steps } from '@/components/ui/steps';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Steps } from "@/components/ui/steps";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import { useToast } from "@/lib/notifications/toast";
 
 interface OnboardingStep {
   id: string;
@@ -16,8 +22,8 @@ interface OnboardingStep {
 
 interface OnboardingWizardProps {
   steps: OnboardingStep[];
-  onComplete: (data: Record<string, any>) => void;
-  defaultValues?: Record<string, any>;
+  onComplete: (data: Record<string, unknown>) => void;
+  defaultValues?: Record<string, unknown>;
   tenantId: string;
 }
 
@@ -25,32 +31,34 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   steps,
   onComplete,
   defaultValues = {},
-  tenantId
+  tenantId,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [formData, setFormData] = useState<Record<string, any>>(defaultValues);
+  const [formData, setFormData] =
+    useState<Record<string, unknown>>(defaultValues);
   const navigate = useNavigate();
-  
+  const { notify } = useToast();
+
   const currentStep = steps[currentStepIndex];
-  
-  const handleNext = (stepData: Record<string, any> = {}) => {
+
+  const handleNext = (stepData: Record<string, unknown> = {}) => {
     // Merge step data with overall form data
     const updatedFormData = { ...formData, ...stepData };
     setFormData(updatedFormData);
-    
+
     if (currentStepIndex < steps.length - 1) {
       // Log step completion
       logSystemEvent(
-        'onboarding',
-        'info',
+        "onboarding",
+        "info",
         {
           description: `Completed onboarding step ${currentStepIndex + 1}: ${currentStep.title}`,
           step: currentStepIndex + 1,
-          step_id: currentStep.id
+          step_id: currentStep.id,
         },
-        tenantId
+        tenantId,
       ).catch(console.error);
-      
+
       // Move to next step
       setCurrentStepIndex(currentStepIndex + 1);
     } else {
@@ -58,72 +66,69 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       handleComplete(updatedFormData);
     }
   };
-  
+
   const handleBack = () => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex(currentStepIndex - 1);
     }
   };
-  
-  const handleComplete = async (finalData: Record<string, any>) => {
+
+  const handleComplete = async (finalData: Record<string, unknown>) => {
     try {
       // Log onboarding completion
       await logSystemEvent(
-        'onboarding',
-        'info',
+        "onboarding",
+        "info",
         {
-          description: 'Onboarding process completed',
-          total_steps: steps.length
+          description: "Onboarding process completed",
+          total_steps: steps.length,
         },
-        tenantId
+        tenantId,
       );
-      
+
       // Call completion handler
       await onComplete(finalData);
-      
-      toast.success('Setup complete! Welcome aboard.');
-      navigate('/');
+      notify("Setup complete! Welcome aboard.");
+      navigate("/");
     } catch (error) {
-      console.error('Error completing onboarding:', error);
-      toast.error('There was an issue completing setup. Please try again.');
+      console.error("Error completing onboarding:", error);
+      notify("There was an issue completing setup. Please try again.");
     }
   };
-  
+
   useEffect(() => {
     // Log initial step view
     if (tenantId) {
       logSystemEvent(
-        'onboarding',
-        'info',
+        "onboarding",
+        "info",
         {
           description: `Viewed onboarding step ${currentStepIndex + 1}: ${currentStep?.title}`,
           step: currentStepIndex + 1,
-          step_id: currentStep?.id
+          step_id: currentStep?.id,
         },
-        tenantId
+        tenantId,
       ).catch(console.error);
     }
   }, [currentStepIndex, currentStep, tenantId]);
-  
+
   return (
     <div className="max-w-4xl mx-auto">
       <Steps
         currentStep={currentStepIndex + 1}
         totalSteps={steps.length}
-        labels={steps.map(step => step.title)}
+        labels={steps.map((step) => step.title)}
         className="mb-8"
       />
-      
+
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>{currentStep.title}</CardTitle>
           <CardDescription>{currentStep.description}</CardDescription>
         </CardHeader>
-        
-        <CardContent>
-          {currentStep.component}
-        </CardContent>
-        
+
+        <CardContent>{currentStep.component}</CardContent>
+
         <CardFooter className="flex justify-between">
           <Button
             variant="outline"
@@ -132,12 +137,12 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           >
             Back
           </Button>
-          
+
           <Button
             onClick={() => handleNext()}
             disabled={currentStepIndex === steps.length}
           >
-            {currentStepIndex < steps.length - 1 ? 'Next' : 'Complete'}
+            {currentStepIndex < steps.length - 1 ? "Next" : "Complete"}
           </Button>
         </CardFooter>
       </Card>

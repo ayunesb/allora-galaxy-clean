@@ -1,7 +1,6 @@
-
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { toast } from '@/components/ui/use-toast';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "@/components/ui/use-toast";
 
 /**
  * Options for configuring the useDataState hook
@@ -25,14 +24,14 @@ interface UseDataStateOptions<T> {
 
 /**
  * A hook for managing data fetching state with React Query
- * 
+ *
  * This hook simplifies data fetching with React Query, providing
  * loading states, error handling, and refresh functionality with
  * toast notifications for feedback.
- * 
+ *
  * @param options Configuration options for the data fetching
  * @returns Object containing data, loading state, error state, and refresh function
- * 
+ *
  * @example
  * ```tsx
  * // Define a fetch function
@@ -42,11 +41,11 @@ interface UseDataStateOptions<T> {
  *     .select('*')
  *     .eq('id', userId)
  *     .single();
- *   
+ *
  *   if (error) throw error;
  *   return data;
  * };
- * 
+ *
  * // Use the hook in a component
  * function UserProfile({ userId }) {
  *   const {
@@ -61,15 +60,15 @@ interface UseDataStateOptions<T> {
  *     successMessage: 'User data loaded successfully',
  *     errorMessage: 'Failed to load user data'
  *   });
- * 
+ *
  *   if (isLoading) return <Spinner />;
  *   if (error) return <ErrorDisplay error={error} />;
- * 
+ *
  *   return (
  *     <div>
  *       <UserInfo user={user} />
- *       <Button 
- *         onClick={refresh} 
+ *       <Button
+ *         onClick={refresh}
  *         disabled={isRefreshing}
  *       >
  *         {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
@@ -83,19 +82,14 @@ export function useDataState<T>({
   fetchFn,
   queryKey,
   successMessage,
-  errorMessage = 'Failed to fetch data',
+  errorMessage = "Failed to fetch data",
   onSuccess,
   onError,
   shouldFetch = true,
 }: UseDataStateOptions<T>) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
     queryFn: fetchFn,
     enabled: shouldFetch,
@@ -112,11 +106,11 @@ export function useDataState<T>({
         setIsRefreshing(false);
         toast({
           variant: "destructive",
-          title: errorMessage || err?.message || 'An error occurred',
+          title: errorMessage || err?.message || "An error occurred",
         });
         onError?.(err);
       },
-    }
+    },
   });
 
   /**
@@ -132,7 +126,7 @@ export function useDataState<T>({
     } catch (err: any) {
       toast({
         variant: "destructive",
-        title: err?.message || 'Failed to refresh data',
+        title: err?.message || "Failed to refresh data",
       });
     } finally {
       setIsRefreshing(false);

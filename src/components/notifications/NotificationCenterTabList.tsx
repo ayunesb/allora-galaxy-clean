@@ -1,12 +1,13 @@
-
-import React from 'react';
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from "react";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface NotificationCenterTabListProps {
   unreadCount: number;
 }
 
-const NotificationCenterTabList: React.FC<NotificationCenterTabListProps> = ({ unreadCount }) => {
+const NotificationCenterTabList: React.FC<NotificationCenterTabListProps> = ({
+  unreadCount,
+}) => {
   return (
     <div className="px-4">
       <TabsList className="w-full grid grid-cols-3">

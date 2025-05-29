@@ -1,10 +1,16 @@
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { useTenantId } from '@/hooks/useTenantId';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useTenantId } from "@/hooks/useTenantId";
 
 interface Plugin {
   id: string;
@@ -23,35 +29,35 @@ const PluginLeaderboard = () => {
   useEffect(() => {
     async function fetchPlugins() {
       if (!tenantId) return;
-      
+
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from('plugins')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .order('xp', { ascending: false })
+          .from("plugins")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .order("xp", { ascending: false })
           .limit(10);
-          
+
         if (error) throw error;
         setPlugins(data || []);
       } catch (error) {
-        console.error('Error fetching plugins:', error);
+        console.error("Error fetching plugins:", error);
       } finally {
         setLoading(false);
       }
     }
-    
+
     fetchPlugins();
   }, [tenantId]);
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active':
+      case "active":
         return <Badge className="bg-green-500">Active</Badge>;
-      case 'inactive':
+      case "inactive":
         return <Badge variant="outline">Inactive</Badge>;
-      case 'pending':
+      case "pending":
         return <Badge variant="secondary">Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -105,8 +111,10 @@ const PluginLeaderboard = () => {
                   <TableRow key={plugin.id}>
                     <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>{plugin.name}</TableCell>
-                    <TableCell>{plugin.category || 'Uncategorized'}</TableCell>
-                    <TableCell className="text-right">{plugin.xp.toLocaleString()}</TableCell>
+                    <TableCell>{plugin.category || "Uncategorized"}</TableCell>
+                    <TableCell className="text-right">
+                      {plugin.xp.toLocaleString()}
+                    </TableCell>
                     <TableCell className="text-right">{plugin.roi}%</TableCell>
                     <TableCell>{getStatusBadge(plugin.status)}</TableCell>
                   </TableRow>

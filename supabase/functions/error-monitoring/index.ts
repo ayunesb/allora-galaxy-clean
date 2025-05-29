@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -82,7 +81,7 @@ serve(async (req) => {
       const errorCount = errorLogs?.length || 0;
       const thresholdExceeded = errorCount >= config.threshold;
       
-      let response: AlertResponse = {
+      const response: AlertResponse = {
         triggered: thresholdExceeded,
         error_count: errorCount,
         threshold: config.threshold,

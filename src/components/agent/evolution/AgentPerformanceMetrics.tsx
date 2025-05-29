@@ -1,27 +1,31 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { AgentPerformanceData } from '@/types/agent';
-import { ArrowUpRight, ArrowDownRight, Clock, Activity, ThumbsUp } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { AgentPerformanceData } from "@/types/agent";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  Activity,
+  ThumbsUp,
+} from "lucide-react";
 
 interface AgentPerformanceMetricsProps {
   metrics: AgentPerformanceData;
   className?: string;
 }
 
-export const AgentPerformanceMetrics: React.FC<AgentPerformanceMetricsProps> = ({
-  metrics,
-  className
-}) => {
+export const AgentPerformanceMetrics: React.FC<
+  AgentPerformanceMetricsProps
+> = ({ metrics, className }) => {
   const formatPercentage = (value: number) => `${Math.round(value * 100)}%`;
-  
+
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">Performance Metrics</CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -30,7 +34,9 @@ export const AgentPerformanceMetrics: React.FC<AgentPerformanceMetricsProps> = (
                 <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-sm font-medium">Success Rate</span>
               </div>
-              <span className="text-sm font-bold">{formatPercentage(metrics.successRate)}</span>
+              <span className="text-sm font-bold">
+                {formatPercentage(metrics.successRate)}
+              </span>
             </div>
             <Progress value={metrics.successRate * 100} className="h-2" />
           </div>
@@ -41,7 +47,9 @@ export const AgentPerformanceMetrics: React.FC<AgentPerformanceMetricsProps> = (
                 <ArrowDownRight className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-sm font-medium">Error Rate</span>
               </div>
-              <span className="text-sm font-bold">{formatPercentage(metrics.errorRate)}</span>
+              <span className="text-sm font-bold">
+                {formatPercentage(metrics.errorRate)}
+              </span>
             </div>
             <Progress value={metrics.errorRate * 100} className="h-2" />
           </div>
@@ -51,7 +59,9 @@ export const AgentPerformanceMetrics: React.FC<AgentPerformanceMetricsProps> = (
               <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
               <span className="text-sm">Avg. Execution Time</span>
             </div>
-            <p className="text-xl font-bold">{metrics.averageExecutionTime.toFixed(2)}ms</p>
+            <p className="text-xl font-bold">
+              {metrics.averageExecutionTime.toFixed(2)}ms
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -68,7 +78,9 @@ export const AgentPerformanceMetrics: React.FC<AgentPerformanceMetricsProps> = (
                 <ThumbsUp className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-sm">Upvote Rate</span>
               </div>
-              <p className="text-xl font-bold">{formatPercentage(metrics.upvoteRate)}</p>
+              <p className="text-xl font-bold">
+                {formatPercentage(metrics.upvoteRate)}
+              </p>
             </div>
           )}
 

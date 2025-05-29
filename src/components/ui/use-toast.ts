@@ -1,23 +1,22 @@
-
 // Re-export from our centralized toast implementation
-import { 
-  useToast, 
+import {
+  useToast,
   notify as toast,
   notify,
   notifySuccess,
   notifyError,
   notifyWarning,
-  notifyInfo
+  notifyInfo,
 } from "@/lib/notifications/toast";
 
-export { 
-  useToast, 
+export {
+  useToast,
   toast,
   notify,
   notifySuccess,
   notifyError,
   notifyWarning,
-  notifyInfo
+  notifyInfo,
 };
 
 // For backward compatibility

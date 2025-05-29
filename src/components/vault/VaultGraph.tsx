@@ -1,0 +1,1 @@
+export default function VaultGraph() { return <div>Graph Component</div>; }

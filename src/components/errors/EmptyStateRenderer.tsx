@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import React from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 interface EmptyStateRendererProps {
   title: string;
@@ -13,7 +12,7 @@ const EmptyStateRenderer: React.FC<EmptyStateRendererProps> = ({
   title,
   description,
   icon,
-  action
+  action,
 }) => {
   return (
     <Card>

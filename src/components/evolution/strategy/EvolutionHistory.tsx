@@ -1,6 +1,5 @@
-
-import React, { useMemo } from 'react';
-import { format } from 'date-fns';
+import React, { useMemo } from "react";
+import { format } from "date-fns";
 import {
   Timeline,
   TimelineItem,
@@ -9,13 +8,13 @@ import {
   TimelineDot,
   TimelineHeader,
   TimelineSeparator,
-} from '@/components/ui/timeline';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import type { StrategyVersion } from '@/types/strategy';
+} from "@/components/ui/timeline";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { StrategyVersion } from "@/types/strategy";
 
-type StrategyChangeType = 'major' | 'minor' | 'patch';
+type StrategyChangeType = "major" | "minor" | "patch";
 
 interface EvolutionHistoryProps {
   versions: StrategyVersion[];
@@ -27,36 +26,37 @@ interface EvolutionHistoryProps {
 const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
   versions,
   isLoading = false,
-  maxHeight = '500px',
-  className = '',
+  maxHeight = "500px",
+  className = "",
 }) => {
   // Get color for the change type badge
   const getChangeTypeColor = (changeType: StrategyChangeType | undefined) => {
     switch (changeType) {
-      case 'major':
-        return 'bg-red-500';
-      case 'minor':
-        return 'bg-amber-500';
-      case 'patch':
-        return 'bg-green-500';
+      case "major":
+        return "bg-red-500";
+      case "minor":
+        return "bg-amber-500";
+      case "patch":
+        return "bg-green-500";
       default:
-        return 'bg-blue-500';
+        return "bg-blue-500";
     }
   };
 
   // Format the date
   const formatVersionDate = (dateStr: string) => {
     try {
-      return format(new Date(dateStr), 'MMM d, yyyy h:mm a');
+      return format(new Date(dateStr), "MMM d, yyyy h:mm a");
     } catch (err) {
-      return 'Invalid date';
+      return "Invalid date";
     }
   };
 
   // Memoize versions to prevent unnecessary re-rendering
   const sortedVersions = useMemo(() => {
-    return [...versions].sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    return [...versions].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
   }, [versions]);
 
@@ -98,7 +98,11 @@ const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <div className="font-medium">Version {version.version}</div>
                   {version.change_type && (
-                    <Badge className={getChangeTypeColor(version.change_type as StrategyChangeType)}>
+                    <Badge
+                      className={getChangeTypeColor(
+                        version.change_type as StrategyChangeType,
+                      )}
+                    >
                       {version.change_type.toUpperCase()}
                     </Badge>
                   )}
@@ -109,7 +113,11 @@ const EvolutionHistory: React.FC<EvolutionHistoryProps> = ({
                 {(version.change_summary || version.description) && (
                   <Card>
                     <CardContent className="p-3 text-sm">
-                      <p>{version.change_summary || version.description || 'No description provided'}</p>
+                      <p>
+                        {version.change_summary ||
+                          version.description ||
+                          "No description provided"}
+                      </p>
                     </CardContent>
                   </Card>
                 )}

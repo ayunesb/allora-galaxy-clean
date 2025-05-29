@@ -1,29 +1,33 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { ChevronLeft, AlertTriangle, RefreshCw } from 'lucide-react';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { ChevronLeft, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface PluginDetailErrorProps {
   error: string | null;
 }
 
-export const PluginDetailError: React.FC<PluginDetailErrorProps> = ({ error }) => {
+export const PluginDetailError: React.FC<PluginDetailErrorProps> = ({
+  error,
+}) => {
   const navigate = useNavigate();
   const goBack = () => navigate(-1);
   const retry = () => window.location.reload();
-  
+
   return (
     <div className="container mx-auto py-8 animate-fade-in">
-      <Button 
-        variant="ghost" 
-        onClick={goBack} 
-        className="mb-4 group"
-      >
-        <ChevronLeft className="mr-2 h-4 w-4 group-hover:translate-x-[-2px] transition-transform" /> Back
+      <Button variant="ghost" onClick={goBack} className="mb-4 group">
+        <ChevronLeft className="mr-2 h-4 w-4 group-hover:translate-x-[-2px] transition-transform" />{" "}
+        Back
       </Button>
-      
+
       <Card className="max-w-2xl mx-auto border-destructive/20 overflow-hidden">
         <CardHeader className="bg-destructive/10 border-b border-destructive/20">
           <CardTitle className="flex items-center text-destructive">
@@ -40,7 +44,7 @@ export const PluginDetailError: React.FC<PluginDetailErrorProps> = ({ error }) =
             Failed to load plugin details
           </p>
           <p className="text-center text-muted-foreground mb-4">
-            {error || 'Plugin not found or could not be loaded'}
+            {error || "Plugin not found or could not be loaded"}
           </p>
           {error && (
             <div className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-32 mb-4">

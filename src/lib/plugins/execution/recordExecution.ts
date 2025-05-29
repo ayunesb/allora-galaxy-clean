@@ -1,18 +1,17 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { ExecutionRecordInput } from '@/types/execution';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+import { supabase } from "@/integrations/supabase/client";
+import { ExecutionRecordInput } from "@/types/execution";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
 
 /**
  * Record an execution in the database for tracking and analysis
- * 
+ *
  * This function creates a new execution record in the database with details about
- * a plugin, strategy, or agent execution. It handles the conversion of camelCase 
+ * a plugin, strategy, or agent execution. It handles the conversion of camelCase
  * properties to snake_case for database compatibility and provides error handling.
- * 
+ *
  * @param data The execution data to record
  * @returns Promise resolving to an object indicating success or failure
- * 
+ *
  * @example
  * ```typescript
  * // Record a plugin execution
@@ -27,7 +26,7 @@ import { logSystemEvent } from '@/lib/system/logSystemEvent';
  *   executionTime: 1250, // ms
  *   xpEarned: 10
  * });
- * 
+ *
  * if (result.success) {
  *   console.log('Execution recorded:', result.data);
  * } else {
@@ -50,41 +49,46 @@ export async function recordExecution(data: ExecutionRecordInput) {
       output: data.output,
       execution_time: data.executionTime,
       xp_earned: data.xpEarned,
-      error: data.error
+      error: data.error,
     };
 
     const { data: execution, error } = await supabase
-      .from('executions')
+      .from("executions")
       .insert(record)
       .select()
       .single();
-      
+
     if (error) {
       throw error;
     }
-    
-    return { 
-      success: true, 
-      data: execution
+
+    return {
+      success: true,
+      data: execution,
     };
   } catch (error: any) {
-    console.error('Error recording execution:', error);
-    
+    console.error("Error recording execution:", error);
+
     // Try to log the error as a system event
     try {
-      await logSystemEvent('system', 'error', {
-        description: `Failed to record execution: ${error.message}`,
-        action: 'record_execution',
-        error: error.message,
-        details: data
-      }, data.tenantId);
+      await logSystemEvent(
+        "system",
+        "error",
+        {
+          description: `Failed to record execution: ${error.message}`,
+          action: "record_execution",
+          error: error.message,
+          details: data,
+        },
+        data.tenantId,
+      );
     } catch (logError) {
-      console.error('Failed to log execution error:', logError);
+      console.error("Failed to log execution error:", logError);
     }
-    
-    return { 
-      success: false, 
-      error: error.message || 'Unknown error recording execution'
+
+    return {
+      success: false,
+      error: error.message || "Unknown error recording execution",
     };
   }
 }

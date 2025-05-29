@@ -1,4 +1,3 @@
-
 /**
  * Environment validation utilities for Supabase edge functions
  */
@@ -54,3 +53,5 @@ export function validateEnv(requiredVars: EnvVar[]): Record<string, string> {
 
   return env;
 }
+
+// Deno.env.get is only available in Deno runtime, not Node.

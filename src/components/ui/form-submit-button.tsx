@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
@@ -6,7 +5,13 @@ interface FormSubmitButtonProps {
   loading?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   className?: string;
   type?: "submit" | "button";
   onClick?: () => void;

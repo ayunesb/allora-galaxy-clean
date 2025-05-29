@@ -1,4 +1,3 @@
-
 export interface ExecuteStrategyInput {
   strategy_id: string;
   tenant_id: string;
@@ -7,7 +6,7 @@ export interface ExecuteStrategyInput {
 
 export interface UpdateKpisInput {
   tenant_id: string;
-  run_mode?: 'manual' | 'cron';
+  run_mode?: "manual" | "cron";
 }
 
 export interface SyncMqlsInput {
@@ -17,7 +16,7 @@ export interface SyncMqlsInput {
 
 export interface WebhookAlertPayload {
   strategy_id: string;
-  status: 'approved' | 'executed';
+  status: "approved" | "executed";
   plugin_ids: string[];
   tenant_id: string;
 }
@@ -34,21 +33,21 @@ export interface PluginImpactInput {
   plugin_id: string;
   strategy_id?: string;
   tenant_id: string;
-  status: 'success' | 'failure';
+  status: "success" | "failure";
   output: Record<string, any>;
   xp_earned: number;
 }
 
 export interface AgentVoteInput {
   agent_version_id: string;
-  vote_type: 'up' | 'down';
+  vote_type: "up" | "down";
   user_id: string;
   comment?: string;
 }
 
 export interface LogEventInput {
   tenant_id: string;
-  module: 'strategy' | 'plugin' | 'agent' | 'auth' | 'billing';
+  module: "strategy" | "plugin" | "agent" | "auth" | "billing";
   event: string;
   context?: Record<string, any>;
 }
@@ -59,8 +58,8 @@ export interface ExecutionRecordInput {
   plugin_id?: string;
   agent_version_id?: string;
   executed_by?: string;
-  type: 'plugin' | 'agent' | 'strategy';
-  status: 'success' | 'failure' | 'pending';
+  type: "plugin" | "agent" | "strategy";
+  status: "success" | "failure" | "pending";
   input?: Record<string, any>;
   output?: Record<string, any>;
   error?: string;

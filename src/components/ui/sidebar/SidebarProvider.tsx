@@ -1,6 +1,5 @@
-
-import React, { createContext, useContext, useState } from 'react';
-import { useMobileBreakpoint } from '@/hooks/use-mobile';
+import React, { createContext, useContext, useState } from "react";
+import { useMobileBreakpoint } from "@/hooks/use-mobile";
 
 // Constants
 export const SIDEBAR_WIDTH = 240;
@@ -21,7 +20,7 @@ const initialState: SidebarContextType = {
   toggleCollapsed: () => {},
   isHovering: false,
   setIsHovering: () => {},
-  isMobile: false
+  isMobile: false,
 };
 
 // Create context
@@ -30,7 +29,7 @@ const SidebarContext = createContext<SidebarContextType>(initialState);
 // Provider component
 export function SidebarProvider({
   children,
-  defaultCollapsed = false
+  defaultCollapsed = false,
 }: {
   children: React.ReactNode;
   defaultCollapsed?: boolean;
@@ -38,12 +37,12 @@ export function SidebarProvider({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [isHovering, setIsHovering] = useState(false);
   const isMobile = useMobileBreakpoint();
-  
+
   // Toggle collapsed state
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
-  
+
   return (
     <SidebarContext.Provider
       value={{
@@ -51,7 +50,7 @@ export function SidebarProvider({
         toggleCollapsed,
         isHovering,
         setIsHovering,
-        isMobile
+        isMobile,
       }}
     >
       {children}
@@ -62,10 +61,10 @@ export function SidebarProvider({
 // Hook for using the sidebar context
 export const useSidebar = () => {
   const context = useContext(SidebarContext);
-  
+
   if (context === undefined) {
-    throw new Error('useSidebar must be used within a SidebarProvider');
+    throw new Error("useSidebar must be used within a SidebarProvider");
   }
-  
+
   return context;
 };

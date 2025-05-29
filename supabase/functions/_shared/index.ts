@@ -1,4 +1,3 @@
-
 // Re-export all utilities from the CORS module
 // Define corsHeaders directly in this file to avoid circular imports
 export const corsHeaders = {

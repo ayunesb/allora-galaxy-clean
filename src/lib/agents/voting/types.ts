@@ -1,5 +1,4 @@
-
-import { VoteType } from '@/types/shared';
+import { VoteType } from "@/types/shared";
 
 export interface UserVote {
   voteType: VoteType;
@@ -28,6 +27,16 @@ export interface AgentVoteStats {
 
 export type VoteStats = AgentVoteStats;
 
-export type CastVoteFn = (agentVersionId: string, voteType: VoteType, comment?: string) => Promise<VoteResult>;
-export type UpvoteAgentVersionFn = (agentVersionId: string, comment?: string) => Promise<VoteResult>;
-export type DownvoteAgentVersionFn = (agentVersionId: string, comment?: string) => Promise<VoteResult>;
+export type CastVoteFn = (
+  agentVersionId: string,
+  voteType: VoteType,
+  comment?: string,
+) => Promise<VoteResult>;
+export type UpvoteAgentVersionFn = (
+  agentVersionId: string,
+  comment?: string,
+) => Promise<VoteResult>;
+export type DownvoteAgentVersionFn = (
+  agentVersionId: string,
+  comment?: string,
+) => Promise<VoteResult>;

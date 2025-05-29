@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import React from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const SidebarProfile: React.FC = () => {
   const { currentTenant, userRole } = useWorkspace();
@@ -11,9 +10,9 @@ const SidebarProfile: React.FC = () => {
   // Create initials from the tenant name
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
@@ -29,7 +28,9 @@ const SidebarProfile: React.FC = () => {
         </Avatar>
         <div className="flex flex-col">
           <span className="text-sm font-medium">{currentTenant.name}</span>
-          <span className="text-xs text-muted-foreground capitalize">{userRole}</span>
+          <span className="text-xs text-muted-foreground capitalize">
+            {userRole}
+          </span>
         </div>
       </div>
     </div>

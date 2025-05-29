@@ -1,5 +1,4 @@
-
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 export interface SimulateXpOptions {
   agent_version_id: string;
@@ -9,29 +8,41 @@ export interface SimulateXpOptions {
   downvotes?: number;
   simulate_logs?: boolean;
   log_count?: number;
+  extra?: Record<string, unknown>;
 }
 
-export interface VoteSimulationResult {
+export interface SimulateVotesOptions {
   agent_version_id: string;
-  votes: any[];
-}
-
-export interface LogSimulationResult {
-  agent_version_id: string;
-  logs: any[];
-  xp_earned: number;
+  tenant_id: string;
+  upvotes?: number;
+  downvotes?: number;
+  extra?: Record<string, unknown>;
 }
 
 export interface XpAccumulationResult {
-  votesResult: VoteSimulationResult | null;
-  logsResult: LogSimulationResult | null;
-  xpUpdated: {
+  votesResult?: unknown;
+  logsResult?: unknown;
+  xpUpdated?: {
     agent_version_id: string;
-    previous: { xp: number; upvotes: number; downvotes: number };
-    current: { xp: number; upvotes: number; downvotes: number };
-    delta: { xp: number; upvotes: number; downvotes: number };
+    previous: number;
+    current: number;
+    delta: {
+      xp: number;
+      upvotes: number;
+      downvotes: number;
+    };
   };
-  promotionCheck: any;
+  promotionCheck?: unknown;
+}
+
+export interface LogSimulationResult {
+  logId: string;
+  success: boolean;
+}
+
+export interface VoteSimulationResult {
+  voteId: string;
+  result: 'success' | 'fail';
 }
 
 export function generateUuid(): string {

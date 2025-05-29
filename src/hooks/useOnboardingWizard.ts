@@ -1,6 +1,5 @@
-
-import { useState } from 'react';
-import { toast } from '@/components/ui/use-toast';
+import { useState } from "react";
+import { toast } from "@/components/ui/use-toast";
 
 export interface OnboardingStep {
   id: string;
@@ -14,81 +13,83 @@ export const useOnboardingWizard = (initialSteps: OnboardingStep[]) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
-  
+
   const currentStep = steps[currentStepIndex];
   const totalSteps = steps.length;
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === totalSteps - 1;
   const progress = Math.round(((currentStepIndex + 1) / totalSteps) * 100);
-  
+
   const goToNextStep = () => {
     if (isLastStep) return;
-    
+
     // Mark current step as completed
-    setSteps(prev => 
-      prev.map((step, idx) => 
-        idx === currentStepIndex ? { ...step, isCompleted: true } : step
-      )
+    setSteps((prev) =>
+      prev.map((step, idx) =>
+        idx === currentStepIndex ? { ...step, isCompleted: true } : step,
+      ),
     );
-    
-    setCurrentStepIndex(prev => prev + 1);
+
+    setCurrentStepIndex((prev) => prev + 1);
   };
-  
+
   const goToPrevStep = () => {
     if (isFirstStep) return;
-    setCurrentStepIndex(prev => prev - 1);
+    setCurrentStepIndex((prev) => prev - 1);
   };
-  
+
   const goToStep = (index: number) => {
     if (index >= 0 && index < totalSteps) {
       setCurrentStepIndex(index);
     } else {
       toast({
         variant: "destructive",
-        description: 'Invalid step index',
+        description: "Invalid step index",
       });
     }
   };
-  
+
   const updateOnboardingData = (data: Record<string, any>) => {
-    setOnboardingData(prev => ({ ...prev, ...data }));
+    setOnboardingData((prev) => ({ ...prev, ...data }));
   };
-  
+
   const resetOnboardingWizard = () => {
     setCurrentStepIndex(0);
     setSteps(initialSteps);
     setOnboardingData({});
   };
-  
-  const completeOnboarding = async (submitFn?: (data: Record<string, any>) => Promise<any>) => {
+
+  const completeOnboarding = async (
+    submitFn?: (data: Record<string, any>) => Promise<any>,
+  ) => {
     setIsSubmitting(true);
-    
+
     try {
       // Mark all steps as completed
-      setSteps(prev => prev.map(step => ({ ...step, isCompleted: true })));
-      
+      setSteps((prev) => prev.map((step) => ({ ...step, isCompleted: true })));
+
       // If a submission function is provided, call it with the onboarding data
       if (submitFn) {
         await submitFn(onboardingData);
       }
-      
+
       toast({
-        description: 'Onboarding completed successfully!',
+        description: "Onboarding completed successfully!",
       });
-      
+
       return { success: true, data: onboardingData };
     } catch (error: any) {
       toast({
         variant: "destructive",
-        description: error.message || 'Failed to complete onboarding',
+        description: error.message || "Failed to complete onboarding",
       });
-      
+
       return { success: false, error };
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return {
     steps,
     currentStep,

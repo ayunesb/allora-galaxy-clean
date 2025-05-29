@@ -1,26 +1,25 @@
-
 /// <reference types="vite/client" />
 
 // This adds explicit types for modules that might be causing issues
-declare module '*.svg' {
+declare module "*.svg" {
   const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
   export default content;
 }
 
-declare module '*.png' {
+declare module "*.png" {
   const content: string;
   export default content;
 }
 
-declare module '*.jpg' {
+declare module "*.jpg" {
   const content: string;
   export default content;
 }
 
 // Add specific type declarations for the ForceGraph library
-declare module 'react-force-graph' {
-  import { Component } from 'react';
-  
+declare module "react-force-graph" {
+  import { Component } from "react";
+
   export type GraphNodeObject = {
     id?: string | number;
     x?: number;
@@ -57,7 +56,7 @@ declare module 'react-force-graph' {
 }
 
 // Add declaration for uuid module
-declare module 'uuid' {
+declare module "uuid" {
   export function v4(): string;
 }
 

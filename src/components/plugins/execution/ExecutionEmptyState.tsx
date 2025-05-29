@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { LineChart } from 'lucide-react';
-import { EmptyState } from '@/components/ui/EmptyState';
+import React from "react";
+import { LineChart } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /**
  * EmptyState component specific for plugin execution data

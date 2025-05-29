@@ -1,6 +1,5 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { handleError } from '@/lib/errors/ErrorHandler';
+import { useState, useEffect, useCallback } from "react";
+import { handleError } from "@/lib/errors/ErrorHandler";
 
 type QueryState<T> = {
   data: T | null;
@@ -30,7 +29,7 @@ type QueryOptions = {
  */
 export function useSupabaseFetch<T = any>(
   queryFn: () => Promise<T>,
-  options: QueryOptions = {}
+  options: QueryOptions = {},
 ) {
   const {
     enabled = true,
@@ -57,85 +56,116 @@ export function useSupabaseFetch<T = any>(
   const [lastSuccessTime, setLastSuccessTime] = useState<number | null>(null);
 
   // Fetch data with retry logic
-  const fetchData = useCallback(async (silent = false, isRetry = false) => {
-    if (!enabled) return;
-    
-    if (!silent) {
-      setState(prev => ({ ...prev, isLoading: !prev.data, isError: false, error: null }));
-    }
+  const fetchData = useCallback(
+    async (silent = false, isRetry = false) => {
+      if (!enabled) return;
 
-    try {
-      const result = await queryFn();
-      
-      setState({
-        data: result,
-        isLoading: false,
-        isError: false,
-        error: null,
-        isPaused: false,
-        isStale: false,
-      });
-      
-      setLastFetchTime(Date.now());
-      setLastSuccessTime(Date.now());
-      setRetryCount(0);
-      
-      if (onSuccess) {
-        onSuccess(result);
-      }
-      if (onSettled) {
-        onSettled(result, null);
-      }
-      
-      return result;
-    } catch (error: any) {
-      // Don't update state during background retries
-      if (!isRetry) {
-        setState(prev => ({
+      if (!silent) {
+        setState((prev) => ({
           ...prev,
-          isLoading: false,
-          isError: true,
-          error: error instanceof Error ? error : new Error(error?.message || 'Unknown error'),
+          isLoading: !prev.data,
+          isError: false,
+          error: null,
         }));
       }
 
-      if (showErrorToast && !silent && !isRetry) {
-        handleError(error, {
-          context: { operation: 'data_fetch' },
-          showNotification: true,
-        });
-      }
-      
-      if (onError) {
-        onError(error instanceof Error ? error : new Error(error?.message || 'Unknown error'));
-      }
-      if (onSettled) {
-        onSettled(null, error instanceof Error ? error : new Error(error?.message || 'Unknown error'));
-      }
+      try {
+        const result = await queryFn();
 
-      // Try background retry
-      if (retryCount < retries && enabled) {
-        setRetryCount(prev => prev + 1);
-        const nextRetryDelay = retryDelay * Math.pow(2, retryCount) + Math.random() * 200;
-        setTimeout(() => {
-          fetchData(true, true).catch(() => {}); // Silently retry
-        }, nextRetryDelay);
+        setState({
+          data: result,
+          isLoading: false,
+          isError: false,
+          error: null,
+          isPaused: false,
+          isStale: false,
+        });
+
+        setLastFetchTime(Date.now());
+        setLastSuccessTime(Date.now());
+        setRetryCount(0);
+
+        if (onSuccess) {
+          onSuccess(result);
+        }
+        if (onSettled) {
+          onSettled(result, null);
+        }
+
+        return result;
+      } catch (error: any) {
+        // Don't update state during background retries
+        if (!isRetry) {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            isError: true,
+            error:
+              error instanceof Error
+                ? error
+                : new Error(error?.message || "Unknown error"),
+          }));
+        }
+
+        if (showErrorToast && !silent && !isRetry) {
+          handleError(error, {
+            context: { operation: "data_fetch" },
+            showNotification: true,
+          });
+        }
+
+        if (onError) {
+          onError(
+            error instanceof Error
+              ? error
+              : new Error(error?.message || "Unknown error"),
+          );
+        }
+        if (onSettled) {
+          onSettled(
+            null,
+            error instanceof Error
+              ? error
+              : new Error(error?.message || "Unknown error"),
+          );
+        }
+
+        // Try background retry
+        if (retryCount < retries && enabled) {
+          setRetryCount((prev) => prev + 1);
+          const nextRetryDelay =
+            retryDelay * Math.pow(2, retryCount) + Math.random() * 200;
+          setTimeout(() => {
+            fetchData(true, true).catch(() => {}); // Silently retry
+          }, nextRetryDelay);
+        }
+
+        throw error;
       }
-      
-      throw error;
-    }
-  }, [queryFn, enabled, retries, retryCount, retryDelay, onSuccess, onError, onSettled, showErrorToast]);
+    },
+    [
+      queryFn,
+      enabled,
+      retries,
+      retryCount,
+      retryDelay,
+      onSuccess,
+      onError,
+      onSettled,
+      showErrorToast,
+    ],
+  );
 
   // Check for stale data
   useEffect(() => {
     if (!lastSuccessTime || !staleTime) return;
-    
+
     const checkStale = () => {
       if (Date.now() - lastSuccessTime > staleTime) {
-        setState(prev => ({ ...prev, isStale: true }));
+        setState((prev) => ({ ...prev, isStale: true }));
       }
     };
-    
+
     const interval = setInterval(checkStale, 30000); // Check every 30 seconds
     return () => clearInterval(interval);
   }, [lastSuccessTime, staleTime]);
@@ -157,28 +187,31 @@ export function useSupabaseFetch<T = any>(
   // Handle online/offline status
   useEffect(() => {
     const handleOnline = () => {
-      setState(prev => ({ ...prev, isPaused: false }));
+      setState((prev) => ({ ...prev, isPaused: false }));
       if (state.isStale || state.isError) {
         fetchData().catch(() => {});
       }
     };
-    
+
     const handleOffline = () => {
-      setState(prev => ({ ...prev, isPaused: true }));
+      setState((prev) => ({ ...prev, isPaused: true }));
     };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [state.isStale, state.isError, fetchData]);
 
-  const refetch = useCallback(async (options: { silent?: boolean } = {}) => {
-    return fetchData(options.silent || false);
-  }, [fetchData]);
+  const refetch = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      return fetchData(options.silent || false);
+    },
+    [fetchData],
+  );
 
   return {
     ...state,

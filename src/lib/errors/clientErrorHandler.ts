@@ -1,6 +1,4 @@
-
 import { toast } from "sonner";
-import { AlloraError } from "./errorTypes";
 
 /**
  * Process a response from an edge function
@@ -10,15 +8,15 @@ export async function processEdgeResponse(response: Response): Promise<any> {
   // Check if the response is valid
   if (!response.ok) {
     let errorData: any;
-    
+
     try {
       // Try to parse error response
       errorData = await response.json();
-      
+
       // If response has detailed error format
       if (errorData && !errorData.success) {
         // Create error with details from response
-        const error: any = new Error(errorData.error || 'Unknown error');
+        const error: any = new Error(errorData.error || "Unknown error");
         error.status = errorData.status || response.status;
         error.code = errorData.code;
         error.details = errorData.details;
@@ -28,21 +26,25 @@ export async function processEdgeResponse(response: Response): Promise<any> {
       }
     } catch (parseError) {
       // If response cannot be parsed as JSON, throw a generic error
-      throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Server Error: ${response.status} ${response.statusText}`,
+      );
     }
-    
+
     // Fallback error if we get here
-    throw new Error(errorData?.message || `Request failed with status ${response.status}`);
+    throw new Error(
+      errorData?.message || `Request failed with status ${response.status}`,
+    );
   }
 
   // Parse successful response
   const data = await response.json();
-  
+
   // Our standard edge function response format
-  if (data && typeof data.success === 'boolean' && data.success) {
+  if (data && typeof data.success === "boolean" && data.success) {
     return data.data;
   }
-  
+
   // Non-standard response format, return as is
   return data;
 }
@@ -57,36 +59,38 @@ export function handleEdgeError(
     showToast?: boolean;
     logToConsole?: boolean;
     errorCallback?: (error: any) => void;
-  } = {}
+  } = {},
 ) {
   const {
-    fallbackMessage = 'An unexpected error occurred',
+    fallbackMessage = "An unexpected error occurred",
     showToast = true,
     logToConsole = true,
-    errorCallback
+    errorCallback,
   } = options;
 
   // Get error message
   const errorMessage = error?.message || error?.error || fallbackMessage;
-  
+
   // Log to console
   if (logToConsole) {
-    console.error('Edge function error:', error);
+    console.error("Edge function error:", error);
   }
-  
+
   // Show toast notification
   if (showToast) {
     toast.error(errorMessage, {
-      description: error?.details ? `Reference ID: ${error.requestId || 'unknown'}` : undefined,
-      duration: 5000
+      description: error?.details
+        ? `Reference ID: ${error.requestId || "unknown"}`
+        : undefined,
+      duration: 5000,
     });
   }
-  
+
   // Call error callback if provided
-  if (errorCallback && typeof errorCallback === 'function') {
+  if (errorCallback && typeof errorCallback === "function") {
     errorCallback(error);
   }
-  
+
   return error;
 }
 
@@ -99,7 +103,7 @@ export function createEdgeFunction<T extends (...args: any[]) => Promise<any>>(
     fallbackMessage?: string;
     showToast?: boolean;
     logToConsole?: boolean;
-  } = {}
+  } = {},
 ): (...args: Parameters<T>) => Promise<ReturnType<T> | null> {
   return async (...args: Parameters<T>): Promise<ReturnType<T> | null> => {
     try {
@@ -109,4 +113,19 @@ export function createEdgeFunction<T extends (...args: any[]) => Promise<any>>(
       return null;
     }
   };
+}
+
+/**
+ * Handle errors from client-side code
+ */
+export function handleClientError(error: unknown, context?: Record<string, unknown>) {
+  // Log the error to the console
+  console.error("Client Error:", error, context);
+
+  // Show a toast notification with the error message
+  toast.error(
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: string }).message)
+      : "Unknown error",
+  );
 }

@@ -1,9 +1,14 @@
-
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { languages, changeLanguage } from '@/lib/i18n';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { languages, changeLanguage } from "@/lib/i18n";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface LanguageSelectorProps {
   onChange?: (language: string) => void;
@@ -11,7 +16,7 @@ interface LanguageSelectorProps {
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
   const { t, i18n } = useTranslation();
-  
+
   const handleLanguageChange = (value: string) => {
     changeLanguage(value);
     if (onChange) {
@@ -21,13 +26,10 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange }) => {
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="language-select">{t('settings.language')}</Label>
-      <Select
-        value={i18n.language}
-        onValueChange={handleLanguageChange}
-      >
+      <Label htmlFor="language-select">{t("settings.language")}</Label>
+      <Select value={i18n.language} onValueChange={handleLanguageChange}>
         <SelectTrigger id="language-select" className="w-full">
-          <SelectValue placeholder={t('settings.language')} />
+          <SelectValue placeholder={t("settings.language")} />
         </SelectTrigger>
         <SelectContent>
           {languages.map((lang) => (

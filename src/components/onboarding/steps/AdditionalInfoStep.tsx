@@ -1,9 +1,8 @@
-
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { OnboardingFormData } from '@/types/onboarding';
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { OnboardingFormData } from "@/types/onboarding";
 
 interface AdditionalInfoStepProps {
   formData: OnboardingFormData;
@@ -13,42 +12,47 @@ interface AdditionalInfoStepProps {
 
 const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   formData,
-  updateFormData
+  updateFormData,
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>, field: string) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>,
+    field: string,
+  ) => {
     // Ensure additionalInfo is an object
-    const additionalInfo = typeof formData.additionalInfo === 'object' 
-      ? formData.additionalInfo 
-      : { 
-          targetAudience: '',
-          keyCompetitors: '',
-          uniqueSellingPoints: ''
-        };
-    
+    const additionalInfo =
+      typeof formData.additionalInfo === "object"
+        ? formData.additionalInfo
+        : {
+            targetAudience: "",
+            keyCompetitors: "",
+            uniqueSellingPoints: "",
+          };
+
     // Update the specific field in additionalInfo
     const updatedAdditionalInfo = {
       ...additionalInfo,
-      [field]: e.target.value
+      [field]: e.target.value,
     };
-    
+
     // Update the form data
     updateFormData({
-      additionalInfo: updatedAdditionalInfo
+      additionalInfo: updatedAdditionalInfo,
     });
   };
 
   // Safely get values from additionalInfo whether it's an object or not
   const getAdditionalInfoField = (field: string): string => {
-    if (!formData.additionalInfo) return '';
-    if (typeof formData.additionalInfo === 'string') return '';
-    return (formData.additionalInfo as any)[field] || '';
+    if (!formData.additionalInfo) return "";
+    if (typeof formData.additionalInfo === "string") return "";
+    return (formData.additionalInfo as any)[field] || "";
   };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-center">Additional Information</h2>
       <p className="text-center text-muted-foreground">
-        Tell us more about your business to help us create an effective strategy.
+        Tell us more about your business to help us create an effective
+        strategy.
       </p>
 
       <Card>
@@ -58,30 +62,34 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             <Textarea
               id="targetAudience"
               placeholder="Describe your ideal customer or audience"
-              value={getAdditionalInfoField('targetAudience')}
-              onChange={(e) => handleChange(e, 'targetAudience')}
+              value={getAdditionalInfoField("targetAudience")}
+              onChange={(e) => handleChange(e, "targetAudience")}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="keyCompetitors">Who are your key competitors?</Label>
+            <Label htmlFor="keyCompetitors">
+              Who are your key competitors?
+            </Label>
             <Textarea
               id="keyCompetitors"
               placeholder="List your main competitors and what makes them stand out"
-              value={getAdditionalInfoField('keyCompetitors')}
-              onChange={(e) => handleChange(e, 'keyCompetitors')}
+              value={getAdditionalInfoField("keyCompetitors")}
+              onChange={(e) => handleChange(e, "keyCompetitors")}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="uniqueSellingPoints">What are your unique selling points?</Label>
+            <Label htmlFor="uniqueSellingPoints">
+              What are your unique selling points?
+            </Label>
             <Textarea
               id="uniqueSellingPoints"
               placeholder="What makes your company, product, or service different from the competition?"
-              value={getAdditionalInfoField('uniqueSellingPoints')}
-              onChange={(e) => handleChange(e, 'uniqueSellingPoints')}
+              value={getAdditionalInfoField("uniqueSellingPoints")}
+              onChange={(e) => handleChange(e, "uniqueSellingPoints")}
               rows={3}
             />
           </div>

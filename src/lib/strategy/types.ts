@@ -1,4 +1,3 @@
-
 /**
  * Strategy execution types
  */
@@ -20,12 +19,12 @@ export interface ExecuteStrategyParams {
   };
 }
 
-export type StrategyExecutionStatus = 
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'aborted';
+export type StrategyExecutionStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "aborted";
 
 export interface StrategyExecutionResult {
   success: boolean;

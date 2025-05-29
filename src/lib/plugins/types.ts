@@ -1,10 +1,9 @@
-
 // Re-export plugin types from the unified type system
-export type { 
-  Plugin, 
-  PluginResult, 
-  RunPluginChainResult 
-} from '@/types/plugin';
+export type {
+  Plugin,
+  PluginResult,
+  RunPluginChainResult,
+} from "@/types/plugin";
 
 // Define missing types that were referenced but not exported in @/types
 export interface PluginConfig {
@@ -18,5 +17,5 @@ export interface PluginConfig {
 export interface PluginExecutionOptions {
   timeout?: number;
   maxRetries?: number;
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  logLevel?: "debug" | "info" | "warn" | "error";
 }

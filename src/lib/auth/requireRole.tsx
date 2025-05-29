@@ -1,8 +1,7 @@
-
-import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types/user';
+import React, { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { UserRole } from "@/types/user";
 
 interface RequireRoleProps {
   roles: UserRole[];
@@ -18,7 +17,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({
   roles,
   children,
   fallback,
-  redirectTo = '/unauthorized'
+  redirectTo = "/unauthorized",
 }) => {
   const { user, loading, checkUserRole } = useAuth();
   const location = useLocation();
@@ -30,7 +29,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({
         setHasPermission(false);
         return;
       }
-      
+
       try {
         for (const role of roles) {
           const hasRole = await checkUserRole(role.toString());
@@ -41,11 +40,11 @@ const RequireRole: React.FC<RequireRoleProps> = ({
         }
         setHasPermission(false);
       } catch (error) {
-        console.error('Error checking role:', error);
+        console.error("Error checking role:", error);
         setHasPermission(false);
       }
     };
-    
+
     if (!loading) {
       checkPermission();
     }
@@ -63,7 +62,7 @@ const RequireRole: React.FC<RequireRoleProps> = ({
     if (fallback) {
       return <>{fallback}</>;
     }
-    
+
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 

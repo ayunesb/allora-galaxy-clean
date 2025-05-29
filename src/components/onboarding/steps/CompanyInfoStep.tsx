@@ -1,45 +1,56 @@
-
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { OnboardingFormData } from '@/types/onboarding';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { OnboardingFormData } from "@/types/onboarding";
 
 // Types and options for the company info form
 const industries = [
-  'Software Development',
-  'E-commerce',
-  'Healthcare',
-  'Finance',
-  'Education',
-  'Manufacturing',
-  'Retail',
-  'Marketing',
-  'Real Estate',
-  'Other'
+  "Software Development",
+  "E-commerce",
+  "Healthcare",
+  "Finance",
+  "Education",
+  "Manufacturing",
+  "Retail",
+  "Marketing",
+  "Real Estate",
+  "Other",
 ];
 
 const companySizes = [
-  'Solo entrepreneur',
-  '2-10 employees',
-  '11-50 employees',
-  '51-200 employees',
-  '201-500 employees',
-  '501-1000 employees',
-  '1000+ employees'
+  "Solo entrepreneur",
+  "2-10 employees",
+  "11-50 employees",
+  "51-200 employees",
+  "201-500 employees",
+  "501-1000 employees",
+  "1000+ employees",
 ];
 
 const revenueRanges = [
-  'Pre-revenue',
-  '$1-100K',
-  '$100K-500K',
-  '$500K-1M',
-  '$1M-5M',
-  '$5M-10M',
-  '$10M-50M',
-  '$50M+'
+  "Pre-revenue",
+  "$1-100K",
+  "$100K-500K",
+  "$500K-1M",
+  "$1M-5M",
+  "$5M-10M",
+  "$10M-50M",
+  "$50M+",
 ];
 
 export interface CompanyInfoStepProps {
@@ -48,10 +59,13 @@ export interface CompanyInfoStepProps {
   setFieldValue: (key: string, value: any) => void;
 }
 
-const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormData }) => {
+const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({
+  formData,
+  updateFormData,
+}) => {
   // Handle form field changes
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     updateFormData({ [name]: value });
@@ -66,7 +80,8 @@ const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormD
       <CardHeader className="px-0">
         <CardTitle className="text-2xl">Company Information</CardTitle>
         <CardDescription>
-          Tell us about your business to help us create strategies tailored to your needs.
+          Tell us about your business to help us create strategies tailored to
+          your needs.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 space-y-6">
@@ -88,7 +103,7 @@ const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormD
           <Label htmlFor="industry">Industry</Label>
           <Select
             value={formData.industry}
-            onValueChange={(value) => handleSelectChange('industry', value)}
+            onValueChange={(value) => handleSelectChange("industry", value)}
           >
             <SelectTrigger id="industry">
               <SelectValue placeholder="Select your industry" />
@@ -108,7 +123,7 @@ const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormD
           <Label htmlFor="companySize">Company Size</Label>
           <Select
             value={formData.companySize}
-            onValueChange={(value) => handleSelectChange('companySize', value)}
+            onValueChange={(value) => handleSelectChange("companySize", value)}
           >
             <SelectTrigger id="companySize">
               <SelectValue placeholder="How many employees?" />
@@ -140,7 +155,7 @@ const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormD
           <Label htmlFor="revenueRange">Annual Revenue Range</Label>
           <Select
             value={formData.revenueRange}
-            onValueChange={(value) => handleSelectChange('revenueRange', value)}
+            onValueChange={(value) => handleSelectChange("revenueRange", value)}
           >
             <SelectTrigger id="revenueRange">
               <SelectValue placeholder="Select revenue range" />
@@ -157,9 +172,7 @@ const CompanyInfoStep: React.FC<CompanyInfoStepProps> = ({ formData, updateFormD
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description">
-            Company Description
-          </Label>
+          <Label htmlFor="description">Company Description</Label>
           <Textarea
             id="description"
             name="description"

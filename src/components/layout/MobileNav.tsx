@@ -1,36 +1,35 @@
-
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Drawer, 
-  DrawerContent, 
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Drawer,
+  DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger
-} from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Menu, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useMobileBreakpoint } from '@/hooks/use-mobile';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useMobileBreakpoint } from "@/hooks/use-mobile";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 // Add your navigation items here
 const navigationItems = [
-  { name: 'Dashboard', path: '/' },
-  { name: 'Strategies', path: '/launch' },
-  { name: 'Plugins', path: '/plugins' },
-  { name: 'Galaxy Explorer', path: '/explore' },
-  { name: 'Agent Performance', path: '/agents/performance' },
-  { name: 'KPI Dashboard', path: '/insights/kpis' },
+  { name: "Dashboard", path: "/" },
+  { name: "Strategies", path: "/launch" },
+  { name: "Plugins", path: "/plugins" },
+  { name: "Galaxy Explorer", path: "/explore" },
+  { name: "Agent Performance", path: "/agents/performance" },
+  { name: "KPI Dashboard", path: "/insights/kpis" },
 ];
 
 const adminItems = [
-  { name: 'AI Decisions', path: '/admin/ai-decisions' },
-  { name: 'Plugin Logs', path: '/admin/plugin-logs' },
-  { name: 'System Logs', path: '/admin/system-logs' },
-  { name: 'User Management', path: '/admin/users' },
+  { name: "AI Decisions", path: "/admin/ai-decisions" },
+  { name: "Plugin Logs", path: "/admin/plugin-logs" },
+  { name: "System Logs", path: "/admin/system-logs" },
+  { name: "User Management", path: "/admin/users" },
 ];
 
 export const MobileNav: React.FC = () => {
@@ -39,7 +38,7 @@ export const MobileNav: React.FC = () => {
   const { tenant } = useWorkspace();
   const [open, setOpen] = React.useState(false);
   const isMobile = useMobileBreakpoint();
-  
+
   const handleNavigate = (path: string) => {
     navigate(path);
     setOpen(false);
@@ -48,9 +47,7 @@ export const MobileNav: React.FC = () => {
   if (!isMobile) {
     return (
       <div className="h-14 border-b px-4 flex items-center justify-between">
-        <div className="font-semibold">
-          {tenant?.name || 'Allora OS'}
-        </div>
+        <div className="font-semibold">{tenant?.name || "Allora OS"}</div>
         <SidebarTrigger />
       </div>
     );
@@ -58,9 +55,7 @@ export const MobileNav: React.FC = () => {
 
   return (
     <div className="h-14 border-b px-4 flex items-center justify-between">
-      <div className="font-semibold">
-        {tenant?.name || 'Allora OS'}
-      </div>
+      <div className="font-semibold">{tenant?.name || "Allora OS"}</div>
 
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
@@ -72,10 +67,12 @@ export const MobileNav: React.FC = () => {
         <DrawerContent>
           <div className="mx-auto w-full max-w-sm">
             <DrawerHeader className="flex justify-between items-center">
-              <DrawerTitle>
-                {tenant?.name || 'Navigation'}
-              </DrawerTitle>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+              <DrawerTitle>{tenant?.name || "Navigation"}</DrawerTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpen(false)}
+              >
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
               </Button>
@@ -85,10 +82,12 @@ export const MobileNav: React.FC = () => {
                 {navigationItems.map((item) => (
                   <Button
                     key={item.path}
-                    variant={location.pathname === item.path ? 'secondary' : 'ghost'}
+                    variant={
+                      location.pathname === item.path ? "secondary" : "ghost"
+                    }
                     className={cn(
-                      'w-full justify-start',
-                      location.pathname === item.path && 'bg-secondary'
+                      "w-full justify-start",
+                      location.pathname === item.path && "bg-secondary",
                     )}
                     onClick={() => handleNavigate(item.path)}
                   >
@@ -98,7 +97,7 @@ export const MobileNav: React.FC = () => {
               </div>
 
               <Separator className="my-4" />
-              
+
               <div className="pt-2">
                 <p className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Admin
@@ -107,10 +106,12 @@ export const MobileNav: React.FC = () => {
                   {adminItems.map((item) => (
                     <Button
                       key={item.path}
-                      variant={location.pathname === item.path ? 'secondary' : 'ghost'}
+                      variant={
+                        location.pathname === item.path ? "secondary" : "ghost"
+                      }
                       className={cn(
-                        'w-full justify-start',
-                        location.pathname === item.path && 'bg-secondary'
+                        "w-full justify-start",
+                        location.pathname === item.path && "bg-secondary",
                       )}
                       onClick={() => handleNavigate(item.path)}
                     >

@@ -1,8 +1,7 @@
-
-import React from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface PartialErrorStateProps {
   title?: string;
@@ -19,21 +18,23 @@ export interface PartialErrorStateProps {
  * Used when part of the data failed to load but the UI can still function
  */
 const PartialErrorState: React.FC<PartialErrorStateProps> = ({
-  title = 'Some data failed to load',
+  title = "Some data failed to load",
   message,
   details,
   onRetry,
   onDismiss,
   className,
-  expandable = true
+  expandable = true,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
-  
+
   return (
-    <div className={cn(
-      "border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 rounded-md text-amber-900 dark:text-amber-300 p-3 text-sm",
-      className
-    )}>
+    <div
+      className={cn(
+        "border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 rounded-md text-amber-900 dark:text-amber-300 p-3 text-sm",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-start">
           <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
@@ -42,12 +43,12 @@ const PartialErrorState: React.FC<PartialErrorStateProps> = ({
             <p className="mt-1 text-sm opacity-90">{message}</p>
           </div>
         </div>
-        
+
         {onDismiss && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onDismiss} 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDismiss}
             className="h-7 w-7 p-0"
           >
             <span className="sr-only">Dismiss</span>
@@ -67,7 +68,7 @@ const PartialErrorState: React.FC<PartialErrorStateProps> = ({
           </Button>
         )}
       </div>
-      
+
       {details && expandable && (
         <>
           <Button
@@ -88,7 +89,7 @@ const PartialErrorState: React.FC<PartialErrorStateProps> = ({
               </>
             )}
           </Button>
-          
+
           {expanded && (
             <div className="mt-2 text-xs p-2 rounded bg-amber-100/70 dark:bg-amber-950/50 whitespace-pre-wrap">
               {details}
@@ -96,18 +97,18 @@ const PartialErrorState: React.FC<PartialErrorStateProps> = ({
           )}
         </>
       )}
-      
+
       {details && !expandable && (
         <div className="mt-2 text-xs p-2 rounded bg-amber-100/70 dark:bg-amber-950/50 whitespace-pre-wrap">
           {details}
         </div>
       )}
-      
+
       {onRetry && (
         <div className="mt-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onRetry}
             className="h-7 px-2 text-xs bg-amber-100 dark:bg-amber-950/50 hover:bg-amber-200 dark:hover:bg-amber-900/50"
           >

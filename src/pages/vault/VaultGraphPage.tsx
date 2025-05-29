@@ -1,0 +1,1 @@
+export default function VaultGraphPage() { return <div>Vault Graph Loaded</div>; }

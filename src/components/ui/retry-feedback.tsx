@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ProgressCircle } from "./progress-circle";
 import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
@@ -21,21 +20,27 @@ export function RetryFeedback({
   onRetry,
   className,
   successful = false,
-  showProgress = true
+  showProgress = true,
 }: RetryFeedbackProps) {
   // Calculate progress percentage
   const progress = Math.min((retryCount / maxRetries) * 100, 100);
-  
+
   // Determine status
   const isMaxedOut = retryCount >= maxRetries;
   const isComplete = successful || isMaxedOut;
-  
+
   return (
-    <div className={cn(
-      "flex items-center justify-between p-2 rounded-md text-sm",
-      isMaxedOut ? "bg-destructive/10" : successful ? "bg-success/10" : "bg-muted",
-      className
-    )}>
+    <div
+      className={cn(
+        "flex items-center justify-between p-2 rounded-md text-sm",
+        isMaxedOut
+          ? "bg-destructive/10"
+          : successful
+            ? "bg-success/10"
+            : "bg-muted",
+        className,
+      )}
+    >
       <div className="flex items-center gap-2">
         {successful ? (
           <CheckCircle className="h-4 w-4 text-success" />
@@ -46,29 +51,27 @@ export function RetryFeedback({
         ) : (
           <RefreshCw className="h-4 w-4" />
         )}
-        
+
         <span>
-          {successful ? (
-            "Operation completed"
-          ) : isMaxedOut ? (
-            "Maximum retries reached"
-          ) : isRetrying ? (
-            `Retrying (${retryCount}/${maxRetries})...`
-          ) : (
-            `Retry ${retryCount} of ${maxRetries}`
-          )}
+          {successful
+            ? "Operation completed"
+            : isMaxedOut
+              ? "Maximum retries reached"
+              : isRetrying
+                ? `Retrying (${retryCount}/${maxRetries})...`
+                : `Retry ${retryCount} of ${maxRetries}`}
         </span>
       </div>
-      
+
       <div className="flex items-center gap-2">
         {showProgress && !successful && (
-          <ProgressCircle 
-            value={progress} 
+          <ProgressCircle
+            value={progress}
             size="sm"
             className={isMaxedOut ? "text-destructive" : ""}
           />
         )}
-        
+
         {onRetry && !isRetrying && !successful && (
           <button
             onClick={onRetry}

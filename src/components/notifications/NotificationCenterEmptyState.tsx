@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { BellOff } from 'lucide-react';
+import React from "react";
+import { BellOff } from "lucide-react";
 
 const NotificationCenterEmptyState: React.FC = () => {
   return (
@@ -10,8 +9,8 @@ const NotificationCenterEmptyState: React.FC = () => {
       </div>
       <h3 className="font-medium">No notifications</h3>
       <p className="text-sm text-muted-foreground mt-1 max-w-[250px]">
-        You don't have any notifications at the moment.
-        New notifications will appear here.
+        You don't have any notifications at the moment. New notifications will
+        appear here.
       </p>
     </div>
   );

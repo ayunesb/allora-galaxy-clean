@@ -1,7 +1,13 @@
-
-import React from 'react';
-import { TableCell, TableRow, TableHead, TableHeader, TableBody, Table } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
+import React from "react";
+import {
+  TableCell,
+  TableRow,
+  TableHead,
+  TableHeader,
+  TableBody,
+  Table,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface CronJobStats {
   total: number;
@@ -47,22 +53,42 @@ export const StatsTable: React.FC<StatsTableProps> = ({ stats, isLoading }) => {
         <TableRow>
           <TableCell>Active Jobs</TableCell>
           <TableCell>{stats.active}</TableCell>
-          <TableCell>{stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%</TableCell>
+          <TableCell>
+            {stats.total > 0
+              ? Math.round((stats.active / stats.total) * 100)
+              : 0}
+            %
+          </TableCell>
         </TableRow>
         <TableRow>
           <TableCell>Pending Jobs</TableCell>
           <TableCell>{stats.pending}</TableCell>
-          <TableCell>{stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}%</TableCell>
+          <TableCell>
+            {stats.total > 0
+              ? Math.round((stats.pending / stats.total) * 100)
+              : 0}
+            %
+          </TableCell>
         </TableRow>
         <TableRow>
           <TableCell>Failed Jobs</TableCell>
           <TableCell>{stats.failed}</TableCell>
-          <TableCell>{stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%</TableCell>
+          <TableCell>
+            {stats.total > 0
+              ? Math.round((stats.failed / stats.total) * 100)
+              : 0}
+            %
+          </TableCell>
         </TableRow>
         <TableRow>
           <TableCell>Completed Jobs</TableCell>
           <TableCell>{stats.completed}</TableCell>
-          <TableCell>{stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%</TableCell>
+          <TableCell>
+            {stats.total > 0
+              ? Math.round((stats.completed / stats.total) * 100)
+              : 0}
+            %
+          </TableCell>
         </TableRow>
       </TableBody>
     </Table>

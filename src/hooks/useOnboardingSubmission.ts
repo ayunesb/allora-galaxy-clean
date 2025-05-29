@@ -1,7 +1,6 @@
-
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 export const useOnboardingSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,12 +15,12 @@ export const useOnboardingSubmission = () => {
     try {
       // Validate the data before submission (simplified example)
       if (!data || !data.tenant_name) {
-        throw new Error('Required fields are missing');
+        throw new Error("Required fields are missing");
       }
-      
+
       // Submit to Supabase
       const { error: submissionError } = await supabase
-        .from('onboarding_submissions')
+        .from("onboarding_submissions")
         .insert({
           data: data,
         });
@@ -31,18 +30,20 @@ export const useOnboardingSubmission = () => {
       }
 
       toast({
-        description: 'Onboarding data submitted successfully',
+        description: "Onboarding data submitted successfully",
       });
-      
+
       setSuccess(true);
-      
+
       // Optionally create tenant directly
       if (data.create_tenant_immediately) {
-        const { error: tenantError } = await supabase
-          .rpc('create_tenant_from_onboarding', { 
-            onboarding_data: data 
-          });
-          
+        const { error: tenantError } = await supabase.rpc(
+          "create_tenant_from_onboarding",
+          {
+            onboarding_data: data,
+          },
+        );
+
         if (tenantError) {
           toast({
             variant: "destructive",
@@ -50,21 +51,21 @@ export const useOnboardingSubmission = () => {
           });
         } else {
           toast({
-            description: 'Tenant created successfully',
+            description: "Tenant created successfully",
           });
         }
       }
-      
+
       return { success: true };
     } catch (err: any) {
-      console.error('Onboarding submission error:', err);
-      const errorMessage = err.message || 'Failed to submit onboarding data';
-      
+      console.error("Onboarding submission error:", err);
+      const errorMessage = err.message || "Failed to submit onboarding data";
+
       toast({
         variant: "destructive",
         description: errorMessage,
       });
-      
+
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -76,7 +77,7 @@ export const useOnboardingSubmission = () => {
     submitOnboardingData,
     isSubmitting,
     success,
-    error
+    error,
   };
 };
 

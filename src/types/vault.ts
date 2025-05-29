@@ -1,0 +1,1 @@
+export interface VaultNode { id: string; label: string; }

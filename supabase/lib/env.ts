@@ -1,4 +1,3 @@
-
 /**
  * Environment utilities for edge functions
  */
@@ -53,3 +52,5 @@ export interface EnvVar {
   required: boolean;
   description?: string;
 }
+
+// Deno.env.get is only available in Deno runtime, not Node.

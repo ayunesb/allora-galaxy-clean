@@ -1,7 +1,6 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { handleError } from '@/lib/errors/ErrorHandler';
-import { CronJob, CronExecution } from '@/types/admin/cronJobs';
+import { supabase } from "@/integrations/supabase/client";
+import { handleError } from "@/lib/errors/ErrorHandler";
+import { CronJob, CronExecution } from "@/types/admin/cronJobs";
 
 /**
  * Fetch all CRON jobs
@@ -9,9 +8,9 @@ import { CronJob, CronExecution } from '@/types/admin/cronJobs';
 export async function fetchJobs() {
   try {
     const { data, error } = await supabase
-      .from('cron_jobs')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("cron_jobs")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
       throw error;
@@ -19,9 +18,9 @@ export async function fetchJobs() {
 
     return { data: data as CronJob[] };
   } catch (error) {
-    console.error('Error fetching CRON jobs:', error);
-    await handleError(error, { 
-      context: { service: 'cronJobsService', method: 'fetchJobs' }
+    console.error("Error fetching CRON jobs:", error);
+    await handleError(error, {
+      context: { service: "cronJobsService", method: "fetchJobs" },
     });
     return { error, data: null };
   }
@@ -33,10 +32,10 @@ export async function fetchJobs() {
 export async function fetchExecutions(jobId: string) {
   try {
     const { data, error } = await supabase
-      .from('cron_executions')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('start_time', { ascending: false })
+      .from("cron_executions")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("start_time", { ascending: false })
       .limit(20);
 
     if (error) {
@@ -46,8 +45,8 @@ export async function fetchExecutions(jobId: string) {
     return { data: data as CronExecution[] };
   } catch (error) {
     console.error(`Error fetching executions for job ${jobId}:`, error);
-    await handleError(error, { 
-      context: { service: 'cronJobsService', method: 'fetchExecutions', jobId }
+    await handleError(error, {
+      context: { service: "cronJobsService", method: "fetchExecutions", jobId },
     });
     return { error, data: null };
   }
@@ -58,8 +57,8 @@ export async function fetchExecutions(jobId: string) {
  */
 export async function pauseJob(jobName: string) {
   try {
-    const { data, error } = await supabase.functions.invoke('admin-cron-job', {
-      body: { action: 'pause', jobName }
+    const { data, error } = await supabase.functions.invoke("admin-cron-job", {
+      body: { action: "pause", jobName },
     });
 
     if (error) {
@@ -69,8 +68,8 @@ export async function pauseJob(jobName: string) {
     return { data };
   } catch (error) {
     console.error(`Error pausing job ${jobName}:`, error);
-    await handleError(error, { 
-      context: { service: 'cronJobsService', method: 'pauseJob', jobName } 
+    await handleError(error, {
+      context: { service: "cronJobsService", method: "pauseJob", jobName },
     });
     return { error, data: null };
   }
@@ -81,8 +80,8 @@ export async function pauseJob(jobName: string) {
  */
 export async function resumeJob(jobName: string) {
   try {
-    const { data, error } = await supabase.functions.invoke('admin-cron-job', {
-      body: { action: 'resume', jobName }
+    const { data, error } = await supabase.functions.invoke("admin-cron-job", {
+      body: { action: "resume", jobName },
     });
 
     if (error) {
@@ -92,8 +91,8 @@ export async function resumeJob(jobName: string) {
     return { data };
   } catch (error) {
     console.error(`Error resuming job ${jobName}:`, error);
-    await handleError(error, { 
-      context: { service: 'cronJobsService', method: 'resumeJob', jobName } 
+    await handleError(error, {
+      context: { service: "cronJobsService", method: "resumeJob", jobName },
     });
     return { error, data: null };
   }
@@ -104,8 +103,8 @@ export async function resumeJob(jobName: string) {
  */
 export async function runJob(jobName: string) {
   try {
-    const { data, error } = await supabase.functions.invoke('admin-cron-job', {
-      body: { action: 'run', jobName }
+    const { data, error } = await supabase.functions.invoke("admin-cron-job", {
+      body: { action: "run", jobName },
     });
 
     if (error) {
@@ -115,8 +114,8 @@ export async function runJob(jobName: string) {
     return { data };
   } catch (error) {
     console.error(`Error running job ${jobName}:`, error);
-    await handleError(error, { 
-      context: { service: 'cronJobsService', method: 'runJob', jobName } 
+    await handleError(error, {
+      context: { service: "cronJobsService", method: "runJob", jobName },
     });
     return { error, data: null };
   }
@@ -128,25 +127,25 @@ export async function runJob(jobName: string) {
 export async function fetchExecutionsByTimeRange(timeRange: string) {
   try {
     let query = supabase
-      .from('cron_executions')
-      .select('*')
-      .order('start_time', { ascending: false });
-    
+      .from("cron_executions")
+      .select("*")
+      .order("start_time", { ascending: false });
+
     // Apply time range filter
-    if (timeRange === 'day') {
+    if (timeRange === "day") {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      query = query.gte('start_time', yesterday.toISOString());
-    } else if (timeRange === 'week') {
+      query = query.gte("start_time", yesterday.toISOString());
+    } else if (timeRange === "week") {
       const lastWeek = new Date();
       lastWeek.setDate(lastWeek.getDate() - 7);
-      query = query.gte('start_time', lastWeek.toISOString());
-    } else if (timeRange === 'month') {
+      query = query.gte("start_time", lastWeek.toISOString());
+    } else if (timeRange === "month") {
       const lastMonth = new Date();
       lastMonth.setDate(lastMonth.getDate() - 30);
-      query = query.gte('start_time', lastMonth.toISOString());
+      query = query.gte("start_time", lastMonth.toISOString());
     }
-    
+
     const { data, error } = await query;
 
     if (error) {
@@ -155,9 +154,16 @@ export async function fetchExecutionsByTimeRange(timeRange: string) {
 
     return { data: data as CronExecution[] };
   } catch (error) {
-    console.error(`Error fetching executions by time range ${timeRange}:`, error);
-    await handleError(error, { 
-      context: { service: 'cronJobsService', method: 'fetchExecutionsByTimeRange', timeRange } 
+    console.error(
+      `Error fetching executions by time range ${timeRange}:`,
+      error,
+    );
+    await handleError(error, {
+      context: {
+        service: "cronJobsService",
+        method: "fetchExecutionsByTimeRange",
+        timeRange,
+      },
     });
     return { error, data: null };
   }

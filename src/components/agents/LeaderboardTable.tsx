@@ -1,0 +1,1 @@
+// LeaderboardTable component with XP and ROI rankings

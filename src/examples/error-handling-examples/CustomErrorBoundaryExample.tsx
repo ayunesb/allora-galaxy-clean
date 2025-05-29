@@ -1,23 +1,38 @@
-
-import React, { useState } from 'react';
-import { ErrorBoundary } from '@/lib/errors';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ErrorState } from '@/components/ui/error-state';
+import React, { useState } from "react";
+import { ErrorBoundary } from "@/lib/errors";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ErrorState } from "@/components/ui/error-state";
 
 // Component that will throw an error for demonstration
 const BuggyComponent = ({ shouldThrow = false }) => {
   if (shouldThrow) {
-    throw new Error('This is a simulated error in the BuggyComponent');
+    throw new Error("This is a simulated error in the BuggyComponent");
   }
-  return <div className="p-4 bg-muted rounded">This component works correctly when no errors occur.</div>;
+  return (
+    <div className="p-4 bg-muted rounded">
+      This component works correctly when no errors occur.
+    </div>
+  );
 };
 
 // Custom fallback component for our error boundary
-const CustomErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) => (
+const CustomErrorFallback = ({
+  error,
+  resetErrorBoundary,
+}: {
+  error: Error;
+  resetErrorBoundary: () => void;
+}) => (
   <ErrorState
     title="Something went wrong"
-    message={error?.message || 'An unknown error occurred'}
+    message={error?.message || "An unknown error occurred"}
     retry={resetErrorBoundary}
     showDetails
     error={error}
@@ -28,11 +43,11 @@ const CustomErrorFallback = ({ error, resetErrorBoundary }: { error: Error; rese
         <Button variant="outline" onClick={resetErrorBoundary}>
           Reset Component
         </Button>
-        <Button 
-          variant="default" 
+        <Button
+          variant="default"
           onClick={() => {
-            console.log('Reporting error:', error);
-            alert('Error reported to developers');
+            console.log("Reporting error:", error);
+            alert("Error reported to developers");
           }}
         >
           Report Issue
@@ -44,27 +59,32 @@ const CustomErrorFallback = ({ error, resetErrorBoundary }: { error: Error; rese
 
 const CustomErrorBoundaryExample: React.FC = () => {
   const [throwError, setThrowError] = useState(false);
-  
+
   const handleReset = () => {
-    console.log('Error boundary reset triggered');
+    console.log("Error boundary reset triggered");
     setThrowError(false);
   };
-  
+
   return (
     <Card className="max-w-lg mx-auto">
       <CardHeader>
         <CardTitle>Custom Error Boundary Example</CardTitle>
       </CardHeader>
-      
+
       <CardContent>
         <ErrorBoundary
-          fallback={<CustomErrorFallback error={new Error('Fallback error')} resetErrorBoundary={() => handleReset()} />}
+          fallback={
+            <CustomErrorFallback
+              error={new Error("Fallback error")}
+              resetErrorBoundary={() => handleReset()}
+            />
+          }
           onReset={handleReset}
         >
           <BuggyComponent shouldThrow={throwError} />
         </ErrorBoundary>
       </CardContent>
-      
+
       <CardFooter className="flex justify-between">
         <Button
           variant="outline"
@@ -73,12 +93,12 @@ const CustomErrorBoundaryExample: React.FC = () => {
         >
           Reset
         </Button>
-        
+
         <Button
           variant={throwError ? "outline" : "destructive"}
           onClick={() => setThrowError(!throwError)}
         >
-          {throwError ? 'Restore Component' : 'Throw Error'}
+          {throwError ? "Restore Component" : "Throw Error"}
         </Button>
       </CardFooter>
     </Card>

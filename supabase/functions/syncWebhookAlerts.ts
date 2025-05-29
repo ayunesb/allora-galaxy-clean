@@ -1,0 +1,1 @@
+console.log('Supabase function for syncing webhook alerts');

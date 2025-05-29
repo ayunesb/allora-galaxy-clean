@@ -1,28 +1,31 @@
-
 import { expect, test, vi, beforeEach } from "vitest";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock the supabase client
-vi.mock('@/integrations/supabase/client', () => ({
+vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: {
       invoke: vi.fn().mockResolvedValue({
-        data: { 
-          success: true, 
-          message: 'KPIs updated successfully',
+        data: {
+          success: true,
+          message: "KPIs updated successfully",
           results: {
-            'test-tenant': {
+            "test-tenant": {
               metrics: [
-                { name: 'Monthly Recurring Revenue', value: 8500, previous_value: 8000 },
-                { name: 'Customer Acquisition Cost', value: 350 }
-              ]
-            }
-          }
+                {
+                  name: "Monthly Recurring Revenue",
+                  value: 8500,
+                  previous_value: 8000,
+                },
+                { name: "Customer Acquisition Cost", value: 350 },
+              ],
+            },
+          },
         },
-        error: null
-      })
-    }
-  }
+        error: null,
+      }),
+    },
+  },
 }));
 
 beforeEach(() => {
@@ -34,19 +37,19 @@ test("updateKPIs edge function invocation works correctly", async () => {
   // Define test input
   const input = {
     tenant_id: "test-tenant",
-    sources: ["stripe", "ga4"]
+    sources: ["stripe", "ga4"],
   };
-  
+
   // Execute the function call
-  const { data, error } = await supabase.functions.invoke('updateKPIs', {
-    body: input
+  const { data, error } = await supabase.functions.invoke("updateKPIs", {
+    body: input,
   });
-  
+
   // Verify the result
   expect(error).toBeNull();
   expect(data).toBeDefined();
   expect(data.success).toBe(true);
-  expect(data.message).toContain('updated successfully');
+  expect(data.message).toContain("updated successfully");
 });
 
 test("updateKPIs requires tenant_id parameter", async () => {
@@ -54,36 +57,36 @@ test("updateKPIs requires tenant_id parameter", async () => {
   const mockSupabase = supabase;
   vi.mocked(mockSupabase.functions.invoke).mockResolvedValueOnce({
     data: { success: false, error: "Missing required parameter: tenantId" },
-    error: null
+    error: null,
   });
-  
+
   // Define test input without tenant_id
   const input = {
-    sources: ["stripe"]
+    sources: ["stripe"],
   };
-  
+
   // Execute the function call
-  const { data } = await supabase.functions.invoke('updateKPIs', {
-    body: input
+  const { data } = await supabase.functions.invoke("updateKPIs", {
+    body: input,
   });
-  
+
   // Verify the error
   expect(data.success).toBe(false);
-  expect(data.error).toContain('tenantId');
+  expect(data.error).toContain("tenantId");
 });
 
 test("updateKPIs can handle specific sources", async () => {
   // Define test input with specific sources
   const input = {
     tenant_id: "test-tenant",
-    sources: ["stripe"] // Only update Stripe KPIs
+    sources: ["stripe"], // Only update Stripe KPIs
   };
-  
+
   // Execute the function call
-  const { data, error } = await supabase.functions.invoke('updateKPIs', {
-    body: input
+  const { data, error } = await supabase.functions.invoke("updateKPIs", {
+    body: input,
   });
-  
+
   // Verify the result
   expect(error).toBeNull();
   expect(data).toBeDefined();

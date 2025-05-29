@@ -1,0 +1,12 @@
+<Window x:Class="SystemLogsApp.SystemLogFilters.SystemLogFilters"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="System Log Filters" Height="200" Width="400">
+    <Grid>
+        <StackPanel Margin="10">
+            <TextBlock Text="Filter System Logs" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+            <TextBox Name="FilterTextBox" Width="300" Margin="0,0,0,10" PlaceholderText="Enter filter criteria..."/>
+            <Button Name="ApplyFilterButton" Content="Apply Filter" Width="100" Click="ApplyFilterButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { ZoomIn, ZoomOut, RefreshCw } from "lucide-react";
 
 interface ZoomControlsProps {
   onZoomIn: () => void;
@@ -14,16 +13,11 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({
   onZoomIn,
   onZoomOut,
   onRefresh,
-  onCenter
+  onCenter,
 }) => {
   return (
     <div className="flex space-x-1">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={onZoomIn}
-        title="Zoom In"
-      >
+      <Button variant="outline" size="icon" onClick={onZoomIn} title="Zoom In">
         <ZoomIn className="h-4 w-4" />
       </Button>
       <Button

@@ -1,14 +1,23 @@
-
-import { format } from 'date-fns';
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SystemLog } from '@/types/logs';
-import { Badge } from '@/components/ui/badge';
-import LogDetailDialog from '@/components/admin/logs/LogDetailDialog';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
-import { Check, Copy, ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { format } from "date-fns";
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { SystemLog } from "@/types/logs";
+import { Badge } from "@/components/ui/badge";
+import LogDetailDialog from "@/components/admin/logs/LogDetailDialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Check, Copy, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuditLogProps {
   logs: SystemLog[];
@@ -25,54 +34,54 @@ export default function AuditLog({
   title = "Audit Log",
   description = "Recent system actions and events",
   limit = 10,
-  userMap = {}
+  userMap = {},
 }: AuditLogProps) {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
   // Filter logs
   const visibleLogs = logs.slice(0, limit);
-  
+
   // Handle copy log ID
   const handleCopyId = (id: string) => {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
     toast({
       title: "Copied!",
-      description: "Log ID copied to clipboard"
+      description: "Log ID copied to clipboard",
     });
-    
+
     setTimeout(() => setCopiedId(null), 2000);
   };
-  
+
   // Handle view log details
   const handleViewLog = (log: SystemLog) => {
     setSelectedLog(log);
     setDialogOpen(true);
   };
-  
+
   // Get badge color based on log level
   const getLevelBadgeClass = (level: string) => {
     switch (level) {
-      case 'error':
-        return 'bg-destructive/15 text-destructive hover:bg-destructive/25';
-      case 'warning':
-        return 'bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25';
-      case 'info':
-        return 'bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25';
+      case "error":
+        return "bg-destructive/15 text-destructive hover:bg-destructive/25";
+      case "warning":
+        return "bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25";
+      case "info":
+        return "bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25";
       default:
-        return 'bg-muted text-muted-foreground';
+        return "bg-muted text-muted-foreground";
     }
   };
-  
+
   // Get user name
   const getUserName = (userId: string | undefined) => {
-    if (!userId) return 'System';
-    return userMap[userId] || 'Unknown User';
+    if (!userId) return "System";
+    return userMap[userId] || "Unknown User";
   };
-  
+
   return (
     <Card>
       <CardHeader>
@@ -94,14 +103,19 @@ export default function AuditLog({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={getLevelBadgeClass(log.level)}>
+                  <Badge
+                    variant="outline"
+                    className={getLevelBadgeClass(log.level)}
+                  >
                     {log.level}
                   </Badge>
                   <span className="font-medium">{log.module}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-muted-foreground">
-                    {log.created_at ? format(new Date(log.created_at), 'MMM d, h:mm a') : 'N/A'}
+                    {log.created_at
+                      ? format(new Date(log.created_at), "MMM d, h:mm a")
+                      : "N/A"}
                   </span>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -130,7 +144,7 @@ export default function AuditLog({
                   </Button>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-sm">{log.message || log.description}</p>
                 {log.user_id && (
@@ -147,11 +161,11 @@ export default function AuditLog({
           </div>
         )}
       </CardContent>
-      
+
       {selectedLog && (
-        <LogDetailDialog 
-          log={selectedLog} 
-          open={dialogOpen} 
+        <LogDetailDialog
+          log={selectedLog}
+          open={dialogOpen}
           onOpenChange={setDialogOpen}
         />
       )}

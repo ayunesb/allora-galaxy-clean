@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 
@@ -19,28 +18,33 @@ export function ProgressCircle({
   className,
   strokeWidth,
   showLabel = false,
-  labelClassName
+  labelClassName,
 }: ProgressCircleProps) {
   // Calculate progress as a percentage
   const progress = Math.min(Math.max(0, value), max) / max;
-  
+
   // Size mappings
   const sizeMap = {
     sm: { width: 16, height: 16, defaultStrokeWidth: 2 },
     md: { width: 24, height: 24, defaultStrokeWidth: 3 },
-    lg: { width: 48, height: 48, defaultStrokeWidth: 4 }
+    lg: { width: 48, height: 48, defaultStrokeWidth: 4 },
   };
-  
+
   const { width, height, defaultStrokeWidth } = sizeMap[size];
   const stroke = strokeWidth || defaultStrokeWidth;
-  
+
   // Calculate dimensions for the circle
   const radius = (Math.min(width, height) - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progress);
-  
+
   return (
-    <div className={cn("relative inline-flex items-center justify-center", className)}>
+    <div
+      className={cn(
+        "relative inline-flex items-center justify-center",
+        className,
+      )}
+    >
       <svg
         width={width}
         height={height}
@@ -57,7 +61,7 @@ export function ProgressCircle({
           strokeOpacity={0.2}
           strokeWidth={stroke}
         />
-        
+
         {/* Progress circle */}
         <circle
           cx={width / 2}
@@ -72,12 +76,12 @@ export function ProgressCircle({
           strokeLinejoin="round"
         />
       </svg>
-      
+
       {showLabel && (
-        <span 
+        <span
           className={cn(
             "absolute inset-0 flex items-center justify-center text-xs font-medium",
-            labelClassName
+            labelClassName,
           )}
         >
           {Math.round(progress * 100)}%

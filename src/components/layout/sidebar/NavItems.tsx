@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   LayoutDashboard,
@@ -9,7 +8,7 @@ import {
   ListTodo,
   Clock,
   AlertCircle,
-  History
+  History,
 } from "lucide-react";
 import { NavigationItem } from "@/types/navigation";
 

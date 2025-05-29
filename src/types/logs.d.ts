@@ -1,6 +1,5 @@
-
-export type LogLevel = 'info' | 'warning' | 'error';
-export type LogSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type LogLevel = "info" | "warning" | "error";
+export type LogSeverity = "low" | "medium" | "high" | "critical";
 export type LogPriority = LogSeverity; // Alias for backward compatibility
 
 export interface LogFilters {
@@ -10,11 +9,11 @@ export interface LogFilters {
   fromDate?: string | Date;
   toDate?: string | Date;
   startDate?: string | Date; // Alias for fromDate
-  endDate?: string | Date;   // Alias for toDate
-  dateFrom?: string | Date;  // Another alias for fromDate
-  dateTo?: string | Date;    // Another alias for toDate
+  endDate?: string | Date; // Alias for toDate
+  dateFrom?: string | Date; // Another alias for fromDate
+  dateTo?: string | Date; // Another alias for toDate
   search?: string;
-  searchTerm?: string;       // Alias for search
+  searchTerm?: string; // Alias for search
   error_type?: string | string[];
   severity?: LogSeverity | LogSeverity[];
   user_id?: string;
@@ -61,7 +60,7 @@ export interface ExecutionLogItem {
   execution_id?: string;
   step?: string;
   duration_ms?: number;
-  status?: 'success' | 'failed' | 'pending';
+  status?: "success" | "failed" | "pending";
 }
 
 export interface LogGroup {
@@ -82,7 +81,7 @@ export interface LogDetail {
   related_logs?: SystemLog[];
   affected_users_count?: number;
   first_occurrence?: string;
-  resolution_status?: 'resolved' | 'investigating' | 'ignored';
+  resolution_status?: "resolved" | "investigating" | "ignored";
   assigned_to?: string;
   comments?: LogComment[];
 }

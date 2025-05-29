@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface NotificationsPageHeaderProps {
   activeFilter: string;
@@ -10,15 +9,16 @@ interface NotificationsPageHeaderProps {
   unreadCount?: number;
 }
 
-export const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = ({
-  activeFilter,
-  onFilterChange,
-  onMarkAllAsRead,
-  unreadCount = 0
-}) => {
+export const NotificationsPageHeader: React.FC<
+  NotificationsPageHeaderProps
+> = ({ activeFilter, onFilterChange, onMarkAllAsRead, unreadCount = 0 }) => {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b">
-      <Tabs value={activeFilter} onValueChange={onFilterChange} className="w-full sm:w-auto">
+      <Tabs
+        value={activeFilter}
+        onValueChange={onFilterChange}
+        className="w-full sm:w-auto"
+      >
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="unread">
@@ -33,11 +33,11 @@ export const NotificationsPageHeader: React.FC<NotificationsPageHeaderProps> = (
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
       </Tabs>
-      
+
       {onMarkAllAsRead && (
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onMarkAllAsRead}
           disabled={unreadCount === 0}
           className="mt-4 sm:mt-0"

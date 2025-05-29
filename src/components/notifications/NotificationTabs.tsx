@@ -1,8 +1,7 @@
-
-import React from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { NotificationContent } from '@/types/notifications';
-import NotificationList from './NotificationList';
+import React from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { NotificationContent } from "@/types/notifications";
+import NotificationList from "./NotificationList";
 
 interface NotificationTabsProps {
   selectedTab: string;
@@ -19,18 +18,20 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
   notifications,
   loading,
   markAsRead,
-  onDelete
+  onDelete,
 }) => {
   // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
   // Count system notifications
-  const systemCount = notifications.filter(n => n.type === 'system').length;
+  const systemCount = notifications.filter((n) => n.type === "system").length;
 
   return (
     <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
       <div className="border-b px-4 py-2">
         <TabsList className="w-full">
-          <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
+          <TabsTrigger value="all" className="flex-1">
+            All
+          </TabsTrigger>
           <TabsTrigger value="unread" className="flex-1">
             Unread {unreadCount > 0 && `(${unreadCount})`}
           </TabsTrigger>
@@ -39,30 +40,30 @@ const NotificationTabs: React.FC<NotificationTabsProps> = ({
           </TabsTrigger>
         </TabsList>
       </div>
-      
+
       <TabsContent value="all" className="max-h-[500px] overflow-y-auto">
-        <NotificationList 
-          notifications={notifications} 
+        <NotificationList
+          notifications={notifications}
           filter="all"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
         />
       </TabsContent>
-      
+
       <TabsContent value="unread" className="max-h-[500px] overflow-y-auto">
-        <NotificationList 
-          notifications={notifications.filter(n => !n.read)} 
+        <NotificationList
+          notifications={notifications.filter((n) => !n.read)}
           filter="unread"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}
           loading={loading}
         />
       </TabsContent>
-      
+
       <TabsContent value="system" className="max-h-[500px] overflow-y-auto">
-        <NotificationList 
-          notifications={notifications.filter(n => n.type === 'system')} 
+        <NotificationList
+          notifications={notifications.filter((n) => n.type === "system")}
           filter="system"
           onMarkAsRead={markAsRead}
           onDelete={onDelete}

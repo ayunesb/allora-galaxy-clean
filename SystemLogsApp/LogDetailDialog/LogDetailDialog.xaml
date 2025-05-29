@@ -1,0 +1,17 @@
+<Window x:Class="SystemLogsApp.LogDetailDialog.LogDetailDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Log Detail" Height="300" Width="400">
+    <Grid>
+        <TextBlock Text="Log Details" FontWeight="Bold" FontSize="16" Margin="10"/>
+        <StackPanel Margin="10">
+            <TextBlock Text="Timestamp:"/>
+            <TextBlock x:Name="TimestampTextBlock" Margin="0,0,0,10"/>
+            <TextBlock Text="Message:"/>
+            <TextBlock x:Name="MessageTextBlock" TextWrapping="Wrap" Margin="0,0,0,10"/>
+            <TextBlock Text="Level:"/>
+            <TextBlock x:Name="LevelTextBlock" Margin="0,0,0,10"/>
+            <Button Content="Close" HorizontalAlignment="Right" Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

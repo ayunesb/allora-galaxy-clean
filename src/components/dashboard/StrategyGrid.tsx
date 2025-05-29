@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { StrategyCardSkeleton } from '@/components/skeletons/StrategyCardSkeleton';
+import React from "react";
+import { Card } from "@/components/ui/card";
+import { StrategyCardSkeleton } from "@/components/skeletons/StrategyCardSkeleton";
 
 interface StrategiesGridProps {
   strategies: any[];
@@ -9,10 +8,10 @@ interface StrategiesGridProps {
   children?: React.ReactNode;
 }
 
-export const StrategiesGrid: React.FC<StrategiesGridProps> = ({ 
-  strategies, 
-  isLoading, 
-  children 
+export const StrategiesGrid: React.FC<StrategiesGridProps> = ({
+  strategies,
+  isLoading,
+  children,
 }) => {
   // Show skeletons while loading
   if (isLoading) {
@@ -24,7 +23,7 @@ export const StrategiesGrid: React.FC<StrategiesGridProps> = ({
       </div>
     );
   }
-  
+
   // Show empty state when no strategies
   if (strategies.length === 0) {
     return (
@@ -33,7 +32,7 @@ export const StrategiesGrid: React.FC<StrategiesGridProps> = ({
       </Card>
     );
   }
-  
+
   // Show actual strategies
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

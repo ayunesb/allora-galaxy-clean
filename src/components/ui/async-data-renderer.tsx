@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 export interface AsyncDataRendererProps<T> {
   data: T | undefined;
@@ -12,6 +11,14 @@ export interface AsyncDataRendererProps<T> {
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
   emptyComponent?: React.ReactNode;
+}
+
+// Ensure DataStateHandlerProps supports renderData
+export interface DataStateHandlerProps<T> {
+  isLoading: boolean;
+  loadingComponent: JSX.Element;
+  data: T[];
+  renderData?: () => JSX.Element;
 }
 
 export function AsyncDataRenderer<T>({
@@ -41,7 +48,7 @@ export function AsyncDataRenderer<T>({
           <AlertCircle className="h-12 w-12 text-destructive mb-2" />
           <h3 className="text-lg font-medium mb-2">Failed to load data</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            {error.message || 'An error occurred while fetching data.'}
+            {error.message || "An error occurred while fetching data."}
           </p>
           {onRetry && (
             <Button variant="outline" onClick={onRetry}>

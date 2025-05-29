@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React from "react";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,13 +20,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
-type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>;
+type PopoverTriggerProps = React.ComponentPropsWithoutRef<
+  typeof PopoverTrigger
+>;
 
 interface TeamSwitcherProps extends PopoverTriggerProps {}
 
 export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
   const [open, setOpen] = React.useState(false);
-  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace();
+  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } =
+    useWorkspace();
 
   if (loading) {
     return (
@@ -58,7 +60,9 @@ export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
                   src={`https://avatar.vercel.sh/${currentWorkspace.id}.png`}
                   alt={currentWorkspace.name}
                 />
-                <AvatarFallback>{currentWorkspace.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>
+                  {currentWorkspace.name.charAt(0)}
+                </AvatarFallback>
               </Avatar>
               {currentWorkspace.name}
             </>
@@ -73,7 +77,7 @@ export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
           <CommandList>
             <CommandInput placeholder="Search workspace..." />
             <CommandEmpty>No workspace found.</CommandEmpty>
-            
+
             <CommandGroup heading="Workspaces">
               {workspaces?.map((workspace) => (
                 <CommandItem
@@ -97,7 +101,7 @@ export default function WorkspaceSwitcher({ className }: TeamSwitcherProps) {
                       "ml-auto h-4 w-4",
                       currentWorkspace?.id === workspace.id
                         ? "opacity-100"
-                        : "opacity-0"
+                        : "opacity-0",
                     )}
                   />
                 </CommandItem>

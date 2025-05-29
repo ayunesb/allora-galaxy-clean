@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 
 /**
@@ -23,7 +22,7 @@ export function useMediaQuery(query: string): boolean {
     }
 
     const mediaQuery = window.matchMedia(query);
-    
+
     // Update matches state when the media query changes
     const updateMatches = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
@@ -31,10 +30,10 @@ export function useMediaQuery(query: string): boolean {
 
     // Set initial value
     setMatches(mediaQuery.matches);
-    
+
     // Add event listener using the modern API
     mediaQuery.addEventListener("change", updateMatches);
-    
+
     // Clean up the listener on unmount
     return () => {
       mediaQuery.removeEventListener("change", updateMatches);

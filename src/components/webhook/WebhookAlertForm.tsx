@@ -1,10 +1,9 @@
-
-import React, { useState } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useTenantId } from '@/hooks/useTenantId';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTenantId } from "@/hooks/useTenantId";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,28 +11,41 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { retryWebhookAlert } from '@/services/webhook/webhookService';
-import { EdgeFunctionHandler } from '@/components/errors/EdgeFunctionHandler';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { retryWebhookAlert } from "@/services/webhook/webhookService";
+import { EdgeFunctionHandler } from "@/components/errors/EdgeFunctionHandler";
 
 const formSchema = z.object({
-  webhook_url: z.string().url('Please enter a valid URL'),
-  alert_type: z.string().min(1, 'Please select an alert type'),
-  message: z.string().min(5, 'Message must be at least 5 characters'),
+  webhook_url: z.string().url("Please enter a valid URL"),
+  alert_type: z.string().min(1, "Please select an alert type"),
+  message: z.string().min(5, "Message must be at least 5 characters"),
   metadata: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 const alertTypes = [
-  { value: 'info', label: 'Information' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'error', label: 'Error' },
-  { value: 'success', label: 'Success' },
+  { value: "info", label: "Information" },
+  { value: "warning", label: "Warning" },
+  { value: "error", label: "Error" },
+  { value: "success", label: "Success" },
 ];
 
 export const WebhookAlertForm: React.FC = () => {
@@ -46,16 +58,16 @@ export const WebhookAlertForm: React.FC = () => {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      webhook_url: '',
-      alert_type: '',
-      message: '',
-      metadata: '',
+      webhook_url: "",
+      alert_type: "",
+      message: "",
+      metadata: "",
     },
   });
 
   const onSubmit = async (data: FormData) => {
     if (!tenantId) {
-      setError(new Error('No tenant ID available'));
+      setError(new Error("No tenant ID available"));
       return;
     }
 
@@ -64,13 +76,13 @@ export const WebhookAlertForm: React.FC = () => {
 
     try {
       let metadata: Record<string, any> | undefined;
-      
+
       if (data.metadata) {
         try {
           metadata = JSON.parse(data.metadata);
         } catch (e) {
-          form.setError('metadata', { 
-            message: 'Invalid JSON format in metadata' 
+          form.setError("metadata", {
+            message: "Invalid JSON format in metadata",
           });
           setIsLoading(false);
           return;
@@ -83,18 +95,19 @@ export const WebhookAlertForm: React.FC = () => {
         alert_type: data.alert_type,
         message: data.message,
         tenant_id: tenantId,
-        metadata
+        metadata,
       });
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to send webhook alert');
+        throw new Error(result.error || "Failed to send webhook alert");
       }
 
       // Reset form after successful submission
       form.reset();
-      
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+      setError(
+        err instanceof Error ? err : new Error("An unknown error occurred"),
+      );
     } finally {
       setIsLoading(false);
       setIsRetrying(false);
@@ -102,7 +115,7 @@ export const WebhookAlertForm: React.FC = () => {
   };
 
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
+    setRetryCount((prev) => prev + 1);
     setIsRetrying(true);
     form.handleSubmit(onSubmit)();
   };
@@ -135,7 +148,10 @@ export const WebhookAlertForm: React.FC = () => {
                   <FormItem>
                     <FormLabel>Webhook URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/webhook" {...field} />
+                      <Input
+                        placeholder="https://example.com/webhook"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -207,7 +223,7 @@ export const WebhookAlertForm: React.FC = () => {
               />
 
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Sending...' : 'Send Alert'}
+                {isLoading ? "Sending..." : "Send Alert"}
               </Button>
             </form>
           </Form>

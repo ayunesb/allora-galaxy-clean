@@ -1,5 +1,4 @@
-
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+import { serve } from "https://cdn.jsdelivr.net/gh/denoland/deno_std@0.131.0/http/server.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Stripe } from "https://esm.sh/stripe@13.7.0?target=deno";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";

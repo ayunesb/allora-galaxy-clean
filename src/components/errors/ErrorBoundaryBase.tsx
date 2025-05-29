@@ -1,7 +1,9 @@
-
-import React, { useCallback } from 'react';
-import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import ErrorFallback from './ErrorFallback';
+import React, { useCallback } from "react";
+import {
+  ErrorBoundary as ReactErrorBoundary,
+  type FallbackProps,
+} from "react-error-boundary";
+import ErrorFallback from "./ErrorFallback";
 
 interface ErrorBoundaryBaseProps {
   children: React.ReactNode;
@@ -13,7 +15,7 @@ interface ErrorBoundaryBaseProps {
   showLog?: boolean;
   title?: string;
   description?: string;
-  logLevel?: 'info' | 'warning' | 'error';
+  logLevel?: "info" | "warning" | "error";
   customMessage?: string;
   hideResetButton?: boolean;
 }
@@ -31,38 +33,43 @@ const ErrorBoundaryBase = ({
   showLog = true,
   title,
   description,
-  logLevel = 'error',
+  logLevel = "error",
   customMessage,
-  hideResetButton = false
+  hideResetButton = false,
 }: ErrorBoundaryBaseProps) => {
   // Memoize the error handler to avoid recreating it on every render
-  const handleError = useCallback((error: Error, info: React.ErrorInfo) => {
-    // Log the error to console
-    console.error('Error caught by ErrorBoundary:', error);
-    console.error('Component stack:', info.componentStack);
-    
-    // Call custom error handler if provided
-    if (onError) {
-      onError(error, info);
-    }
-  }, [onError]);
+  const handleError = useCallback(
+    (error: Error, info: React.ErrorInfo) => {
+      // Log the error to console
+      console.error("Error caught by ErrorBoundary:", error);
+      console.error("Component stack:", info.componentStack);
+
+      // Call custom error handler if provided
+      if (onError) {
+        onError(error, info);
+      }
+    },
+    [onError],
+  );
 
   // Use custom fallback or default ErrorFallback - memoize this to avoid recreating on every render
-  const FallbackComponent = fallback || function DefaultFallback(props: FallbackProps) {
-    return (
-      <ErrorFallback
-        error={props.error}
-        resetErrorBoundary={props.resetErrorBoundary}
-        showToast={showToast}
-        showLog={showLog}
-        title={title}
-        description={description}
-        customMessage={customMessage}
-        logLevel={logLevel}
-        hideResetButton={hideResetButton}
-      />
-    );
-  };
+  const FallbackComponent =
+    fallback ||
+    function DefaultFallback(props: FallbackProps) {
+      return (
+        <ErrorFallback
+          error={props.error}
+          resetErrorBoundary={props.resetErrorBoundary}
+          showToast={showToast}
+          showLog={showLog}
+          title={title}
+          description={description}
+          customMessage={customMessage}
+          logLevel={logLevel}
+          hideResetButton={hideResetButton}
+        />
+      );
+    };
 
   return (
     <ReactErrorBoundary

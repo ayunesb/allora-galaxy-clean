@@ -1,13 +1,12 @@
-
 // Re-export from our centralized toast implementation
-export { 
-  useToast, 
+export {
+  useToast,
   notify as toast,
   notify,
   notifySuccess,
   notifyError,
   notifyWarning,
-  notifyInfo
+  notifyInfo,
 } from "@/lib/notifications/toast";
 
 // For backward compatibility
@@ -15,7 +14,7 @@ export interface ToastProps {
   title?: string;
   description?: React.ReactNode;
   action?: React.ReactNode;
-  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
+  variant?: "default" | "destructive" | "success" | "warning" | "info";
 }
 
 export type ToastActionElement = React.ReactElement;

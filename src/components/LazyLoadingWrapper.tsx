@@ -1,7 +1,6 @@
-
-import React, { Suspense, useState, useEffect } from 'react';
-import { LoadingIndicator } from '@/components/ui/loading-indicator';
-import CardErrorState from '@/components/errors/CardErrorState';
+import React, { Suspense, useState, useEffect } from "react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import CardErrorState from "@/components/errors/CardErrorState";
 
 interface LazyLoadingWrapperProps {
   children: React.ReactNode;
@@ -18,7 +17,7 @@ const LazyLoadingWrapper: React.FC<LazyLoadingWrapperProps> = ({
   children,
   fallback,
   errorComponent,
-  loadingText = 'Loading...',
+  loadingText = "Loading...",
   timeout = 10000, // Default timeout of 10 seconds
 }) => {
   const [hasTimedOut, setHasTimedOut] = useState(false);
@@ -32,12 +31,14 @@ const LazyLoadingWrapper: React.FC<LazyLoadingWrapperProps> = ({
   }, [timeout]);
 
   if (hasTimedOut) {
-    return errorComponent || (
-      <CardErrorState
-        title="Loading Timeout"
-        message="This component took too long to load. Please try again."
-        onRetry={() => window.location.reload()}
-      />
+    return (
+      errorComponent || (
+        <CardErrorState
+          title="Loading Timeout"
+          message="This component took too long to load. Please try again."
+          onRetry={() => window.location.reload()}
+        />
+      )
     );
   }
 

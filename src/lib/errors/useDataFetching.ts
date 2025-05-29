@@ -1,81 +1,51 @@
-
-import { useState, useCallback, useEffect } from 'react';
-import { handleError } from './ErrorHandler';
+import { useState, useCallback, useEffect } from "react";
+import { handleError } from "./ErrorHandler";
 
 /**
  * Custom hook for data fetching with standardized error handling
  */
-export function useDataFetching<T>(
-  fetchFn: () => Promise<T>,
-  options: {
-    initialData?: T;
-    autoFetch?: boolean;
-    dependencies?: any[];
-    onSuccess?: (data: T) => void;
-    onError?: (error: Error) => void;
-    errorMessage?: string;
-    showNotification?: boolean;
-  } = {}
-) {
-  const {
-    initialData,
-    autoFetch = true,
-    dependencies = [],
-    onSuccess,
-    onError,
-    errorMessage,
-    showNotification = false
-  } = options;
-
-  const [data, setData] = useState<T | undefined>(initialData);
+export function useDataFetching<T = unknown>(fetch: () => Promise<T>, autoFetch = true) {
+  const [data, setData] = useState<T | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(autoFetch);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetch = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const result = await fetchFn();
+      const result = await fetch();
       setData(result);
-      
-      if (onSuccess) {
-        onSuccess(result);
-      }
-      
+
       return result;
-    } catch (err: any) {
+    } catch (error: unknown) {
       // Use our centralized error handler
-      const formattedError = await handleError(err, {
-        context: { operation: 'data-fetching' },
-        showNotification,
-        module: 'data-fetching'
+      const formattedError = await handleError(error, {
+        context: { operation: "data-fetching" },
+        showNotification: false,
+        module: "data-fetching",
       });
-      
+
       setError(formattedError);
-      
-      if (onError) {
-        onError(formattedError);
-      }
-      
+
       throw formattedError;
     } finally {
       setIsLoading(false);
     }
-  }, [fetchFn, onSuccess, onError, showNotification]);
+  }, [fetch]);
 
   useEffect(() => {
     if (autoFetch) {
-      fetch().catch(() => {}); // We catch here to prevent unhandled promise rejections
+      fetchData();
     }
-  }, [...dependencies]);
+  }, [autoFetch, fetch]); // add both autoFetch and fetch as dependencies
 
   return {
     data,
     isLoading,
     error,
-    fetch,
-    setData
+    fetch: fetchData,
+    setData,
   };
 }
 
@@ -87,27 +57,23 @@ export function useStableFetching<T>(
   options: {
     initialData?: T;
     autoFetch?: boolean;
-    dependencies?: any[];
     onSuccess?: (data: T) => void;
     onError?: (error: Error) => void;
-    errorMessage?: string;
     maxRetries?: number;
     retryDelay?: number;
     refreshInterval?: number;
     showNotification?: boolean;
-  } = {}
+  } = {},
 ) {
   const {
     initialData,
     autoFetch = true,
-    dependencies = [],
     onSuccess,
     onError,
-    errorMessage,
     maxRetries = 3,
     retryDelay = 1000,
     refreshInterval = 0,
-    showNotification = false
+    showNotification = false,
   } = options;
 
   const [data, setData] = useState<T | undefined>(initialData);
@@ -119,35 +85,35 @@ export function useStableFetching<T>(
   const fetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await fetchFn();
       setData(result);
       setRetryCount(0);
-      
+
       if (onSuccess) {
         onSuccess(result);
       }
-      
+
       return result;
-    } catch (err: any) {
+    } catch (error: unknown) {
       // Use our centralized error handler
-      const formattedError = await handleError(err, {
-        context: { 
-          operation: 'stable-data-fetching',
+      const formattedError = await handleError(error, {
+        context: {
+          operation: "stable-data-fetching",
           retryCount,
-          maxRetries
+          maxRetries,
         },
         showNotification,
-        module: 'data-fetching'
+        module: "data-fetching",
       });
-      
+
       setError(formattedError);
-      
+
       if (onError) {
         onError(formattedError);
       }
-      
+
       throw formattedError;
     } finally {
       setIsLoading(false);
@@ -159,12 +125,14 @@ export function useStableFetching<T>(
     if (retryCount >= maxRetries || !error) {
       return;
     }
-    
+
     setIsRetrying(true);
-    
+
     try {
-      await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, retryCount)));
-      setRetryCount(prev => prev + 1);
+      await new Promise((resolve) =>
+        setTimeout(resolve, retryDelay * Math.pow(2, retryCount)),
+      );
+      setRetryCount((prev) => prev + 1);
       await fetch();
     } finally {
       setIsRetrying(false);
@@ -176,18 +144,18 @@ export function useStableFetching<T>(
     if (autoFetch) {
       fetch().catch(() => {}); // We catch here to prevent unhandled promise rejections
     }
-  }, [...dependencies]);
+  }, [autoFetch, fetch]); // add both autoFetch and fetch as dependencies
 
   // Refresh interval
   useEffect(() => {
     if (refreshInterval <= 0) return;
-    
+
     const intervalId = setInterval(() => {
       if (!isLoading && !isRetrying) {
         fetch().catch(() => {});
       }
     }, refreshInterval);
-    
+
     return () => clearInterval(intervalId);
   }, [fetch, refreshInterval, isLoading, isRetrying]);
 
@@ -206,6 +174,6 @@ export function useStableFetching<T>(
     retry,
     retryCount,
     isRetrying,
-    setData
+    setData,
   };
 }

@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useTenantContext } from '@/contexts/TenantContext';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import { toast } from 'sonner';
-import LucideLogo from '@/components/LucideLogo';
+import React, { useEffect } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useTenantContext } from "@/contexts/TenantContext";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import { toast } from "sonner";
+import LucideLogo from "@/components/LucideLogo";
 
 const OnboardingLayout: React.FC = () => {
   const { tenant, isLoading } = useTenantContext();
@@ -12,8 +12,8 @@ const OnboardingLayout: React.FC = () => {
 
   // Extract step information from path
   const getStepInfo = () => {
-    const path = location.pathname.replace('/onboarding/', '');
-    const step = parseInt(path.split('/')[0]) || 1;
+    const path = location.pathname.replace("/onboarding/", "");
+    const step = parseInt(path.split("/")[0]) || 1;
     return { step, path };
   };
 
@@ -22,8 +22,8 @@ const OnboardingLayout: React.FC = () => {
   // Redirect to main page if tenant is already onboarded
   useEffect(() => {
     if (!isLoading && tenant && tenant.is_onboarded) {
-      toast.info('Your organization is already set up');
-      navigate('/');
+      toast.info("Your organization is already set up");
+      navigate("/");
     }
   }, [tenant, isLoading, navigate]);
 
@@ -31,15 +31,15 @@ const OnboardingLayout: React.FC = () => {
   useEffect(() => {
     if (tenant && !isLoading) {
       logSystemEvent(
-        'onboarding',
-        'info',
+        "onboarding",
+        "info",
         {
           step: step,
           total_steps: 4, // Update this if you change the number of steps
           context: location.pathname,
-          description: `User viewed onboarding step ${step}`
+          description: `User viewed onboarding step ${step}`,
         },
-        tenant.id
+        tenant.id,
       ).catch(console.error);
     }
   }, [step, location.pathname, tenant, isLoading]);

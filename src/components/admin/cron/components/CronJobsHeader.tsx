@@ -1,9 +1,14 @@
-
-import React from 'react';
-import { CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw } from 'lucide-react';
+import React from "react";
+import { CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RefreshCw } from "lucide-react";
 
 interface CronJobsHeaderProps {
   timeRange: string;
@@ -12,11 +17,11 @@ interface CronJobsHeaderProps {
   onRefresh: () => void;
 }
 
-export const CronJobsHeader: React.FC<CronJobsHeaderProps> = ({ 
+export const CronJobsHeader: React.FC<CronJobsHeaderProps> = ({
   timeRange,
   isLoading,
   onTimeRangeChange,
-  onRefresh
+  onRefresh,
 }) => {
   return (
     <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -33,13 +38,13 @@ export const CronJobsHeader: React.FC<CronJobsHeaderProps> = ({
             <SelectItem value="all">All time</SelectItem>
           </SelectContent>
         </Select>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={onRefresh} 
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onRefresh}
           disabled={isLoading}
         >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
     </CardHeader>

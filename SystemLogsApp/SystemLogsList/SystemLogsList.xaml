@@ -1,0 +1,16 @@
+<Window x:Class="SystemLogsApp.SystemLogsList"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="System Logs List" Height="450" Width="800">
+    <Grid>
+        <ListView Name="LogsListView">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Timestamp" Width="120" DisplayMemberBinding="{Binding Timestamp}" />
+                    <GridViewColumn Header="Log Level" Width="100" DisplayMemberBinding="{Binding LogLevel}" />
+                    <GridViewColumn Header="Message" Width="500" DisplayMemberBinding="{Binding Message}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>

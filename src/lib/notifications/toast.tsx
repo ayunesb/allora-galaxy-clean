@@ -1,12 +1,17 @@
-
-import { ReactNode } from 'react';
-import { toast as sonnerToast } from 'sonner';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
-import type { SystemEventModule } from '@/types/shared';
+import { ReactNode } from "react";
+import { toast as sonnerToast } from "sonner";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
+import type { SystemEventModule } from "@/types/shared";
 
 // Define toast types and options
-export type ToastType = 'default' | 'success' | 'error' | 'warning' | 'info';
-export type ToastPosition = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+export type ToastType = "default" | "success" | "error" | "warning" | "info";
+export type ToastPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
 
 export interface ToastOptions {
   description?: ReactNode;
@@ -29,7 +34,7 @@ export interface ToastMessage {
 
 type LoggedToastOptions = ToastOptions & {
   log?: boolean;
-  logLevel?: 'info' | 'warning' | 'error';
+  logLevel?: "info" | "warning" | "error";
   logModule?: SystemEventModule;
   tenantId?: string;
   logContext?: Record<string, any>;
@@ -39,32 +44,34 @@ type LoggedToastOptions = ToastOptions & {
  * Base toast notification function
  */
 export const notify = (
-  messageOrOptions: string | ToastMessage, 
+  messageOrOptions: string | ToastMessage,
   description?: string | ToastOptions,
-  options?: ToastOptions
+  options?: ToastOptions,
 ): string => {
   // Handle different argument patterns for backward compatibility
   let title: string;
   let finalOptions: ToastOptions = {};
-  
+
   // Handle the case where second argument is options object
-  if (description && typeof description === 'object') {
+  if (description && typeof description === "object") {
     options = description;
     description = undefined;
   }
 
   // Merge options
   finalOptions = { ...finalOptions, ...options };
-  
+
   // Handle both string and object message formats
-  if (typeof messageOrOptions === 'string') {
+  if (typeof messageOrOptions === "string") {
     title = messageOrOptions;
-    finalOptions.description = description as string || finalOptions.description;
+    finalOptions.description =
+      (description as string) || finalOptions.description;
   } else {
     title = messageOrOptions.title;
-    finalOptions.description = messageOrOptions.description || finalOptions.description;
+    finalOptions.description =
+      messageOrOptions.description || finalOptions.description;
   }
-  
+
   // Show the toast notification
   return sonnerToast(title, finalOptions);
 };
@@ -73,109 +80,109 @@ export const notify = (
  * Helper functions for different toast types
  */
 export const notifySuccess = (
-  messageOrOptions: string | ToastMessage, 
+  messageOrOptions: string | ToastMessage,
   description?: string | ToastOptions,
-  options?: ToastOptions
+  options?: ToastOptions,
 ): string => {
   // Handle different argument patterns
-  if (typeof description === 'object') {
+  if (typeof description === "object") {
     options = description;
     description = undefined;
   }
-  
+
   const finalOptions = { ...options };
-  
+
   // Create toast with success variant
-  if (typeof messageOrOptions === 'string') {
+  if (typeof messageOrOptions === "string") {
     return sonnerToast.success(messageOrOptions, {
       description: description as string,
-      ...finalOptions
+      ...finalOptions,
     });
   } else {
     return sonnerToast.success(messageOrOptions.title, {
       description: messageOrOptions.description,
-      ...finalOptions
+      ...finalOptions,
     });
   }
 };
 
 export const notifyError = (
-  messageOrOptions: string | ToastMessage, 
+  messageOrOptions: string | ToastMessage,
   description?: string | ToastOptions,
-  options?: ToastOptions
+  options?: ToastOptions,
 ): string => {
   // Handle different argument patterns
-  if (typeof description === 'object') {
+  if (typeof description === "object") {
     options = description;
     description = undefined;
   }
-  
+
   const finalOptions = { ...options };
-  
+
   // Create toast with error variant
-  if (typeof messageOrOptions === 'string') {
+  if (typeof messageOrOptions === "string") {
     return sonnerToast.error(messageOrOptions, {
       description: description as string,
-      ...finalOptions
+      ...finalOptions,
     });
   } else {
     return sonnerToast.error(messageOrOptions.title, {
       description: messageOrOptions.description,
-      ...finalOptions
+      ...finalOptions,
     });
   }
 };
 
 export const notifyWarning = (
-  messageOrOptions: string | ToastMessage, 
+  messageOrOptions: string | ToastMessage,
   description?: string | ToastOptions,
-  options?: ToastOptions
+  options?: ToastOptions,
 ): string => {
   // Handle different argument patterns
-  if (typeof description === 'object') {
+  if (typeof description === "object") {
     options = description;
     description = undefined;
   }
-  
+
   const finalOptions = { ...options };
-  
+
   // Create toast with warning variant
-  if (typeof messageOrOptions === 'string') {
+  if (typeof messageOrOptions === "string") {
     return sonnerToast.warning(messageOrOptions, {
       description: description as string,
-      ...finalOptions
+      ...finalOptions,
     });
   } else {
     return sonnerToast.warning(messageOrOptions.title, {
       description: messageOrOptions.description,
-      ...finalOptions
+      ...finalOptions,
     });
   }
 };
 
 export const notifyInfo = (
-  messageOrOptions: string | ToastMessage, 
+  messageOrOptions: string | ToastMessage,
   description?: string | ToastOptions,
-  options?: ToastOptions
+  options?: ToastOptions,
 ): string => {
   // Handle different argument patterns
-  if (typeof description === 'object') {
+  if (typeof description === "object") {
     options = description;
     description = undefined;
   }
-  
+
   const finalOptions = { ...options };
-  
+
   // Create toast with info variant
-  if (typeof messageOrOptions === 'string') {
+  if (typeof messageOrOptions === "string") {
     return sonnerToast.info(messageOrOptions, {
       description: description as string,
-      ...finalOptions
+      ...finalOptions,
     });
   } else {
     return sonnerToast.info(messageOrOptions.title, {
       description: messageOrOptions.description,
-      ...finalOptions
+      ...finalOptions,
     });
   }
 };
@@ -190,13 +197,13 @@ export const notifyPromise = <T,>(
     success: string | ((data: T) => string);
     error: string | ((error: any) => string);
   },
-  options?: ToastOptions
+  options?: ToastOptions,
 ): Promise<T> => {
   return sonnerToast.promise(promise, {
     loading: messages.loading,
     success: messages.success,
     error: messages.error,
-    ...options
+    ...options,
   });
 };
 
@@ -205,24 +212,23 @@ export const notifyPromise = <T,>(
  */
 export const notifyAndLog = async (
   module: SystemEventModule,
-  level: 'info' | 'warning' | 'error',
+  level: "info" | "warning" | "error",
   title: string,
   description?: ReactNode,
   type?: ToastType,
-  tenantId: string = 'system',
-  additionalContext: Record<string, any> = {}
+  tenantId: string = "system",
+  additionalContext: Record<string, any> = {},
 ): Promise<string> => {
-  const toastType = type || (
-    level === 'error' ? 'error' : 
-    level === 'warning' ? 'warning' : 'info'
-  );
-  
+  const toastType =
+    type ||
+    (level === "error" ? "error" : level === "warning" ? "warning" : "info");
+
   // Show the toast notification
   const toastId = notify(title, {
     description,
-    type: toastType
+    type: toastType,
   });
-  
+
   // Log the event
   try {
     await logSystemEvent(
@@ -231,14 +237,14 @@ export const notifyAndLog = async (
       {
         description: description?.toString() || title,
         toast_type: toastType,
-        ...additionalContext
+        ...additionalContext,
       },
-      tenantId
+      tenantId,
     );
   } catch (error) {
-    console.error('Failed to log toast notification:', error);
+    console.error("Failed to log toast notification:", error);
   }
-  
+
   return toastId;
 };
 
@@ -253,7 +259,7 @@ export const useToast = () => {
     error: notifyError,
     warning: notifyWarning,
     info: notifyInfo,
-    promise: notifyPromise
+    promise: notifyPromise,
   };
 };
 

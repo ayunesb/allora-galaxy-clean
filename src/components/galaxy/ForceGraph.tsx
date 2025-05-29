@@ -1,9 +1,8 @@
-
-import React, { useRef, useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import ForceGraph2D from 'react-force-graph-2d';
-import { useTheme } from '@/hooks/useTheme';
-import { ForceGraphProps, GraphNode } from '@/types/galaxy';
+import React, { useRef, useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
+import ForceGraph2D from "react-force-graph-2d";
+import { useTheme } from "@/hooks/useTheme";
+import { ForceGraphProps, GraphNode } from "@/types/galaxy";
 
 const ForceGraph: React.FC<ForceGraphProps> = ({
   graphData,
@@ -11,7 +10,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   onBackgroundClick = () => {},
   highlightedNodeId,
   selectedNodeId,
-  className = '',
+  className = "",
 }) => {
   const graphRef = useRef<any>(null);
   const { theme } = useTheme();
@@ -30,31 +29,31 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     // Set initial dimensions
     handleResize();
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Node color based on type and theme
   const getNodeColor = (node: GraphNode) => {
     if (node.color) return node.color;
-    
-    const isDark = theme === 'dark';
-    
+
+    const isDark = theme === "dark";
+
     switch (node.type) {
-      case 'strategy':
-        return isDark ? '#9333ea' : '#a855f7'; // Purple
-      case 'plugin':
-        return isDark ? '#2563eb' : '#3b82f6'; // Blue
-      case 'agent':
-        return isDark ? '#16a34a' : '#22c55e'; // Green
+      case "strategy":
+        return isDark ? "#9333ea" : "#a855f7"; // Purple
+      case "plugin":
+        return isDark ? "#2563eb" : "#3b82f6"; // Blue
+      case "agent":
+        return isDark ? "#16a34a" : "#22c55e"; // Green
       default:
-        return isDark ? '#6b7280' : '#9ca3af'; // Gray
+        return isDark ? "#6b7280" : "#9ca3af"; // Gray
     }
   };
 
   // Link color based on theme
   const getLinkColor = () => {
-    return theme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)';
+    return theme === "dark" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)";
   };
 
   // Handle node size
@@ -62,13 +61,13 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     if (node.id === selectedNodeId || node.id === highlightedNodeId) {
       return 8;
     }
-    
+
     switch (node.type) {
-      case 'strategy':
+      case "strategy":
         return 6;
-      case 'plugin':
+      case "plugin":
         return 5;
-      case 'agent':
+      case "agent":
         return 4;
       default:
         return 3;

@@ -1,4 +1,3 @@
-
 export interface OnboardingFormData {
   // Company information
   company: {
@@ -8,7 +7,7 @@ export interface OnboardingFormData {
     website?: string;
     description?: string;
   };
-  
+
   // User information
   user: {
     firstName?: string;
@@ -16,14 +15,14 @@ export interface OnboardingFormData {
     jobTitle?: string;
     email?: string;
   };
-  
+
   // Persona/goals
   persona?: {
     name?: string;
     goals?: string[];
     tone?: string;
   };
-  
+
   // Strategy generation
   strategy?: {
     title?: string;
@@ -31,14 +30,14 @@ export interface OnboardingFormData {
     tags?: string[];
     status?: string;
   };
-  
+
   // Tenant information
   tenant?: {
     name?: string;
     slug?: string;
     id?: string;
   };
-  
+
   // Progress tracking
   currentStep?: number;
   completedSteps?: number[];

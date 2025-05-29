@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Helmet } from 'react-helmet-async';
+import React from "react";
+import { Helmet } from "react-helmet-async";
 
 interface PageHelmetProps {
   title: string;
@@ -13,7 +12,7 @@ const PageHelmet: React.FC<PageHelmetProps> = ({
   description,
   noIndex = false,
 }) => {
-  const appName = 'Allora OS';
+  const appName = "Allora OS";
   const fullTitle = `${title} | ${appName}`;
 
   return (
@@ -21,12 +20,12 @@ const PageHelmet: React.FC<PageHelmetProps> = ({
       <title>{fullTitle}</title>
       {description && <meta name="description" content={description} />}
       {noIndex && <meta name="robots" content="noindex,nofollow" />}
-      
+
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
       <meta property="og:title" content={fullTitle} />
       {description && <meta property="og:description" content={description} />}
-      
+
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />

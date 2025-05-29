@@ -1,18 +1,23 @@
-
-import React, { Component, ErrorInfo } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, Home, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { Component, ErrorInfo } from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Home, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ErrorFallbackProps {
   error: Error | null;
   resetErrorBoundary: () => void;
 }
 
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({ 
-  error, 
-  resetErrorBoundary 
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({
+  error,
+  resetErrorBoundary,
 }) => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -24,7 +29,10 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>We apologize for the inconvenience. An error occurred while loading this page.</p>
+          <p>
+            We apologize for the inconvenience. An error occurred while loading
+            this page.
+          </p>
           {error && (
             <div className="rounded bg-muted/50 p-2 text-xs font-mono overflow-auto">
               {error.message}
@@ -59,41 +67,46 @@ interface PageErrorBoundaryState {
   errorInfo: ErrorInfo | null;
 }
 
-class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBoundaryState> {
+class PageErrorBoundary extends Component<
+  PageErrorBoundaryProps,
+  PageErrorBoundaryState
+> {
   constructor(props: PageErrorBoundaryProps) {
     super(props);
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<PageErrorBoundaryState> {
+  static getDerivedStateFromError(
+    error: Error,
+  ): Partial<PageErrorBoundaryState> {
     return {
       hasError: true,
-      error
+      error,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({
-      errorInfo
+      errorInfo,
     });
-    
+
     // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-    
-    console.error('Error caught by PageErrorBoundary:', error, errorInfo);
+
+    console.error("Error caught by PageErrorBoundary:", error, errorInfo);
   }
 
   resetErrorBoundary = (): void => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     });
   };
 
@@ -103,9 +116,9 @@ class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBound
 
     if (hasError) {
       return (
-        <ErrorFallback 
-          error={error} 
-          resetErrorBoundary={this.resetErrorBoundary} 
+        <ErrorFallback
+          error={error}
+          resetErrorBoundary={this.resetErrorBoundary}
         />
       );
     }

@@ -1,6 +1,11 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export function WorkspaceOverview() {
   const { currentWorkspace } = useWorkspace();
@@ -9,9 +14,7 @@ export function WorkspaceOverview() {
     <Card>
       <CardHeader>
         <CardTitle>Workspace Overview</CardTitle>
-        <CardDescription>
-          Details about the current workspace.
-        </CardDescription>
+        <CardDescription>Details about the current workspace.</CardDescription>
       </CardHeader>
       <CardContent>
         {currentWorkspace ? (

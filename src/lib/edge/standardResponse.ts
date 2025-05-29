@@ -1,19 +1,18 @@
-
 /**
  * Standardized response utilities for edge functions
  */
-import { corsHeaders } from '@/lib/env/environment';
+import { corsHeaders } from "@/lib/env/corsHeaders";
 
 export enum ErrorCode {
-  BAD_REQUEST = 'BAD_REQUEST',
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  FORBIDDEN = 'FORBIDDEN',
-  NOT_FOUND = 'NOT_FOUND',
-  RATE_LIMITED = 'RATE_LIMITED',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  CONFLICT = 'CONFLICT',
-  INTERNAL_ERROR = 'INTERNAL_ERROR',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE'
+  BAD_REQUEST = "BAD_REQUEST",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  NOT_FOUND = "NOT_FOUND",
+  RATE_LIMITED = "RATE_LIMITED",
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+  CONFLICT = "CONFLICT",
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
 }
 
 export interface ErrorResponseData {
@@ -48,65 +47,101 @@ export function createErrorResponse(
   status: number = 500,
   code: ErrorCode | string = ErrorCode.INTERNAL_ERROR,
   details?: any,
-  requestId: string = generateRequestId()
+  requestId: string = generateRequestId(),
 ): Response {
-  console.error(`[ERROR ${requestId}] ${message}`, { code, status, details });
-  
-  const responseData: ErrorResponseData = {
-    success: false,
-    error: message,
-    code,
-    status,
-    timestamp: new Date().toISOString(),
-    requestId
-  };
-  
-  if (details !== undefined) {
-    responseData.details = details;
-  }
-  
-  return new Response(
-    JSON.stringify(responseData),
-    { 
+  try {
+    console.error(`[ERROR ${requestId}] ${message}`, { code, status, details });
+
+    const responseData: ErrorResponseData = {
+      success: false,
+      error: message,
+      code,
+      status,
+      timestamp: new Date().toISOString(),
+      requestId,
+    };
+
+    if (details !== undefined) {
+      responseData.details = details;
+    }
+
+    return new Response(JSON.stringify(responseData), {
       status,
       headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Error in createErrorResponse:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Internal Server Error",
+        code: ErrorCode.INTERNAL_ERROR,
+        status: 500,
+        timestamp: new Date().toISOString(),
+        requestId,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
+  }
 }
 
 /**
  * Create a standardized success response for edge functions
  */
 export function createSuccessResponse<T>(
-  data: T, 
-  requestId: string = generateRequestId()
+  data: T,
+  requestId: string = generateRequestId(),
 ): Response {
-  const responseData: SuccessResponseData<T> = {
-    success: true,
-    data,
-    timestamp: new Date().toISOString(),
-    requestId
-  };
-  
-  return new Response(
-    JSON.stringify(responseData),
-    {
+  try {
+    const responseData: SuccessResponseData<T> = {
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+      requestId,
+    };
+
+    return new Response(JSON.stringify(responseData), {
       headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
-    }
-  );
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Error in createSuccessResponse:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Internal Server Error",
+        code: ErrorCode.INTERNAL_ERROR,
+        status: 500,
+        timestamp: new Date().toISOString(),
+        requestId,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
+  }
 }
 
 /**
  * Handle CORS preflight requests
  */
 export function handleCorsRequest(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
   return null;
@@ -116,13 +151,17 @@ export function handleCorsRequest(req: Request): Response | null {
  * Helper for logging edge function errors with request context
  */
 export function logEdgeError(
-  error: Error, 
-  requestId: string, 
-  context?: Record<string, any>
+  error: Error,
+  requestId: string,
+  context?: Record<string, any>,
 ): void {
-  console.error(`[ERROR ${requestId}]`, {
-    message: error.message,
-    stack: error.stack,
-    ...context
-  });
+  try {
+    console.error(`[ERROR ${requestId}]`, {
+      message: error.message,
+      stack: error.stack,
+      ...context,
+    });
+  } catch (error: unknown) {
+    console.error("Error in logEdgeError:", error);
+  }
 }

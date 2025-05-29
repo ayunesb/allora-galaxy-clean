@@ -1,74 +1,78 @@
+import React, { useState, useCallback } from "react";
+import { Notification } from "./types";
+import NotificationsContext from "./NotificationsContext";
+import { useToast } from "@/hooks/use-toast";
 
-import React, { useState, useCallback } from 'react';
-import { Notification } from './types';
-import NotificationsContext from './NotificationsContext';
-import { useToast } from '@/hooks/use-toast';
-
-export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
   // Add a new notification
-  const addNotification = useCallback((notification: Notification) => {
-    setNotifications(prev => [notification, ...prev]);
-    setUnreadCount(prev => prev + 1);
-    
-    // Display toast for certain types of notifications
-    if (notification.priority === 'high' || 
-        (notification.metadata && notification.metadata.priority === 'high')) {
-      toast({
-        title: notification.title,
-        description: notification.message || notification.description || '',
-        variant: notification.type === 'error' ? 'destructive' : 'default'
-      });
-    }
-  }, [toast]);
+  const addNotification = useCallback(
+    (notification: Notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+
+      // Display toast for certain types of notifications
+      if (
+        notification.priority === "high" ||
+        (notification.metadata && notification.metadata.priority === "high")
+      ) {
+        toast({
+          title: notification.title,
+          description: notification.message || notification.description || "",
+          variant: notification.type === "error" ? "destructive" : "default",
+        });
+      }
+    },
+    [toast],
+  );
 
   // Mark a notification as read
   const markAsRead = useCallback(async (id: string): Promise<void> => {
-    setNotifications(prev => 
-      prev.map(notification => 
+    setNotifications((prev) =>
+      prev.map((notification) =>
         notification.id === id && !notification.read_at
           ? { ...notification, read_at: new Date().toISOString() }
-          : notification
-      )
+          : notification,
+      ),
     );
-    
+
     // Update unread count
-    setUnreadCount(prev => 
-      prev > 0 ? prev - 1 : 0
-    );
-    
+    setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
+
     return Promise.resolve();
   }, []);
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async (): Promise<void> => {
     const now = new Date().toISOString();
-    setNotifications(prev => 
-      prev.map(notification => 
+    setNotifications((prev) =>
+      prev.map((notification) =>
         !notification.read_at
           ? { ...notification, read_at: now }
-          : notification
-      )
+          : notification,
+      ),
     );
-    
+
     setUnreadCount(0);
-    
+
     return Promise.resolve();
   }, []);
 
   const deleteNotification = useCallback(async (id: string): Promise<void> => {
     // Update unread count if necessary
-    setNotifications(prev => {
-      const deletedNotification = prev.find(n => n.id === id);
+    setNotifications((prev) => {
+      const deletedNotification = prev.find((n) => n.id === id);
       if (deletedNotification && !deletedNotification.read_at) {
-        setUnreadCount(count => Math.max(0, count - 1));
+        setUnreadCount((count) => Math.max(0, count - 1));
       }
-      return prev.filter(n => n.id !== id);
+      return prev.filter((n) => n.id !== id);
     });
-    
+
     return Promise.resolve();
   }, []);
 
@@ -91,7 +95,7 @@ export const NotificationsProvider: React.FC<{children: React.ReactNode}> = ({ c
       setUnreadCount(0);
     }, []),
     loading: false,
-    error: null
+    error: null,
   };
 
   return (

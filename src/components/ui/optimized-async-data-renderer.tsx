@@ -1,15 +1,14 @@
-
-import React, { memo, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { LoadingIndicator } from '@/components/ui/loading-indicator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { memo, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface OptimizedAsyncDataRendererProps<T> {
   data: T | undefined;
   isLoading: boolean;
   error: Error | null;
-  onRetry?: () => Promise<any>;
+  onRetry?: () => Promise<unknown>;
   children: (data: T) => React.ReactNode;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
@@ -58,7 +57,7 @@ function OptimizedAsyncDataRenderer<T>({
       <AlertCircle className="h-12 w-12 text-destructive mb-2" />
       <h3 className="text-lg font-medium mb-2">Failed to load data</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        {error?.message || 'An error occurred while fetching data.'}
+        {error?.message || "An error occurred while fetching data."}
       </p>
       {showDetails && error?.stack && (
         <div className="max-w-full overflow-auto text-left bg-muted p-2 rounded text-xs mb-4">
@@ -67,7 +66,11 @@ function OptimizedAsyncDataRenderer<T>({
       )}
       {onRetry && (
         <div>
-          <Button variant="outline" onClick={handleRetry} disabled={retryCount >= maxRetries}>
+          <Button
+            variant="outline"
+            onClick={handleRetry}
+            disabled={retryCount >= maxRetries}
+          >
             <RefreshCw className="mr-2 h-4 w-4" />
             {retryCount >= maxRetries ? "Max retries reached" : "Retry"}
           </Button>
@@ -102,15 +105,15 @@ function OptimizedAsyncDataRenderer<T>({
 
   // Render virtualized content inside a ScrollArea when virtualize is true
   if (virtualize && Array.isArray(data)) {
-    return (
-      <ScrollArea style={{ height }}>
-        {children(data)}
-      </ScrollArea>
-    );
+    return <ScrollArea style={{ height }}>{children(data)}</ScrollArea>;
   }
 
   return <>{children(data)}</>;
 }
 
 // Memoize the component to prevent unnecessary re-renders
-export default memo(OptimizedAsyncDataRenderer) as typeof OptimizedAsyncDataRenderer;
+const MemoizedOptimizedAsyncDataRenderer = memo(
+  OptimizedAsyncDataRenderer,
+) as typeof OptimizedAsyncDataRenderer;
+export default MemoizedOptimizedAsyncDataRenderer;
+export { OptimizedAsyncDataRenderer };

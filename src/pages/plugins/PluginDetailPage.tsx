@@ -1,139 +1,56 @@
-
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
-import { Plugin, AgentVersion, PluginLog } from '@/types/plugin';
-import { format } from 'date-fns';
-import { ScatterDataPoint } from '@/components/plugins/execution/ScatterPlot';
-import { 
-  PluginDetailsTab, 
-  AgentVersionsTab, 
-  PluginHeader, 
-  LogsExecutionTab,
-  PluginDetailError,
-  PluginDetailSkeleton
-} from '@/components/plugins/detail';
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const PluginDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  
-  const [plugin, setPlugin] = useState<Plugin | null>(null);
-  const [agentVersions, setAgentVersions] = useState<AgentVersion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { id } = useParams();
+  const [plugin, setPlugin] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
-  const [executionData, setExecutionData] = useState<ScatterDataPoint[]>([]);
-  const [activeTab, setActiveTab] = useState('details');
-  
+
   useEffect(() => {
-    const fetchPluginDetails = async () => {
+    async function fetchPluginDetails() {
+      if (!id) return;
+      // If your plugin id is a string like "impact", but your DB uses a UUID or numeric id,
+      // you may want to look up by a different column (e.g., slug or name).
       try {
-        if (!id) return;
-        
-        setLoading(true);
-        setError(null);
+        // Example: lookup by slug if that's your route param
+        // const { data, error } = await supabase
+        //   .from("plugins")
+        //   .select("*")
+        //   .eq("slug", id)
+        //   .maybeSingle();
 
-        const { data: pluginData, error: pluginError } = await supabase
-          .from('plugins')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (pluginError) throw pluginError;
-        
-        const { data: versionData, error: versionError } = await supabase
-          .from('agent_versions')
-          .select('*')
-          .eq('plugin_id', id)
-          .order('created_at', { ascending: false });
-          
-        if (versionError) throw versionError;
+        // Default: lookup by id (if id is a UUID or numeric)
+        const { data, error } = await supabase
+          .from("plugins")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
 
-        // Fetch execution logs for the plugin
-        const { data: logData, error: logsError } = await supabase
-          .from('plugin_logs')
-          .select('*')
-          .eq('plugin_id', id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (logsError) throw logsError;
-        
-        setPlugin(pluginData);
-        setAgentVersions(versionData || []);
-        
-        // Transform log data into scatter plot data points
-        if (logData) {
-          const scatterData: ScatterDataPoint[] = logData.map((log: PluginLog) => ({
-            execution_time: log.execution_time || 0,
-            xp_earned: log.xp_earned || 0,
-            status: log.status,
-            date: log.created_at ? format(new Date(log.created_at), 'PP') : ''
-          }));
-          setExecutionData(scatterData);
-        }
-      } catch (err: any) {
-        console.error('Error fetching plugin details:', err);
-        setError(err.message || 'Failed to load plugin details');
-      } finally {
-        setLoading(false);
+        if (error) throw error;
+        setPlugin(data);
+      } catch (err) {
+        setError(
+          (err as { message?: string }).message ||
+            "Error fetching plugin details"
+        );
       }
-    };
-    
+    }
     fetchPluginDetails();
   }, [id]);
-  
-  if (loading) {
-    return <PluginDetailSkeleton />;
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
-  
-  if (error || !plugin) {
-    return <PluginDetailError error={error} />;
+
+  if (!plugin) {
+    return <div>Loading plugin details...</div>;
   }
-  
+
   return (
-    <div className="container mx-auto py-8">
-      <PluginHeader plugin={plugin} id={id || ''} />
-      
-      <Tabs 
-        defaultValue="details" 
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
-        <TabsList className="bg-muted/70 p-1">
-          <TabsTrigger 
-            value="details"
-            className="data-[state=active]:shadow-sm transition-all duration-200 relative"
-          >
-            Details
-          </TabsTrigger>
-          <TabsTrigger 
-            value="versions"
-            className="data-[state=active]:shadow-sm transition-all duration-200 relative"
-          >
-            Versions ({agentVersions.length})
-          </TabsTrigger>
-          <TabsTrigger 
-            value="logs"
-            className="data-[state=active]:shadow-sm transition-all duration-200 relative"
-          >
-            Execution Logs
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="details" className="animate-fade-in">
-          <PluginDetailsTab plugin={plugin} />
-        </TabsContent>
-        
-        <TabsContent value="versions" className="animate-fade-in">
-          <AgentVersionsTab versions={agentVersions} />
-        </TabsContent>
-        
-        <TabsContent value="logs" className="animate-fade-in">
-          <LogsExecutionTab executionData={executionData} />
-        </TabsContent>
-      </Tabs>
+    <div>
+      <h1>Plugin Detail Page for ID: {id}</h1>
+      <pre>{JSON.stringify(plugin, null, 2)}</pre>
     </div>
   );
 };

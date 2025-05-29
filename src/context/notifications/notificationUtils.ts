@@ -1,6 +1,5 @@
-
-import { supabase } from '@/integrations/supabase/client';
-import { Notification } from '@/types/notifications';
+import { supabase } from "@/integrations/supabase/client";
+import { Notification } from "@/types/notifications";
 
 /**
  * Fetches all notifications for a specific user
@@ -10,19 +9,19 @@ import { Notification } from '@/types/notifications';
  */
 export async function fetchUserNotifications(
   userId: string,
-  limit: number = 50
-): Promise<{ data: Notification[] | null, error: any }> {
+  limit: number = 50,
+): Promise<{ data: Notification[] | null; error: any }> {
   try {
     const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(limit);
-      
+
     return { data, error };
   } catch (error) {
-    console.error('Error fetching user notifications:', error);
+    console.error("Error fetching user notifications:", error);
     return { data: null, error };
   }
 }
@@ -35,18 +34,18 @@ export async function fetchUserNotifications(
  */
 export async function markNotificationAsRead(
   id: string,
-  userId: string
-): Promise<{ success: boolean, error: any }> {
+  userId: string,
+): Promise<{ success: boolean; error: any }> {
   try {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .update({ read_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('user_id', userId);
-      
+      .eq("id", id)
+      .eq("user_id", userId);
+
     return { success: !error, error };
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error("Error marking notification as read:", error);
     return { success: false, error };
   }
 }
@@ -57,18 +56,18 @@ export async function markNotificationAsRead(
  * @returns Object with success and error properties
  */
 export async function markAllNotificationsAsRead(
-  userId: string
-): Promise<{ success: boolean, error: any }> {
+  userId: string,
+): Promise<{ success: boolean; error: any }> {
   try {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .update({ read_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .is('read_at', null);
-      
+      .eq("user_id", userId)
+      .is("read_at", null);
+
     return { success: !error, error };
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
+    console.error("Error marking all notifications as read:", error);
     return { success: false, error };
   }
 }
@@ -81,18 +80,18 @@ export async function markAllNotificationsAsRead(
  */
 export async function deleteUserNotification(
   id: string,
-  userId: string
-): Promise<{ success: boolean, error: any }> {
+  userId: string,
+): Promise<{ success: boolean; error: any }> {
   try {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
-      
+      .eq("id", id)
+      .eq("user_id", userId);
+
     return { success: !error, error };
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    console.error("Error deleting notification:", error);
     return { success: false, error };
   }
 }
@@ -103,18 +102,18 @@ export async function deleteUserNotification(
  * @returns Object with count and error properties
  */
 export async function getUnreadNotificationCount(
-  userId: string
-): Promise<{ count: number, error: any }> {
+  userId: string,
+): Promise<{ count: number; error: any }> {
   try {
     const { count, error } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .is('read_at', null);
-      
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("read_at", null);
+
     return { count: count || 0, error };
   } catch (error) {
-    console.error('Error fetching unread notification count:', error);
+    console.error("Error fetching unread notification count:", error);
     return { count: 0, error };
   }
 }

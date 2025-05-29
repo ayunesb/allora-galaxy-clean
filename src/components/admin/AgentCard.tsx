@@ -1,0 +1,1 @@
+export const AgentCard = () => <div>Agent Card</div>;

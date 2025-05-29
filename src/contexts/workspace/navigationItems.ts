@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   LayoutDashboard,
@@ -10,7 +9,7 @@ import {
   History,
   AlertCircle,
   Clock,
-  Key
+  Key,
 } from "lucide-react";
 import { NavigationItem } from "@/types/navigation";
 
@@ -50,7 +49,7 @@ export const mainNavigationItems: NavigationItem[] = [
     title: "Settings",
     href: "/settings",
     icon: Settings,
-  }
+  },
 ];
 
 export const adminNavigationItems: NavigationItem[] = [
@@ -89,5 +88,5 @@ export const adminNavigationItems: NavigationItem[] = [
     title: "API Keys",
     href: "/admin/api-keys",
     icon: Key,
-  }
+  },
 ];

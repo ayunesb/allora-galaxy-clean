@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import React from "react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const Footer: React.FC = () => {
   const { tenant } = useWorkspace();
@@ -9,7 +8,9 @@ const Footer: React.FC = () => {
   return (
     <footer className="border-t py-4 text-center text-sm text-muted-foreground">
       <div className="container">
-        <p>© {year} {tenant?.name || 'Allora OS'}. All rights reserved.</p>
+        <p>
+          © {year} {tenant?.name || "Allora OS"}. All rights reserved.
+        </p>
       </div>
     </footer>
   );

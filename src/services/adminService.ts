@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Fetch users associated with a tenant
@@ -9,8 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 export const fetchTenantUsers = async (tenantId: string) => {
   try {
     const { data, error } = await supabase
-      .from('tenant_user_roles')
-      .select(`
+      .from("tenant_user_roles")
+      .select(
+        `
         id,
         role,
         user_id,
@@ -21,17 +21,18 @@ export const fetchTenantUsers = async (tenantId: string) => {
           avatar_url,
           email:id(email)
         )
-      `)
-      .eq('tenant_id', tenantId);
+      `,
+      )
+      .eq("tenant_id", tenantId);
 
     if (error) {
-      console.error('Error fetching tenant users:', error);
+      console.error("Error fetching tenant users:", error);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.error('Error in fetchTenantUsers:', err);
+    console.error("Error in fetchTenantUsers:", err);
     return [];
   }
 };
@@ -43,23 +44,27 @@ export const fetchTenantUsers = async (tenantId: string) => {
  * @param offset Offset for pagination
  * @returns Promise with system logs data
  */
-export const fetchSystemLogs = async (tenantId: string, limit = 50, offset = 0) => {
+export const fetchSystemLogs = async (
+  tenantId: string,
+  limit = 50,
+  offset = 0,
+) => {
   try {
     const { data, error } = await supabase
-      .from('system_logs')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
+      .from("system_logs")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching system logs:', error);
+      console.error("Error fetching system logs:", error);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.error('Error in fetchSystemLogs:', err);
+    console.error("Error in fetchSystemLogs:", err);
     return [];
   }
 };
@@ -71,27 +76,33 @@ export const fetchSystemLogs = async (tenantId: string, limit = 50, offset = 0) 
  * @param offset Offset for pagination
  * @returns Promise with plugin logs data
  */
-export const fetchPluginLogs = async (tenantId: string, limit = 50, offset = 0) => {
+export const fetchPluginLogs = async (
+  tenantId: string,
+  limit = 50,
+  offset = 0,
+) => {
   try {
     const { data, error } = await supabase
-      .from('plugin_logs')
-      .select(`
+      .from("plugin_logs")
+      .select(
+        `
         *,
         plugins:plugin_id (name),
         strategies:strategy_id (title)
-      `)
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
+      `,
+      )
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching plugin logs:', error);
+      console.error("Error fetching plugin logs:", error);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.error('Error in fetchPluginLogs:', err);
+    console.error("Error in fetchPluginLogs:", err);
     return [];
   }
 };
@@ -103,12 +114,17 @@ export const fetchPluginLogs = async (tenantId: string, limit = 50, offset = 0) 
  * @param offset Offset for pagination
  * @returns Promise with AI decisions data
  */
-export const fetchAiDecisions = async (tenantId: string, limit = 50, offset = 0) => {
+export const fetchAiDecisions = async (
+  tenantId: string,
+  limit = 50,
+  offset = 0,
+) => {
   try {
     // First get executions
     const { data: executions, error: executionsError } = await supabase
-      .from('executions')
-      .select(`
+      .from("executions")
+      .select(
+        `
         *,
         agent_versions:agent_version_id (
           id,
@@ -117,20 +133,21 @@ export const fetchAiDecisions = async (tenantId: string, limit = 50, offset = 0)
           plugin_id,
           plugins:plugin_id (name)
         )
-      `)
-      .eq('tenant_id', tenantId)
-      .eq('type', 'agent')
-      .order('created_at', { ascending: false })
+      `,
+      )
+      .eq("tenant_id", tenantId)
+      .eq("type", "agent")
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (executionsError) {
-      console.error('Error fetching AI decisions:', executionsError);
+      console.error("Error fetching AI decisions:", executionsError);
       return [];
     }
 
     return executions || [];
   } catch (err) {
-    console.error('Error in fetchAiDecisions:', err);
+    console.error("Error in fetchAiDecisions:", err);
     return [];
   }
 };

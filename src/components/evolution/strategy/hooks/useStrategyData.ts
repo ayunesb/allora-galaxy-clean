@@ -1,8 +1,11 @@
-
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/lib/notifications/toast';
-import type { Strategy, StrategyVersion, StrategyExecution } from '@/types/strategy';
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/lib/notifications/toast";
+import type {
+  Strategy,
+  StrategyVersion,
+  StrategyExecution,
+} from "@/types/strategy";
 
 interface StrategyDataResult {
   strategy: UseQueryResult<Strategy | null>;
@@ -16,22 +19,22 @@ interface StrategyDataResult {
 export const useStrategyData = (strategyId: string): StrategyDataResult => {
   // Query for the strategy details
   const strategyQuery = useQuery({
-    queryKey: ['strategy', strategyId],
+    queryKey: ["strategy", strategyId],
     queryFn: async (): Promise<Strategy | null> => {
       const { data, error } = await supabase
-        .from('strategies')
-        .select('*, created_by_user:created_by(*)')
-        .eq('id', strategyId)
+        .from("strategies")
+        .select("*, created_by_user:created_by(*)")
+        .eq("id", strategyId)
         .single();
-        
+
       if (error) {
         throw new Error(`Error fetching strategy: ${error.message}`);
       }
-      
+
       if (!data) {
         return null;
       }
-      
+
       // Transform the data to match Strategy interface
       return {
         ...data,
@@ -45,18 +48,18 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
 
   // Query for strategy versions
   const versionsQuery = useQuery({
-    queryKey: ['strategy-versions', strategyId],
+    queryKey: ["strategy-versions", strategyId],
     queryFn: async (): Promise<StrategyVersion[]> => {
       const { data, error } = await supabase
-        .from('strategy_versions')
-        .select('*')
-        .eq('strategy_id', strategyId)
-        .order('created_at', { ascending: false });
-        
+        .from("strategy_versions")
+        .select("*")
+        .eq("strategy_id", strategyId)
+        .order("created_at", { ascending: false });
+
       if (error) {
         throw new Error(`Error fetching strategy versions: ${error.message}`);
       }
-      
+
       return data || [];
     },
     enabled: !!strategyQuery.data,
@@ -66,19 +69,19 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
 
   // Query for strategy executions
   const executionsQuery = useQuery({
-    queryKey: ['strategy-executions', strategyId],
+    queryKey: ["strategy-executions", strategyId],
     queryFn: async (): Promise<StrategyExecution[]> => {
       const { data, error } = await supabase
-        .from('strategy_executions')
-        .select('*')
-        .eq('strategy_id', strategyId)
-        .order('created_at', { ascending: false })
+        .from("strategy_executions")
+        .select("*")
+        .eq("strategy_id", strategyId)
+        .order("created_at", { ascending: false })
         .limit(10);
-        
+
       if (error) {
         throw new Error(`Error fetching strategy executions: ${error.message}`);
       }
-      
+
       return data || [];
     },
     enabled: !!strategyQuery.data,
@@ -88,10 +91,13 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
 
   // Handle error notifications only once when they occur
   if (strategyQuery.isError) {
-    console.error('Strategy query error:', strategyQuery.error);
-    toast.error({ 
-      title: 'Error loading strategy', 
-      description: strategyQuery.error instanceof Error ? strategyQuery.error.message : 'Unknown error'
+    console.error("Strategy query error:", strategyQuery.error);
+    toast.error({
+      title: "Error loading strategy",
+      description:
+        strategyQuery.error instanceof Error
+          ? strategyQuery.error.message
+          : "Unknown error",
     });
   }
 
@@ -100,15 +106,15 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
       await Promise.all([
         strategyQuery.refetch(),
         versionsQuery.refetch(),
-        executionsQuery.refetch()
+        executionsQuery.refetch(),
       ]);
-      
-      toast.success({ title: 'Data refreshed' });
+
+      toast.success({ title: "Data refreshed" });
     } catch (error) {
-      console.error('Error refetching data:', error);
-      toast.error({ 
-        title: 'Error refreshing data',
-        description: error instanceof Error ? error.message : 'Unknown error'
+      console.error("Error refetching data:", error);
+      toast.error({
+        title: "Error refreshing data",
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     }
   };
@@ -118,8 +124,12 @@ export const useStrategyData = (strategyId: string): StrategyDataResult => {
     versions: versionsQuery,
     executions: executionsQuery,
     refetch: refetchAll,
-    isLoading: strategyQuery.isLoading || versionsQuery.isLoading || executionsQuery.isLoading,
-    isError: strategyQuery.isError || versionsQuery.isError || executionsQuery.isError
+    isLoading:
+      strategyQuery.isLoading ||
+      versionsQuery.isLoading ||
+      executionsQuery.isLoading,
+    isError:
+      strategyQuery.isError || versionsQuery.isError || executionsQuery.isError,
   };
 };
 

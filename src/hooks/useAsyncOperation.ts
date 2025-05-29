@@ -1,6 +1,5 @@
-
-import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
 
 interface UseAsyncOperationOptions<T> {
   onSuccess?: (data: T) => void;
@@ -28,16 +27,18 @@ interface AsyncOperationState<T> {
 /**
  * Hook for handling async operations with loading, error states and retry functionality
  */
-export function useAsyncOperation<T = any, P = any>(options: UseAsyncOperationOptions<T> = {}) {
+export function useAsyncOperation<T = any, P = any>(
+  options: UseAsyncOperationOptions<T> = {},
+) {
   const {
     onSuccess,
     onError,
     showLoadingToast = false,
     showSuccessToast = false,
     showErrorToast = true,
-    loadingMessage = 'Processing...',
-    successMessage = 'Operation completed successfully',
-    errorMessage = 'Operation failed',
+    loadingMessage = "Processing...",
+    successMessage = "Operation completed successfully",
+    errorMessage = "Operation failed",
     maxRetries = 3,
     retryDelay = 1000,
   } = options;
@@ -61,17 +62,17 @@ export function useAsyncOperation<T = any, P = any>(options: UseAsyncOperationOp
   const execute = useCallback(
     async (asyncFunction: (params?: P) => Promise<T>, params?: P) => {
       let toastId;
-      
+
       setLastOperation(() => asyncFunction);
       setLastParams(params);
-      
-      setState(prev => ({ 
-        ...prev, 
+
+      setState((prev) => ({
+        ...prev,
         isLoading: true,
         isSuccess: false,
         isError: false,
         error: null,
-        isRetrying: prev.retryCount > 0
+        isRetrying: prev.retryCount > 0,
       }));
 
       if (showLoadingToast) {
@@ -105,8 +106,8 @@ export function useAsyncOperation<T = any, P = any>(options: UseAsyncOperationOp
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
-        
-        setState(prev => ({
+
+        setState((prev) => ({
           ...prev,
           error,
           isLoading: false,
@@ -119,11 +120,11 @@ export function useAsyncOperation<T = any, P = any>(options: UseAsyncOperationOp
           if (toastId) {
             toast.dismiss(toastId);
           }
-          
+
           toast.error(errorMessage, {
             description: error.message,
             action: {
-              label: 'Retry',
+              label: "Retry",
               onClick: () => retry(),
             },
           });
@@ -137,36 +138,43 @@ export function useAsyncOperation<T = any, P = any>(options: UseAsyncOperationOp
       }
     },
     [
-      loadingMessage, 
-      successMessage, 
-      errorMessage, 
-      showLoadingToast, 
-      showSuccessToast, 
+      loadingMessage,
+      successMessage,
+      errorMessage,
+      showLoadingToast,
+      showSuccessToast,
       showErrorToast,
       onSuccess,
-      onError
-    ]
+      onError,
+    ],
   );
 
   const retry = useCallback(async () => {
     if (!lastOperation) return null;
-    
+
     if (state.retryCount >= maxRetries) {
       toast.error(`Maximum retry attempts (${maxRetries}) reached`);
       return null;
     }
 
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       retryCount: prev.retryCount + 1,
       isRetrying: true,
     }));
 
     // Add a small delay before retrying
-    await new Promise(resolve => setTimeout(resolve, retryDelay));
+    await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
     return execute(lastOperation, lastParams);
-  }, [lastOperation, lastParams, state.retryCount, maxRetries, retryDelay, execute]);
+  }, [
+    lastOperation,
+    lastParams,
+    state.retryCount,
+    maxRetries,
+    retryDelay,
+    execute,
+  ]);
 
   const reset = useCallback(() => {
     setState({

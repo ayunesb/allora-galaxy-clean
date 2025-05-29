@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +16,12 @@ interface DatePickerProps {
   className?: string;
 }
 
-export function DatePicker({ date, onDateChange, placeholder = "Pick a date", className }: DatePickerProps) {
+export function DatePicker({
+  date,
+  onDateChange,
+  placeholder = "Pick a date",
+  className,
+}: DatePickerProps) {
   // This function handles the type conversion between Calendar's date selection
   // and our component's expected types
   const handleSelect = (selectedDate: Date | undefined) => {
@@ -34,7 +38,7 @@ export function DatePicker({ date, onDateChange, placeholder = "Pick a date", cl
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground",
-            className
+            className,
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />

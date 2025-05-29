@@ -1,4 +1,3 @@
-
 /**
  * Shared utilities for all edge functions
  */

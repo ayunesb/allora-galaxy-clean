@@ -1,24 +1,29 @@
-
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Check, Copy } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Check, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const CodeExamples = () => {
   const [copied, setCopied] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { notify } = useToast();
 
   const handleCopy = (code: string, language: string) => {
     navigator.clipboard.writeText(code);
     setCopied(language);
-    
-    toast({
+
+    notify({
       title: "Code copied",
       description: `${language} code snippet copied to clipboard.`,
     });
-    
+
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -172,7 +177,7 @@ curl -X POST https://api.allora.com/v1/brain/query \\
       "format": "json"
     }
   }'
-`
+`,
   };
 
   return (
@@ -192,17 +197,17 @@ curl -X POST https://api.allora.com/v1/brain/query \\
               <TabsTrigger value="python">Python</TabsTrigger>
               <TabsTrigger value="curl">cURL</TabsTrigger>
             </TabsList>
-            
+
             {Object.entries(examples).map(([language, code]) => (
               <TabsContent key={language} value={language}>
                 <div className="relative">
                   <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm max-h-96">
                     <code>{code}</code>
                   </pre>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
-                    className="absolute top-2 right-2" 
+                    className="absolute top-2 right-2"
                     onClick={() => handleCopy(code, language)}
                   >
                     {copied === language ? (
@@ -217,7 +222,7 @@ curl -X POST https://api.allora.com/v1/brain/query \\
           </Tabs>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>API Usage Notes</CardTitle>
@@ -226,32 +231,34 @@ curl -X POST https://api.allora.com/v1/brain/query \\
           <div>
             <h3 className="text-sm font-medium mb-1">Authentication</h3>
             <p className="text-sm text-muted-foreground">
-              All API requests require an API key passed in the Authorization header.
-              API keys can be managed in the Admin panel under API Keys.
+              All API requests require an API key passed in the Authorization
+              header. API keys can be managed in the Admin panel under API Keys.
             </p>
           </div>
-          
+
           <div>
             <h3 className="text-sm font-medium mb-1">Rate Limiting</h3>
             <p className="text-sm text-muted-foreground">
-              API requests are rate-limited based on your plan. Enterprise plans have higher limits.
-              Rate limit information is returned in response headers.
+              API requests are rate-limited based on your plan. Enterprise plans
+              have higher limits. Rate limit information is returned in response
+              headers.
             </p>
           </div>
-          
+
           <div>
             <h3 className="text-sm font-medium mb-1">Response Format</h3>
             <p className="text-sm text-muted-foreground">
-              Responses are returned as JSON objects containing strategy recommendations,
-              possible actions, and relevant metrics from your tenant.
+              Responses are returned as JSON objects containing strategy
+              recommendations, possible actions, and relevant metrics from your
+              tenant.
             </p>
           </div>
-          
+
           <div>
             <h3 className="text-sm font-medium mb-1">SDK Status</h3>
             <p className="text-sm text-muted-foreground">
-              Official client libraries for JavaScript, Python, and Ruby are coming soon.
-              Subscribe to our developer newsletter for updates.
+              Official client libraries for JavaScript, Python, and Ruby are
+              coming soon. Subscribe to our developer newsletter for updates.
             </p>
           </div>
         </CardContent>

@@ -1,12 +1,18 @@
-
-import { format, parseISO as parseDateISO, subDays, subHours, startOfDay, endOfDay } from 'date-fns';
-import type { DateRange } from '@/types/logs';
+import {
+  format,
+  parseISO as parseDateISO,
+  subDays,
+  subHours,
+  startOfDay,
+  endOfDay,
+} from "date-fns";
+import type { DateRange } from "@/types/logs";
 
 /**
  * Format a date to ISO string format (YYYY-MM-DD)
  */
 export function formatDateToISO(date: Date): string {
-  return format(date, 'yyyy-MM-dd');
+  return format(date, "yyyy-MM-dd");
 }
 
 /**
@@ -19,8 +25,8 @@ export const parseISO = parseDateISO;
  * Format a date to display format (MMM dd, yyyy)
  */
 export function formatDateDisplay(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return format(dateObj, 'MMM dd, yyyy');
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  return format(dateObj, "MMM dd, yyyy");
 }
 
 /**
@@ -31,61 +37,61 @@ export function formatDateDisplay(date: Date | string): string {
 export function getDateRangeFromPeriod(period: string): DateRange {
   const now = new Date();
   const today = startOfDay(now);
-  
+
   // Handle test-expected formats first
   switch (period) {
-    case '24h':
+    case "24h":
       return {
         from: subHours(now, 24),
-        to: now
+        to: now,
       };
-    case '7d':
+    case "7d":
       return {
         from: subDays(now, 7),
-        to: now
+        to: now,
       };
-    case '30d':
+    case "30d":
       return {
         from: subDays(now, 30),
-        to: now
+        to: now,
       };
-    case '1y':
+    case "1y":
       return {
         from: subDays(now, 365),
-        to: now
+        to: now,
       };
-  
+
     // Handle legacy formats
-    case 'today':
+    case "today":
       return {
         from: today,
-        to: endOfDay(now)
+        to: endOfDay(now),
       };
-    case 'yesterday':
+    case "yesterday":
       const yesterday = subDays(today, 1);
       return {
         from: yesterday,
-        to: endOfDay(yesterday)
+        to: endOfDay(yesterday),
       };
-    case '7days':
+    case "7days":
       return {
         from: subDays(today, 7),
-        to: endOfDay(now)
+        to: endOfDay(now),
       };
-    case '30days':
+    case "30days":
       return {
         from: subDays(today, 30),
-        to: endOfDay(now)
+        to: endOfDay(now),
       };
-    case '90days':
+    case "90days":
       return {
         from: subDays(today, 90),
-        to: endOfDay(now)
+        to: endOfDay(now),
       };
     default:
       return {
         from: subDays(today, 7),
-        to: endOfDay(now)
+        to: endOfDay(now),
       };
   }
 }
@@ -95,22 +101,22 @@ export function getDateRangeFromPeriod(period: string): DateRange {
  */
 export function getTimePeriodLabel(period: string): string {
   switch (period) {
-    case 'today':
-      return 'Today';
-    case 'yesterday':
-      return 'Yesterday';
-    case '7days':
-    case '7d':
-      return 'Last 7 days';
-    case '30days':
-    case '30d':
-      return 'Last 30 days';
-    case '90days':
-      return 'Last 90 days';
-    case '24h':
-      return 'Last 24 hours';
-    case '1y':
-      return 'Last year';
+    case "today":
+      return "Today";
+    case "yesterday":
+      return "Yesterday";
+    case "7days":
+    case "7d":
+      return "Last 7 days";
+    case "30days":
+    case "30d":
+      return "Last 30 days";
+    case "90days":
+      return "Last 90 days";
+    case "24h":
+      return "Last 24 hours";
+    case "1y":
+      return "Last year";
     default:
       return period;
   }
@@ -120,8 +126,8 @@ export function getTimePeriodLabel(period: string): string {
  * Format a date range for display
  */
 export function formatDateRange(range: DateRange): string {
-  if (!range.from) return 'All time';
+  if (!range.from) return "All time";
   if (!range.to) return `Since ${formatDateDisplay(range.from)}`;
-  
+
   return `${formatDateDisplay(range.from)} - ${formatDateDisplay(range.to)}`;
 }

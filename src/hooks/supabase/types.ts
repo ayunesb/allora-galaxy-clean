@@ -1,4 +1,3 @@
-
 /**
  * Common types for Supabase fetch hooks
  */

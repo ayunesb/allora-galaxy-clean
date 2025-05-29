@@ -1,6 +1,26 @@
+// REMOVE this line if you are not deploying to Deno/Supabase Edge Functions:
+// import { serve } from "https://cdn.jsdelivr.net/gh/denoland/deno_std@0.131.0/http/server.js";
 
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// If you are running locally with Node.js, you cannot use 'serve' from Deno std.
+// If this is for Supabase Edge Functions, you must import 'serve' from a Deno-compatible URL.
+// For Node.js, replace the following block with your HTTP server logic.
+// For Deno/Supabase Edge, add this import at the top:
+// import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+
+// serve(async (req) => { ...existing code... });
+
+/*
+If running in Node.js, use:
+import { createServer } from "http";
+createServer((req, res) => {
+  // handle requests here
+}).listen(3000);
+*/
+
+// If you are running locally with Node.js, use a Node.js HTTP server or Express instead.
+// If this is for Supabase Edge Functions, keep the Deno import and deploy with Supabase CLI.
+
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
@@ -13,7 +33,12 @@ const corsHeaders = {
  */
 function getEnv(name: string, fallback: string = ""): string {
   try {
-    return Deno.env.get(name) ?? fallback;
+    // Use type assertion here for Deno environment
+    const deno = (globalThis as { Deno?: { env?: { get: (name: string) => string | undefined } } });
+    if (deno.Deno && typeof deno.Deno.env?.get === "function") {
+      return deno.Deno.env.get(name) ?? fallback;
+    }
+    return fallback;
   } catch (err) {
     console.warn(`Error accessing env variable ${name}:`, err);
     return fallback;
@@ -199,8 +224,8 @@ serve(async (req) => {
     
     // Process each plugin
     let successCount = 0;
-    let errors = [];
-    let pluginLogs = [];
+    const errors = [];
+    const pluginLogs = [];
     
     // Process plugins in series to maintain order and prevent race conditions
     for (const plugin of plugins) {
@@ -510,3 +535,14 @@ serve(async (req) => {
     );
   }
 });
+
+/*
+If running in Node.js, use:
+import { createServer } from "http";
+createServer((req, res) => {
+  // handle requests here
+}).listen(3000);
+*/
+
+// If this is for Supabase Edge Functions, use the recommended Supabase CLI and deploy as Deno.
+// Otherwise, refactor to use Node.js compatible modules and environment variable access (process.env).

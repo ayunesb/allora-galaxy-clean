@@ -1,4 +1,3 @@
-
 // Validation utilities for executeStrategy function
 
 /**

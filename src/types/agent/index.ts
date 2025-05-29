@@ -1,4 +1,3 @@
-
 import { VoteType } from "../shared";
 
 export interface AgentVersionData {
@@ -6,7 +5,7 @@ export interface AgentVersionData {
   plugin_id: string;
   version: string;
   prompt: string;
-  status: 'active' | 'deprecated';
+  status: "active" | "deprecated";
   xp: number;
   created_at: string;
   updated_at: string;

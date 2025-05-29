@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -26,12 +25,12 @@ export function DateRangePicker({
   value,
 }: DateRangePickerProps) {
   const [date, setDate] = React.useState<DateRange | undefined>(
-    value ? { from: value.from, to: value.to } : undefined
+    value ? { from: value.from, to: value.to } : undefined,
   );
 
   const handleSelect = (range: DateRange | undefined) => {
     if (!range) return;
-    
+
     setDate(range);
     if (onChange) {
       onChange({ from: range.from, to: range.to });
@@ -47,7 +46,7 @@ export function DateRangePicker({
             variant={"outline"}
             className={cn(
               "w-[240px] justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              !date && "text-muted-foreground",
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />

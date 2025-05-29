@@ -1,58 +1,57 @@
+import React, { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
-import WelcomeScreen from '@/components/onboarding/WelcomeScreen';
-import { useTenantAvailability } from '@/hooks/useTenantAvailability';
-import { useAuth } from '@/context/AuthContext';
-import PageHelmet from '@/components/PageHelmet';
-import { useWorkspace } from '@/context/WorkspaceContext';
+const supabase = createClient(
+  "https://ijrnwpgsqsxzqdemtknz.supabase.co",
+  "public-anon-key", // Replace with env variable in production
+);
 
-const OnboardingPage: React.FC = () => {
-  const { tenantId, isAvailable, isLoading: tenantLoading } = useTenantAvailability();
-  const { user, loading: authLoading } = useAuth();
-  const { loading: workspaceLoading } = useWorkspace();
-  const [showWelcome, setShowWelcome] = useState(true);
-  
-  // Show loading while authentication or workspace data is loading
-  if (authLoading || workspaceLoading || tenantLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+export default function OnboardingPage() {
+  const [company, setCompany] = useState("");
+  const [goal, setGoal] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // If no user is logged in, redirect to auth
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  // If tenant is already available, redirect to dashboard
-  if (isAvailable && tenantId) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  
-  // Start the onboarding process
-  const handleStartOnboarding = () => {
-    setShowWelcome(false);
+  const handleSubmit = async () => {
+    setLoading(true);
+
+    const user = (await supabase.auth.getUser()).data.user;
+    const tenant_id = user?.id ?? crypto.randomUUID();
+
+    await supabase
+      .from("tenant_profiles")
+      .upsert({ id: tenant_id, user_id: user?.id });
+    await supabase
+      .from("company_profiles")
+      .upsert({ tenant_id, name: company, goal });
+
+    setLoading(false);
+    window.location.href = "/dashboard";
   };
-  
-  return (
-    <>
-      <PageHelmet 
-        title="Onboarding"
-        description="Set up your Allora OS workspace and get started"
-      />
-      <div className="min-h-screen px-4 sm:px-0">
-        {showWelcome ? (
-          <WelcomeScreen onStart={handleStartOnboarding} />
-        ) : (
-          <OnboardingWizard />
-        )}
-      </div>
-    </>
-  );
-};
 
-export default OnboardingPage;
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-white p-6">
+      <h1 className="text-3xl font-bold mb-4">Welcome to Allora AI</h1>
+      <input
+        type="text"
+        placeholder="Your company name"
+        value={company}
+        onChange={(e) => setCompany(e.target.value)}
+        className="p-2 text-black rounded mb-4 w-full max-w-md"
+      />
+      <input
+        type="text"
+        placeholder="Main goal or focus"
+        value={goal}
+        onChange={(e) => setGoal(e.target.value)}
+        className="p-2 text-black rounded mb-6 w-full max-w-md"
+      />
+      <button
+        disabled={loading}
+        onClick={handleSubmit}
+        className="bg-green-600 px-6 py-2 rounded hover:bg-green-700"
+      >
+        {loading ? "Submitting..." : "Complete Onboarding"}
+      </button>
+    </div>
+  );
+}

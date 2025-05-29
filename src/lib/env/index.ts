@@ -1,11 +1,10 @@
-
 /**
  * Centralized environment variables handling
  * This file re-exports all environment utilities from their respective modules
  */
 
 // Re-export from envUtils with explicit naming to avoid ambiguity
-export { 
+export {
   getEnv,
   getEnvWithDefault,
   isEnvTrue,
@@ -16,18 +15,11 @@ export {
   getSafeEnv,
   ENV,
   corsHeaders,
-  getBaseUrl
-} from './envUtils';
+  getBaseUrl,
+} from "./envUtils";
 
 // Re-export from environment with explicit naming
-export {
-  getEnvironmentVariable,
-  validateEnvironment
-} from './environment';
+export { getEnvironmentVariable, validateEnvironment } from "./environment";
 
 // Re-export from safeEdgeEnv
-export {
-  safeGetDenoEnv,
-  getEdgeEnv,
-  getEdgeEnvironment
-} from './safeEdgeEnv';
+export { safeGetDenoEnv, getEdgeEnv, getEdgeEnvironment } from "./safeEdgeEnv";

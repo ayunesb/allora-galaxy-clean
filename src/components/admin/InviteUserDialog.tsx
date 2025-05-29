@@ -1,8 +1,7 @@
-
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -18,23 +17,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { 
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useTenantId } from '@/hooks/useTenantId';
-import { logSystemEvent } from '@/lib/system/logSystemEvent';
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useTenantId } from "@/hooks/useTenantId";
+import { logSystemEvent } from "@/lib/system/logSystemEvent";
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  role: z.enum(['user', 'admin', 'owner']),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  role: z.enum(["user", "admin", "owner"]),
 });
 
 interface InviteUserDialogProps {
@@ -43,74 +42,79 @@ interface InviteUserDialogProps {
   onComplete?: () => void;
 }
 
-export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserDialogProps) {
+export function InviteUserDialog({
+  open,
+  onOpenChange,
+  onComplete,
+}: InviteUserDialogProps) {
   const { toast } = useToast();
   const tenantIdResult = useTenantId();
   const tenantId = tenantIdResult?.id; // Extract the id property
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
-      role: 'user',
+      email: "",
+      role: "user",
     },
   });
-  
+
   const isSubmitting = form.formState.isSubmitting;
-  
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (!tenantId) {
-        throw new Error('No tenant selected');
+        throw new Error("No tenant selected");
       }
-      
+
       // Call Supabase edge function to invite user
-      const { error } = await supabase.functions.invoke('send-invite-email', {
+      const { error } = await supabase.functions.invoke("send-invite-email", {
         body: {
           email: values.email,
           tenant_id: tenantId,
           tenant_name: "Your Organization", // This could be fetched from context
           role: values.role,
-        }
+        },
       });
-      
+
       if (error) {
         throw error;
       }
-      
+
       // Log the invitation
       await logSystemEvent(
-        'system',
-        'info',
+        "system",
+        "info",
         {
           description: `Invitation sent to ${values.email} with role ${values.role}`,
-          event_type: 'user_invitation', 
-          email: values.email, 
-          role: values.role, 
-          context: 'user_invitation' 
+          event_type: "user_invitation",
+          email: values.email,
+          role: values.role,
+          context: "user_invitation",
         },
-        tenantId
+        tenantId,
       );
-      
+
       toast.success("Invitation sent", {
-        description: `An invitation has been sent to ${values.email}.`
+        description: `An invitation has been sent to ${values.email}.`,
       });
-      
+
       form.reset();
       onOpenChange(false);
-      
+
       // Call the onComplete callback if provided
       if (onComplete) {
         onComplete();
       }
     } catch (error: any) {
-      console.error('Error inviting user:', error);
+      console.error("Error inviting user:", error);
       toast.error("Error sending invitation", {
-        description: error.message || "Failed to send invitation. Please try again."
+        description:
+          error.message || "Failed to send invitation. Please try again.",
       });
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -141,7 +145,10 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
@@ -166,7 +173,7 @@ export function InviteUserDialog({ open, onOpenChange, onComplete }: InviteUserD
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : 'Send Invitation'}
+                {isSubmitting ? "Sending..." : "Send Invitation"}
               </Button>
             </DialogFooter>
           </form>

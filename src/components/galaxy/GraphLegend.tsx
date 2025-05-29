@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React from "react";
 
 interface LegendItem {
   type: string;
@@ -17,7 +16,7 @@ export const GraphLegend: React.FC<GraphLegendProps> = ({ items }) => {
       <div className="flex flex-col space-y-1">
         {items.map((item) => (
           <div key={item.type} className="flex items-center space-x-2">
-            <div 
+            <div
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: item.color }}
             />

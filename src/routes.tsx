@@ -31,7 +31,7 @@ const routes = [
   },
   {
     path: "/admin",
-    element: <ProtectedRoutes roles={["admin", "owner"]} />,
+    element: <ProtectedRoutes />,
     children: [
       { path: "", element: <AdminDashboard /> },
       { path: "logs", element: <SystemLogs /> },

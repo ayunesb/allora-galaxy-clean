@@ -1,5 +1,6 @@
-
 import type { Config } from "tailwindcss";
+
+// If you are running with Node, make sure 'tailwindcss' is installed and your tsconfig uses "moduleResolution": "nodenext".
 
 export default {
 	darkMode: ["class"],

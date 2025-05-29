@@ -1,13 +1,19 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Info } from 'lucide-react';
-import type { LogGroup } from '@/types/logs';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertTriangle, Info } from "lucide-react";
+import type { LogGroup } from "@/types/logs";
 
 interface ErrorGroupsListProps {
   errorGroups: LogGroup[];
@@ -20,7 +26,7 @@ export const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
   errorGroups,
   isLoading,
   onViewDetails,
-  title = 'Error Groups'
+  title = "Error Groups",
 }) => {
   if (isLoading) {
     return <ErrorGroupsListSkeleton />;
@@ -61,15 +67,19 @@ export const ErrorGroupsList: React.FC<ErrorGroupsListProps> = ({
                       {errorGroup.message}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {errorGroup.module}
-                      </Badge>
+                      <Badge variant="outline">{errorGroup.module}</Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {format(new Date(errorGroup.lastSeen || Date.now()), 'yyyy-MM-dd HH:mm')}
+                      {format(
+                        new Date(errorGroup.lastSeen || Date.now()),
+                        "yyyy-MM-dd HH:mm",
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {format(new Date(errorGroup.firstSeen || Date.now()), 'yyyy-MM-dd HH:mm')}
+                      {format(
+                        new Date(errorGroup.firstSeen || Date.now()),
+                        "yyyy-MM-dd HH:mm",
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {errorGroup.count}

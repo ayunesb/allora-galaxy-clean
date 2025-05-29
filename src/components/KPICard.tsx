@@ -1,9 +1,15 @@
-
-import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { TrendDirection } from '@/types/shared';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendDirection } from "@/types/shared";
 
 interface KPICardProps {
   title: string;
@@ -20,18 +26,26 @@ const KPICard: React.FC<KPICardProps> = ({
   title,
   value,
   description,
-  trendDirection = 'neutral',
+  trendDirection = "neutral",
   trendValue,
   isPositive = true,
   category,
-  footer
+  footer,
 }) => {
   const renderTrendIcon = () => {
     switch (trendDirection) {
-      case 'up':
-        return <TrendingUp className={`h-4 w-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />;
-      case 'down':
-        return <TrendingDown className={`h-4 w-4 ${isPositive ? 'text-red-500' : 'text-green-500'}`} />;
+      case "up":
+        return (
+          <TrendingUp
+            className={`h-4 w-4 ${isPositive ? "text-green-500" : "text-red-500"}`}
+          />
+        );
+      case "down":
+        return (
+          <TrendingDown
+            className={`h-4 w-4 ${isPositive ? "text-red-500" : "text-green-500"}`}
+          />
+        );
       default:
         return <Minus className="h-4 w-4 text-gray-500" />;
     }
@@ -55,10 +69,14 @@ const KPICard: React.FC<KPICardProps> = ({
         {(trendDirection || trendValue) && (
           <div className="flex items-center mt-1 text-sm">
             {renderTrendIcon()}
-            <span className={`ml-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            <span
+              className={`ml-1 ${isPositive ? "text-green-600" : "text-red-600"}`}
+            >
               {trendValue && `${trendValue}%`}
             </span>
-            <span className="text-muted-foreground ml-2">vs. previous period</span>
+            <span className="text-muted-foreground ml-2">
+              vs. previous period
+            </span>
           </div>
         )}
       </CardContent>

@@ -1,38 +1,37 @@
-
 // Test setup file contains configuration for strategy tests
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { runStrategy } from '../../../lib/strategy/runStrategy';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { runStrategy } from "../../../lib/strategy/runStrategy";
 
 // Mock supabase client
-vi.mock('../../../integrations/supabase/client', () => {
+vi.mock("../../../integrations/supabase/client", () => {
   const invokeFunction = vi.fn().mockImplementation(() => ({
-    data: { 
-      execution_id: 'mock-execution-id',
+    data: {
+      execution_id: "mock-execution-id",
       execution_time: 123,
       details: {
         success: true,
-        plugins_executed: 2
-      }
+        plugins_executed: 2,
+      },
     },
-    error: null
+    error: null,
   }));
 
   const supabaseMock = {
     functions: {
-      invoke: invokeFunction
-    }
+      invoke: invokeFunction,
+    },
   };
 
   return {
-    supabase: supabaseMock
+    supabase: supabaseMock,
   };
 });
 
 // Mock logSystemEvent
-vi.mock('../../../lib/system/logSystemEvent', () => {
+vi.mock("../../../lib/system/logSystemEvent", () => {
   return {
-    logSystemEvent: vi.fn().mockResolvedValue(true)
+    logSystemEvent: vi.fn().mockResolvedValue(true),
   };
 });
 
@@ -48,13 +47,13 @@ const setupStrategyTest = () => {
 
   return {
     mockInput: {
-      strategyId: 'test-strategy-id',
-      tenantId: 'test-tenant-id',
-      userId: 'test-user-id',
+      strategyId: "test-strategy-id",
+      tenantId: "test-tenant-id",
+      userId: "test-user-id",
       options: {
-        test: 'option'
-      }
-    }
+        test: "option",
+      },
+    },
   };
 };
 
@@ -69,5 +68,5 @@ export {
   afterEach,
   vi,
   setupStrategyTest,
-  runStrategy
+  runStrategy,
 };

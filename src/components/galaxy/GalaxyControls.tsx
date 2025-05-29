@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { ViewModeSelector } from '@/components/galaxy/ViewModeSelector';
-import ZoomControls from '@/components/galaxy/ZoomControls';
+import React from "react";
+import { ViewModeSelector } from "@/components/galaxy/ViewModeSelector";
+import ZoomControls from "@/components/galaxy/ZoomControls";
 
 interface GalaxyControlsProps {
   viewMode: string;
@@ -23,7 +22,7 @@ const GalaxyControls: React.FC<GalaxyControlsProps> = ({
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-4">
       <ViewModeSelector viewMode={viewMode} onModeChange={setViewMode} />
-      <ZoomControls 
+      <ZoomControls
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
         onRefresh={onRefresh}

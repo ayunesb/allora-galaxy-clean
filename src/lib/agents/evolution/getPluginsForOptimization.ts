@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Get plugins eligible for optimization based on usage and performance
@@ -9,8 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 export async function getPluginsForOptimization(tenantId: string) {
   try {
     const { data, error } = await supabase
-      .from('plugins')
-      .select(`
+      .from("plugins")
+      .select(
+        `
         id,
         name,
         xp,
@@ -20,25 +20,26 @@ export async function getPluginsForOptimization(tenantId: string) {
           version,
           status
         )
-      `)
-      .eq('tenant_id', tenantId)
-      .eq('agent_versions.status', 'active')
-      .order('xp', { ascending: false });
-      
+      `,
+      )
+      .eq("tenant_id", tenantId)
+      .eq("agent_versions.status", "active")
+      .order("xp", { ascending: false });
+
     if (error) {
-      console.error('Error fetching plugins for optimization:', error);
+      console.error("Error fetching plugins for optimization:", error);
       return [];
     }
-    
+
     // Filter for plugins that need optimization
-    const eligiblePlugins = data.filter(plugin => {
+    const eligiblePlugins = data.filter((plugin) => {
       // Plugins with at least 100 XP and multiple versions
       return plugin.xp >= 100 && plugin.agent_versions.length > 0;
     });
-    
+
     return eligiblePlugins;
   } catch (error) {
-    console.error('Error in getPluginsForOptimization:', error);
+    console.error("Error in getPluginsForOptimization:", error);
     return [];
   }
 }

@@ -1,6 +1,11 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import UserTable, { User } from '../users/UserTable';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import UserTable, { User } from "../users/UserTable";
 
 interface UserManagementCardProps {
   users: User[];
@@ -30,7 +35,7 @@ export function UserManagementCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <UserTable 
+        <UserTable
           users={users}
           loading={loading}
           searchQuery={searchQuery}

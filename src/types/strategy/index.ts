@@ -1,5 +1,4 @@
-
-import { LogLevel, LogSeverity } from '../logs';
+import { LogLevel, LogSeverity } from "../logs";
 
 export interface Strategy {
   id: string;
@@ -18,9 +17,22 @@ export interface Strategy {
   due_date?: string;
 }
 
-export type StrategyStatus = 'draft' | 'active' | 'completed' | 'archived' | 'pending' | 'approved' | 'rejected';
-export type StrategyPriority = 'low' | 'medium' | 'high' | 'critical';
-export type StrategyChangeType = 'creation' | 'update' | 'approval' | 'rejection' | 'execution' | 'parameter_change';
+export type StrategyStatus =
+  | "draft"
+  | "active"
+  | "completed"
+  | "archived"
+  | "pending"
+  | "approved"
+  | "rejected";
+export type StrategyPriority = "low" | "medium" | "high" | "critical";
+export type StrategyChangeType =
+  | "creation"
+  | "update"
+  | "approval"
+  | "rejection"
+  | "execution"
+  | "parameter_change";
 
 export interface StrategyVersion {
   id: string;
@@ -46,7 +58,7 @@ export interface StrategyExecution {
   version: number;
   parameters?: Record<string, any>;
   result?: Record<string, any>;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   error?: string;
   start_time: string;
   end_time?: string;
@@ -60,7 +72,7 @@ export interface StrategyExecution {
 
 export interface StrategyParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'select' | 'object';
+  type: "string" | "number" | "boolean" | "date" | "select" | "object";
   description?: string;
   required?: boolean;
   default?: any;
@@ -79,7 +91,7 @@ export interface StrategyKPI {
   value: number;
   previous_value?: number;
   change_percentage?: number;
-  trend?: 'up' | 'down' | 'flat';
+  trend?: "up" | "down" | "flat";
   created_at?: string;
   updated_at?: string;
   source?: string;
@@ -102,7 +114,14 @@ export interface StrategyLog {
 export interface StrategyAction {
   id: string;
   strategy_id: string;
-  action: 'start' | 'stop' | 'pause' | 'resume' | 'archive' | 'clone' | 'delete';
+  action:
+    | "start"
+    | "stop"
+    | "pause"
+    | "resume"
+    | "archive"
+    | "clone"
+    | "delete";
   timestamp: string;
   user_id?: string;
   metadata?: Record<string, any>;
@@ -120,7 +139,7 @@ export interface StrategyValidation {
 export interface ExecutionLogItem {
   id: string;
   strategy_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   parameters?: Record<string, any>;
   result?: Record<string, any>;
   error?: string;
@@ -133,4 +152,4 @@ export interface ExecutionLogItem {
   tenant_id?: string;
 }
 
-export * from './fixed';
+export * from "./fixed";

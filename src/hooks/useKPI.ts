@@ -1,0 +1,1 @@
+export const useKPI = () => console.log('useKPI hook');

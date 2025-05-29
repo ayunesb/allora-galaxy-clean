@@ -1,23 +1,12 @@
+import { Outlet } from "react-router-dom";
 
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Navbar from '@/components/navigation/Sidebar';
-import Footer from '@/components/layout/Footer';
-
-interface MainLayoutProps {
-  children?: React.ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+export default function MainLayout() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="flex-1">
-        {children || <Outlet />}
+    <div className="min-h-screen bg-black text-white p-6">
+      <header className="mb-6 text-xl">Allora Galaxy</header>
+      <main>
+        <Outlet />
       </main>
-      <Footer />
     </div>
   );
-};
-
-export default MainLayout;
+}

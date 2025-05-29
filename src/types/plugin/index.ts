@@ -1,4 +1,3 @@
-
 export interface Plugin {
   id: string;
   name: string;
@@ -29,7 +28,7 @@ export interface PluginVersion {
 export interface PluginExecution {
   id: string;
   plugin_id: string;
-  status: 'success' | 'failure' | 'running' | 'pending';
+  status: "success" | "failure" | "running" | "pending";
   start_time: string;
   end_time?: string;
   execution_time?: number;

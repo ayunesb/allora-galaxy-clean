@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Record a log execution in the database
@@ -20,7 +19,7 @@ export async function recordLogExecution(log: {
 }): Promise<any> {
   try {
     const { data, error } = await supabase
-      .from('plugin_logs')
+      .from("plugin_logs")
       .insert({
         tenant_id: log.tenantId,
         plugin_id: log.pluginId,
@@ -31,19 +30,19 @@ export async function recordLogExecution(log: {
         output: log.output || null,
         execution_time: log.executionTime,
         xp_earned: log.xpEarned,
-        error: log.error || null
+        error: log.error || null,
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Error recording plugin log:', error);
+      console.error("Error recording plugin log:", error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error recording plugin log:', error);
+    console.error("Error recording plugin log:", error);
     throw error;
   }
 }

@@ -1,0 +1,1 @@
+export interface KPIAlertRule { id: string; metric: string; threshold: number; }

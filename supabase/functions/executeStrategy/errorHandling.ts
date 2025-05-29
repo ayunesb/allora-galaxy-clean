@@ -1,4 +1,3 @@
-
 import { corsHeaders } from "./validation.ts";
 
 /**

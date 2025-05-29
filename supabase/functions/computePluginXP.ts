@@ -1,0 +1,1 @@
+// Edge function to compute plugin XP from logs

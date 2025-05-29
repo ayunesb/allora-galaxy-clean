@@ -1,4 +1,3 @@
-
 /**
  * Cookie preferences type definitions
  */
@@ -21,5 +20,5 @@ export interface CookiePreferencesState {
 export const defaultCookiePreferences: CookiePreferences = {
   sessionAnalyticsEnabled: false,
   ga4Enabled: false,
-  metaPixelEnabled: false
+  metaPixelEnabled: false,
 };

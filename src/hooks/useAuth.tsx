@@ -1,15 +1,14 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
-import { AuthUser, AuthError } from '@/lib/auth/types';
-import { 
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import { AuthUser, AuthError } from "@/lib/auth/types";
+import {
   signInWithEmailAndPassword,
   signUpWithEmailAndPassword,
   signOutUser,
   resetUserPassword,
-  updateUserPassword
-} from '@/lib/auth/authUtils';
+  updateUserPassword,
+} from "@/lib/auth/authUtils";
 
 const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -22,32 +21,37 @@ const useAuth = () => {
     const initializeAuth = async () => {
       try {
         // Get current session
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-        
+        const {
+          data: { session: currentSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
         if (sessionError) {
           throw sessionError;
         }
-        
+
         setSession(currentSession);
         setUser(currentSession?.user || null);
-        
+
         // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, newSession) => {
           setSession(newSession);
           setUser(newSession?.user || null);
         });
-        
+
         return () => {
           subscription.unsubscribe();
         };
       } catch (err: any) {
-        console.error('Error initializing authentication:', err);
+        console.error("Error initializing authentication:", err);
         setError(err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     initializeAuth();
   }, []);
 
@@ -55,31 +59,38 @@ const useAuth = () => {
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
-    
+
     const response = await signInWithEmailAndPassword(email, password);
-    
+
     setLoading(false);
     return response;
   }, []);
 
   // Sign up with email and password
-  const signUp = useCallback(async (email: string, password: string, metadata?: object) => {
-    setLoading(true);
-    setError(null);
-    
-    const response = await signUpWithEmailAndPassword(email, password, metadata);
-    
-    setLoading(false);
-    return response;
-  }, []);
+  const signUp = useCallback(
+    async (email: string, password: string, metadata?: object) => {
+      setLoading(true);
+      setError(null);
+
+      const response = await signUpWithEmailAndPassword(
+        email,
+        password,
+        metadata,
+      );
+
+      setLoading(false);
+      return response;
+    },
+    [],
+  );
 
   // Sign out
   const signOut = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     await signOutUser(user?.id);
-    
+
     setLoading(false);
   }, [user]);
 
@@ -87,9 +98,9 @@ const useAuth = () => {
   const resetPassword = useCallback(async (email: string) => {
     setLoading(true);
     setError(null);
-    
+
     const response = await resetUserPassword(email);
-    
+
     setLoading(false);
     return response;
   }, []);
@@ -98,9 +109,9 @@ const useAuth = () => {
   const updatePassword = useCallback(async (newPassword: string) => {
     setLoading(true);
     setError(null);
-    
+
     const response = await updateUserPassword(newPassword);
-    
+
     setLoading(false);
     return response;
   }, []);
@@ -109,18 +120,19 @@ const useAuth = () => {
   const refreshSession = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const { data, error: refreshError } = await supabase.auth.refreshSession();
-      
+      const { data, error: refreshError } =
+        await supabase.auth.refreshSession();
+
       if (refreshError) {
         throw refreshError;
       }
-      
+
       setSession(data.session);
       setUser(data.user);
     } catch (err: any) {
-      console.error('Error refreshing session:', err);
+      console.error("Error refreshing session:", err);
       setError(err);
     } finally {
       setLoading(false);
@@ -128,35 +140,38 @@ const useAuth = () => {
   }, []);
 
   // Check if user has a specific role
-  const checkUserRole = useCallback(async (role: string): Promise<boolean> => {
-    if (!user) {
-      return false;
-    }
-
-    try {
-      // First check for global roles in user metadata
-      const userRole = user.app_metadata?.role || 'user';
-      if (userRole === role) {
-        return true;
+  const checkUserRole = useCallback(
+    async (role: string): Promise<boolean> => {
+      if (!user) {
+        return false;
       }
 
-      // Then check for tenant-specific roles
-      const { data, error } = await supabase
-        .from('tenant_user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      try {
+        // First check for global roles in user metadata
+        const userRole = user.app_metadata?.role || "user";
+        if (userRole === role) {
+          return true;
+        }
 
-      if (error) {
-        throw error;
+        // Then check for tenant-specific roles
+        const { data, error } = await supabase
+          .from("tenant_user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        return data?.role === role;
+      } catch (err) {
+        console.error("Error checking user role:", err);
+        return false;
       }
-
-      return data?.role === role;
-    } catch (err) {
-      console.error('Error checking user role:', err);
-      return false;
-    }
-  }, [user]);
+    },
+    [user],
+  );
 
   return {
     user,
@@ -169,7 +184,7 @@ const useAuth = () => {
     resetPassword,
     updatePassword,
     refreshSession,
-    checkUserRole
+    checkUserRole,
   };
 };
 

@@ -1,10 +1,9 @@
-
-import React from 'react';
-import CompanyInfoStep from './steps/CompanyInfoStep';
-import PersonaStep from './steps/PersonaStep';
-import AdditionalInfoStep from './steps/AdditionalInfoStep';
-import StrategyGenerationStep from './steps/StrategyGenerationStep';
-import { OnboardingStep, OnboardingFormData } from '@/types/onboarding';
+import React from "react";
+import CompanyInfoStep from "./steps/CompanyInfoStep";
+import PersonaStep from "./steps/PersonaStep";
+import AdditionalInfoStep from "./steps/AdditionalInfoStep";
+import StrategyGenerationStep from "./steps/StrategyGenerationStep";
+import { OnboardingStep, OnboardingFormData } from "@/types/onboarding";
 
 export interface StepContentProps {
   step: OnboardingStep;
@@ -19,43 +18,43 @@ export interface StrategyGenerationStepProps {
   isGenerating?: boolean;
 }
 
-const StepContent: React.FC<StepContentProps> = ({ 
-  step, 
-  formData, 
+const StepContent: React.FC<StepContentProps> = ({
+  step,
+  formData,
   updateFormData,
   setFieldValue,
-  isGenerating 
+  isGenerating,
 }) => {
   switch (step) {
-    case 'company-info':
+    case "company-info":
       return (
-        <CompanyInfoStep 
-          formData={formData} 
+        <CompanyInfoStep
+          formData={formData}
           updateFormData={updateFormData}
           setFieldValue={setFieldValue}
         />
       );
-    case 'persona':
+    case "persona":
       return (
-        <PersonaStep 
-          formData={formData} 
+        <PersonaStep
+          formData={formData}
           updateFormData={updateFormData}
           setFieldValue={setFieldValue}
         />
       );
-    case 'additional-info':
+    case "additional-info":
       return (
-        <AdditionalInfoStep 
-          formData={formData} 
-          updateFormData={updateFormData} 
+        <AdditionalInfoStep
+          formData={formData}
+          updateFormData={updateFormData}
           setFieldValue={setFieldValue}
         />
       );
-    case 'strategy-generation':
+    case "strategy-generation":
       return (
-        <StrategyGenerationStep 
-          formData={formData} 
-          isGenerating={isGenerating} 
+        <StrategyGenerationStep
+          formData={formData}
+          isGenerating={isGenerating}
         />
       );
     default:

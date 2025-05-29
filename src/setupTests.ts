@@ -1,44 +1,59 @@
-
 /**
  * Test setup file for Vitest
  * This file is automatically loaded before running tests
  */
 
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 // Mock match media
-window.matchMedia = window.matchMedia || function() {
-  return {
-    matches: false,
-    addListener: () => {},
-    removeListener: () => {}
+window.matchMedia =
+  window.matchMedia ||
+  function () {
+    return {
+      matches: false,
+      addListener: () => {},
+      removeListener: () => {},
+    };
   };
-};
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  constructor(private callback: IntersectionObserverCallback) {}
-  
-  disconnect() { return null; }
-  observe() { return null; }
-  takeRecords() { return []; }
-  unobserve() { return null; }
+  constructor(_: IntersectionObserverCallback) {}
+  disconnect() {
+    return null;
+  }
+  observe() {
+    return null;
+  }
+  takeRecords() {
+    return [];
+  }
+  unobserve() {
+    return null;
+  }
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = "";
+  readonly thresholds: ReadonlyArray<number> = [];
 };
 
-// Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
-  constructor(private callback: ResizeObserverCallback) {}
-  
-  disconnect() { return null; }
-  observe() { return null; }
-  unobserve() { return null; }
+  constructor(_: ResizeObserverCallback) {}
+  disconnect() {
+    return null;
+  }
+  observe() {
+    return null;
+  }
+  unobserve() {
+    return null;
+  }
 };
 
 // Mock window.scrollTo
-Object.defineProperty(window, 'scrollTo', {
+Object.defineProperty(window, "scrollTo", {
   value: vi.fn(),
-  writable: true
+  writable: true,
 });
 
 // Suppress React 18 console errors about act()

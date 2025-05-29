@@ -1,7 +1,13 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { InboxIcon, ClipboardList, Search, AlertCircle, ShieldAlert, FileQuestion } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  InboxIcon,
+  ClipboardList,
+  Search,
+  AlertCircle,
+  ShieldAlert,
+  FileQuestion,
+} from "lucide-react";
 
 interface EmptyStateProps {
   title: string;
@@ -16,21 +22,27 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   description,
   icon,
   action,
-  className = ''
+  className = "",
 }) => {
   return (
-    <div className={`flex flex-col items-center justify-center p-6 text-center ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center p-6 text-center ${className}`}
+    >
       <div className="rounded-full bg-muted p-3 mb-4">
         {icon || <InboxIcon className="h-6 w-6 text-muted-foreground" />}
       </div>
       <h3 className="text-lg font-medium mb-2">{title}</h3>
-      {description && <p className="text-muted-foreground mb-4 max-w-sm">{description}</p>}
+      {description && (
+        <p className="text-muted-foreground mb-4 max-w-sm">{description}</p>
+      )}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
 };
 
-export const NoResultsEmptyState: React.FC<{ onReset?: () => void }> = ({ onReset }) => (
+export const NoResultsEmptyState: React.FC<{ onReset?: () => void }> = ({
+  onReset,
+}) => (
   <EmptyState
     title="No results found"
     description="Try adjusting your search or filter to find what you're looking for."
@@ -45,10 +57,10 @@ export const NoResultsEmptyState: React.FC<{ onReset?: () => void }> = ({ onRese
   />
 );
 
-export const ErrorEmptyState: React.FC<{ onRetry?: () => void; message?: string }> = ({ 
-  onRetry, 
-  message 
-}) => (
+export const ErrorEmptyState: React.FC<{
+  onRetry?: () => void;
+  message?: string;
+}> = ({ onRetry, message }) => (
   <EmptyState
     title="Error loading data"
     description={message || "We encountered a problem while loading this data."}
@@ -63,21 +75,15 @@ export const ErrorEmptyState: React.FC<{ onRetry?: () => void; message?: string 
   />
 );
 
-export const NoDataEmptyState: React.FC<{ entityName?: string; onAdd?: () => void }> = ({ 
-  entityName = "items", 
-  onAdd 
-}) => (
+export const NoDataEmptyState: React.FC<{
+  entityName?: string;
+  onAdd?: () => void;
+}> = ({ entityName = "items", onAdd }) => (
   <EmptyState
     title={`No ${entityName} yet`}
     description={`When you add ${entityName}, they'll appear here.`}
     icon={<ClipboardList className="h-6 w-6 text-muted-foreground" />}
-    action={
-      onAdd && (
-        <Button onClick={onAdd}>
-          Add {entityName}
-        </Button>
-      )
-    }
+    action={onAdd && <Button onClick={onAdd}>Add {entityName}</Button>}
   />
 );
 
@@ -89,13 +95,40 @@ export const NoAccessEmptyState: React.FC = () => (
   />
 );
 
-export const InfoEmptyState: React.FC<{ title: string; description?: string }> = ({ 
-  title, 
-  description 
-}) => (
+export const InfoEmptyState: React.FC<{
+  title: string;
+  description?: string;
+}> = ({ title, description }) => (
   <EmptyState
     title={title}
     description={description}
     icon={<FileQuestion className="h-6 w-6 text-primary" />}
   />
+);
+
+// Add this export if missing
+export const NoSearchResultsEmptyState = () => (
+  <div className="flex flex-col items-center justify-center p-8 text-center">
+    <p className="text-muted-foreground">No search results found.</p>
+  </div>
+);
+
+// Add this export if missing
+export const FilterEmptyState = () => (
+  <div className="flex flex-col items-center justify-center p-8 text-center">
+    <p className="text-muted-foreground">No items match your filter.</p>
+  </div>
+);
+
+// Add this export if missing
+export const CardEmptyState = () => (
+  <div className="flex flex-col items-center justify-center p-8 text-center">
+    <p className="text-muted-foreground">No cards to display.</p>
+  </div>
+);
+
+export const EmptyListState = () => (
+  <div className="text-gray-400 text-center py-8">
+    <p>📭 Nothing to show yet.</p>
+  </div>
 );

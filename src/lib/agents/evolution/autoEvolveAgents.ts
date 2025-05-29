@@ -1,7 +1,6 @@
-
-import { checkEvolutionNeeded } from './checkEvolutionNeeded';
-import { createEvolvedAgent } from './createEvolvedAgent';
-import { deactivateOldAgent } from './deactivateOldAgent';
+import { checkEvolutionNeeded } from "./checkEvolutionNeeded";
+import { createEvolvedAgent } from "./createEvolvedAgent";
+import { deactivateOldAgent } from "./deactivateOldAgent";
 
 export interface AgentEvolutionResult {
   agentId: string;
@@ -28,80 +27,81 @@ export interface EvolutionResult {
  */
 export async function autoEvolveAgents(
   agents: { id: string; version: string; prompt: string }[],
-  tenantId: string
+  tenantId: string,
 ): Promise<EvolutionResult> {
   const results: AgentEvolutionResult[] = [];
   let evolvedCount = 0;
-  let success = true;
-  let message = '';
-  
+  const success = true;
+  let message = "";
+
   try {
     for (const agent of agents) {
       try {
         // Check if this agent needs evolution
         const needsEvolution = await checkEvolutionNeeded(agent.id);
-        
+
         if (!needsEvolution) {
           results.push({
             agentId: agent.id,
             success: false,
-            reason: 'No evolution needed based on current metrics'
+            reason: "No evolution needed based on current metrics",
           });
           continue;
         }
-        
+
         // Create evolved agent version
         const evolved = await createEvolvedAgent(agent.id, tenantId);
-        
+
         if (evolved && evolved.success) {
           // Deactivate the old agent
           await deactivateOldAgent(agent.id);
-          
+
           results.push({
             agentId: agent.id,
             success: true,
             newAgentId: evolved.id,
-            newVersion: evolved.version
+            newVersion: evolved.version,
           });
-          
+
           evolvedCount++;
         } else {
           results.push({
             agentId: agent.id,
             success: false,
-            reason: 'Failed to create evolved agent'
+            reason: "Failed to create evolved agent",
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.push({
           agentId: agent.id,
           success: false,
-          error: `Error during evolution: ${error.message}`
+          error: `Error during evolution: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         });
       }
     }
-    
+
     // Set appropriate message based on evolution results
     if (evolvedCount > 0) {
       message = `Successfully evolved ${evolvedCount} agents`;
     } else {
-      message = 'No agents needed evolution';
+      message = "No agents needed evolution";
     }
-    
+
     return {
       evolved: evolvedCount,
       results,
       success,
-      message
+      message,
     };
-    
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       evolved: evolvedCount,
       results,
       success: false,
-      error: error.message,
-      message: 'Error in autoEvolveAgents function'
+      error: error instanceof Error ? error.message : String(error),
+      message: "Error in autoEvolveAgents function",
     };
   }
 }

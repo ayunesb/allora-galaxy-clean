@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -16,11 +15,11 @@ import {
   Cell,
   AreaChart,
   Area,
-} from 'recharts';
+} from "recharts";
 
 export interface ChartProps {
   data: any[];
-  type: 'bar' | 'line' | 'pie' | 'area';
+  type: "bar" | "line" | "pie" | "area";
   xKey?: string;
   dataKeys: string[];
   colors?: string[];
@@ -40,11 +39,11 @@ export interface ChartProps {
 export const Chart: React.FC<ChartProps> = ({
   data,
   type,
-  xKey = 'name',
+  xKey = "name",
   dataKeys,
-  colors = ['#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#f43f5e', '#ec4899'],
+  colors = ["#3b82f6", "#10b981", "#f97316", "#8b5cf6", "#f43f5e", "#ec4899"],
   height = 300,
-  className = '',
+  className = "",
   stackId,
   showGrid = true,
   showLegend = true,
@@ -53,12 +52,12 @@ export const Chart: React.FC<ChartProps> = ({
 }) => {
   // Default TAILWIND colors if colors aren't provided
   const defaultColors = [
-    'var(--primary)', 
-    'var(--secondary)',
-    'var(--accent)',
-    'var(--destructive)',
-    'var(--muted)',
-    'var(--card)'
+    "var(--primary)",
+    "var(--secondary)",
+    "var(--accent)",
+    "var(--destructive)",
+    "var(--muted)",
+    "var(--card)",
   ];
 
   const chartColors = colors.length > 0 ? colors : defaultColors;
@@ -70,13 +69,16 @@ export const Chart: React.FC<ChartProps> = ({
 
   const renderChart = () => {
     switch (type) {
-      case 'bar':
+      case "bar":
         return (
           <BarChart data={data}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" />}
             <XAxis dataKey={xKey} />
             <YAxis />
-            <Tooltip formatter={tooltipFormatter} labelFormatter={labelFormatter} />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelFormatter={labelFormatter}
+            />
             {showLegend && <Legend />}
             {dataKeys.map((key, index) => (
               <Bar
@@ -89,13 +91,16 @@ export const Chart: React.FC<ChartProps> = ({
           </BarChart>
         );
 
-      case 'line':
+      case "line":
         return (
           <LineChart data={data}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" />}
             <XAxis dataKey={xKey} />
             <YAxis />
-            <Tooltip formatter={tooltipFormatter} labelFormatter={labelFormatter} />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelFormatter={labelFormatter}
+            />
             {showLegend && <Legend />}
             {dataKeys.map((key, index) => (
               <Line
@@ -109,7 +114,7 @@ export const Chart: React.FC<ChartProps> = ({
           </LineChart>
         );
 
-      case 'pie':
+      case "pie":
         return (
           <PieChart>
             <Pie
@@ -122,21 +127,30 @@ export const Chart: React.FC<ChartProps> = ({
               label
             >
               {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={chartColors[index % chartColors.length]}
+                />
               ))}
             </Pie>
-            <Tooltip formatter={tooltipFormatter} labelFormatter={labelFormatter} />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelFormatter={labelFormatter}
+            />
             {showLegend && <Legend />}
           </PieChart>
         );
 
-      case 'area':
+      case "area":
         return (
           <AreaChart data={data}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" />}
             <XAxis dataKey={xKey} />
             <YAxis />
-            <Tooltip formatter={tooltipFormatter} labelFormatter={labelFormatter} />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelFormatter={labelFormatter}
+            />
             {showLegend && <Legend />}
             {dataKeys.map((key, index) => (
               <Area

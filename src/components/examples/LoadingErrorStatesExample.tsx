@@ -1,15 +1,20 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataStateHandler } from '@/components/ui/data-state-handler';
-import { notifyError } from '@/lib/notifications/toast';
+import { DataStateHandler } from "@/components/ui/data-state-handler";
+import { notifyError } from "@/lib/notifications/toast";
 
 interface MockData {
   id: number;
   name: string;
   description: string;
-  status: 'loading' | 'success' | 'error';
+  status: "loading" | "success" | "error";
   message?: string;
 }
 
@@ -25,23 +30,26 @@ const LoadingErrorStatesExample: React.FC = () => {
         // Simulate loading state
         setLoading(true);
         setError(null);
-        
+
         // Simulate API call with a delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         // Simulate success
         setData({
           id: 1,
-          name: 'Example Data',
-          description: 'This is example data loaded from an API.',
-          status: 'success',
-          message: 'Data loaded successfully!'
+          name: "Example Data",
+          description: "This is example data loaded from an API.",
+          status: "success",
+          message: "Data loaded successfully!",
         });
       } catch (e: any) {
         // Simulate error state
-        const formattedError = e instanceof Error ? e : new Error(e?.message || 'Failed to load data.');
+        const formattedError =
+          e instanceof Error
+            ? e
+            : new Error(e?.message || "Failed to load data.");
         setError(formattedError);
-        notifyError(formattedError.message || 'Failed to load data.');
+        notifyError(formattedError.message || "Failed to load data.");
         setData(null);
       } finally {
         setLoading(false);
@@ -62,23 +70,26 @@ const LoadingErrorStatesExample: React.FC = () => {
         // Simulate loading state
         setPartialLoading(true);
         setPartialError(null);
-        
+
         // Simulate API call with a delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         // Simulate success
         setPartialData({
           id: 2,
-          name: 'Partial Data',
-          description: 'This is partial data that might fail to load.',
-          status: 'success',
-          message: 'Partial data loaded successfully!'
+          name: "Partial Data",
+          description: "This is partial data that might fail to load.",
+          status: "success",
+          message: "Partial data loaded successfully!",
         });
       } catch (e: any) {
         // Simulate error state
-        const formattedError = e instanceof Error ? e : new Error(e?.message || 'Failed to load partial data.');
+        const formattedError =
+          e instanceof Error
+            ? e
+            : new Error(e?.message || "Failed to load partial data.");
         setPartialError(formattedError);
-        notifyError(formattedError.message || 'Failed to load partial data.');
+        notifyError(formattedError.message || "Failed to load partial data.");
         setPartialData(null);
       } finally {
         setPartialLoading(false);
@@ -90,13 +101,17 @@ const LoadingErrorStatesExample: React.FC = () => {
 
   return (
     <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-6">Loading & Error State Examples</h1>
-      
+      <h1 className="text-2xl font-bold mb-6">
+        Loading & Error State Examples
+      </h1>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Full Data Loading</CardTitle>
-            <CardDescription>Demonstrates a full loading state with potential error.</CardDescription>
+            <CardDescription>
+              Demonstrates a full loading state with potential error.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <DataStateHandler
@@ -104,17 +119,23 @@ const LoadingErrorStatesExample: React.FC = () => {
               error={error}
               data={data}
               loadingComponent={<Skeleton className="w-full h-40" />}
-              errorComponent={<div className="text-red-500">{error?.message || 'An error occurred'}</div>}
+              errorComponent={
+                <div className="text-red-500">
+                  {error?.message || "An error occurred"}
+                </div>
+              }
             >
               <div>{data?.message}</div>
             </DataStateHandler>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Partial Data Loading</CardTitle>
-            <CardDescription>Demonstrates a partial loading state within a component.</CardDescription>
+            <CardDescription>
+              Demonstrates a partial loading state within a component.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <DataStateHandler
@@ -122,7 +143,11 @@ const LoadingErrorStatesExample: React.FC = () => {
               error={partialError}
               data={partialData}
               loadingComponent={<Skeleton className="w-full h-32" />}
-              errorComponent={<div className="text-red-500">{partialError?.message || 'An error occurred'}</div>}
+              errorComponent={
+                <div className="text-red-500">
+                  {partialError?.message || "An error occurred"}
+                </div>
+              }
             >
               {partialData && <div>{partialData.description}</div>}
             </DataStateHandler>

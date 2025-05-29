@@ -1,18 +1,17 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
-import { StrategyStatusBadge } from './StrategyStatusBadge';
-import { Strategy } from '@/types';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
+import { StrategyStatusBadge } from "./StrategyStatusBadge";
+import { Strategy } from "@/types";
 
 interface StrategyHeaderProps {
-  status: Strategy['status'];
+  status: Strategy["status"];
   onBack: () => void;
 }
 
 export const StrategyHeader: React.FC<StrategyHeaderProps> = ({
   status,
-  onBack
+  onBack,
 }) => {
   return (
     <div className="flex justify-between items-center">
@@ -20,7 +19,7 @@ export const StrategyHeader: React.FC<StrategyHeaderProps> = ({
         <ChevronLeft className="h-4 w-4" />
         Back to Strategies
       </Button>
-      
+
       <StrategyStatusBadge status={status} />
     </div>
   );

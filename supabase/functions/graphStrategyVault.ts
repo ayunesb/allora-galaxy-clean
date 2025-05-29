@@ -1,0 +1,1 @@
+export const handler = () => { return 'Vault Strategy Handler'; };

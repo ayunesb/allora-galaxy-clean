@@ -1,8 +1,13 @@
-
-import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 export interface EdgeFunctionErrorProps {
   error: Error;
@@ -20,13 +25,13 @@ export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
   showRequestId = false,
 }) => {
   const retryHandler = onRetry || retry; // Use onRetry if available, fall back to retry
-  
+
   // Extract error details
   const errorObj = error as any;
   const requestId = errorObj.requestId || errorObj.request_id;
   const status = errorObj.status || errorObj.statusCode;
   const details = errorObj.details || {};
-  
+
   return (
     <Card className="border-destructive/50 bg-destructive/5 mx-auto my-4 max-w-md">
       <CardHeader>
@@ -38,13 +43,13 @@ export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <p className="font-medium">{error.message}</p>
-        
+
         {showRequestId && requestId && (
           <div className="text-xs text-muted-foreground">
             <span className="font-semibold">Request ID:</span> {requestId}
           </div>
         )}
-        
+
         {showDetails && Object.keys(details).length > 0 && (
           <div className="mt-2">
             <p className="font-semibold text-xs mb-1">Error Details:</p>
@@ -56,14 +61,10 @@ export const EdgeFunctionError: React.FC<EdgeFunctionErrorProps> = ({
           </div>
         )}
       </CardContent>
-      
+
       {retryHandler && (
         <CardFooter>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={retryHandler}
-          >
+          <Button variant="outline" size="sm" onClick={retryHandler}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>

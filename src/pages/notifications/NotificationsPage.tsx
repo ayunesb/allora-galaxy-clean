@@ -1,40 +1,42 @@
-
-import React, { useState } from 'react';
-import PageHelmet from '@/components/PageHelmet';
-import NotificationsContainer from '@/components/notifications/NotificationsContainer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import React, { useState } from "react";
+import PageHelmet from "@/components/PageHelmet";
+import NotificationsContainer from "@/components/notifications/NotificationsContainer";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const NotificationsPage: React.FC = () => {
   const [filter, setFilter] = useState<string | null>(null);
   const { userRole } = useWorkspace();
-  const isAdmin = userRole === 'admin' || userRole === 'owner';
-  
+  const isAdmin = userRole === "admin" || userRole === "owner";
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <PageHelmet 
-        title="Notifications" 
+      <PageHelmet
+        title="Notifications"
         description="View and manage your notifications"
       />
-      
+
       <Tabs defaultValue="notifications" className="space-y-4">
         <TabsList>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="settings">Notification Settings</TabsTrigger>
           {isAdmin && <TabsTrigger value="admin">Admin Settings</TabsTrigger>}
         </TabsList>
-        
+
         <TabsContent value="notifications">
-          <NotificationsContainer 
-            filter={filter}
-            setFilter={setFilter}
-          />
+          <NotificationsContainer filter={filter} setFilter={setFilter} />
         </TabsContent>
-        
+
         <TabsContent value="settings">
           <Card>
             <CardHeader>
@@ -46,7 +48,7 @@ const NotificationsPage: React.FC = () => {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Delivery Methods</h3>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <Label htmlFor="in-app" className="flex flex-col space-y-1">
                     <span>In-App Notifications</span>
@@ -56,7 +58,7 @@ const NotificationsPage: React.FC = () => {
                   </Label>
                   <Switch id="in-app" defaultChecked />
                 </div>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <Label htmlFor="email" className="flex flex-col space-y-1">
                     <span>Email Notifications</span>
@@ -67,10 +69,10 @@ const NotificationsPage: React.FC = () => {
                   <Switch id="email" defaultChecked />
                 </div>
               </div>
-              
+
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-lg font-medium">Notification Types</h3>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <Label htmlFor="alerts" className="flex flex-col space-y-1">
                     <span>System Alerts</span>
@@ -80,7 +82,7 @@ const NotificationsPage: React.FC = () => {
                   </Label>
                   <Switch id="alerts" defaultChecked />
                 </div>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <Label htmlFor="kpis" className="flex flex-col space-y-1">
                     <span>KPI Milestones</span>
@@ -90,7 +92,7 @@ const NotificationsPage: React.FC = () => {
                   </Label>
                   <Switch id="kpis" defaultChecked />
                 </div>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <Label htmlFor="strategy" className="flex flex-col space-y-1">
                     <span>Strategy Updates</span>
@@ -100,7 +102,7 @@ const NotificationsPage: React.FC = () => {
                   </Label>
                   <Switch id="strategy" defaultChecked />
                 </div>
-                
+
                 <div className="flex items-center justify-between space-x-2">
                   <Label htmlFor="mentions" className="flex flex-col space-y-1">
                     <span>Mentions & Comments</span>
@@ -114,7 +116,7 @@ const NotificationsPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {isAdmin && (
           <TabsContent value="admin">
             <Card>
@@ -126,10 +128,15 @@ const NotificationsPage: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Default Notification Settings</h3>
-                  
+                  <h3 className="text-lg font-medium">
+                    Default Notification Settings
+                  </h3>
+
                   <div className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="team-email" className="flex flex-col space-y-1">
+                    <Label
+                      htmlFor="team-email"
+                      className="flex flex-col space-y-1"
+                    >
                       <span>Enable Email for All Team Members</span>
                       <span className="font-normal text-xs text-muted-foreground">
                         By default, send email notifications to all team members
@@ -137,9 +144,12 @@ const NotificationsPage: React.FC = () => {
                     </Label>
                     <Switch id="team-email" defaultChecked />
                   </div>
-                  
+
                   <div className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="team-digest" className="flex flex-col space-y-1">
+                    <Label
+                      htmlFor="team-digest"
+                      className="flex flex-col space-y-1"
+                    >
                       <span>Daily Digest Emails</span>
                       <span className="font-normal text-xs text-muted-foreground">
                         Send a daily summary of activities and notifications
@@ -148,30 +158,45 @@ const NotificationsPage: React.FC = () => {
                     <Switch id="team-digest" />
                   </div>
                 </div>
-                
+
                 <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-lg font-medium">Notification Templates</h3>
+                  <h3 className="text-lg font-medium">
+                    Notification Templates
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Customize the templates for different notification types used across the system.
-                    These templates will be used for all email and in-app notifications.
+                    Customize the templates for different notification types
+                    used across the system. These templates will be used for all
+                    email and in-app notifications.
                   </p>
-                  
+
                   <div className="grid gap-4 pt-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Strategy Approval Template</span>
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <span className="font-medium">
+                        Strategy Approval Template
+                      </span>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="font-medium">KPI Alert Template</span>
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="font-medium">System Alert Template</span>
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Welcome Email Template</span>
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <span className="font-medium">
+                        Welcome Email Template
+                      </span>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
                     </div>
                   </div>
                 </div>

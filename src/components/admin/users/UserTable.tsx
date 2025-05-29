@@ -1,10 +1,16 @@
-
-import React from 'react';
-import { Search, UserPlus } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Search, UserPlus } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +18,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 export interface UserEmail {
   email: string;
@@ -31,7 +37,7 @@ export interface User {
   email: string;
   role: string;
   lastLogin: string;
-  created_at?: string; 
+  created_at?: string;
   user_id?: string;
   profiles?: any;
 }
@@ -53,29 +59,29 @@ export const UserTable: React.FC<UserTableProps> = ({
   onSearchChange,
   onUpdateRole,
   onRemoveUser,
-  onOpenInviteDialog
+  onOpenInviteDialog,
 }) => {
   // Helper functions
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
-    if (!firstName && !lastName) return 'U';
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+    if (!firstName && !lastName) return "U";
+    return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
   };
-  
+
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'owner':
+      case "owner":
         return <Badge className="bg-purple-500">Owner</Badge>;
-      case 'admin':
+      case "admin":
         return <Badge className="bg-blue-500">Admin</Badge>;
-      case 'member':
+      case "member":
         return <Badge className="bg-green-500">Member</Badge>;
-      case 'viewer':
+      case "viewer":
         return <Badge variant="outline">Viewer</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
   };
-  
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -89,21 +95,24 @@ export const UserTable: React.FC<UserTableProps> = ({
           Invite User
         </Button>
       </div>
-      
+
       <p className="text-muted-foreground mb-8">
         Manage users and their roles within your workspace.
       </p>
-      
+
       <div className="relative w-full md:w-64 mb-4">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-        <Input 
-          placeholder="Search users..." 
+        <Search
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          size={16}
+        />
+        <Input
+          placeholder="Search users..."
           className="pl-10"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-      
+
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -129,7 +138,10 @@ export const UserTable: React.FC<UserTableProps> = ({
                         <AvatarImage src={user.profiles.avatar_url} />
                       ) : null}
                       <AvatarFallback>
-                        {getInitials(user.profiles?.first_name, user.profiles?.last_name)}
+                        {getInitials(
+                          user.profiles?.first_name,
+                          user.profiles?.last_name,
+                        )}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -138,7 +150,9 @@ export const UserTable: React.FC<UserTableProps> = ({
                           {user.profiles?.first_name} {user.profiles?.last_name}
                         </div>
                       ) : (
-                        <div className="text-muted-foreground italic">Unnamed User</div>
+                        <div className="text-muted-foreground italic">
+                          Unnamed User
+                        </div>
                       )}
                     </div>
                   </div>
@@ -146,9 +160,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                 <TableCell>
                   {user.profiles?.email?.[0]?.email || "No email"}
                 </TableCell>
-                <TableCell>
-                  {getRoleBadge(user.role)}
-                </TableCell>
+                <TableCell>{getRoleBadge(user.role)}</TableCell>
                 <TableCell>
                   {user.created_at ? formatDate(user.created_at) : "Unknown"}
                 </TableCell>
@@ -161,19 +173,33 @@ export const UserTable: React.FC<UserTableProps> = ({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => user.user_id && onUpdateRole(user.user_id, 'admin')}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          user.user_id && onUpdateRole(user.user_id, "admin")
+                        }
+                      >
                         Set as Admin
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => user.user_id && onUpdateRole(user.user_id, 'member')}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          user.user_id && onUpdateRole(user.user_id, "member")
+                        }
+                      >
                         Set as Member
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => user.user_id && onUpdateRole(user.user_id, 'viewer')}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          user.user_id && onUpdateRole(user.user_id, "viewer")
+                        }
+                      >
                         Set as Viewer
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-destructive focus:text-destructive" 
-                        onClick={() => user.user_id && onRemoveUser(user.user_id)}
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() =>
+                          user.user_id && onRemoveUser(user.user_id)
+                        }
                       >
                         Remove User
                       </DropdownMenuItem>
@@ -186,7 +212,7 @@ export const UserTable: React.FC<UserTableProps> = ({
         </Table>
       ) : (
         <div className="text-center py-8 text-muted-foreground">
-          No users found {searchQuery ? 'matching your search' : ''}
+          No users found {searchQuery ? "matching your search" : ""}
         </div>
       )}
     </div>

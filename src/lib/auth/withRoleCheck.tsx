@@ -1,8 +1,7 @@
-
-import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types/user';
+import React, { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth, checkUserRole } from "@/context/AuthContext";
+import { UserRole } from "@/types/user";
 
 interface WithRoleCheckProps {
   roles: UserRole[] | string[];
@@ -14,12 +13,16 @@ interface WithRoleCheckProps {
  */
 const withRoleCheck = <P extends object>(
   Component: React.ComponentType<P>,
-  { roles, redirectTo = '/unauthorized' }: WithRoleCheckProps
+  { roles, redirectTo = "/unauthorized" }: WithRoleCheckProps,
 ) => {
   const WithRoleCheck: React.FC<P> = (props) => {
-    const { user, loading, checkUserRole } = useAuth();
+    const { user, loading } = useAuth();
     const location = useLocation();
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+
+    useEffect(() => {
+      checkUserRole();
+    }, [checkUserRole]);
 
     useEffect(() => {
       const checkPermission = async () => {
@@ -27,7 +30,7 @@ const withRoleCheck = <P extends object>(
           setHasPermission(false);
           return;
         }
-        
+
         try {
           for (const role of roles) {
             const hasRole = await checkUserRole(role.toString());
@@ -38,11 +41,11 @@ const withRoleCheck = <P extends object>(
           }
           setHasPermission(false);
         } catch (error) {
-          console.error('Error checking role:', error);
+          console.error("Error checking role:", error);
           setHasPermission(false);
         }
       };
-      
+
       if (!loading) {
         checkPermission();
       }
@@ -67,3 +70,6 @@ const withRoleCheck = <P extends object>(
 };
 
 export default withRoleCheck;
+
+// Pass a role argument to checkUserRole if required
+// checkUserRole("admin"); // or the appropriate role

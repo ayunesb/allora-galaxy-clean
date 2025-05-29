@@ -1,55 +1,10 @@
-
-import React, { useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent } from '@/components/ui/card';
-import SystemLogsList from '@/components/admin/logs/SystemLogsList';
-import LogDetailDialog from '@/components/evolution/logs/LogDetailDialog';
-import SystemLogFilters from '@/components/admin/logs/SystemLogFilters';
-import { useAiDecisionsData } from '@/hooks/admin/useAiDecisions';
-import { SystemLog } from '@/types/logs';
-
-const AiDecisions: React.FC = () => {
-  const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
-  const { decisions, isLoading, filters, setFilters, refetch } = useAiDecisionsData();
-  
-  const handleViewLog = (log: SystemLog) => {
-    setSelectedLog(log);
-    setDialogOpen(true);
-  };
-  
+export default function AiDecisions() {
   return (
-    <div className="container py-6">
-      <PageHeader
-        title="AI Decisions"
-        description="Monitor and audit AI-generated decisions and recommendations"
-      />
-      
-      <SystemLogFilters 
-        filters={filters} 
-        onFilterChange={setFilters} 
-        isLoading={isLoading}
-        onRefresh={refetch}
-      />
-      
-      <Card className="mt-6">
-        <CardContent className="p-0 sm:p-6">
-          <SystemLogsList 
-            logs={decisions} 
-            isLoading={isLoading} 
-            onViewLog={handleViewLog}
-          />
-        </CardContent>
-      </Card>
-      
-      <LogDetailDialog 
-        log={selectedLog} 
-        open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
-      />
+    <div className="p-6 text-white">
+      <h2 className="text-xl font-semibold mb-4">AI Decision Logs</h2>
+      <p>
+        This will render agent evolution diffs, votes, and prompt histories.
+      </p>
     </div>
   );
-};
-
-export default AiDecisions;
+}
