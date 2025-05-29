@@ -1,4 +1,1 @@
-import { AdminAIDecisionPanel } from "@/components/admin/ai/DecisionPanel";
-export default function Page() {
-  return <AdminAIDecisionPanel />;
-}
+// Placeholder content for src/pages/admin/ai-decisions/index.tsx

@@ -1,1 +1,1 @@
-// Voting data table component
+// Placeholder content for src/components/admin/VotingTable.tsx

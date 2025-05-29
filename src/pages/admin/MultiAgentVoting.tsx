@@ -1,1 +1,1 @@
-// Voting system main page
+// Placeholder content for src/pages/admin/MultiAgentVoting.tsx

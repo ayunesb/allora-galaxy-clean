@@ -1,1 +1,1 @@
-// Hook for voting logic
+// Placeholder content for src/hooks/useMultiAgentVoting.ts

@@ -1,2 +1,1 @@
-// Entry point for Inspector Panel
-export default function InspectorPanel() { return <div>Inspector Panel</div>; }
+// Placeholder content for src/pages/admin/inspector/index.tsx

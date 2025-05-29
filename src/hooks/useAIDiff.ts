@@ -1,1 +1,1 @@
-// Placeholder for useAIDiff.ts
+// Placeholder content for src/hooks/useAIDiff.ts

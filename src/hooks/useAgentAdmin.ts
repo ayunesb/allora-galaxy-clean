@@ -1,1 +1,1 @@
-export const useAgentAdmin = () => ({});
+// Placeholder content for src/hooks/useAgentAdmin.ts

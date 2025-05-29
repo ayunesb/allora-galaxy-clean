@@ -1,1 +1,1 @@
-// Chart for visualizing vote outcomes
+// Placeholder content for src/components/admin/VoteResultChart.tsx

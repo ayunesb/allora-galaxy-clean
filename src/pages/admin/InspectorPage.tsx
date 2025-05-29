@@ -1,7 +1,1 @@
-import React from "react";
-
-const InspectorPage: React.FC = () => {
-  return <div>Inspector Page</div>;
-};
-
-export default InspectorPage;
+// Placeholder content for src/pages/admin/InspectorPage.tsx

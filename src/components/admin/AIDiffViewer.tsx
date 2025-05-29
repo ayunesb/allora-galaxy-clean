@@ -1,1 +1,1 @@
-// AI Diff Viewer component
+// Placeholder content for src/components/admin/AIDiffViewer.tsx

@@ -1,1 +1,1 @@
-// AI Vote Panel component
+// Placeholder content for src/components/admin/AIVotePanel.tsx
