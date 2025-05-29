@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { OpenAIStream, streamToResponse } from "@/lib/openai"; // update this if you're using edge runtime
+import { generateOpenAIResponse } from "@/lib/openai";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { prompt } = req.body;
@@ -10,13 +10,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { role: "user", content: prompt }
     ];
 
-    const stream = await OpenAIStream({
+    const completion = await generateOpenAIResponse({
       model: "gpt-4",
       messages,
       stream: false,
     });
 
-    const completion = await stream.json();
     return res.status(200).json({ response: completion.choices?.[0]?.message?.content || "No response" });
   } catch (error) {
     console.error("[Inspector Chat Error]", error);

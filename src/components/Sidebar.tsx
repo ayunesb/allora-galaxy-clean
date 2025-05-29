@@ -16,7 +16,11 @@ export const sidebarSections = [
 ];
 
 function Sidebar() {
-	// ...your sidebar rendering logic, e.g. mapping over sidebarSections...
+	return (
+		<nav>
+			{/* ...sidebar links... */}
+		</nav>
+	);
 }
 
 export default Sidebar;

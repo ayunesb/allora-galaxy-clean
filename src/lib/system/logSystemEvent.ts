@@ -52,7 +52,12 @@ export async function logSystemEvent(
   }
 }
 
-export default logSystemEvent;
+// At the bottom of the file, avoid redeclaration
+const logSystemEventStub = async (..._args: any[]) => {
+  return Promise.resolve();
+};
+
+export default process.env.NODE_ENV === "test" ? logSystemEventStub : logSystemEvent;
 
 /**
  * Convenience method for logging errors

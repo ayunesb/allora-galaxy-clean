@@ -1,3 +1,9 @@
 { "compilerOptions": {
-    "jsx": "react", "target": "ESNext" 
+    "jsx": "react",
+    "target": "ESNext",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "allowSyntheticDefaultImports": true
 } }

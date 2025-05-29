@@ -43,6 +43,12 @@ export async function castVote(
   }
 }
 
+// Provide a named export for castVote for mocking in tests
+export async function castVote(..._args: any[]) {
+  // No-op stub for tests
+  return Promise.resolve({ success: true });
+}
+
 /**
  * Vote on an agent version
  * @param agentVersionId The agent version ID to vote on

@@ -1,5 +1,5 @@
 import { usePluginFeedbackLive } from "@/hooks/usePluginFeedback";
-import { fetchPluginFeedback } from "@/api/pluginFeedback";
+import { fetchPluginFeedback, sendPluginFeedback } from "@/api/pluginFeedback";
 import { useEffect, useState } from "react";
 
 const LiveFeedbackPanel = (props) => {

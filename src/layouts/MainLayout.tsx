@@ -1,14 +1,10 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 
-const MainLayout = ({ children }: { children: React.ReactNode }) => {
+export default function MainLayout() {
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <main>{children}</main>
+    <div className="min-h-screen flex">
+      <Outlet />
     </div>
   );
-};
-
-export default MainLayout;
+}

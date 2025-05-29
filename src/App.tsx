@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import RequireAuth from "@/components/auth/RequireAuth";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { Suspense } from 'react';
 import MainLayout from "./layouts/MainLayout";
 import AlloraBrainPage from "@/pages/allora-brain/AlloraBrainPage";
 import Dashboard from "./pages/Dashboard";
@@ -27,13 +28,17 @@ import UnauthorizedPage from "@/pages/unauthorized";
 import LoginPage from "@/pages/auth/LoginPage";
 import Sidebar from "@/components/Sidebar";
 import Layout from "@/components/Layout";
+import OnboardingPage from "@/pages/onboarding/OnboardingPage";
+import { queryClient } from './lib/react-query';
+
+const Loading = () => <div>Loading...</div>;
 
 function App() {
+  console.log("App rendered at path:", window.location.pathname);
+
   return (
-    // <Layout>
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Sidebar />
-      <main className="flex-1 p-4">
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={<Loading />}>
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/allora-brain" replace />} />
@@ -61,14 +66,18 @@ function App() {
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             {/* ...add other nested routes as needed... */}
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            {/* 404 fallback route */}
+            <Route path="*" element={<div className="p-10 text-red-500">404 – No page matched</div>} />
           </Route>
           <Route path="/auth/login" element={<LoginPage />} />
         </Routes>
-        <Outlet />
-      </main>
-    </div>
-    // </Layout>
+      </Suspense>
+    </QueryClientProvider>
   );
 }
 
 export default App;
+
+// These are React Router v7 future warnings and do not require code changes.
+// You can safely ignore them for now, or opt-in to the new behavior as described in the React Router docs.

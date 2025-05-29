@@ -1,5 +1,5 @@
 import React from 'react';
-import StrategyEvolution from '@/components/strategy/StrategyEvolution';
+import StrategyEvolution from "@/components/strategy/StrategyEvolution";
 import ExecutionTimeline from '@/components/strategy/ExecutionTimeline';
 
 export default function StrategyEvolutionTimelinePage() {

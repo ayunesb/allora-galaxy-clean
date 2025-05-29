@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/Dashboard";
 import AdminPage from "@/pages/AdminPage";
-import LoginPage from "@/pages/LoginPage";
+import LoginPage from "@/pages/auth/LoginPage";
 import MainLayout from "@/layouts/MainLayout";
 import RequireAuth from "@/components/auth/RequireAuth";
 

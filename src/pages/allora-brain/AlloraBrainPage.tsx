@@ -183,11 +183,15 @@ const ActionCard: React.FC<ActionCardProps> = ({
   onAction,
   variant = "default",
 }) => {
+  const buttonClass =
+    variant === "destructive"
+      ? "w-full bg-red-600 text-white hover:bg-red-700"
+      : "w-full";
   return (
     <div className="border rounded-lg p-4">
       <h3 className="font-medium mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground mb-4">{description}</p>
-      <Button onClick={onAction} variant={variant} className="w-full">
+      <Button onClick={onAction} className={buttonClass}>
         Execute
       </Button>
     </div>

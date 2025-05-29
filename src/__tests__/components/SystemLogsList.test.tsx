@@ -37,8 +37,7 @@ vi.mock("@/components/admin/logs/SystemLogsList", () => {
   };
 });
 
-// Import the mocked component
-import SystemLogsList from "@/components/admin/logs/SystemLogsList";
+// import SystemLogsList from "@/components/admin/logs/SystemLogsList";
 
 describe("SystemLogsList", () => {
   // Mock data
